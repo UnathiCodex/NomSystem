@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <!-- Read file as utf-8, unicode encoding of every character -->
+        <meta charset="utf-8">
+
+        <!-- Use viewport which the phone browser reports us and not the fixed 980 -->
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+
+        <!-- Name of page, shown in browser tab -->
+        <title>NomSystem</title>
+
+        <!-- Logo, shown in browser tab; file in public, given out as it is -->
+        <link rel="icon" href="/icon.svg" type="image/svg+xml">
+
+        <!-- Name, colours and logos with which the phone installs the page as an app on its home screen -->
+        <link rel="manifest" href="/manifest.webmanifest">
+
+        <!-- Colour of the phone's status bar above the page, same as the page background -->
+        <meta name="theme-color" content="#1e1e1e">
+
+        <!-- Colours, sizes and look of the whole page, read before the page first shows,
+             so switching areas never flashes a white, unstyled page -->
+        <link rel="stylesheet" href="/src/variants.css">
+        <link rel="stylesheet" href="/src/base.css">
+
+        <!-- Type module allows import in the ts file, source main.ts in src -->
+        <script type="module" src="/src/main.ts"></script>
+    </head>
+
+    <body>
+        <!-- Areas of the life system; main.ts marks the shown one and opens it below -->
+        <nav class="areas">
+            <a href="/">Day</a>
+            <a href="/week">Week</a>
+            <a href="/notes">Notes</a>
+            <a href="/skill">Skill</a>
+            <a href="/food">Food</a>
+
+            <!-- Timer of a session of mine running now, at the right; filled by timer.ts, hidden while none runs -->
+            <span class="session-timer" id="session-timer" hidden></span>
+        </nav>
+    </body>
+</html>

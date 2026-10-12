@@ -1,0 +1,25 @@
+<!-- Notes: the menu of the modules of the semester on the left, the chosen note on the right, read only -->
+<div class="notes">
+    <!-- Menu: the modules of the semester at the top; below them the chapters of the chosen one, each folding its notes,
+         and the outline of the shown note under it -->
+    <nav class="notes-tree" id="notes-tree">
+        <h2 class="notes-caption">Modules</h2>
+        <div class="notes-modules" id="notes-modules"></div>
+        <h2 class="notes-caption">Chapters</h2>
+        <div id="notes-chapters"></div>
+    </nav>
+
+    <!-- Chosen note, rendered like Obsidian in a calm reading width, scrolls alone -->
+    <article class="notes-note" id="notes-note">
+        <div class="notes-page">
+            <!-- Name of the note, and for a draft the pencil that opens it in the editor -->
+            <div class="notes-head">
+                <h1 class="notes-title" id="notes-title"></h1>
+                <a class="notes-edit" id="notes-edit" hidden></a>
+            </div>
+            <div class="markdown" id="notes-text">
+                <p class="notes-none">Choose a note on the left</p>
+            </div>
+        </div>
+    </article>
+</div>

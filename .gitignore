@@ -1,0 +1,12 @@
+# JetBrains IntelliJ
+.idea
+
+# Node and npm
+node_modules
+
+# Claude Meta
+.claude
+
+# Mine only, never to my friend
+screens
+commands.md

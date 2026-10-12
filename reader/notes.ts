@@ -1,0 +1,517 @@
+/**
+ * ## Notes
+ *
+ * Reads my modules and the drafts for the notes view, read only: the modules of the semester with their chapters
+ * and notes for the menu, a note with the files its links lead to, the links of the notes that lead nowhere,
+ * and single files, like the images of a note; for the skill entries of the day, every module folder
+ * with its chapters and the university's documents in it.
+ * Each module is a vault of its own, as in Obsidian, so a link leads to a file of the same module;
+ * the drafts of a module lie in it as if they were its own folders, so a draft links to the lecture's slides
+ * as it will once it moves into the module. A note of any module can be read, also of one that is not in the menu.
+ * Paths come and go with `/`: from `NomSkillingmodules`, like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/Tangens.svg`,
+ * and from the drafts with `Drafts/` before, like `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/…`.
+ * Hidden files and folders, like `.obsidian`, stay out, as in Obsidian.
+ *
+ * - `node:fs`: Reads files and folders on the disk.
+ * - `node:path`: Builds file paths, `posix` with `/` for paths inside the modules.
+ * - `./sources.ts`: Names the folders of the drafts and of my modules, and the modules of the semester.
+ */
+
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { extname, join, posix, sep } from "node:path";
+import { activeModules, notes } from "./sources.ts";
+
+import type { Dirent } from "node:fs";
+
+
+/**
+ * A note of a chapter, as the menu lists it.
+ *
+ * - `name`: Name of the file, like `01_01_EstimatorConfidenceInterval.md`.
+ * - `path`: Path, see the top of this file.
+ */
+export type NoteEntry = {
+    name: string;
+    path: string;
+};
+
+/**
+ * A chapter of a module with its notes, from the module and its drafts together.
+ *
+ * - `title`: Its name to read, like `01 Regression Analysis` of the folder `01_RegressionAnalysis`, see {@link titleOf}.
+ * - `notes`: Its notes, sorted as Obsidian's file explorer does.
+ */
+export type Chapter = {
+    title: string;
+    notes: NoteEntry[];
+};
+
+/**
+ * A module of the semester with its chapters.
+ *
+ * - `name`: Name of its folder, like `IN2028_BusinessAnalyticsMachineLearning`.
+ * - `title`: Its name to read, like `IN2028 Business Analytics Machine Learning`, see {@link titleOf}.
+ * - `chapters`: Its chapters that hold notes, in the order of their folders.
+ */
+export type NotesModule = {
+    name: string;
+    title: string;
+    chapters: Chapter[];
+};
+
+/**
+ * A note with the files its links lead to.
+ *
+ * - `path`: Path of the note, see the top of this file.
+ * - `text`: Markdown text of the note.
+ * - `links`: For each link of the note as written, like `05_06_EulerTrigonometrie` of
+ *   `[[05_06_EulerTrigonometrie#05.06. Definition. Eulersche Formel|Eulersche Formel]]` or `./img/Singleton.png`
+ *   of `![Singleton](./img/Singleton.png)`: path of the file it leads to, `null` when it leads nowhere.
+ */
+export type LinkedNote = {
+    path: string;
+    text: string;
+    links: { [link: string]: string | null };
+};
+
+/**
+ * A file with its content type, as the browser gets it.
+ *
+ * - `type`: Content type, like `image/svg+xml`.
+ * - `content`: Bytes of the file.
+ */
+export type NotesFile = {
+    type: string;
+    content: Buffer;
+};
+
+/**
+ * A link of a note that leads nowhere.
+ *
+ * - `note`: Path of the note, see the top of this file.
+ * - `link`: The link as written, like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`
+ *   of `[[VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf#page=10|lecture 04 slide 10]]`.
+ */
+export type BrokenLink = {
+    note: string;
+    link: string;
+};
+
+/**
+ * What a module folder holds besides its notes, for a skill entry of the day.
+ *
+ * - `chapters`: Names to read of its chapter folders and of those of its drafts, also of the empty ones,
+ *   like `05 Decision Trees Ensembles`, in order.
+ * - `documents`: Its files outside the chapter folders, the university's material, by their paths from the module folder,
+ *   like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`, in order.
+ */
+export type ModuleContents = {
+    chapters: string[];
+    documents: string[];
+};
+
+/**
+ * Wiki link or embed, like `[[05_06_EulerTrigonometrie#…|…]]` or `![[Tangens.svg|300]]`:
+ * its target before `#`, `|` or the `\|` written in tables.
+ */
+const wikiLink: RegExp = /\[\[([^\]#|\\]*)/g;
+
+/**
+ * Markdown link or image, like `[Text](Note.md#Heading)` or `![Singleton](./img/Singleton.png)`:
+ * its address before `#`, written plain or in `<…>`.
+ */
+const markdownLink: RegExp = /\]\(\s*(?:<([^>#]*)|([^\s)#]*))/g;
+
+/**
+ * Address with a scheme, like `https://…` or `mailto:…`: a link out of the vault, never resolved.
+ */
+const external: RegExp = /^[a-z][a-z\d+.-]*:/i;
+
+/**
+ * Content types of the files the notes view shows or opens, by their ending; any other file comes as bytes.
+ */
+const types: { [ending: string]: string } = {
+    ".md": "text/markdown; charset=utf-8",
+    ".txt": "text/plain; charset=utf-8",
+    ".pdf": "application/pdf",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+};
+
+/**
+ * Sorts names as Obsidian's file explorer does: alphabetical, numbers by their value, case ignored.
+ */
+const collator: Intl.Collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+/**
+ * Chapter folder, like `01_RegressionAnalysis`: two digits and `_` first.
+ */
+const chapterFolder: RegExp = /^\d{2}_/;
+
+/**
+ * Module folder, like `IN2028_BusinessAnalyticsMachineLearning`: its code, capitals and then digits, and `_` first,
+ * so a folder like `_Inbox` is none.
+ */
+const moduleFolder: RegExp = /^[A-Z]+\d+_/;
+
+/**
+ * First part of the paths of the drafts; a module folder named so would be taken for them.
+ */
+const draftsName: string = "Drafts";
+
+
+/**
+ * Tells whether a path lies in the drafts, see {@link draftsName}.
+ *
+ * @param path - Path like `Drafts/IN2028_BusinessAnalyticsMachineLearning`
+ * @returns Whether it starts with `Drafts`
+ */
+function inDrafts(path: string): boolean {
+    return path.split("/")[0] === draftsName;
+}
+
+/**
+ * Turns a path into the path on the disk, only when it stays inside the drafts or `NomSkillingmodules`.
+ * - {@link realpathSync}: Makes a path absolute and follows symbolic links, so no link leads outside.
+ *
+ * @param path - Path like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen`
+ * @returns Path on the disk
+ * @throws {Error} - When a part of the path starts with `.`, like `..` or `.obsidian`, when it leads outside
+ *   its folder, or when nothing lies there
+ */
+function diskPathOf(path: string): string {
+    if (path.split("/").some((part: string): boolean => part.startsWith(".")))
+        throw new Error(`No hidden path and no way up: ${path}`);
+
+    const root: string = realpathSync(inDrafts(path) ? notes.drafts : notes.modules);
+    const file: string = realpathSync(join(root, inDrafts(path) ? path.slice(draftsName.length) : path));
+    if (file !== root && !file.startsWith(`${root}${sep}`))
+        throw new Error(`No reading outside the drafts and the modules: ${path}`);
+    return file;
+}
+
+/**
+ * Gives the module of a path, the vault its links stay in.
+ *
+ * @param path - Path like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/05_07_TrigonometrischeFunktionen.md`
+ * @returns Path of its module, like `MA0902_ReelleAnalysisInformatik` or `Drafts/IN2028_BusinessAnalyticsMachineLearning`
+ */
+function moduleOf(path: string): string {
+    return path.split("/").slice(0, inDrafts(path) ? 2 : 1).join("/");
+}
+
+/**
+ * Gives the folders of a module: the module in my modules, and in the drafts when it has drafts there.
+ *
+ * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
+ * @returns Paths like `IN2028_BusinessAnalyticsMachineLearning` and `Drafts/IN2028_BusinessAnalyticsMachineLearning`
+ */
+function foldersOf(module: string): string[] {
+    if (existsSync(join(notes.drafts, module)))
+        return [module, `${draftsName}/${module}`];
+    return [module];
+}
+
+/**
+ * Gives the module code of a module folder, the part of its name before `_`.
+ *
+ * @param name - Folder name, like `IN2028_BusinessAnalyticsMachineLearning`
+ * @returns Code, like `IN2028`
+ */
+export function codeOf(name: string): string {
+    return name.split("_")[0];
+}
+
+/**
+ * Reads the entries of a folder without hidden ones, as Obsidian lists a vault.
+ *
+ * @param folder - Path of the folder, like `MA0902_ReelleAnalysisInformatik`
+ * @returns Entries of the folder
+ */
+function entriesRead(folder: string): Dirent[] {
+    return readdirSync(diskPathOf(folder), { withFileTypes: true })
+        .filter((entry: Dirent): boolean => !entry.name.startsWith("."));
+}
+
+/**
+ * Lists every file below a folder, without hidden files and folders, as Obsidian lists a vault.
+ *
+ * @param folder - Path of the folder, like `MA0902_ReelleAnalysisInformatik`
+ * @returns Paths of the files
+ */
+function filesRead(folder: string): string[] {
+    return entriesRead(folder).flatMap((entry: Dirent): string[] => {
+        const path: string = posix.join(folder, entry.name);
+        return entry.isDirectory() ? filesRead(path) : [path];
+    });
+}
+
+/**
+ * Lists the files the links of a note may lead to, by their paths in its module, each with its path,
+ * see the top of this file: the files of its module, and for a draft first those of its module in the drafts,
+ * then those of the module in `NomSkillingmodules`, as if the drafts lay in it; a path in both leads to the draft.
+ * - `roots`: The module, and for a draft also the module in `NomSkillingmodules` when it has a folder there.
+ * - `files`: Path of each file by its path in the module, as found so far.
+ * - `inModule`: Path of a file in its module.
+ *
+ * @param module - Path of the module of the note, like `Drafts/IN2028_BusinessAnalyticsMachineLearning`
+ * @returns Path of each file, like `IN2028_BusinessAnalyticsMachineLearning/VO_UniversityLectureLessons/TUM_2025W/…`,
+ *   by its path in the module, like `VO_UniversityLectureLessons/TUM_2025W/…`, the drafts' first
+ */
+function vaultFilesRead(module: string): Map<string, string> {
+    const roots: string[] = inDrafts(module) && existsSync(join(notes.modules, module.slice(draftsName.length + 1)))
+        ? [module, module.slice(draftsName.length + 1)] : [module];
+    const files: Map<string, string> = new Map();
+    roots.forEach((root: string): void => filesRead(root).forEach((file: string): void => {
+        const inModule: string = file.slice(root.length + 1);
+        if (!files.has(inModule))
+            files.set(inModule, file);
+    }));
+    return files;
+}
+
+/**
+ * Finds the file a link leads to, as Obsidian does in `getLinkpathDest`, ignoring case:
+ * - an empty link, like the one of `[[#Heading]]`, leads to the note itself;
+ * - candidates are the files with the link's name, like `Tangens.svg`;
+ *   when its name has no ending or no file has it, the files with `.md` added, like `03_05_AbsoluteKonvergenz.md`;
+ * - a plain name with one candidate leads to it;
+ * - else the candidate at the link's path, from the note's folder for `./` and `../`, else from the module;
+ * - else the candidate whose path ends with the link, the note's folder first, the shortest path first.
+ *
+ * @param link - Link as Obsidian reads it, like `03_05_AbsoluteKonvergenz` or `./img/Singleton.png`
+ * @param note - Path of the note in its module, like `05_WichtigeFunktionstypen/05_07_TrigonometrischeFunktionen.md`
+ * @param files - Paths of all files in the module
+ * @returns Path of the file in the module, or `null` when the link leads nowhere
+ */
+function linkResolve(link: string, note: string, files: string[]): string | null {
+    if (link === "")
+        return note;
+
+    const named: (path: string) => string[] = (path: string): string[] =>
+        files.filter((file: string): boolean => posix.basename(file).toLowerCase() === posix.basename(path));
+    let path: string = link.toLowerCase();
+    let candidates: string[] = posix.basename(path).includes(".") ? named(path) : [];
+    if (candidates.length === 0) {
+        path = `${link}.md`.toLowerCase();
+        candidates = named(path);
+    }
+    if (candidates.length === 0)
+        return null;
+    if (!path.includes("/") && candidates.length === 1)
+        return candidates[0];
+
+    const folder: string = note.includes("/") ? note.slice(0, note.lastIndexOf("/")).toLowerCase() : "";
+    const exact: string = path.startsWith("./") || path.startsWith("../")
+        ? posix.join(folder, path)
+        : path.replace(/^\//, "");
+    const found: string | undefined = candidates.find((file: string): boolean => file.toLowerCase() === exact);
+    if (found !== undefined)
+        return found;
+    if (link.startsWith("/"))
+        return null;
+
+    const endings: string[] = candidates
+        .filter((file: string): boolean => file.toLowerCase().endsWith(path))
+        .sort((first: string, second: string): number => first.length - second.length);
+    const nearby: string | undefined = endings.find((file: string): boolean => file.toLowerCase().startsWith(folder));
+    if (nearby !== undefined)
+        return nearby;
+    if (endings.length > 0)
+        return endings[0];
+    return null;
+}
+
+/**
+ * Reads a link as Obsidian does: with `%20` and the like decoded, as written when it cannot be decoded.
+ *
+ * @param link - Link as written, like `Note%20One.md`
+ * @returns Decoded link, like `Note One.md`
+ */
+function linkDecode(link: string): string {
+    try {
+        return decodeURIComponent(link);
+    } catch {
+        return link;
+    }
+}
+
+/**
+ * Gives the name to read of a module or chapter folder: its first `_` a space and its words apart,
+ * like `IN2028 Business Analytics Machine Learning` of `IN2028_BusinessAnalyticsMachineLearning`
+ * or `01 Regression Analysis` of `01_RegressionAnalysis`.
+ *
+ * @param folder - Name of the folder
+ * @returns Name to read
+ */
+export function titleOf(folder: string): string {
+    return folder.replace("_", " ").replace(/(?<=\p{Ll})(?=\p{Lu})/gu, " ");
+}
+
+/**
+ * Reads the modules of the semester, see {@link activeModules}, each with its chapters and their notes, for the menu:
+ * the chapter folders, like `01_RegressionAnalysis`, of the module and of its drafts together, a chapter in both once,
+ * each with its notes, the `.md` files right in it. Chapters without notes stay out, and so do the other folders,
+ * like `FA_UniversityModuleExaminations` with the university's material, and the other files, like images.
+ * - `chapters`: Notes by the folder of their chapter.
+ *
+ * @returns Modules in the order of the list
+ * @throws {Error} - When a module of the list has no folder in `NomSkillingmodules`
+ */
+export function modulesRead(): NotesModule[] {
+    return activeModules.map((module: string): NotesModule => {
+        const chapters: Map<string, NoteEntry[]> = new Map();
+        foldersOf(module).forEach((folder: string): void => {
+            entriesRead(folder)
+                .filter((chapter: Dirent): boolean => chapter.isDirectory() && chapterFolder.test(chapter.name))
+                .forEach((chapter: Dirent): void => {
+                    const path: string = `${folder}/${chapter.name}`;
+                    const entries: NoteEntry[] = entriesRead(path)
+                        .filter((note: Dirent): boolean => !note.isDirectory() && note.name.toLowerCase().endsWith(".md"))
+                        .map((note: Dirent): NoteEntry => ({ name: note.name, path: `${path}/${note.name}` }));
+                    chapters.set(chapter.name, [...chapters.get(chapter.name) ?? [], ...entries]);
+                });
+        });
+
+        return {
+            name: module,
+            title: titleOf(module),
+            chapters: [...chapters.keys()]
+                .sort(collator.compare)
+                .map((chapter: string): Chapter => ({
+                    title: titleOf(chapter),
+                    notes: (chapters.get(chapter) ?? []).sort((first: NoteEntry, second: NoteEntry): number =>
+                        collator.compare(first.name, second.name)),
+                }))
+                .filter((chapter: Chapter): boolean => chapter.notes.length > 0),
+        };
+    });
+}
+
+/**
+ * Lists every module folder in `NomSkillingmodules`, like `IN0024_OperationsResearch`, also of the modules
+ * that are not of the semester, as Obsidian's file explorer sorts them.
+ *
+ * @returns Names of the module folders
+ */
+export function moduleFoldersRead(): string[] {
+    return entriesRead("")
+        .filter((entry: Dirent): boolean => entry.isDirectory() && moduleFolder.test(entry.name))
+        .map((entry: Dirent): string => entry.name)
+        .sort(collator.compare);
+}
+
+/**
+ * Finds the folder of a module in `NomSkillingmodules` by its code.
+ *
+ * @param code - Module code, like `IN2028`
+ * @returns Name of its folder, like `IN2028_BusinessAnalyticsMachineLearning`, `undefined` when no folder has the code
+ */
+export function moduleFolderOf(code: string): string | undefined {
+    return moduleFoldersRead().find((name: string): boolean => codeOf(name) === code);
+}
+
+/**
+ * Reads what a module folder holds besides its notes, see {@link ModuleContents}: the chapter folders of the module
+ * and of its drafts together, a chapter in both once, and every file of the module outside them, like the lecture's slides.
+ * - `chapters`: Names of the chapter folders, a chapter in both twice.
+ *
+ * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
+ * @returns Chapters and documents of the module
+ * @throws {Error} - When the module has no folder in `NomSkillingmodules`
+ */
+export function moduleContentsRead(module: string): ModuleContents {
+    const chapters: string[] = foldersOf(module).flatMap((folder: string): string[] => entriesRead(folder)
+        .filter((entry: Dirent): boolean => entry.isDirectory() && chapterFolder.test(entry.name))
+        .map((entry: Dirent): string => entry.name));
+    return {
+        chapters: [...new Set(chapters)].sort(collator.compare).map(titleOf),
+        documents: entriesRead(module)
+            .flatMap((entry: Dirent): string[] => entry.isDirectory()
+                ? (chapterFolder.test(entry.name) ? [] : filesRead(`${module}/${entry.name}`))
+                : [`${module}/${entry.name}`])
+            .map((file: string): string => file.slice(module.length + 1))
+            .sort(collator.compare),
+    };
+}
+
+/**
+ * Finds the files the wiki links, embeds, Markdown links and images of a note lead to, see {@link linkResolve}.
+ * - `note`: Path of the note in its module.
+ * - `inModule`: Paths in the module of the files the links may lead to.
+ * - `links`: Links of the note as written, without links out of the vault, like `https://…`.
+ *
+ * @param text - Text of the note
+ * @param path - Path of the note
+ * @param files - Files the links of the note may lead to, see {@link vaultFilesRead}
+ * @returns For each link as written, path of the file it leads to, `null` when it leads nowhere
+ */
+function linksOf(text: string, path: string, files: Map<string, string>): { [link: string]: string | null } {
+    const note: string = path.slice(moduleOf(path).length + 1);
+    const inModule: string[] = [...files.keys()];
+    const links: string[] = [
+        ...[...text.matchAll(wikiLink)].map((match: RegExpExecArray): string => match[1].trim()),
+        ...[...text.matchAll(markdownLink)].map((match: RegExpExecArray): string => match[1] ?? match[2]),
+    ].filter((link: string): boolean => !external.test(link));
+
+    return Object.fromEntries(links.map((link: string): [string, string | null] => {
+        const found: string | null = linkResolve(linkDecode(link), note, inModule);
+        return [link, found === null ? null : files.get(found) ?? null];
+    }));
+}
+
+/**
+ * Reads a note with the files its wiki links, embeds, Markdown links and images lead to, see {@link linksOf}:
+ * within its module, a draft also within its module in `NomSkillingmodules`, see {@link vaultFilesRead}.
+ * Lists the files of its module once, which takes up to a few hundred milliseconds in a module with code.
+ *
+ * @param path - Path of the note, like
+ *   `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/05_07_TrigonometrischeFunktionen.md`
+ * @returns Note with its links
+ * @throws {Error} - When the note lies outside the drafts and `NomSkillingmodules`, or is missing
+ */
+export function linkedNoteRead(path: string): LinkedNote {
+    const text: string = readFileSync(diskPathOf(path), "utf8");
+    return { path: path, text: text, links: linksOf(text, path, vaultFilesRead(moduleOf(path))) };
+}
+
+/**
+ * Reads the links that lead nowhere in the notes of the semester, the chapter notes of the modules and their drafts
+ * the menu shows, each link once per note, like a link to a slide whose file was renamed.
+ * Lists the files of each module and of its drafts once.
+ * - `vaults`: Files the links may lead to, by the path of the module of a note, as listed so far.
+ * - `root`: Path of the module of a note, like `Drafts/IN2028_BusinessAnalyticsMachineLearning`.
+ * - `files`: Files the links of the note may lead to.
+ *
+ * @returns Links that lead nowhere, by the order of the menu
+ * @throws {Error} - When a folder or note cannot be read
+ */
+export function brokenLinksRead(): BrokenLink[] {
+    const vaults: Map<string, Map<string, string>> = new Map();
+    return modulesRead().flatMap((module: NotesModule): NoteEntry[] =>
+        module.chapters.flatMap((chapter: Chapter): NoteEntry[] => chapter.notes)
+    ).flatMap((note: NoteEntry): BrokenLink[] => {
+        const root: string = moduleOf(note.path);
+        const files: Map<string, string> = vaults.get(root) ?? vaultFilesRead(root);
+        vaults.set(root, files);
+        return Object.entries(linksOf(readFileSync(diskPathOf(note.path), "utf8"), note.path, files))
+            .filter(([, file]: [string, string | null]): boolean => file === null)
+            .map(([link]: [string, string | null]): BrokenLink => ({ note: note.path, link: link }));
+    });
+}
+
+/**
+ * Reads a file of my modules with its content type, like an image of a note or a PDF to open.
+ *
+ * @param path - Path like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/Tangens.svg`
+ * @returns File with its content type
+ * @throws {Error} - When the file lies outside the drafts and `NomSkillingmodules`, or is missing
+ */
+export function fileRead(path: string): NotesFile {
+    const file: string = diskPathOf(path);
+    return { type: types[extname(file).toLowerCase()] ?? "application/octet-stream", content: readFileSync(file) };
+}

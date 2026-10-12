@@ -1,0 +1,187 @@
+/* Skill: the modules one below the other in a calm reading width, filling the screen below the areas
+   with a grey line between, as the notes do, and scrolling alone */
+.skill {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+    padding: calc(1.5 * var(--gap)) calc(2 * var(--gap)) calc(4 * var(--gap));
+    border-top: 1px solid var(--line);
+}
+
+#skill-modules {
+    max-width: var(--reading-width);
+    margin: 0 auto;
+}
+
+/* Modules apart from each other */
+.skill-module + .skill-module {
+    margin-top: calc(4 * var(--gap));
+}
+
+/* Head of a module: its name left, the ready number right, in the text of controls */
+.skill-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--gap);
+    font-size: var(--control-text);
+}
+
+/* Task headings found twice and attempts on removed tasks, grey below the head; also the hint when
+   nothing is due, or when the tasks cannot be read */
+.skill-notice,
+.skill-none {
+    margin: 0.5rem 0 0;
+    color: var(--text-muted);
+}
+
+.skill-notice a {
+    color: inherit;
+}
+
+/* Due today and each chapter apart from what stands before them, their names in the text of controls,
+   their numbers grey beside them */
+.skill-part,
+.skill-chapter {
+    margin-top: calc(2.5 * var(--gap));
+}
+
+.skill-part h3,
+.skill-chapter > summary {
+    font-size: var(--control-text);
+    font-weight: 600;
+}
+
+.skill-count {
+    margin-left: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+/* Tasks as airy rows parted by grey lines: the name at the left, its state grey at the right */
+.skill-tasks {
+    margin: 0.75rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.skill-task {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: calc(2 * var(--gap));
+    padding: 0.875rem 0.25rem;
+    border-bottom: 1px solid var(--line);
+}
+
+/* Name of a task in the text of controls, linking to its heading in the notes view */
+.skill-name {
+    font-size: var(--control-text);
+    color: var(--text-main);
+    text-decoration: none;
+}
+
+.skill-name:hover {
+    text-decoration: underline;
+}
+
+/* State of a task, like New or Due Monday, 12.10.2026, grey on its line, below the name where the line is too narrow */
+.skill-state {
+    flex: none;
+    color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+    .skill-task {
+        flex-wrap: wrap;
+    }
+
+    li.skill-task > .skill-name {
+        flex-basis: 100%;
+    }
+
+    .skill-state {
+        flex: auto;
+        text-align: right;
+    }
+}
+
+/* Chapter, open at first, its name and numbers on its line, the grey fold arrow before it */
+.skill-chapter > summary {
+    padding: 0.5rem 0;
+    list-style: none;
+    cursor: pointer;
+}
+
+.skill-chapter > summary::before {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1lh;
+    margin-right: 0.25rem;
+    vertical-align: top;
+    background: var(--text-muted);
+    mask: var(--fold-icon) center / 0.875em no-repeat;
+    rotate: -90deg;
+    transition: rotate 100ms ease-in-out;
+}
+
+.skill-chapter[open] > summary::before {
+    rotate: 0deg;
+}
+
+/* Exam of the module, grey below its head */
+.skill-exam {
+    margin: 0.25rem 0 0;
+    color: var(--text-muted);
+}
+
+/* `cold` after the name of a cold task, small and grey */
+.skill-cold {
+    font-size: 0.8em;
+    color: var(--text-muted);
+}
+
+/* Section of a chapter, closed at first: its line like a task's with the fold arrow before it,
+   its tasks indented below it once open */
+.skill-section > summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.skill-section > summary .skill-name {
+    flex: 1;
+}
+
+.skill-section > summary::before {
+    content: "";
+    flex: none;
+    width: 1em;
+    height: 1lh;
+    margin-right: calc(0.5rem - 2 * var(--gap));
+    background: var(--text-muted);
+    mask: var(--fold-icon) center / 0.875em no-repeat;
+    rotate: -90deg;
+    transition: rotate 100ms ease-in-out;
+}
+
+.skill-section[open] > summary::before {
+    rotate: 0deg;
+}
+
+.skill-section-tasks {
+    margin: 0 0 0 1.5rem;
+}
+
+/* Phone: less room around the overview, and the name of a section takes its whole line, its state below it;
+   after the rule of its width above */
+@media (max-width: 900px) {
+    .skill {
+        padding: var(--gap);
+    }
+
+    .skill-section > summary .skill-name {
+        flex: 1 0 calc(100% - 2rem);
+    }
+}

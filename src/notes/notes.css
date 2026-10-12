@@ -1,0 +1,559 @@
+/* Notes: menu on the left, the note on the right, filling the screen below the areas, a grey line between */
+.notes {
+    display: grid;
+    grid-template-columns: var(--tree-width) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--line);
+}
+
+/* Menu: own column with a line beside it, scrolls alone, like Obsidian's file explorer,
+   each row in the text of controls and one chip high to click */
+.notes-tree {
+    overflow-y: auto;
+    padding: var(--gap) 0.75rem;
+    border-right: 1px solid var(--line);
+    font-size: var(--control-text);
+    line-height: var(--chip-height);
+}
+
+/* Captions Modules and Chapters, small and grey like the heading of the day plans */
+.notes-caption {
+    padding: 0 0.5rem 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+/* Modules of the semester above the chapters of the chosen one, a grey line between */
+.notes-modules {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--line);
+}
+
+/* Module as a row of the menu, grey but the chosen one */
+.notes-modules button {
+    width: 100%;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    text-align: left;
+}
+
+/* Names in the menu on one line, cut with an ellipsis, rows a little apart, so their greys never touch */
+.notes-modules button,
+.tree-folder > summary,
+.tree-file {
+    display: block;
+    overflow: hidden;
+    margin: 0.125rem 0;
+    padding: 0 0.5rem;
+    border-radius: var(--radius);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+/* Folder name with a grey arrow before it, turned down while open */
+.tree-folder > summary {
+    list-style: none;
+}
+
+.tree-folder > summary::before {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1lh;
+    vertical-align: top;
+    background: var(--text-muted);
+    mask: var(--fold-icon) center / 0.875em no-repeat;
+    rotate: -90deg;
+    transition: rotate 100ms ease-in-out;
+}
+
+.tree-folder[open] > summary::before {
+    rotate: 0deg;
+}
+
+/* Entries of a folder indented, a grey guide line beside them, as in Obsidian */
+.tree-children {
+    margin-left: 0.75rem;
+    padding-left: 0.25rem;
+    border-left: 1px solid var(--line);
+}
+
+/* Note name in line with the folder names after their arrow */
+.tree-file {
+    padding-left: calc(0.5rem + 1em);
+    color: var(--text-main);
+    text-decoration: none;
+}
+
+/* A module without chapter notes says so, calm and grey, in line with the names of the menu */
+.tree-none {
+    margin: 0.125rem 0;
+    padding: 0 0.5rem;
+    color: var(--text-muted);
+}
+
+/* Outline of the shown note, its headings grey below it, as Obsidian's outline */
+.tree-outline .tree-file {
+    color: var(--text-muted);
+}
+
+/* A block of the outline with its tasks below it: its name in the light text of a folder, in line after the arrow,
+   linking to its heading, while the arrow folds the tasks */
+.tree-outline .tree-folder > summary > .tree-file {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    color: var(--text-main);
+    background: none;
+}
+
+/* Entry under the pointer one grey lighter; the module chosen and the note shown in the calm grey of what is picked,
+   the module in the light text */
+.notes-modules button:hover,
+.tree-folder > summary:hover,
+.tree-file:hover {
+    background: var(--fill);
+}
+
+.notes-modules button.shown,
+.tree-file.shown {
+    background: var(--chosen);
+}
+
+.notes-modules button.shown {
+    color: var(--text-main);
+}
+
+/* Note: own column, scrolls alone, with Obsidian's 32 px around a file, grown with the page */
+.notes-note {
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+/* Page of the note in my Obsidian's reading width with 40 px inside on each side, in the middle;
+   its text 16 px in Obsidian's grey, as in my Obsidian, grown with the page */
+.notes-page {
+    max-width: var(--reading-width);
+    margin: 0 auto;
+    padding: 0 2.5rem;
+    font-size: 1rem;
+    color: var(--reading-text);
+}
+
+/* Name of the note above it, as Obsidian's inline title */
+.notes-title {
+    margin: 0 0 0.5em;
+    font-size: 1.618em;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+}
+
+/* Name of the note with the pencil of a draft beside it */
+.notes-head {
+    display: flex;
+    gap: var(--gap);
+}
+
+/* Pencil opening a draft in the editor: one chip high and as wide, outlined and round, its icon grey in the middle,
+   a grey lighter under the pointer */
+.notes-edit {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--chip-height);
+    height: var(--chip-height);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--text-muted);
+}
+
+.notes-edit:hover {
+    background: var(--fill);
+}
+
+/* Hint while no note is shown or when it cannot be read */
+.notes-none {
+    color: var(--text-muted);
+}
+
+/* Text of a note, lines a bit higher than in my Obsidian */
+.markdown {
+    line-height: var(--reading-line-height);
+    overflow-wrap: break-word;
+}
+
+/* Paragraphs, lists and headings close to each other, as in my Obsidian */
+.markdown :is(p, ul, ol, h1, h2, h3, h4, h5, h6) {
+    margin: 0;
+}
+
+/* Paragraph of the note or of a folding block set apart from the block before it,
+   but not from its heading or from the row of its task */
+.markdown > p,
+.markdown .fold-content > p {
+    margin-top: 1.5em;
+}
+
+.markdown :is(h1, h2, h3, h4, h5, h6, .task-row) + p {
+    margin-top: 0;
+}
+
+/* Headings 1rem below the block before them, 2.5rem below text, a list, a table, a quote, code or a folding block,
+   as in Obsidian, also the heading of a folding block; nothing above the first block of the note or of a folding block */
+.markdown :is(h1, h2, h3, h4, h5, h6) {
+    margin-top: 1rem;
+}
+
+.markdown :is(p, ul, ol, table, blockquote, pre, .fold) + :is(h1, h2, h3, h4, h5, h6),
+.markdown :is(p, ul, ol, table, blockquote, pre, .fold) + .fold > summary > * {
+    margin-top: 2.5rem;
+}
+
+.markdown > :first-child,
+.markdown > .fold:first-child > summary > *,
+.markdown .fold-content > :first-child {
+    margin-top: 0;
+}
+
+/* Block under a heading folding by a click on its heading, the one place to click: each block under `##` open at first,
+   a solution closed until clicked, so I try the task first; the fold arrow after the heading
+   in the grey of callout titles, turned right while closed */
+.markdown details.fold > summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.markdown details.fold > summary > *::after {
+    content: "";
+    display: inline-block;
+    width: 1.125rem;
+    height: 1lh;
+    margin-left: 0.25rem;
+    vertical-align: top;
+    background: rgb(128 128 128);
+    mask: var(--fold-icon) center / 1.125rem no-repeat;
+    transition: rotate 100ms ease-in-out;
+}
+
+.markdown details.fold:not([open]) > summary > *::after {
+    rotate: -90deg;
+}
+
+/* Row of a task under its heading in the text and lines of the page, see `../skill/task.css` */
+.markdown .task-row {
+    font-size: var(--text-size);
+    line-height: 1.5;
+}
+
+/* Headings by size and space above as in my Obsidian, by weight and letter spacing as in Obsidian */
+.markdown h1 { padding-top: 2em; font-size: 1.5em; font-weight: 700; letter-spacing: -0.015em; }
+.markdown h2 { padding-top: 2em; font-size: 1.4em; font-weight: 680; letter-spacing: -0.011em; }
+.markdown h3 { padding-top: 1em; font-size: 1.3em; font-weight: 660; letter-spacing: -0.008em; }
+.markdown h4 { padding-top: 0.5em; font-size: 1.2em; font-weight: 640; letter-spacing: -0.005em; }
+.markdown h5 { font-size: 1.1em; font-weight: 620; letter-spacing: -0.002em; }
+.markdown h6 { font-size: 1em; font-weight: 600; }
+
+/* Lists as in Obsidian: each item 3 characters in, 2.25em inside an item of the same kind, items a little apart */
+.markdown :is(ul, ol) {
+    padding-left: 0;
+}
+
+.markdown li {
+    position: relative;
+    margin-left: 3ch;
+    padding: 0.075em 0;
+}
+
+.markdown :is(ul ul, ol ol) > li {
+    margin-left: 2.25em;
+}
+
+/* Numbers of a list in Obsidian's faint grey of list markers */
+.markdown ol > li::marker {
+    color: var(--reading-marker);
+}
+
+/* Bullet as Obsidian draws it: a small dot in the same grey, 0.8em before the text, in the middle of the first line */
+.markdown ul {
+    list-style: none;
+}
+
+.markdown ul > li::before {
+    content: "";
+    position: absolute;
+    top: calc(0.075em + 0.5lh - 0.15em);
+    left: -0.95em;
+    width: 0.3em;
+    height: 0.3em;
+    border-radius: 50%;
+    background: var(--reading-marker);
+}
+
+/* List inside an item with a thin grey line down from the item's bullet, as Obsidian's indentation guides */
+.markdown li > :is(ul, ol) {
+    position: relative;
+}
+
+.markdown li > :is(ul, ol)::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -0.85em;
+    border-left: 1px solid var(--reading-guide);
+}
+
+/* Callout as in my Obsidian: grey card, Obsidian's pencil before its title, info's circle for an info */
+.markdown .callout {
+    --callout-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><path d='M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z'/><path d='m15 5 4 4'/></svg>");
+    overflow: hidden;
+    margin: 1em 0;
+    padding: 0.75rem 0.75rem 0.75rem 1.5rem;
+    border-radius: 0.25rem;
+    background: rgb(128 128 128 / 0.1);
+}
+
+.markdown .callout[data-callout="info"] {
+    --callout-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><path d='M12 16v-4'/><path d='M12 8h.01'/></svg>");
+}
+
+/* Title of a callout grey and bold in Obsidian's tighter lines, icon and title side by side */
+.markdown .callout-title {
+    display: flex;
+    gap: 0.25rem;
+    align-items: flex-start;
+    margin-bottom: 1em;
+    color: rgb(128 128 128);
+    line-height: 1.3;
+}
+
+.markdown .callout-title-inner {
+    font-weight: 600;
+}
+
+/* Icon before the title and fold arrow after it: Obsidian's icons in the title's grey, one line high */
+.markdown .callout-title::before,
+.markdown summary.callout-title::after {
+    content: "";
+    flex: none;
+    width: 1.125rem;
+    height: 1lh;
+    background: currentColor;
+    mask: var(--callout-icon) center / 1.125rem no-repeat;
+}
+
+/* Foldable callout: Obsidian's arrow down at the end of its title, turned right while closed */
+.markdown summary.callout-title {
+    list-style: none;
+    cursor: pointer;
+}
+
+.markdown summary.callout-title::after {
+    mask-image: var(--fold-icon);
+    transition: rotate 100ms ease-in-out;
+}
+
+.markdown details.callout:not([open]) > summary.callout-title::after {
+    rotate: -90deg;
+}
+
+/* Closed callout shows only its title */
+.markdown details.callout:not([open]) > summary.callout-title {
+    margin-bottom: 0;
+}
+
+/* Content of a callout with a line of space below it, as in my Obsidian; it never scrolls,
+   only a formula too wide for it scrolls sideways on its own, see the formula below */
+.markdown .callout-content {
+    margin-bottom: 1em;
+}
+
+/* Paragraphs of a callout apart by a line, the last one closing it, as in my Obsidian */
+.markdown .callout-content > p {
+    margin-bottom: 1em;
+}
+
+.markdown .callout-content > :last-child {
+    margin-bottom: 0;
+}
+
+.markdown .callout-content > :is(ul, ol) + p {
+    margin-top: 1.5em;
+}
+
+/* Quote that is no callout and embedded note: a line in my accent's grey beside it, as in Obsidian */
+.markdown blockquote,
+.markdown .markdown-embed {
+    margin: 1em 0;
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--reading-accent);
+}
+
+/* Formula on a line of its own, at the left as in my Obsidian;
+   one wider than the page or its callout scrolls sideways on its own, never up and down */
+.markdown .math-block mjx-container[display="true"] {
+    overflow-x: auto;
+    overflow-y: hidden;
+    text-align: left;
+}
+
+/* Tables with grey lines and tighter lines, as in Obsidian;
+   one wider than the page scrolls sideways on its own, as a wide formula or code block does */
+.markdown table {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 1em 0;
+    border-collapse: collapse;
+    line-height: 1.3;
+}
+
+.markdown :is(th, td) {
+    min-width: 6ch;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+}
+
+/* Bold semibold, as in Obsidian */
+.markdown :is(th, strong) {
+    font-weight: 600;
+}
+
+/* Code within a line and code blocks on a grey ground, long lines wrapped, as in Obsidian;
+   a code block too wide scrolls sideways, never up and down */
+.markdown code {
+    padding: 0.15em 0.3em;
+    border-radius: 0.25rem;
+    background: var(--fill);
+    font-family: ui-monospace, monospace;
+    font-size: 0.875em;
+}
+
+.markdown pre {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem;
+    background: var(--fill);
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.markdown pre code {
+    padding: 0;
+    background: none;
+}
+
+/* Images no wider than the page */
+.markdown img {
+    max-width: 100%;
+}
+
+/* Links in my accent's lighter grey without a line, lighter under the pointer, as in my Obsidian;
+   a link that leads nowhere faded */
+.markdown a {
+    color: var(--reading-link);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.markdown a:hover {
+    color: var(--reading-text);
+}
+
+.markdown .is-unresolved {
+    opacity: 0.7;
+    cursor: default;
+}
+
+/* A link that leads nowhere also dotted below, a quiet mark that a source is broken */
+.markdown a.is-unresolved {
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2em;
+}
+
+/* Link out of my modules with Obsidian's arrow out of a box after it, not the links of the row of a task */
+.markdown a[href]:not(.internal-link, .task-row a) {
+    padding-right: 0.9em;
+    background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23888888' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M14 9 L3 9 3 29 23 29 23 18 M18 4 L28 4 28 14 M28 4 L14 18'/></svg>") right 0.25em / 0.825em no-repeat;
+}
+
+/* Rules as Obsidian's: thick grey lines with room around them */
+.markdown hr {
+    margin: 2rem 0;
+    border: 0;
+    border-top: 2px solid var(--line);
+}
+
+/* Heading at the top of an embedded note without the space above it */
+.markdown .markdown-embed > :first-child {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+/* Phone: menu above the note, a third of the screen high, the note with little room around it */
+@media (max-width: 900px) {
+    .notes {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 35dvh) minmax(0, 1fr);
+    }
+
+    .notes-tree {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .notes-note {
+        padding: var(--gap);
+    }
+
+    .notes-page {
+        padding: 0;
+    }
+}
+
+/* A due task as a card, see cardSet in notes.ts: the menu, the name of the note, every other block, the task's heading
+   and its source line hidden; its text, then the question, its solution and its row with the buttons last */
+.notes-card .notes-tree,
+.notes-card .notes-head,
+.notes-card #notes-text > :not(.card-task),
+.notes-card .card-task > summary,
+.notes-card .card-task > .fold-content > blockquote {
+    display: none;
+}
+
+.notes.notes-card {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.notes-card .card-task > .fold-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.notes-card .card-task .task-row {
+    order: 1;
+}
+
+/* The question of a card, grey, before the solution */
+.card-prompt {
+    margin-top: 1.5em;
+    color: var(--text-muted);
+}
+
+.card-prompt a {
+    color: inherit;
+}

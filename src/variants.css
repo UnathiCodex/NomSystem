@@ -1,0 +1,42 @@
+/* Grey page, plan and log told apart by their grey, no colour;
+   notes in the greys of my Obsidian's dark theme with my accent #969696, and in its reading width;
+   controls and lines sized for my 4K monitor: buttons and fields one control high,
+   chips, small buttons and the rows of the menu one chip high, all with the text of controls and the space beside it,
+   controls side by side one control gap apart, so they never touch,
+   icons one icon size big, notes with lines a bit higher than my Obsidian's;
+   what is picked or shown, and the main button of a dialog, a calm lighter grey with a soft line, never glaring white.
+   Every size is in rem, the root font size, so that one size scales the whole page:
+   125 % of the browser's 16 px, the look of Chrome's zoom at 125 %, also for the time grid and the formulas */
+:root {
+    font-size: 125%;
+    --background: #1e1e1e;
+    --text-main: #ececec;
+    --text-muted: #999999;
+    --line: #323232;
+    --fill: #262626;
+    --chosen: #3a3a3a;
+    --chosen-line: #5c5c5c;
+    --plan: #8a8a8a;
+    --log: #cfcfcf;
+    --reading-text: #dadada;
+    --reading-marker: #666666;
+    --reading-guide: rgb(255 255 255 / 0.12);
+    --reading-accent: #969696;
+    --reading-link: #acacac;
+    --text-size: 0.9375rem;
+    --control-text: 1rem;
+    --control-height: 2.875rem;
+    --chip-height: 1.875rem;
+    --control-padding: 1rem;
+    --control-gap: 0.625rem;
+    --icon-size: 1.125rem;
+    --reading-line-height: 2.2;
+    --gap: 1rem;
+    --slot-margin: 0.5rem;
+    --radius: 0.75rem;
+    --note-width: 23.75rem;
+    --plan-width: 18rem;
+    --tree-width: 24rem;
+    --reading-width: 50rem;
+    color-scheme: dark;
+}

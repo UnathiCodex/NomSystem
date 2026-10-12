@@ -1,0 +1,186 @@
+/* Row of a task under its heading in the notes view, calm and airy, everything from the left: when it is due,
+   its buttons after it on the same line while they fit, else on the next; its history and the field of Stuck or Skip
+   below, each across the row; lines one gap apart, the buttons a gap and a half after when it is due */
+.task-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--gap) calc(1.5 * var(--gap));
+    padding: 1.25rem 0 1.5rem;
+}
+
+.task-row > .task-history,
+.task-form {
+    flex-basis: 100%;
+}
+
+/* When the task is due, grey */
+.task-state {
+    color: var(--text-muted);
+}
+
+/* Label of a cold task beside its heading, small and grey in the text's weight, before the fold arrow */
+.task-cold {
+    margin-left: 0.75em;
+    font-size: 0.6em;
+    font-weight: 400;
+    color: var(--text-muted);
+    vertical-align: middle;
+}
+
+/* Buttons of a task side by side, one gap apart */
+.task-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap);
+}
+
+/* Buttons and reasons to skip one chip high and outlined, with a quarter more room beside their words,
+   a grey lighter under the pointer; Next step and Show all of a solution the same */
+.task-row button,
+.steps-buttons button {
+    min-height: var(--chip-height);
+    padding: 0 calc(1.25 * var(--control-padding));
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--background);
+    cursor: pointer;
+}
+
+.task-row button:hover,
+.steps-buttons button:hover {
+    background: var(--fill);
+}
+
+/* Copy for my tutor after the buttons: quiet, its icon alone in grey without a line, round and one chip high;
+   `.task-row button.task-tutor` wins over the outline of the buttons, being more exact */
+.task-row button.task-tutor {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--chip-height);
+    padding: 0;
+    border-color: transparent;
+    color: var(--text-muted);
+}
+
+/* Tap for my effort right after an attempt, across the row: its name small and grey, then low, medium and high,
+   one gap apart like the buttons */
+.task-effort {
+    display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--gap);
+}
+
+.task-effort-name {
+    color: var(--text-muted);
+}
+
+/* Field of Stuck or Skip with the reasons to pick, or the hint that saving failed, one gap apart like the buttons */
+.task-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap);
+}
+
+.task-form p {
+    margin: 0;
+}
+
+/* Short text field one chip high, as wide as a few words */
+.task-form input {
+    width: min(22.5rem, 100%);
+    height: var(--chip-height);
+    padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+}
+
+/* History of a task: a small grey button with its icon and the number of attempts on a line of its own, closed at first,
+   opening the attempts below it, the latest first, across the whole width */
+.task-history > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: var(--chip-height);
+    padding: 0 var(--control-padding);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--text-muted);
+    list-style: none;
+    cursor: pointer;
+}
+
+.task-history > summary:hover,
+.task-history[open] > summary {
+    background: var(--fill);
+}
+
+details.task-history > ol {
+    margin: 0.75rem 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--text-muted);
+}
+
+/* Attempts without the indent and colour a note gives its lists and links */
+details.task-history li {
+    margin: 0;
+    padding: 0;
+}
+
+details.task-history a {
+    color: inherit;
+}
+
+/* Right and Wrong of a task whose solution is still closed: hidden, so I judge against the solution, not by feeling */
+.task-unjudged .task-judge {
+    display: none;
+}
+
+/* Line of a part of a cold task, across the row: its letter, a check once it sits, then its buttons */
+.task-part {
+    display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--gap);
+}
+
+.task-part-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 3rem;
+    color: var(--text-muted);
+}
+
+/* Row of a theory block, only its copy icon for my tutor, closer under its heading than the row of a task */
+.task-row.theory-row {
+    padding: 0.25rem 0 0;
+}
+
+/* A step of a solution not shown yet, and below the solution Next step and Show all, like the buttons of a task */
+.step-hidden {
+    display: none;
+}
+
+.steps-buttons {
+    display: flex;
+    gap: var(--gap);
+    padding: 0.75rem 0 0.5rem;
+}
+
+/* Hint after the state while Right and Wrong hide, grey and small; gone once the solution is open */
+.task-hint {
+    display: none;
+    font-size: 0.8em;
+    color: var(--text-muted);
+}
+
+.task-unjudged .task-hint {
+    display: inline;
+}

@@ -1,0 +1,116 @@
+/* Sizes include padding and border */
+* {
+    box-sizing: border-box;
+}
+
+/* Hidden elements stay hidden, also when their class sets a display like flex */
+[hidden] {
+    display: none !important;
+}
+
+/* Whole page: one screen high, the area fills it; in Noto Sans, the one served with the page first,
+   else the one installed, as on my Kubuntu */
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    margin: 0;
+    font-family: "Noto Sans Variable", "Noto Sans", sans-serif;
+    font-size: var(--text-size);
+    line-height: 1.5;
+    background: var(--background);
+    color: var(--text-main);
+}
+
+/* Areas above the shown one, grey, the shown one light, in the text of controls and each one chip high to click */
+.areas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--gap);
+    padding: 0.5rem var(--gap) 0;
+    font-size: var(--control-text);
+    line-height: var(--chip-height);
+}
+
+.areas a {
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.areas a[aria-current="page"] {
+    color: var(--text-main);
+}
+
+/* Timer of a session running now, at the right of the areas, grey, every digit equally wide;
+   at the mark of a break in the light grey of the text, the icon before its words */
+.session-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-left: auto;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.session-timer.session-break {
+    color: var(--text-main);
+}
+
+/* A phone only looks at the day and its food, nothing for learning, see `main.ts`:
+   no links to the week, the notes and the skill area; the timer never runs there */
+@media (max-width: 900px) {
+    .areas a[href="/week"],
+    .areas a[href="/notes"],
+    .areas a[href="/skill"] {
+        display: none;
+    }
+}
+
+/* Button of the mark of a break, which logs Neck short: small, round, a grey lighter under the pointer */
+.session-break-log {
+    padding: 0.125rem 0.625rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--background);
+    cursor: pointer;
+}
+
+.session-break-log:hover {
+    background: var(--fill);
+}
+
+/* Buttons and fields take the page font and colour, in the text of controls */
+button,
+input,
+select,
+textarea {
+    font: inherit;
+    font-size: var(--control-text);
+    color: inherit;
+}
+
+/* Fold arrow of every folding thing, Lucide's chevron as Obsidian draws it, for a mask in the grey of its place */
+:root {
+    --fold-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+}
+
+/* Focus of the keyboard as a calm grey line around, never the browser's glaring white */
+:focus-visible {
+    outline: 2px solid var(--chosen-line);
+    outline-offset: 2px;
+}
+
+/* Icons of buttons one icon size big, never squeezed; `icons.ts` gives each its class `lucide` */
+svg.lucide {
+    flex: none;
+    width: var(--icon-size);
+    height: var(--icon-size);
+}
+
+/* Headings in page size, set apart by weight */
+h2,
+h3 {
+    margin: 0;
+    font-size: 1em;
+    font-weight: 600;
+}

@@ -1,0 +1,155 @@
+/* Food: the day and my foods side by side where both fit, else one below the other;
+   filling the screen below the areas with a grey line between, as the notes and the skill view do, and scrolling alone */
+.food {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 34rem), 1fr));
+    align-content: start;
+    gap: calc(2.5 * var(--gap)) calc(3 * var(--gap));
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+    padding: var(--gap) calc(2 * var(--gap)) calc(4 * var(--gap));
+    border-top: 1px solid var(--line);
+}
+
+/* Head of the day: its buttons, then its date, in the text of controls */
+.food-head {
+    display: flex;
+    align-items: center;
+    gap: var(--control-gap);
+}
+
+.food-head h2,
+.food-heading {
+    font-size: var(--control-text);
+    line-height: var(--chip-height);
+}
+
+.food-head h2 {
+    margin-left: 0.5rem;
+}
+
+/* Buttons one chip high and at least as wide, outlined like those of the skill view, an icon in the middle,
+   a grey lighter under the pointer */
+.food-head button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--chip-height);
+    min-height: var(--chip-height);
+    padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--background);
+    cursor: pointer;
+}
+
+.food-head button:has(svg) {
+    padding: 0;
+}
+
+.food-head button:hover {
+    background: var(--fill);
+}
+
+/* Totals of the day side by side, each its name small and grey above its amount;
+   kcal as the one big number, all in the digits of the font, which suit big numbers */
+.food-totals {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--gap) calc(2 * var(--gap));
+    margin: calc(1.5 * var(--gap)) 0 0.5rem;
+}
+
+.food-total {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Name of a total, and below the totals what they estimate or leave out: small and grey */
+.food-label,
+.food-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.food-hint {
+    margin: 0;
+}
+
+.food-amount {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+/* Meals below the totals, every line in the same columns: start, what, grams and kcal */
+#food-meals {
+    margin-top: var(--gap);
+}
+
+.food-line {
+    display: grid;
+    grid-template-columns: 3.5rem minmax(0, 1fr) 5.5rem 6.5rem;
+    gap: 0.75rem;
+    align-items: baseline;
+    padding: 0.125rem 0;
+}
+
+/* Line of a meal in the text of controls, a grey line above it, apart from the meal before */
+.food-meal {
+    margin-top: 0.75rem;
+    padding-top: 0.625rem;
+    border-top: 1px solid var(--line);
+    font-size: var(--control-text);
+}
+
+/* Start of a meal, grey, linking to its day in the day view */
+.food-time {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.food-time:hover {
+    text-decoration: underline;
+}
+
+/* What of a meal and the name of a food on one line, cut with an ellipsis instead of wrapping */
+.food-what {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Place and unknown foods grey */
+.food-place {
+    color: var(--text-muted);
+}
+
+/* Grams and kcal at the right of their columns, every digit equally wide, so the columns align */
+.food-grams,
+.food-kcal {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.food-grams {
+    color: var(--text-muted);
+}
+
+/* Hint for a day without meals, or when the meals cannot be read */
+.food-none {
+    margin: 0.25rem 0 0;
+    color: var(--text-muted);
+}
+
+/* Phone: less space at the sides */
+@media (max-width: 900px) {
+    .food {
+        padding: var(--gap);
+    }
+}

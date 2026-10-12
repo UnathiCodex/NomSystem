@@ -1,0 +1,414 @@
+/**
+ * ## Attempts
+ *
+ * Loads my tasks with when each is due from the reader, and what a module offers a skill entry,
+ * orders the tasks into groups by when they are due, writes days out as the page shows them,
+ * and sends to the reader's one writer of skill entries: an attempt from a button of a task into the skill entry
+ * of the moment, my effort on it from the tap after it, and a whole skill entry from the entry by category.
+ */
+
+
+/**
+ * Hour my day starts: the hours before it belong to the evening before, since I am often awake after midnight,
+ * as the reader counts them too, see `livedDayOf` in `reader/calendar.ts`.
+ */
+export const dayStartHour: number = 5;
+
+/**
+ * Result of an attempt: solved right, solved right with my tutor's help, solved wrong, stuck on the way,
+ * or the task skipped; the reader writes a right attempt after a copy for my tutor as guided.
+ */
+export type Result = "right" | "guided" | "wrong" | "stuck" | "skipped";
+
+/**
+ * My effort on an attempt, as one tap after it rates it.
+ */
+export type Effort = "low" | "medium" | "high";
+
+/**
+ * An attempt, as the reader sends it.
+ *
+ * - `day`: Day its skill entry started, like `2026-10-10`.
+ * - `time`: Time of the tap, like `14:05`, empty for an attempt from the dialog.
+ * - `part`: Part of a cold task it is about, like `b`, empty for the whole task.
+ * - `result`: Its {@link Result}.
+ * - `effort`: My {@link Effort} on it, empty before I rated it and for a skip.
+ * - `stuck`: Where I got stuck, like `step 3`, empty when not given.
+ * - `skip`: Why I skipped the task, like `too hard`, empty when not given.
+ */
+export type Attempt = {
+    day: string;
+    time: string;
+    part: string;
+    result: Result;
+    effort: Effort | "";
+    stuck: string;
+    skip: string;
+};
+
+/**
+ * A task as a chapter note holds it, as the reader sends it.
+ *
+ * - `id`: Identity, `<module>/<name>`, like `IN2028/Airline Revenue Interval`.
+ * - `name`: Name in its heading, like `Airline Revenue Interval`.
+ * - `heading`: Its heading as written, like `Task. Airline Revenue Interval`.
+ * - `source`: Its source line without `> `, like `Original: [[…|exam 2024/25 endterm 1a]]`, empty without one.
+ * - `note`: Path of its note, as the notes view takes it.
+ * - `chapter`: Name to read of its chapter, like `01 Regression Analysis`.
+ * - `section`: Name to read of its section, its note, like `01_01 Sample Mean Standard Error`.
+ * - `cold`: Whether it is a cold task of its section, its heading ending with `(cold)`.
+ * - `parts`: Letters of the parts of a cold task, like `a`, `b` and `c`, none for any other task.
+ */
+export type Task = {
+    id: string;
+    name: string;
+    heading: string;
+    source: string;
+    note: string;
+    chapter: string;
+    section: string;
+    cold: boolean;
+    parts: string[];
+};
+
+/**
+ * A {@link Task} with when it is due, as the reader sends it, see `reader/skill.ts`.
+ *
+ * - `due`: Day it is due next, like `2026-10-12`; empty when nothing is due, like for a task never tried.
+ * - `done`: For a task of the ladder, whether I solved it right once, or its section has a cold run.
+ * - `level`: For a cold task, the runs of its section that count, 0 to 3.
+ * - `open`: For a cold task, its parts still to sit in its run; none for a task without parts.
+ * - `ready`: For a cold task, whether its section has its three runs.
+ * - `skipped`: Whether its last attempt skipped it.
+ * - `attempts`: All its attempts, the latest last.
+ */
+export type SkillTask = Task & {
+    due: string;
+    done: boolean;
+    level: number;
+    open: string[];
+    ready: boolean;
+    skipped: boolean;
+    attempts: Attempt[];
+};
+
+/**
+ * A section of a module, a note of a chapter, as the reader sends it.
+ *
+ * - `title`: Its name to read, like `01_01 Sample Mean Standard Error`.
+ * - `note`: Path of its note.
+ * - `chapter`: Name to read of its chapter.
+ * - `cold`: Identity of its cold task, empty when it has none yet.
+ * - `tasks`: Number of its tasks.
+ * - `tried`: Number of its tasks I tried.
+ */
+export type SkillSection = {
+    title: string;
+    note: string;
+    chapter: string;
+    cold: string;
+    tasks: number;
+    tried: number;
+};
+
+/**
+ * The exam of a module, as the reader sends it.
+ *
+ * - `day`: Day of the exam, like `2027-02-25`.
+ * - `estimated`: Whether the day is an estimate.
+ */
+export type ExamDate = {
+    day: string;
+    estimated: boolean;
+};
+
+/**
+ * A module of the semester with its tasks, as the reader sends it.
+ *
+ * - `code`: Module code, like `IN2028`.
+ * - `title`: Its name to read, like `IN2028 Business Analytics Machine Learning`.
+ * - `exam`: Its exam.
+ * - `tasks`: Its tasks in the order of the notes.
+ * - `sections`: Its sections in the same order.
+ * - `duplicates`: Tasks whose name an earlier task of the module has already.
+ * - `removed`: Number of attempts on tasks no note holds any more.
+ */
+export type SkillModule = {
+    code: string;
+    title: string;
+    exam: ExamDate;
+    tasks: SkillTask[];
+    sections: SkillSection[];
+    duplicates: Task[];
+    removed: number;
+};
+
+/**
+ * A module folder of `NomSkillingmodules`, as the module picker offers it.
+ *
+ * - `code`: Module code, like `IN0024`.
+ * - `title`: Its name to read, like `IN0024 Operations Research`.
+ */
+export type ModuleName = {
+    code: string;
+    title: string;
+};
+
+/**
+ * Everything the skill view shows, and the skill entries of the day pick from, as the reader sends it.
+ *
+ * - `modules`: Modules of the semester in their order, also those without tasks yet.
+ * - `allModules`: Every module folder, the modules of the semester first, for the search of the module picker.
+ * - `skips`: Reasons to pick when skipping a task.
+ * - `types`: Types of a skill entry, like `VO`.
+ * - `efforts`: Efforts to rate an attempt with, the lowest first.
+ */
+export type Skilling = {
+    modules: SkillModule[];
+    allModules: ModuleName[];
+    skips: string[];
+    types: string[];
+    efforts: Effort[];
+};
+
+/**
+ * What a module folder offers a skill entry, as the reader sends it.
+ *
+ * - `chapters`: Names to read of its chapter folders, also of the empty ones, like `05 Decision Trees Ensembles`.
+ * - `documents`: Its files outside the chapter folders, the university's material, by their paths from the module folder,
+ *   like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`.
+ */
+export type ModuleContents = {
+    chapters: string[];
+    documents: string[];
+};
+
+/**
+ * A new attempt to send, from a button of a task or as one of a skill entry.
+ *
+ * - `task`: Identity of the task.
+ * - `part`: Part of a cold task, like `b`, empty for the whole task.
+ * - `result`: Its {@link Result}.
+ * - `effort`: My {@link Effort} on it, empty when not rated, always for a skip.
+ * - `stuck`: Where I got stuck, only with `stuck`, empty when not given.
+ * - `skip`: Why I skipped the task, only with `skipped`: a reason of {@link Skilling}, my own words, or both.
+ */
+export type AttemptNew = {
+    task: string;
+    part: string;
+    result: Result;
+    effort: Effort | "";
+    stuck: string;
+    skip: string;
+};
+
+/**
+ * A new skill entry of the log to send from the entry by category; an empty field is not written.
+ *
+ * - `type`: Its type, like `VO`.
+ * - `module`: Code of its module, like `IN2028`.
+ * - `chapters`: Names to read of the chapters it covered, none for none.
+ * - `document`: Path from the module folder of the document it used, empty for none.
+ * - `attempts`: Its attempts, none for none.
+ * - `location`: Place, like the room of a lecture logged from the plan.
+ * - `planned`: Identifier of the plan entry it is logged from, empty for none.
+ * - `note`: Free note.
+ * - `start`: Start of the entry.
+ * - `end`: End of the entry, after the start.
+ */
+export type SkillEntryNew = {
+    type: string;
+    module: string;
+    chapters: string[];
+    document: string;
+    attempts: AttemptNew[];
+    location: string;
+    planned: string;
+    note: string;
+    start: Date;
+    end: Date;
+};
+
+/**
+ * Tasks that are due alike.
+ *
+ * - `name`: Name of the group, like `Due today`.
+ * - `tasks`: Its tasks.
+ */
+export type Group = {
+    name: string;
+    tasks: SkillTask[];
+};
+
+/**
+ * Category of skill entries in the entry by category.
+ */
+export const skillName: string = "Skill";
+
+
+/**
+ * Loads everything the skill view shows from the reader.
+ *
+ * @returns Modules with their tasks and the reasons to skip
+ * @throws {Error} - When the reader cannot answer
+ */
+export async function skillingLoad(): Promise<Skilling> {
+    const response: Response = await fetch("/api/skill/tasks");
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as Skilling;
+}
+
+/**
+ * Loads what a module folder offers a skill entry from the reader, its chapters and its documents.
+ *
+ * @param code - Module code, like `IN2028`
+ * @returns Chapters and documents of the module
+ * @throws {Error} - When the reader cannot answer, like for a module without folder
+ */
+export async function moduleLoad(code: string): Promise<ModuleContents> {
+    const response: Response = await fetch(`/api/skill/module?code=${encodeURIComponent(code)}`);
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as ModuleContents;
+}
+
+/**
+ * Sends something to write to the reader, as JSON.
+ *
+ * @param method - HTTP method, `POST` for something new, `PATCH` for a change
+ * @param address - Address at the reader, like `/api/skill/attempt`
+ * @param body - What to write
+ * @throws {Error} - When the reader does not take it
+ */
+async function readerSend(method: string, address: string, body: object): Promise<void> {
+    const response: Response = await fetch(address, { method: method, body: JSON.stringify(body) });
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+}
+
+/**
+ * Sends a new attempt from a button of a task to the reader, which writes it into the skill entry of the moment.
+ *
+ * @param attempt - Attempt to write
+ * @throws {Error} - When the reader does not take the attempt
+ */
+export async function attemptSend(attempt: AttemptNew): Promise<void> {
+    await readerSend("POST", "/api/skill/attempt", attempt);
+}
+
+/**
+ * Tells the reader that I copied a task for my tutor, which it writes into the skill entry of the moment,
+ * so a right attempt at it after that counts as guided.
+ *
+ * @param task - Identity of the task, like `IN2028/Airline Revenue Interval`
+ * @throws {Error} - When the reader does not take it
+ */
+export async function tutorSend(task: string): Promise<void> {
+    await readerSend("POST", "/api/skill/tutor", { task: task });
+}
+
+/**
+ * Sends my effort on the last attempt at a task to the reader, from the tap after the attempt.
+ *
+ * @param task - Identity of the task, like `IN2028/Airline Revenue Interval`
+ * @param effort - My effort
+ * @throws {Error} - When the reader does not take the effort
+ */
+export async function effortSend(task: string, effort: Effort): Promise<void> {
+    await readerSend("POST", "/api/skill/effort", { task: task, effort: effort });
+}
+
+/**
+ * Sends a skill entry of the log to the reader, with ISO instants: a new one to write,
+ * or with the identifier of an entry the changes of that entry, its attempts added after those it has.
+ *
+ * @param id - Identifier of the entry to change, empty for a new entry
+ * @param entry - Skill entry, for a change with only the new attempts
+ * @throws {Error} - When the reader does not take the entry
+ */
+export async function skillEntrySend(id: string, entry: SkillEntryNew): Promise<void> {
+    const body: object = { ...entry, start: entry.start.toISOString(), end: entry.end.toISOString() };
+    if (id === "")
+        await readerSend("POST", "/api/skill/entry", body);
+    else
+        await readerSend("PATCH", "/api/skill/entry", { ...body, id: id });
+}
+
+/**
+ * Writes the day of a date in local time, in the form of the days of the reader.
+ *
+ * @param date - Date on the day
+ * @returns Day like `2026-10-10`
+ */
+export function dayOf(date: Date): string {
+    const month: string = String(date.getMonth() + 1).padStart(2, "0");
+    const day: string = String(date.getDate()).padStart(2, "0");
+    return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/**
+ * Gives the day an instant belongs to as I live it: its day, the day before for the hours before {@link dayStartHour},
+ * so 01:10 on 13 October belongs to 12 October.
+ *
+ * @param instant - The instant, like the start of a log entry
+ * @returns Day like `2026-10-12`
+ */
+export function livedDayOf(instant: Date): string {
+    return dayOf(new Date(instant.getTime() - dayStartHour * 60 * 60 * 1000));
+}
+
+/**
+ * Gives today as I live it, see {@link livedDayOf}: at 01:10 on 13 October today is still 12 October.
+ *
+ * @returns Day like `2026-10-12`
+ */
+export function todayOf(): string {
+    return livedDayOf(new Date());
+}
+
+/**
+ * Writes a day out as the page shows it, in my standard way with its year, and its weekday in English before it
+ * where that helps, like for the day a task is due.
+ *
+ * @param day - Day like `2026-10-17`
+ * @param weekday - Whether to write the weekday
+ * @returns Day like `17.10.2026`, or `Saturday, 17.10.2026`
+ */
+export function dayTextOf(day: string, weekday: boolean): string {
+    const [year, month, number]: number[] = day.split("-").map(Number);
+    const text: string = day.split("-").reverse().join(".");
+    if (!weekday)
+        return text;
+    const date: Date = new Date(year, month - 1, number);
+    return `${date.toLocaleDateString("en-GB", { weekday: "long" })}, ${text}`;
+}
+
+/**
+ * Orders tasks, like those of a module or of a chapter, into groups by when they are due, see `reader/skill.ts`:
+ * due today, also those due earlier, the earliest first; new ones, never tried, in the order of the notes;
+ * later ones by their day; done ones, the ladder behind me and the ready cold tasks; skipped ones last.
+ * - `open`: Tasks not skipped.
+ * - `fresh`: Whether a task was never tried, skips aside.
+ * - `byDue`: Compares two tasks by their due day, the earliest first.
+ *
+ * @param tasks - Tasks in the order of the notes
+ * @param today - Today like `2026-10-10`
+ * @returns Groups `Due today`, `New`, `Later`, `Done` and `Skipped`, also empty ones
+ */
+export function groupsOf(tasks: SkillTask[], today: string): Group[] {
+    const open: SkillTask[] = tasks.filter((task: SkillTask): boolean => !task.skipped);
+    const fresh: (task: SkillTask) => boolean = (task: SkillTask): boolean =>
+        task.attempts.every((attempt: Attempt): boolean => attempt.result === "skipped");
+    const byDue: (first: SkillTask, second: SkillTask) => number = (first: SkillTask, second: SkillTask): number =>
+        first.due.localeCompare(second.due);
+    const dueToday: SkillTask[] = open.filter((task: SkillTask): boolean => task.due !== "" && task.due <= today);
+    const later: SkillTask[] = open.filter((task: SkillTask): boolean => task.due > today);
+    return [
+        { name: "Due today", tasks: dueToday.sort(byDue) },
+        { name: "New", tasks: open.filter((task: SkillTask): boolean => task.due === "" && fresh(task) && !task.done) },
+        { name: "Later", tasks: later.sort(byDue) },
+        { name: "Done", tasks: open.filter((task: SkillTask): boolean => task.due === "" && (task.done || !fresh(task))) },
+        { name: "Skipped", tasks: tasks.filter((task: SkillTask): boolean => task.skipped) },
+    ];
+}

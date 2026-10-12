@@ -1,0 +1,228 @@
+/* Editor: the page of the note in the middle, filling the screen below the areas with a grey line between, scrolls alone */
+.editor {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--line);
+}
+
+/* Page in my Obsidian's reading width with 40 px inside on each side, as the page of the notes view,
+   so lines wrap at about the width of the notes view's; its text 16 px in Obsidian's grey, grown with the page;
+   room below the last line, so it can scroll up to the middle */
+.editor-page {
+    max-width: var(--reading-width);
+    margin: 0 auto;
+    padding: 0 2.5rem 50dvh;
+    font-size: 1rem;
+    color: var(--reading-text);
+}
+
+/* Head above the note: its name, the notice and the save button in a row, on top while the note scrolls below it */
+.editor-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+    padding: 2rem 0 1rem;
+    background: var(--background);
+}
+
+/* Name of the note as the title of the notes view, cut with an ellipsis */
+.editor-title {
+    flex: 1;
+    overflow: hidden;
+    margin: 0;
+    font-size: 1.618em;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Notice beside the save button, like `Saved`, grey in the text of controls */
+.editor-state {
+    color: var(--text-muted);
+    font-size: var(--control-text);
+}
+
+/* Save button one control high and square, outlined, its icon in the middle;
+   in the calm grey of a main button while the note has unsaved changes */
+.editor-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-height);
+    height: var(--control-height);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+    cursor: pointer;
+}
+
+.editor-save.unsaved {
+    border-color: var(--chosen-line);
+    background: var(--chosen);
+}
+
+/* Text in the font and lines of the notes view, without a frame when focused and without room around the lines;
+   `.editor-text .cm-editor` wins over CodeMirror's own look, being more exact */
+.editor-text .cm-editor.cm-focused {
+    outline: none;
+}
+
+/* Text not cut at the sides of the page, so markup shown left of it, like `##`, stays in sight;
+   what is too wide, like a long formula or table, scrolls sideways on its own, as in the notes view */
+.editor-text .cm-editor .cm-scroller {
+    overflow: visible;
+    font-family: inherit;
+    line-height: inherit;
+}
+
+.editor-text .cm-editor .cm-content,
+.editor-text .cm-editor .cm-line {
+    padding: 0;
+}
+
+/* Lines as wide as the page, never wider: something too wide, like a long formula, overflows its own line only */
+.editor-text .cm-editor .cm-content {
+    min-width: 0;
+}
+
+/* Selection in the calm grey of what is picked, focused or not */
+.editor-text .cm-editor .cm-selectionBackground,
+.editor-text .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+    background: var(--chosen);
+}
+
+/* Headings, lists and quotes stand in the elements of the notes view and take its look, see `./preview.ts`,
+   but not its space above headings and around quotes: CodeMirror measures no space between lines,
+   so the empty line before a block gives it */
+.editor-text.markdown :is(h1, h2, h3, h4, h5, h6, blockquote) {
+    margin: 0;
+}
+
+/* Markup shown, like `##` and `**`, and the markers of lists in the faint grey of list markers */
+.editor-text .cm-mark {
+    color: var(--reading-marker);
+}
+
+/* Markup `##` of a heading and `>` of a quote on the line of the cursor left of the text, which keeps its place */
+.editor-text .cm-hanging {
+    position: absolute;
+    transform: translateX(-100%);
+    white-space: pre;
+}
+
+/* List item the cursor is on: its marker as written in place of the notes view's bullet or number, which hides,
+   left of the text, so the text keeps its place: `-` where the bullet stands, 0.95em before the text,
+   a number ending a space before the text, in the digits of equal width of the notes view's numbers */
+.editor-text li.cm-source::before,
+.editor-text li.cm-source::marker {
+    content: none;
+}
+
+.editor-text .cm-list-mark {
+    display: inline-block;
+    white-space: pre;
+}
+
+.editor-text .cm-list-bullet {
+    width: 0.95em;
+    margin-left: -0.95em;
+}
+
+.editor-text .cm-list-number {
+    width: 5ch;
+    margin-left: -5ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Bold semibold and italic, as in the notes view, struck text struck through */
+.editor-text .cm-strong {
+    font-weight: 600;
+}
+
+.editor-text .cm-emphasis {
+    font-style: italic;
+}
+
+.editor-text .cm-strikethrough {
+    text-decoration: line-through;
+}
+
+/* Links in my accent's lighter grey, as in the notes view, the address of a Markdown link in the faint grey */
+.editor-text .cm-link {
+    color: var(--reading-link);
+}
+
+.editor-text .cm-url {
+    color: var(--reading-marker);
+}
+
+/* Code within a line on a grey ground in a font of fixed width, with its room around it, as in the notes view;
+   code blocks on grey line by line, their code without a ground of its own */
+.editor-text .cm-monospace,
+.editor-text .cm-code-block {
+    background: var(--fill);
+    font-family: ui-monospace, monospace;
+    font-size: 0.875em;
+}
+
+.editor-text .cm-monospace {
+    padding: 0.15em 0.3em;
+    border-radius: 0.25rem;
+}
+
+.editor-text .cm-code-block .cm-monospace {
+    padding: 0;
+    background: none;
+    font-size: 1em;
+}
+
+/* Formula `$$…$$` rendered after what stands before it on its line, as wide as the line at most,
+   too wide ones scrolling sideways as in the notes view; being edited, rendered below its TeX on a line of its own */
+.editor-text .cm-math-display {
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: middle;
+}
+
+.editor-text .cm-math-preview {
+    display: block;
+}
+
+/* Table or HTML block rendered with the spaces, line breaks and word breaks of the notes view,
+   not those of the text around it, which would break a table in two and its words anywhere;
+   its own space above and below it kept inside, so CodeMirror measures it, the space below taking in
+   the space above the next block, `--space-below`, as the notes view lets them overlap, see `./preview.ts` */
+.editor-text .cm-rendered {
+    display: flow-root;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+}
+
+.editor-text .cm-rendered::after {
+    content: "";
+    display: block;
+    margin-top: var(--space-below);
+}
+
+/* Spacers and invisible characters on the line of the cursor as faint dots in the grey of list markers,
+   drawn over them, so nothing moves */
+.editor-text .cm-spacer {
+    position: relative;
+}
+
+.editor-text .cm-spacer::after {
+    content: "·";
+    position: absolute;
+    left: 0;
+    color: var(--reading-marker);
+}

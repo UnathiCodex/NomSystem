@@ -1,0 +1,73 @@
+/**
+ * ## Router
+ *
+ * Opens one area of the life system below the areas named in `index.html`, by the address:
+ * the week at `/week`, the notes at `/notes`, the skill area at `/skill`, the food area at `/food`,
+ * the editor of a draft note at `/edit`, the day everywhere else.
+ * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the notes no calendar,
+ * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
+ * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
+ * The timer of a session running now stands at the right of the areas in every area.
+ * A phone, a screen as narrow as the phone layout of the stylesheets, which {@link matchMedia} tells,
+ * is only for looking at the day and its food, nothing for learning: it opens the day and the food area,
+ * the day everywhere else, shows the day without its daily note, so it loads no Markdown renderer,
+ * and runs no timer; `base.css` hides the links to the other areas.
+ *
+ * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
+ * - `@fontsource-variable/noto-sans`: Noto Sans, the font of the page, in every weight, served with the page,
+ *   so it looks the same on every device; `wght-italic.css` adds its italic.
+ * - `./timer.ts`: Shows the timer of a session running now.
+ * - `./day/day.html?raw`, `./week/week.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`,
+ *   `./food/food.html?raw`, `./editor/editor.html?raw`: Html of day, week, notes, skill, food and editor as text,
+ *   packed into the built code by Vite.
+ * - `./day/day.ts`: Shows the log of a day, my one calendar, with the boxes of its plan beside it.
+ * - `./week/week.ts`: Shows the boxes of the next seven days.
+ * - `./notes/notes.ts`: Shows the modules of the semester and their notes, rendered like Obsidian.
+ * - `./skill/skill.ts`: Shows my tasks, due ones first, and records my attempts.
+ * - `./food/food.ts`: Shows what I ate on a day with its totals, and my foods.
+ * - `./editor/editor.ts`: Edits a draft note as its text, its Markdown shown as in the notes, saved exactly as edited.
+ */
+
+/// <reference types="vite/client" />
+import "@fontsource-variable/noto-sans";
+import "@fontsource-variable/noto-sans/wght-italic.css";
+import { timerStart } from "./timer.ts";
+import dayHtml from "./day/day.html?raw";
+import weekHtml from "./week/week.html?raw";
+import notesHtml from "./notes/notes.html?raw";
+import skillHtml from "./skill/skill.html?raw";
+import foodHtml from "./food/food.html?raw";
+import editorHtml from "./editor/editor.html?raw";
+
+const phone: boolean = matchMedia("(max-width: 900px)").matches;
+const areas: string[] = phone ? ["/food"] : ["/week", "/notes", "/skill", "/food", "/edit"];
+const area: string = areas.includes(location.pathname) ? location.pathname : "/";
+document.querySelector(`.areas a[href="${area}"]`)?.setAttribute("aria-current", "page");
+if (!phone)
+    timerStart();
+
+if (area === "/week") {
+    const week: { weekStart: () => void } = await import("./week/week.ts");
+    document.body.insertAdjacentHTML("beforeend", weekHtml);
+    week.weekStart();
+} else if (area === "/notes") {
+    const notes: { notesStart: () => Promise<void> } = await import("./notes/notes.ts");
+    document.body.insertAdjacentHTML("beforeend", notesHtml);
+    await notes.notesStart();
+} else if (area === "/skill") {
+    const skill: { skillStart: () => Promise<void> } = await import("./skill/skill.ts");
+    document.body.insertAdjacentHTML("beforeend", skillHtml);
+    await skill.skillStart();
+} else if (area === "/food") {
+    const food: { foodStart: () => void } = await import("./food/food.ts");
+    document.body.insertAdjacentHTML("beforeend", foodHtml);
+    food.foodStart();
+} else if (area === "/edit") {
+    const editor: { editorStart: () => Promise<void> } = await import("./editor/editor.ts");
+    document.body.insertAdjacentHTML("beforeend", editorHtml);
+    await editor.editorStart();
+} else {
+    const day: { dayStart: (note: boolean) => void } = await import("./day/day.ts");
+    document.body.insertAdjacentHTML("beforeend", dayHtml);
+    day.dayStart(!phone);
+}
