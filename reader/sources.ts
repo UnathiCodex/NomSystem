@@ -40,7 +40,7 @@ export const vault: string = process.env.NOM_VAULT
  * Folder of the new system, `NomSystemcalendar`, the folder the reader writes into, but for the drafts of the editor:
  * one folder per year and one per month, like `2026/2026_10/`, holding the log `2026_10_Log.ics`,
  * the plan `2026_10_Plan.ics` and one daily note per day, like `2026_10_12.md`; at its top `Birthdays.ics`,
- * `Foods.md`, `Gifts.md` and `Places.md`.
+ * `Foods.md` and `Places.md`.
  */
 export const writeRoot: string = join(vault, "NomManageplannings", "NomSystemcalendar");
 
@@ -171,10 +171,10 @@ export const activeModules: string[] = activeSkills
  *
  * - `plan`: Calendar of what I intend, the plan files of the months, read as the boxes of each day, see `boxes.ts`.
  * - `log`: Calendar of what really happened, by category, the log files of the months, my one calendar.
- * - `system`: Calendar of birthdays and holidays, `Birthdays.ics` in the folder of the new system,
- *   shown above the boxes of their day; none while it is missing.
- * - `gifts`: My gift ideas for the birthdays and holidays, `Gifts.md` in the folder of the new system,
- *   one Markdown table with one row per gift idea, which the reader writes as I add them, see `gifts.ts`.
+ * - `system`: Calendar of birthdays and holidays, `Birthdays.ics` in the folder of the new system, which I write
+ *   by hand, each a whole day, a birthday a yearly series with `CATEGORIES:Birthday` and the name as `SUMMARY`,
+ *   shown above the boxes of their day, like `Birthday: KarlbauerFlorian`; my gift idea for one is its `DESCRIPTION`,
+ *   which the reader writes, see `gifts.ts`; none while it is missing.
  * - `places`: My places, `Places.md` in the folder of the new system, beside `Foods.md`, one Markdown table
  *   with one row per place, its name and its address, which the reader writes as I add places, see `places.ts`.
  */
@@ -182,7 +182,6 @@ export type DaySources = {
     plan: CalendarSource[];
     log: CalendarSource[];
     system: CalendarSource[];
-    gifts: string;
     places: string;
 };
 
@@ -193,7 +192,6 @@ export const day: DaySources = {
     plan: [{ folder: writeRoot, ending: planEnding }],
     log: [{ folder: writeRoot, ending: logEnding }],
     system: [{ folder: writeRoot, ending: "Birthdays.ics" }],
-    gifts: join(writeRoot, "Gifts.md"),
     places: join(writeRoot, "Places.md"),
 };
 

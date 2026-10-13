@@ -509,6 +509,20 @@ export function entryLookup(sources: CalendarSource[], id: string): [string, Ent
 }
 
 /**
+ * Finds the `.ics` file of the event, to-do or series with an identifier in calendar sources, like a birthday
+ * of `Birthdays.ics`, a yearly series.
+ *
+ * @param sources - Calendars, each the files of a folder with a name ending
+ * @param id - Identifier, its `UID`, like `birthday-anna@nomsystem`
+ * @returns Path of the file, `undefined` when none holds the identifier
+ */
+export function fileOfId(sources: CalendarSource[], id: string): string | undefined {
+    return filesOf(sources).find((file: string): boolean =>
+        calendarOf(file).entries.some((entry: Entry): boolean => entry.id === id)
+        || calendarOf(file).series.some((series: ICAL.Event): boolean => series.uid === id));
+}
+
+/**
  * Looks for an occurrence of a series in calendar sources by the identifier of the series and the start
  * of the occurrence as the series has it, see {@link Entry}: a changed occurrence among the entries of a file,
  * else the occurrence the series itself has at that start.

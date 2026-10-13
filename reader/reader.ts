@@ -16,7 +16,7 @@
  *   logs a box of the plan at its real time, and reads how long entries like a box really lasted
  * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, adds, changes and removes boxes,
  *   pushes them to the next day and drops them
- * - `./gifts.ts`: Writes my gift idea for a birthday or holiday into `Gifts.md`
+ * - `./gifts.ts`: Writes my gift idea for a birthday or holiday as its `DESCRIPTION` into `Birthdays.ics`
  * - `./note.ts`: Reads the daily notes, and writes my gratitude and my paragraph about the day into them
  * - `./categories.ts`: Offers the categories with the values of their fields, and my places
  * - `./places.ts`: Adds a place with its address to `Places.md`
@@ -131,7 +131,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/day/pushed`: Pushes the box named in the body to the next day.
  * - `POST /api/day/dropped`: Drops the box named in the body, or takes it back when the body says `dropped: false`.
  * - `POST /api/day/callouts`: Writes the callout of the body into its daily note, my gratitude or my paragraph about the day.
- * - `POST /api/day/gifts`: Writes the gift idea of the body for its birthday or holiday, or takes it out when it is empty.
+ * - `POST /api/day/gifts`: Writes the gift idea of the body for its birthday or holiday into `Birthdays.ics`,
+ *   or takes it out when it is empty.
  * - `POST /api/day/places`: Adds the place of the body with its address to `Places.md` and sends it as written.
  * - `GET /api/notes/modules`: Sends the modules of the semester with their chapters and notes.
  * - `GET /api/notes/note?path=…`: Sends a note with the files its links lead to.

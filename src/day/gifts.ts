@@ -3,7 +3,8 @@
  *
  * My gift ideas for the birthdays and holidays at the top of the plan, see `reader/gifts.ts`,
  * written only when I have one: a click on a birthday or holiday opens a small dialog with one field, my gift idea for it,
- * which `Enter` or the check saves into `Gifts.md`; an empty field, or the bin, takes the idea out again.
+ * which `Enter` or the check saves as its `DESCRIPTION` in `Birthdays.ics`, for every year of it; an empty field,
+ * or the bin, takes the idea out again.
  * The plan shows each idea below its birthday or holiday, see `boxes.ts`, and loads again when the dialog closes.
  *
  * - `../icons.ts`: Puts the icons into the buttons of the dialog.
@@ -17,24 +18,23 @@ import type { Occasion } from "./boxes.ts";
 
 
 /**
- * The birthday or holiday the dialog writes the gift idea of, and its day, like `2026-10-11`.
+ * The birthday or holiday the dialog writes the gift idea of.
  */
-let opened: { day: string; occasion: Occasion } = { day: "", occasion: { title: "", gift: "" } };
+let opened: Occasion = { id: "", category: "", title: "", gift: "" };
 
 
 /**
  * Sends my gift idea for a birthday or holiday to the reader, an empty one to take it out again.
  *
- * @param day - Day of the birthday or holiday, like `2026-10-11`
- * @param occasion - Name of the birthday or holiday as my calendar writes it
+ * @param id - Identifier of the birthday or holiday in `Birthdays.ics`, like `birthday-anna@nomsystem`
  * @param gift - The gift, empty for none
  * @throws {Error} - When the reader does not take it
  */
-async function giftSend(day: string, occasion: string, gift: string): Promise<void> {
+async function giftSend(id: string, gift: string): Promise<void> {
     const response: Response = await fetch("/api/day/gifts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ day: day, occasion: occasion, gift: gift }),
+        body: JSON.stringify({ id: id, gift: gift }),
     });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
@@ -47,7 +47,7 @@ async function giftSend(day: string, occasion: string, gift: string): Promise<vo
  * @param gift - The gift, empty for none
  */
 function giftSave(gift: string): void {
-    giftSend(opened.day, opened.occasion.title, gift.trim())
+    giftSend(opened.id, gift.trim())
         .then((): void => (document.getElementById("gift") as HTMLDialogElement).close())
         .catch((error: unknown): void => {
             console.error(error);
@@ -56,17 +56,18 @@ function giftSave(gift: string): void {
 }
 
 /**
- * Opens the dialog of the gift idea for a birthday or holiday, its name small and grey above the field,
- * the field holding the idea I have, focused; the bin shows only when there is one to take out.
+ * Opens the dialog of the gift idea for a birthday or holiday, its category and name small and grey above the field,
+ * like `Birthday: KarlbauerFlorian`, the field holding the idea I have, focused; the bin shows only when there is one
+ * to take out.
  * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page, `Esc` closes it.
  *
- * @param day - Day of the birthday or holiday, like `2026-10-11`
  * @param occasion - The birthday or holiday with my gift idea for it
  */
-export function giftOpen(day: string, occasion: Occasion): void {
+export function giftOpen(occasion: Occasion): void {
     const field: HTMLInputElement = document.getElementById("gift-text") as HTMLInputElement;
-    opened = { day: day, occasion: occasion };
-    (document.getElementById("gift-occasion") as HTMLElement).textContent = occasion.title;
+    opened = occasion;
+    (document.getElementById("gift-occasion") as HTMLElement).textContent =
+        occasion.category === "" ? occasion.title : `${occasion.category}: ${occasion.title}`;
     field.value = occasion.gift;
     document.getElementById("gift-remove")?.toggleAttribute("hidden", occasion.gift === "");
     document.getElementById("gift-error")?.setAttribute("hidden", "");

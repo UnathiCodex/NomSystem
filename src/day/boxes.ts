@@ -115,10 +115,14 @@ export type Box = {
 /**
  * A birthday or holiday of a day, as the reader sends it.
  *
- * - `title`: Its name as `Birthdays.ics` writes it, like `Geburtstag: KarlbauerFlorian`.
- * - `gift`: My gift idea for it, empty for none.
+ * - `id`: Its identifier in `Birthdays.ics`, shared by every year of it.
+ * - `category`: Its category, like `Birthday`, empty for none.
+ * - `title`: Its name as `Birthdays.ics` writes it, like `KarlbauerFlorian`.
+ * - `gift`: My gift idea for it, its `DESCRIPTION`, empty for none.
  */
 export type Occasion = {
+    id: string;
+    category: string;
     title: string;
     gift: string;
 };
@@ -334,7 +338,8 @@ export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLEle
 }
 
 /**
- * Makes the birthdays and holidays of a day, each a grey line above its boxes, and below it, after a gift,
+ * Makes the birthdays and holidays of a day, each a grey line above its boxes with its category in bold and a colon
+ * as every entry has it, like **`Birthday:`**` KarlbauerFlorian`, see {@link whatOf}, and below it, after a gift,
  * my gift idea for it, when I have one. In the day a click on one opens the dialog of its gift idea, see `gifts.ts`,
  * and one without an idea shows the gift at its right under the pointer; the week only shows them.
  * - `element`: A birthday or holiday with its idea.
@@ -349,7 +354,7 @@ export function occasionsOf(occasions: Occasion[], open: ((occasion: Occasion) =
         const hint: HTMLElement[] = open === null || occasion.gift !== ""
             ? [] : [entryPartOf("span", "occasion-hint", [iconOf(Gift)])];
         const element: HTMLElement = entryPartOf("div", "occasion", [
-            entryPartOf("div", "occasion-title", [occasion.title, ...hint]),
+            entryPartOf("div", "occasion-title", [...whatOf(occasion.category, occasion.title), ...hint]),
             ...(occasion.gift === "" ? [] : [entryPartOf("div", "occasion-gift", [iconOf(Gift), occasion.gift])]),
         ]);
         if (open !== null) {
@@ -542,7 +547,7 @@ function boxesShow(calendar: Calendar): void {
     const boxes: HTMLElement[] = shown.boxes.map((box: Box, index: number): HTMLElement =>
         boxElementOf(calendar, box, index));
     const elements: HTMLElement[] = [
-        ...occasionsOf(shown.occasions, (occasion: Occasion): void => giftOpen(shown.day, occasion)),
+        ...occasionsOf(shown.occasions, giftOpen),
         ...boxes.filter((element: HTMLElement, index: number): boolean => !dropped(shown.boxes[index])),
         ...suggested.map((suggestion: Suggestion): HTMLElement => suggestionElementOf(calendar, suggestion)),
         ...boxes.filter((element: HTMLElement, index: number): boolean => dropped(shown.boxes[index])),

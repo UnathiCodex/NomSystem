@@ -41,11 +41,12 @@
  * `STATUS:CANCELLED`, which events have too, and it is done when a log entry points to it.
  *
  * Above its boxes a day shows its birthdays and holidays, those of `Birthdays.ics` in the folder of the new system,
- * see `sources.ts`, each on its date, a yearly series on each of its days; none while the file is missing.
+ * see `sources.ts`, each on its date, a yearly series on each of its days, with its category, like
+ * `Birthday: KarlbauerFlorian`, and my gift idea for it, its `DESCRIPTION`, see `gifts.ts`; none while the file
+ * is missing.
  *
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
  * - `./categories.ts`: Tells whether a box fits its category, and names the category of skill entries.
- * - `./gifts.ts`: Reads my gift ideas for the birthdays and holidays.
  * - `./sources.ts`: Names the plan, the log and the birthdays and holidays, and builds the path of a plan file.
  */
 
@@ -54,11 +55,9 @@ import {
     occurrenceLookup, propertiesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, skillName } from "./categories.ts";
-import { giftOf, giftsRead } from "./gifts.ts";
 import { day, monthFileOf, planEnding } from "./sources.ts";
 
 import type { Entry, EntryFields, EntryTexts, TodoFields } from "./calendar.ts";
-import type { Gift } from "./gifts.ts";
 
 
 /**
@@ -99,10 +98,14 @@ export type Box = EntryTexts & {
 /**
  * A birthday or holiday of a day, as the page shows it.
  *
- * - `title`: Its name as `Birthdays.ics` writes it, like `Geburtstag: KarlbauerFlorian`.
- * - `gift`: My gift idea for it, see `gifts.ts`, empty for none.
+ * - `id`: Its identifier in `Birthdays.ics`, its `UID`, shared by every year of its series.
+ * - `category`: Its category, like `Birthday`, empty for none.
+ * - `title`: Its name as `Birthdays.ics` writes it, like `KarlbauerFlorian`.
+ * - `gift`: My gift idea for it, its `DESCRIPTION`, see `gifts.ts`, empty for none.
  */
 export type Occasion = {
+    id: string;
+    category: string;
     title: string;
     gift: string;
 };
@@ -300,14 +303,13 @@ function deadlineShows(box: Box, date: string): boolean {
 
 /**
  * Reads the plans of the days of a range: the birthdays and holidays of each day with my gift ideas for them,
- * and its boxes, each with its state and the time of its log entry.
+ * their `DESCRIPTION`s, and its boxes, each with its state and the time of its log entry.
  * A box belongs to the day it starts on, a box with a deadline to each day it shows on, see {@link deadlineShows}.
  * - `from`: Start of the first day, in Berlin time.
  * - `logs`: Log entries written from boxes, until {@link deadlineDays} days after the last day, see {@link logsOf}.
  * - `boxes`: Boxes of the plan from the first day to {@link deadlineDays} days after the last,
  *   so a deadline after the range shows in it.
  * - `occasions`: Birthdays and holidays of the days of the range, none while `Birthdays.ics` is missing.
- * - `gifts`: My gift ideas.
  * - `days`: The plans so far.
  * - `planned`: Boxes of the plan of one day.
  *
@@ -324,7 +326,6 @@ export function boxesRead(start: string, end: string): PlanDay[] {
     const boxes: Box[] = entriesRead(day.plan, from, berlinDayStartOf(dayAdd(end, deadlineDays)))
         .map((entry: Entry): Box => boxOf(entry, logs));
     const occasions: Entry[] = entriesRead(day.system, from, berlinDayStartOf(end));
-    const gifts: Gift[] = giftsRead();
 
     const days: PlanDay[] = [];
     for (let date: string = start; date < end; date = dayAdd(date, 1)) {
@@ -336,7 +337,7 @@ export function boxesRead(start: string, end: string): PlanDay[] {
                 .filter((occasion: Entry): boolean => occasion.allDay
                     ? occasion.start <= date && occasion.end > date : dayOf(occasion) === date)
                 .map((occasion: Entry): Occasion => ({
-                    title: occasion.title, gift: giftOf(gifts, date, occasion.title),
+                    id: occasion.id, category: occasion.category, title: occasion.title, gift: occasion.note.trim(),
                 })),
             boxes: planned.sort(boxCompare),
         });
