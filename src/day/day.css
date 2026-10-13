@@ -1228,14 +1228,15 @@ button.box-ring:hover svg {
     font-weight: 700;
 }
 
-/* Time, grey, on one line: after what never cut, like `, 05:15 – 05:45`;
+/* Time, a light grey halfway between the grey of place and note and the white of what, about `#c2c2c2`,
+   so it stands out a little: on one line after what never cut, like `, 05:15 – 05:45`;
    on its own second line, like `20:00 – 23:45`, cut with an ellipsis where a narrow entry ends */
 .entry-time {
     flex: none;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: var(--text-muted);
+    color: color-mix(in oklab, var(--text-muted) 50%, var(--text-main));
 }
 
 /* Place of a taller entry on its third line, below the time and above the note, like `HomeMunich`,

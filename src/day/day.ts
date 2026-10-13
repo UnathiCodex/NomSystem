@@ -10,7 +10,7 @@
  * The log is written by category: `+` above the time grid opens the entry by category for the last half hour,
  * a range selected in the time grid for that range; a click on an entry changes it.
  * Entries are moved and resized by dragging, and the reader writes them back into their files.
- * Entries look as Google Calendar shows them: what first, then the time, in one size, the time grey,
+ * Entries look as Google Calendar shows them: what first, then the time, in one size, the time a light grey,
  * and a taller one its place and its note below, see {@link entryContentOf};
  * a dish, a meal or a cooking, lists its foods. The kcal of a meal stay hidden for a try; the dialog and the trackers
  * show them. A glass of water is no block but a small mark at the edge of the log,
@@ -175,7 +175,7 @@ function dishOf(event: EventApi): string[] {
 
 /**
  * Content of an entry of the log, as Google Calendar shows one: what first, then the time,
- * both in one size, the time grey, see {@link whatOf}; a dish lists its foods, see {@link dishOf}, parted by commas.
+ * both in one size, the time a light grey, see {@link whatOf}; a dish lists its foods, see {@link dishOf}, parted by commas.
  * An entry of the whole day shows only what it was.
  * - A short entry, one line high, shows what, then its start after a comma, like `Talk: Planungen, 05:15`;
  *   what ends with an ellipsis where the line is cut, the time never, see `day.css`.
@@ -200,7 +200,7 @@ function dishOf(event: EventApi): string[] {
  * - `lines`: Lines the shown part of a taller entry has room for, its height less the space of 0.75rem above
  *   and below its lines, see {@link lineMinutes}: that Sleep has (360 - 11.25) / 15.75 = 22 lines, not 29
  *   for its whole 8 hours.
- * - `timeLine`: The second line, start and end, grey, cut with an ellipsis, see `.entry-time` in `day.css`.
+ * - `timeLine`: The second line, start and end, light grey, cut with an ellipsis, see `.entry-time` in `day.css`.
  * - `shown`: The lines shown above the note: what, the time, and the place, grey, see `.entry-place` in `day.css`.
  * - `below`: The note below the lines shown, grey, its line clamp the lines left, see `.entry-note` in `day.css`.
  *
