@@ -99,6 +99,16 @@
     color: inherit;
 }
 
+/* Name of a module, a link to it in the scripts view, looking like the heading it is, a line under the pointer */
+.skill-title {
+    color: inherit;
+    text-decoration: none;
+}
+
+.skill-title:hover {
+    text-decoration: underline;
+}
+
 /* Due today and each chapter apart from what stands before them, their names in the text of controls,
    their numbers grey beside them */
 .skill-part,

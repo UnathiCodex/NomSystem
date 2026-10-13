@@ -346,6 +346,9 @@ function papersOf(module: SkillModule): HTMLElement[] {
 
 /**
  * Builds the overview of a module, see the top of this file; a module without tasks shows `No chapters yet`.
+ * Its name links to the module in the scripts view, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning`,
+ * as the skill of an entry of the day does.
+ * - `name`: The heading with its name.
  *
  * @param module - Module with its tasks
  * @param today - Today like `2026-10-10`
@@ -354,9 +357,11 @@ function papersOf(module: SkillModule): HTMLElement[] {
 function moduleElementOf(module: SkillModule, today: string): HTMLElement {
     const section: HTMLElement = elementOf("section", "skill-module", "");
     const head: HTMLElement = elementOf("div", "skill-head", "");
+    const name: HTMLElement = elementOf("h2", "", "");
 
     section.id = `module-${module.code}`;
-    head.append(elementOf("h2", "", module.title));
+    name.append(linkOf("skill-title", module.title, `/scripts?module=${encodeURIComponent(module.title)}`));
+    head.append(name);
     if (module.tasks.length > 0)
         head.append(elementOf("span", "skill-ready", `Ready ${readyOf(module, module.sections)} / ${module.sections.length}`));
     section.append(head, elementOf("p", "skill-exam",
