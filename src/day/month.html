@@ -1,16 +1,16 @@
-<!-- Month to pick a day from, opened by the date above plan and log and by the days above the week:
-     its arrows by a year and by a month around the month and its year, then its days, drawn by FullCalendar;
-     a click on a day shows it, see month.ts -->
+<!-- Month to pick a day from, opened by the date above plan and log:
+     its month and year at the left, its arrows by a year and by a month at the right, small and without frame,
+     as calendars have them, then its days, drawn by FullCalendar; a click on a day shows it, see month.ts -->
 <dialog class="panel month-panel" id="month" closedby="any">
     <div class="panel-form">
-        <div class="day-bar">
-            <div class="day-buttons">
+        <div class="month-head">
+            <h2 class="day-title" id="month-title"></h2>
+            <div class="month-buttons">
                 <button id="month-year-back" type="button"></button>
                 <button id="month-back" type="button"></button>
                 <button id="month-next" type="button"></button>
                 <button id="month-year-next" type="button"></button>
             </div>
-            <h2 class="day-title" id="month-title"></h2>
         </div>
         <div class="month-calendar" id="month-calendar"></div>
     </div>

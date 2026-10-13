@@ -1,16 +1,17 @@
 /**
  * ## Tree
  *
- * The one tree on the left of the scripts view, see `./notes.ts`, and of the editor, see `../editor/editor.ts`,
- * as Obsidian's file explorer, with two roots, so both are one view:
- * - `NomManageplannings`, my new system, as the reader lists it, without my old system `NomSystemprevious`,
- *   see `reader/files.ts`: a Markdown file, like `Foods.md`, opens in the editor to edit, an `.ics` file
- *   as its plain text to read, any other file shows faint and opens not;
- * - `NomSkillingmodules`, the modules of the semester, each folding its chapters, of its folder and of its drafts
- *   together, with their notes, which open in the scripts view to read; my module notes are written only
- *   through their drafts, whose pencil opens them in the editor.
- * Folders come first. Both roots stand open, every other folder closed but those on the way to the file or note
- * shown; while none is shown, the first module opens, as the scripts view always opened it.
+ * The tree on the left of the scripts view, see `./notes.ts`, and of the editor, see `../editor/editor.ts`,
+ * as Obsidian's file explorer, of one of two roots at a time, each an area of its own in the rail:
+ * - `NomSkillingmodules`, the book, the modules of the semester, each folding its chapters, of its folder and of its
+ *   drafts together, with their notes, which open in the scripts view to read; my module notes are written only
+ *   through their drafts, whose pencil opens them in the editor;
+ * - `NomManageplannings`, the open folder, my new system, as the reader lists it, without my old system
+ *   `NomSystemprevious`, see `reader/files.ts`: a Markdown file, like `Foods.md`, opens in the editor to edit,
+ *   an `.ics` file as its plain text to read, any other file shows faint and opens not.
+ * The name of the root stands on top as a heading that never folds, its folders right below it, so nothing lies
+ * deeper than it needs. Folders come first, all closed but those on the way to the file or note shown; while none is
+ * shown, the first module opens, as the scripts view always opened it.
  * The look of the tree is in `./notes.css`.
  */
 
@@ -46,7 +47,7 @@ type NoteEntry = {
 /**
  * A chapter with its notes, as the reader sends it.
  *
- * - `title`: Its name to read, like `01 Regression Analysis`.
+ * - `title`: Its name, like `01_RegressionAnalysis`.
  * - `notes`: Its notes in order.
  */
 type Chapter = {
@@ -58,7 +59,7 @@ type Chapter = {
  * A module of the semester with its chapters, as the reader sends it.
  *
  * - `name`: Name of its folder, like `IN2028_BusinessAnalyticsMachineLearning`.
- * - `title`: Its name to read, like `IN2028 Business Analytics Machine Learning`.
+ * - `title`: Its name, like `IN2028_BusinessAnalyticsMachineLearning`.
  * - `chapters`: Its chapters that hold notes, in order.
  */
 type NotesModule = {
@@ -71,7 +72,7 @@ type NotesModule = {
 /**
  * Makes a folder of the tree that folds, like a chapter: its name, and below it the place of its entries.
  *
- * @param name - Name shown, like `01 Regression Analysis`
+ * @param name - Name shown, like `01_RegressionAnalysis`
  * @returns Folder, its entries to go into its last child
  */
 export function folderOf(name: string): HTMLDetailsElement {
@@ -145,7 +146,7 @@ function fileNodeOf(node: FileNode): HTMLElement {
 }
 
 /**
- * Makes a module of the semester: a folder by its name to read, like `IN2028 Business Analytics Machine Learning`,
+ * Makes a module of the semester: a folder by its name, like `IN2028_BusinessAnalyticsMachineLearning`,
  * the name of its folder as data, so it can be opened, see {@link treeShow}, its chapters in it, each folding
  * its notes, which link to the scripts view, named without `.md` as in Obsidian;
  * a module without chapter notes holds a calm `No chapters yet`, as the skill view says it.
@@ -211,36 +212,38 @@ export function treeMark(tree: HTMLElement, shown: string): HTMLElement | null {
 }
 
 /**
- * Loads both roots of the tree from the reader and shows them, see the top of this file, the file or note shown
- * marked, see {@link treeMark}; while none is shown, the module asked for stands open, scrolled into sight,
- * like the module of a skill entry clicked in the day, see `../skill/links.ts`, else the first module.
- * - `files`: Folders and files of `NomManageplannings`.
- * - `modules`: Modules of the semester.
- * - `manage`, `skilling`: The two roots.
+ * A root of the tree, an area of its own in the rail: the modules of the semester or my new system.
+ */
+export type TreeRoot = "NomSkillingmodules" | "NomManageplannings";
+
+/**
+ * Loads one root of the tree from the reader and shows it, see the top of this file: its name as a heading, its
+ * folders below, the file or note shown marked, see {@link treeMark}; in the modules, while none is shown, the module
+ * asked for stands open, scrolled into sight, like the module of a skill entry clicked in the day,
+ * see `../skill/links.ts`, else the first module.
+ * - `heading`: The name of the root on top.
+ * - `entries`: Its folders and files.
  * - `asked`: The folder of the module asked for, `null` for none.
  *
  * @param tree - Place of the tree
+ * @param root - The root to show
  * @param shown - Path of the file or note shown, empty for none
  * @param module - Name of the folder of the module to open while none is shown,
  *   like `IN2028_BusinessAnalyticsMachineLearning`, empty for the first
  * @throws {Error} - When the reader cannot answer
  */
-export async function treeShow(tree: HTMLElement, shown: string, module: string): Promise<void> {
-    const [files, modules]: [FileNode[], NotesModule[]] = await Promise.all([
-        readerAsk<FileNode[]>("/api/edit/tree"),
-        readerAsk<NotesModule[]>("/api/notes/modules"),
-    ]);
-    const manage: HTMLDetailsElement = folderOf("NomManageplannings");
-    const skilling: HTMLDetailsElement = folderOf("NomSkillingmodules");
-    manage.open = true;
-    skilling.open = true;
-    manage.lastElementChild?.append(...files.map(fileNodeOf));
-    skilling.lastElementChild?.append(...modules.map(moduleNodeOf));
-    tree.replaceChildren(manage, skilling);
-    if (treeMark(tree, shown) !== null)
+export async function treeShow(tree: HTMLElement, root: TreeRoot, shown: string, module: string): Promise<void> {
+    const heading: HTMLHeadingElement = document.createElement("h2");
+    heading.className = "tree-root";
+    heading.textContent = root;
+    const entries: HTMLElement[] = root === "NomManageplannings"
+        ? (await readerAsk<FileNode[]>("/api/edit/tree")).map(fileNodeOf)
+        : (await readerAsk<NotesModule[]>("/api/notes/modules")).map(moduleNodeOf);
+    tree.replaceChildren(heading, ...entries);
+    if (treeMark(tree, shown) !== null || root === "NomManageplannings")
         return;
     const asked: HTMLDetailsElement | null = module === "" ? null
-        : skilling.querySelector<HTMLDetailsElement>(`details[data-module="${CSS.escape(module)}"]`);
-    (asked ?? skilling.querySelector<HTMLDetailsElement>(".tree-children > details"))?.setAttribute("open", "");
+        : tree.querySelector<HTMLDetailsElement>(`details[data-module="${CSS.escape(module)}"]`);
+    (asked ?? tree.querySelector<HTMLDetailsElement>(":scope > details"))?.setAttribute("open", "");
     asked?.scrollIntoView({ block: "nearest" });
 }

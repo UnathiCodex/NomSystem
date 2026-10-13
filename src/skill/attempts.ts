@@ -48,8 +48,8 @@ export type Attempt = {
  * - `heading`: Its heading as written, like `Task. Airline Revenue Interval`.
  * - `source`: Its source line without `> `, like `Original: [[…|exam 2024/25 endterm 1a]]`, empty without one.
  * - `note`: Path of its note, as the scripts view takes it.
- * - `chapter`: Name to read of its chapter, like `01 Regression Analysis`.
- * - `section`: Name to read of its section, its note, like `01_01 Sample Mean Standard Error`.
+ * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
+ * - `section`: Name of its section, its note, like `01_01_SampleMeanStandardError`.
  * - `cold`: Whether it is a cold task of its section, its heading ending with `(cold)`.
  * - `parts`: Letters of the parts of a cold task, like `a`, `b` and `c`, none for any other task.
  */
@@ -89,9 +89,9 @@ export type SkillTask = Task & {
 /**
  * A section of a module, a note of a chapter, as the reader sends it.
  *
- * - `title`: Its name to read, like `01_01 Sample Mean Standard Error`.
+ * - `title`: Its name, like `01_01_SampleMeanStandardError`.
  * - `note`: Path of its note.
- * - `chapter`: Name to read of its chapter.
+ * - `chapter`: Name of its chapter.
  * - `cold`: Identity of its cold task, empty when it has none yet.
  * - `tasks`: Number of its tasks.
  * - `tried`: Number of its tasks I tried.
@@ -147,7 +147,7 @@ export type PlannedType = {
  * A module of the semester with its tasks, as the reader sends it.
  *
  * - `code`: Module code, like `IN2028`.
- * - `title`: Its name to read, like `IN2028 Business Analytics Machine Learning`.
+ * - `title`: Its name, like `IN2028_BusinessAnalyticsMachineLearning`.
  * - `exam`: Its exam.
  * - `tasks`: Its tasks in the order of the notes.
  * - `sections`: Its sections in the same order.
@@ -223,7 +223,7 @@ export type LinkLost = {
  *   empty for a project.
  * - `drafts`: The folder of its drafts from `NomWorkspace`, like
  *   `NomSystemdashboard/.claude/modules/drafts/IN2028_BusinessAnalyticsMachineLearning`, empty for a project.
- * - `chapters`: Names to read of its chapter folders, also of the empty ones, like `05 Decision Trees Ensembles`.
+ * - `chapters`: Names of its chapter folders, also of the empty ones, like `05 Decision Trees Ensembles`.
  * - `documents`: Its files outside the chapter folders, the university's material, and the notes of its chapters,
  *   by their paths from the module folder, like `VO_UniversityLectureLessons/TUM_2025W/04_….pdf`
  *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`; the notes of a chapter without notes there
@@ -261,7 +261,7 @@ export type AttemptNew = {
  * - `type`: Its type, like `VO`, empty for none.
  * - `module`: Name of its skill, a module code like `IN2028` or a project like `WokFlow`.
  * - `semester`: Its semester, like `2026W`: from which semester the lecture or the material is, see {@link semesterOf}.
- * - `chapters`: Names to read of the chapters it covered, none for none.
+ * - `chapters`: Names of the chapters it covered, none for none.
  * - `documents`: Paths from the folder of its skill of the documents it used, none for none; the reader links each
  *   with its fingerprint, see `reader/documents.ts`.
  * - `attempts`: Its attempts, none for none.

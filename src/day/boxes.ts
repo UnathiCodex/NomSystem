@@ -43,8 +43,6 @@
  * and opens the entry by category of the log when clicked.
  * The list loads again when the shown day or its log changes, since a box is done once a log entry points to it,
  * when the entry by category closes, and after a push, a cancel or a suggestion accepted.
- * The week shows the boxes of seven days the same way, without their buttons and without what is carried along,
- * see `week.ts`.
  *
  * - `fullcalendar/interaction`: Drags the boxes into the log.
  * - `./entries.ts`: Sends logged, taken back, pushed and cancelled boxes to the reader.
@@ -125,7 +123,7 @@ const phone: boolean = matchMedia("(max-width: 900px)").matches;
  * - `series`: Whether it is one occurrence of a series, which cannot be removed.
  * - `todo`: Whether it is a to-do; an event, like a lecture imported from TUMonline, keeps its time and duration.
  * - `links`: Its links, like the slides a lecture of my plan links, which a log entry from it gets too.
- * - `chapters`: Chapters of my system a skill box belongs to, like `02 Logistic Poisson Regression`, which a log entry
+ * - `chapters`: Chapters of my system a skill box belongs to, like `02_LogisticPoissonRegression`, which a log entry
  *   from it gets too; none for none.
  * - `number`: Its number in its series, like `3`, `NONE` for one the university cancelled, empty for none.
  */
@@ -303,7 +301,7 @@ function overIs(box: Box): boolean {
 }
 
 /**
- * Gives the classes of a box, in the day and in the week alike: `box` and its state, like `box-open`,
+ * Gives the classes of a box: `box` and its state, like `box-open`,
  * and `box-over`, greyed, for an open box whose day is over, see {@link overIs}, but in the list carried along,
  * where it is still to do.
  *
@@ -311,7 +309,7 @@ function overIs(box: Box): boolean {
  * @param carriedShown - Whether it shows in the list carried along, else on a day it belongs to
  * @returns Classes like `box box-open box-over`
  */
-export function boxClassOf(box: Box, carriedShown: boolean): string {
+function boxClassOf(box: Box, carriedShown: boolean): string {
     return `box box-${box.state}${overIs(box) && !carriedShown ? " box-over" : ""}`;
 }
 
@@ -323,7 +321,7 @@ export function boxClassOf(box: Box, carriedShown: boolean): string {
  * @param day - Day like `2026-10-23`
  * @returns The day with its weekday
  */
-export function weekdayTextOf(day: string): string {
+function weekdayTextOf(day: string): string {
     const weekday: string = new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short" });
     return `${weekday}, ${dateTextOf(day)}`;
 }
@@ -372,12 +370,11 @@ const pushesAsking: number = 3;
  * `Deadline Fri, 23.10.2026, 12:00`, see {@link deadlineTextOf}, its expected duration where no end shows it,
  * after a deadline or alone, like `75 min`, how near its deadline is while it is open,
  * see {@link nearOf}, and how often it was pushed, from {@link pushesAsking} pushes on, while it is open,
- * with the question `smaller or skip?`, like `75 min · pushed once`; the week leaves out
- * how near a deadline is, since it shows a deadline only on its own day, which its row names; one the university
- * cancelled says so at its end, like `16:00 – 17:30 · cancelled by university`.
+ * with the question `smaller or skip?`, like `75 min · pushed once`; a box carried along leaves out how near
+ * its deadline is; one the university cancelled says so at its end, like `16:00 – 17:30 · cancelled by university`.
  * - `pushes`: How often it was pushed, empty for never.
  * - `asking`: The question whether to make it smaller or skip it, empty while it does not ask.
- * - `near`: How near its deadline is, empty for a box without, one not open, or in the week.
+ * - `near`: How near its deadline is, empty for a box without, one not open, or one carried along.
  * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
  * - `start`: Its expected start, `null` for none.
  * - `when`: Its deadline, else its expected start and end, or its start alone without duration, empty for neither.
@@ -386,7 +383,7 @@ const pushesAsking: number = 3;
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
- * @param nearShown - Whether to write how near its deadline is, as the day does, but not the week
+ * @param nearShown - Whether to write how near its deadline is, not for a box carried along
  * @returns The parts of the line, in order, none when there is nothing to write
  */
 function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
@@ -411,7 +408,7 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
 }
 
 /**
- * Makes the lines of a box, in the day and in the week alike, the same whether it is open or done, see the top
+ * Makes the lines of a box, the same whether it is open or done, see the top
  * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf},
  * like **`Skill: IN0004_EinfuehrungRechnerarchitektur VO`**, see {@link shownWhatOf}, its long names breakable,
  * see `breakableOf` in `choices.ts`; then its time in the light grey of a time, its parts apart by a middle dot
@@ -428,10 +425,10 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
- * @param nearShown - Whether to write how near its deadline is, as the day does, but not the week
+ * @param nearShown - Whether to write how near its deadline is, not for a box carried along
  * @returns Its lines
  */
-export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] {
+function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] {
     const what: string = shownWhatOf(box.category, box.title, box.module, box.type);
     const times: (string | Node)[] = timePartsOf(box, day, nearShown).map((part: string, index: number):
         string | Node => index === 0 ? part : entryPartOf("span", "entry-parted", [part]));
@@ -452,8 +449,7 @@ export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLEle
 
 /**
  * Gives what a box is about, as I planned it: each of its chapters by the name of its folder, like
- * `02_LogisticPoissonRegression` of `02 Logistic Poisson Regression`, undoing `titleOf` in `reader/notes.ts`,
- * then each document it links by its name, the last part of its path, like `04_LogisticPoissonRegression.pdf`;
+ * `02_LogisticPoissonRegression`, then each document it links by its name, the last part of its path, like `04_LogisticPoissonRegression.pdf`;
  * a folder it links, which an older box may, shows as its chapter or not at all, see `chaptersOf`
  * in `reader/documents.ts`.
  *
@@ -462,7 +458,7 @@ export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLEle
  */
 function topicsOf(box: Box): string[] {
     return [
-        ...box.chapters.map((chapter: string): string => chapter.replace(" ", "_").replace(/ /g, "")),
+        ...box.chapters,
         ...box.links.filter((link: Link): boolean => link.fingerprint !== "").map(linkNameOf),
     ];
 }
@@ -470,28 +466,24 @@ function topicsOf(box: Box): string[] {
 /**
  * Makes the birthdays and holidays of a day, each a grey line above its boxes with its category in bold and a colon
  * as every entry has it, like **`Birthday:`**` KarlbauerFlorian`, see {@link whatOf}, and below it, after a gift,
- * my gift idea for it, when I have one. In the day a click on one opens the dialog of its gift idea, see `gifts.ts`,
- * and one without an idea shows the gift at its right under the pointer; the week only shows them.
+ * my gift idea for it, when I have one. A click on one opens the dialog of its gift idea, see `gifts.ts`,
+ * and one without an idea shows the gift at its right under the pointer.
  * - `element`: A birthday or holiday with its idea.
- * - `hint`: The gift under the pointer, none in the week and for one with an idea.
+ * - `hint`: The gift under the pointer, none for one with an idea.
  *
  * @param occasions - Birthdays and holidays with my gift ideas
- * @param open - Opens the dialog of the gift idea for one, `null` in the week
+ * @param open - Opens the dialog of the gift idea for one
  * @returns One element each
  */
-export function occasionsOf(occasions: Occasion[], open: ((occasion: Occasion) => void) | null): HTMLElement[] {
+function occasionsOf(occasions: Occasion[], open: (occasion: Occasion) => void): HTMLElement[] {
     return occasions.map((occasion: Occasion): HTMLElement => {
-        const hint: HTMLElement[] = open === null || occasion.gift !== ""
-            ? [] : [entryPartOf("span", "occasion-hint", [iconOf(Gift)])];
-        const element: HTMLElement = entryPartOf("div", "occasion", [
+        const hint: HTMLElement[] = occasion.gift !== "" ? [] : [entryPartOf("span", "occasion-hint", [iconOf(Gift)])];
+        const element: HTMLElement = entryPartOf("div", "occasion occasion-open", [
             entryPartOf("div", "occasion-title", [...whatOf(occasion.category, occasion.title), ...hint]),
             ...(occasion.gift === "" ? [] : [entryPartOf("div", "occasion-gift", [iconOf(Gift), occasion.gift])]),
         ]);
-        if (open !== null) {
-            element.classList.add("occasion-open");
-            element.title = occasion.gift === "" ? "Gift idea" : "Change gift idea";
-            element.addEventListener("click", (): void => open(occasion));
-        }
+        element.title = occasion.gift === "" ? "Gift idea" : "Change gift idea";
+        element.addEventListener("click", (): void => open(occasion));
         return element;
     });
 }

@@ -4,7 +4,7 @@
  * Names a skill entry and links it to the folder of its skill and to the documents it used, like the slides
  * of a lecture, a sheet or the notes of a chapter, its paths from `NomWorkspace`;
  * each link only points to more, the entry states its facts itself, see `calendar.ts`, like the chapters
- * of my system it belongs to, one `X-CHAPTER` each, like `X-CHAPTER:02 Logistic Poisson Regression`.
+ * of my system it belongs to, one `X-CHAPTER` each, like `X-CHAPTER:02_LogisticPoissonRegression`.
  * Its `SUMMARY` is the name of the folder of its skill, with its type
  * in round brackets at the end when it has one, and links that folder as its `ALTREP`, see {@link skillTitleOf},
  * like `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
@@ -253,12 +253,12 @@ function chapterLinkIs(link: Link): boolean {
 }
 
 /**
- * Gives the chapters of my system a skill entry belongs to, by their names to read: those of its `X-CHAPTER`s,
+ * Gives the chapters of my system a skill entry belongs to, by their names: those of its `X-CHAPTER`s,
  * then those whose folders an older entry links, see {@link chapterLinkIs}, by the names of their folders,
  * each once; a chapter keeps the name the entry gave it, also once its folder has another name.
  *
  * @param entry - Skill entry of the log
- * @returns Names like `02 Logistic Poisson Regression`, in order
+ * @returns Names like `02_LogisticPoissonRegression`, in order
  */
 export function chaptersOf(entry: Entry): string[] {
     return [...new Set([

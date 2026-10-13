@@ -1,7 +1,7 @@
 /**
  * ## Points
  *
- * A list of points for the callouts of the daily note, my gratitude and my points about the day, shown as Markdown
+ * A list of points for the sections of the daily note, my gratitude and my points about the day, shown as Markdown
  * shows a list: each point a bullet with a small field of its own beside it, wrapping and growing with its text.
  * Enter starts the next point below, taking along the text after the cursor, on an empty point it does nothing;
  * Backspace at the start of an empty point removes it, at the start of one with text joins it to the point above;
@@ -9,13 +9,13 @@
  * Text pasted over several lines becomes one point per line, a `- ` in front of a line dropped.
  * A list without points shows one empty point, so there is always a bullet to write at; a click beside the points
  * goes to the end of the last.
- * The callout keeps the points as its own list, one `> - ` line each, see `reader/note.ts`; a further line
+ * The section keeps the points as its own list, one `- ` line each, see `reader/note.ts`; a further line
  * of a point, indented in an older note, joins its point with a space.
  */
 
 
 /**
- * A point in a line of a callout as it may be written or pasted, `- ` in front, which the list leaves out.
+ * A point in a line of a section as it may be written or pasted, `- ` in front, which the list leaves out.
  */
 const marker: RegExp = /^\s*[-*•]\s+/;
 
@@ -61,11 +61,11 @@ function caretPut(field: HTMLTextAreaElement, at: number): void {
 }
 
 /**
- * Shows the text of a callout as points, one empty point for none.
+ * Shows the text of a section as points, one empty point for none.
  * - `points`: Texts of the points, a further line joined to its point.
  *
  * @param list - List of points
- * @param text - Text of the callout as the reader gives it, one point per line, a further line indented
+ * @param text - Text of the section as the reader gives it, one point per line, a further line indented
  */
 export function pointsShow(list: HTMLElement, text: string): void {
     const points: string[] = [];
@@ -82,10 +82,10 @@ export function pointsShow(list: HTMLElement, text: string): void {
 }
 
 /**
- * Reads the points of a list as the text of a callout: one point per line, empty points left out.
+ * Reads the points of a list as the text of a section: one point per line, empty points left out.
  *
  * @param list - List of points
- * @returns Text of the callout, empty for no points
+ * @returns Text of the section, empty for no points
  */
 export function pointsRead(list: HTMLElement): string {
     return fieldsOf(list)

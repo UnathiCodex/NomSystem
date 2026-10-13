@@ -2,13 +2,13 @@
  * ## Today
  *
  * Today, the one day of the whole page: today's calendar date, which turns at 00:00, so at 00:20 on 14.10.2026
- * the day, the week and the food open on 14 October, and the trackers, the skill days, the done boxes
+ * the day and the food open on 14 October, and the trackers, the skill days, the done boxes
  * and the due lists count 14 October, as the reader does.
  * A view that shows today moves on to the new day by itself at 00:00, and when the page becomes visible again
  * on a later day, like a tab left open overnight, whose timer the browser may have held back; a day I went to myself
- * stays, and only marks today anew, like the `Today` button of the day and the row of today in the week.
+ * stays, and only marks today anew, like the icon back to today of the day.
  * A view opens on today, also when it is reloaded, opened again by the browser or started anew as the app;
- * only a link to a day, like a row of the week, opens on that day, see {@link askedDayOf}.
+ * only a link to a day, like a meal of the food view, opens on that day, see {@link askedDayOf}.
  *
  * - `./skill/attempts.ts`: Writes a date as a day in the form of the reader.
  */
@@ -26,7 +26,7 @@ export function calendarTodayOf(): string {
 }
 
 /**
- * Reads the day a link asks a view to open on, like `2026-10-15` of `/?date=2026-10-15` from a row of the week,
+ * Reads the day a link asks a view to open on, like `2026-10-15` of `/?date=2026-10-15` from a meal of the food view,
  * and takes it out of the address, so a reload or a tab the browser opens again later shows today instead,
  * like 13 October after a night with the tab of 12 October open.
  * - `asked`: The day of the address, `null` for none.
@@ -52,9 +52,9 @@ export function askedDayOf(): string | null {
  * - {@link Document#visibilityState}: Tells whether the page can be seen, `visible`, or lies hidden, like in a tab
  *   behind others.
  *
- * @param shown - Gives the day the view shows, like `2026-10-13`, for the week its first day
+ * @param shown - Gives the day the view shows, like `2026-10-13`
  * @param show - Shows a day, like `2026-10-14`
- * @param mark - Marks today anew in a view that stays on another day, like its `Today` button;
+ * @param mark - Marks today anew in a view that stays on another day, like the icon back to today;
  *   none for a view without such a mark, like the food
  */
 export function todayFollow(shown: () => string, show: (day: string) => void, mark?: () => void): void {

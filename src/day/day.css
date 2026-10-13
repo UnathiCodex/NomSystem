@@ -19,17 +19,12 @@
     min-height: 0;
 }
 
-/* Bar of the day and of the week over the whole width: arrows and Today, then the date, as Google Calendar has them */
+/* Bar of the day over the whole width, see `.day-nav` */
 .day-bar {
     display: flex;
     grid-column: 1 / -1;
     align-items: center;
     gap: calc(1.5 * var(--gap));
-}
-
-.day-buttons {
-    display: flex;
-    gap: var(--control-gap);
 }
 
 /* Bar of the day: the date with the arrows left and right of it at its left end, above the plan, the icon back
@@ -66,35 +61,22 @@
     cursor: default;
 }
 
-/* Buttons of the bar one control high with round corners, the arrows square, a grey lighter under the pointer,
-   Today faded while today is shown */
-.day-buttons button,
+/* Arrows of the bar square, one control high with round corners, a grey lighter under the pointer */
 .day-arrow {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-width: var(--control-height);
     min-height: var(--control-height);
-    padding: 0 var(--control-padding);
+    padding: 0;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--background);
     cursor: pointer;
 }
 
-.day-buttons button:has(svg),
-.day-arrow {
-    padding: 0;
-}
-
-.day-buttons button:hover,
 .day-arrow:hover {
     background: var(--fill);
-}
-
-.day-buttons button:disabled {
-    opacity: 0.4;
-    cursor: default;
 }
 
 /* Plan and log, each its name small and grey above it with its + at the right, the boxes and the time grid filling
@@ -398,72 +380,6 @@ button.box-ring.box-checked svg {
     }
 }
 
-/* Week: the bar of the seven days, see `.day-bar`, above one row per day, filling the screen below the areas */
-.week {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap);
-    flex: 1;
-    min-height: 0;
-    padding: var(--gap);
-}
-
-/* Seven rows, one below the other, scrolling together when they are many; each a link to its day:
-   its name grey at the left, today's light and its edge lighter, beside it its boxes in columns of the same width,
-   each at least 30rem wide, so the whole name of a skill fits on its line, like
-   `Skill: IN2028_BusinessAnalyticsMachineLearning VO`, as many as the row has room for, wrapping into the next line,
-   birthdays and holidays over the whole width */
-.week-days {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-}
-
-.week-day {
-    display: grid;
-    grid-template-columns: 9.5rem minmax(0, 1fr);
-    gap: var(--gap);
-    align-items: baseline;
-    padding: 0.625rem var(--gap);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    color: inherit;
-    text-decoration: none;
-}
-
-.week-boxes {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(30rem, 1fr));
-    gap: 0.5rem;
-}
-
-.week-boxes > .occasion,
-.week-boxes > .plan-none {
-    grid-column: 1 / -1;
-    padding-inline: 0;
-}
-
-.week-day:hover {
-    background: var(--fill);
-}
-
-.week-day[aria-current="date"] {
-    border-color: var(--chosen-line);
-}
-
-.week-day-name {
-    white-space: nowrap;
-    color: var(--text-muted);
-}
-
-.week-day[aria-current="date"] .week-day-name {
-    color: var(--text-main);
-}
-
-
 /* Calendar in the greys of the page, its text in the size of the page, which the theme sets in px;
    the month to pick a day from in the same greys */
 .day-calendar {
@@ -492,7 +408,7 @@ button.box-ring.box-checked svg {
     --fc-forma-strongest: color-mix(in oklab, var(--text-main) 18%, transparent);
 }
 
-/* Date of the day above plan and log, and the days of the week, in the size of the calendar's title, light */
+/* Date of the day above plan and log, and the month to pick a day from, in the size of the calendar's title, light */
 .day-title {
     font-size: 1.25rem;
     font-weight: 400;
@@ -564,9 +480,18 @@ button.box-ring.box-checked svg {
     line-height: 1rem;
 }
 
-/* Entries one grey lighter than the page, their edge in the grey of the log */
+/* Entries a grey lighter than the fill of the page, their edge in the grey of the log, 4px apart, so two entries
+   one right after the other, like a skill from 10:00 to 10:30 and a way from 10:30, stand apart at a glance */
 .entry {
-    background-color: var(--fill);
+    margin-bottom: 4px;
+    background-color: color-mix(in oklab, var(--fill) 95%, var(--text-main));
+}
+
+/* A short entry, of a quarter hour, and a glass of water keep the theme's 1px below them, since 4px would cut
+   the one line of a short entry and shrink the mark of a glass */
+.entry:has(.entry-inner-short),
+.entry.glass-mark {
+    margin-bottom: 1px;
 }
 
 /* Under a pointer that hovers, an entry turns only a little lighter, in place of the theme's bright grey,
@@ -578,7 +503,7 @@ button.box-ring.box-checked svg {
     }
 
     .entry:hover {
-        background-color: color-mix(in oklab, var(--fill) 92%, var(--text-main));
+        background-color: color-mix(in oklab, var(--fill) 89%, var(--text-main));
         transition: background-color 150ms 100ms;
     }
 }
@@ -769,18 +694,9 @@ button.box-ring.box-checked svg {
     cursor: default;
 }
 
-.water-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.375rem;
-    min-width: calc(var(--icon-size) + 0.375rem + 2ch);
-    font-variant-numeric: tabular-nums;
-}
-
 .water-litres {
-    margin-left: 0.25rem;
-    color: var(--text-muted);
+    min-width: 4.5ch;
+    text-align: center;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
@@ -1049,9 +965,43 @@ button.box-ring.box-checked svg {
     cursor: default;
 }
 
-/* Month to pick a day from: as wide as a month needs, 27.5rem */
+/* Month to pick a day from: 34rem wide, so its days are easy to hit */
 .month-panel {
-    width: min(27.5rem, calc(100vw - 2 * var(--gap)));
+    width: min(34rem, calc(100vw - 2 * var(--gap)));
+}
+
+/* Head of the month: its month and year at the left, its arrows at the right, a little apart from its days */
+.month-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap);
+    margin-bottom: 0.75rem;
+}
+
+.month-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* Arrows of the month: flat, without frame, one chip high, grey, a grey lighter under the pointer */
+.month-buttons button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--chip-height);
+    height: var(--chip-height);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.month-buttons button:hover {
+    background: var(--fill);
+    color: var(--text-main);
 }
 
 /* Entry by category: one column of rows, at most as high as the screen with a gap around, then scrolling
@@ -1704,7 +1654,7 @@ svg.route-arrow {
 }
 
 /* Phone: plan or log, one at a time, one screen high, switched at the bottom, panels from below,
-   the entry by category scrolling as a whole; in the week the name of a day above its boxes */
+   the entry by category scrolling as a whole */
 @media (max-width: 900px) {
     /* As simple as can be: the day one screen high, plan or log, one at a time, filling it, the switch between
        them with its + at the bottom; no trackers and no daily note, see `main.ts` */
@@ -1756,17 +1706,8 @@ svg.route-arrow {
         height: var(--control-height);
     }
 
-    .week-day {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    /* On a phone the date goes below the buttons of the week, so it never runs off the screen */
-    .day-bar {
-        flex-wrap: wrap;
-    }
-
     /* The bar of the day on a phone: the arrows at the edges of the screen, plain, without frame, and the date
-       in the middle, the weekday small and grey above it, like `Tuesday` over `13.10.2026` */
+       in the middle, the weekday small and grey above it, like `Tue` over `13.10.2026` */
     .day-nav {
         flex-wrap: nowrap;
         justify-content: space-between;
@@ -1775,6 +1716,12 @@ svg.route-arrow {
     .day-nav .day-arrow {
         border-color: transparent;
         background: none;
+    }
+
+    /* The date on a phone only as wide as itself, since the arrows stand at the edges, so the bar never grows wider
+       than the screen */
+    #day-title {
+        min-width: 0;
     }
 
     .day-nav .day-title {

@@ -1,13 +1,11 @@
-/* Editor: the tree on the left, the file on the right, filling the screen below the areas with a grey line between,
-   as the scripts view, whose tree it shares, see `../notes/notes.css` */
+/* Editor: the tree on the left, the file on the right, filling the screen beside the areas, as the scripts view,
+   whose tree it shares, see `../notes/notes.css` */
 .editor {
     display: grid;
     grid-template-columns: var(--tree-width) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
-    margin-top: 0.5rem;
-    border-top: 1px solid var(--line);
 }
 
 /* The file: the page of it in the middle, scrolls alone */

@@ -1,6 +1,7 @@
 /* Food, in the scheme of the day: the bar of the shown day over the whole width, then the day and my foods
    side by side where both fit, else one below the other, beside the areas at the left edge; the page itself scrolls,
-   no box of its own, so the wheel, a swipe, the keys and the scrollbar all scroll it */
+   no box of its own, so the wheel, a swipe, the keys and the scrollbar all scroll it, on a computer
+   and on a phone alike */
 .food {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 34rem), 1fr));

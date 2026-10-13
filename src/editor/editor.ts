@@ -244,12 +244,14 @@ async function openedRead(file: string): Promise<Opened | null> {
 }
 
 /**
- * Starts the editor after the router has put its HTML into the page: shows the tree on the left,
+ * Starts the editor after the router has put its HTML into the page: shows the tree on the left, that of my new system
+ * for one of its files and at `/plannings`, that of the modules for a draft, see `../notes/tree.ts`,
  * reads the file the address names and shows it to edit, with the save button, Ctrl+S, and a question
  * before leaving with changes unsaved; a file to read only says so, a file that cannot be read shows a hint instead,
  * and so does the editor while it shows no file.
  * - `address`: The parameters of the address.
  * - `file`: Path of the file of my new system, empty for a note.
+ * - `plannings`: Whether the editor shows my new system, for one of its files or at `/plannings`.
  * - `opened`: The file read.
  * - `text`: Element of the text, with the look of the notes for Markdown, else of plain text.
  * - `beforeunload`: Comes before the page closes or loads again, also for another file of the tree;
@@ -259,9 +261,11 @@ export async function editorStart(): Promise<void> {
     const address: URLSearchParams = new URLSearchParams(location.search);
     const file: string = address.get("file") ?? "";
     const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
+    const plannings: boolean = file !== "" || location.pathname === "/plannings";
     path = file !== "" ? file : address.get("path") ?? "";
     saveAddress = file !== "" ? "/api/edit/file" : "/api/edit/note";
-    treeShow(document.getElementById("notes-tree") as HTMLElement, path, "")
+    treeShow(document.getElementById("notes-tree") as HTMLElement,
+        plannings ? "NomManageplannings" : "NomSkillingmodules", path, "")
         .catch((error: unknown): void => console.error(error));
     (document.getElementById("editor-title") as HTMLElement).textContent =
         path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";
@@ -269,7 +273,7 @@ export async function editorStart(): Promise<void> {
     if (opened === null) {
         save.hidden = true;
         (document.getElementById("editor-state") as HTMLElement).textContent =
-            path === "" ? "Choose a note or a file on the left" : "This file cannot be read";
+            path === "" ? `Choose a ${plannings ? "file" : "note"} on the left` : "This file cannot be read";
         return;
     }
 
