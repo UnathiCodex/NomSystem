@@ -455,12 +455,16 @@ const examDays: number = 14;
 const keepUpDays: number = 42;
 
 /**
- * Exams of the modules of the semester by their codes, the one place to change them once the university names them;
- * a module not listed is estimated at {@link examDefault}. IN2028 is estimated from its endterms of the last years,
- * all on the last Thursday or so of February: 28.02.2022, 29.02.2024, 27.02.2025.
+ * Estimated exams of the modules of the semester whose exam the university has not named yet, by their codes;
+ * a named exam stands in the plan of its module as a box of the type `FA`, which wins, see {@link examOf},
+ * like WI1057 on 18.02.2027 at 17:00; a module neither planned nor listed is estimated at {@link examDefault}.
+ * IN2028 is estimated from its endterms of the last years, all on the last Thursday or so of February:
+ * 28.02.2022, 29.02.2024, 27.02.2025; IN0004 from its last two, each on the second Friday of February:
+ * 14.02.2025, 13.02.2026.
  */
 export const exams: { [code: string]: ExamDate } = {
     IN2028: { day: "2027-02-25", estimated: true },
+    IN0004: { day: "2027-02-12", estimated: true },
 };
 
 /**
@@ -880,6 +884,24 @@ function plannedOf(module: string, boxes: Box[]): PlannedType[] {
 }
 
 /**
+ * Gives the exam of a module: the first box of the type `FA` of its plan from today on, its day as the university
+ * named it, else its estimate, see {@link exams}, else {@link examDefault}.
+ * - `today`: Today in Berlin time.
+ * - `planned`: The first exam of its plan from today on, `undefined` for none.
+ *
+ * @param module - Code of the module, like `WI1057`
+ * @param boxes - Skill boxes of the plan, see `skillBoxesRead` in `boxes.ts`
+ * @returns Its exam
+ */
+function examOf(module: string, boxes: Box[]): ExamDate {
+    const today: string = berlinDateOf(new Date());
+    const planned: Box | undefined = boxes
+        .filter((box: Box): boolean => box.module === module && box.type === "FA" && box.day >= today)
+        .sort((first: Box, second: Box): number => first.day.localeCompare(second.day))[0];
+    return planned !== undefined ? { day: planned.day, estimated: false } : exams[module] ?? examDefault;
+}
+
+/**
  * Reads everything the skill and scripts views show: per module of the semester its exam, its tasks with when each
  * is due, see the top of this file, its sections, the tasks whose name the module has already, and the number
  * of attempts on tasks no note holds any more; a module without chapter notes yet has no tasks.
@@ -892,7 +914,7 @@ function plannedOf(module: string, boxes: Box[]): PlannedType[] {
  * - `byTask`: The same attempts by the identity of their task.
  * - `unique`: Tasks of a module, each name once.
  * - `duplicates`: Tasks of a module whose name an earlier task has.
- * - `exam`: Exam of a module.
+ * - `exam`: Exam of a module, see {@link examOf}.
  * - `attemptsOf`: Attempts at a task.
  * - `colds`: Cold tasks of a module with when each is due and whether its section had a run, by their notes,
  *   the first of a note.
@@ -914,7 +936,7 @@ export function skillingRead(): Skilling {
             else
                 unique.push(task);
         });
-        const exam: ExamDate = exams[module.code] ?? examDefault;
+        const exam: ExamDate = examOf(module.code, boxes);
         const attemptsOf: (task: Task) => Attempt[] = (task: Task): Attempt[] =>
             (byTask.get(task.id) ?? []).map((logged: LoggedAttempt): Attempt => logged.attempt);
         const colds: Map<string, [SkillTask, boolean]> = new Map(unique

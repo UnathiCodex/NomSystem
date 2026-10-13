@@ -7,14 +7,64 @@
     padding: calc(1.5 * var(--gap)) calc(2 * var(--gap)) calc(4 * var(--gap));
 }
 
+/* The modules in a width of 64rem, wider than a note, so the whole name of a module fits beside its exam,
+   like `IN2028_BusinessAnalyticsMachineLearning` */
 #skill-modules {
-    max-width: var(--reading-width);
+    max-width: 64rem;
     margin: 0 auto;
 }
 
 /* Modules apart from each other */
 .skill-module + .skill-module {
     margin-top: calc(4 * var(--gap));
+}
+
+/* Exams of the modules at the top, as far from the first module as the modules from each other: one airy row each,
+   parted by grey lines like the tasks, its day, the module, the days left and the ready number in columns,
+   the module in the text, the rest grey; a row links to its module, lighter under the pointer */
+.skill-exams {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr) max-content max-content;
+    margin: 0 0 calc(4 * var(--gap));
+}
+
+.skill-exams h3 {
+    grid-column: 1 / -1;
+}
+
+/* A row spans the four columns of the list, so its day, module, days and ready number line up with every other row */
+.skill-exam-row {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    column-gap: calc(2 * var(--gap));
+    padding: 0.625rem 0.5rem;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.skill-exams h3 + .skill-exam-row {
+    margin-top: 0.75rem;
+}
+
+.skill-exam-row:hover {
+    background: var(--fill);
+}
+
+.skill-exam-module {
+    overflow: hidden;
+    color: var(--text-main);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.skill-exam-left,
+.skill-exam-ready {
+    text-align: right;
+    white-space: nowrap;
 }
 
 /* Links not found, above the modules and as far from the first as the modules from each other */

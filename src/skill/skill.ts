@@ -21,6 +21,10 @@
  *   `New`, `Due today`, `Due Monday, 12.10.2026`, `Done`, `Ready` or `Skipped`.
  * A module without tasks, since it has no chapter notes yet, shows only its name, `No chapters yet`
  * and its entries of the plan.
+ * Above the modules their exams, one line each, the next first, so I see at once what comes when and how ready
+ * I am: its day, `≈` while estimated, the module, how many days are left and its ready number, like
+ * `Thursday, 18.02.2027  WI1057_CostAccounting  in 128 days`, each linking to its module below; a module's own
+ * exam line says the same, like `Exam Thursday, 18.02.2027 · in 128 days`.
  * Above the modules, only while there are some, the links of skill entries the reader could not repair at its last
  * check, see `reader/documents.ts`, one line each with the day and the skill of its entry,
  * like `13.10.2026 IN2028_BusinessAnalyticsMachineLearning (VO): VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`.
@@ -311,11 +315,12 @@ function moduleElementOf(module: SkillModule, today: string): HTMLElement {
     const section: HTMLElement = elementOf("section", "skill-module", "");
     const head: HTMLElement = elementOf("div", "skill-head", "");
 
+    section.id = `module-${module.code}`;
     head.append(elementOf("h2", "", module.title));
     if (module.tasks.length > 0)
         head.append(elementOf("span", "skill-ready", `Ready ${readyOf(module, module.sections)} / ${module.sections.length}`));
     section.append(head, elementOf("p", "skill-exam",
-        `Exam ${module.exam.estimated ? "≈ " : ""}${dayTextOf(module.exam.day, true)}`));
+        `Exam ${module.exam.estimated ? "≈ " : ""}${dayTextOf(module.exam.day, true)} · ${daysLeftOf(module.exam.day, today)}`));
     module.duplicates.forEach((task: Task): void => {
         const notice: HTMLElement = elementOf("p", "skill-notice", "Task heading found twice: ");
         notice.append(linkOf("", task.name, noteAddressOf(task.note, task.heading)));
@@ -329,6 +334,52 @@ function moduleElementOf(module: SkillModule, today: string): HTMLElement {
     else
         section.append(dueTodayOf(module.tasks, today), ...plannedOf(module, today), ...chaptersOf(module, today));
     return section;
+}
+
+/**
+ * Writes how many days are left until a day, like `in 128 days`, `tomorrow` or `today`, `over` once it is past.
+ * - `days`: Whole days from today to the day.
+ *
+ * @param day - Day like `2027-02-18`
+ * @param today - Today like `2026-10-13`
+ * @returns Days left
+ */
+function daysLeftOf(day: string, today: string): string {
+    const days: number = Math.round((Date.parse(`${day}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 86400000);
+    if (days < 0)
+        return "over";
+    if (days === 0)
+        return "today";
+    return days === 1 ? "tomorrow" : `in ${days} days`;
+}
+
+/**
+ * Builds the exams of the modules, see the top of this file: one line each, the next exam first,
+ * each a link to its module.
+ * - `part`: The list with its heading.
+ * - `sorted`: The modules by the day of their exam.
+ * - `row`: The line of a module.
+ *
+ * @param modules - Modules of the semester
+ * @param today - Today like `2026-10-13`
+ * @returns The list
+ */
+function examsOf(modules: SkillModule[], today: string): HTMLElement {
+    const part: HTMLElement = elementOf("section", "skill-part skill-exams", "");
+    const sorted: SkillModule[] = modules.toSorted((first: SkillModule, second: SkillModule): number =>
+        first.exam.day.localeCompare(second.exam.day));
+    part.append(elementOf("h3", "", "Exams"), ...sorted.map((module: SkillModule): HTMLElement => {
+        const row: HTMLAnchorElement = linkOf("skill-exam-row", "", `#module-${module.code}`);
+        row.append(
+            elementOf("span", "skill-exam-day", `${module.exam.estimated ? "≈ " : ""}${dayTextOf(module.exam.day, true)}`),
+            elementOf("span", "skill-exam-module", module.title),
+            elementOf("span", "skill-exam-left", daysLeftOf(module.exam.day, today)),
+            elementOf("span", "skill-exam-ready", module.tasks.length > 0
+                ? `Ready ${readyOf(module, module.sections)} / ${module.sections.length}` : "No chapters yet"),
+        );
+        return row;
+    }));
+    return part;
 }
 
 /**
@@ -348,7 +399,7 @@ function lostOf(lost: LinkLost[]): HTMLElement[] {
 }
 
 /**
- * Loads the tasks from the reader and shows the links not found and the overview of every module,
+ * Loads the tasks from the reader and shows the exams, the links not found and the overview of every module,
  * then renders the formulas, if there are any.
  * - `modules`: Place of the modules in the view.
  *
@@ -358,7 +409,7 @@ async function skillShow(): Promise<void> {
     const skilling: Skilling = await skillingLoad();
     const today: string = calendarTodayOf();
     const modules: HTMLElement = document.getElementById("skill-modules") as HTMLElement;
-    modules.replaceChildren(...lostOf(skilling.lost),
+    modules.replaceChildren(examsOf(skilling.modules, today), ...lostOf(skilling.lost),
         ...skilling.modules.map((module: SkillModule): HTMLElement => moduleElementOf(module, today)));
     if (modules.querySelector(".math") !== null)
         (await import("../notes/math.ts")).mathRender(modules);
