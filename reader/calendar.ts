@@ -275,7 +275,7 @@ const zone: ICAL.Timezone = new ICAL.Timezone(zoneComponent);
  * `DURATION` and `ESTIMATED-DURATION` after them, then `RRULE`, `RDATE`, `EXDATE` and `RECURRENCE-ID`;
  * what, `CATEGORIES`, `SUMMARY`, `STATUS`, with `COMPLETED` after it; where, `LOCATION`; more about it,
  * `DESCRIPTION`, `ATTACH` and `RELATED-TO`; then every other line of the standard, then the `X-` lines,
- * each in the order it had.
+ * each in the order it had, those of a skill entry last, see {@link lineEnding}.
  */
 const lineOrder: string[] = [
     "UID", "DTSTAMP",
@@ -284,6 +284,12 @@ const lineOrder: string[] = [
     "LOCATION",
     "DESCRIPTION", "ATTACH", "RELATED-TO",
 ];
+
+/**
+ * The last lines of every event and to-do, after every other `X-` line, in this order: the semester of a skill entry,
+ * `X-SEMESTER`, then all its `X-CHAPTER`s, then all its `X-ATTEMPT`s.
+ */
+const lineEnding: string[] = ["X-SEMESTER", "X-CHAPTER", "X-ATTEMPT"];
 
 /**
  * The parameter `ALTREP` in double quotes, as the standard writes a link there, also one without `:`, like
@@ -806,7 +812,8 @@ function calendarCreate(): ICAL.Component {
 
 /**
  * Gives the place of a line of an event or a to-do in the fixed order, see {@link lineOrder}:
- * the place of its property in the list, after them every other line of the standard, then the `X-` lines.
+ * the place of its property in the list, after them every other line of the standard, then the `X-` lines,
+ * and last those of {@link lineEnding}, in their order.
  * - `name`: Name of its property, like `DTSTART` of `DTSTART;TZID=Europe/Berlin:20261013T100000`.
  * - `place`: Its place in the list, -1 for none.
  *
@@ -818,6 +825,8 @@ function lineRankOf(line: string): number {
     const place: number = lineOrder.indexOf(name);
     if (place !== -1)
         return place;
+    if (lineEnding.includes(name))
+        return lineOrder.length + 2 + lineEnding.indexOf(name);
     return name.startsWith("X-") ? lineOrder.length + 1 : lineOrder.length;
 }
 

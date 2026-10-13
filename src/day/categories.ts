@@ -1126,7 +1126,10 @@ export async function entryOpenFromBox(box: Box, start: Date, end: Date): Promis
             ? { title: box.title, from: box.from, location: box.location }
             : { title: "", from: "", location: "" },
         note: "", foods: [],
-        skill: { ...skillNone, module: box.module, type: box.type, semester: box.semester, links: box.links },
+        skill: {
+            ...skillNone, module: box.module, type: box.type, semester: box.semester, chapters: box.chapters,
+            links: box.links,
+        },
         plan: box, entry: null, box: null,
     });
 }

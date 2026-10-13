@@ -40,7 +40,7 @@
 import { boxDone, boxFind, boxOpenFind, boxReopen } from "./boxes.ts";
 import { berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryRemove, propertiesPut } from "./calendar.ts";
 import { categoryAllows, semesterFor, skillName, usualLengthRead } from "./categories.ts";
-import { chaptersOf, titleOf } from "./documents.ts";
+import { chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
 import { dishFoodsRead, foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, logEnding, monthFileOf } from "./sources.ts";
@@ -296,8 +296,9 @@ export function entryAdd(entry: EntryNew): string {
  * with its skill and type, written as the reader writes them, see `titleOf` in `documents.ts`, linking the folder
  * of its skill, from the start to the end the day sends,
  * pointing to the box with `RELATED-TO`, after which the box is done. Its note stays empty, since the note
- * of a log entry is my diary note about what happened; a skill box hands on its links, like the slides of a lecture
- * with their topics, see `documents.ts`, and more chapters and documents a skill entry gets later in the dialog.
+ * of a log entry is my diary note about what happened; a skill box hands on its links to documents, like the slides
+ * of a lecture with their topics, see `documents.ts`, and its chapters as `X-CHAPTER`s, also those whose folders
+ * an older box links; more chapters and documents a skill entry gets later in the dialog.
  * - `box`: The box.
  * - `skill`: Whether it is a skill box, whose links go along.
  * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
@@ -324,7 +325,8 @@ export function boxLog(logged: BoxLogged): string {
     fieldsCheck(fields, [], box);
     const id: string = entryAppend(fileOf(fields.start), fields, [
         ["related-to", box.id],
-        ...(skill ? box.links : []).map((link: Link): [string, Link] => ["attach", link]),
+        ...(skill ? documentLinksOf(box.links) : []).map((link: Link): [string, Link] => ["attach", link]),
+        ...(skill ? box.chapters : []).map((chapter: string): [string, string] => ["x-chapter", chapter]),
     ]);
     boxDone(box.id);
     return id;

@@ -106,6 +106,8 @@ export type BoxState = "open" | "done" | "dropped";
  * - `series`: Whether it is one occurrence of a series, which cannot be removed.
  * - `todo`: Whether it is a to-do; an event, like a lecture imported from TUMonline, keeps its time and duration.
  * - `links`: Its links, like the slides a lecture of my plan links, which a log entry from it gets too.
+ * - `chapters`: Chapters of my system a skill box belongs to, like `02 Logistic Poisson Regression`, which a log entry
+ *   from it gets too; none for none.
  */
 export type Box = {
     id: string;
@@ -129,6 +131,7 @@ export type Box = {
     series: boolean;
     todo: boolean;
     links: Link[];
+    chapters: string[];
 };
 
 /**

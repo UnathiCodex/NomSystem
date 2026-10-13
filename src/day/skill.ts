@@ -6,20 +6,24 @@
  * for my own learning or a project, like `WokFlow`; the reader writes what it is from both, like
  * `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `reader/documents.ts`, and writes it anew when I change
  * either later. Below the times its place, with its whole line and its pencil below it, see `categories.ts`;
- * in the log its topics; then its semester, from which semester the lecture or the material is, not when I did it:
+ * in the log its chapters and its topics; then its semester, from which semester the lecture or the material is,
+ * not when I did it:
  * the semester of the day of the dialog, which follows that day as I type it, until I pick another, offered with
  * the two before it, like `2026W`, `2026S` and `2025W`, or typed with `+`, like `2024W`.
  * The one Skill list shows the skills of the semester, a module by its code, like `IN2028`, a project by its folder
  * name, like `WokFlow`, and its search every module folder, since I sometimes attend another module.
- * The Topics list, several to pick, follows the type, see {@link materialFolders}: for my own learning the chapter
- * folders of the module, for a type the files of the folder of its material in the folder of the semester
- * of the entry, like `TUM_2026W` for `2026W`: a lecture's slides in `VO_UniversityLectureLessons`, the sheet
- * of an exercise or a tutorial in `TU_UniversityTutorExercises`, a homework's in `HU_UniversityHomeExercises`;
- * picks the list does not offer, like an older entry's, stay picked until I take them back; a project offers none.
- * Each topic picked gets its line below the list, its name and its topic, filled from its name, like
- * `Logistic Regression` of `04_LogisticRegression.pdf` or `Logistic Poisson Regression` of the chapter
- * `02 Logistic Poisson Regression`, which I may change; the reader writes it as the `X-TOPIC` of its `ATTACH`,
- * since the entry states its topics itself and its links only point to more, see `reader/documents.ts`.
+ * The Chapters list, several to pick, names the chapters of my system the entry belongs to, of every type,
+ * like a lecture of `02 Logistic Poisson Regression` or exam training over several; the reader writes one
+ * `X-CHAPTER` each. The Topics list, several to pick, holds the real documents the entry used and follows the type,
+ * see {@link materialFolders}: for my own learning the notes of the chapters of the module, for a type the files
+ * of the folder of its material in the folder of the semester of the entry, like `TUM_2026W` for `2026W`:
+ * a lecture's slides in `VO_UniversityLectureLessons`, the sheet of an exercise or a tutorial
+ * in `TU_UniversityTutorExercises`, a homework's in `HU_UniversityHomeExercises`; picks a list does not offer,
+ * like an older entry's, stay picked until I take them back; a project offers none.
+ * Each document picked gets its line below the list, its name and its topic, filled from its name, like
+ * `Logistic Regression` of `04_LogisticRegression.pdf`, which I may change; the reader writes it as the `X-TOPIC`
+ * of its `ATTACH`, since the entry states its topics itself and its links only point to more,
+ * see `reader/documents.ts`.
  * The note is only my free note.
  * The tasks of the chapters picked come after the semester, the due ones first, then a result for each task picked:
  * Right, Wrong, Stuck with where I got stuck, or Skip with a reason, and after Right, Wrong or Stuck
@@ -159,6 +163,12 @@ let picks: SkillPicks = {
 const materialFolders: { [type: string]: string } = {
     VO: "VO_", UE: "TU_", TU: "TU_", HU: "HU_", FA: "FA_", PR: "PR_",
 };
+
+/**
+ * Beginning of the path of a note of a chapter from the module folder, the folder of its chapter, like
+ * `01_RegressionAnalysis/` of `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`.
+ */
+const chapterFolder: RegExp = /^\d{2}_[^/]*\//;
 
 /**
  * Day of the dialog, like `2026-10-13`, whose semester the entry has while I pick none, see {@link skillDaySet}.
@@ -347,23 +357,33 @@ async function semesterAdd(text: string): Promise<string | null> {
 }
 
 /**
- * Gives the chapters the Topics list offers, see the top of this file: for my own learning, without type,
- * the chapters of the module, none for a type, whose topics are the files of its material;
- * then the chapters picked that are none of them, like those an older lecture covered, so I can take them back.
- * - `offered`: Chapters offered.
+ * Writes the name of the folder of a chapter to read, as the reader names it, see `titleOf` in `reader/notes.ts`:
+ * its number, a space, then its words apart, like `01 Regression Analysis` of `01_RegressionAnalysis`.
+ *
+ * @param folder - Name of the folder of a chapter
+ * @returns Its name to read
+ */
+function chapterNameOf(folder: string): string {
+    return folder.replace("_", " ").replace(/(?<=\p{Ll})(?=\p{Lu})/gu, " ");
+}
+
+/**
+ * Gives the chapters the Chapters list offers: the chapters of the module, then the chapters picked that are
+ * none of them, like one whose folder is gone, so I can take them back.
  *
  * @returns Names to read of the chapters, like `01 Regression Analysis`
  */
-function topicChaptersOf(): string[] {
-    const offered: string[] = picks.type === "" ? contents.chapters : [];
-    return [...offered, ...picks.chapters.filter((chapter: string): boolean => !offered.includes(chapter))];
+function chapterChoicesOf(): Choice[] {
+    return [...contents.chapters, ...picks.chapters.filter((chapter: string): boolean =>
+        !contents.chapters.includes(chapter))].map(choiceOf);
 }
 
 /**
  * Gives the documents the Topics list offers, see the top of this file: for a type the files of the folder
  * of its material, see {@link materialFolders}, in the folder of the semester of the entry, like `TUM_2026W`
- * for `2026W`, by path; none for my own learning, whose topics are its chapters; then the documents picked
- * that are none of them, like the slides of an older entry from another semester, so I can take them back.
+ * for `2026W`; for my own learning the notes of the chapters of the module, like
+ * `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`; each by path; then the documents picked that are none
+ * of them, like the slides of an older entry from another semester, so I can take them back.
  * - `folder`: Beginning of the name of the folder of the material of the type, empty for my own learning.
  * - `semester`: Semester of the entry, like `2026W`.
  * - `offered`: Paths of the documents offered.
@@ -373,84 +393,77 @@ function topicChaptersOf(): string[] {
 function topicDocumentsOf(): string[] {
     const folder: string = materialFolders[picks.type] ?? "";
     const semester: string = skillSemesterOf(semesterDay);
-    const offered: string[] = folder === "" ? [] : contents.documents
-        .filter((path: string): boolean => path.startsWith(folder) && documentSemesterOf(path) === semester)
+    const offered: string[] = contents.documents
+        .filter((path: string): boolean => folder === "" ? chapterFolder.test(path)
+            : path.startsWith(folder) && documentSemesterOf(path) === semester)
         .sort((first: string, second: string): number => first.localeCompare(second));
     return [...offered, ...picks.documents.filter((path: string): boolean => !offered.includes(path))];
 }
 
 /**
- * Builds the choices of the Topics list: the chapters, see {@link topicChaptersOf}, each by its name, then
- * the documents, see {@link topicDocumentsOf}, each its path as value, its name as text and the folders between
- * the folder of its material and it as group, like `04_LogisticPoissonRegression.pdf` under `TUM_2026W`.
+ * Builds the choices of the Topics list, the documents, see {@link topicDocumentsOf}, each its path as value,
+ * its name as text and as group the folders between the folder of its material and it, like
+ * `04_LogisticPoissonRegression.pdf` under `TUM_2026W`, or the chapter of a note, like `01 Regression Analysis`.
  * - `parts`: Parts of the path of a document.
  *
  * @returns Choices of the topics
  */
 function topicChoicesOf(): Choice[] {
-    return [
-        ...topicChaptersOf().map(choiceOf),
-        ...topicDocumentsOf().map((path: string): Choice => {
-            const parts: string[] = path.split("/");
-            return { value: path, text: parts.at(-1) ?? path, group: parts.slice(1, -1).join("/") };
-        }),
-    ];
+    return topicDocumentsOf().map((path: string): Choice => {
+        const parts: string[] = path.split("/");
+        if (chapterFolder.test(path))
+            return { value: path, text: parts.at(-1) ?? path, group: chapterNameOf(parts[0]) };
+        return { value: path, text: parts.at(-1) ?? path, group: parts.slice(1, -1).join("/") };
+    });
 }
 
 /**
- * Writes the topic of a chapter or a document as it stands until I change it, as the reader does, see `topicOf`
- * in `reader/documents.ts`: its name to read, without the ending of a file and the number in front of it,
+ * Writes the topic of a document as it stands until I change it, as the reader does, see `topicOf`
+ * in `reader/documents.ts`: the name of its file to read, without its ending and the numbers in front of it,
  * `_` as spaces, words and numbers apart, like `Logistic Regression` of `04_LogisticRegression.pdf`,
- * `Logistic Poisson Regression` of the chapter `02 Logistic Poisson Regression`, or `Sheet 03` of `Sheet03.pdf`.
- * - `name`: The last part of the value, for a document without its ending.
+ * `Sample Mean Standard Error` of the note `01_01_SampleMeanStandardError.md`, or `Sheet 03` of `Sheet03.pdf`.
+ * - `name`: The name of the file without its ending.
  *
- * @param value - Name to read of a chapter, or path of a document, like `VO_…/TUM_2026W/04_LogisticRegression.pdf`
- * @param chapter - Whether it is a chapter, whose name has no ending
+ * @param path - Path of a document, like `VO_…/TUM_2026W/04_LogisticRegression.pdf`
  * @returns The topic
  */
-function topicOf(value: string, chapter: boolean): string {
-    const name: string = chapter ? value : (value.split("/").at(-1) ?? value).replace(/\.[^.]*$/, "");
-    return name.replace(/^\d+[_ ]/, "").replaceAll("_", " ")
+function topicOf(path: string): string {
+    const name: string = (path.split("/").at(-1) ?? path).replace(/\.[^.]*$/, "");
+    return name.replace(/^(?:\d+_)+/, "").replaceAll("_", " ")
         .replace(/(?<=\p{Ll})(?=\p{Lu})|(?<=\p{L})(?=\d)/gu, " ").trim();
 }
 
 /**
- * Gives the topics of the links of a skill entry or a box, as the dialog keys them: each document by its path
- * from the module folder, see {@link documentPathsOf}, each chapter by its name to read from the name of its folder,
- * as the reader names it, see `chapterNameOf` in `reader/notes.ts`; a link without topic is left out.
+ * Gives the topics of the links of a skill entry or a box to documents, as the dialog keys them, each by its path
+ * from the module folder, see {@link documentPathsOf}; a link without topic and the folder of a chapter an older entry
+ * links are left out.
+ * - `documents`: Paths of its documents.
  * - `rest`: Path of a link from the folder of its module.
- * - `folder`: Name of the folder of a chapter, the last part of its path.
  *
- * @param links - Links of the entry, like `NomSkillingmodules/IN2028_…/02_LogisticPoissonRegression`
- * @returns Topics like `Logistic Regression` by path or name
+ * @param links - Links of the entry, like `NomSkillingmodules/IN2028_…/VO_…/04_LogisticRegression.pdf`
+ * @returns Topics like `Logistic Regression` by path
  */
 function linkTopicsOf(links: Link[]): { [value: string]: string } {
     const documents: string[] = documentPathsOf(links);
     return Object.fromEntries(links
         .filter((link: Link): boolean => link.topic !== "")
-        .map((link: Link): [string, string] => {
+        .flatMap((link: Link): [string, string][] => {
             const rest: string = link.path.split("/").slice(2).join("/");
-            const folder: string = link.path.split("/").at(-1) ?? "";
-            return documents.includes(rest) ? [rest, link.topic]
-                : [folder.replace("_", " ").replace(/(?<=\p{Ll})(?=\p{Lu})/gu, " "), link.topic];
+            return documents.includes(rest) ? [[rest, link.topic]] : [];
         }));
 }
 
 /**
- * Builds the topics of the chapters and documents picked, one line each below the Topics list, in line with it:
- * its name, a chapter by its name to read, a document by the name of its file, then its topic in a field,
- * filled from its name, see {@link topicOf}, which I may change; empty, it is the topic of its name again.
- * - `items`: Chapters and documents picked, each its value and the name it shows.
+ * Builds the topics of the documents picked, one line each below the Topics list, in line with it:
+ * the name of its file, then its topic in a field, filled from its name, see {@link topicOf}, which I may change;
+ * empty, it is the topic of its name again.
+ * - `name`: Name of the file of a document.
  *
  * @returns The lines of the topics, none while nothing is picked
  */
 function topicsOf(): HTMLElement[] {
-    const items: [string, string, boolean][] = [
-        ...picks.chapters.map((chapter: string): [string, string, boolean] => [chapter, chapter, true]),
-        ...picks.documents.map((path: string): [string, string, boolean] =>
-            [path, path.split("/").at(-1) ?? path, false]),
-    ];
-    return items.map(([value, name, chapter]: [string, string, boolean]): HTMLElement => {
+    return picks.documents.map((path: string): HTMLElement => {
+        const name: string = path.split("/").at(-1) ?? path;
         const line: HTMLLabelElement = document.createElement("label");
         const label: HTMLSpanElement = document.createElement("span");
         const input: HTMLInputElement = document.createElement("input");
@@ -460,10 +473,10 @@ function topicsOf(): HTMLElement[] {
         label.title = name;
         input.type = "text";
         input.autocomplete = "off";
-        input.value = picks.topics[value] ?? topicOf(value, chapter);
+        input.value = picks.topics[path] ?? topicOf(path);
         input.setAttribute("aria-label", `Topic of ${name}`);
         input.addEventListener("input", (): void => {
-            picks.topics[value] = input.value.trim() === "" ? topicOf(value, chapter) : input.value.trim();
+            picks.topics[path] = input.value.trim() === "" ? topicOf(path) : input.value.trim();
         });
         line.append(label, input);
         return line;
@@ -471,17 +484,14 @@ function topicsOf(): HTMLElement[] {
 }
 
 /**
- * Gives the topics to send for the chapters and documents picked, see {@link topicsOf}: each as changed or kept,
+ * Gives the topics to send for the documents picked, see {@link topicsOf}: each as changed or kept,
  * else the topic of its name.
  *
- * @returns Topics by the name of each chapter and the path of each document
+ * @returns Topics by the path of each document
  */
 function topicsPicked(): { [value: string]: string } {
-    return Object.fromEntries([
-        ...picks.chapters.map((chapter: string): [string, string] =>
-            [chapter, picks.topics[chapter] ?? topicOf(chapter, true)]),
-        ...picks.documents.map((path: string): [string, string] => [path, picks.topics[path] ?? topicOf(path, false)]),
-    ]);
+    return Object.fromEntries(picks.documents.map((path: string): [string, string] =>
+        [path, picks.topics[path] ?? topicOf(path)]));
 }
 
 /**
@@ -659,31 +669,23 @@ function tasksOf(changed: () => void): HTMLElement[] {
 }
 
 /**
- * Builds the row of the topics, in the log, see the top of this file: the Topics list, several to pick,
- * whose choices follow the type and the semester, see {@link topicChoicesOf}, or a hint while it has none, like
- * `No chapters yet` for my own learning in a module without chapter folders. Picking topics shows their lines
- * and the tasks again as they are picked, see {@link topicsOf} and {@link tasksOf}, the list staying open on top.
+ * Builds the row of the chapters of my system the entry belongs to, in the log, several to pick from the chapters
+ * of the module, see {@link chapterChoicesOf}, for every type, or `No chapters yet` for a module without chapter
+ * folders; picking chapters shows their tasks again as they are picked, see {@link tasksOf}, the list staying open.
  * - `choices`: Choices of the list.
- * - `chapters`: Chapters among them, to tell them from its documents.
  *
- * @param topicsShow - Shows the lines of the topics picked
  * @param tasksShow - Shows the tasks of the chapters picked
  * @param changed - Tells the dialog that what is picked changed, so it allows saving or not
  * @returns The row
  */
-function topicRowOf(topicsShow: () => void, tasksShow: () => void, changed: () => void): HTMLElement {
-    const choices: Choice[] = topicChoicesOf();
-    const chapters: string[] = topicChaptersOf();
+function chapterRowOf(tasksShow: () => void, changed: () => void): HTMLElement {
+    const choices: Choice[] = chapterChoicesOf();
     if (choices.length === 0)
-        return rowOf("Topics", hintOf(picks.type === "" ? "No chapters yet"
-            : `No ${picks.type} files of ${skillSemesterOf(semesterDay)} yet`));
-    return rowOf("Topics", choicesOf({
-        search: groupedSearchOf(choices), picked: [...picks.chapters, ...picks.documents], many: true, adding: false,
-        empty: "None",
+        return rowOf("Chapters", hintOf("No chapters yet"));
+    return rowOf("Chapters", choicesOf({
+        search: searchOf(choices), picked: picks.chapters, many: true, adding: false, empty: "None",
         pick: (values: string[]): void => {
-            picks.chapters = values.filter((value: string): boolean => chapters.includes(value));
-            picks.documents = values.filter((value: string): boolean => !chapters.includes(value));
-            topicsShow();
+            picks.chapters = values;
             tasksShow();
             changed();
         },
@@ -691,12 +693,38 @@ function topicRowOf(topicsShow: () => void, tasksShow: () => void, changed: () =
 }
 
 /**
+ * Builds the row of the topics, in the log, see the top of this file: the Topics list, several to pick, the real
+ * documents the entry used, whose choices follow the type and the semester, see {@link topicChoicesOf}, or a hint
+ * while it has none, like `No chapter notes yet` for my own learning in a module without notes. Picking documents
+ * shows their lines as they are picked, see {@link topicsOf}, the list staying open on top.
+ * - `choices`: Choices of the list.
+ *
+ * @param topicsShow - Shows the lines of the topics picked
+ * @param changed - Tells the dialog that what is picked changed, so it allows saving or not
+ * @returns The row
+ */
+function topicRowOf(topicsShow: () => void, changed: () => void): HTMLElement {
+    const choices: Choice[] = topicChoicesOf();
+    if (choices.length === 0)
+        return rowOf("Topics", hintOf(picks.type === "" ? "No chapter notes yet"
+            : `No ${picks.type} files of ${skillSemesterOf(semesterDay)} yet`));
+    return rowOf("Topics", choicesOf({
+        search: groupedSearchOf(choices), picked: picks.documents, many: true, adding: false, empty: "None",
+        pick: (values: string[]): void => {
+            picks.documents = values;
+            topicsShow();
+            changed();
+        },
+    }));
+}
+
+/**
  * Shows the fields of `Skill` as picked so far, see the top of this file: skill and type side by side above
- * the times; below them the place, in the log the topics, see {@link topicRowOf}, with a line for each topic
- * picked, see {@link topicsOf}, and a hint when a document picked is in the module no more, which the reader
- * could not find by its fingerprint either; then the semester, and in the log the tasks of the chapters picked
- * with a result for each task picked, see {@link tasksOf}, the links of the entry, see {@link linkedOf},
- * and the attempts the entry has.
+ * the times; below them the place, in the log the chapters, see {@link chapterRowOf}, the topics, see
+ * {@link topicRowOf}, with a line for each topic picked, see {@link topicsOf}, and a hint when a document picked
+ * is in the module no more, which the reader could not find by its fingerprint either; then the semester,
+ * and in the log the tasks of the chapters picked with a result for each task picked, see {@link tasksOf},
+ * the links of the entry, see {@link linkedOf}, and the attempts the entry has.
  * Picking a skill loads its chapters and documents and shows the fields again, with no topics or tasks picked;
  * picking a type or a semester shows them again, the topics offering what follows from them.
  * - `again`: Shows the fields again and tells the dialog.
@@ -747,7 +775,7 @@ function picksShow(shown: SkillShown): void {
     tasksShow();
     const rows: HTMLElement[] = [...shown.place];
     if (!inPlan && picks.module !== "")
-        rows.push(topicRowOf(topicsShow, tasksShow, shown.changed), topics);
+        rows.push(chapterRowOf(tasksShow, shown.changed), topicRowOf(topicsShow, shown.changed), topics);
     rows.push(rowOf("Semester", choicesOf({
         search: searchOf(semesterChoicesOf()), picked: [skillSemesterOf(semesterDay)], many: false, adding: true,
         add: semesterAdd,

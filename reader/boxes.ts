@@ -62,7 +62,7 @@
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
  * - `./categories.ts`: Tells whether a box fits its category, names the category of skill entries,
  *   and gives the semester of a skill box.
- * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill.
+ * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill, and reads its chapters.
  * - `./places.ts`: Gives the link of the place of a box.
  * - `./sources.ts`: Names the plan, the log and the birthdays and holidays, and builds the path of a plan file.
  */
@@ -73,7 +73,7 @@ import {
     occurrenceLookup, occurrenceOwn, pushesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, semesterFor, skillName } from "./categories.ts";
-import { titleOf } from "./documents.ts";
+import { chaptersOf, titleOf } from "./documents.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, monthFileOf, planEnding } from "./sources.ts";
 
@@ -106,6 +106,8 @@ export type BoxState = "open" | "done" | "dropped";
  * - `todo`: Whether it is a to-do; an event keeps its time and duration, see the top of this file.
  * - `links`: Its links, its `ATTACH`es, like the slides a lecture of my plan links, see `documents.ts`;
  *   none for none.
+ * - `chapters`: Chapters of my system a skill box belongs to, its `X-CHAPTER`s, or those whose folders an older box
+ *   links, see `chaptersOf` in `documents.ts`, like `02 Logistic Poisson Regression`; none for none.
  */
 export type Box = EntryTexts & {
     id: string;
@@ -120,6 +122,7 @@ export type Box = EntryTexts & {
     series: boolean;
     todo: boolean;
     links: Link[];
+    chapters: string[];
 };
 
 /**
@@ -318,6 +321,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         series: entry.recurrence !== "",
         todo: entry.todo,
         links: entry.links,
+        chapters: chaptersOf(entry),
     };
 }
 
