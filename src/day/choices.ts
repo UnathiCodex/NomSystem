@@ -79,7 +79,8 @@ export type ChoicesSetup = {
  * - `textOf`: Text of a value picked in its row, like the name of the file of a document of its path.
  * - `grouped`: Whether the search looks at the group of a value too, see {@link groupedSearchOf}.
  * - `noun`: What a value is, like `chapter`, for the search of the list.
- * - `hint`: Shown in place of the line while there are no values to offer at all, like `No chapters yet`.
+ * - `hint`: Shown in place of the line while there are no values to offer at all, like `No chapters yet`;
+ *   left out, the field then has no row of its own, only the rows of the values picked, the first named by it.
  * - `change`: Takes the values picked after each pick and each value taken back, in their order.
  */
 export type AddedSetup = {
@@ -88,7 +89,7 @@ export type AddedSetup = {
     textOf: (value: string) => string;
     grouped: boolean;
     noun: string;
-    hint: HTMLElement;
+    hint?: HTMLElement;
     change: (values: string[]) => void;
 };
 
@@ -445,15 +446,17 @@ export function pairOf(first: HTMLElement, second: HTMLElement): HTMLDivElement 
 
 /**
  * Makes the row of a value picked of a field of several values, below the row of the field, see {@link addedRowsOf}:
- * no name, its text, like `02 Logistic Poisson Regression`, cut with an ellipsis, and a small × that takes it back.
+ * its name, mostly none, its text, like `02 Logistic Poisson Regression`, cut with an ellipsis, and a small ×
+ * that takes it back.
  * - `text`: The text in its own element, its whole text in its tooltip.
  * - `remove`: The ×.
  *
+ * @param name - Name of the row, like `Chapter`, empty for none
  * @param text - Text of the value, like `04_LogisticRegression.pdf`
  * @param remove - Takes the value back
  * @returns Row
  */
-function addedRowOf(text: string, remove: () => void): HTMLDivElement {
+export function addedRowOf(name: string, text: string, remove: () => void): HTMLDivElement {
     const value: HTMLDivElement = document.createElement("div");
     const shown: HTMLSpanElement = document.createElement("span");
     const button: HTMLButtonElement = document.createElement("button");
@@ -468,16 +471,17 @@ function addedRowOf(text: string, remove: () => void): HTMLDivElement {
     button.setAttribute("aria-label", button.title);
     button.addEventListener("click", remove);
     value.append(shown, button);
-    return rowOf("", value);
+    return rowOf(name, value);
 }
 
 /**
  * Builds the rows of a field of several values, like the chapters or the documents of a skill entry: its row
  * with the line of its list, empty, see {@link choicesOf}, whose pick closes the list and adds
  * the value as a row of its own below, see {@link addedRowOf}; opening the list again adds the next one.
- * The list offers the values not picked yet; while there are none at all, a hint stands in place of its line.
+ * The list offers the values not picked yet, and has no row while every value is picked; while there are none
+ * at all, a hint stands in place of its line, or without hint the field has no row of its own.
  * - `offered`: Values the list offers.
- * - `head`: The row of the field, with the line of the list or the hint.
+ * - `head`: The row of the field, with the line of the list or the hint, none without either.
  *
  * @param name - Name of the field, like `Chapters`
  * @param setup - How the rows are built
@@ -485,18 +489,21 @@ function addedRowOf(text: string, remove: () => void): HTMLDivElement {
  */
 export function addedRowsOf(name: string, setup: AddedSetup): HTMLDivElement[] {
     const offered: Choice[] = setup.choices.filter((choice: Choice): boolean => !setup.picked.includes(choice.value));
-    const head: HTMLDivElement = setup.choices.length === 0 ? rowOf(name, setup.hint) : rowOf(name, choicesOf({
-        search: setup.grouped ? groupedSearchOf(offered) : searchOf(offered), picked: [], many: false,
-        adding: false, noun: setup.noun,
-        pick: (values: string[]): void => {
-            if (values.length > 0)
-                setup.change([...setup.picked, values[0]]);
-        },
-    }));
+    let head: HTMLDivElement[] = setup.hint === undefined || setup.choices.length > 0 ? [] : [rowOf(name, setup.hint)];
+    if (offered.length > 0)
+        head = [rowOf(name, choicesOf({
+            search: setup.grouped ? groupedSearchOf(offered) : searchOf(offered), picked: [], many: false,
+            adding: false, noun: setup.noun,
+            pick: (values: string[]): void => {
+                if (values.length > 0)
+                    setup.change([...setup.picked, values[0]]);
+            },
+        }))];
     return [
-        head,
-        ...setup.picked.map((value: string): HTMLDivElement => addedRowOf(setup.textOf(value), (): void =>
-            setup.change(setup.picked.filter((other: string): boolean => other !== value)))),
+        ...head,
+        ...setup.picked.map((value: string, index: number): HTMLDivElement =>
+            addedRowOf(head.length === 0 && index === 0 ? name : "", setup.textOf(value), (): void =>
+                setup.change(setup.picked.filter((other: string): boolean => other !== value)))),
     ];
 }
 

@@ -998,7 +998,7 @@ function folderOf(code: string): string {
  */
 export function moduleRead(code: string): ModuleContents {
     if (projectOf(code) !== undefined)
-        return { chapters: [], documents: [] };
+        return { folder: "", drafts: "", chapters: [], documents: [] };
     return moduleContentsRead(folderOf(code));
 }
 

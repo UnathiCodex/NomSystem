@@ -219,11 +219,19 @@ export type LinkLost = {
 /**
  * What a skill offers a skill entry, as the reader sends it; a project offers nothing.
  *
+ * - `folder`: The module folder from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
+ *   empty for a project.
+ * - `drafts`: The folder of its drafts from `NomWorkspace`, like
+ *   `NomSystemdashboard/.claude/modules/drafts/IN2028_BusinessAnalyticsMachineLearning`, empty for a project.
  * - `chapters`: Names to read of its chapter folders, also of the empty ones, like `05 Decision Trees Ensembles`.
- * - `documents`: Its files outside the chapter folders, the university's material, by their paths from the module folder,
- *   like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`.
+ * - `documents`: Its files outside the chapter folders, the university's material, and the notes of its chapters,
+ *   by their paths from the module folder, like `VO_UniversityLectureLessons/TUM_2025W/04_….pdf`
+ *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`; the notes of a chapter without notes there
+ *   from its drafts, like `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
  */
 export type ModuleContents = {
+    folder: string;
+    drafts: string;
     chapters: string[];
     documents: string[];
 };

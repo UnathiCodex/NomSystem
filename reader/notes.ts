@@ -22,7 +22,7 @@
 
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { extname, join, posix, sep } from "node:path";
-import { activeModules, notes } from "./sources.ts";
+import { activeModules, draftsFolder, modulesFolder, notes } from "./sources.ts";
 
 import type { Dirent } from "node:fs";
 
@@ -103,13 +103,21 @@ export type BrokenLink = {
 /**
  * What a module folder holds besides its notes, for a skill entry of the day.
  *
+ * - `folder`: The module folder from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
+ *   empty for a project.
+ * - `drafts`: The folder of its drafts from `NomWorkspace`, like
+ *   `NomSystemdashboard/.claude/modules/drafts/IN2028_BusinessAnalyticsMachineLearning`, empty for a project.
  * - `chapters`: Names to read of its chapter folders and of those of its drafts, also of the empty ones,
  *   like `05 Decision Trees Ensembles`, in order.
  * - `documents`: Its files outside the chapter folders, the university's material, and the notes of its chapters,
  *   by their paths from the module folder, like `VO_UniversityLectureLessons/TUM_2025W/04_….pdf`
- *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, in order.
+ *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, the notes of a chapter without notes there
+ *   from its drafts, with `Drafts/` before, like `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`,
+ *   in order.
  */
 export type ModuleContents = {
+    folder: string;
+    drafts: string;
     chapters: string[];
     documents: string[];
 };
@@ -166,7 +174,7 @@ const moduleFolder: RegExp = /^[A-Z]+\d+_/;
 /**
  * First part of the paths of the drafts; a module folder named so would be taken for them.
  */
-const draftsName: string = "Drafts";
+export const draftsName: string = "Drafts";
 
 
 /**
@@ -436,28 +444,37 @@ export function moduleFolderOf(code: string): string | undefined {
  * Reads what a module folder holds for a skill entry, see {@link ModuleContents}: the chapter folders of the module
  * and of its drafts together, a chapter in both once, and as documents every file of the module outside them,
  * like the lecture's slides, and the notes of its chapters in the module folder, like
- * `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, but not their images.
- * - `chapters`: Names of the chapter folders, a chapter in both twice.
- * - `notesOf`: Paths of the notes right in the folder of a chapter of the module.
+ * `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, but not their images; a chapter without notes there
+ * gives the notes of its unchecked drafts, like `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
+ * - `chapters`: Names of the chapter folders, each once, in order.
+ * - `notesOf`: Paths of the notes right in a folder, like `IN2028_…/01_RegressionAnalysis/01_01_….md`.
+ * - `notes`: Paths of the notes of every chapter, from the module folder or, with `Drafts/` before, from its drafts.
+ * - `material`: Paths of the files of the module outside its chapter folders.
  *
  * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
  * @returns Chapters and documents of the module, none for a missing folder
  */
 export function moduleContentsRead(module: string): ModuleContents {
-    const chapters: string[] = foldersOf(module).flatMap((folder: string): string[] => entriesRead(folder)
+    const chapters: string[] = [...new Set(foldersOf(module).flatMap((folder: string): string[] => entriesRead(folder)
         .filter((entry: Dirent): boolean => entry.isDirectory() && chapterFolder.test(entry.name))
-        .map((entry: Dirent): string => entry.name));
-    const notesOf: (chapter: string) => string[] = (chapter: string): string[] => entriesRead(`${module}/${chapter}`)
+        .map((entry: Dirent): string => entry.name)))].sort(collator.compare);
+    const notesOf: (folder: string) => string[] = (folder: string): string[] => entriesRead(folder)
         .filter((note: Dirent): boolean => !note.isDirectory() && note.name.toLowerCase().endsWith(".md"))
-        .map((note: Dirent): string => `${module}/${chapter}/${note.name}`);
+        .map((note: Dirent): string => `${folder}/${note.name}`);
+    const notes: string[] = chapters.flatMap((chapter: string): string[] => {
+        const own: string[] = notesOf(`${module}/${chapter}`)
+            .map((note: string): string => note.slice(module.length + 1));
+        return own.length > 0 ? own : notesOf(`${draftsName}/${module}/${chapter}`)
+            .map((note: string): string => `${draftsName}/${note.slice(draftsName.length + module.length + 2)}`);
+    });
+    const material: string[] = entriesRead(module)
+        .flatMap((entry: Dirent): string[] => entry.isDirectory()
+            ? (chapterFolder.test(entry.name) ? [] : filesRead(`${module}/${entry.name}`))
+            : [`${module}/${entry.name}`])
+        .map((file: string): string => file.slice(module.length + 1));
     return {
-        chapters: [...new Set(chapters)].sort(collator.compare).map(titleOf),
-        documents: entriesRead(module)
-            .flatMap((entry: Dirent): string[] => entry.isDirectory()
-                ? (chapterFolder.test(entry.name) ? notesOf(entry.name) : filesRead(`${module}/${entry.name}`))
-                : [`${module}/${entry.name}`])
-            .map((file: string): string => file.slice(module.length + 1))
-            .sort(collator.compare),
+        folder: `${modulesFolder}/${module}`, drafts: `${draftsFolder}/${module}`,
+        chapters: chapters.map(titleOf), documents: [...material, ...notes].sort(collator.compare),
     };
 }
 

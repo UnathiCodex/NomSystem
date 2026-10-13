@@ -656,8 +656,8 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
  * a field of a place offers the rooms of the university only as I search, see {@link placeSearchOf}.
  * A place shows by its name, once, however often it was used and whatever address an entry kept, which a place picked
  * again keeps, with its pencil beside it and its address below it, see {@link placePartsOf}; a summary with the steps
- * of the value picked below it, see {@link stepsShow}. The summary of a meal fills in the foods its dish held the last time, while the meal
- * lists none, see `meal.ts`.
+ * of the value picked below it, see {@link stepsShow}. The summary of a meal fills in the foods its dish held
+ * the last time, while the meal lists none, see `meal.ts`.
  * - `place`: Pencil and address of a place, `null` for any other field.
  * - `steps`: Place of the steps of the field.
  *
