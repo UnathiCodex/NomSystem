@@ -925,7 +925,7 @@ button.box-ring.box-checked svg {
     order: 1;
 }
 
-/* The copy and Remove apart from the others, at the left, the copy alone there while Remove is hidden */
+/* The copy and the bin apart from the others, at the left, the copy alone there while the bin is hidden */
 .panel-buttons .panel-remove,
 .panel-buttons .panel-duplicate:has(+ .panel-remove[hidden]) {
     margin-right: auto;
@@ -947,7 +947,7 @@ button.box-ring.box-checked svg {
     margin-top: 0.75rem;
 }
 
-/* Buttons of a panel, one control high, their word in the middle, like `Remove` */
+/* Buttons of a panel, one control high, their word in the middle, like `Edit plan` */
 .panel-buttons button {
     display: inline-flex;
     align-items: center;
@@ -961,7 +961,8 @@ button.box-ring.box-checked svg {
     cursor: pointer;
 }
 
-/* A button of a panel with an icon in place of its word, like the copy, Cancel and Save: square, one control high */
+/* A button of a panel with an icon in place of its word, like the copy, the bin, Cancel and Save: square,
+   one control high */
 .panel-buttons button:has(svg) {
     width: var(--control-height);
     padding: 0;
@@ -1674,18 +1675,13 @@ svg.route-arrow {
     }
 
     /* Buttons of a panel in one row across, the square ones beside those with words, which share the rest equally,
-       each its word on one line, a little smaller, so `Remove` keeps room inside its frame */
+       each its word on one line, a little smaller, so `Edit plan` keeps room inside its frame */
     .panel-buttons {
         flex-wrap: nowrap;
     }
 
     .panel-buttons button:not(:has(svg)) {
         flex: 1;
-    }
-
-    .panel-buttons .panel-remove,
-    .panel-buttons .panel-duplicate:has(+ .panel-remove[hidden]) {
-        margin-right: 0;
     }
 
     .panel-buttons button {

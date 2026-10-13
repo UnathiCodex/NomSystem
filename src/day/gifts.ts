@@ -7,11 +7,11 @@
  * of it; an empty field, or `Remove`, takes the idea out again.
  * The plan shows each idea below its birthday or holiday, see `boxes.ts`, and loads again when the dialog closes.
  *
- * - `lucide`: The icons of Cancel and Save.
+ * - `lucide`: The icons of the bin, Cancel and Save.
  * - `../icons.ts`: Shows them in their buttons.
  */
 
-import { Check, X } from "lucide";
+import { Check, Trash, X } from "lucide";
 import { iconPut } from "../icons.ts";
 import type { Occasion } from "./boxes.ts";
 
@@ -79,6 +79,7 @@ export function giftOpen(occasion: Occasion): void {
  * `Enter` and `Save` save it.
  */
 export function giftsStart(): void {
+    iconPut(document.getElementById("gift-remove") as HTMLElement, Trash, "Remove");
     iconPut(document.getElementById("gift-cancel") as HTMLElement, X, "Cancel");
     iconPut(document.getElementById("gift-save") as HTMLElement, Check, "Save");
     document.getElementById("gift-cancel")?.addEventListener("click", (): void =>
