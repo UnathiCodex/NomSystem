@@ -13,11 +13,11 @@
  * the files of the three folders, see {@link systemFiles}. A file or folder of the new system that is missing,
  * like `Birthdays.ics` or the log of a month without entries, counts as empty.
  *
- * - `node:os`: Gives the home folder and the operating system.
+ * - `node:os`: Gives the home folder.
  * - `node:path`: Builds file paths for the operating system.
  */
 
-import { homedir, platform } from "node:os";
+import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 
 
@@ -34,11 +34,9 @@ export type CalendarSource = {
 
 /**
  * Folder `NomWorkspace` with all zones.
- * Environment variable `NOM_VAULT` when set,
- * else `M:\NomWorkspace` on Windows and `~/NomWorkspace` on Linux.
+ * Environment variable `NOM_VAULT` when set, like `/tmp/nomvault` for a sample vault, else `~/NomWorkspace`.
  */
-export const vault: string = process.env.NOM_VAULT
-    ?? (platform() === "win32" ? "M:\\NomWorkspace" : join(homedir(), "NomWorkspace"));
+export const vault: string = process.env.NOM_VAULT ?? join(homedir(), "NomWorkspace");
 
 /**
  * Folder `NomManageplannings`, which holds the three folders of my new system and my old system beside them.
