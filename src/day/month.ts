@@ -1,12 +1,11 @@
 /**
  * ## Month
  *
- * Picks the day to show from a month, to jump far back or ahead much faster than day by day or week by week,
+ * Picks the day to show from a month, to jump far back or ahead much faster than day by day,
  * like to a birthday next spring to write down a gift idea for it, see `gifts.ts`:
- * a click on the date above plan and log, or on the days above the week, opens the month of the first shown day
- * over the page, the shown days marked, one of the day and seven of the week; the arrows move by a month,
- * the double arrows by a year, and a click on a day shows it, in the week as its first day, and closes the month.
- * The month brings its dialog itself, `month.html`, so day and week share it.
+ * a click on the date above plan and log opens the month of the shown day over the page, the shown day marked;
+ * the arrows move by a month, the double arrows by a year, and a click on a day shows it and closes the month.
+ * The month brings its dialog itself, `month.html`.
  *
  * - `fullcalendar`: Draws the month.
  * - `fullcalendar/daygrid`: Draws the month as a grid of its days.
@@ -91,7 +90,7 @@ function monthOpen(shown: string[], pick: (day: string) => void): void {
  * Starts the month after the router has put the HTML of its area into the page: puts its dialog into the page,
  * the button of the area opens it, the arrows move it by a month, the double arrows by a year.
  *
- * @param button - Button that opens the month, the date above plan and log or the days above the week
+ * @param button - Button that opens the month, the date above plan and log
  * @param shown - Gives the shown days, the first first, like `2026-10-11`
  * @param pick - Shows a day, like `2026-10-23`
  */

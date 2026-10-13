@@ -17,7 +17,7 @@
  * show them. A glass of water is no block but a small mark at the edge of the log,
  * since the counter of the trackers counts it.
  * The day opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today
- * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the week, opens on that day,
+ * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the food view, opens on that day,
  * which the address then keeps no more, see `today.ts`.
  * The grid runs over the calendar day, from 00:00 to 24:00, and opens at 06:00; an entry past midnight shows on both
  * days, cut at midnight, like a sleep from 23:00 to 07:00 at the bottom of 12 October and at the top of 13 October,
@@ -311,7 +311,7 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
 
 /**
  * Shows the date of the shown day above plan and log, its weekday short and its date in my standard way,
- * like `Sun, 11.10.2026`, as the week writes it, always fully readable, with the icon back to today on any other day,
+ * like `Sun, 11.10.2026`, always fully readable, with the icon back to today on any other day,
  * see {@link todayButtonShow}, and its daily note, gratitude and points about the day, see {@link dayNoteShow};
  * the boxes and the trackers follow the entries of the log, see `eventsSet` in {@link dayStart}.
  * The comma after the weekday is drawn by `day.css`, which on a phone puts the weekday above the date instead.

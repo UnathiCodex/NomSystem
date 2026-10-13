@@ -3,7 +3,7 @@
  *
  * Opens one area of the life system beside the areas named in `index.html`, each shown by its icon there,
  * by the address:
- * the week at `/week`, the scripts, my notes of my modules, at `/scripts`, the skill area at `/skill`, the food area
+ * the scripts, my notes of my modules, at `/scripts`, the skill area at `/skill`, the food area
  * at `/food`, the editor of my drafts and of the files of my new system at `/edit`, the day everywhere else;
  * an older address of the scripts, `/notes`, opens them too and becomes `/scripts`.
  * Scripts and editor are one view with one tree and one link, `Scripts`, which stays marked in the editor.
@@ -17,11 +17,10 @@
  * `base.css` hides the areas, so the whole screen stays free.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
- * - `./day/day.html?raw`, `./week/week.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`,
- *   `./food/food.html?raw`, `./editor/editor.html?raw`: Html of day, week, scripts, skill, food and editor as text,
+ * - `./day/day.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`, `./food/food.html?raw`,
+ *   `./editor/editor.html?raw`: Html of day, scripts, skill, food and editor as text,
  *   packed into the built code by Vite.
  * - `./day/day.ts`: Shows the log of a day, my one calendar, with the boxes of its plan beside it.
- * - `./week/week.ts`: Shows the boxes of the next seven days.
  * - `./notes/notes.ts`: Shows the scripts, the modules of the semester and their notes, rendered like Obsidian.
  * - `./skill/skill.ts`: Shows my tasks, due ones first, and records my attempts.
  * - `./food/food.ts`: Shows what I ate on a day with its totals, and my foods.
@@ -33,7 +32,6 @@
 
 /// <reference types="vite/client" />
 import dayHtml from "./day/day.html?raw";
-import weekHtml from "./week/week.html?raw";
 import notesHtml from "./notes/notes.html?raw";
 import skillHtml from "./skill/skill.html?raw";
 import foodHtml from "./food/food.html?raw";
@@ -62,7 +60,7 @@ let deviceWait: number = 0;
 const phone: boolean = matchMedia("(max-width: 900px)").matches;
 if (location.pathname === "/notes")
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
-const areas: string[] = phone ? [] : ["/week", "/scripts", "/skill", "/food", "/edit"];
+const areas: string[] = phone ? [] : ["/scripts", "/skill", "/food", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
 document.querySelector(`.areas a[href="${area === "/edit" ? "/scripts" : area}"]`)
     ?.setAttribute("aria-current", "page");
@@ -72,11 +70,7 @@ addEventListener("resize", (): void => {
     deviceWait = window.setTimeout(deviceReport, 1000);
 });
 
-if (area === "/week") {
-    const week: { weekStart: () => void } = await import("./week/week.ts");
-    document.body.insertAdjacentHTML("beforeend", weekHtml);
-    week.weekStart();
-} else if (area === "/scripts") {
+if (area === "/scripts") {
     const notes: { notesStart: () => Promise<void> } = await import("./notes/notes.ts");
     document.body.insertAdjacentHTML("beforeend", notesHtml);
     await notes.notesStart();
