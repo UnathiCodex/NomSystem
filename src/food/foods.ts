@@ -3,7 +3,7 @@
  *
  * Finds foods through the reader, mine first, then on Open Food Facts, of a brand when one is picked and page by page,
  * loads the brands of the search, sends new ones and removes them, sends new foods to `Foods.md`,
- * loads my meals of `Meals.md` and sends new ones,
+ * loads my meals of `Meals.md`, sends new variants of them and removes them,
  * loads the meals of a day with what they give, and writes amounts as the page shows them:
  * for the food view and the entry by category of the day alike.
  */
@@ -25,26 +25,28 @@ export type Nutrients = {
 };
 
 /**
- * A food, one row of `Foods.md`: its {@link Nutrients} per 100 g with its name, portion and barcode.
+ * A food, one row of `Foods.md`: its {@link Nutrients} per 100 g with its name, portion, barcode, brand and store.
  *
  * - `name`: Name, by which a meal lists it, like `Reis` of `X-FOOD:Reis;150`.
  * - `portion`: Usual portion in grams, which counts when a meal lists the food without grams.
  * - `barcode`: Open Food Facts barcode it came from, empty for a food added by hand.
+ * - `brand`: Its first brand, like `Milbona`, empty when none is known.
+ * - `store`: The first store that sells it, like `Lidl`, empty when none is known.
  */
 export type Food = Nutrients & {
     name: string;
     portion: number;
     barcode: string;
+    brand: string;
+    store: string;
 };
 
 /**
  * A product of Open Food Facts as a {@link Food} to add, its portion the serving its maker gives, 0 when it gives none.
  *
- * - `brand`: Its first brand, like `Golden Sun`, empty when none is known.
  * - `pack`: Size of the pack as sold, like `450 g`, empty when none is known.
  */
 export type Product = Food & {
-    brand: string;
     pack: string;
 };
 
@@ -101,16 +103,30 @@ export type Meal = Nutrients & {
 };
 
 /**
- * A meal of mine, as the reader sends it from `Meals.md`: two or more of my foods with the grams of one portion.
+ * A variant of a meal of mine, as the reader sends it: its foods for the whole of it and the servings it gives.
  *
- * - `name`: Name of the meal, like `Käsesalat`.
- * - `foods`: Its foods as lines of a food and its grams, like `Käse;100`, or without grams for the usual portion.
- * - `kcal`: kcal of one portion.
+ * - `label`: Name of the variant, its day and maybe a note, like `09.10.2026 · MitMais`.
+ * - `servings`: Servings the whole gives, like 4 for a pot.
+ * - `foods`: Its foods as lines of a food and its grams for the whole, like `Hackfleisch;500`, or without grams
+ *   for the usual portion.
+ * - `kcal`: kcal of one serving.
+ */
+export type Variant = {
+    label: string;
+    servings: number;
+    foods: string[];
+    kcal: number;
+};
+
+/**
+ * A meal of mine, as the reader sends it from `Meals.md`: two or more of my foods, in its variants.
+ *
+ * - `name`: Name of the meal, in one word, like `ChiliConCarne`.
+ * - `variants`: Its variants, the latest added last.
  */
 export type Dish = {
     name: string;
-    foods: string[];
-    kcal: number;
+    variants: Variant[];
 };
 
 /**
@@ -145,7 +161,7 @@ export async function foodsFind(query: string, brand: string, page: number): Pro
 /**
  * Loads my meals of `Meals.md` from the reader, in the order of the file.
  *
- * @returns My meals, each with its foods and the kcal of one portion
+ * @returns My meals, each in its variants
  * @throws {Error} - When the reader cannot answer
  */
 export async function dishesLoad(): Promise<Dish[]> {
@@ -156,16 +172,36 @@ export async function dishesLoad(): Promise<Dish[]> {
 }
 
 /**
- * Sends a new meal to the reader, which adds it to `Meals.md`.
+ * Sends a new variant of a meal to the reader, which adds it to `Meals.md`, a new meal with it when none has its name;
+ * the reader writes the name in one word, like `ChiliConCarne` of `Chili con Carne`.
  *
- * @param name - Name of the meal, like `Käsesalat`
- * @param foods - Its foods, each a food and its grams of one portion, like `Käse;100`, or a food alone
- * @returns All my meals after, the new one with them
- * @throws {Error} - When the reader does not take the meal, like for a name another meal has or a single food
+ * @param name - Name of the meal, like `ChiliConCarne`
+ * @param note - Note of the variant, like `mit Mais`, empty for none
+ * @param servings - Servings the whole gives, 1 or more
+ * @param foods - Its foods, each a food and its grams for the whole, like `Hackfleisch;500`, or a food alone
+ * @returns All my meals after, the new variant with them
+ * @throws {Error} - When the reader does not take the variant, like one of a single food
  */
-export async function dishSend(name: string, foods: string[]): Promise<Dish[]> {
-    const response: Response = await fetch("/api/food/meals",
-        { method: "POST", body: JSON.stringify({ name: name, foods: foods }) });
+export async function dishSend(name: string, note: string, servings: number, foods: string[]): Promise<Dish[]> {
+    const response: Response = await fetch("/api/food/meals", {
+        method: "POST", body: JSON.stringify({ name: name, note: note, servings: servings, foods: foods }),
+    });
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as Dish[];
+}
+
+/**
+ * Removes a variant of a meal through the reader from `Meals.md`, the meal with its last variant.
+ *
+ * @param name - Name of the meal, like `ChiliConCarne`
+ * @param label - Name of the variant, like `09.10.2026 · MitMais`
+ * @returns All my meals after
+ * @throws {Error} - When the reader does not remove the variant
+ */
+export async function dishDelete(name: string, label: string): Promise<Dish[]> {
+    const response: Response = await fetch(`/api/food/meals?meal=${encodeURIComponent(name)}`
+        + `&variant=${encodeURIComponent(label)}`, { method: "DELETE" });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
     return await response.json() as Dish[];
@@ -213,13 +249,13 @@ export async function brandDelete(name: string): Promise<string[]> {
 }
 
 /**
- * Sends a new food to the reader, which adds it to `Foods.md`, and the brand of a product to `Brands.md`.
+ * Sends a new food to the reader, which adds it to `Foods.md` with its brand and store, and its brand to `Brands.md`.
  *
- * @param food - Food to add, picked from Open Food Facts with its brand, or typed by hand without
+ * @param food - Food to add, picked from Open Food Facts with its brand and store, or typed by hand without
  * @returns The food as the reader wrote it, its name cleaned and its numbers rounded
  * @throws {Error} - When the reader does not take the food, like for a name another food has
  */
-export async function foodSend(food: Food & { brand: string }): Promise<Food> {
+export async function foodSend(food: Food): Promise<Food> {
     const response: Response = await fetch("/api/food/foods", { method: "POST", body: JSON.stringify(food) });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);

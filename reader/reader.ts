@@ -56,7 +56,9 @@ import {
 } from "./skill.ts";
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
-import { brandAdd, brandRemove, brandsRead, dishAdd, dishesRead, dishFoodsRead, foodAdd, foodDayRead, foodsFind } from "./food.ts";
+import {
+    brandAdd, brandRemove, brandsRead, dishAdd, dishesRead, dishFoodsRead, dishRemove, foodAdd, foodDayRead, foodsFind,
+} from "./food.ts";
 import { trackersRead } from "./trackers.ts";
 import { pageCreate } from "./page.ts";
 
@@ -175,8 +177,10 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `DELETE /api/food/brands?name=…`: Removes the brand from `Brands.md` and sends all brands left.
  * - `GET /api/food/day?date=…`: Sends the meals of the date with what they give.
  * - `GET /api/food/dish?title=…`: Sends the lines `X-FOOD` of the last meal of the dish.
- * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each with its foods and the kcal of one portion.
- * - `POST /api/food/meals`: Adds the meal of the body, its name and foods, to `Meals.md` and sends all my meals.
+ * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each in its variants with their foods and servings.
+ * - `POST /api/food/meals`: Adds the variant of the body, its meal, note, servings and foods, to `Meals.md`,
+ *   a new meal with it when none has its name, and sends all my meals.
+ * - `DELETE /api/food/meals?meal=…&variant=…`: Removes the variant of the meal from `Meals.md` and sends all my meals.
  * - Any other address: Hands request to the page.
  *
  * A request as the page sends it:
@@ -353,7 +357,7 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
             Number(url.searchParams.get("page") ?? "1")));
 
     } else if (request.method === "POST" && url.pathname === "/api/food/foods") {
-        responseSend(response, 200, foodAdd(await json(request) as Food & { brand?: string }));
+        responseSend(response, 200, foodAdd(await json(request) as Food));
 
     } else if (request.method === "GET" && url.pathname === "/api/food/brands") {
         responseSend(response, 200, brandsRead());
@@ -374,7 +378,11 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, dishesRead());
 
     } else if (request.method === "POST" && url.pathname === "/api/food/meals") {
-        responseSend(response, 200, dishAdd(await json(request) as { name?: string; foods?: string[] }));
+        responseSend(response, 200, dishAdd(await json(request) as { name?: string; note?: string; servings?: number;
+            foods?: string[]; }));
+
+    } else if (request.method === "DELETE" && url.pathname === "/api/food/meals") {
+        responseSend(response, 200, dishRemove(url.searchParams.get("meal") ?? "", url.searchParams.get("variant") ?? ""));
 
     } else {
         page.middlewares(request, response);

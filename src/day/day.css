@@ -1521,55 +1521,6 @@ fieldset.entry-times {
     color: var(--text-main);
 }
 
-/* Form of a new meal in the list of the meals: its name, its foods, a hint while it holds fewer than two,
-   the food search, then Cancel and Save meal at the right, one chip high, Save in the calm grey of what is picked */
-.meal-editor {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.meal-editor .meal-rows {
-    margin-top: 0;
-}
-
-.meal-editor-hint {
-    margin: 0;
-    font-size: 0.8125rem;
-    color: var(--text-muted);
-}
-
-.meal-editor-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--control-gap);
-}
-
-.meal-editor-buttons button {
-    min-height: var(--chip-height);
-    padding: 0 0.875rem;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--background);
-    color: var(--text-main);
-    font: inherit;
-    cursor: pointer;
-}
-
-.meal-editor-buttons button:hover {
-    background: var(--fill);
-}
-
-.meal-editor-buttons .meal-editor-save {
-    border-color: var(--chosen-line);
-    background: var(--chosen);
-}
-
-.meal-editor-buttons .meal-editor-save:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-
 /* Group of choices, like Due today, small and grey above its first one, a row of its own */
 .picker-group {
     width: 100%;

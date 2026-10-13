@@ -11,12 +11,14 @@
  * A food listed without grams counts its usual portion; every amount is rounded and an estimate anyway,
  * so none is marked as one. A food not in `Foods.md` and a meal that lists no foods count nothing,
  * and a line below the totals says so.
+ * My meals: each with its variants, and new meals and variants, above my foods, see `meals.ts`.
  * My foods: the food search, which finds mine first, then those of Open Food Facts, and adds new ones, see `search.ts`.
  * It opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today it moves on
  * with it; only a link like `/food?date=2026-10-10` opens on that day, see `today.ts`.
  *
  * - `./foods.ts`: Loads the meals of a day, writes amounts and makes elements.
  * - `./search.ts`: Finds foods, mine first, then on Open Food Facts, and adds new ones.
+ * - `./meals.ts`: The section of my meals.
  * - `../day/places.ts`: Gives the name of the place of a meal.
  * - `../day/times.ts`: Writes a day as its date, like `13.10.2026`.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
@@ -29,6 +31,7 @@
 
 import { amountOf, elementOf, foodDayLoad } from "./foods.ts";
 import { foodSearchOf } from "./search.ts";
+import { mealsSectionOf } from "./meals.ts";
 import { labelOf } from "../day/places.ts";
 import { dateTextOf } from "../day/times.ts";
 import { dayOf } from "../skill/attempts.ts";
@@ -216,7 +219,7 @@ function dayMove(days: number): void {
 /**
  * Starts the food view after the router has put its HTML into the page:
  * the arrows and the icon back to today, the day a link asks for or today's calendar date, which moves on
- * to the new day by itself while it is shown, see `today.ts`, and the food search.
+ * to the new day by itself while it is shown, see `today.ts`, my meals and the food search.
  * - `before`, `after`, `today`: Buttons to the day before and after, and back to today.
  */
 export function foodStart(): void {
@@ -229,6 +232,7 @@ export function foodStart(): void {
     before.addEventListener("click", (): void => dayMove(-1));
     after.addEventListener("click", (): void => dayMove(1));
     today.addEventListener("click", (): void => dayOpen(calendarTodayOf()));
+    document.getElementById("food-dishes")?.append(mealsSectionOf());
     document.getElementById("food-search")?.append(foodSearchOf(null, null));
     dayOpen(askedDayOf() ?? calendarTodayOf());
     todayFollow((): string => shown, dayOpen);

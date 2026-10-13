@@ -5,20 +5,26 @@
  * of one brand when one is picked and page by page, adds new foods to `Foods.md`, keeps the brands of the search
  * in `Brands.md`, keeps my meals in `Meals.md`, reads the meals of a day from the log with what they give,
  * and the foods a dish held the last time.
- * `Meals.md` holds my meals, each made of two or more of my foods with the grams of one portion, like `Käsesalat`
- * of `Käse` and `Gurkensalat`: one Markdown table with one row per food of a meal, its name, the food and its grams,
- * empty for the usual portion of the food.
+ * `Meals.md` holds my meals, each made of two or more of my foods, like `ChiliConCarne` of `Hackfleisch`,
+ * `Kidneybohnen` and `Tomaten`, in variants, as I made it each time: a variant named by its day and maybe a note,
+ * like `09.10.2026 · MitMais`, with its foods and their grams for the whole of it, empty for the usual portion,
+ * and how many servings it gives, like 4 for a pot; one Markdown table with one row per food of a variant,
+ * its meal, its variant, its servings, the food and its grams. A meal is named as all my names are, in one word
+ * without spaces, each word with a capital, like `ChiliConCarne` of `Chili con Carne`.
  * `Foods.md` is one Markdown table with one row per food: its name, kcal, protein, carbs and fat per 100 g,
- * its usual portion in grams, and the Open Food Facts barcode it came from, empty for a food added by hand.
+ * its usual portion in grams, the Open Food Facts barcode it came from, and its brand and store, like `Milbona`
+ * and `Lidl`, so the same name of two shops never mixes up; barcode, brand and store empty for a food added by hand.
+ * A row written before brand and store were kept has neither, and the table gets their columns with the next food.
  * A meal is a log entry of the category `Food`: `SUMMARY` what I ate, its foods parted by `, `,
  * like `Reis, Bohnen, Eier`, `LOCATION` where, and one line `X-FOOD` per food, its name in `Foods.md`
  * with the grams I ate, like `X-FOOD:Reis;150`, or without grams, like `X-FOOD:Eier`, when I could not weigh it,
  * as in a restaurant: then the food counts its usual portion, and what it gives is an estimate.
  * Grams guessed, not weighed, like those Claude reads from a photo of a meal, carry `~`, like `X-FOOD:Döner;~400`,
  * and count as an estimate too, since a guess from a photo is about a third off (Fridolfsson 2025).
- * A food of one of my meals carries the meal and its portions after its grams, like `X-FOOD:Käse;50;Käsesalat;0.5`
- * for half a portion of `Käsesalat`, so the log keeps what the meal held that day, whatever I change in `Meals.md`
- * later; its what names the meal, then the foods eaten beside it, like `Käsesalat, Brot`.
+ * A food of one of my meals carries the meal, its servings eaten and its variant after its grams,
+ * like `X-FOOD:Hackfleisch;62.5;ChiliConCarne;0.5;09.10.2026` for half a serving, so the log keeps what the meal held
+ * that day, whatever I change in `Meals.md` later; its what names the meal, then the foods eaten beside it,
+ * like `ChiliConCarne, Weißbrot`.
  * A product of Open Food Facts is a pack as sold, its values per 100 g, with the size of the pack, like `450 g`,
  * and the serving its maker gives, like 36 g, which only the product itself tells, not the search,
  * so the reader asks for the serving of each product found and keeps it.
@@ -59,27 +65,29 @@ export type Nutrients = {
 };
 
 /**
- * A food, one row of `Foods.md`: its {@link Nutrients} per 100 g with its name, portion and barcode.
+ * A food, one row of `Foods.md`: its {@link Nutrients} per 100 g with its name, portion, barcode, brand and store.
  *
  * - `name`: Name, by which a meal lists it, like `Reis` of `X-FOOD:Reis;150`; unique, without `|` and `;`.
  * - `portion`: Usual portion in grams, which counts when a meal lists the food without grams.
  * - `barcode`: Open Food Facts barcode it came from, like `20112745`; empty for a food added by hand.
+ * - `brand`: Its first brand, like `Milbona`, empty when none is known.
+ * - `store`: The first store that sells it, like `Lidl`, empty when none is known.
  */
 export type Food = Nutrients & {
     name: string;
     portion: number;
     barcode: string;
+    brand: string;
+    store: string;
 };
 
 /**
  * A product of Open Food Facts as a {@link Food} to add: its name as Open Food Facts writes it,
  * its portion the serving its maker gives, 0 when it gives none.
  *
- * - `brand`: Its first brand, like `Golden Sun`, empty when none is known.
  * - `pack`: Size of the pack as sold, like `450 g` or `140 g (7 x 20 g)`, empty when none is known.
  */
 export type Product = Food & {
-    brand: string;
     pack: string;
 };
 
@@ -152,17 +160,30 @@ export type Meal = Nutrients & {
 };
 
 /**
- * A meal of mine, as `Meals.md` holds it: two or more of my foods with the grams of one portion.
+ * A variant of a meal of mine, as I made it once: its foods for the whole of it and the servings it gives.
  *
- * - `name`: Name of the meal, like `Käsesalat`; unique, without `|` and `;`.
- * - `foods`: Its foods as lines of a food and its grams, like `Käse;100`, or without grams for the usual portion,
- *   like `Gurkensalat`, in their order.
- * - `kcal`: kcal of one portion, counted as a meal of the log counts its foods.
+ * - `label`: Name of the variant, its day and maybe a note, like `09.10.2026 · MitMais`; unique within its meal.
+ * - `servings`: Servings the whole gives, like 4 for a pot, at least 1.
+ * - `foods`: Its foods as lines of a food and its grams for the whole, like `Hackfleisch;500`, or without grams
+ *   for the usual portion, like `Zwiebel`, in their order.
+ * - `kcal`: kcal of one serving, counted as a meal of the log counts its foods.
+ */
+export type Variant = {
+    label: string;
+    servings: number;
+    foods: string[];
+    kcal: number;
+};
+
+/**
+ * A meal of mine, as `Meals.md` holds it: two or more of my foods, in its variants.
+ *
+ * - `name`: Name of the meal, like `ChiliConCarne`; unique, without spaces, `|` and `;`.
+ * - `variants`: Its variants in the order of the table, the latest added last.
  */
 export type Dish = {
     name: string;
-    foods: string[];
-    kcal: number;
+    variants: Variant[];
 };
 
 /**
@@ -182,6 +203,7 @@ export type FoodDay = Nutrients & {
  * - `code`: Barcode.
  * - `product_name`: Name.
  * - `brands`: Brands, a list from the search, a text parted by commas from the products.
+ * - `stores`: Stores that sell it, as the brands.
  * - `quantity`: Size of the pack as its maker writes it, like `450g`.
  * - `serving_quantity`: Grams of a serving, as number or as text; only the products send it, never the search.
  * - `nutriments`: Nutrients by their names, like `energy-kcal_100g` or `proteins_100g`.
@@ -190,6 +212,7 @@ type ProductSent = {
     code?: string;
     product_name?: string;
     brands?: string | string[];
+    stores?: string | string[];
     quantity?: string;
     serving_quantity?: number | string;
     nutriments?: { [nutrient: string]: number | string | undefined };
@@ -213,17 +236,29 @@ type Answer = {
 export const foodName: string = "Food";
 
 /**
+ * Head of the table of `Foods.md`, the header and the line below it, with the columns of brand and store.
+ *
+ * @returns The two lines
+ */
+function tableHeadOf(): string[] {
+    return [
+        "| Food | kcal | Protein | Carbs | Fat | Portion | Barcode | Brand | Store |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |",
+    ];
+}
+
+/**
  * Text a new `Foods.md` starts with: its title, what its columns hold, how a meal lists a food,
- * and the head of its table, the header and the line below it.
+ * and the head of its table, the header and the line below it, see {@link tableHeadOf}.
  */
 const fileHead: string[] = [
     "# Foods",
     "",
-    "My foods: kcal, protein, carbs and fat per 100 g, the usual portion in grams, and the Open Food Facts barcode.",
+    "My foods: kcal, protein, carbs and fat per 100 g, the usual portion in grams, the Open Food Facts barcode,",
+    "and the brand and the store, so the same name of two shops never mixes up.",
     "A meal in the log lists a food by its name, like `X-FOOD:Reis;150` for 150 g, or `X-FOOD:Reis` for its portion.",
     "",
-    "| Food | kcal | Protein | Carbs | Fat | Portion | Barcode |",
-    "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
+    ...tableHeadOf(),
 ];
 
 /**
@@ -258,19 +293,21 @@ const brandLine: RegExp = /^- +(.+?)\s*$/;
 const mealsHead: string[] = [
     "# Meals",
     "",
-    "My meals: each made of two or more of my foods, with the grams of one portion, empty for its usual portion.",
+    "My meals: each made of two or more of my foods, in variants as I made it, each variant with its foods and their",
+    "grams for the whole of it, empty for the usual portion, and how many servings the whole gives.",
     "The dashboard writes a meal into the log with its foods, so a meal changed here leaves past days as they were.",
     "",
-    "| Meal | Food | Grams |",
-    "| --- | --- | ---: |",
+    "| Meal | Variant | Servings | Food | Grams |",
+    "| --- | --- | ---: | --- | ---: |",
 ];
 
 /**
  * Line `X-FOOD` of a meal: the name of a food, then `;` and the grams when given, `~` before grams guessed,
- * then for a food of one of my meals `;` with the meal and `;` with its portions,
- * like `Reis;150`, `Milch;200.5`, `Döner;~400`, `Eier` or `Käse;50;Käsesalat;0.5`.
+ * then for a food of one of my meals `;` with the meal, `;` with its servings eaten and maybe `;` with its variant,
+ * like `Reis;150`, `Milch;200.5`, `Döner;~400`, `Eier` or `Hackfleisch;62.5;ChiliConCarne;0.5;09.10.2026`.
  */
-const foodLine: RegExp = /^([^;]+?)(?:;\s*(~)?\s*(\d+(?:[.,]\d+)?))?(?:;\s*([^;|]+?)\s*;\s*(\d+(?:[.,]\d+)?))?\s*$/;
+const foodLine: RegExp =
+    /^([^;]+?)(?:;\s*(~)?\s*(\d+(?:[.,]\d+)?))?(?:;\s*([^;|]+?)\s*;\s*(\d+(?:[.,]\d+)?)(?:\s*;\s*([^;|]*?))?)?\s*$/;
 
 /**
  * Barcode, as a search may be one: 8 to 14 digits, like `20112745` or `4316268460989`.
@@ -291,7 +328,7 @@ const agent: string = "NomSystemDashboard/0.1";
 /**
  * Fields of a product the reader asks Open Food Facts for, see {@link ProductSent}.
  */
-const productFields: string = "code,product_name,brands,quantity,serving_quantity,nutriments";
+const productFields: string = "code,product_name,brands,stores,quantity,serving_quantity,nutriments";
 
 /**
  * Languages of the names a search looks in: German, since I shop in Germany, and English.
@@ -364,6 +401,17 @@ function brandOf(brand: string): string {
 }
 
 /**
+ * Gives the first of the brands or stores of a product, as the search sends a list and a product a text
+ * parted by commas, cleaned for `Foods.md`, see {@link nameOf}.
+ *
+ * @param sent - Brands or stores as sent, like `["Milbona", "Lidl"]` or `Milbona, Lidl`; missing for none
+ * @returns The first, like `Milbona`, empty for none
+ */
+function firstOf(sent: string | string[] | undefined): string {
+    return nameOf(([sent ?? ""].flat()[0] ?? "").split(",")[0]);
+}
+
+/**
  * Writes the size of a pack with a space between number and unit, like `450 g` of `450g`, spaces in a row one;
  * nothing for a size without a weight or volume, like `1 pcs`, which tells nothing of what it gives.
  * - `pack`: The size written.
@@ -394,7 +442,8 @@ function foodsRead(): Food[] {
         .filter((cells: string[]): boolean => (cells[0] ?? "") !== "")
         .map((cells: string[]): Food => ({
             name: cells[0], kcal: numberOf(cells[1]), protein: numberOf(cells[2]), carbs: numberOf(cells[3]),
-            fat: numberOf(cells[4]), portion: numberOf(cells[5]), barcode: cells[6] ?? "",
+            fat: numberOf(cells[4]), portion: numberOf(cells[5]), barcode: cells[6] ?? "", brand: cells[7] ?? "",
+            store: cells[8] ?? "",
         }));
 }
 
@@ -506,7 +555,8 @@ function productOf(sent: ProductSent): Product | null {
         fat: roundOf(Number(nutrients.fat_100g) || 0, 1),
         portion: roundOf(Number(sent.serving_quantity), 0) || 0,
         barcode: sent.code ?? "",
-        brand: ([sent.brands ?? ""].flat()[0] ?? "").split(",")[0].trim(),
+        brand: firstOf(sent.brands),
+        store: firstOf(sent.stores),
         pack: packOf(sent.quantity),
     };
 }
@@ -710,7 +760,8 @@ export function brandRemove(sent: string): string[] {
 }
 
 /**
- * Adds a food to `Foods.md` as the last row of its table, every other line staying as it is;
+ * Adds a food to `Foods.md` as the last row of its table, with its brand and store, every other line staying as it is,
+ * but a head of the table without their columns, which gets them, see {@link tableHeadOf};
  * creates `Foods.md` with its head, see {@link fileHead}, when it does not exist yet;
  * then adds the brand of a product to `Brands.md`, so the search offers it as a chip, see {@link brandAdd}.
  * Cleans the name, see {@link nameOf}, and rounds the numbers, see {@link roundOf}.
@@ -719,13 +770,14 @@ export function brandRemove(sent: string): string[] {
  * - `added`: The food as written.
  * - `lines`: Lines of `Foods.md`.
  * - `last`: Index of the last line of its table.
+ * - `header`: Index of the header of its table.
  *
- * @param sent - Food as the page sends it, picked from Open Food Facts with its brand, or typed by hand
+ * @param sent - Food as the page sends it, picked from Open Food Facts with its brand and store, or typed by hand
  * @returns The food as written
  * @throws {Error} - When the name is empty or another food has it, ignoring case, a value is no number of 0 or more,
  *   the portion not more than 0, the barcode not only digits, or `Foods.md` lies outside the new system or holds no table
  */
-export function foodAdd(sent: Food & { brand?: string }): Food {
+export function foodAdd(sent: Food): Food {
     const values: unknown[] = [sent.kcal, sent.protein, sent.carbs, sent.fat, sent.portion];
     if (!values.every((value: unknown): boolean => typeof value === "number" && value >= 0))
         throw new Error(`No numbers of a food: ${JSON.stringify(sent)}`);
@@ -738,6 +790,8 @@ export function foodAdd(sent: Food & { brand?: string }): Food {
         fat: roundOf(sent.fat, 1),
         portion: roundOf(sent.portion, 0),
         barcode: String(sent.barcode ?? "").trim(),
+        brand: brandOf(String(sent.brand ?? "")),
+        store: brandOf(String(sent.store ?? "")),
     };
     if (added.name === "" || foodsRead().some((mine: Food): boolean => mine.name.toLowerCase() === added.name.toLowerCase()))
         throw new Error(`No new name of a food: ${added.name}`);
@@ -750,15 +804,18 @@ export function foodAdd(sent: Food & { brand?: string }): Food {
 
     const lines: string[] = existsSync(food.foods) ? readFileSync(food.foods, "utf8").split("\n") : [...fileHead, ""];
     const last: number = lines.findLastIndex((line: string): boolean => line.startsWith("|"));
+    const header: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
     if (last === -1)
         throw new Error(`No table in ${food.foods}`);
 
     lines.splice(last + 1, 0, `| ${added.name} | ${added.kcal} | ${added.protein} | ${added.carbs} | ${added.fat} `
-        + `| ${added.portion} | ${added.barcode} |`);
+        + `| ${added.portion} | ${added.barcode} | ${added.brand} | ${added.store} |`);
+    if (!lines[header].includes("| Brand |"))
+        lines.splice(header, tableHead, ...tableHeadOf());
     mkdirSync(dirname(food.foods), { recursive: true });
     writeFileSync(food.foods, lines.join("\n"));
-    if (brandOf(String(sent.brand ?? "")) !== "")
-        brandAdd(String(sent.brand));
+    if (added.brand !== "")
+        brandAdd(added.brand);
     return added;
 }
 
@@ -856,7 +913,7 @@ export function mealsOf(entries: Entry[]): Map<string, Meal> {
 /**
  * Tells whether a line `X-FOOD` sent to be written is well formed, see {@link foodLine}:
  * a name without `;` and `|`, then grams above 0 when given, like `Reis;150` or `Eier`,
- * and for a food of a meal the meal and portions above 0, like `Käse;50;Käsesalat;0.5`.
+ * and for a food of a meal the meal, servings above 0 and maybe its variant, like `Hackfleisch;62.5;ChiliConCarne;0.5`.
  * Whether `Foods.md` holds the food is not asked, so a meal keeps a food that left `Foods.md` when it is moved.
  * - `parts`: The line cut into its parts, `null` when it is none.
  * - `name`, `grams`: Name of the food and the grams the line gives, `null` for none.
@@ -883,9 +940,22 @@ export function mealTitleOf(foods: string[]): string {
 }
 
 /**
- * Reads my meals from `Meals.md`, see {@link Dish}: the rows of its table after its head, each a meal, a food
- * and its grams, the rows of a meal together in the order of the table, the meals in the order of their first rows;
- * a row without meal or food stays out; each with the kcal of one portion.
+ * Writes a name of mine as all my names are written, in one word, each word with a capital, the rest as typed,
+ * like `ChiliConCarne` of `Chili con Carne` or `Käsesalat` of `käsesalat`, cleaned for a table, see {@link nameOf}.
+ *
+ * @param typed - Name as typed
+ * @returns Name in one word
+ */
+function oneWordOf(typed: string): string {
+    return nameOf(typed).split(" ").filter((word: string): boolean => word !== "")
+        .map((word: string): string => word.charAt(0).toUpperCase() + word.slice(1)).join("");
+}
+
+/**
+ * Reads my meals from `Meals.md`, see {@link Dish}: the rows of its table after its head, each a meal, a variant,
+ * its servings, a food and its grams; the rows of a variant together, its servings those of its first row,
+ * the meals in the order of their first rows, the variants of a meal in the order of theirs, ignoring case;
+ * a row without meal, variant or food stays out; each variant with the kcal of one serving.
  * - `mine`: My foods by their names in small letters.
  * - `dishes`: The meals by their names in small letters.
  * - `cells`: Cells of a row, without the empty texts before its first `|` and after its last.
@@ -902,50 +972,108 @@ export function dishesRead(): Dish[] {
         .filter((line: string): boolean => line.startsWith("|"))
         .slice(tableHead)
         .map((line: string): string[] => line.split("|").slice(1, -1).map((cell: string): string => cell.trim()))
-        .filter((cells: string[]): boolean => (cells[0] ?? "") !== "" && (cells[1] ?? "") !== "")
+        .filter((cells: string[]): boolean => (cells[0] ?? "") !== "" && (cells[1] ?? "") !== "" && (cells[3] ?? "") !== "")
         .forEach((cells: string[]): void => {
-            const key: string = cells[0].toLowerCase();
-            const dish: Dish = dishes.get(key) ?? { name: cells[0], foods: [], kcal: 0 };
-            dish.foods.push((cells[2] ?? "") === "" ? cells[1] : `${cells[1]};${numberOf(cells[2])}`);
-            dishes.set(key, dish);
+            const dish: Dish = dishes.get(cells[0].toLowerCase()) ?? { name: cells[0], variants: [] };
+            let variant: Variant | undefined = dish.variants.find((one: Variant): boolean =>
+                one.label.toLowerCase() === cells[1].toLowerCase());
+            if (variant === undefined) {
+                variant = { label: cells[1], servings: Math.max(1, numberOf(cells[2])), foods: [], kcal: 0 };
+                dish.variants.push(variant);
+            }
+            variant.foods.push((cells[4] ?? "") === "" ? cells[3] : `${cells[3]};${numberOf(cells[4])}`);
+            dishes.set(cells[0].toLowerCase(), dish);
         });
     return [...dishes.values()].map((dish: Dish): Dish => ({
-        ...dish, kcal: sumOf(dish.foods.map((line: string): Eaten => eatenOf(line, mine))).kcal,
+        ...dish, variants: dish.variants.map((variant: Variant): Variant => ({
+            ...variant,
+            kcal: sumOf(variant.foods.map((line: string): Eaten => eatenOf(line, mine))).kcal / variant.servings,
+        })),
     }));
 }
 
 /**
- * Adds a meal to `Meals.md` as rows after the last row of its table, one per food, every other line staying as it is;
- * creates `Meals.md` with its head, see {@link mealsHead}, when it does not exist yet.
- * - `name`: The name cleaned, see {@link nameOf}.
- * - `foods`: Its foods as sent, each a food and its grams, like `Käse;100`, or a food alone.
+ * Adds a variant of a meal to `Meals.md`, a new meal with its first variant when no meal has its name: one row
+ * per food after the last row of the meal, else of the table, every other line staying as it is; creates `Meals.md`
+ * with its head, see {@link mealsHead}, when it does not exist yet. The variant is named by today in Berlin time
+ * and the note, like `13.10.2026 · MitMais`, with ` 2`, ` 3` … after it when its meal has a variant of that name.
+ * - `meals`: My meals before.
+ * - `typed`: The name of the meal in one word, see {@link oneWordOf}.
+ * - `known`: The meal of that name, `undefined` for a new meal.
+ * - `name`: Its name, as the meal known writes it.
+ * - `note`: The note in one word, like `MitMais` of `mit Mais`, see {@link oneWordOf}.
+ * - `servings`: Servings the whole gives.
+ * - `foods`: Its foods as sent, each a food and its grams for the whole, like `Hackfleisch;500`, or a food alone.
+ * - `base`, `label`: The name of the variant before and after making it unique.
  * - `lines`: Lines of `Meals.md`.
- * - `last`: Index of the last line of its table.
+ * - `after`: Index of the line the rows go after.
  *
- * @param sent - Meal as the page sends it, its name and its foods
- * @returns My meals after, the new one with them
- * @throws {Error} - When the name is empty or another meal has it, ignoring case, the meal has fewer than two foods,
+ * @param sent - Variant as the page sends it: the name of its meal, a note, its servings and its foods
+ * @returns My meals after, with the new variant
+ * @throws {Error} - When the name is empty, the servings no number of 1 or more, the variant has fewer than two foods,
  *   a food line is not a food with its grams or alone, or `Meals.md` lies outside the new system or holds no table
  */
-export function dishAdd(sent: { name?: string; foods?: string[] }): Dish[] {
-    const name: string = nameOf(String(sent.name ?? ""));
+export function dishAdd(sent: { name?: string; note?: string; servings?: number; foods?: string[] }): Dish[] {
+    const meals: Dish[] = dishesRead();
+    const typed: string = oneWordOf(String(sent.name ?? ""));
+    const known: Dish | undefined = meals.find((dish: Dish): boolean => dish.name.toLowerCase() === typed.toLowerCase());
+    const name: string = known?.name ?? typed;
+    const note: string = oneWordOf(String(sent.note ?? "").replace(/·/g, " "));
+    const servings: number = Number(sent.servings);
     const foods: string[] = (sent.foods ?? []).map((line: string): string => String(line).trim());
-    if (name === "" || dishesRead().some((dish: Dish): boolean => dish.name.toLowerCase() === name.toLowerCase()))
-        throw new Error(`No new name of a meal: ${name}`);
+    if (name === "")
+        throw new Error("No name of a meal");
+    if (!Number.isFinite(servings) || servings < 1)
+        throw new Error(`No servings of a meal: ${sent.servings}`);
     if (foods.length < 2 || !foods.every((line: string): boolean => foodLineAllows(line) && line.split(";").length <= 2))
         throw new Error(`No foods of a meal: ${JSON.stringify(foods)}`);
     if (!writeAllowed(food.meals))
         throw new Error(`No writing outside the new system: ${food.meals}`);
 
+    const base: string = [berlinDateOf(new Date()).split("-").reverse().join("."), note]
+        .filter((part: string): boolean => part !== "").join(" · ");
+    let label: string = base;
+    for (let count: number = 2; known?.variants.some((variant: Variant): boolean =>
+        variant.label.toLowerCase() === label.toLowerCase()) ?? false; count++)
+        label = `${base} ${count}`;
     const lines: string[] = existsSync(food.meals) ? readFileSync(food.meals, "utf8").split("\n") : [...mealsHead, ""];
     const last: number = lines.findLastIndex((line: string): boolean => line.startsWith("|"));
+    const own: number = lines.findLastIndex((line: string): boolean =>
+        line.split("|")[1]?.trim().toLowerCase() === name.toLowerCase());
+    const after: number = own === -1 ? last : own;
     if (last === -1)
         throw new Error(`No table in ${food.meals}`);
-    lines.splice(last + 1, 0, ...foods.map((line: string): string => {
+    lines.splice(after + 1, 0, ...foods.map((line: string): string => {
         const [food, grams]: [string, number | null] = lineOf(line);
-        return `| ${name} | ${food} | ${grams === null ? "" : roundOf(grams, 1)} |`;
+        return `| ${name} | ${label} | ${roundOf(servings, 1)} | ${food} | ${grams === null ? "" : roundOf(grams, 1)} |`;
     }));
     mkdirSync(dirname(food.meals), { recursive: true });
+    writeFileSync(food.meals, lines.join("\n"));
+    return dishesRead();
+}
+
+/**
+ * Removes a variant of a meal from `Meals.md`, its rows, ignoring case, every other line staying as it is;
+ * the meal goes with its last variant.
+ * - `meal`, `variant`: The meal and the variant in small letters.
+ * - `lines`: Lines of `Meals.md`.
+ *
+ * @param name - Name of the meal, like `ChiliConCarne`
+ * @param label - Name of the variant, like `09.10.2026 · MitMais`
+ * @returns My meals after
+ * @throws {Error} - When `Meals.md` lies outside the new system
+ */
+export function dishRemove(name: string, label: string): Dish[] {
+    if (!existsSync(food.meals))
+        return [];
+    if (!writeAllowed(food.meals))
+        throw new Error(`No writing outside the new system: ${food.meals}`);
+    const meal: string = name.trim().toLowerCase();
+    const variant: string = label.trim().toLowerCase();
+    const lines: string[] = readFileSync(food.meals, "utf8").split("\n").filter((line: string): boolean => {
+        const cells: string[] = line.split("|").map((cell: string): string => cell.trim().toLowerCase());
+        return !(line.startsWith("|") && cells[1] === meal && cells[2] === variant);
+    });
     writeFileSync(food.meals, lines.join("\n"));
     return dishesRead();
 }

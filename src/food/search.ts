@@ -9,10 +9,13 @@
  * Below the field the brands as chips: `All brands`, then those of `Brands.md`, Edeka first, then `+ Brand`,
  * which takes any brand typed; a chip picked shows only products of its brand, my foods stay all,
  * and carries `×`, which removes its brand from `Brands.md`.
- * Each food shows kcal, protein, carbs and fat per 100 g and its usual portion; a product its pack below its name,
- * like `Pack 450 g`, and as portion the serving its maker gives, `none` when it gives none.
+ * Each food shows kcal, protein, carbs and fat per 100 g and its usual portion, its brand after its name and below it
+ * small its store, like `Gouda · Milbona` over `Lidl`, so the same name of two shops never mixes up; a product also
+ * its pack, like `Pack 450 g · Lidl`, and as portion the serving its maker gives, `none` when it gives none.
  * A click on a product opens a short form below it to add it to my foods, with a name of my own and its portion,
- * both prefilled, 100 g for a product without serving; its brand goes into `Brands.md` with it, a chip from then on.
+ * both prefilled, 100 g for a product without serving, its name with its brand after it when one of my foods has
+ * its name already; it goes into `Foods.md` with its brand and store, and its brand into `Brands.md`,
+ * a chip from then on.
  * `+ Own food by hand` at the end, for a food found nowhere, opens one to add it with its values per 100 g typed.
  * Where a food is wanted, like in a meal, a click on one of my foods picks it, and so does adding one,
  * so a meal lists only foods of `Foods.md`; there rows of its own may stand above my foods, like the meals eaten before,
@@ -112,26 +115,28 @@ function buttonOf(className: string, text: string, click: () => void): HTMLButto
 }
 
 /**
- * Builds the cells of the row of a food: its name, for a product with its brand after it and its pack below it,
- * then its values per 100 g and its portion, `none` for a product without serving, the numbers in columns;
- * protein, carbs and fat with the class `food-macro`, so a narrow place, like a meal, can leave them out.
- * - `title`: Name and pack, one below the other.
- * - `name`: Name, with the brand of a product; cut with an ellipsis when too long, whole when pointed at.
+ * Builds the cells of the row of a food: its name with its brand after it, below it small the pack of a product
+ * and the store, like `Pack 450 g · Lidl`, then its values per 100 g and its portion, `none` for a product without
+ * serving, the numbers in columns; protein, carbs and fat with the class `food-macro`, so a narrow place, like a meal,
+ * can leave them out.
+ * - `title`: Name, and below it pack and store.
+ * - `name`: Name with its brand; cut with an ellipsis when too long, whole when pointed at.
+ * - `below`: Pack and store, those known.
  *
  * @param food - Food or product
- * @param brand - Brand of a product, empty for none
  * @param pack - Pack of a product, like `450 g`, empty for none
  * @returns Cells
  */
-function cellsOf(food: Food, brand: string, pack: string): HTMLElement[] {
+function cellsOf(food: Food, pack: string): HTMLElement[] {
     const title: HTMLElement = elementOf("span", "food-title", "");
     const name: HTMLElement = elementOf("span", "food-name", food.name);
-    if (brand !== "")
-        name.append(elementOf("span", "food-brand", ` · ${brand}`));
+    const below: string[] = [pack === "" ? "" : `Pack ${pack}`, food.store].filter((part: string): boolean => part !== "");
+    if (food.brand !== "")
+        name.append(elementOf("span", "food-brand", ` · ${food.brand}`));
     name.title = name.textContent ?? "";
     title.append(name);
-    if (pack !== "")
-        title.append(elementOf("span", "food-pack", `Pack ${pack}`));
+    if (below.length > 0)
+        title.append(elementOf("span", "food-pack", below.join(" · ")));
     return [
         title,
         elementOf("span", "food-value", amountOf(food.kcal, 0)),
@@ -172,7 +177,7 @@ function numberRead(text: string): number {
 /**
  * Opens the form to add a food below a row or below `+ Own food by hand`, in place of any form open before:
  * name and portion prefilled from the food given, for a food by hand also its values per 100 g, empty where 0.
- * Add, its check, or Enter in a field, sends the food with its brand; Cancel, its cross, or Escape in a field,
+ * Add, its check, or Enter in a field, sends the food with its brand and store; Cancel, its cross, or Escape in a field,
  * closes the form. When the reader does not take the food, like for a name another food has,
  * the form stays open and says so.
  * - `form`: The form, after the element.
@@ -184,11 +189,10 @@ function numberRead(text: string): number {
  *
  * @param after - Row of the product, or the button `+ Own food by hand`
  * @param food - Food whose values fill the form
- * @param brand - Brand of a product, empty for a food by hand
  * @param byHand - Whether the food is typed by hand, so the form asks for its values too
  * @param added - Takes the food once the reader wrote it
  */
-function formShow(after: HTMLElement, food: Food, brand: string, byHand: boolean, added: (food: Food) => void): void {
+function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food: Food) => void): void {
     after.parentElement?.querySelector(".food-form")?.remove();
     const form: HTMLElement = elementOf("div", "food-form", "");
     const inputs: Map<keyof Food, HTMLInputElement> = new Map();
@@ -200,7 +204,7 @@ function formShow(after: HTMLElement, food: Food, brand: string, byHand: boolean
         foodSend({
             name: value("name"), kcal: numberRead(value("kcal")), protein: numberRead(value("protein")),
             carbs: numberRead(value("carbs")), fat: numberRead(value("fat")), portion: numberRead(value("portion")),
-            barcode: food.barcode, brand: brand,
+            barcode: food.barcode, brand: food.brand, store: food.store,
         }).then(added).catch((reason: unknown): void => {
             console.error(reason);
             error.hidden = false;
@@ -382,6 +386,7 @@ function brandsShow(search: Search): void {
  * - `added`: Takes a food once the reader wrote it.
  * - `rows`: Rows of the results, with the names of the groups and the hints.
  * - `products`: Products shown.
+ * - `taken`: Whether one of my foods found has the name of a product already, so its form adds the brand to the name.
  *
  * @param search - The search
  */
@@ -402,7 +407,7 @@ function resultsShow(search: Search): void {
         const row: HTMLElement = search.pick === null
             ? elementOf("div", "food-row", "")
             : buttonOf("food-row", "", (): void => search.pick?.(food));
-        row.append(...cellsOf(food, "", ""));
+        row.append(...cellsOf(food, ""));
         return row;
     }));
 
@@ -415,9 +420,13 @@ function resultsShow(search: Search): void {
             rows.push(elementOf("p", "food-none", search.brand === "" ? "No products: type more letters"
                 : `No products of ${search.brand}: type more letters, or pick All brands`));
         rows.push(...products.map((product: Product): HTMLElement => {
-            const row: HTMLButtonElement = buttonOf("food-row", "", (): void => formShow(row,
-                { ...product, portion: product.portion || portionUsual }, product.brand, false, added));
-            row.append(...cellsOf(product, product.brand, product.pack));
+            const taken: boolean = found.foods.some((food: Food): boolean =>
+                food.name.toLowerCase() === product.name.toLowerCase());
+            const row: HTMLButtonElement = buttonOf("food-row", "", (): void => formShow(row, {
+                ...product, portion: product.portion || portionUsual,
+                name: taken ? `${product.name} ${product.brand || product.store}`.trim() : product.name,
+            }, false, added));
+            row.append(...cellsOf(product, product.pack));
             return row;
         }));
         if (products.length > 0)
@@ -425,7 +434,8 @@ function resultsShow(search: Search): void {
     }
 
     const newFood: HTMLButtonElement = buttonOf("food-new", "", (): void => formShow(newFood,
-        { name: query, kcal: 0, protein: 0, carbs: 0, fat: 0, portion: portionUsual, barcode: "" }, "", true, added));
+        { name: query, kcal: 0, protein: 0, carbs: 0, fat: 0, portion: portionUsual, barcode: "", brand: "", store: "" },
+        true, added));
     newFood.append(...iconWordsOf(Plus, "Own food by hand"), elementOf("span", "food-new-hint", "when nothing is found"));
     rows.push(newFood);
     search.results.replaceChildren(...rows);

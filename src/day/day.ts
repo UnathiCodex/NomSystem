@@ -165,12 +165,14 @@ function entryDrag(calendar: Calendar, info: EventChangeInfo): void {
 
 /**
  * Lists the foods of a dish, a meal or a cooking: a meal's from its lines `X-FOOD`, like `Haferflocken`
- * of `Haferflocken;60`, the foods of one of my meals once by the name of that meal, which their lines carry,
- * like `Käsesalat` of `Käse;50;Käsesalat;0.5` and `Gurkensalat;50;Käsesalat;0.5`, see `meal.ts`;
+ * of `Haferflocken;60`, the foods of one of my meals once by the name of that meal, which their lines carry after
+ * their grams, like `ChiliConCarne` of `Hackfleisch;125;ChiliConCarne;1;09.10.2026` and `Salz;ChiliConCarne;1`,
+ * see `meal.ts`;
  * else from its what, parted by `, `, like `Reis`, `Bohnen` and `Eier` of `Reis, Bohnen, Eier`.
  * - `category`: Category of the entry.
  * - `foods`: Lines `X-FOOD` of the entry, none when it lists none.
  * - `names`: The names listed so far.
+ * - `parts`, `grams`, `meal`: The parts of a line, whether its second is grams, and the meal it carries, empty for none.
  *
  * @param event - Entry
  * @returns Foods and meals in their order, none for an entry that is no dish
@@ -185,7 +187,8 @@ function dishOf(event: EventApi): string[] {
         return event.title.split(", ");
     foods.forEach((food: string): void => {
         const parts: string[] = food.split(";").map((part: string): string => part.trim());
-        const meal: string = parts.length >= 3 ? parts[parts.length - 2] : "";
+        const grams: boolean = /^~?\s*\d+(?:[.,]\d+)?$/.test(parts[1] ?? "");
+        const meal: string = (grams ? parts[2] : parts.length >= 3 ? parts[1] : "") ?? "";
         if (meal === "")
             names.push(parts[0]);
         else if (names.at(-1) !== meal)
