@@ -1,7 +1,7 @@
 /**
  * ## Daily note
  *
- * Shows the daily note of a day, read only, below my gratitude and my paragraph about the day, which the fields above
+ * Shows the daily note of a day, read only, below my gratitude and my points about the day, which the lists above
  * it show, so the note leaves their two callouts out: what is left shows as Markdown, nothing for a note
  * that holds only them, as the dashboard writes it.
  * Loads and writes those two callouts; the reader writes them into the note of the day, see `reader/note.ts`.
@@ -13,7 +13,7 @@ import { Marked } from "marked";
 
 
 /**
- * Titles of the callouts the page reads and writes, as the reader names them: my gratitude and my paragraph
+ * Titles of the callouts the page reads and writes, as the reader names them: my gratitude and my points
  * about the day.
  */
 export type CalloutTitle = "Dankbarkeiten" | "Tagesfazit";
@@ -26,8 +26,8 @@ const markdown: Marked = new Marked();
 
 
 /**
- * Takes my gratitude and my paragraph about the day out of a note, its callouts Dankbarkeiten and Tagesfazit,
- * each its head and every line starting with `>` below it, since the fields above the note show them.
+ * Takes my gratitude and my points about the day out of a note, its callouts Dankbarkeiten and Tagesfazit,
+ * each its head and every line starting with `>` below it, since the lists above the note show them.
  *
  * @param note - Text of the note file
  * @returns Markdown of the rest of the note, which `marked` reads
@@ -52,7 +52,7 @@ export async function noteShow(date: string): Promise<void> {
 }
 
 /**
- * Loads my gratitude and my paragraph about the day of the daily note of a date from the reader.
+ * Loads my gratitude and my points about the day of the daily note of a date from the reader.
  *
  * @param date - Date like `2026-07-03`
  * @returns Text of each callout by its title, one point per line, a further line indented; empty for none

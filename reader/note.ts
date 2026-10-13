@@ -2,11 +2,11 @@
  * ## Daily notes
  *
  * Reads the daily notes of the new system, one per day in `NomFrequencediary`, like `2026/2026_10/2026_10_12.md`,
- * and writes into them what I write in the dashboard, all a note holds: my gratitude into the callout
- * `> [!tip] Dankbarkeiten`, as points, and my short paragraph about the day overall into the callout
- * `> [!note] Tagesfazit`, as text.
+ * and writes into them what I write in the dashboard, all a note holds, each as points, one `> - ` line each:
+ * my gratitude into the callout `> [!tip] Dankbarkeiten`, and my points about the day overall into the callout
+ * `> [!note] Tagesfazit`; an older Tagesfazit written as a paragraph reads as one point per line.
  * A day has no note until I first write one of them: each callout is added the first time I write into it,
- * my gratitude before my paragraph, and taken out again with its head when I empty it;
+ * my gratitude before my points about the day, and taken out again with its head when I empty it;
  * every other line of a note stays as it is.
  *
  * - `node:fs`: Works with files and folders on the disk.
@@ -20,12 +20,12 @@ import { diaryRoot, writeAllowed } from "./sources.ts";
 
 
 /**
- * Titles of the callouts of a daily note: my gratitude and my paragraph about the day.
+ * Titles of the callouts of a daily note: my gratitude and my points about the day.
  */
 export type CalloutTitle = "Dankbarkeiten" | "Tagesfazit";
 
 /**
- * A callout text, as my gratitude and my paragraph about the day send it.
+ * A callout text, as my gratitude and my points about the day send it.
  *
  * - `date`: Date of the daily note, like `2026-07-03`.
  * - `title`: Title of the callout.
@@ -38,7 +38,7 @@ export type CalloutNew = {
 };
 
 /**
- * The callouts of a daily note, the only ones the reader writes: my gratitude and my paragraph about the day.
+ * The callouts of a daily note, the only ones the reader writes: my gratitude and my points about the day.
  */
 const titles: CalloutTitle[] = ["Dankbarkeiten", "Tagesfazit"];
 
@@ -51,12 +51,12 @@ const heads: { [title in CalloutTitle]: string } = {
 };
 
 /**
- * The callout of my paragraph about the day: text instead of points.
+ * The callout of my points about the day, which my gratitude goes before.
  */
-const paragraph: CalloutTitle = "Tagesfazit";
+const dayPoints: CalloutTitle = "Tagesfazit";
 
 /**
- * Start of a point line in my gratitude.
+ * Start of a point line in a callout.
  */
 const pointStart: string = "> - ";
 
@@ -126,7 +126,7 @@ export function noteRead(date: string): string | null {
 /**
  * Reads a callout of the daily note of a date as text to edit, each line without its `> `:
  * one point per line without `> - `, a further line of a point indented as in the note;
- * my paragraph about the day as it stands, since it has no points.
+ * an older line without `- `, like a line of a paragraph about the day, as a point of its own.
  *
  * @param date - Date like `2026-07-03`
  * @param title - Title of the callout
@@ -135,14 +135,14 @@ export function noteRead(date: string): string | null {
  */
 function calloutTextRead(date: string, title: CalloutTitle): string {
     return calloutLinesOf(noteRead(date) ?? "", title)
-        .map((line: string): string => title !== paragraph && line.startsWith(pointStart)
+        .map((line: string): string => line.startsWith(pointStart)
             ? line.slice(pointStart.length)
             : line.replace(/^> ?/, ""))
         .join("\n");
 }
 
 /**
- * Reads my gratitude and my paragraph about the day of the daily note of a date as texts to edit,
+ * Reads my gratitude and my points about the day of the daily note of a date as texts to edit,
  * see {@link calloutTextRead}.
  *
  * @param date - Date like `2026-07-03`
@@ -157,11 +157,11 @@ export function calloutsRead(date: string): { [title in CalloutTitle]: string } 
 }
 
 /**
- * Turns the text of my gratitude into the lines of its callout:
+ * Turns the text of my gratitude or my points about the day into the lines of its callout:
  * every line a point, an indented line a further line of the point before.
  * - `lines`: Lines made so far.
  *
- * @param text - Text as my gratitude sends it, one point per line
+ * @param text - Text as the page sends it, one point per line
  * @returns Lines like `> - Schön, dass alle da waren`, none for an empty text
  */
 function pointLinesOf(text: string): string[] {
@@ -179,28 +179,16 @@ function pointLinesOf(text: string): string[] {
 }
 
 /**
- * Turns the text of my paragraph about the day into the lines of its callout: every line after `> `,
- * an empty line between two paragraphs as `>`, none at its ends.
- * - `kept`: The text without spaces and empty lines at its ends.
- *
- * @param text - Text as my paragraph sends it
- * @returns Lines like `> Ein ruhiger Tag`, none for an empty text
- */
-function paragraphLinesOf(text: string): string[] {
-    const kept: string = text.trim();
-    return kept === "" ? [] : kept.split("\n").map((line: string): string => `> ${line}`.trimEnd());
-}
-
-/**
  * Puts the new lines of a callout into the lines of a note, each callout parted from what stands before
  * and after it by an empty line: in place of its old lines; without new lines, the callout taken out with its head
  * and the empty line after it; while the note has no such callout, the callout added with its head, my gratitude
- * before my paragraph when the note has that already, else at the end of the note.
+ * before my points about the day when the note has them already, else at the end of the note.
  * - `found`: Lines of the callout in the note, see {@link calloutFind}, `null` when the note has none.
  * - `head`: Line of the head of the callout found.
  * - `after`: First line after the callout found and the empty line after it.
- * - `next`: Lines of my paragraph, which my gratitude goes before, `null` for none and when the paragraph is added.
- * - `at`: Line the new callout goes before: the head of my paragraph, or the end of the note.
+ * - `next`: Lines of my points about the day, which my gratitude goes before, `null` for none and when they
+ *   are added.
+ * - `at`: Line the new callout goes before: the head of my points about the day, or the end of the note.
  *
  * @param lines - Lines of the note, changed in place
  * @param title - Title of the callout
@@ -219,7 +207,7 @@ function calloutPut(lines: string[], title: CalloutTitle, calloutLines: string[]
         return;
     }
 
-    const next: [number, number] | null = title === paragraph ? null : calloutFind(lines, paragraph);
+    const next: [number, number] | null = title === dayPoints ? null : calloutFind(lines, dayPoints);
     if (next === null && lines.length > 0 && lines[lines.length - 1] !== "")
         lines.push("");
     const at: number = next === null ? lines.length : next[0] - 1;
@@ -228,14 +216,14 @@ function calloutPut(lines: string[], title: CalloutTitle, calloutLines: string[]
 
 /**
  * Writes the text of a callout into the daily note of its date, see {@link calloutPut}: my gratitude as points,
- * see {@link pointLinesOf}, my paragraph as text, see {@link paragraphLinesOf}; an empty text takes the callout out,
+ * both as points, see {@link pointLinesOf}; an empty text takes the callout out,
  * and leaves a day without note, or a note without the callout, as it is.
  * - `file`: The note of the date in the new system.
  * - `note`: Text of the note, empty for a day without note.
  * - `lines`: Lines of the note, none for an empty one.
  * - `calloutLines`: New lines of the callout, none for an empty text.
  *
- * @param callout - Callout text as my gratitude or my paragraph sends it
+ * @param callout - Callout text as my gratitude or my points about the day send it
  * @throws {Error} - When the date is not written like `2026-07-03`, the title is none of {@link titles},
  *   or the note would lie outside the new system
  */
@@ -249,7 +237,7 @@ export function calloutWrite(callout: CalloutNew): void {
 
     const note: string = noteRead(date) ?? "";
     const lines: string[] = note === "" ? [] : note.split("\n");
-    const calloutLines: string[] = title === paragraph ? paragraphLinesOf(text) : pointLinesOf(text);
+    const calloutLines: string[] = pointLinesOf(text);
     if (calloutLines.length === 0 && calloutFind(lines, title) === null)
         return;
     calloutPut(lines, title, calloutLines);

@@ -44,16 +44,16 @@
         <article class="day-note">
             <h2>Daily note</h2>
 
-            <!-- What I write into the note any time of the day, saved as I type:
-                 my gratitude, a list of points, and one short paragraph about the day overall -->
+            <!-- What I write into the note any time of the day, saved as I type, each a list of points
+                 with their bullets, see points.ts: my gratitude, and my points about the day overall -->
             <div class="note-boxes">
                 <section class="note-box">
                     <h3 class="note-box-name">Gratitude</h3>
-                    <textarea id="gratitude" rows="1" aria-label="Gratitude"></textarea>
+                    <ul class="note-points" id="gratitude" aria-label="Gratitude"></ul>
                 </section>
                 <section class="note-box">
                     <h3 class="note-box-name">About the day</h3>
-                    <textarea id="day-paragraph" rows="1" aria-label="About the day"></textarea>
+                    <ul class="note-points" id="about-day" aria-label="About the day"></ul>
                 </section>
                 <p class="panel-error" id="note-boxes-error" hidden>Saving failed</p>
             </div>

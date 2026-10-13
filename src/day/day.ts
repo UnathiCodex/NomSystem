@@ -4,7 +4,7 @@
  * Shows the log of a day as my one calendar, a time grid of one column, and beside it the plan of the day,
  * not as a calendar but as a calm list of boxes, see `boxes.ts`; above both the arrows, `Today` and the date of the day;
  * at the right the trackers of the day, my sleep, my glasses of water and my food, and below them the daily note
- * with my gratitude and my paragraph about the day at its top, which a phone leaves out, see `main.ts`.
+ * with my gratitude and my points about the day at its top, which a phone leaves out, see `main.ts`.
  * A click on the date opens a month to pick any day from, see `month.ts`.
  * A box goes into the log at its real time by dragging it there, or as expected with one tap on its ring.
  * The log is written by category: `+` above the time grid opens the entry by category for the last half hour,
@@ -34,7 +34,7 @@
  * - `./categories.ts`: Writes the log by category, each field picked from its own list.
  * - `./meal.ts`: Names the category of meals.
  * - `./boxes.ts`: Shows the boxes of the day beside the log, logs a box dropped into it, and makes what an entry is.
- * - `./evening.ts`: Writes my gratitude and my paragraph about the day into its daily note, any time of the day;
+ * - `./evening.ts`: Writes my gratitude and my points about the day into its daily note, any time of the day;
  *   loaded like `./note.ts`.
  * - `./month.ts`: Picks the day to show from a month.
  * - `./gifts.ts`: Writes my gift ideas for the birthdays and holidays of the plan.
@@ -89,7 +89,7 @@ import type {
 const lineMinutes: number = 15.75;
 
 /**
- * Shows the daily note of a day, like `2026-10-12`, with my gratitude and my paragraph about the day;
+ * Shows the daily note of a day, like `2026-10-12`, with my gratitude and my points about the day;
  * does nothing until {@link noteStart} has loaded them, and so nothing on a phone, which shows no daily note.
  */
 let dayNoteShow: (date: string) => void = (): void => {};
@@ -321,7 +321,7 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
 /**
  * Shows the date of the shown day above plan and log, its weekday and its date in my standard way,
  * like `Sunday, 11.10.2026`, `Today` faded when it is today's calendar date,
- * daily note, gratitude and paragraph of the day, see {@link dayNoteShow};
+ * daily note, gratitude and points about the day, see {@link dayNoteShow};
  * the boxes and the trackers follow the entries of the log, see `eventsSet` in {@link dayStart}.
  * - `weekday`: Weekday of the shown day, like `Sunday`, from the day at noon.
  *
@@ -368,10 +368,10 @@ function nowCenter(calendar: Calendar): void {
 }
 
 /**
- * Loads the daily note with `import()`, its Markdown renderer with it, starts my gratitude and my paragraph
+ * Loads the daily note with `import()`, its Markdown renderer with it, starts my gratitude and my points
  * about the day, and shows them for the shown day and from then on for every day shown, see {@link dayShow}.
  * `evening.ts` comes first, since it loads `note.ts` too, which is then at hand at once.
- * - `evening`: Writes my gratitude and my paragraph about the day, see `evening.ts`.
+ * - `evening`: Writes my gratitude and my points about the day, see `evening.ts`.
  * - `note`: Shows the daily note of a day, see `note.ts`.
  *
  * @param calendar - Calendar of the day, for the shown day

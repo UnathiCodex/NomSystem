@@ -699,8 +699,8 @@ button.box-ring.box-checked svg {
     text-decoration: underline;
 }
 
-/* My gratitude and my paragraph about the day at the top of the daily note, one below the other:
-   each its name small and grey above its field, the field as wide as the note, growing with its text */
+/* My gratitude and my points about the day at the top of the daily note, one below the other:
+   each its name small and grey above its list of points, see `.note-points` */
 .note-boxes {
     display: flex;
     flex-direction: column;
@@ -720,12 +720,34 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-.note-box textarea {
-    min-height: calc(1lh + var(--control-padding) + 2px);
-    padding: calc(var(--control-padding) / 2) var(--control-padding);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--background);
+/* A list of points of the note as Markdown shows a list, no field around it: a grey bullet before each point,
+   its text in a field of its own without frame, as wide as the note, wrapping and growing with its text,
+   see `points.ts` */
+.note-points {
+    margin: 0;
+    padding: 0 0 0 1.25em;
+    list-style: disc;
+    cursor: text;
+}
+
+.note-point {
+    padding: 0.125rem 0;
+}
+
+.note-point::marker {
+    color: var(--text-muted);
+}
+
+.note-point textarea {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--text-main);
+    font: inherit;
+    line-height: inherit;
     field-sizing: content;
     resize: none;
 }
