@@ -238,8 +238,8 @@ function chaptersOf(module: SkillModule, today: string): HTMLElement[] {
 }
 
 /**
- * Writes the state of an entry of the plan, see the top of this file: `Done`, `Cancelled`, `Open` once its day
- * is over, else `To come`.
+ * Writes the state of an entry of the plan, see the top of this file: `Done`, `Cancelled`, which I decided,
+ * `Cancelled by university`, `Open` once its day is over, else `To come`.
  *
  * @param entry - Entry of the plan
  * @param today - Today like `2026-10-13`
@@ -250,13 +250,17 @@ function plannedStateOf(entry: PlannedEntry, today: string): string {
         return "Done";
     if (entry.state === "dropped")
         return "Cancelled";
+    if (entry.state === "university")
+        return "Cancelled by university";
     return entry.day < today ? "Open" : "To come";
 }
 
 /**
  * Builds the lists of the entries of the plan of a module, one per type, see the top of this file: each a fold,
- * open at first like a chapter, whose line holds the type and how many of its entries are done; in it each entry,
- * numbered by date, with its day and time and its state at the right, a cancelled one greyed and struck through.
+ * open at first like a chapter, whose line holds the type and how many of its entries are done; in it each entry
+ * by date, with its number as stored, `—` for one the university cancelled, its place by date for one without,
+ * its day and time and its state at the right, a cancelled one greyed and struck through.
+ * - `numberOf`: The number shown of an entry.
  * - `done`: Number of its entries done.
  * - `folder`: The fold of a type.
  * - `summary`: Its line.
@@ -269,6 +273,11 @@ function plannedStateOf(entry: PlannedEntry, today: string): string {
  * @returns One fold per type, none for a module without entries of a type
  */
 function plannedOf(module: SkillModule, today: string): HTMLElement[] {
+    const numberOf: (entry: PlannedEntry, index: number) => string = (entry: PlannedEntry, index: number): string => {
+        if (entry.number === "NONE")
+            return "—";
+        return entry.number === "" ? String(index + 1) : entry.number;
+    };
     return module.planned.map((planned: PlannedType): HTMLElement => {
         const done: number = planned.entries.filter((entry: PlannedEntry): boolean => entry.state === "done").length;
         const folder: HTMLDetailsElement = document.createElement("details");
@@ -282,7 +291,7 @@ function plannedOf(module: SkillModule, today: string): HTMLElement[] {
             const when: string = entry.time === "" ? dayTextOf(entry.day, true)
                 : `${dayTextOf(entry.day, true)}, ${timeOf(new Date(entry.time))}`;
             const name: HTMLElement = elementOf("span", "skill-name", when);
-            name.prepend(elementOf("span", "skill-number", String(index + 1)));
+            name.prepend(elementOf("span", "skill-number", numberOf(entry, index)));
             line.append(name, elementOf("span", "skill-state", plannedStateOf(entry, today)));
             return line;
         }));

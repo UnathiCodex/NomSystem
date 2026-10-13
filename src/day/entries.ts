@@ -255,6 +255,18 @@ export async function boxPush(id: string): Promise<void> {
 }
 
 /**
+ * Marks a box cancelled by the university, like a lecture that does not take place, or takes that back;
+ * the reader renumbers the later boxes of its series.
+ *
+ * @param id - Identifier of the box
+ * @param cancelled - Whether the university cancelled it, else taking that back
+ * @throws {Error} - When the reader does not take it
+ */
+export async function boxUniversity(id: string, cancelled: boolean): Promise<void> {
+    await requestSend("POST", "/api/day/university", { box: id, cancelled: cancelled });
+}
+
+/**
  * Drops a box, or takes a dropped box back.
  *
  * @param id - Identifier of the box

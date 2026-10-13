@@ -280,6 +280,16 @@ button.box-ring.box-checked svg {
     text-decoration: line-through;
 }
 
+/* Box the university cancelled, like a lecture that does not take place: faded and struck through as a cancelled
+   one, its time line saying so */
+.box-university {
+    opacity: 0.55;
+}
+
+.box-university .box-what {
+    text-decoration: line-through;
+}
+
 /* Open box whose day is over, on its day: faded like a cancelled box, but not struck through,
    since it is still to do; it is carried along to today below the list of today */
 .box-over {

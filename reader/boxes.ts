@@ -7,9 +7,14 @@
  * with only its duration, a call one with neither. What happens anyway, like my sleep, I don't plan, see `categories.ts`.
  * When I do it, it goes into the log at its real time, see `boxLog` in `day.ts`, so expected and real time
  * can be compared later; a box I decide against is cancelled, dropped with one tap, and stays in its file
- * as `STATUS:CANCELLED`, so it can be counted. A box neither done nor cancelled stays on its day once that is over
- * and is carried along to today, see {@link boxesCarried}, until I do it or cancel it; it never moves into the next
- * days by itself, only when I push it there.
+ * as `STATUS:CANCELLED`, so it can be counted; `STATUS:CANCELLED` is always my own decision, lectures included.
+ * A box neither done nor cancelled stays on its day once that is over and is carried along to today,
+ * see {@link boxesCarried}, lectures too, until I do it or cancel it; it never moves into the next days by itself,
+ * only when I push it there.
+ * A lecture, an exercise, a tutorial and a sheet, a skill box of a type of {@link numberedTypes}, carries its number
+ * in its series, the boxes of the same `SUMMARY` by date, as `X-NUMBER`, like `X-NUMBER:3`, the next one when
+ * the dialog adds it, see {@link numberNextOf}. One the university cancels gets `X-NUMBER:NONE` by its own button,
+ * see {@link boxUniversity}, and the later ones of its series move up a number; it is neither done nor carried along.
  *
  * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan file of its month,
  * like `2026/2026_10/2026_10_Plan.ics`, or in the plan of its module, like
@@ -87,9 +92,15 @@ import type { Topics } from "./documents.ts";
 
 
 /**
- * State of a box: open, done, since a log entry points to it, or dropped.
+ * State of a box: open, done, since a log entry points to it, dropped, cancelled by me, or cancelled
+ * by the university, its `X-NUMBER:NONE`.
  */
-export type BoxState = "open" | "done" | "dropped";
+export type BoxState = "open" | "done" | "dropped" | "university";
+
+/**
+ * Types of skill boxes that carry their number in their series: lectures, exercises, tutorials and sheets.
+ */
+const numberedTypes: string[] = ["VO", "UE", "TU", "HU"];
 
 /**
  * A box, as the page shows it.
@@ -114,6 +125,8 @@ export type BoxState = "open" | "done" | "dropped";
  *   none for none.
  * - `chapters`: Chapters of my system a skill box belongs to, its `X-CHAPTER`s, or those whose folders an older box
  *   links, see `chaptersOf` in `documents.ts`, like `02 Logistic Poisson Regression`; none for none.
+ * - `number`: Its number in its series, its `X-NUMBER`, like `3`, `NONE` for one the university cancelled;
+ *   empty for none.
  */
 export type Box = EntryTexts & {
     id: string;
@@ -129,6 +142,7 @@ export type Box = EntryTexts & {
     todo: boolean;
     links: Link[];
     chapters: string[];
+    number: string;
 };
 
 /**
@@ -303,7 +317,8 @@ function planEntryFind(id: string): [string, Entry] {
 }
 
 /**
- * Turns an entry of the plan, a to-do or an event, into a box, see the top of this file.
+ * Turns an entry of the plan, a to-do or an event, into a box, see the top of this file: dropped while I cancelled it,
+ * done once a log entry points to it, cancelled by the university while its number is `NONE`, else open.
  * - `log`: The log entry written from it, `undefined` for none.
  *
  * @param entry - Entry of the plan
@@ -320,6 +335,8 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         state = "dropped";
     else if (log !== undefined || entry.status === "COMPLETED")
         state = "done";
+    else if (entry.number === "NONE")
+        state = "university";
     return {
         id: entryIdOf(entry), category: entry.category, title: entry.title, titleLink: entry.titleLink,
         location: entry.location, locationLink: entry.locationLink, from: entry.from, module: entry.module,
@@ -336,6 +353,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         todo: entry.todo,
         links: entry.links,
         chapters: chaptersOf(entry),
+        number: entry.number,
     };
 }
 
@@ -351,7 +369,8 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
  */
 function boxCompare(first: Box, second: Box): number {
     const rankOf: (box: Box) => number = (box: Box): number =>
-        (box.deadline !== "" ? 0 : box.time === "" ? 2 : 1) + (box.state === "dropped" ? 3 : 0);
+        (box.deadline !== "" ? 0 : box.time === "" ? 2 : 1)
+        + (box.state === "dropped" || box.state === "university" ? 3 : 0);
     return rankOf(first) - rankOf(second) || first.deadline.localeCompare(second.deadline)
         || first.time.localeCompare(second.time);
 }
@@ -560,8 +579,40 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
 }
 
 /**
+ * Reads the series of a skill box, see the top of this file: the boxes of the plan of the same `SUMMARY`, like
+ * `IN2028_BusinessAnalyticsMachineLearning (VO)`, by date, whatever their state, each with its plan file.
+ * - `entries`: Every entry of the plan.
+ *
+ * @param title - `SUMMARY` of the series
+ * @returns The entries of the series, the earliest first
+ */
+function seriesOf(title: string): Entry[] {
+    const entries: Entry[] = entriesRead(day.plan, "1970-01-01T00:00:00Z", "2100-01-01T00:00:00Z");
+    return entries
+        .filter((entry: Entry): boolean => entry.category === skillName && entry.title === title)
+        .sort((first: Entry, second: Entry): number => first.start.localeCompare(second.start));
+}
+
+/**
+ * Gives the next number of a series for a new skill box of a type of {@link numberedTypes}, see the top of this file:
+ * one more than the highest number of the boxes of its series before its day, `1` for the first.
+ * - `before`: Numbers of the boxes of its series before it, `NONE` left out.
+ *
+ * @param title - `SUMMARY` of the new box, like `IN2028_BusinessAnalyticsMachineLearning (VO)`
+ * @param date - Its day, like `2026-10-20`
+ * @returns The number, like `4`
+ */
+function numberNextOf(title: string, date: string): string {
+    const before: number[] = seriesOf(title)
+        .filter((entry: Entry): boolean => dayOf(entry) < date && /^\d+$/.test(entry.number))
+        .map((entry: Entry): number => Number(entry.number));
+    return String(Math.max(0, ...before) + 1);
+}
+
+/**
  * Adds a box to the plan, as a to-do in the plan file of its day, see the top of this file, a skill box
- * with its chapters and documents, see {@link boxLinksPut}.
+ * with its chapters and documents, see {@link boxLinksPut}, a lecture, an exercise, a tutorial or a sheet
+ * with its number in its series, see {@link numberNextOf}.
  * - `file`: The plan file of its day.
  * - `id`: Identifier of the new box.
  *
@@ -574,7 +625,49 @@ export function boxAdd(box: BoxNew): string {
     const file: string = planFileOf(box.day);
     const id: string = todoAppend(file, todoFieldsOf(box, null));
     boxLinksPut(file, id, box, null);
+    if (box.category === skillName && numberedTypes.includes(box.type))
+        propertiesPut(file, id, [["x-number", [numberNextOf(titleOf(box)[0], box.day)]]]);
     return id;
+}
+
+/**
+ * Marks a box the university cancelled, like a lecture that does not take place, or takes that back, with one tap,
+ * see the top of this file: cancelled, its number becomes `NONE`, and every later box of its series with a number
+ * moves up one, `5` becoming `4`, once, here; taken back, it gets the number after the last one before it, or
+ * the first number after it, or `1`, and every later box with a number moves down one again, so the numbers are
+ * as before. Boxes I cancelled myself keep their numbers. One occurrence of a series changes alone, see {@link boxOwn}.
+ * - `file`, `entry`, `box`: The box with its file.
+ * - `series`: The boxes of its series, see {@link seriesOf}.
+ * - `before`: The numbers of the boxes of its series before it, `NONE` left out.
+ * - `after`: The boxes of its series after it with a number, the earliest first.
+ * - `number`: The new number of the box.
+ * - `step`: How much the later numbers change.
+ *
+ * @param id - Identifier of the box, like `lecture-26@nomsystem`
+ * @param cancelled - Whether the university cancelled it, else taking that back
+ * @throws {Error} - When there is no such box in the new system, it is not open, or, taken back, not cancelled
+ *   by the university
+ */
+export function boxUniversity(id: string, cancelled: boolean): void {
+    const [file, entry, box]: [string, Entry, Box] = boxFind(id);
+    if (!entry.editable || box.state !== (cancelled ? "open" : "university"))
+        throw new Error(`${entry.title} is no box of the new system to mark`);
+    const series: Entry[] = seriesOf(entry.title).filter((other: Entry): boolean => entryIdOf(other) !== id);
+    const before: number[] = series.filter((other: Entry): boolean => other.start < entry.start
+        && /^\d+$/.test(other.number)).map((other: Entry): number => Number(other.number));
+    const after: Entry[] = series.filter((other: Entry): boolean => other.start > entry.start
+        && /^\d+$/.test(other.number));
+    let number: string = "NONE";
+    if (!cancelled)
+        number = before.length > 0 ? String(Math.max(...before) + 1) : after[0]?.number ?? "1";
+    const step: number = cancelled ? -1 : 1;
+    boxOwn(file, entry);
+    propertiesPut(file, id, [["x-number", [number]]]);
+    after.forEach((other: Entry): void => {
+        const [otherFile, otherEntry]: [string, Entry] = planEntryFind(entryIdOf(other));
+        boxOwn(otherFile, otherEntry);
+        propertiesPut(otherFile, entryIdOf(other), [["x-number", [String(Number(other.number) + step)]]]);
+    });
 }
 
 /**

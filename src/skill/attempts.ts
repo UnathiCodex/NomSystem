@@ -121,12 +121,15 @@ export type ExamDate = {
  *
  * - `day`: Its day, like `2026-10-06`, for a homework sheet the day of its deadline.
  * - `time`: Its time as ISO instant, for a homework sheet the time of its deadline, empty for none.
- * - `state`: Whether it is open, done, since a log entry relates to it, or dropped, which is cancelled.
+ * - `state`: Whether it is open, done, since a log entry relates to it, dropped, which I cancelled, or cancelled
+ *   by the university.
+ * - `number`: Its number in its series as stored, like `3`, `NONE` for one the university cancelled, empty for none.
  */
 export type PlannedEntry = {
     day: string;
     time: string;
-    state: "open" | "done" | "dropped";
+    state: "open" | "done" | "dropped" | "university";
+    number: string;
 };
 
 /**

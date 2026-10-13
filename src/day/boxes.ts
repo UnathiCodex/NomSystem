@@ -58,7 +58,7 @@
  */
 
 import { Draggable } from "fullcalendar/interaction";
-import { boxDrop, boxLog, boxPush, boxUndo } from "./entries.ts";
+import { boxDrop, boxLog, boxPush, boxUndo, boxUniversity } from "./entries.ts";
 import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
 import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } from "./suggestions.ts";
 import { giftOpen } from "./gifts.ts";
@@ -67,7 +67,7 @@ import { boxMinutes, boxTimesOf, dateTextOf, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut } from "../icons.ts";
-import { ArrowRight, Check, Gift, Plus, Undo2, X } from "lucide";
+import { ArrowRight, Check, Gift, Plus, Undo2, University, X } from "lucide";
 
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
 import type { IconNode } from "lucide";
@@ -76,9 +76,16 @@ import type { Link } from "../skill/attempts.ts";
 
 
 /**
- * State of a box: open, done, since a log entry points to it, or dropped, which is cancelled, `STATUS:CANCELLED`.
+ * State of a box: open, done, since a log entry points to it, dropped, which I cancelled, `STATUS:CANCELLED`,
+ * or cancelled by the university, its `X-NUMBER:NONE`, see `reader/boxes.ts`.
  */
-export type BoxState = "open" | "done" | "dropped";
+export type BoxState = "open" | "done" | "dropped" | "university";
+
+/**
+ * Types of skill boxes that carry their number in their series and that the university may cancel: lectures,
+ * exercises, tutorials and sheets.
+ */
+const numberedTypes: string[] = ["VO", "UE", "TU", "HU"];
 
 /**
  * A box, as the reader sends it.
@@ -108,6 +115,7 @@ export type BoxState = "open" | "done" | "dropped";
  * - `links`: Its links, like the slides a lecture of my plan links, which a log entry from it gets too.
  * - `chapters`: Chapters of my system a skill box belongs to, like `02 Logistic Poisson Regression`, which a log entry
  *   from it gets too; none for none.
+ * - `number`: Its number in its series, like `3`, `NONE` for one the university cancelled, empty for none.
  */
 export type Box = {
     id: string;
@@ -132,6 +140,7 @@ export type Box = {
     todo: boolean;
     links: Link[];
     chapters: string[];
+    number: string;
 };
 
 /**
@@ -328,7 +337,8 @@ const pushesAsking: number = 3;
  * see {@link deadlineTextOf}, its expected duration, like `90 min`, how near its deadline is while it is open,
  * see {@link nearOf}, and how often it was pushed, from {@link pushesAsking} pushes on, while it is open,
  * with the question `smaller or skip?`, like `16:00 · 90 min` or `75 min · pushed once`; the week leaves out
- * how near a deadline is, since it shows a deadline only on its own day, which its row names.
+ * how near a deadline is, since it shows a deadline only on its own day, which its row names; one the university
+ * cancelled says so at its end, like `16:00 · 90 min · cancelled by university`.
  * - `pushes`: How often it was pushed, empty for never, with the question when it asks.
  * - `near`: How near its deadline is, empty for a box without, one not open, or in the week.
  * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
@@ -352,7 +362,8 @@ function timeLineOf(box: Box, day: string, nearShown: boolean): string {
     let when: string = box.time === "" ? "" : timeOf(new Date(box.time));
     if (box.deadline !== "")
         when = deadlineTextOf(box);
-    return [over, when, box.minutes === null ? "" : `${box.minutes} min`, near, pushes]
+    return [over, when, box.minutes === null ? "" : `${box.minutes} min`, near, pushes,
+        box.state === "university" ? "cancelled by university" : ""]
         .filter((part: string): boolean => part !== "").join(" · ");
 }
 
@@ -445,7 +456,8 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
 /**
  * Makes the ring at the left of a box, a button: for an open box an empty ring like the circle of a to-do,
  * its check showing under the pointer, which logs it as expected, see {@link boxTap}; for a done box its check,
- * grey, which takes it back to open, see `boxUndo` in `entries.ts`; for a dropped box an empty place.
+ * grey, which takes it back to open, see `boxUndo` in `entries.ts`; for a box cancelled, by me or by the university,
+ * an empty place.
  * - `ring`: The button.
  *
  * @param calendar - Calendar of the day
@@ -453,7 +465,7 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
  * @returns The ring
  */
 function ringOf(calendar: Calendar, box: Box): HTMLElement {
-    if (box.state === "dropped")
+    if (box.state === "dropped" || box.state === "university")
         return entryPartOf("span", "box-ring", []);
 
     const ring: HTMLButtonElement = document.createElement("button");
@@ -512,8 +524,10 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
  * Makes the buttons at the right of a box that can be changed: for an open box the arrow, which pushes it
  * to the next day and shows only under the pointer, but for a box with a deadline, which stays on the day
  * of its deadline, and for one whose day is over, see {@link overIs}, whose next day is over too, and the cross,
- * skip, which cancels it; for a skipped box the arrow back, which takes it back; none for a done box,
- * whose check takes it back, see {@link ringOf}, and for a box that cannot be changed.
+ * skip, which cancels it, and for a lecture, an exercise, a tutorial or a sheet, see {@link numberedTypes}, before it
+ * the building, which marks it cancelled by the university, see `boxUniversity` in `entries.ts`; for a skipped box,
+ * and one the university cancelled, the arrow back, which takes it back; none for a done box, whose check takes it
+ * back, see {@link ringOf}, and for a box that cannot be changed.
  * One occurrence of a series has them too and changes alone, the series staying.
  * - `push`: The arrow of an open box, `null` for none.
  *
@@ -527,11 +541,17 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
     if (box.state === "dropped")
         return [entryPartOf("div", "box-actions",
             [actionOf(calendar, Undo2, "Take back", (): Promise<void> => boxDrop(box.id, false))])];
+    if (box.state === "university")
+        return [entryPartOf("div", "box-actions", [actionOf(calendar, Undo2, "Not cancelled by university",
+            (): Promise<void> => boxUniversity(box.id, false))])];
     const push: HTMLButtonElement | null = box.deadline !== "" || overIs(box) ? null
         : actionOf(calendar, ArrowRight, "To tomorrow", (): Promise<void> => boxPush(box.id));
     push?.classList.add("box-push");
     return [entryPartOf("div", "box-actions", [
         ...(push === null ? [] : [push]),
+        ...(box.category === skillName && numberedTypes.includes(box.type)
+            ? [actionOf(calendar, University, "Cancelled by university", (): Promise<void> =>
+                boxUniversity(box.id, true))] : []),
         actionOf(calendar, X, "Skip", (): Promise<void> => boxDrop(box.id, true)),
     ])];
 }

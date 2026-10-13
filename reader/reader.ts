@@ -42,7 +42,7 @@ import { json } from "node:stream/consumers";
 import {
     boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, mealAfterCookAdd, realMinutesRead,
 } from "./day.ts";
-import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush } from "./boxes.ts";
+import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxUniversity } from "./boxes.ts";
 import { giftWrite } from "./gifts.ts";
 import { calloutsRead, calloutWrite, noteRead } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
@@ -138,6 +138,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   unless it holds what I added since.
  * - `POST /api/day/pushed`: Pushes the box named in the body to the next day.
  * - `POST /api/day/dropped`: Drops the box named in the body, or takes it back when the body says `dropped: false`.
+ * - `POST /api/day/university`: Marks the box named in the body cancelled by the university, renumbering its series,
+ *   or takes it back when the body says `cancelled: false`.
  * - `POST /api/day/callouts`: Writes the callout of the body into its daily note, my gratitude or my paragraph about the day.
  * - `POST /api/day/gifts`: Writes the gift idea of the body for its birthday or holiday into its file,
  *   `Birthdays.ics` or `Holidays.ics`, or takes it out when it is empty.
@@ -261,6 +263,11 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
     } else if (request.method === "POST" && url.pathname === "/api/day/dropped") {
         const dropped: { box: string; dropped: boolean } = await json(request) as { box: string; dropped: boolean };
         boxDrop(dropped.box, dropped.dropped);
+        responseSend(response, 200, null);
+
+    } else if (request.method === "POST" && url.pathname === "/api/day/university") {
+        const marked: { box: string; cancelled: boolean } = await json(request) as { box: string; cancelled: boolean };
+        boxUniversity(marked.box, marked.cancelled);
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/callouts") {

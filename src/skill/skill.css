@@ -163,7 +163,8 @@
     text-decoration: none;
 }
 
-.skill-planned .skill-planned-dropped .skill-name {
+.skill-planned .skill-planned-dropped .skill-name,
+.skill-planned .skill-planned-university .skill-name {
     color: var(--text-muted);
     text-decoration: line-through;
 }

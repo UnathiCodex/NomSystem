@@ -82,6 +82,8 @@ import type { CalendarSource } from "./sources.ts";
  *   empty for none and for an event.
  * - `pushed`: Days a box was pushed from to the next day, its `X-PUSHED`s in order, like `2026-10-12`
  *   of `X-PUSHED;VALUE=DATE:20261012`, see {@link pushedDayOf}; none when it has none.
+ * - `number`: Number of a lecture, an exercise, a tutorial or a sheet in its series, its `X-NUMBER`, like `3`,
+ *   `NONE` for one the university cancelled, see `boxUniversity` in `boxes.ts`; empty for none.
  * - `written`: When the entry was written, its `DTSTAMP`, as ISO instant, which the reader sets once as it adds an entry;
  *   empty when the event has none.
  * - `editable`: Whether the dashboard may change the entry: it lies in the new system and has times or is a to-do;
@@ -122,6 +124,7 @@ export type Entry = {
     minutes: number | null;
     deadline: string;
     pushed: string[];
+    number: string;
     written: string;
     editable: boolean;
     start: string;
@@ -515,6 +518,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         deadline: todo ? deadlineOf(event.component) : "",
         pushed: event.component.getAllProperties("x-pushed")
             .map((property: ICAL.Property): string => pushedDayOf(property.getFirstValue())),
+        number: String(event.component.getFirstPropertyValue("x-number") ?? ""),
         written: stamp instanceof ICAL.Time ? stamp.toJSDate().toISOString() : "",
         editable: writable && (todo || !start.isDate),
         start: textOf(start),

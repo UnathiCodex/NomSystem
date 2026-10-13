@@ -216,13 +216,16 @@ export type ExamDate = {
  *
  * - `day`: Its day, like `2026-10-06`, for a homework sheet the day of its deadline.
  * - `time`: Its time as ISO instant, for a homework sheet the time of its deadline, empty for none.
- * - `state`: Whether it is open, done, since a log entry relates to it, or dropped, which is cancelled;
- *   the page tells an open one whose day is over from one still to come.
+ * - `state`: Whether it is open, done, since a log entry relates to it, dropped, which I cancelled, or cancelled
+ *   by the university; the page tells an open one whose day is over from one still to come.
+ * - `number`: Its number in its series as stored, its `X-NUMBER`, like `3`, `NONE` for one the university cancelled,
+ *   empty for none, like an entry not numbered yet.
  */
 export type PlannedEntry = {
     day: string;
     time: string;
     state: BoxState;
+    number: string;
 };
 
 /**
@@ -880,7 +883,7 @@ function plannedTimeOf(box: Box): string {
 
 /**
  * Lists the entries of the plan of a module by type, in the order of the types, like all its lectures `VO`:
- * each list by date, the cancelled entries among them, so each entry keeps its number; a type without entries
+ * each list by date, with its stored number, the cancelled entries among them; a type without entries
  * is left out, and so are my own learning, which has no type, and an older type no longer offered, like `DEV`.
  * - `own`: The boxes of the module.
  *
@@ -895,7 +898,8 @@ function plannedOf(module: string, boxes: Box[]): PlannedType[] {
             type: type,
             entries: own
                 .filter((box: Box): boolean => box.type === type)
-                .map((box: Box): PlannedEntry => ({ day: box.day, time: plannedTimeOf(box), state: box.state }))
+                .map((box: Box): PlannedEntry =>
+                    ({ day: box.day, time: plannedTimeOf(box), state: box.state, number: box.number }))
                 .sort((first: PlannedEntry, second: PlannedEntry): number =>
                     first.day.localeCompare(second.day) || first.time.localeCompare(second.time)),
         }))
