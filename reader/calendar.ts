@@ -7,7 +7,8 @@
  * Keeps each read file until it changes on disk, so a file is read again only once it changed.
  * Writes only into the three folders of the new system, with times in Berlin time, every date and time in the form
  * of the iCalendar format, also in a property or a parameter of my own, like `20261026T130000Z` or `20261026`,
- * never like `2026-10-26T13:00:00.000Z`, and leaves every line it does not change as it is, byte for byte.
+ * never like `2026-10-26T13:00:00.000Z`; puts the lines of every entry it writes, new or changed, into one fixed
+ * order, see {@link lineOrder}, and leaves every other line as it is, byte for byte.
  *
  * - `node:fs`: Works with files and folders on the disk.
  * - `node:path`: Builds file paths for the operating system.
@@ -253,6 +254,22 @@ const zoneComponent: ICAL.Component = new ICAL.Component(ICAL.parse([
  * Time zone {@link zoneName}, to turn instants into Berlin time.
  */
 const zone: ICAL.Timezone = new ICAL.Timezone(zoneComponent);
+
+/**
+ * Order of the lines of every event and to-do the reader writes, new or changed, by the names of their properties,
+ * see {@link linesOrdered}: who it is, `UID` and `DTSTAMP`; when, `DTSTART`, `DTEND`, for a to-do `DUE`,
+ * `DURATION` and `ESTIMATED-DURATION` after them, then `RRULE`, `RDATE`, `EXDATE` and `RECURRENCE-ID`;
+ * what, `CATEGORIES`, `SUMMARY`, `STATUS`, with `COMPLETED` after it; where, `LOCATION`; more about it,
+ * `DESCRIPTION`, `ATTACH` and `RELATED-TO`; then every other line of the standard, then the `X-` lines,
+ * each in the order it had.
+ */
+const lineOrder: string[] = [
+    "UID", "DTSTAMP",
+    "DTSTART", "DTEND", "DUE", "DURATION", "ESTIMATED-DURATION", "RRULE", "RDATE", "EXDATE", "RECURRENCE-ID",
+    "CATEGORIES", "SUMMARY", "STATUS", "COMPLETED",
+    "LOCATION",
+    "DESCRIPTION", "ATTACH", "RELATED-TO",
+];
 
 /**
  * The parameter `ALTREP` in double quotes, as the standard writes a link there, also one without `:`, like
@@ -765,8 +782,63 @@ function calendarCreate(): ICAL.Component {
 }
 
 /**
- * Puts the lines of an event or a to-do before the last line `END:VCALENDAR` of an `.ics` file,
- * so everything already in the file stays as it is, byte for byte.
+ * Gives the place of a line of an event or a to-do in the fixed order, see {@link lineOrder}:
+ * the place of its property in the list, after them every other line of the standard, then the `X-` lines.
+ * - `name`: Name of its property, like `DTSTART` of `DTSTART;TZID=Europe/Berlin:20261013T100000`.
+ * - `place`: Its place in the list, -1 for none.
+ *
+ * @param line - First line of a property
+ * @returns Its rank, the lower the earlier
+ */
+function lineRankOf(line: string): number {
+    const name: string = line.split(/[;:]/)[0].toUpperCase();
+    const place: number = lineOrder.indexOf(name);
+    if (place !== -1)
+        return place;
+    return name.startsWith("X-") ? lineOrder.length + 1 : lineOrder.length;
+}
+
+/**
+ * Puts the lines of an event or a to-do into the fixed order, see {@link lineOrder}: each property with the lines
+ * that continue it, lines of the same rank in the order they had, and the components inside it, like an alarm,
+ * at its end as they are, before its last line, like `END:VEVENT`.
+ * - `properties`: Each property, its rank and its lines, in the order they stood.
+ * - `inner`: Lines of the components inside it.
+ * - `depth`: Number of components inside it the line is in.
+ * - {@link Array#sort}: Keeps the order of lines of the same rank.
+ *
+ * @param component - Lines from `BEGIN:VEVENT` to `END:VEVENT`, or of a to-do
+ * @returns The same lines in the fixed order
+ */
+function linesOrdered(component: string[]): string[] {
+    const properties: [number, string[]][] = [];
+    const inner: string[] = [];
+    let depth: number = 0;
+    component.slice(1, -1).forEach((line: string): void => {
+        if (line.startsWith("BEGIN:"))
+            depth++;
+        if (depth > 0)
+            inner.push(line);
+        else if (/^[ \t]/.test(line) && properties.length > 0)
+            properties[properties.length - 1][1].push(line);
+        else
+            properties.push([lineRankOf(line), [line]]);
+        if (line.startsWith("END:"))
+            depth--;
+    });
+    return [
+        component[0],
+        ...properties
+            .sort((first: [number, string[]], second: [number, string[]]): number => first[0] - second[0])
+            .flatMap(([, lines]: [number, string[]]): string[] => lines),
+        ...inner,
+        component[component.length - 1],
+    ];
+}
+
+/**
+ * Puts the lines of an event or a to-do, in the fixed order, see {@link linesOrdered}, before the last line
+ * `END:VCALENDAR` of an `.ics` file, so everything already in the file stays as it is, byte for byte.
  * A missing file is created with the header of a new calendar, see {@link calendarCreate}.
  * - {@link ICAL.Component#toString}: Writes a component in the iCalendar format, lines parted by `\r\n`.
  *
@@ -782,7 +854,7 @@ function componentInsert(file: string, event: string[]): void {
     if (calendarEnd === -1)
         throw new Error(`No END:VCALENDAR in ${file}`);
 
-    text.lines.splice(calendarEnd, 0, ...event);
+    text.lines.splice(calendarEnd, 0, ...linesOrdered(event));
     linesWrite(file, text);
 }
 
@@ -917,8 +989,9 @@ function seriesTimeOf(series: ICAL.Event, name: string, time: ICAL.Time): ICAL.P
  * the way the standard changes one occurrence: a copy of its series with the same `UID` right after it,
  * without `RRULE`, `RDATE` and `EXDATE`, its `DTSTAMP` now, its `DTSTART` and its `DTEND` those of the occurrence,
  * and as `RECURRENCE-ID` the start it has in the series, like `RECURRENCE-ID;TZID=Europe/Berlin:20261026T100000`;
- * the series stays as it is, every other line of the file too. From then on the occurrence is that component,
- * found by its identifier with `#`, see {@link entryIdOf}. An occurrence that is a component of its own already stays.
+ * its lines in the fixed order, see {@link linesOrdered}; the series stays as it is, every other line of the file too.
+ * From then on the occurrence is that component, found by its identifier with `#`, see {@link entryIdOf}.
+ * An occurrence that is a component of its own already stays.
  * - `text`: Lines of the file.
  * - `series`: The series, `undefined` when the file holds none of the identifier.
  * - `walk`, `start`: Walk through the starts of the series, up to the start of the occurrence.
@@ -958,7 +1031,7 @@ export function occurrenceOwn(file: string, entry: Entry): void {
     if (propertyFind(own, "dtend") !== null)
         propertyPut(own, "dtend", [seriesTimeOf(series, "dtend", details.endDate)]);
     propertyPut(own, "recurrence-id", [seriesTimeOf(series, "recurrence-id", start)]);
-    text.lines.splice(place[1], 0, ...own);
+    text.lines.splice(place[1], 0, ...linesOrdered(own));
     linesWrite(file, text);
 }
 
@@ -1304,7 +1377,8 @@ function textsPut(component: string[], entry: Entry, fields: EntryTexts): void {
 /**
  * Writes the changed lines of an event or a to-do back where they stood in their file, or moves them into another file,
  * like the file of another month: writes them there first, so a failure in between leaves them twice
- * instead of losing them. Every other line of both files stays as it is, byte for byte.
+ * instead of losing them; its lines in the fixed order, see {@link linesOrdered}. Every other line of both files
+ * stays as it is, byte for byte.
  *
  * @param file - Path of the `.ics` file of the event or the to-do
  * @param text - Lines of that file as read
@@ -1317,7 +1391,7 @@ function componentWrite(file: string, text: FileLines, place: [number, number], 
 
     const [begin, end]: [number, number] = place;
     if (target === file)
-        text.lines.splice(begin, end - begin, ...component);
+        text.lines.splice(begin, end - begin, ...linesOrdered(component));
     else {
         componentInsert(target, component);
         text.lines.splice(begin, end - begin);
