@@ -144,35 +144,27 @@ export type SkillModule = {
 };
 
 /**
- * A module folder of `NomSkillingmodules`, as the module picker offers it.
- *
- * - `code`: Module code, like `IN0024`.
- * - `title`: Its name to read, like `IN0024 Operations Research`.
- */
-export type ModuleName = {
-    code: string;
-    title: string;
-};
-
-/**
  * Everything the skill view shows, and the skill entries of the day pick from, as the reader sends it.
  *
  * - `modules`: Modules of the semester in their order, also those without tasks yet.
- * - `allModules`: Every module folder, the modules of the semester first, for the search of the module picker.
+ * - `skills`: The skills of the semester in their order, for the Skill picker: a module by its code, like `IN2028`,
+ *   a project by its folder name, like `WokFlow`.
+ * - `otherModules`: The other module folders by their codes, like `IN0024`, for the search of the Skill picker.
  * - `skips`: Reasons to pick when skipping a task.
  * - `types`: Types of a skill entry, like `VO`.
  * - `efforts`: Efforts to rate an attempt with, the lowest first.
  */
 export type Skilling = {
     modules: SkillModule[];
-    allModules: ModuleName[];
+    skills: string[];
+    otherModules: string[];
     skips: string[];
     types: string[];
     efforts: Effort[];
 };
 
 /**
- * What a module folder offers a skill entry, as the reader sends it.
+ * What a skill offers a skill entry, as the reader sends it; a project offers nothing.
  *
  * - `chapters`: Names to read of its chapter folders, also of the empty ones, like `05 Decision Trees Ensembles`.
  * - `documents`: Its files outside the chapter folders, the university's material, by their paths from the module folder,
@@ -205,8 +197,8 @@ export type AttemptNew = {
 /**
  * A new skill entry of the log to send from the entry by category; an empty field is not written.
  *
- * - `type`: Its type, like `VO`.
- * - `module`: Code of its module, like `IN2028`.
+ * - `type`: Its type, like `VO`, empty for none.
+ * - `module`: Name of its skill, a module code like `IN2028` or a project like `WokFlow`.
  * - `chapters`: Names to read of the chapters it covered, none for none.
  * - `document`: Path from the module folder of the document it used, empty for none.
  * - `attempts`: Its attempts, none for none.
@@ -260,10 +252,10 @@ export async function skillingLoad(): Promise<Skilling> {
 }
 
 /**
- * Loads what a module folder offers a skill entry from the reader, its chapters and its documents.
+ * Loads what a skill offers a skill entry from the reader, its chapters and its documents, none for a project.
  *
- * @param code - Module code, like `IN2028`
- * @returns Chapters and documents of the module
+ * @param code - Name of the skill, a module code like `IN2028` or a project like `WokFlow`
+ * @returns Chapters and documents of the skill
  * @throws {Error} - When the reader cannot answer, like for a module without folder
  */
 export async function moduleLoad(code: string): Promise<ModuleContents> {

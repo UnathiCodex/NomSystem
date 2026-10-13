@@ -1,10 +1,10 @@
 /**
  * ## Session timer
  *
- * A quiet timer at the right of the areas while a session of mine runs, in every area: its module and type,
- * and the minutes since its skill entry started, like `IN2028 DEV · 32 min`, in grey.
- * A session is the skill entry of the moment, of a type I pace myself, study or homework, see `reader/skill.ts`:
- * the first button of a task starts one, and a study session logged from the plan is one.
+ * A quiet timer at the right of the areas while a session of mine runs, in every area: its skill and type,
+ * and the minutes since its skill entry started, like `IN2028 DEV · 32 min` or `WokFlow · 32 min`, in grey.
+ * A session is the skill entry of the moment, of a type I pace myself, study, homework or none, like work on a project,
+ * see `reader/skill.ts`: the first button of a task starts one, and a study session logged from the plan is one.
  * One calm mark at a time says what to do, in the light grey of the text, no sound and no popup, the first that holds:
  * - after 4 hours of learning today, lectures included: `4 h today: stop by plan`;
  * - after a whole session, 75 minutes: `Session done, 20 min away`;
@@ -25,8 +25,8 @@ import { Footprints } from "lucide";
 /**
  * A session running now, as the reader sends it.
  *
- * - `module`: Code of its module, like `IN2028`.
- * - `type`: Its type, `DEV` or `HU`.
+ * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
+ * - `type`: Its type, `DEV` or `HU`, empty for none.
  * - `start`: Start of its skill entry, as ISO instant.
  * - `focusStart`: Start of the focused stretch running now, the start or the end of my last break, as ISO instant.
  * - `dayMinutes`: Minutes of learning today as I live it, lectures included.
@@ -135,7 +135,8 @@ function markOf(session: Session, minutes: number, focus: number): [string, bool
  * - `timer`: The timer at the right of the areas, in `index.html`.
  * - `minutes`: Whole minutes since the session started.
  * - `focus`: Whole minutes since its focused stretch started.
- * - `text`: Module, type and minutes, like `IN2028 DEV · 32 min`.
+ * - `what`: Skill and type, like `IN2028 DEV`, the skill alone without type, like `WokFlow`.
+ * - `text`: What and minutes, like `IN2028 DEV · 32 min`.
  * - `mark`, `offers`: Words of the mark, empty for none, and whether it offers to log a break.
  *
  * @throws {Error} - When the reader cannot answer
@@ -149,7 +150,8 @@ async function timerShow(): Promise<void> {
 
     const minutes: number = Math.max(0, Math.floor((Date.now() - Date.parse(session.start)) / (60 * 1000)));
     const focus: number = Math.floor((Date.now() - Date.parse(session.focusStart)) / (60 * 1000));
-    const text: string = `${session.module} ${session.type} · ${minutes} min`;
+    const what: string = session.type === "" ? session.module : `${session.module} ${session.type}`;
+    const text: string = `${what} · ${minutes} min`;
     const [mark, offers]: [string, boolean] = markOf(session, minutes, focus);
     timer.classList.toggle("session-break", mark !== "");
     timer.replaceChildren(...(mark === "" ? [text] : [iconOf(Footprints), `${text} · ${mark}`]),

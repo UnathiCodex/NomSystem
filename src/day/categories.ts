@@ -9,8 +9,9 @@
  * a meal with foods named by them, like `Haferflocken, Milch`, so its what only picks an earlier meal to fill them in,
  * and `Cook` below them one tap for the meal eaten right after it, which the reader adds with the cooking,
  * pointing to it.
- * `Skill` is a module and a type, like `IN2028 VO`, in plan and log; in the log also the chapters it covered,
- * the document it used and attempts at tasks, each with its result and my effort, see `skill.ts`.
+ * `Skill` is a skill and a type or none, like `IN2028 VO` or the project `WokFlow`, in plan and log; in the log also
+ * the chapters it covered, the document it used and attempts at tasks, each with its result and my effort,
+ * see `skill.ts`.
  * Every entry can carry a free note, typed like start and end.
  * The categories come in the order the reader gives them, by their importance for my life;
  * a box of the plan offers all but those I don't plan, `Sleep`, `Food`, `Cook`, `Drink` and `Game`.
@@ -40,7 +41,7 @@
  * - `./entries.ts`: Sends new, changed and removed entries to the reader.
  * - `./meal.ts`: The foods of a meal, the fields of `Food` below what and place.
  * - `./places.ts`: The dialog of a new place, which adds it with its address to `Places.md`.
- * - `./skill.ts`: The fields of `Skill`: module and type, and in the log chapters, document and attempts.
+ * - `./skill.ts`: The fields of `Skill`: skill and type, and in the log chapters, document and attempts.
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
  *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
@@ -119,7 +120,7 @@ type EntryTarget = "log" | "box";
  * - `values`: Values picked already, by the field they write into.
  * - `note`: Note of the entry.
  * - `foods`: Foods of the meal the dialog changes, its lines `X-FOOD`; none for any other entry.
- * - `skill`: Module, type, chapters, document and attempts of the skill entry the dialog changes or logs from a box;
+ * - `skill`: Skill, type, chapters, document and attempts of the skill entry the dialog changes or logs from a box;
  *   empty for any other entry.
  * - `plan`: Box a new entry of the log is logged from, else `null`.
  * - `entry`: Entry of the log the dialog changes, else `null`.
@@ -252,7 +253,7 @@ function foodsListed(): boolean {
 /**
  * Allows saving once a category is picked and, when it has the field `title`, its value too,
  * unless it is a meal of the log that lists foods, which name it;
- * a skill entry once its module and type are picked, and a result for each task picked, see `skill.ts`.
+ * a skill entry once its skill is picked, and a result for each task picked, see `skill.ts`.
  * - `titled`: Whether the category picked has the field `title`.
  */
 function saveAllow(): void {
@@ -444,7 +445,7 @@ async function wayEndLoad(): Promise<string> {
  * Picks a category: shows its button picked and its fields, keeping the places picked under the category before.
  * A new entry of a category with the field `from` starts where the last way ended.
  * `Food` in the log shows its foods below its fields, those of the meal being changed,
- * see `meal.ts`; `Skill` shows its module and type, and in the log its chapters, document and attempts, see `skill.ts`.
+ * see `meal.ts`; `Skill` shows its skill and type, and in the log its chapters, document and attempts, see `skill.ts`.
  * - `fields`: Place of the fields in the dialog.
  * - `meal`: Foods of a meal, put below the fields unless another category was picked meanwhile.
  *
@@ -498,7 +499,8 @@ function namesShow(): void {
 }
 
 /**
- * Reads what the entry was, its `SUMMARY`: a skill entry its module and type joined by a space, like `IN2028 VO`,
+ * Reads what the entry was, its `SUMMARY`: a skill entry its skill and type joined by a space, like `IN2028 VO`,
+ * its skill alone without type, like `WokFlow`,
  * a meal of the log with foods their names, see {@link mealTitle};
  * else what is picked, like `Night` of `Sleep`, or the name of a category without the field `title`.
  *
@@ -507,7 +509,8 @@ function namesShow(): void {
  */
 function titleRead(picked: string): string {
     if (chosen?.name === skillName)
-        return `${skillModuleType().module} ${skillModuleType().type}`;
+        return skillModuleType().type === "" ? skillModuleType().module
+            : `${skillModuleType().module} ${skillModuleType().type}`;
     if (foodsListed())
         return mealTitle();
     return chosen?.fields.some((field: Field): boolean => field.key === "title") ? picked : chosen?.name ?? "";
@@ -518,7 +521,7 @@ function titleRead(picked: string): string {
  * A skill entry keeps the place it had, since `Skill` has no field of a place,
  * like the room of a lecture imported into the plan.
  * - `picked`: Values picked in the lists.
- * - `skill`: Module and type of a skill entry, empty for any other entry.
+ * - `skill`: Skill and type of a skill entry, empty for any other entry.
  *
  * @returns Category, what, place, where a way starts, module, type and note, as a box of the day the dialog opened with,
  *   without time, duration and deadline
@@ -825,7 +828,7 @@ export async function entryOpenNow(calendar: Calendar): Promise<void> {
 
 /**
  * Opens the dialog to log a box at a start and an end, like those of its drop into the log; a box with a category
- * comes with its category and fields picked as planned, a skill box with its module and type,
+ * comes with its category and fields picked as planned, a skill box with its skill and type,
  * ready to save or to change, like a lecture with its chapters and slides; a box without category,
  * like a to-do another app wrote, without them.
  * - `planned`: Whether the box has a category.
@@ -880,7 +883,7 @@ export async function boxOpenSuggestion(day: Date, module: string, type: string,
 }
 
 /**
- * Opens the dialog to change a box of the new system, its fields picked, a skill box with its module and type,
+ * Opens the dialog to change a box of the new system, its fields picked, a skill box with its skill and type,
  * its expected time and duration typed as far as it has them.
  * - `day`: A date on its day, at its expected time when it has one.
  *
@@ -899,7 +902,7 @@ export async function boxOpenEdit(box: Box): Promise<void> {
 
 /**
  * Opens the dialog to change an entry of the log of the new system, its fields picked, a meal with its foods,
- * a skill entry with its module, type, chapters, document and attempts.
+ * a skill entry with its skill, type, chapters, document and attempts.
  * - `props`: Fields of the entry as the reader gave them.
  *
  * @param entry - Entry to change

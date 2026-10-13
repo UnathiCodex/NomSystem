@@ -55,6 +55,11 @@ export const logEnding: string = "_Log.ics";
 export const planEnding: string = "_Plan.ics";
 
 /**
+ * Folder of my modules in `NomWorkspace`, `NomSkillingmodules`, one folder per module.
+ */
+const modulesFolder: string = "NomSkillingmodules";
+
+/**
  * Sources of the notes area, read only for it; only the editor writes, and only the drafts, see {@link editor};
  * each module in them is a vault of its own, as in Obsidian.
  *
@@ -72,7 +77,7 @@ export type NotesSources = {
  */
 export const notes: NotesSources = {
     drafts: join(vault, "NomSystemdashboard", ".claude", "modules", "drafts"),
-    modules: join(vault, "NomSkillingmodules"),
+    modules: join(vault, modulesFolder),
 };
 
 /**
@@ -96,19 +101,43 @@ export const editor: EditorSources = {
 };
 
 /**
- * Modules of the semester, 2026W, by their folders in `NomSkillingmodules`, each with its drafts:
- * the menu of the notes view and the skill area show only these, in this order, the pilot first.
- * A link in a note still opens a note of any module. Changed on request, when the semester's modules change.
+ * Skills of the semester, 2026W, each by its folder from `NomWorkspace`, written with `/`: my modules
+ * in `NomSkillingmodules`, the pilot first, then my projects,
+ * like `NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow`.
+ * The Skill picker offers them first, in this order, a module by its code, the part of its folder name before `_`,
+ * like `IN2028`, a project by its folder name, like `WokFlow`; the menu of the notes view and the skill area show
+ * the modules, see {@link activeModules}, since a project has no chapters and no tasks.
+ * A link in a note still opens a note of any module. Changed on request, when the semester's skills change.
  */
-export const activeModules: string[] = [
-    "IN2028_BusinessAnalyticsMachineLearning",
-    "WI1059_FinancialAccounting",
-    "WI0219_InvestitionFinanzmanagement",
-    "WI1057_CostAccounting",
-    "MGT1373_AppliedEconometrics",
-    "WI0969_EntrepreneurshipInformation",
-    "IN0004_EinfuehrungRechnerarchitektur",
+export const activeSkills: string[] = [
+    "NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning",
+    "NomSkillingmodules/WI1059_FinancialAccounting",
+    "NomSkillingmodules/WI0219_InvestitionFinanzmanagement",
+    "NomSkillingmodules/WI1057_CostAccounting",
+    "NomSkillingmodules/MGT1373_AppliedEconometrics",
+    "NomSkillingmodules/WI0969_EntrepreneurshipInformation",
+    "NomSkillingmodules/IN0004_EinfuehrungRechnerarchitektur",
+    "NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow",
+    "NomSystemdashboard",
 ];
+
+/**
+ * Tells whether a skill of {@link activeSkills} is a module, a folder in `NomSkillingmodules`, else a project.
+ *
+ * @param skill - Folder from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`
+ * @returns Whether it is a module
+ */
+export function moduleIs(skill: string): boolean {
+    return skill.startsWith(`${modulesFolder}/`);
+}
+
+/**
+ * Modules of the semester among the {@link activeSkills}, by their folders in `NomSkillingmodules`, in their order,
+ * like `IN2028_BusinessAnalyticsMachineLearning`: the menu of the notes view and the skill area show only these.
+ */
+export const activeModules: string[] = activeSkills
+    .filter(moduleIs)
+    .map((skill: string): string => skill.slice(modulesFolder.length + 1));
 
 /**
  * Sources of the day area, all in the folder of the new system; the daily notes lie there too, see `note.ts`.

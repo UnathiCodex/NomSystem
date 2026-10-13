@@ -1,19 +1,19 @@
 /**
  * ## Skill in the entry by category
  *
- * A skill entry in the dialog, for a box of the plan and the log alike: its module and its type, like `IN2028 VO`,
- * each picked from its list; in the log below them the chapters it covered, the document it used,
- * like the slides of a lecture or a sheet, and attempts at the tasks of my notes, all optional,
- * so a lecture logged from its box gets its chapters and document later.
- * The module picker shows the modules of the semester, and its search every module folder, since I sometimes attend
- * another module. A module picked offers its chapter folders, `No chapters yet` when it has none,
+ * A skill entry in the dialog, for a box of the plan and the log alike: its skill and its type, like `IN2028 VO`,
+ * each picked from its list, the type optional, like for a project, `WokFlow`; in the log below them the chapters
+ * it covered, the document it used, like the slides of a lecture or a sheet, and attempts at the tasks of my notes,
+ * all optional, so a lecture logged from its box gets its chapters and document later.
+ * The one Skill picker shows the skills of the semester, a module by its code, like `IN2028`, a project by its folder
+ * name, like `WokFlow`, and its search every module folder, since I sometimes attend another module.
+ * A module picked offers its chapter folders, `No chapters yet` when it has none,
  * and its files outside them, each under the kind of material it is, like `VO_UniversityLectureLessons`,
- * searched by folder and name together.
+ * searched by folder and name together; a project offers neither, like a module without chapters.
  * The tasks of the chapters picked come below, the due ones first, then a result for each task picked:
  * Right, Wrong, Stuck with where I got stuck, or Skip with a reason, and after Right, Wrong or Stuck
  * one tap for my effort, low, medium or high. Any type may hold attempts, like the tasks I solved in a tutorial.
- * Modules and chapters show their names to read, like `IN2028 Business Analytics Machine Learning`
- * and `01 Regression Analysis`.
+ * Chapters show their names to read, like `01 Regression Analysis`.
  * A skill entry of the log already logged shows its attempts, which stay; new ones are added after them,
  * and its module stays while it has attempts, since they are attempts at its tasks.
  * Saving sends a skill entry of the log to the reader's one writer of skill entries, with the times and the note
@@ -32,7 +32,7 @@ import type { Calendar } from "fullcalendar";
 import type { Choice } from "./choices.ts";
 import type { EntryFields } from "./entries.ts";
 import type {
-    AttemptNew, Effort, Group, ModuleContents, ModuleName, Result, SkillModule, SkillTask, Skilling,
+    AttemptNew, Effort, Group, ModuleContents, Result, SkillModule, SkillTask, Skilling,
 } from "../skill/attempts.ts";
 
 
@@ -54,8 +54,8 @@ type AttemptPick = {
 /**
  * What is picked for the skill entry so far.
  *
- * - `module`: Code of the module, like `IN2028`, empty before it is picked.
- * - `type`: Its type, like `VO`, empty before it is picked.
+ * - `module`: Name of the skill, a module code like `IN2028` or a project like `WokFlow`, empty before it is picked.
+ * - `type`: Its type, like `VO`, empty before it is picked and for none.
  * - `chapters`: Names to read of the chapters, like `01 Regression Analysis`.
  * - `document`: Path of the document from the module folder, empty for none.
  * - `attempts`: Tasks picked, in the order they were picked, each with its result.
@@ -69,10 +69,10 @@ type SkillPicks = {
 };
 
 /**
- * Module and type of a skill entry, which boxes and the log both have.
+ * Skill and type of a skill entry, which boxes and the log both have.
  *
- * - `module`: Code of the module, like `IN2028`, empty before it is picked.
- * - `type`: Its type, like `VO`, empty before it is picked.
+ * - `module`: Name of the skill, like `IN2028` or `WokFlow`, empty before it is picked.
+ * - `type`: Its type, like `VO`, empty before it is picked and for none.
  */
 export type ModuleType = {
     module: string;
@@ -82,8 +82,8 @@ export type ModuleType = {
 /**
  * A skill entry as the dialog opens it, empty values for a new one.
  *
- * - `module`: Code of the module, like `IN2028`.
- * - `type`: Its type, like `VO`.
+ * - `module`: Name of the skill, like `IN2028` or `WokFlow`.
+ * - `type`: Its type, like `VO`, empty for none.
  * - `chapters`: Names to read of its chapters, in the log.
  * - `document`: Its `X-DOCUMENT` as the reader gave it, its path and fingerprint, in the log.
  * - `attempts`: Its `X-ATTEMPT`s as the reader gave them, in the log, like `IN2028/Airline Revenue Interval;right;low`.
@@ -109,7 +109,7 @@ const resultChoices: Choice[] = [
 /**
  * Modules with their tasks and the lists to pick from, as the reader gave them when `Skill` was picked.
  */
-let skilling: Skilling = { modules: [], allModules: [], skips: [], types: [], efforts: [] };
+let skilling: Skilling = { modules: [], skills: [], otherModules: [], skips: [], types: [], efforts: [] };
 
 /**
  * What is picked so far.
@@ -117,7 +117,7 @@ let skilling: Skilling = { modules: [], allModules: [], skips: [], types: [], ef
 let picks: SkillPicks = { module: "", type: "", chapters: [], document: "", attempts: [] };
 
 /**
- * Chapters and documents of the module picked, as the reader gave them, none before a module is picked.
+ * Chapters and documents of the skill picked, as the reader gave them, none before a skill is picked and for a project.
  */
 let contents: ModuleContents = { chapters: [], documents: [] };
 
@@ -156,22 +156,22 @@ function hintOf(text: string): HTMLParagraphElement {
 }
 
 /**
- * Builds the search of the module picker: while nothing is typed the modules of the semester and the module picked,
- * while I type every module folder that holds the words, the modules of the semester first;
- * only the module picked while the entry has attempts, since they are attempts at its tasks.
- * - `choices`: Every module, each its code as value, its name to read as text.
- * - `shown`: Modules the search looks through.
+ * Builds the search of the Skill picker: while nothing is typed the skills of the semester and the skill picked,
+ * while I type every skill and module folder that holds the words, the skills of the semester first;
+ * only the skill picked while the entry has attempts, since they are attempts at its tasks.
+ * Each shows its name, a module its code, like `IN2028`, a project its folder name, like `WokFlow`.
+ * - `choices`: Every skill and module, the skills of the semester first, each its name as value and text.
+ * - `shown`: Skills the search looks through.
  *
  * @returns Search for the picker
  */
 function moduleSearchOf(): (text: string) => Promise<Choice[]> {
-    const choices: Choice[] = skilling.allModules.map((module: ModuleName): Choice =>
-        ({ value: module.code, text: module.title, group: "" }));
+    const choices: Choice[] = [...skilling.skills, ...skilling.otherModules].map(choiceOf);
     return async (text: string): Promise<Choice[]> => {
         if (logged.length > 0)
             return choices.filter((choice: Choice): boolean => choice.value === picks.module);
         const shown: Choice[] = text.trim() !== "" ? choices : choices.filter((choice: Choice): boolean =>
-            choice.value === picks.module || skilling.modules.some((module: SkillModule): boolean => module.code === choice.value));
+            choice.value === picks.module || skilling.skills.includes(choice.value));
         return await searchOf(shown)(text);
     };
 }
@@ -300,10 +300,10 @@ function loggedOf(): HTMLElement[] {
 }
 
 /**
- * Loads the chapters and documents of the module picked, none while no module is picked or in the plan,
- * and none for a module without folder, like a module code of the plan that has none, so its entry still opens;
- * what comes for a module picked before another one is dropped.
- * - `module`: Module picked when the loading starts.
+ * Loads the chapters and documents of the skill picked, none while no skill is picked or in the plan,
+ * none for a project, and none for a module without folder, like a module code of the plan that has none, so its entry still opens;
+ * what comes for a skill picked before another one is dropped.
+ * - `module`: Skill picked when the loading starts.
  * - `none`: No chapters and no documents.
  * - `loaded`: Chapters and documents of the module.
  */
@@ -320,10 +320,10 @@ async function contentsLoad(): Promise<void> {
 }
 
 /**
- * Shows the fields of `Skill` as picked so far: module and type, and in the log the chapters of the module,
+ * Shows the fields of `Skill` as picked so far: skill and type, and in the log the chapters of the skill,
  * or `No chapters yet`, its documents, with a hint when the document of the entry is in the module no more,
  * which the reader could not find by its fingerprint either, the tasks of the chapters picked, a result for each task picked,
- * and the attempts the entry has. Picking a module loads its chapters and documents and shows the fields again,
+ * and the attempts the entry has. Picking a skill loads its chapters and documents and shows the fields again,
  * with no chapters, document or tasks picked; picking chapters shows them again, keeping the tasks picked
  * that are still offered.
  * - `module`: Module of the semester picked, with its tasks, `undefined` for another module or before one is picked.
@@ -352,7 +352,7 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
     };
 
     const rows: HTMLElement[] = [
-        rowOf("Module", choicesOf({
+        rowOf("Skill", choicesOf({
             search: moduleSearchOf(), picked: picks.module === "" ? [] : [picks.module], many: false, adding: false,
             pick: (values: string[]): void => {
                 picks = { ...picks, module: values[0] ?? "", chapters: [], document: "", attempts: [] };
@@ -411,7 +411,7 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
  * Shows the fields of `Skill` for a box of the plan or an entry of the log, as it has them, see {@link picksShow}.
  *
  * @param fields - Place of the fields in the dialog
- * @param plan - Whether it is a box of the plan, which takes only module and type
+ * @param plan - Whether it is a box of the plan, which takes only skill and type
  * @param values - Values of the entry, empty for a new one
  * @param changed - Tells the dialog that what is picked changed, so it allows saving or not
  * @throws {Error} - When the reader cannot answer
@@ -431,22 +431,22 @@ export async function skillFieldsShow(fields: HTMLElement, plan: boolean, values
 }
 
 /**
- * Reads the module and the type picked, of a box of the plan or an entry of the log.
+ * Reads the skill and the type picked, of a box of the plan or an entry of the log.
  *
- * @returns Module and type, each empty while not picked
+ * @returns Skill and type, each empty while not picked, the type also for none
  */
 export function skillModuleType(): ModuleType {
     return { module: picks.module, type: picks.type };
 }
 
 /**
- * Tells whether the skill entry can be saved: module and type picked, and a result for every task picked.
+ * Tells whether the skill entry can be saved: its skill picked, its type when one is wanted, and a result
+ * for every task picked.
  *
  * @returns Whether it can be saved
  */
 export function skillReady(): boolean {
-    return picks.module !== "" && picks.type !== ""
-        && picks.attempts.every((pick: AttemptPick): boolean => pick.result !== "");
+    return picks.module !== "" && picks.attempts.every((pick: AttemptPick): boolean => pick.result !== "");
 }
 
 /**
@@ -462,7 +462,7 @@ export function skillReady(): boolean {
  */
 export async function skillSave(calendar: Calendar, id: string, fields: EntryFields): Promise<void> {
     if (!skillReady())
-        throw new Error("Pick module, type and the results of the tasks first");
+        throw new Error("Pick the skill and the results of the tasks first");
     const attempts: AttemptNew[] = picks.attempts.map((pick: AttemptPick): AttemptNew => ({
         task: pick.task,
         part: "",

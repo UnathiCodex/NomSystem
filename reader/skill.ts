@@ -16,7 +16,9 @@
  * A skill entry of the log is one block of learning of a type, as in the plan: a lecture or a tutorial I attended,
  * a homework sheet I worked on, or study, solving the tasks of my notes, of any module of `NomSkillingmodules`,
  * also one of another semester I attend: `CATEGORIES:Skill`, `SUMMARY:IN2028 VO`, `X-TYPE:VO`,
- * `X-MODULE:IN2028`, and below them, each only when there is one:
+ * `X-MODULE:IN2028`; or a block of work on a project of the semester, see `activeSkills` in `sources.ts`,
+ * which behaves like a module without chapters and tasks, named by its folder, like `SUMMARY:WokFlow`
+ * and `X-MODULE:WokFlow`; the type may stay empty for any skill. Below them, each only when there is one:
  * - one `X-CHAPTER` per chapter it covered, by its name to read, like `X-CHAPTER:02 Logistic Poisson Regression`,
  *   the chapters of the tasks of its attempts always among them;
  * - one `X-DOCUMENT` for the document it used, like the slides of a lecture or a sheet, with the fingerprint
@@ -58,7 +60,7 @@
  * - `./day.ts`: Gives the month file of the log for the start of an entry.
  * - `./documents.ts`: Writes a document with its fingerprint.
  * - `./notes.ts`: Reads the modules of the semester with their chapters and notes, and every module folder.
- * - `./sources.ts`: Names the log of the skill area and the modules of the semester.
+ * - `./sources.ts`: Names the log of the skill area and the skills of the semester, its modules and its projects.
  * - `./trackers.ts`: Holds my settings, like the minutes after which the timer of a session suggests a break.
  */
 
@@ -70,8 +72,8 @@ import {
 import { skillName, skillTitleOf, skillTypes } from "./categories.ts";
 import { fileOf } from "./day.ts";
 import { documentPartsOf, documentValueOf } from "./documents.ts";
-import { codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead, titleOf } from "./notes.ts";
-import { activeModules, skillLog } from "./sources.ts";
+import { codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead } from "./notes.ts";
+import { activeModules, activeSkills, moduleIs, skillLog } from "./sources.ts";
 import { settings } from "./trackers.ts";
 
 import type { Box } from "./boxes.ts";
@@ -217,29 +219,21 @@ export type SkillModule = {
 };
 
 /**
- * A module folder of `NomSkillingmodules`, as the module picker offers it.
- *
- * - `code`: Module code, like `IN0024`.
- * - `title`: Its name to read, like `IN0024 Operations Research`.
- */
-export type ModuleName = {
-    code: string;
-    title: string;
-};
-
-/**
  * Everything the skill and notes views show of my tasks, and the skill entries of the day pick from.
  *
  * - `modules`: Modules of the semester in the order of their list, also those without tasks yet.
- * - `allModules`: Every module folder, the modules of the semester first in their order, then the others,
- *   for the search of the module picker, which reaches every module.
+ * - `skills`: The skills of the semester for the Skill picker, in their order, by their names, see {@link skillNameOf}:
+ *   a module by its code, like `IN2028`, a project by its folder name, like `WokFlow`.
+ * - `otherModules`: The other module folders by their codes, like `IN0024`, for the search of the Skill picker,
+ *   which reaches every module.
  * - `skips`: Reasons to pick when skipping a task.
  * - `types`: Types of a skill entry, like `VO`.
  * - `efforts`: Efforts to rate an attempt with, the lowest first.
  */
 export type Skilling = {
     modules: SkillModule[];
-    allModules: ModuleName[];
+    skills: string[];
+    otherModules: string[];
     skips: string[];
     types: string[];
     efforts: Effort[];
@@ -267,8 +261,9 @@ export type AttemptNew = {
 /**
  * A new skill entry of the log, as the entry by category sends it; an empty field is not written.
  *
- * - `type`: Its type, one of the types of `categories.ts`, like `VO`.
- * - `module`: Code of its module, of any module folder, like `IN2028`.
+ * - `type`: Its type, one of the types of `categories.ts`, like `VO`, empty for none.
+ * - `module`: Name of its skill: the code of any module folder, like `IN2028`, or a project of the semester,
+ *   like `WokFlow`.
  * - `chapters`: Names to read of the chapters it covered, like `01 Regression Analysis`, none for none.
  * - `document`: Path from the module folder of the document it used, like
  *   `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`, empty for none.
@@ -313,8 +308,8 @@ export type EffortNew = {
 /**
  * A session of mine running now, as the timer of the page shows it, see {@link sessionRead}.
  *
- * - `module`: Code of its module, like `IN2028`.
- * - `type`: Its type, `DEV` or `HU`.
+ * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
+ * - `type`: Its type, `DEV` or `HU`, empty for none.
  * - `start`: Start of its skill entry, as ISO instant.
  * - `focusStart`: Start of the focused stretch running now, as ISO instant: the start of the session,
  *   or the end of my last break in it, an entry `Body` like `Neck short`, when that is later.
@@ -462,10 +457,10 @@ const breakName: string = "Body";
 const studyType: string = "DEV";
 
 /**
- * Types of skill entries I pace myself, whose sessions run a timer: my own study, `DEV`, and homework, `HU`;
- * a lecture or a tutorial keeps the pace of its room.
+ * Types of skill entries I pace myself, whose sessions run a timer: my own study, `DEV`, homework, `HU`,
+ * and no type, like work on a project; a lecture or a tutorial keeps the pace of its room.
  */
-const pacedTypes: string[] = [studyType, "HU"];
+const pacedTypes: string[] = [studyType, "HU", ""];
 
 /**
  * Heading of a task, `## Task. <name>`, or `## Task. <name> (cold)` for a cold task:
@@ -786,18 +781,28 @@ function coldScheduleOf(task: Task, attempts: Attempt[], exam: ExamDate): [Skill
 }
 
 /**
- * Lists every module folder by its code and its name to read, the modules of the semester first in their order,
- * then the others as sorted.
- * - `folders`: Names of the module folders.
+ * Gives the name of a skill of the semester by its folder: a module its code, the part of its folder name before `_`,
+ * a project its folder name, the last part of its path.
+ * - `folder`: Name of the folder, the last part of its path.
  *
- * @returns Modules
+ * @param skill - Folder from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`
+ *   or `NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow`
+ * @returns Name, like `IN2028` or `WokFlow`
  */
-function allModulesRead(): ModuleName[] {
-    const folders: string[] = moduleFoldersRead();
-    return [
-        ...activeModules.filter((name: string): boolean => folders.includes(name)),
-        ...folders.filter((name: string): boolean => !activeModules.includes(name)),
-    ].map((name: string): ModuleName => ({ code: codeOf(name), title: titleOf(name) }));
+export function skillNameOf(skill: string): string {
+    const folder: string = skill.split("/").at(-1) ?? skill;
+    return moduleIs(skill) ? codeOf(folder) : folder;
+}
+
+/**
+ * Finds a project of the semester by its name, see {@link skillNameOf}.
+ *
+ * @param name - Name of the project, like `WokFlow`
+ * @returns Its folder from `NomWorkspace`, like `NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow`,
+ *   `undefined` when no project of the semester has the name
+ */
+export function projectOf(name: string): string | undefined {
+    return activeSkills.find((skill: string): boolean => !moduleIs(skill) && skillNameOf(skill) === name);
 }
 
 /**
@@ -826,7 +831,8 @@ function sectionsOf(tasks: SkillTask[]): SkillSection[] {
  * is due, see the top of this file, its sections, the tasks whose name the module has already, and the number
  * of attempts on tasks no note holds any more; a module without chapter notes yet has no tasks.
  * Attempts on other modules count nowhere.
- * Also every module folder, the reasons to skip, the types of a skill entry and the efforts, for the pickers.
+ * Also the skills of the semester and every other module folder, the reasons to skip, the types of a skill entry
+ * and the efforts, for the pickers.
  * - `attempts`: My attempts, in order.
  * - `byTask`: The same attempts by the identity of their task.
  * - `unique`: Tasks of a module, each name once.
@@ -870,7 +876,11 @@ export function skillingRead(): Skilling {
         };
     });
 
-    return { modules: modules, allModules: allModulesRead(), skips: skips, types: skillTypes, efforts: efforts };
+    return {
+        modules: modules, skills: activeSkills.map(skillNameOf),
+        otherModules: moduleFoldersRead().filter((name: string): boolean => !activeModules.includes(name)).map(codeOf),
+        skips: skips, types: skillTypes, efforts: efforts,
+    };
 }
 
 /**
@@ -890,14 +900,17 @@ function folderOf(code: string): string {
 }
 
 /**
- * Reads what the dialog of a skill entry offers for a module, any module folder: its chapters and its documents,
- * see `notes.ts`; none for a module of the semester whose folder is missing.
+ * Reads what the dialog of a skill entry offers for a skill: for a module, any module folder, its chapters
+ * and its documents, see `notes.ts`, none for a module of the semester whose folder is missing;
+ * for a project of the semester none, since it behaves like a module without chapters and tasks.
  *
- * @param code - Module code, like `IN2028`
- * @returns Chapters and documents of the module
- * @throws {Error} - When no module folder and no module of the semester has the code
+ * @param code - Name of the skill, a module code like `IN2028` or a project like `WokFlow`
+ * @returns Chapters and documents of the skill
+ * @throws {Error} - When no module folder, no module of the semester and no project has the name
  */
 export function moduleRead(code: string): ModuleContents {
+    if (projectOf(code) !== undefined)
+        return { chapters: [], documents: [] };
     return moduleContentsRead(folderOf(code));
 }
 
@@ -965,7 +978,7 @@ function tasksOf(values: string[]): string[] {
 }
 
 /**
- * Checks a skill entry before it is written: one of the types, a module with a folder,
+ * Checks a skill entry before it is written: one of the types or none, a module with a folder or a project,
  * chapters among the module's or among those the entry had, attempts at tasks of its module only,
  * and an end after the start.
  * - `offered`: Chapters of the module, see `notes.ts`.
@@ -977,7 +990,7 @@ function tasksOf(values: string[]): string[] {
  * @throws {Error} - When one of these does not hold
  */
 function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[]): void {
-    if (!skillTypes.includes(entry.type))
+    if (entry.type !== "" && !skillTypes.includes(entry.type))
         throw new Error(`No type ${entry.type}`);
     const offered: string[] = moduleRead(entry.module).chapters;
     const unknown: string | undefined = entry.chapters.find((chapter: string): boolean =>
