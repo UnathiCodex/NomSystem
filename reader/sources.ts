@@ -81,10 +81,16 @@ export const metaRoot: string = join(calendarRoot, "Meta");
 export const diaryRoot: string = join(manageRoot, "NomFrequencediary");
 
 /**
- * Folder of my data, `NomMetainformations`: my foods, `Foods.md`, my places, `Places.md`, and the rooms
- * of the university, `Rooms.md`.
+ * Folder of my data, `NomMetainformations`: my foods, `Foods.md`, my places, `Places.md`, the rooms
+ * of the university, `Rooms.md`, and my devices, `Devices.md`.
  */
 export const dataRoot: string = join(manageRoot, "NomMetainformations");
+
+/**
+ * My devices, `Devices.md` in {@link dataRoot}: one Markdown table with one row per device, what it shows
+ * of the page, which the reader writes as each of my devices reports it, see `devices.ts`.
+ */
+export const devicesFile: string = join(dataRoot, "Devices.md");
 
 /**
  * The three folders of my new system, the only ones the reader writes into, but for the drafts of the editor.

@@ -35,6 +35,7 @@
  *   and the foods a dish held the last time
  * - `./trackers.ts`: Reads my sleep against my goals, my glasses of water, my neck sessions and what my meals gave
  *   on a day
+ * - `./devices.ts`: Writes what each of my devices shows of the page into `Devices.md`
  * - `./page.ts`: Gives out the files of the page through Vite
  */
 
@@ -58,6 +59,7 @@ import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
 import { dishFoodsRead, foodAdd, foodDayRead, foodsFind } from "./food.ts";
 import { trackersRead } from "./trackers.ts";
+import { deviceReport } from "./devices.ts";
 import { pageCreate } from "./page.ts";
 
 import type { IncomingMessage, ServerResponse, Server } from "node:http";
@@ -67,6 +69,7 @@ import type { BoxChange, BoxNew } from "./boxes.ts";
 import type { Gift } from "./gifts.ts";
 import type { CalloutNew } from "./note.ts";
 import type { Place, PlaceChanged } from "./places.ts";
+import type { DeviceReport } from "./devices.ts";
 import type { NotesFile } from "./notes.ts";
 import type { NoteChange } from "./edit.ts";
 import type { AttemptNew, EffortNew, SkillEntryChange, SkillEntryNew } from "./skill.ts";
@@ -171,6 +174,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/food/foods`: Adds food of the body to `Foods.md` and sends it as written.
  * - `GET /api/food/day?date=…`: Sends the meals of the date with what they give.
  * - `GET /api/food/dish?title=…`: Sends the lines `X-FOOD` of the last meal of the dish.
+ * - `POST /api/devices`: Writes what the device of the body shows of the page into `Devices.md`.
  * - Any other address: Hands request to the page.
  *
  * A request as the page sends it:
@@ -285,6 +289,10 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "PATCH" && url.pathname === "/api/day/places") {
         responseSend(response, 200, placeChange(await json(request) as PlaceChanged));
+
+    } else if (request.method === "POST" && url.pathname === "/api/devices") {
+        deviceReport(await json(request) as DeviceReport);
+        responseSend(response, 200, null);
 
     } else if (request.method === "GET" && url.pathname === "/api/notes/modules") {
         responseSend(response, 200, modulesRead());

@@ -13,6 +13,7 @@
  * A phone, a screen as narrow as the phone layout of the stylesheets, which {@link matchMedia} tells,
  * is only for the day, its plan and its log, as simple as can be, nothing for learning and no food for now:
  * it opens the day everywhere, without its daily note, so it loads no Markdown renderer;
+ * every device tells the reader what it shows of the page, see {@link deviceReport}.
  * `base.css` hides the areas, so the whole screen stays free.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
@@ -38,6 +39,29 @@ import skillHtml from "./skill/skill.html?raw";
 import foodHtml from "./food/food.html?raw";
 import editorHtml from "./editor/editor.html?raw";
 
+
+/**
+ * Tells the reader what this device shows of the page, its size and that of its screen in CSS pixels, its scale
+ * and whether it runs as the installed app, so the dashboard can be shaped for each of my devices,
+ * see `reader/devices.ts`; a failure only written to the console.
+ */
+function deviceReport(): void {
+    fetch("/api/devices", {
+        method: "POST",
+        body: JSON.stringify({
+            width: innerWidth, height: innerHeight, scale: devicePixelRatio, screenWidth: screen.width,
+            screenHeight: screen.height, app: matchMedia("(display-mode: standalone)").matches,
+            agent: navigator.userAgent,
+        }),
+    }).catch((error: unknown): void => console.error(error));
+}
+
+/**
+ * Waiting report of the size of the page after the window changed its size, so a window being dragged
+ * reports once, a second after it rests.
+ */
+let deviceWait: number = 0;
+
 const phone: boolean = matchMedia("(max-width: 900px)").matches;
 if (location.pathname === "/notes")
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
@@ -45,6 +69,11 @@ const areas: string[] = phone ? [] : ["/week", "/scripts", "/skill", "/food", "/
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
 document.querySelector(`.areas a[href="${area === "/edit" ? "/scripts" : area}"]`)
     ?.setAttribute("aria-current", "page");
+deviceReport();
+addEventListener("resize", (): void => {
+    clearTimeout(deviceWait);
+    deviceWait = window.setTimeout(deviceReport, 1000);
+});
 
 if (area === "/week") {
     const week: { weekStart: () => void } = await import("./week/week.ts");
