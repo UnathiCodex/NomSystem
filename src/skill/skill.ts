@@ -15,6 +15,9 @@
  *   like `4 / 12 tried · Due Sunday, 18.10.2026`; a section opens to its tasks, each with its state:
  *   `New`, `Due today`, `Due Monday, 12.10.2026`, `Done`, `Ready` or `Skipped`.
  * A module without tasks, since it has no chapter notes yet, shows only its name and `No chapters yet`.
+ * Above the modules, only while there are some, the links of skill entries the reader could not repair at its last
+ * check, see `reader/documents.ts`, one line each with the day and the skill of its entry,
+ * like `13.10.2026 IN2028 VO: VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`.
  * Formulas `$…$` in names are rendered as in the notes.
  *
  * - `./attempts.ts`: Loads the tasks with when they are due, writes days out and gives today as I live it.
@@ -27,7 +30,7 @@ import { dayTextOf, skillingLoad, todayOf } from "./attempts.ts";
 import { stateTextOf } from "./task.ts";
 import "./skill.css";
 
-import type { SkillModule, SkillSection, SkillTask, Skilling, Task } from "./attempts.ts";
+import type { LinkLost, SkillModule, SkillSection, SkillTask, Skilling, Task } from "./attempts.ts";
 
 
 /**
@@ -253,7 +256,24 @@ function moduleElementOf(module: SkillModule, today: string): HTMLElement {
 }
 
 /**
- * Loads the tasks from the reader and shows the overview of every module, then renders the formulas, if there are any.
+ * Builds the list of the links of skill entries the reader could not repair, see the top of this file.
+ * - `part`: The list with its heading.
+ *
+ * @param lost - Lost links in the order of their entries
+ * @returns The list, none while there are none
+ */
+function lostOf(lost: LinkLost[]): HTMLElement[] {
+    if (lost.length === 0)
+        return [];
+    const part: HTMLElement = elementOf("section", "skill-lost", "");
+    part.append(elementOf("h3", "", "Links not found"), ...lost.map((link: LinkLost): HTMLElement =>
+        elementOf("p", "skill-notice", `${dayTextOf(link.day, false)} ${link.skill}: ${link.path}`)));
+    return [part];
+}
+
+/**
+ * Loads the tasks from the reader and shows the links not found and the overview of every module,
+ * then renders the formulas, if there are any.
  * - `modules`: Place of the modules in the view.
  *
  * @throws {Error} - When the reader cannot answer
@@ -262,7 +282,8 @@ async function skillShow(): Promise<void> {
     const skilling: Skilling = await skillingLoad();
     const today: string = todayOf();
     const modules: HTMLElement = document.getElementById("skill-modules") as HTMLElement;
-    modules.replaceChildren(...skilling.modules.map((module: SkillModule): HTMLElement => moduleElementOf(module, today)));
+    modules.replaceChildren(...lostOf(skilling.lost),
+        ...skilling.modules.map((module: SkillModule): HTMLElement => moduleElementOf(module, today)));
     if (modules.querySelector(".math") !== null)
         (await import("../notes/math.ts")).mathRender(modules);
 }

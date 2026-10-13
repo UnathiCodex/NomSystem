@@ -25,6 +25,8 @@
  * - `./edit.ts`: Writes a draft note as I edited it, and keeps the change as a diff
  * - `./skill.ts`: Reads the tasks of my chapter notes with when each is due and what a module offers a skill entry,
  *   writes skill entries, attempts, efforts and copies for my tutor into the log, and reads the session running now
+ * - `./documents.ts`: Checks the links of the skill entries at the start and every night, repairing what it can,
+ *   and reads a file a skill entry links
  * - `./suggestions.ts`: Suggests study sessions as boxes for the plan of a day, never written until I accept one
  * - `./food.ts`: Finds foods, mine first, then on Open Food Facts, adds foods to `Foods.md`, reads the meals of a day
  *   and the foods a dish held the last time
@@ -46,6 +48,7 @@ import { noteWrite } from "./edit.ts";
 import {
     attemptAdd, effortSet, moduleRead, sessionRead, skillEntryAdd, skillEntryEdit, skillingRead, tutorAdd,
 } from "./skill.ts";
+import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
 import { dishFoodsRead, foodAdd, foodDayRead, foodsFind } from "./food.ts";
 import { trackersRead } from "./trackers.ts";
@@ -81,16 +84,20 @@ function responseSend(response: ServerResponse, status: number, body: unknown): 
 }
 
 /**
- * Sends a file of my modules as it lies on the disk.
+ * Sends a file of my modules, or one a skill entry links, as it lies on the disk.
+ * - `Content-Disposition`: Tells the browser with `inline` to show the file, in its own viewer for a PDF,
+ *   and its name, like `04_LogisticPoissonRegression.pdf`, for the tab and for saving it.
  * - `Cache-Control`: Tells the browser with `no-store` to not keep the file, because it may change any time.
  * - `Content-Security-Policy`: Tells the browser with `script-src 'none'` to run no script of the file,
  *   like one inside an `.svg` opened on its own.
  *
  * @param response - Answer to the browser
  * @param file - File with its content type
+ * @param name - Name of the file, the last part of its path
  */
-function fileSend(response: ServerResponse, file: NotesFile): void {
+function fileSend(response: ServerResponse, file: NotesFile, name: string): void {
     response.setHeader("Content-Type", file.type);
+    response.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(name)}`);
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("Content-Security-Policy", "script-src 'none'");
     response.end(file.content);
@@ -133,7 +140,8 @@ function fileSend(response: ServerResponse, file: NotesFile): void {
  * - `PUT /api/edit/note`: Writes draft note of the body, refused with 409 when its file changed since the editor read it.
  * - `GET /api/skill/tasks`: Sends the modules with their tasks, when each is due, every module folder,
  *   and the reasons to skip, the types and the efforts.
- * - `GET /api/skill/module?code=…`: Sends the chapters and documents of the module of the code.
+ * - `GET /api/skill/module?code=…`: Sends the chapters and documents of the skill of the name, none for a project.
+ * - `GET /api/skill/file?path=…`: Sends a file a skill entry links, by its path from `NomWorkspace`, read only.
  * - `POST /api/skill/attempt`: Writes attempt of the body into the skill entry of the moment.
  * - `POST /api/skill/effort`: Writes the effort of the body into the last attempt at its task.
  * - `POST /api/skill/tutor`: Writes that I copied the task of the body for my tutor into the skill entry of the moment.
@@ -251,7 +259,7 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, linkedNoteRead(path));
 
     } else if (request.method === "GET" && url.pathname === "/api/notes/file") {
-        fileSend(response, fileRead(path));
+        fileSend(response, fileRead(path), path.split("/").at(-1) ?? path);
 
     } else if (request.method === "GET" && url.pathname === "/api/notes/broken") {
         responseSend(response, 200, brokenLinksRead());
@@ -264,6 +272,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "GET" && url.pathname === "/api/skill/module") {
         responseSend(response, 200, moduleRead(url.searchParams.get("code") ?? ""));
+
+    } else if (request.method === "GET" && url.pathname === "/api/skill/file") {
+        fileSend(response, linkedFileRead(path), path.split("/").at(-1) ?? path);
 
     } else if (request.method === "POST" && url.pathname === "/api/skill/attempt") {
         attemptAdd(await json(request) as AttemptNew);
@@ -314,3 +325,4 @@ server.on("request", (request: IncomingMessage, response: ServerResponse): void 
     });
 });
 server.listen(3000, "localhost", (): void => console.log("http://localhost:3000"));
+linksCheckStart();

@@ -19,6 +19,11 @@
     margin-top: calc(4 * var(--gap));
 }
 
+/* Links not found, above the modules and as far from the first as the modules from each other */
+.skill-lost {
+    margin-bottom: calc(4 * var(--gap));
+}
+
 /* Head of a module: its name left, the ready number right, in the text of controls */
 .skill-head {
     display: flex;

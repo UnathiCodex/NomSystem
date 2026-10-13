@@ -37,9 +37,8 @@ import type { CalendarSource } from "./sources.ts";
  * - `type`: Type of a skill entry, its `X-TYPE`, like `VO`, empty when the event has none.
  * - `chapters`: Chapters of a skill entry of the log, its `X-CHAPTER`s in order, each by its name to read,
  *   like `01 Regression Analysis`, none when the event has none.
- * - `document`: Document a skill entry of the log used, its `X-DOCUMENT`: its path from the module folder
- *   and the fingerprint of its content after `;`, like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf;9f86d081…`,
- *   see `documents.ts`; empty when the event has none.
+ * - `links`: Links of a skill entry of the log to the folder of its skill and the document it used, its `ATTACH`es
+ *   in order, see {@link Link} and `documents.ts`; none when the event has none.
  * - `attempts`: Attempts of a skill entry of the log, its `X-ATTEMPT`s in order,
  *   like `14:05;IN2028/Kiosk Sales Standard Error;stuck;high;step 2`, none when the event has none.
  * - `tutors`: Tasks I copied for my tutor in a skill entry of the log, its `X-TUTOR`s in order,
@@ -83,7 +82,7 @@ export type Entry = {
     module: string;
     type: string;
     chapters: string[];
-    document: string;
+    links: Link[];
     attempts: string[];
     tutors: string[];
     foods: string[];
@@ -102,6 +101,22 @@ export type Entry = {
     end: string;
     allDay: boolean;
     recurrence: string;
+};
+
+/**
+ * A link of an entry to a file or a folder, one `ATTACH`: its value a path from `NomWorkspace`, never absolute,
+ * since `NomWorkspace` lies elsewhere on each computer, and for a file the fingerprint of its content as parameter,
+ * so the link survives a rename, see `documents.ts`, like
+ * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning/VO_…/04_Logistic….pdf`
+ * or `ATTACH:NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning` for a folder. The value is no full URI,
+ * so other calendar apps may ignore it.
+ *
+ * - `path`: Path from `NomWorkspace`, parted by `/`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
+ * - `fingerprint`: SHA-256 of the file's bytes, its parameter `X-SHA256`, as 64 hexadecimal digits; empty for a folder.
+ */
+export type Link = {
+    path: string;
+    fingerprint: string;
 };
 
 /**
@@ -302,7 +317,9 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         type: String(event.component.getFirstPropertyValue("x-type") ?? ""),
         chapters: event.component.getAllProperties("x-chapter")
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
-        document: String(event.component.getFirstPropertyValue("x-document") ?? ""),
+        links: event.component.getAllProperties("attach").map((property: ICAL.Property): Link => ({
+            path: String(property.getFirstValue()), fingerprint: String(property.getParameter("x-sha256") ?? ""),
+        })),
         attempts: event.component.getAllProperties("x-attempt")
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
         tutors: event.component.getAllProperties("x-tutor")
@@ -793,15 +810,22 @@ export function berlinInstantOf(day: string, hour: number): Date {
 }
 
 /**
- * Builds a property; a time in Berlin time gets the parameter `TZID`, like `DTSTART;TZID=Europe/Berlin:…`.
+ * Builds a property; a time in Berlin time gets the parameter `TZID`, like `DTSTART;TZID=Europe/Berlin:…`,
+ * a link its path as value and the fingerprint of a file as parameter `X-SHA256`, see {@link Link}.
  *
- * @param name - Name of the property, like `dtstart`
+ * @param name - Name of the property, like `dtstart`, `attach` for a link
  * @param value - Value of the property
  * @returns Property to write
  */
-function propertyOf(name: string, value: string | ICAL.Time): ICAL.Property {
+function propertyOf(name: string, value: string | ICAL.Time | Link): ICAL.Property {
     const property: ICAL.Property = new ICAL.Property(name);
-    property.setValue(value);
+    if (typeof value === "string" || value instanceof ICAL.Time)
+        property.setValue(value);
+    else {
+        property.setValue(value.path);
+        if (value.fingerprint !== "")
+            property.setParameter("x-sha256", value.fingerprint);
+    }
     if (value instanceof ICAL.Time && value.zone === zone)
         property.setParameter("tzid", zoneName);
     return property;
@@ -810,7 +834,8 @@ function propertyOf(name: string, value: string | ICAL.Time): ICAL.Property {
 /**
  * Puts a property into the lines of an event, one line per value: takes out all its old lines
  * and puts the new ones where the first old one stood, or before the end of the event when there was none;
- * no value removes the property. Most properties have one value, the `X-ATTEMPT`s of a skill entry one per attempt.
+ * no value removes the property. Most properties have one value, the `X-ATTEMPT`s of a skill entry one per attempt,
+ * its `ATTACH`es one per link.
  * - `at`: Line of the first old value, or the end of the event.
  * - {@link ICAL.Property#toICALString}: Writes a property in the iCalendar format, as one line.
  * - {@link ICAL.helpers.foldline}: Folds a line after every 75 bytes, parting the lines by `\r\n`.
@@ -819,13 +844,13 @@ function propertyOf(name: string, value: string | ICAL.Time): ICAL.Property {
  * @param name - Name of the property, like `dtstart`
  * @param values - New values, none to remove the property
  */
-function propertyPut(event: string[], name: string, values: (string | ICAL.Time)[]): void {
+function propertyPut(event: string[], name: string, values: (string | ICAL.Time | Link)[]): void {
     let at: number = event.length - 1;
     for (let old: [number, number] | null = propertyFind(event, name); old !== null; old = propertyFind(event, name)) {
         at = Math.min(at, old[0]);
         event.splice(old[0], old[1] - old[0]);
     }
-    event.splice(at, 0, ...values.flatMap((value: string | ICAL.Time): string[] =>
+    event.splice(at, 0, ...values.flatMap((value: string | ICAL.Time | Link): string[] =>
         ICAL.helpers.foldline(propertyOf(name, value).toICALString()).split("\r\n")));
 }
 
@@ -856,11 +881,12 @@ function textsOf(fields: EntryTexts): [string, string][] {
  * @param file - Path of the `.ics` file
  * @param fields - Fields and times of the entry
  * @param own - Properties of my own beyond the fields, each its name with its value,
- *   like `["x-attempt", "IN2028/Airline Revenue Interval;right"]` of a skill entry or `["x-food", "Reis;150"]` of a meal
+ *   like `["x-attempt", "IN2028/Airline Revenue Interval;right"]` of a skill entry or `["x-food", "Reis;150"]`
+ *   of a meal, or `["attach", link]` for a link, see {@link Link}
  * @returns Identifier of the new entry, like `b8f1e81f-15b4-460e-910d-ef6b1b3d09b3@nomsystem`
  * @throws {Error} - When the file lies outside the new system or has no line `END:VCALENDAR`
  */
-export function entryAppend(file: string, fields: EntryFields, own: [string, string][]): string {
+export function entryAppend(file: string, fields: EntryFields, own: [string, string | Link][]): string {
     writeCheck(file);
     const id: string = `${randomUUID()}@nomsystem`;
     const event: ICAL.Component = new ICAL.Component("vevent");
@@ -869,8 +895,8 @@ export function entryAppend(file: string, fields: EntryFields, own: [string, str
     event.addPropertyWithValue("dtstamp", ICAL.Time.fromJSDate(new Date(), true));
     event.addPropertyWithValue("uid", id);
     [...textsOf(fields), ...own]
-        .filter(([, value]: [string, string]): boolean => value !== "")
-        .forEach(([name, value]: [string, string]): void => {
+        .filter(([, value]: [string, string | Link]): boolean => value !== "")
+        .forEach(([name, value]: [string, string | Link]): void => {
             event.addProperty(propertyOf(name, value));
         });
     componentInsert(file, event.toString().split("\r\n"));
@@ -1050,20 +1076,22 @@ export function todoChange(file: string, entry: Entry, fields: TodoFields, targe
 /**
  * Puts new values into properties of the event or to-do with an identifier, replacing all old lines of each,
  * like the end, the `X-CHAPTER`s and the `X-ATTEMPT`s of a skill entry that gets one more attempt;
- * a date goes in Berlin time. Every other line of the file stays as it is, byte for byte.
+ * a date goes in Berlin time, a link as `ATTACH`, see {@link Link}. Every other line of the file stays as it is,
+ * byte for byte.
  *
  * @param file - Path of the `.ics` file
  * @param id - Identifier of the event or to-do
  * @param properties - Properties, each its name with its new values, like `["x-attempt", ["IN2028/…;right", …]]`
  * @throws {Error} - When the file lies outside the new system or does not hold the event once
  */
-export function propertiesPut(file: string, id: string, properties: [string, (string | Date)[]][]): void {
+export function propertiesPut(file: string, id: string, properties: [string, (string | Date | Link)[]][]): void {
     writeCheck(file);
     const text: FileLines = linesRead(file);
     const place: [number, number] = componentFind(text.lines, id);
     const event: string[] = text.lines.slice(...place);
-    properties.forEach(([name, values]: [string, (string | Date)[]]): void => propertyPut(event, name,
-        values.map((value: string | Date): string | ICAL.Time => value instanceof Date ? berlinOf(value) : value)));
+    properties.forEach(([name, values]: [string, (string | Date | Link)[]]): void => propertyPut(event, name,
+        values.map((value: string | Date | Link): string | ICAL.Time | Link =>
+            value instanceof Date ? berlinOf(value) : value)));
     componentWrite(file, text, place, event, file);
 }
 

@@ -153,6 +153,7 @@ export type SkillModule = {
  * - `skips`: Reasons to pick when skipping a task.
  * - `types`: Types of a skill entry, like `VO`.
  * - `efforts`: Efforts to rate an attempt with, the lowest first.
+ * - `lost`: Links of skill entries the reader could not repair at its last check.
  */
 export type Skilling = {
     modules: SkillModule[];
@@ -161,6 +162,32 @@ export type Skilling = {
     skips: string[];
     types: string[];
     efforts: Effort[];
+    lost: LinkLost[];
+};
+
+/**
+ * A link of a skill entry to a file or a folder, its `ATTACH`, as the reader sends it, see `reader/documents.ts`.
+ *
+ * - `path`: Path from `NomWorkspace`, parted by `/`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
+ * - `fingerprint`: SHA-256 of a file, empty for a folder.
+ */
+export type Link = {
+    path: string;
+    fingerprint: string;
+};
+
+/**
+ * A link of a skill entry the reader could not repair, as the skill view lists it.
+ *
+ * - `day`: Day its entry started, like `2026-10-13`.
+ * - `skill`: What its entry was, like `IN2028 VO`.
+ * - `path`: Path of the link from the folder of its skill, like `VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`,
+ *   or from `NomWorkspace` when it lies outside it.
+ */
+export type LinkLost = {
+    day: string;
+    skill: string;
+    path: string;
 };
 
 /**
@@ -200,7 +227,8 @@ export type AttemptNew = {
  * - `type`: Its type, like `VO`, empty for none.
  * - `module`: Name of its skill, a module code like `IN2028` or a project like `WokFlow`.
  * - `chapters`: Names to read of the chapters it covered, none for none.
- * - `document`: Path from the module folder of the document it used, empty for none.
+ * - `document`: Path from the folder of its skill of the document it used, empty for none; the reader links it
+ *   with the folder, see `reader/documents.ts`.
  * - `attempts`: Its attempts, none for none.
  * - `location`: Place, like the room of a lecture logged from the plan.
  * - `planned`: Identifier of the plan entry it is logged from, empty for none.

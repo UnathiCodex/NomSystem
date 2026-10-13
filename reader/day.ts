@@ -7,8 +7,8 @@
  * by the month in Berlin time; an entry whose start moves into another month moves into the file of that month.
  * A skill entry names its module and type, like the lectures imported from TUMonline:
  * `CATEGORIES:Skill`, `SUMMARY:IN2028 VO`, `X-TYPE:VO`, `X-MODULE:IN2028`;
- * its chapters, document and attempts the skill area writes, see `skill.ts`.
- * The log repairs the document links of its skill entries as it is read, see `documents.ts`.
+ * its chapters, document and attempts the skill area writes, see `skill.ts`; every skill entry links the folder
+ * of its skill, also one logged from a box, see `documents.ts`.
  *
  * A box of the plan goes into the log at its real time, dragged there or logged as expected with one tap,
  * see {@link boxLog}: the log entry points to it with `X-PLANNED:<UID of the box>`, written once when the log entry
@@ -26,7 +26,7 @@
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
  * - `./categories.ts`: Tells whether the fields of an entry fit its category, how long a meal usually lasts,
  *   and names the category of skill entries.
- * - `./documents.ts`: Repairs the document links of skill entries whose documents were renamed.
+ * - `./documents.ts`: Builds the link of a skill entry to the folder of its skill.
  * - `./food.ts`: Tells what meals give, whether a line `X-FOOD` is well formed, what a dish held the last time,
  *   and how a meal is named by its foods.
  * - `./sources.ts`: Names every folder and file the reader reads, and builds the path of a month file.
@@ -36,13 +36,13 @@
 import { boxDone, boxOpenFind, boxReopen } from "./boxes.ts";
 import { berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryRemove, propertiesPut } from "./calendar.ts";
 import { categoryAllows, skillName, usualLengthRead } from "./categories.ts";
-import { documentsRepair } from "./documents.ts";
+import { linksOf } from "./documents.ts";
 import { dishFoodsRead, foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
 import { day, logEnding, monthFileOf } from "./sources.ts";
 import { glassIs } from "./trackers.ts";
 
 import type { Box } from "./boxes.ts";
-import type { Entry, EntryFields } from "./calendar.ts";
+import type { Entry, EntryFields, Link } from "./calendar.ts";
 import type { Meal } from "./food.ts";
 
 
@@ -182,8 +182,7 @@ function fieldsCheck(fields: EntryFields, foods: string[], old: Entry | null): v
 
 /**
  * Reads the entries of the log that overlap a range, each meal with its kcal,
- * each cooking eaten and each glass of water marked, see {@link DayEntry},
- * with the document links of its skill entries repaired, see `documents.ts`.
+ * each cooking eaten and each glass of water marked, see {@link DayEntry}.
  * - `entries`: Entries of the range.
  * - `meals`: What the meals among them give, by their identifiers.
  * - `cooked`: Identifiers of the entries `Cook` the meals among them point to.
@@ -193,7 +192,7 @@ function fieldsCheck(fields: EntryFields, foods: string[], old: Entry | null): v
  * @returns {@link DayEntry}s overlapping the range
  */
 export function dayEntriesRead(start: string, end: string): DayEntry[] {
-    const entries: Entry[] = documentsRepair(entriesRead(day.log, start, end));
+    const entries: Entry[] = entriesRead(day.log, start, end);
     const meals: Map<string, Meal> = mealsOf(entries);
     const cooked: Set<string> = new Set(entries.map((entry: Entry): string => entry.cooked));
     return entries.map((entry: Entry): DayEntry => ({
@@ -242,11 +241,26 @@ export function realMinutesRead(category: string, title: string, module: string,
 }
 
 /**
+ * Gives the link of a skill entry to the folder of its skill, which every skill entry gets by itself,
+ * see `documents.ts`.
+ *
+ * @param fields - Fields of an entry to write
+ * @returns `ATTACH` of the folder, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`;
+ *   none for an entry of another category and for a skill without folder
+ */
+function skillLinksOf(fields: EntryFields): [string, Link][] {
+    if (fields.category !== skillName)
+        return [];
+    return linksOf(fields.module, "", []).map((link: Link): [string, Link] => ["attach", link]);
+}
+
+/**
  * Adds an entry to the log, into the month file of its start, a meal with one line `X-FOOD` per food,
  * see {@link fieldsCheck}; an entry logged from a box with its `X-PLANNED`, after which the box is done;
- * a long neck session with my pain as `X-PAIN`, see {@link painCheck}.
+ * a long neck session with my pain as `X-PAIN`, see {@link painCheck}; a skill entry with the link to the folder
+ * of its skill, see {@link skillLinksOf}.
  * - `pain`: My pain, empty for none.
- * - `own`: Properties of my own beyond the fields: the foods, the box and the pain.
+ * - `own`: Properties of my own beyond the fields: the foods, the box, the pain and the link of a skill entry.
  * - `id`: Identifier of the new entry.
  *
  * @param entry - Entry as the entry by category or the counter of glasses sends it
@@ -262,11 +276,12 @@ export function entryAdd(entry: EntryNew): string {
 
     const pain: string = entry.pain ?? "";
     painCheck(pain);
-    const own: [string, string][] = entry.foods.map((food: string): [string, string] => ["x-food", food]);
+    const own: [string, string | Link][] = entry.foods.map((food: string): [string, string] => ["x-food", food]);
     if (entry.planned !== "")
         own.push(["x-planned", entry.planned]);
     if (pain !== "")
         own.push(["x-pain", pain]);
+    own.push(...skillLinksOf(fields));
     const id: string = entryAppend(fileOf(fields.start), fields, own);
     if (entry.planned !== "")
         boxDone(entry.planned);
@@ -275,9 +290,9 @@ export function entryAdd(entry: EntryNew): string {
 
 /**
  * Logs a box at its real time, with one drop or one tap: a log entry of its category, what, place, and a skill entry
- * with its module and type, from the start to the end the day sends, pointing to the box with `X-PLANNED`,
- * after which the box is done. Its note stays empty, since the note of a log entry is my diary note about
- * what happened; chapters and a document a skill entry gets later in the dialog.
+ * with its skill and type and the link to the folder of its skill, from the start to the end the day sends,
+ * pointing to the box with `X-PLANNED`, after which the box is done. Its note stays empty, since the note
+ * of a log entry is my diary note about what happened; chapters and a document a skill entry gets later in the dialog.
  * - `box`: The box.
  * - `fields`: Fields and times of the log entry.
  * - `id`: Identifier of the new log entry.
@@ -297,7 +312,7 @@ export function boxLog(logged: BoxLogged): string {
         start: new Date(logged.start), end: new Date(logged.end),
     };
     fieldsCheck(fields, [], null);
-    const id: string = entryAppend(fileOf(fields.start), fields, [["x-planned", box.id]]);
+    const id: string = entryAppend(fileOf(fields.start), fields, [["x-planned", box.id], ...skillLinksOf(fields)]);
     boxDone(box.id);
     return id;
 }

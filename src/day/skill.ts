@@ -14,25 +14,28 @@
  * Right, Wrong, Stuck with where I got stuck, or Skip with a reason, and after Right, Wrong or Stuck
  * one tap for my effort, low, medium or high. Any type may hold attempts, like the tasks I solved in a tutorial.
  * Chapters show their names to read, like `01 Regression Analysis`.
- * A skill entry of the log already logged shows its attempts, which stay; new ones are added after them,
- * and its module stays while it has attempts, since they are attempts at its tasks.
+ * A skill entry of the log already logged shows its links, the folder of its skill and the document it used,
+ * each by its name, a document opening in a new tab, see `../skill/links.ts`, and its attempts, which stay;
+ * new ones are added after them, and its skill stays while it has attempts, since they are attempts at its tasks.
  * Saving sends a skill entry of the log to the reader's one writer of skill entries, with the times and the note
  * of the dialog; a skill box of the plan is a plain box, which the dialog writes itself.
  *
  * - `./choices.ts`: Pickers, in rows with their names.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due and what a module offers, groups the tasks,
  *   writes days out, gives today as I live it and sends skill entries.
+ * - `../skill/links.ts`: Shows a link of a skill entry by its name.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
 import { choiceOf, choicesOf, groupedSearchOf, rowOf, searchOf } from "./choices.ts";
 import { dayTextOf, groupsOf, moduleLoad, skillEntrySend, skillingLoad, todayOf } from "../skill/attempts.ts";
+import { linkElementOf } from "../skill/links.ts";
 
 import type { Calendar } from "fullcalendar";
 import type { Choice } from "./choices.ts";
 import type { EntryFields } from "./entries.ts";
 import type {
-    AttemptNew, Effort, Group, ModuleContents, Result, SkillModule, SkillTask, Skilling,
+    AttemptNew, Effort, Group, Link, ModuleContents, Result, SkillModule, SkillTask, Skilling,
 } from "../skill/attempts.ts";
 
 
@@ -85,14 +88,14 @@ export type ModuleType = {
  * - `module`: Name of the skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, like `VO`, empty for none.
  * - `chapters`: Names to read of its chapters, in the log.
- * - `document`: Its `X-DOCUMENT` as the reader gave it, its path and fingerprint, in the log.
+ * - `links`: Its links as the reader gave them, to the folder of its skill and to its document, in the log.
  * - `attempts`: Its `X-ATTEMPT`s as the reader gave them, in the log, like `IN2028/Airline Revenue Interval;right;low`.
  */
 export type SkillValues = {
     module: string;
     type: string;
     chapters: string[];
-    document: string;
+    links: Link[];
     attempts: string[];
 };
 
@@ -109,7 +112,7 @@ const resultChoices: Choice[] = [
 /**
  * Modules with their tasks and the lists to pick from, as the reader gave them when `Skill` was picked.
  */
-let skilling: Skilling = { modules: [], skills: [], otherModules: [], skips: [], types: [], efforts: [] };
+let skilling: Skilling = { modules: [], skills: [], otherModules: [], skips: [], types: [], efforts: [], lost: [] };
 
 /**
  * What is picked so far.
@@ -127,19 +130,45 @@ let contents: ModuleContents = { chapters: [], documents: [] };
 let logged: string[] = [];
 
 /**
+ * Links of the skill entry of the log being changed, as the reader gave them, none for any other.
+ */
+let linked: Link[] = [];
+
+/**
  * Whether the dialog writes a box of the plan, which takes only module and type.
  */
 let inPlan: boolean = false;
 
 
 /**
- * Gives the path of a document from its `X-DOCUMENT`, the part before its last `;`, which holds its fingerprint.
+ * Gives the path of the document of a skill entry from its links: its file in the folder of its skill,
+ * from that folder, as the document picker offers it.
+ * - `folder`: The link to the folder of its skill, `undefined` for none.
+ * - `file`: The link to a file in that folder, `undefined` for none.
  *
- * @param value - `X-DOCUMENT`, like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf;9f86d081…`
- * @returns Path, empty for an empty value
+ * @param links - Links of the entry, the folder first, like `NomSkillingmodules/IN2028_…`
+ *   and `NomSkillingmodules/IN2028_…/VO_…/04_….pdf`
+ * @returns Path like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`, empty for none
  */
-function documentPathOf(value: string): string {
-    return value.includes(";") ? value.slice(0, value.lastIndexOf(";")) : value;
+function documentPathOf(links: Link[]): string {
+    const folder: Link | undefined = links.find((link: Link): boolean => link.fingerprint === "");
+    const file: Link | undefined = links.find((link: Link): boolean =>
+        folder !== undefined && link.fingerprint !== "" && link.path.startsWith(`${folder.path}/`));
+    return folder === undefined || file === undefined ? "" : file.path.slice(folder.path.length + 1);
+}
+
+/**
+ * Builds the links of the entry being changed, one after the other, each by its name, see `../skill/links.ts`.
+ *
+ * @returns Row of the links, none for an entry without links and for a new one
+ */
+function linkedOf(): HTMLElement[] {
+    if (linked.length === 0)
+        return [];
+    const list: HTMLDivElement = document.createElement("div");
+    list.className = "entry-links";
+    list.append(...linked.map(linkElementOf));
+    return [rowOf("Links", list)];
 }
 
 /**
@@ -322,8 +351,9 @@ async function contentsLoad(): Promise<void> {
 /**
  * Shows the fields of `Skill` as picked so far: skill and type, and in the log the chapters of the skill,
  * or `No chapters yet`, its documents, with a hint when the document of the entry is in the module no more,
- * which the reader could not find by its fingerprint either, the tasks of the chapters picked, a result for each task picked,
- * and the attempts the entry has. Picking a skill loads its chapters and documents and shows the fields again,
+ * which the reader could not find by its fingerprint either, the links of the entry, see {@link linkedOf}, the tasks
+ * of the chapters picked, a result for each task picked, and the attempts the entry has.
+ * Picking a skill loads its chapters and documents and shows the fields again,
  * with no chapters, document or tasks picked; picking chapters shows them again, keeping the tasks picked
  * that are still offered.
  * - `module`: Module of the semester picked, with its tasks, `undefined` for another module or before one is picked.
@@ -404,7 +434,7 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
         })));
     results.className = "skill-results";
     resultsShow();
-    fields.replaceChildren(...rows, results, ...loggedOf());
+    fields.replaceChildren(...rows, ...(inPlan ? [] : linkedOf()), results, ...loggedOf());
 }
 
 /**
@@ -422,8 +452,9 @@ export async function skillFieldsShow(fields: HTMLElement, plan: boolean, values
     skilling = await skillingLoad();
     inPlan = plan;
     logged = plan ? [] : values.attempts;
+    linked = plan ? [] : values.links;
     picks = {
-        module: values.module, type: values.type, chapters: values.chapters, document: documentPathOf(values.document),
+        module: values.module, type: values.type, chapters: values.chapters, document: documentPathOf(values.links),
         attempts: [],
     };
     await contentsLoad();

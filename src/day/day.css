@@ -919,6 +919,25 @@ button.box-ring:hover svg {
     color: var(--text-muted);
 }
 
+/* Links of a skill entry being changed, one after the other: the folder of its skill by its grey name,
+   its document underlined thin in the white of the text, which a click opens in a new tab, see `skill/links.ts` */
+.entry-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem var(--control-gap);
+    color: var(--text-muted);
+}
+
+.entry-links a.skill-link {
+    color: var(--text-main);
+    text-decoration-color: var(--line);
+    text-underline-offset: 0.2em;
+}
+
+.entry-links a.skill-link:hover {
+    text-decoration-color: currentcolor;
+}
+
 /* Skill session being changed: its attempts, one per line, grey, in place of the fields */
 .entry-skill {
     margin: 0;

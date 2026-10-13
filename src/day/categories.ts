@@ -121,7 +121,7 @@ type EntryTarget = "log" | "box";
  * - `values`: Values picked already, by the field they write into.
  * - `note`: Note of the entry.
  * - `foods`: Foods of the meal the dialog changes, its lines `X-FOOD`; none for any other entry.
- * - `skill`: Skill, type, chapters, document and attempts of the skill entry the dialog changes or logs from a box;
+ * - `skill`: Skill, type, chapters, links and attempts of the skill entry the dialog changes or logs from a box;
  *   empty for any other entry.
  * - `plan`: Box a new entry of the log is logged from, else `null`.
  * - `entry`: Entry of the log the dialog changes, else `null`.
@@ -156,7 +156,7 @@ const neckLong: [string, string] = ["Body", "Neck long"];
 /**
  * Values of a skill entry that has none yet, for an entry of another category or a new one.
  */
-const skillNone: SkillValues = { module: "", type: "", chapters: [], document: "", attempts: [] };
+const skillNone: SkillValues = { module: "", type: "", chapters: [], links: [], attempts: [] };
 
 /**
  * Categories with the values of their fields, as the reader gave them when the dialog opened.
@@ -903,7 +903,7 @@ export async function boxOpenEdit(box: Box): Promise<void> {
 
 /**
  * Opens the dialog to change an entry of the log of the new system, its fields picked, a meal with its foods,
- * a skill entry with its skill, type, chapters, document and attempts.
+ * a skill entry with its skill, type, chapters, links and attempts.
  * - `props`: Fields of the entry as the reader gave them.
  *
  * @param entry - Entry to change
@@ -918,7 +918,7 @@ export async function entryOpenEdit(entry: EventApi): Promise<void> {
         note: props.note ?? "", foods: entry.extendedProps.foods ?? [],
         skill: {
             module: props.module ?? "", type: props.type ?? "", chapters: entry.extendedProps.chapters ?? [],
-            document: props.document ?? "", attempts: entry.extendedProps.attempts ?? [],
+            links: entry.extendedProps.links ?? [], attempts: entry.extendedProps.attempts ?? [],
         },
         plan: null, entry: entry, box: null,
     });

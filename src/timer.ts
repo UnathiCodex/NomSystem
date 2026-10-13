@@ -2,7 +2,9 @@
  * ## Session timer
  *
  * A quiet timer at the right of the areas while a session of mine runs, in every area: its skill and type,
- * and the minutes since its skill entry started, like `IN2028 DEV · 32 min` or `WokFlow · 32 min`, in grey.
+ * and the minutes since its skill entry started, like `IN2028 DEV · 32 min` or `WokFlow · 32 min`, in grey,
+ * then the links of its skill entry by their names, the folder of its skill and the document it uses, a document
+ * opening in a new tab, see `skill/links.ts`.
  * A session is the skill entry of the moment, of a type I pace myself, study, homework or none, like work on a project,
  * see `reader/skill.ts`: the first button of a task starts one, and a study session logged from the plan is one.
  * One calm mark at a time says what to do, in the light grey of the text, no sound and no popup, the first that holds:
@@ -16,10 +18,14 @@
  *
  * - `./icons.ts`: Makes the icon of the mark.
  * - `lucide`: The icon footprints.
+ * - `./skill/links.ts`: Shows a link of a skill entry by its name.
  */
 
 import { iconOf } from "./icons.ts";
 import { Footprints } from "lucide";
+import { linkElementOf } from "./skill/links.ts";
+
+import type { Link } from "./skill/attempts.ts";
 
 
 /**
@@ -28,6 +34,7 @@ import { Footprints } from "lucide";
  * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, `DEV` or `HU`, empty for none.
  * - `start`: Start of its skill entry, as ISO instant.
+ * - `links`: Links of its skill entry, to the folder of its skill and to the document it uses.
  * - `focusStart`: Start of the focused stretch running now, the start or the end of my last break, as ISO instant.
  * - `dayMinutes`: Minutes of learning today as I live it, lectures included.
  * - `focusMinutes`: Minutes of a focused stretch after which the timer suggests a short break away from the phone.
@@ -38,6 +45,7 @@ type Session = {
     module: string;
     type: string;
     start: string;
+    links: Link[];
     focusStart: string;
     dayMinutes: number;
     focusMinutes: number;
@@ -138,6 +146,8 @@ function markOf(session: Session, minutes: number, focus: number): [string, bool
  * - `what`: Skill and type, like `IN2028 DEV`, the skill alone without type, like `WokFlow`.
  * - `text`: What and minutes, like `IN2028 DEV · 32 min`.
  * - `mark`, `offers`: Words of the mark, empty for none, and whether it offers to log a break.
+ * - `links`: The links of its skill entry, each after a dot of its own, so the gap of the timer parts them,
+ *   see `skill/links.ts`.
  *
  * @throws {Error} - When the reader cannot answer
  */
@@ -153,8 +163,13 @@ async function timerShow(): Promise<void> {
     const what: string = session.type === "" ? session.module : `${session.module} ${session.type}`;
     const text: string = `${what} · ${minutes} min`;
     const [mark, offers]: [string, boolean] = markOf(session, minutes, focus);
+    const links: HTMLElement[] = session.links.flatMap((link: Link): HTMLElement[] => {
+        const dot: HTMLSpanElement = document.createElement("span");
+        dot.textContent = "·";
+        return [dot, linkElementOf(link)];
+    });
     timer.classList.toggle("session-break", mark !== "");
-    timer.replaceChildren(...(mark === "" ? [text] : [iconOf(Footprints), `${text} · ${mark}`]),
+    timer.replaceChildren(...(mark === "" ? [text] : [iconOf(Footprints), `${text} · ${mark}`]), ...links,
         ...(offers ? [breakButtonOf()] : []));
     timer.title = mark === ""
         ? `Session running since ${new Date(session.start).toTimeString().slice(0, 5)}; `

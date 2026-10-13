@@ -56,6 +56,19 @@ body {
     color: var(--text-main);
 }
 
+/* Links of the session's skill entry in the timer: a folder by its grey name, a document underlined thin,
+   in the grey of the timer, which a click opens in a new tab, see `skill/links.ts` */
+.session-timer a.skill-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-underline-offset: 0.2em;
+}
+
+.session-timer a.skill-link:hover {
+    text-decoration-color: currentcolor;
+}
+
 /* A phone only looks at the day and its food, nothing for learning, see `main.ts`:
    no links to the week, the notes and the skill area; the timer never runs there */
 @media (max-width: 900px) {

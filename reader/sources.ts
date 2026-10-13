@@ -3,6 +3,7 @@
  *
  * Names every folder and file the reader reads, and every address on the web it asks, grouped by area.
  * The reader reads only the new system, the folder {@link writeRoot}, my modules and the drafts, see {@link notes},
+ * and the files the skill entries link, in my modules and my projects, see {@link activeSkills} and `documents.ts`,
  * and nothing that is not listed here.
  * It writes only into {@link writeRoot}, and the editor into the drafts, see {@link editor}.
  * A file or folder of the new system that is missing, like `Birthdays.ics` or the log of a month without entries,
@@ -57,7 +58,7 @@ export const planEnding: string = "_Plan.ics";
 /**
  * Folder of my modules in `NomWorkspace`, `NomSkillingmodules`, one folder per module.
  */
-const modulesFolder: string = "NomSkillingmodules";
+export const modulesFolder: string = "NomSkillingmodules";
 
 /**
  * Sources of the notes area, read only for it; only the editor writes, and only the drafts, see {@link editor};
@@ -107,6 +108,7 @@ export const editor: EditorSources = {
  * The Skill picker offers them first, in this order, a module by its code, the part of its folder name before `_`,
  * like `IN2028`, a project by its folder name, like `WokFlow`; the menu of the notes view and the skill area show
  * the modules, see {@link activeModules}, since a project has no chapters and no tasks.
+ * Each skill entry links the folder of its skill by this path, see `documents.ts`.
  * A link in a note still opens a note of any module. Changed on request, when the semester's skills change.
  */
 export const activeSkills: string[] = [
@@ -129,6 +131,31 @@ export const activeSkills: string[] = [
  */
 export function moduleIs(skill: string): boolean {
     return skill.startsWith(`${modulesFolder}/`);
+}
+
+/**
+ * Gives the name of a skill of the semester by its folder: a module its code, the part of its folder name before `_`,
+ * a project its folder name, the last part of its path.
+ * - `folder`: Name of the folder, the last part of its path.
+ *
+ * @param skill - Folder from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`
+ *   or `NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow`
+ * @returns Name, like `IN2028` or `WokFlow`
+ */
+export function skillNameOf(skill: string): string {
+    const folder: string = skill.split("/").at(-1) ?? skill;
+    return moduleIs(skill) ? folder.split("_")[0] : folder;
+}
+
+/**
+ * Finds a project of the semester by its name, see {@link skillNameOf}.
+ *
+ * @param name - Name of the project, like `WokFlow`
+ * @returns Its folder from `NomWorkspace`, like `NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow`,
+ *   `undefined` when no project of the semester has the name
+ */
+export function projectOf(name: string): string | undefined {
+    return activeSkills.find((skill: string): boolean => !moduleIs(skill) && skillNameOf(skill) === name);
 }
 
 /**

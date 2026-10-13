@@ -130,7 +130,8 @@ const markdownLink: RegExp = /\]\(\s*(?:<([^>#]*)|([^\s)#]*))/g;
 const external: RegExp = /^[a-z][a-z\d+.-]*:/i;
 
 /**
- * Content types of the files the notes view shows or opens, by their ending; any other file comes as bytes.
+ * Content types of the files the notes view shows or opens, and of the files skill entries link,
+ * by their ending; any other file comes as bytes.
  */
 const types: { [ending: string]: string } = {
     ".md": "text/markdown; charset=utf-8",
@@ -518,6 +519,16 @@ export function brokenLinksRead(): BrokenLink[] {
 }
 
 /**
+ * Gives the content type of a file by its ending, see {@link types}.
+ *
+ * @param file - Path of the file, like `…/04_LogisticPoissonRegression.pdf`
+ * @returns Content type, like `application/pdf`, `application/octet-stream` for any other ending
+ */
+export function contentTypeOf(file: string): string {
+    return types[extname(file).toLowerCase()] ?? "application/octet-stream";
+}
+
+/**
  * Reads a file of my modules with its content type, like an image of a note or a PDF to open.
  *
  * @param path - Path like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/Tangens.svg`
@@ -526,5 +537,5 @@ export function brokenLinksRead(): BrokenLink[] {
  */
 export function fileRead(path: string): NotesFile {
     const file: string = diskPathOf(path);
-    return { type: types[extname(file).toLowerCase()] ?? "application/octet-stream", content: readFileSync(file) };
+    return { type: contentTypeOf(file), content: readFileSync(file) };
 }
