@@ -77,7 +77,7 @@ import { titleOf } from "./documents.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, monthFileOf, planEnding } from "./sources.ts";
 
-import type { Entry, EntryFields, EntryTexts, TodoFields } from "./calendar.ts";
+import type { Entry, EntryFields, EntryTexts, Link, TodoFields } from "./calendar.ts";
 
 
 /**
@@ -104,6 +104,8 @@ export type BoxState = "open" | "done" | "dropped";
  *   also one occurrence of a series.
  * - `series`: Whether it is one occurrence of a series, like a weekly lecture, which cannot be removed.
  * - `todo`: Whether it is a to-do; an event keeps its time and duration, see the top of this file.
+ * - `links`: Its links, its `ATTACH`es, like the slides a lecture of my plan links, see `documents.ts`;
+ *   none for none.
  */
 export type Box = EntryTexts & {
     id: string;
@@ -117,6 +119,7 @@ export type Box = EntryTexts & {
     editable: boolean;
     series: boolean;
     todo: boolean;
+    links: Link[];
 };
 
 /**
@@ -314,6 +317,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         editable: entry.editable,
         series: entry.recurrence !== "",
         todo: entry.todo,
+        links: entry.links,
     };
 }
 

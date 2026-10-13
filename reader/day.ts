@@ -292,8 +292,12 @@ export function entryAdd(entry: EntryNew): string {
  * with its skill and type, written as the reader writes them, see `titleOf` in `documents.ts`, linking the folder
  * of its skill, from the start to the end the day sends,
  * pointing to the box with `RELATED-TO`, after which the box is done. Its note stays empty, since the note
- * of a log entry is my diary note about what happened; chapters and a document a skill entry gets later in the dialog.
+ * of a log entry is my diary note about what happened, but for a skill box with a type, like a lecture, whose
+ * `DESCRIPTION` states its topic or its sheet, like `Logistic Regression`, which the log entry states too,
+ * with the links of the box, like its slides, see `documents.ts`; chapters and documents a skill entry gets
+ * later in the dialog.
  * - `box`: The box.
+ * - `material`: Whether it is a skill box with a type, whose topic and links go along.
  * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
  * - `fields`: Fields and times of the log entry.
  * - `id`: Identifier of the new log entry.
@@ -307,15 +311,19 @@ export function boxLog(logged: BoxLogged): string {
     if (box.category === "")
         throw new Error(`${box.title} has no category; the dialog logs it`);
 
+    const material: boolean = box.category === skillName && box.type !== "";
     const [title, titleLink]: [string, string] = titleOf(box);
     const fields: EntryFields = {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
         locationLink: box.locationLink, from: box.from, module: box.module, type: box.type,
-        semester: semesterFor(box.category, box.semester, box.day), note: "",
+        semester: semesterFor(box.category, box.semester, box.day), note: material ? box.note : "",
         start: new Date(logged.start), end: new Date(logged.end),
     };
     fieldsCheck(fields, [], box);
-    const id: string = entryAppend(fileOf(fields.start), fields, [["related-to", box.id]]);
+    const id: string = entryAppend(fileOf(fields.start), fields, [
+        ["related-to", box.id],
+        ...(material ? box.links : []).map((link: Link): [string, Link] => ["attach", link]),
+    ]);
     boxDone(box.id);
     return id;
 }

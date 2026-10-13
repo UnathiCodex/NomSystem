@@ -454,6 +454,20 @@ export function moduleContentsRead(module: string): ModuleContents {
 }
 
 /**
+ * Finds the folder of a chapter in a module folder of `NomSkillingmodules` by its name to read, see {@link titleOf},
+ * which a skill entry of my own learning links, see `chapterLinksOf` in `documents.ts`; a chapter only in the drafts
+ * has none there.
+ *
+ * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
+ * @param chapter - Name to read of the chapter, like `02 Logistic Poisson Regression`
+ * @returns Name of its folder, like `02_LogisticPoissonRegression`, `undefined` for none
+ */
+export function chapterFolderOf(module: string, chapter: string): string | undefined {
+    return entriesRead(module).find((entry: Dirent): boolean =>
+        entry.isDirectory() && chapterFolder.test(entry.name) && titleOf(entry.name) === chapter)?.name;
+}
+
+/**
  * Finds the files the wiki links, embeds, Markdown links and images of a note lead to, see {@link linkResolve}.
  * - `note`: Path of the note in its module.
  * - `inModule`: Paths in the module of the files the links may lead to.

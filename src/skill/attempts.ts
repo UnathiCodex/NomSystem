@@ -248,7 +248,7 @@ export type AttemptNew = {
  * - `module`: Name of its skill, a module code like `IN2028` or a project like `WokFlow`.
  * - `semester`: Its semester, like `2026W`: from which semester the lecture or the material is, see {@link semesterOf}.
  * - `chapters`: Names to read of the chapters it covered, none for none.
- * - `document`: Path from the folder of its skill of the document it used, empty for none; the reader links it
+ * - `documents`: Paths from the folder of its skill of the documents it used, none for none; the reader links each
  *   with its fingerprint, see `reader/documents.ts`.
  * - `attempts`: Its attempts, none for none.
  * - `location`: Place, like the room of a lecture logged from the plan.
@@ -262,7 +262,7 @@ export type SkillEntryNew = {
     module: string;
     semester: string;
     chapters: string[];
-    document: string;
+    documents: string[];
     attempts: AttemptNew[];
     location: string;
     planned: string;

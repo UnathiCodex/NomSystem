@@ -7,14 +7,19 @@
  * below them its semester, from which semester the lecture or the material is, not when I did it: the semester
  * of the day of the dialog, which follows that day as I type it, until I pick another, offered with the two before it,
  * like `2026W`, `2026S` and `2025W`, or typed with `+`, like `2024W`;
- * in the log below them the chapters it covered, the document it used, like the slides of a lecture or a sheet,
+ * in the log below them the chapters it covered, the documents it used, like the slides of a lecture or a sheet,
  * and attempts at the tasks of my notes, all optional, so a lecture logged from its box gets its chapters
- * and document later.
+ * and documents later.
  * The one Skill picker shows the skills of the semester, a module by its code, like `IN2028`, a project by its folder
  * name, like `WokFlow`, and its search every module folder, since I sometimes attend another module.
- * A module picked offers its chapter folders, `No chapters yet` when it has none,
- * and its files outside them, each under the kind of material it is, like `VO_UniversityLectureLessons`,
- * searched by folder and name together; a project offers neither, like a module without chapters.
+ * A module picked offers its chapter folders, `No chapters yet` when it has none, and as documents, several to pick,
+ * the files of the folder of its material that fits the type, see {@link materialFolders}: a lecture's slides
+ * in `VO_UniversityLectureLessons`, the sheet of an exercise or a tutorial in `TU_UniversityTutorExercises`,
+ * a homework's in `HU_UniversityHomeExercises`, each under the folder of its semester, like `TUM_2026W`,
+ * the newest semester first, searched by folder and name together; my own learning, without type, every file of
+ * the module outside its chapters; a project offers neither, like a module without chapters.
+ * Picking documents fills the note with their topic, the name of each to read, like `04 Logistic Poisson Regression`
+ * or `Sheet 03`, since the entry states its topic itself and its links only point to more, until I type my own.
  * The tasks of the chapters picked come below, the due ones first, then a result for each task picked:
  * Right, Wrong, Stuck with where I got stuck, or Skip with a reason, and after Right, Wrong or Stuck
  * one tap for my effort, low, medium or high. Any type may hold attempts, like the tasks I solved in a tutorial.
@@ -71,7 +76,7 @@ type AttemptPick = {
  * - `semester`: Its semester, like `2025W`, empty while it is the semester of the day of the dialog,
  *   see {@link semesterDay}.
  * - `chapters`: Names to read of the chapters, like `01 Regression Analysis`.
- * - `document`: Path of the document from the module folder, empty for none.
+ * - `documents`: Paths of the documents from the module folder, in the order they were picked.
  * - `attempts`: Tasks picked, in the order they were picked, each with its result.
  */
 type SkillPicks = {
@@ -79,7 +84,7 @@ type SkillPicks = {
     type: string;
     semester: string;
     chapters: string[];
-    document: string;
+    documents: string[];
     attempts: AttemptPick[];
 };
 
@@ -136,7 +141,23 @@ let skilling: Skilling = { modules: [], skills: [], otherModules: [], skips: [],
 /**
  * What is picked so far.
  */
-let picks: SkillPicks = { module: "", type: "", semester: "", chapters: [], document: "", attempts: [] };
+let picks: SkillPicks = { module: "", type: "", semester: "", chapters: [], documents: [], attempts: [] };
+
+/**
+ * Beginning of the name of the folder of the material of each type in a module, whose files the documents offer
+ * for an entry of that type: a lecture's slides in `VO_UniversityLectureLessons`, the sheet of an exercise
+ * or a tutorial in `TU_UniversityTutorExercises`, a homework's in `HU_UniversityHomeExercises`, an exam's
+ * in `FA_UniversityModuleExaminations`, a practical course's in a folder starting with `PR_`.
+ */
+const materialFolders: { [type: string]: string } = {
+    VO: "VO_", UE: "TU_", TU: "TU_", HU: "HU_", FA: "FA_", PR: "PR_",
+};
+
+/**
+ * Topic the note was last filled with from the documents picked, see {@link noteFill}, empty for none;
+ * a note I typed differs from it and stays.
+ */
+let noteFilled: string = "";
 
 /**
  * Day of the dialog, like `2026-10-13`, whose semester the entry has while I pick none, see {@link skillDaySet}.
@@ -182,18 +203,23 @@ let inPlan: boolean = false;
 
 
 /**
- * Gives the path of the document of a skill entry from its links: its file in the folder of its module,
- * from that folder, as the document picker offers it, the path of the file without `NomSkillingmodules`
- * and the folder of the module.
- * - `file`: The link to a file of a module, `undefined` for none.
+ * Gives the paths of the documents of a skill entry or a box from its links: its files in the folder of its module,
+ * from that folder, as the document picker offers them, each path without `NomSkillingmodules` and the folder
+ * of the module; a file with its fingerprint, or one in a folder of material, like the slides a lecture of my plan
+ * links without fingerprint, never the folder of a chapter, which lies right in the module.
+ * - `rest`: Path of a link from the folder of its module, empty for the folder of a module itself.
  *
  * @param links - Links of the entry, like `NomSkillingmodules/IN2028_…/VO_…/04_….pdf`
- * @returns Path like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`, empty for none
+ * @returns Paths like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`, in their order
  */
-function documentPathOf(links: Link[]): string {
-    const file: Link | undefined = links.find((link: Link): boolean =>
-        link.fingerprint !== "" && link.path.startsWith("NomSkillingmodules/"));
-    return file === undefined ? "" : file.path.split("/").slice(2).join("/");
+function documentPathsOf(links: Link[]): string[] {
+    return links
+        .filter((link: Link): boolean => link.path.startsWith("NomSkillingmodules/"))
+        .filter((link: Link): boolean => {
+            const rest: string = link.path.split("/").slice(2).join("/");
+            return rest !== "" && (link.fingerprint !== "" || rest.includes("/"));
+        })
+        .map((link: Link): string => link.path.split("/").slice(2).join("/"));
 }
 
 /**
@@ -269,11 +295,31 @@ export function skillSemesterOf(day: string): string {
 function semesterChoicesOf(): Choice[] {
     const near: string[] = [semesterOf(semesterDay)];
     near.push(semesterBefore(near[0]), semesterBefore(semesterBefore(near[0])));
-    const rankOf: (semester: string) => number = (semester: string): number =>
-        Number(semester.slice(0, 4)) * 2 + (semester.endsWith("W") ? 1 : 0);
     return [...near, ...(picks.semester === "" || near.includes(picks.semester) ? [] : [picks.semester])]
-        .sort((first: string, second: string): number => rankOf(second) - rankOf(first))
+        .sort((first: string, second: string): number => semesterRankOf(second) - semesterRankOf(first))
         .map(choiceOf);
+}
+
+/**
+ * Ranks a semester by its year and season, a winter after the summer of its year, so the newer ranks higher.
+ *
+ * @param semester - Semester like `2026W`
+ * @returns Rank like 4053 for `2026W` and 4052 for `2026S`
+ */
+function semesterRankOf(semester: string): number {
+    return Number(semester.slice(0, 4)) * 2 + (semester.endsWith("W") ? 1 : 0);
+}
+
+/**
+ * Ranks a document by the semester of the folder it lies in, like `TUM_2026W`, see {@link semesterRankOf}.
+ * - `semester`: The first semester its folders name, `null` for none.
+ *
+ * @param path - Path of the document from the module folder, like `VO_…/TUM_2026W/04_LogisticPoissonRegression.pdf`
+ * @returns Rank of its semester, -1 for a document in no folder of a semester
+ */
+function documentRankOf(path: string): number {
+    const semester: RegExpMatchArray | null = path.split("/").slice(0, -1).join("/").match(/\d{4}[WS]/);
+    return semester === null ? -1 : semesterRankOf(semester[0]);
 }
 
 /**
@@ -287,18 +333,59 @@ async function semesterAdd(text: string): Promise<string | null> {
 }
 
 /**
- * Builds the choices of the documents of the module picked: each its path as value, under the folder it lies in
- * at the top of the module as group, the rest of its path as text, so its semester always shows,
- * like `TUM_2025W/04_LogisticPoissonRegression.pdf` under `VO_UniversityLectureLessons`.
- * - `slash`: Place of the first `/` of the path, -1 for a file at the top of the module.
+ * Builds the choices of the documents of the module picked, see the top of this file: for a type the files
+ * of the folder of its material, see {@link materialFolders}, each its path as value, its name as text and
+ * the folders between that folder and it as group, like `04_LogisticPoissonRegression.pdf` under `TUM_2026W`;
+ * for my own learning every file outside the chapters under all its folders, like
+ * `VO_UniversityLectureLessons/TUM_2026W`; the newest semester first, see {@link documentRankOf}, then by path,
+ * and the documents picked that are none of them, like an older entry's from another folder, after them.
+ * - `folder`: Beginning of the name of the folder of the material of the type, empty for my own learning.
+ * - `offered`: Paths of the documents offered.
+ * - `parts`: Parts of the path of a document.
  *
- * @returns Choices of the documents, in the order of their paths
+ * @returns Choices of the documents
  */
 function documentChoicesOf(): Choice[] {
-    return contents.documents.map((path: string): Choice => {
-        const slash: number = path.indexOf("/");
-        return { value: path, text: path.slice(slash + 1), group: slash === -1 ? "" : path.slice(0, slash) };
-    });
+    const folder: string = materialFolders[picks.type] ?? "";
+    const offered: string[] = contents.documents
+        .filter((path: string): boolean => folder === "" || (path.startsWith(folder) && path.includes("/")))
+        .sort((first: string, second: string): number => documentRankOf(second) - documentRankOf(first)
+            || first.localeCompare(second));
+    return [...offered, ...picks.documents.filter((path: string): boolean => !offered.includes(path))]
+        .map((path: string): Choice => {
+            const parts: string[] = path.split("/");
+            return { value: path, text: parts.at(-1) ?? path, group: parts.slice(folder === "" ? 0 : 1, -1).join("/") };
+        });
+}
+
+/**
+ * Writes the topic of a document as the note states it: its name to read, without its ending, `_` as spaces,
+ * words and numbers apart, like `04 Logistic Poisson Regression` of `04_LogisticPoissonRegression.pdf`
+ * or `Sheet 03` of `Sheet03.pdf`.
+ * - `name`: Name of the file without its ending.
+ *
+ * @param path - Path of the document, like `VO_…/TUM_2026W/04_LogisticPoissonRegression.pdf`
+ * @returns The topic
+ */
+function topicOf(path: string): string {
+    const name: string = (path.split("/").at(-1) ?? path).replace(/\.[^.]*$/, "");
+    return name.replaceAll("_", " ").replace(/(?<=\p{Ll})(?=\p{Lu})|(?<=\p{L})(?=\d)/gu, " ").trim();
+}
+
+/**
+ * Fills the note with the topics of the documents picked, see {@link topicOf}, like
+ * `04 Logistic Poisson Regression, 05 Decision Trees`, while it is empty or holds what it was last filled with,
+ * so a note I typed stays; no documents picked empty a note filled so.
+ * - `note`: Field of the note of the dialog.
+ * - `topic`: Topics of the documents picked.
+ */
+function noteFill(): void {
+    const note: HTMLTextAreaElement = document.getElementById("entry-note") as HTMLTextAreaElement;
+    const topic: string = picks.documents.map(topicOf).join(", ");
+    if (note.value.trim() !== "" && note.value.trim() !== noteFilled)
+        return;
+    note.value = topic;
+    noteFilled = topic;
 }
 
 /**
@@ -469,7 +556,7 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
         rowOf("Skill", choicesOf({
             search: moduleSearchOf(), picked: picks.module === "" ? [] : [picks.module], many: false, adding: false,
             pick: (values: string[]): void => {
-                picks = { ...picks, module: values[0] ?? "", chapters: [], document: "", attempts: [] };
+                picks = { ...picks, module: values[0] ?? "", chapters: [], documents: [], attempts: [] };
                 contentsLoad().then(again).catch((error: unknown): void => console.error(error));
             },
         })),
@@ -478,7 +565,7 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
             many: false, adding: false,
             pick: (values: string[]): void => {
                 picks.type = values[0] ?? "";
-                changed();
+                again();
             },
         })),
         rowOf("Semester", choicesOf({
@@ -500,16 +587,16 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
                     again();
                 },
             })));
-        rows.push(rowOf("Document", contents.documents.length === 0 && picks.document === ""
+        rows.push(rowOf("Documents", documentChoicesOf().length === 0
             ? hintOf("No documents")
             : choicesOf({
-                search: groupedSearchOf(documentChoicesOf()), picked: picks.document === "" ? [] : [picks.document],
-                many: false, adding: false,
+                search: groupedSearchOf(documentChoicesOf()), picked: picks.documents, many: true, adding: false,
                 pick: (values: string[]): void => {
-                    picks.document = values[0] ?? "";
+                    picks.documents = values;
+                    noteFill();
                 },
             })));
-        if (picks.document !== "" && !contents.documents.includes(picks.document))
+        if (picks.documents.some((path: string): boolean => !contents.documents.includes(path)))
             rows.push(rowOf("", hintOf("Not in the module any more, not even by its fingerprint; the link stays as written")));
     }
     if (!inPlan && tasks.length > 0)
@@ -551,8 +638,9 @@ export async function skillFieldsShow(fields: HTMLElement, plan: boolean, values
         : { title: values.title, titleLink: values.titleLink, links: values.links };
     picks = {
         module: values.module, type: values.type, semester: values.semester, chapters: values.chapters,
-        document: documentPathOf(values.links), attempts: [],
+        documents: documentPathsOf(values.links), attempts: [],
     };
+    noteFilled = "";
     await contentsLoad();
     picksShow(fields, changed);
 }
@@ -615,7 +703,7 @@ export async function skillSave(calendar: Calendar, id: string, fields: EntryFie
 
     await skillEntrySend(id, {
         type: picks.type, module: picks.module, semester: fields.semester, chapters: picks.chapters,
-        document: picks.document, attempts: attempts,
+        documents: picks.documents, attempts: attempts,
         location: fields.location, planned: fields.planned, note: fields.note, start: fields.start, end: fields.end,
     });
     calendar.getEventSourceById("log")?.refetch();

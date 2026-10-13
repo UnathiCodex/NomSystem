@@ -22,9 +22,11 @@
  * which behaves like a module without chapters and tasks, named by its folder, like `SUMMARY:WokFlow`;
  * the type may stay empty for any skill, like my own learning. Below them, each only when there is one:
  * - one `X-CHAPTER` per chapter it covered, by its name to read, like `X-CHAPTER:02 Logistic Poisson Regression`,
- *   the chapters of the tasks of its attempts always among them;
- * - one `ATTACH` for the document it used, like the slides of a lecture or a sheet, with the fingerprint
- *   of its content, so the link survives a rename, see `documents.ts`;
+ *   the chapters of the tasks of its attempts always among them; my own learning, without type, also links
+ *   the folder of each chapter as `ATTACH`, see `chapterLinksOf` in `documents.ts`;
+ * - one `ATTACH` for each document it used, like the slides of a lecture or the sheet of an exercise, with
+ *   the fingerprint of its content, so the link survives a rename, see `documents.ts`, its `DESCRIPTION` stating
+ *   the topic or the sheet, like `Logistic Regression` or `Sheet 03`;
  * - one `X-ATTEMPT` per attempt at a task of my notes, of any type, like the tasks I solved in a tutorial:
  *   the time of the tap in Berlin time when a button wrote it, in the form of the iCalendar format, like `140500`
  *   for 14:05, its task with the part of a cold task after `#`, its result, my effort, and where I got stuck or why
@@ -62,8 +64,8 @@
  * - `./calendar.ts`: Reads the log, appends entries to it, changes their events, and adds days to a day.
  * - `./categories.ts`: Names the category and the types of skill entries and writes what a skill entry was.
  * - `./day.ts`: Gives the month file of the log for the start of an entry.
- * - `./documents.ts`: Builds the links of a skill entry, to the folder of its skill and to its document
- *   with its fingerprint, and gives the links it could not repair.
+ * - `./documents.ts`: Builds the links of a skill entry, to the folder of its skill, to its documents
+ *   with their fingerprints and to the folders of its chapters, and gives the links it could not repair.
  * - `./notes.ts`: Reads the modules of the semester with their chapters and notes, and every module folder.
  * - `./places.ts`: Gives the link of the place of a skill entry.
  * - `./sources.ts`: Names the log of the skill area and the skills of the semester, its modules and its projects.
@@ -77,7 +79,7 @@ import {
 } from "./calendar.ts";
 import { semesterFor, skillName, skillTypes } from "./categories.ts";
 import { fileOf } from "./day.ts";
-import { linksLostRead, linksOf, titleOf } from "./documents.ts";
+import { chapterLinksOf, linksLostRead, linksOf, titleOf } from "./documents.ts";
 import { codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
 import { activeModules, activeSkills, projectOf, skillLog, skillNameOf } from "./sources.ts";
@@ -304,7 +306,7 @@ export type AttemptNew = {
  * - `semester`: Its semester, `X-SEMESTER`, like `2026W`, the semester of its day when empty,
  *   see `semesterFor` in `categories.ts`.
  * - `chapters`: Names to read of the chapters it covered, like `01 Regression Analysis`, none for none.
- * - `document`: Path from the folder of its skill of the document it used, a file of its module, like
+ * - `documents`: Paths from the folder of its skill of the documents it used, files of its module, like
  *   `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`, empty for none.
  * - `attempts`: Its attempts, in the order they were picked, none for none.
  * - `location`: Place, `LOCATION`, like the room of a lecture logged from its box.
@@ -318,7 +320,7 @@ export type SkillEntryNew = {
     module: string;
     semester: string;
     chapters: string[];
-    document: string;
+    documents: string[];
     attempts: AttemptNew[];
     location: string;
     planned: string;
@@ -353,7 +355,7 @@ export type EffortNew = {
  * - `title`: What its skill entry is, as written, like `IN2028_BusinessAnalyticsMachineLearning (HU)`.
  * - `titleLink`: The folder of its skill from `NomWorkspace`, the `ALTREP` of its `SUMMARY`, empty for none.
  * - `start`: Start of its skill entry, as ISO instant.
- * - `links`: Links of its skill entry to files, the document it uses, see `documents.ts`.
+ * - `links`: Links of its skill entry to files, the documents it uses, see `documents.ts`.
  * - `focusStart`: Start of the focused stretch running now, as ISO instant: the start of the session,
  *   or the end of my last break in it, an entry `Body` like `Neck short`, when that is later.
  * - `dayMinutes`: Minutes of learning today, from 00:00, every skill entry of the day up to now, lectures included.
@@ -1076,17 +1078,18 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
  * Writes a new skill entry into the log, into the month file of its start, from the entry by category:
  * `CATEGORIES` is `Skill`, `SUMMARY` its module and type with the folder of its skill as `ALTREP`,
  * like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `titleOf` in `documents.ts`, its place and note,
- * one `X-CHAPTER` per chapter, see {@link chaptersWith}, the link to its document with its fingerprint,
- * one `X-ATTEMPT` per attempt, and the box it is logged from, which is done then.
+ * one `X-CHAPTER` per chapter, see {@link chaptersWith}, the links of its chapters and documents, see `linksOf`
+ * in `documents.ts`, one `X-ATTEMPT` per attempt, and the box it is logged from, which is done then.
  * - `tasks`: Tasks of the modules of the semester.
  * - `values`: `X-ATTEMPT`s of the entry.
+ * - `chapters`: Its chapters, those picked and those of its attempts.
  * - `plan`: The box it is logged from, `null` for none, whose place keeps its link, see `placeLinkOf` in `places.ts`.
  * - `fields`: Fields and times of the entry.
  * - `own`: Its chapters, links, attempts and box, as properties of my own.
  *
  * @param entry - Skill entry as the page sends it
  * @throws {Error} - When an attempt is not right, see {@link attemptValueOf}, the entry is not right,
- *   see {@link skillEntryCheck}, the document is none of the module's, or the box it is logged from is not open
+ *   see {@link skillEntryCheck}, a document is none of the module's, or the box it is logged from is not open
  */
 export function skillEntryAdd(entry: SkillEntryNew): void {
     const tasks: Task[] = tasksRead();
@@ -1102,9 +1105,10 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
         semester: semesterFor(skillName, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note.trim(),
         start: new Date(entry.start), end: new Date(entry.end),
     };
-    const own: [string, string | Link][] = chaptersWith(entry.chapters, tasksOf(values), tasks)
-        .map((chapter: string): [string, string] => ["x-chapter", chapter]);
-    own.push(...linksOf(entry.module, entry.document, []).map((link: Link): [string, Link] => ["attach", link]));
+    const chapters: string[] = chaptersWith(entry.chapters, tasksOf(values), tasks);
+    const own: [string, string | Link][] = chapters.map((chapter: string): [string, string] => ["x-chapter", chapter]);
+    own.push(...linksOf(entry.module, entry.type, entry.documents, chapters, [])
+        .map((link: Link): [string, Link] => ["attach", link]));
     own.push(...values.map((value: string): [string, string] => ["x-attempt", value]));
     if (entry.planned !== "")
         own.push(["related-to", entry.planned]);
@@ -1114,10 +1118,10 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
 }
 
 /**
- * Changes a skill entry of the log from the entry by category: its type, module, chapters, document, note and times,
+ * Changes a skill entry of the log from the entry by category: its type, module, chapters, documents, note and times,
  * and adds the new attempts after those it has, every other line as it is; the entry moves into the month file
- * of its new start when that is another file. Its links follow its skill and document, see `linksOf` in `documents.ts`:
- * a document it had keeps its link with its fingerprint, a new one gets its own.
+ * of its new start when that is another file. Its links follow its skill, type, chapters and documents, see `linksOf`
+ * in `documents.ts`: a document it had keeps its link with its fingerprint, a new one gets its own.
  * - `file`: `.ics` file of the entry.
  * - `old`: The entry as it is.
  * - `tasks`: Tasks of the modules of the semester.
@@ -1125,7 +1129,8 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
  *
  * @param change - Changed skill entry as the page sends it
  * @throws {Error} - When there is no such skill entry in the log of the new system, a new attempt is not right,
- *   see {@link attemptValueOf}, the entry is not right, see {@link skillEntryCheck}, or the document is none of the module's
+ *   see {@link attemptValueOf}, the entry is not right, see {@link skillEntryCheck}, or a document is none
+ *   of the module's
  */
 export function skillEntryEdit(change: SkillEntryChange): void {
     const [file, old]: [string, Entry] = entryFind(skillLog, change.id);
@@ -1136,9 +1141,10 @@ export function skillEntryEdit(change: SkillEntryChange): void {
         ...change.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks, ""))];
     skillEntryCheck(change, values, old.chapters, old.type);
 
+    const chapters: string[] = chaptersWith(change.chapters, [...tasksOf(values), ...old.tutors], tasks);
     propertiesPut(file, old.id, [
-        ["x-chapter", chaptersWith(change.chapters, [...tasksOf(values), ...old.tutors], tasks)],
-        ["attach", linksOf(change.module, change.document, old.links)],
+        ["x-chapter", chapters],
+        ["attach", linksOf(change.module, change.type, change.documents, chapters, old.links)],
         ["x-attempt", values],
     ]);
     const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" });
@@ -1161,11 +1167,13 @@ export function skillEntryEdit(change: SkillEntryChange): void {
  * - `plan`: Open skill box of the module for now, see `skillBoxOf` in `boxes.ts`.
  * - `type`: Type of a new entry, the box's or none.
  * - `worked`: Identities of the tasks of the new lines.
- * - `own`: Chapters, the link to the folder of its module, attempts, tutors and box of a new entry,
+ * - `chapters`: Chapters of a new entry, those of the tasks of the new lines, or of the open entry with them.
+ * - `own`: Chapters, the links of the chapters of my own learning, attempts, tutors and box of a new entry,
  *   as properties of my own.
  * - `start`: Start of a new entry, a quarter hour before its end, which names its month file.
  * - `values`: `X-ATTEMPT`s of the open entry with the new ones.
- * - `properties`: Properties of the open entry to write again.
+ * - `properties`: Properties of the open entry to write again, for my own learning with the links of its chapters
+ *   before those of its files, see `chapterLinksOf` in `documents.ts`.
  *
  * @param module - Module code, like `IN2028`
  * @param open - The skill entry of the moment of the module, `undefined` for none
@@ -1182,9 +1190,10 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
     if (open === undefined) {
         const plan: Box | undefined = skillBoxOf(module, now);
         const type: string = plan?.type ?? "";
-        const own: [string, string | Link][] = chaptersWith([], worked, tasks)
-            .map((chapter: string): [string, string] => ["x-chapter", chapter]);
-        own.push(...linksOf(module, "", []).map((link: Link): [string, Link] => ["attach", link]),
+        const chapters: string[] = chaptersWith([], worked, tasks);
+        const own: [string, string | Link][] =
+            chapters.map((chapter: string): [string, string] => ["x-chapter", chapter]);
+        own.push(...linksOf(module, type, [], chapters, []).map((link: Link): [string, Link] => ["attach", link]),
             ...attempts.map((value: string): [string, string] => ["x-attempt", value]),
             ...tutors.map((task: string): [string, string] => ["x-tutor", task]));
         if (plan !== undefined)
@@ -1204,11 +1213,15 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
     }
 
     const values: string[] = [...open.attempts, ...attempts];
-    const properties: [string, (string | Date)[]][] = [
-        ["x-chapter", chaptersWith(open.chapters, [...tasksOf(values), ...open.tutors, ...worked], tasks)],
+    const chapters: string[] = chaptersWith(open.chapters, [...tasksOf(values), ...open.tutors, ...worked], tasks);
+    const properties: [string, (string | Date | Link)[]][] = [
+        ["x-chapter", chapters],
         ["x-attempt", values],
         ["x-tutor", [...open.tutors, ...tutors]],
     ];
+    if (open.type === "")
+        properties.push(["attach", [...chapterLinksOf(module, chapters),
+            ...open.links.filter((link: Link): boolean => link.fingerprint !== "")]]);
     if (quarter > new Date(open.end))
         properties.push(["dtend", [quarter]]);
     const [file]: [string, Entry] = entryFind(skillLog, open.id);

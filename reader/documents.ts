@@ -1,21 +1,27 @@
 /**
  * ## Documents
  *
- * Names a skill entry and links it to the folder of its skill and to the document it used, like the slides of a lecture
- * or a sheet, its paths from `NomWorkspace`. Its `SUMMARY` is the name of the folder of its skill, with its type
+ * Names a skill entry and links it to the folder of its skill, to the documents it used, like the slides of a lecture
+ * or a sheet, and for my own learning to the folders of its chapters, its paths from `NomWorkspace`;
+ * each link only points to more, the entry states its facts itself, see `calendar.ts`.
+ * Its `SUMMARY` is the name of the folder of its skill, with its type
  * in round brackets at the end when it has one, and links that folder as its `ALTREP`, see {@link skillTitleOf},
  * like `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
  * my own learning without brackets, a project like
  * `SUMMARY;ALTREP="NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow":WokFlow`.
- * An `ATTACH` holds only a file, see `Link` in `calendar.ts`: the document I pick, which keeps the fingerprint
- * of its content, the SHA-256 of its bytes, as parameter, so the link survives a rename, like
- * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_UniversityLectureLessons/TUM_2025W/04_Logistic….pdf`;
- * a folder in an `ATTACH` of an older entry counts no more and goes once the entry changes.
+ * An `ATTACH` holds a file or a chapter, see `Link` in `calendar.ts`: each document I pick, which keeps
+ * the fingerprint of its content, the SHA-256 of its bytes, as parameter, so the link survives a rename, like
+ * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_UniversityLectureLessons/TUM_2025W/04_Logistic….pdf`,
+ * a lecture its slides, an exercise or a tutorial its sheet, a homework its sheet, its `DESCRIPTION` stating
+ * the topic or the sheet, like `Logistic Regression` or `Sheet 03`; and my own learning, without type, the folder
+ * of each chapter it covered beside the `X-CHAPTER` that names it, see {@link chapterLinksOf}, like
+ * `ATTACH:NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning/02_LogisticPoissonRegression`.
+ * The folder of a module in an `ATTACH` of an older entry counts no more and goes once the entry changes.
  * The reader checks every link of the whole log when it starts and every night at 04:00, see {@link linksCheckStart}:
  * a module folder that is gone, like after a rename, is found again by the code of the entry's module,
  * see `moduleFolderOf` in `notes.ts`, and its `SUMMARY` names the folder found; a document whose path no longer leads
  * to a file, like after a rename or a move into another folder of the module, is looked for by its fingerprint
- * among the module's documents.
+ * among the module's documents, and a chapter by the name of its folder in the module folder found.
  * Each repair goes into the entry, every other line of the file as it is, and into the reader's console, with the old
  * and the new path. A link it cannot repair stays as written, like a document deleted or the folder of a project,
  * which has no code to find it by, and the skill view lists it, see {@link linksLostRead}.
@@ -28,7 +34,8 @@
  * - `node:crypto`: Computes the SHA-256 of a file.
  * - `./calendar.ts`: Reads the log, finds an entry's event, puts new values into it or changes its fields,
  *   writes its start and the days in Berlin time, and names the category of skill entries.
- * - `./notes.ts`: Finds the folder of a module by its code, lists its documents, and gives the content type of a file.
+ * - `./notes.ts`: Finds the folder of a module by its code and of a chapter by its name, lists the documents
+ *   of a module, and gives the content type of a file.
  * - `./sources.ts`: Names `NomWorkspace`, the folder of my modules, the skills of the semester and the log
  *   of the skill area.
  */
@@ -39,7 +46,7 @@ import { createHash } from "node:crypto";
 import {
     berlinDateOf, berlinInstantOf, berlinTimeOf, dayAdd, entriesRead, entryChange, entryFind, propertiesPut, skillName,
 } from "./calendar.ts";
-import { codeOf, contentTypeOf, moduleContentsRead, moduleFolderOf } from "./notes.ts";
+import { chapterFolderOf, codeOf, contentTypeOf, moduleContentsRead, moduleFolderOf } from "./notes.ts";
 import { activeModules, moduleIs, modulesFolder, projectOf, skillLog, vault } from "./sources.ts";
 
 import type { Stats } from "node:fs";
@@ -183,40 +190,83 @@ export function titleOf(fields: { category: string; title: string; module: strin
 }
 
 /**
- * Builds the links of a skill entry to files, its `ATTACH`es, see the top of this file: the document it used,
- * a file of its module with its fingerprint; a document the entry links already keeps its link as it is,
- * also when the reader could not find it any more. The folder of its skill is the `ALTREP` of its `SUMMARY`.
- * - `folder`: Folder of the skill from `NomWorkspace`, see {@link skillFolderOf}.
- * - `path`: Path of the document from `NomWorkspace`.
- * - `kept`: The entry's link to that document, `undefined` for none.
+ * Builds the links of my own learning to the folders of the chapters it covered, each an `ATTACH` without fingerprint,
+ * beside the `X-CHAPTER` that names the chapter, see the top of this file, like
+ * `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning/02_LogisticPoissonRegression`; a chapter without folder
+ * in the module, like one only in the drafts, and a skill without module folder, like a project, get none.
+ * - `folder`: Name of the folder of the module, `undefined` for none.
+ * - `found`: Name of the folder of a chapter, `undefined` for none.
  *
- * @param code - Name of the skill, like `IN2028` or `WokFlow`
- * @param document - Path of the document from the folder of the skill, like `VO_…/04_LogisticPoissonRegression.pdf`,
- *   as the reader offered it, empty for none
- * @param links - Links the entry has, none for a new entry
- * @returns The link of its document, none without document
- * @throws {Error} - When the document is none of the module's
+ * @param code - Name of the skill, like `IN2028`
+ * @param chapters - Names to read of the chapters, like `02 Logistic Poisson Regression`
+ * @returns The links, in the order of the chapters
  */
-export function linksOf(code: string, document: string, links: Link[]): Link[] {
-    const folder: string | undefined = skillFolderOf(code);
-    if (folder === undefined || document === "")
+export function chapterLinksOf(code: string, chapters: string[]): Link[] {
+    const folder: string | undefined = moduleFolderOf(code);
+    if (folder === undefined)
         return [];
-
-    const path: string = `${folder}/${document}`;
-    const kept: Link | undefined = links.find((link: Link): boolean => link.fingerprint !== "" && link.path === path);
-    if (kept !== undefined)
-        return [kept];
-    if (!moduleIs(folder) || !moduleContentsRead(folder.slice(modulesFolder.length + 1)).documents.includes(document))
-        throw new Error(`No document ${document} in ${code}`);
-    return [{ path: path, fingerprint: fingerprintOf(diskOf(path)) }];
+    return chapters.flatMap((chapter: string): Link[] => {
+        const found: string | undefined = chapterFolderOf(folder, chapter);
+        return found === undefined ? [] : [{ path: `${modulesFolder}/${folder}/${found}`, fingerprint: "" }];
+    });
 }
 
 /**
- * Repairs the links of a skill entry to files that lead nowhere, see the top of this file: each document,
- * by its fingerprint among the documents of the module of the entry; a folder in an older `ATTACH` stays as it is.
+ * Builds the links of a skill entry, its `ATTACH`es, see the top of this file: for my own learning, without type,
+ * the folders of the chapters it covered, see {@link chapterLinksOf}, then for any type the documents it used,
+ * each a file of its module with its fingerprint, each once; a document the entry links already keeps its link
+ * as it is, also when the reader could not find it any more. The folder of its skill is the `ALTREP` of its `SUMMARY`.
+ * - `folder`: Folder of the skill from `NomWorkspace`, see {@link skillFolderOf}, `undefined` for none.
+ * - `path`: Path of a document from `NomWorkspace`.
+ * - `kept`: The entry's link to that document, `undefined` for none.
+ *
+ * @param code - Name of the skill, like `IN2028` or `WokFlow`
+ * @param type - Its type, like `VO`, empty for my own learning
+ * @param documents - Paths of the documents from the folder of the skill,
+ *   like `VO_…/04_LogisticPoissonRegression.pdf`, as the reader offered them, none for none
+ * @param chapters - Names to read of its chapters, like `02 Logistic Poisson Regression`
+ * @param links - Links the entry has, none for a new entry
+ * @returns The links of its chapters and documents
+ * @throws {Error} - When a document is none of the module's
+ */
+export function linksOf(code: string, type: string, documents: string[], chapters: string[], links: Link[]): Link[] {
+    const folder: string | undefined = skillFolderOf(code);
+    return [
+        ...(type === "" ? chapterLinksOf(code, chapters) : []),
+        ...(folder === undefined ? [] : [...new Set(documents)].map((document: string): Link => {
+            const path: string = `${folder}/${document}`;
+            const kept: Link | undefined =
+                links.find((link: Link): boolean => link.fingerprint !== "" && link.path === path);
+            if (kept !== undefined)
+                return kept;
+            if (!moduleIs(folder)
+                || !moduleContentsRead(folder.slice(modulesFolder.length + 1)).documents.includes(document))
+                throw new Error(`No document ${document} in ${code}`);
+            return { path: path, fingerprint: fingerprintOf(diskOf(path)) };
+        })),
+    ];
+}
+
+/**
+ * Tells whether a link is one of my own learning to the folder of a chapter, see {@link chapterLinksOf}:
+ * a folder, without fingerprint, right in the folder of a module, unlike the folder of a module itself
+ * in an `ATTACH` of an older entry, which counts no more.
+ *
+ * @param link - Link of a skill entry
+ * @returns Whether it links a chapter
+ */
+function chapterLinkIs(link: Link): boolean {
+    return link.fingerprint === "" && moduleIs(link.path) && link.path.split("/").length === 3;
+}
+
+/**
+ * Repairs the links of a skill entry that lead nowhere, see the top of this file: each document by its fingerprint
+ * among the documents of the module of the entry, each chapter by the name of its folder in the module folder
+ * found now, like after the module folder was renamed; the folder of a module in an older `ATTACH` stays as it is.
  * - `folder`: Name of the folder of the entry's module, as found now, `undefined` for none, like for a project.
  * - `repaired`: The links as repaired so far, in their order.
  * - `missing`: The links that stay as written.
+ * - `chapter`: Path the folder of a chapter would have in the module folder found now, `undefined` without one.
  * - `found`: Path of the document with the fingerprint from the module folder, `undefined` for none.
  *
  * @param entry - Skill entry of the log
@@ -226,8 +276,16 @@ function linksRepairOf(entry: Entry): [Link[], Link[]] {
     const folder: string | undefined = moduleFolderOf(entry.module);
     const missing: Link[] = [];
     const repaired: Link[] = entry.links.map((link: Link): Link => {
-        if (link.fingerprint === "" || existsSync(diskOf(link.path)))
+        if ((link.fingerprint === "" && !chapterLinkIs(link)) || existsSync(diskOf(link.path)))
             return link;
+        if (link.fingerprint === "") {
+            const chapter: string | undefined =
+                folder === undefined ? undefined : `${modulesFolder}/${folder}/${link.path.split("/")[2]}`;
+            if (chapter !== undefined && existsSync(diskOf(chapter)))
+                return { path: chapter, fingerprint: "" };
+            missing.push(link);
+            return link;
+        }
         const found: string | undefined = folder === undefined ? undefined
             : moduleContentsRead(folder).documents.find((document: string): boolean =>
                 fingerprintOf(join(diskOf(`${modulesFolder}/${folder}`), ...document.split("/"))) === link.fingerprint);
@@ -304,7 +362,7 @@ function folderRepair(file: string, entry: Entry): boolean {
 
 /**
  * Checks every link of the skill entries of the whole log, up to a year after now, see the top of this file:
- * the folder of each, the `ALTREP` of its `SUMMARY`, see {@link folderRepair}, then its documents, see
+ * the folder of each, the `ALTREP` of its `SUMMARY`, see {@link folderRepair}, then its documents and chapters, see
  * {@link linksRepairOf}; writes the repaired links into their entries, prints each repair, see {@link repairPrint},
  * and keeps the links it could not repair for the skill view. Entries that cannot be changed stay as they are.
  * - `entries`: Skill entries of the log with links.

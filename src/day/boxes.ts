@@ -71,6 +71,7 @@ import { ArrowRight, Check, Gift, Plus, Undo2, X } from "lucide";
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
 import type { IconNode } from "lucide";
 import type { Suggestion } from "./suggestions.ts";
+import type { Link } from "../skill/attempts.ts";
 
 
 /**
@@ -103,6 +104,7 @@ export type BoxState = "open" | "done" | "dropped";
  *   also one occurrence of a series, alone, like the lecture `IN2028 VO` on 26.10.2026.
  * - `series`: Whether it is one occurrence of a series, which cannot be removed.
  * - `todo`: Whether it is a to-do; an event, like a lecture imported from TUMonline, keeps its time and duration.
+ * - `links`: Its links, like the slides a lecture of my plan links, which a log entry from it gets too.
  */
 export type Box = {
     id: string;
@@ -125,6 +127,7 @@ export type Box = {
     editable: boolean;
     series: boolean;
     todo: boolean;
+    links: Link[];
 };
 
 /**
