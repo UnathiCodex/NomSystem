@@ -12,21 +12,15 @@
  * NavigaTUM page of a room, stays as it is.
  * Save adds the place to `Places.md` and picks it; Cancel, `Esc` or a click beside the dialog pick nothing.
  * The pencil below a place picked opens the same dialog filled with my place, see {@link placeEdit}, and Save
- * changes its row in `Places.md`, its name, its address and its link; entries written before keep their address
- * after a move, or take the new one when I say the old one was wrong, in one more row of the dialog.
+ * changes its row in `Places.md`, its name, its address and its link, and nothing else, asking nothing more:
+ * entries written before keep what they have.
  * An entry writes a place as one line, its name and its address, like
  * `TumMain, Arcisstraße 21, 80333 München, Deutschland`, see {@link lineOf}; it shows by its name, the part
  * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens the link
  * of the place, written with it as its `ALTREP`, when it has one, and nothing else: nothing opens a map by itself,
  * only a link stored with the place opens on a click.
  * A way shows its route by labels, see {@link whereOf}.
- *
- * - `./choices.ts`: The picker whether entries written before keep their address.
  */
-
-import { choicesOf, rowOf, searchOf } from "./choices.ts";
-
-import type { Choice } from "./choices.ts";
 
 
 /**
@@ -41,31 +35,6 @@ export type Place = {
     address: string;
     link: string;
 };
-
-/**
- * My place as the dialog changed it, see {@link placeEdit}.
- *
- * - `place`: The place as written.
- * - `fix`: Whether its old address was wrong, so the entries that carried it took the new one too.
- */
-export type PlaceEdited = {
-    place: Place;
-    fix: boolean;
-};
-
-/**
- * Choices whether the entries written before keep the address they carry, after a move, or take the new one,
- * since the old one was wrong.
- */
-const fixChoices: Choice[] = [
-    { value: "keep", text: "Keep their address, I moved", group: "" },
-    { value: "fix", text: "Correct theirs too, it was wrong", group: "" },
-];
-
-/**
- * Whether the entries written before take the new address of the place being changed, see {@link fixChoices}.
- */
-let fixing: boolean = false;
 
 /**
  * Takes the place the open dialog saved, or `null` when it closed without saving, so the picker that opened it
@@ -180,7 +149,7 @@ function mapsLinkOf(address: string): string {
 
 /**
  * Sends a new place to the reader, which adds it to `Places.md`, or my place being changed, with its old name,
- * see {@link editing}, which the reader changes in its row, and whether its old address was wrong.
+ * see {@link editing}, which the reader changes in its row.
  *
  * @param place - Name, address and link as typed
  * @returns The place as written, its name, address and link cleaned
@@ -190,7 +159,7 @@ async function placeSend(place: Place): Promise<Place> {
     const response: Response = await fetch("/api/day/places", {
         method: editing === "" ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editing === "" ? place : { ...place, old: editing, fix: fixing }),
+        body: JSON.stringify(editing === "" ? place : { ...place, old: editing }),
     });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
@@ -230,35 +199,20 @@ function placeSave(): void {
 export function placeOpen(name: string): Promise<Place | null> {
     editing = "";
     linkFollows = true;
-    document.getElementById("place-fix")?.setAttribute("hidden", "");
     return placeShow({ name: name, address: "", link: "" }, name === "" ? "place-name" : "place-address");
 }
 
 /**
  * Opens the dialog of a place over the entry by category to change my place: its name, its address and its link
- * filled in, the name focused, and below them whether the entries written before keep the address they carry,
- * after a move, as it starts, or take the new one, since the old one was wrong, see {@link fixChoices}.
- * - `fix`: The row of that choice.
- * - `saved`: The place as written, `null` when the dialog closed without saving.
+ * filled in, the name focused; it asks nothing more, the entries written before keeping what they have.
  *
  * @param place - My place as it is, like `TumMain` with its address and link
- * @returns The place as written and whether the old address was wrong, once it is saved, `null` when the dialog
- *   closes without saving
+ * @returns The place as written once it is saved, `null` when the dialog closes without saving
  */
-export async function placeEdit(place: Place): Promise<PlaceEdited | null> {
-    const fix: HTMLElement = document.getElementById("place-fix") as HTMLElement;
+export function placeEdit(place: Place): Promise<Place | null> {
     editing = place.name;
     linkFollows = false;
-    fixing = false;
-    fix.replaceChildren(rowOf("Entries", choicesOf({
-        search: searchOf(fixChoices), picked: ["keep"], many: false, adding: false,
-        pick: (values: string[]): void => {
-            fixing = values[0] === "fix";
-        },
-    })));
-    fix.hidden = false;
-    const saved: Place | null = await placeShow(place, "place-name");
-    return saved === null ? null : { place: saved, fix: fixing };
+    return placeShow(place, "place-name");
 }
 
 /**

@@ -82,7 +82,7 @@ import {
 import { semesterFor, skillName, skillTypes } from "./categories.ts";
 import { fileOf } from "./day.ts";
 import {
-    chaptersOf, documentLinksOf, linksLostRead, linksOf, titleOf,
+    chaptersOf, documentLinksOf, linksLostRead, linksOf, skillTitleOf, titleOf,
 } from "./documents.ts";
 import { codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
@@ -270,6 +270,9 @@ export type SkillModule = {
  *   a module by its code, like `IN2028`, a project by its folder name, like `WokFlow`.
  * - `otherModules`: The other module folders by their codes, like `IN0024`, for the search of the Skill picker,
  *   which reaches every module.
+ * - `folders`: The whole name of the folder of each of them by its name, which the Skill picker shows,
+ *   like `IN2028_BusinessAnalyticsMachineLearning` for `IN2028`, or `WokFlow` for a project, see `skillTitleOf`
+ *   in `documents.ts`.
  * - `skips`: Reasons to pick when skipping a task.
  * - `types`: Types of a skill entry, like `VO`.
  * - `efforts`: Efforts to rate an attempt with, the lowest first.
@@ -279,6 +282,7 @@ export type Skilling = {
     modules: SkillModule[];
     skills: string[];
     otherModules: string[];
+    folders: { [name: string]: string };
     skips: string[];
     types: string[];
     efforts: Effort[];
@@ -956,9 +960,13 @@ export function skillingRead(): Skilling {
         };
     });
 
+    const skills: string[] = activeSkills.map(skillNameOf);
+    const others: string[] =
+        moduleFoldersRead().filter((name: string): boolean => !activeModules.includes(name)).map(codeOf);
     return {
-        modules: modules, skills: activeSkills.map(skillNameOf),
-        otherModules: moduleFoldersRead().filter((name: string): boolean => !activeModules.includes(name)).map(codeOf),
+        modules: modules, skills: skills, otherModules: others,
+        folders: Object.fromEntries([...skills, ...others].map((name: string): [string, string] =>
+            [name, skillTitleOf(name, "")])),
         skips: skips, types: skillTypes, efforts: efforts, lost: linksLostRead(),
     };
 }

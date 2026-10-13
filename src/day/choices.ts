@@ -4,7 +4,7 @@
  * The dashboard's own picker, in place of the browser's drop-downs, for every field of a dialog that picks:
  * categories, places, summaries, ways to travel, skills, types, chapters, documents, semesters, tasks and efforts.
  * A field is one row of its dialog: its name at the left, then one line showing its value, like
- * `IN2028_BusinessAnalyticsMachineLearning (VO)`, or grey what it is without one, like `No type`; a click anywhere
+ * `IN2028_BusinessAnalyticsMachineLearning (VO)`, empty without one, no dash and no placeholder; a click anywhere
  * on the row opens its list right under the line, inside the dialog, pushing the rows below it down, never covering
  * its own row, see {@link listOf}; only one list is open at a time, and Esc or a click beside it closes it.
  * A list of one value to pick closes as I pick; one of several, like tasks, stays open, its picks lighter rows,
@@ -50,7 +50,8 @@ export type Choice = {
  *   itself.
  * - `pick`: Takes the values picked after each change, in the order they were picked; for a list of one value
  *   once it is closed.
- * - `empty`: What the line shows, grey, while nothing is picked, like `No type`; `—` when left out.
+ * - `empty`: What the line shows, grey, while nothing is picked; nothing when left out, as every field of the entry
+ *   by category has it.
  * - `noun`: What a value is, like `place` or `summary`, for the search field, `Search or add a place`,
  *   and for `+ New place`; `value` when left out.
  * - `aside`: Elements beside the line, like the pencil of a place; none when left out.
@@ -77,7 +78,7 @@ export type ChoicesSetup = {
  *   whose folder has another name now.
  * - `textOf`: Text of a value picked in its row, like the name of the file of a document of its path.
  * - `grouped`: Whether the search looks at the group of a value too, see {@link groupedSearchOf}.
- * - `noun`: What a value is, like `chapter`, for the line of the list, `Add a chapter`.
+ * - `noun`: What a value is, like `chapter`, for the search of the list.
  * - `hint`: Shown in place of the line while there are no values to offer at all, like `No chapters yet`.
  * - `change`: Takes the values picked after each pick and each value taken back, in their order.
  */
@@ -275,7 +276,7 @@ export function listOf(picker: HTMLElement, line: HTMLButtonElement, box: HTMLEl
  *   of all values together, fixed at the start.
  * - `found`: Values found for the typed text.
  * - `close`: Closes the list.
- * - `lineShow`: Shows the texts of the values picked in the line, or grey what it is without them.
+ * - `lineShow`: Shows the texts of the values picked in the line, or nothing without them.
  * - `toggle`: Picks a value or takes it back, shows it in the line, and tells the dialog; a list of one value
  *   closes first.
  * - `show`: Shows the values found for the text of the search field, unless a newer text came meanwhile,
@@ -307,7 +308,7 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
 
     const lineShow: () => void = (): void => {
         const text: string = chosen.map((value: string): string => texts.get(value) ?? value).join(", ");
-        line.textContent = text === "" ? setup.empty ?? "—" : text;
+        line.textContent = text === "" ? setup.empty ?? "" : text;
         line.title = text;
         line.classList.toggle("picker-empty", text === "");
     };
@@ -472,7 +473,7 @@ function addedRowOf(text: string, remove: () => void): HTMLDivElement {
 
 /**
  * Builds the rows of a field of several values, like the chapters or the documents of a skill entry: its row
- * with the line of its list, grey `Add a chapter`, see {@link choicesOf}, whose pick closes the list and adds
+ * with the line of its list, empty, see {@link choicesOf}, whose pick closes the list and adds
  * the value as a row of its own below, see {@link addedRowOf}; opening the list again adds the next one.
  * The list offers the values not picked yet; while there are none at all, a hint stands in place of its line.
  * - `offered`: Values the list offers.
@@ -486,7 +487,7 @@ export function addedRowsOf(name: string, setup: AddedSetup): HTMLDivElement[] {
     const offered: Choice[] = setup.choices.filter((choice: Choice): boolean => !setup.picked.includes(choice.value));
     const head: HTMLDivElement = setup.choices.length === 0 ? rowOf(name, setup.hint) : rowOf(name, choicesOf({
         search: setup.grouped ? groupedSearchOf(offered) : searchOf(offered), picked: [], many: false,
-        adding: false, empty: `Add a ${setup.noun}`, noun: setup.noun,
+        adding: false, noun: setup.noun,
         pick: (values: string[]): void => {
             if (values.length > 0)
                 setup.change([...setup.picked, values[0]]);

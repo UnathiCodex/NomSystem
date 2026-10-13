@@ -63,29 +63,14 @@
     </aside>
 </div>
 
-<!-- Entry by category for the log and the boxes of the plan, shown over the page: its title, Log entry or Plan entry,
-     then one column of rows in the order of the file, each its name grey at the left, all names equally wide,
-     and its value at the right: the category first, then the summary, start and end, the place, more fields,
-     the note, and the buttons. A click on a row opens its list right under it, see choices.ts.
+<!-- Entry by category for the log and the boxes of the plan, shown over the page, without a title, all its room
+     for the fields: one column of rows in the order of the file, each its name grey at the left, all names equally
+     wide, and its value at the right, an empty field empty, without dash or placeholder: start and end fixed at the
+     top, then the category, below it the fields of the category one after another, the note always at the bottom,
+     and the buttons. A click on a row opens its list right under it, see choices.ts.
      Esc or a click beside the dialog closes it without saving -->
 <dialog class="panel entry-panel" id="entry" closedby="any">
     <form class="panel-form entry-form" id="entry-form">
-        <!-- Title, with the button to log a box of the plan instead, or to change the box a log entry comes from -->
-        <div class="entry-head">
-            <h2 class="entry-dialog-title" id="entry-heading">Log entry</h2>
-            <button id="entry-plan-log" type="button" hidden>Log it</button>
-            <button id="entry-plan-edit" type="button" hidden>Edit plan</button>
-        </div>
-
-        <!-- The box a log entry comes from, small and grey -->
-        <p class="entry-from-plan" id="entry-plan" hidden><span id="entry-plan-title"></span></p>
-
-        <!-- The category, one line; for a box only the categories I plan -->
-        <div id="entry-category"></div>
-
-        <!-- Fields before the times: what, place and where a way starts, or the skill and its type side by side -->
-        <div class="panel-form" id="entry-fields"></div>
-
         <!-- Start and end, one row each, its day and its time, as calendar apps write them, the same for the log
              and the plan: the day of the start like 13.10.2026, filled with the date of the entry or the box,
              of the selected slot, or of the half hour before now for +; the times plain, like 14:00, 1415 or 14;
@@ -100,39 +85,51 @@
                     <input class="date-field" id="entry-start-day" type="text" inputmode="decimal" autocomplete="off"
                            required aria-label="Day of the start">
                     <input class="time-field" id="entry-start" type="text" inputmode="numeric" autocomplete="off"
-                           placeholder="Time" aria-label="Time of the start"></span></label>
+                           aria-label="Time of the start"></span></label>
             <label class="panel-field"><span class="entry-name">End</span>
                 <span class="entry-moment">
                     <input class="date-field" id="entry-end-day" type="text" inputmode="decimal" autocomplete="off"
                            required aria-label="Day of the end">
                     <input class="time-field" id="entry-end" type="text" inputmode="numeric" autocomplete="off"
-                           placeholder="Time" aria-label="Time of the end"></span></label>
+                           aria-label="Time of the end"></span></label>
             <label class="panel-field" id="entry-deadline"><span class="entry-name">Deadline</span>
                 <span class="entry-moment">
                     <input class="date-field" id="entry-deadline-day" type="text" inputmode="decimal"
                            autocomplete="off" aria-label="Day of the deadline">
                     <input class="time-field" id="entry-deadline-time" type="text" inputmode="numeric"
-                           autocomplete="off" placeholder="Time" aria-label="Time of the deadline"></span></label>
+                           autocomplete="off" aria-label="Time of the deadline"></span></label>
         </fieldset>
 
         <!-- How long the last entries like the box really lasted, small and grey under its minutes,
              like Real, last 3: 150 · 165 · 140 min; hidden while none is logged -->
         <p class="entry-real" id="entry-real" hidden></p>
 
-        <!-- Fields after the times: for Skill its place, semester, chapters, documents and attempts,
-             for Food its foods -->
+        <!-- The category, one line; for a box only the categories I plan -->
+        <div id="entry-category"></div>
+
+        <!-- Fields of the category: what, or the skill and its type side by side -->
+        <div class="panel-form" id="entry-fields"></div>
+
+        <!-- More fields of the category: where a way starts and its place; for Skill its place, semester, chapters,
+             documents and attempts, for Food its foods -->
         <div class="panel-form" id="entry-more"></div>
 
         <!-- Free note, my diary of the unit, how it felt and what I learned, growing with its text -->
         <label class="panel-field"><span class="entry-name">Note</span>
-            <textarea id="entry-note" rows="3" placeholder="Note"></textarea></label>
+            <textarea id="entry-note" rows="3" aria-label="Note"></textarea></label>
+
+        <!-- The box a log entry comes from, small and grey -->
+        <p class="entry-from-plan" id="entry-plan" hidden><span id="entry-plan-title"></span></p>
 
         <!-- Hint when the reader does not take the entry -->
         <p class="panel-error" id="entry-error" hidden>Saving failed</p>
 
-        <!-- Remove asks once more, cancel closes the dialog, save sends the entry once its fields are picked -->
+        <!-- Remove asks once more; for a box of the plan Log it logs it instead, for a log entry from a box Edit plan
+             changes that box; cancel closes the dialog, save sends the entry once its fields are picked -->
         <div class="panel-buttons">
             <button class="panel-remove" id="entry-remove" type="button" hidden>Remove</button>
+            <button id="entry-plan-edit" type="button" hidden>Edit plan</button>
+            <button id="entry-plan-log" type="button" hidden>Log it</button>
             <button id="entry-cancel" type="button">Cancel</button>
             <button class="panel-main" id="entry-save" type="submit" disabled>Save</button>
         </div>
@@ -172,10 +169,6 @@
                    placeholder="Street (number), postcode town, country"></label>
         <label class="panel-field"><span class="entry-name">Link</span>
             <input id="place-link" type="url" autocomplete="off" placeholder="https://…"></label>
-
-        <!-- While my place is changed: whether the entries written before keep the address they carry, after a move,
-             or take the new one, since the old one was wrong, see places.ts -->
-        <div id="place-fix" hidden></div>
 
         <!-- Hint when the reader does not take the place -->
         <p class="panel-error" id="place-error" hidden>

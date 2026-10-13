@@ -173,6 +173,8 @@ export type SkillModule = {
  * - `skills`: The skills of the semester in their order, for the Skill picker: a module by its code, like `IN2028`,
  *   a project by its folder name, like `WokFlow`.
  * - `otherModules`: The other module folders by their codes, like `IN0024`, for the search of the Skill picker.
+ * - `folders`: The whole name of the folder of each of them by its name, which the Skill picker shows,
+ *   like `IN2028_BusinessAnalyticsMachineLearning` for `IN2028`.
  * - `skips`: Reasons to pick when skipping a task.
  * - `types`: Types of a skill entry, like `VO`.
  * - `efforts`: Efforts to rate an attempt with, the lowest first.
@@ -182,6 +184,7 @@ export type Skilling = {
     modules: SkillModule[];
     skills: string[];
     otherModules: string[];
+    folders: { [name: string]: string };
     skips: string[];
     types: string[];
     efforts: Effort[];

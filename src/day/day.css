@@ -859,11 +859,12 @@ button.box-ring.box-checked svg {
     border-color: var(--line);
 }
 
-/* Two pickers side by side in one row, like the skill and the type of a skill entry in its summary, the first wider;
-   the list of either opens below both, as wide as the row */
+/* Two pickers side by side in one row, like the skill and the type of a skill entry in its summary: the first takes
+   the room, like the whole name `IN2028_BusinessAnalyticsMachineLearning`, the second only what its value needs,
+   at least 5rem to click, so the type stays on the line; the list of either opens below both, as wide as the row */
 .panel-pair {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-columns: minmax(0, 1fr) minmax(5rem, auto);
     column-gap: var(--gap);
     align-items: baseline;
 }
@@ -933,31 +934,6 @@ button.box-ring.box-checked svg {
     max-height: calc(100dvh - 2 * var(--gap));
     margin-top: max(var(--gap), 6dvh);
     overflow-y: auto;
-}
-
-/* Title of the entry by category, `Log entry` or `Plan entry`, in line with the names of the rows,
-   with the button to log the box or to change the plan beside it at the right */
-.entry-head {
-    display: flex;
-    align-items: center;
-    gap: var(--control-gap);
-    padding: 0 var(--row-padding) 0.5rem;
-}
-
-.entry-dialog-title {
-    margin: 0 auto 0 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-}
-
-/* Button to log the box or to change the plan, one chip high and outlined */
-.entry-head button {
-    min-height: var(--chip-height);
-    padding: 0 var(--control-padding);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--background);
-    cursor: pointer;
 }
 
 /* Start and end, and the deadline of a box, rows like the others, without the frame a group of fields has
@@ -1050,15 +1026,6 @@ fieldset.entry-times {
     color: var(--text-main);
 }
 
-/* Field of a summary the pencil opens below it, to edit it or write a new one, outlined while I type */
-.panel .entry-summary-edit {
-    width: 100%;
-    margin-top: 0.375rem;
-    padding: 0.25rem 0.5rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-}
-
 /* Links of a skill entry being changed, one after the other: the folder of its skill by its grey name,
    its document underlined thin in the white of the text, which a click opens in a new tab, see `skill/links.ts` */
 .entry-links {
@@ -1114,7 +1081,11 @@ fieldset.entry-times {
     cursor: pointer;
 }
 
+/* An empty line shows nothing, but still takes the width left and one line of height, so a click on it opens
+   its list, like the type beside a skill */
 .picker-line.picker-empty {
+    flex: 1 1 auto;
+    min-height: 1lh;
     color: var(--text-muted);
 }
 

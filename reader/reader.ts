@@ -147,8 +147,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/day/places`: Adds the place of the body with its address to `Places.md`, a room to `Rooms.md`,
  *   and sends it as written.
  * - `PATCH /api/day/places`: Changes the place of the old name of the body in `Places.md`, or the room in `Rooms.md`,
- *   and sends it as written;
- *   when the body says its old address was wrong, also in the entries and boxes that carry it.
+ *   and nothing else, and sends it as written.
  * - `GET /api/notes/modules`: Sends the modules of the semester with their chapters and notes.
  * - `GET /api/notes/note?path=…`: Sends a note with the files its links lead to.
  * - `GET /api/notes/file?path=…`: Sends a file of my modules, like an image of a note.

@@ -2,11 +2,12 @@
  * ## Skill in the entry by category
  *
  * A skill entry in the dialog, for a box of the plan and the log alike, one row per field, each one line showing
- * its value, see `choices.ts`: on top its summary, its skill and its type side by side on one line, like `IN2028`
- * and `VO`, the type `No type` for my own learning or a project, like `WokFlow`; the reader writes what it is
- * from both, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `reader/documents.ts`, and writes it anew
- * when I change either later. Below the times its place, its name with its pencil and its address below it,
- * see `categories.ts`, as every category has it; then in this order its semester, its chapters and its documents.
+ * its value, see `choices.ts`: below the times and the category its summary, its skill and its type side by side
+ * on one line, like `IN2028_BusinessAnalyticsMachineLearning` and `VO`, no type, the type empty, for my own learning
+ * or a project, like `WokFlow`; the reader writes what it is from both, like
+ * `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `reader/documents.ts`, and writes it anew when I change either
+ * later. Then its place, its name with its pencil and its address below it, see `categories.ts`, as every category
+ * has it; then in this order its semester, its chapters and its documents.
  * Its semester says from which semester the lecture or the material is, not when I did it:
  * the semester of the day of the dialog, which follows that day as I type it, until I pick another from its list,
  * never typed: that semester first, then every semester the module has material for, newest first.
@@ -17,7 +18,7 @@
  * The Chapters list offers the chapters of my system of the module, by the names of their folders, for every type,
  * like a lecture of `02 Logistic Poisson Regression` or exam training over several; the reader writes one
  * `X-CHAPTER` each, and an entry keeps the name a chapter had, also once its folder has another name.
- * The Documents list opens once skill, type and semester are set, the type `No type` too, and offers the real
+ * The Documents list opens once skill, type and semester are set, no type too, and offers the real
  * documents of the folder fitting the type and the semester, see {@link materialFolders}, the folder of the semester
  * like `TUM_2026W` for `2026W`: a lecture's slides in `VO_UniversityLectureLessons`, the sheet of an exercise
  * or a tutorial in `TU_UniversityTutorExercises`, a homework's in `HU_UniversityHomeExercises`, and for my own
@@ -144,7 +145,9 @@ const resultChoices: Choice[] = [
 /**
  * Modules with their tasks and the lists to pick from, as the reader gave them when `Skill` was picked.
  */
-let skilling: Skilling = { modules: [], skills: [], otherModules: [], skips: [], types: [], efforts: [], lost: [] };
+let skilling: Skilling = {
+    modules: [], skills: [], otherModules: [], folders: {}, skips: [], types: [], efforts: [], lost: [],
+};
 
 /**
  * What is picked so far.
@@ -179,9 +182,9 @@ let semesterDay: string = "";
  * shows its semester, see {@link skillDaySet}, and a changed place its line, see {@link skillPlaceShow};
  * `null` before the fields of `Skill` show.
  *
- * - `head`: Place of skill and type, above the times.
- * - `more`: Place of the fields below the times, before the note.
- * - `place`: Rows of the place of the entry, which `categories.ts` builds, put first below the times.
+ * - `head`: Place of skill and type, below the category.
+ * - `more`: Place of the fields below them, before the note.
+ * - `place`: Rows of the place of the entry, which `categories.ts` builds, put first below skill and type.
  * - `changed`: Tells the dialog that what is picked changed, so it allows saving or not.
  */
 type SkillShown = {
@@ -278,14 +281,17 @@ function hintOf(text: string): HTMLParagraphElement {
 /**
  * Builds the search of the Skill list: while nothing is typed the skills of the semester and the skill picked,
  * while I type every skill and module folder that holds the words, the skills of the semester first.
- * Each shows its name, a module its code, like `IN2028`, a project its folder name, like `WokFlow`.
- * - `choices`: Every skill and module, the skills of the semester first, each its name as value and text.
+ * Each shows the whole name of its folder, as there is room, like `IN2028_BusinessAnalyticsMachineLearning`,
+ * a project like `WokFlow`, and is picked by its name, a module its code, like `IN2028`.
+ * - `choices`: Every skill and module, the skills of the semester first, each its name as value, the name of its
+ *   folder as text.
  * - `shown`: Skills the search looks through.
  *
  * @returns Search for the picker
  */
 function moduleSearchOf(): (text: string) => Promise<Choice[]> {
-    const choices: Choice[] = [...skilling.skills, ...skilling.otherModules].map(choiceOf);
+    const choices: Choice[] = [...skilling.skills, ...skilling.otherModules].map((name: string): Choice =>
+        ({ value: name, text: skilling.folders[name] ?? name, group: "" }));
     return async (text: string): Promise<Choice[]> => {
         const shown: Choice[] = text.trim() !== "" ? choices : choices.filter((choice: Choice): boolean =>
             choice.value === picks.module || skilling.skills.includes(choice.value));
@@ -429,7 +435,7 @@ function taskChoicesOf(tasks: SkillTask[]): Choice[] {
 /**
  * Builds the result of a task picked: its name, whole in its tooltip, the line of its result, and below that line,
  * for Stuck, the field for where I got stuck, for Skip the line of the reasons, and after Right, Wrong or Stuck
- * the line of my effort, like `low effort`, each grey what it is while empty.
+ * the line of my effort, like `low effort`, each empty while nothing is picked.
  * - `detail`: Place of the field or the reasons, and of the efforts.
  * - `detailShow`: Shows the field or the reasons and the efforts for the result picked.
  *
@@ -447,7 +453,7 @@ function resultElementOf(pick: AttemptPick, name: string, changed: () => void): 
         if (pick.result === "stuck") {
             const input: HTMLInputElement = document.createElement("input");
             input.type = "text";
-            input.placeholder = "Where stuck, like step 3";
+            input.setAttribute("aria-label", "Where stuck");
             input.autocomplete = "off";
             input.value = pick.detail;
             input.addEventListener("input", (): void => {
@@ -457,7 +463,7 @@ function resultElementOf(pick: AttemptPick, name: string, changed: () => void): 
         } else if (pick.result === "skipped") {
             parts.push(choicesOf({
                 search: searchOf(skilling.skips.map(choiceOf)), picked: pick.detail === "" ? [] : [pick.detail],
-                many: false, adding: false, empty: "Why skipped",
+                many: false, adding: false,
                 pick: (values: string[]): void => {
                     pick.detail = values[0] ?? "";
                 },
@@ -467,7 +473,7 @@ function resultElementOf(pick: AttemptPick, name: string, changed: () => void): 
             parts.push(choicesOf({
                 search: searchOf(skilling.efforts.map((effort: string): Choice =>
                     ({ value: effort, text: `${effort} effort`, group: "" }))),
-                picked: pick.effort === "" ? [] : [pick.effort], many: false, adding: false, empty: "Effort",
+                picked: pick.effort === "" ? [] : [pick.effort], many: false, adding: false,
                 pick: (values: string[]): void => {
                     pick.effort = (values[0] ?? "") as Effort | "";
                 },
@@ -483,7 +489,6 @@ function resultElementOf(pick: AttemptPick, name: string, changed: () => void): 
     detail.className = "skill-result-detail";
     element.append(label, choicesOf({
         search: searchOf(resultChoices), picked: pick.result === "" ? [] : [pick.result], many: false, adding: false,
-        empty: "Result",
         pick: (values: string[]): void => {
             pick.result = (values[0] ?? "") as Result | "";
             pick.detail = "";
@@ -574,7 +579,7 @@ function tasksOf(changed: () => void): HTMLElement[] {
     return [rowOf("Tasks", choicesOf({
         below: [results],
         search: searchOf(taskChoicesOf(tasks)), picked: picks.attempts.map((pick: AttemptPick): string => pick.task),
-        many: true, adding: false, empty: "None", noun: "task",
+        many: true, adding: false, noun: "task",
         pick: (values: string[]): void => {
             picks.attempts = values.map((task: string): AttemptPick =>
                 picks.attempts.find((pick: AttemptPick): boolean => pick.task === task)
@@ -639,7 +644,7 @@ function documentRowsOf(again: () => void): HTMLElement[] {
 
 /**
  * Shows the fields of `Skill` as picked so far, see the top of this file: skill and type side by side in the row
- * of its summary above the times; below them the place, the semester, the chapters, see {@link chapterRowsOf},
+ * of its summary below the category; below them the place, the semester, the chapters, see {@link chapterRowsOf},
  * and the documents, see {@link documentRowsOf}, and in the log the tasks of the chapters picked with a result
  * for each task picked, see {@link tasksOf}, the links of the entry, see {@link linkedOf}, and the attempts
  * the entry has.
@@ -659,7 +664,7 @@ function picksShow(shown: SkillShown): void {
     shown.head.replaceChildren(rowOf("Summary", pairOf(
         choicesOf({
             search: moduleSearchOf(), picked: picks.module === "" ? [] : [picks.module], many: false, adding: false,
-            empty: "Skill", noun: "skill",
+            noun: "skill",
             pick: (values: string[]): void => {
                 picks = { ...picks, module: values[0] ?? "", chapters: [], documents: [], attempts: [] };
                 contentsLoad().then(again).catch((error: unknown): void => console.error(error));
@@ -667,7 +672,7 @@ function picksShow(shown: SkillShown): void {
         }),
         choicesOf({
             search: searchOf(skilling.types.map(choiceOf)), picked: picks.type === "" ? [] : [picks.type],
-            many: false, adding: false, empty: "No type", noun: "type",
+            many: false, adding: false, noun: "type",
             pick: (values: string[]): void => {
                 picks.type = values[0] ?? "";
                 again();
@@ -695,9 +700,9 @@ function picksShow(shown: SkillShown): void {
 /**
  * Shows the fields of `Skill` for a box of the plan or an entry of the log, as it has them, see {@link picksShow}.
  *
- * @param head - Place of skill and type in the dialog, above the times
- * @param more - Place of the fields below the times, before the note
- * @param place - Rows of the place of the entry, put first below the times
+ * @param head - Place of skill and type in the dialog, below the category
+ * @param more - Place of the fields below them, before the note
+ * @param place - Rows of the place of the entry, put first below skill and type
  * @param plan - Whether it is a box of the plan, which takes no tasks and attempts
  * @param values - Values of the entry, empty for a new one
  * @param day - Day of the dialog, like `2026-10-13`, whose semester the entry has while it has none
