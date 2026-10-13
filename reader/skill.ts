@@ -65,7 +65,7 @@
  *   and reads the skill boxes of the plan, for the lists of each module by type.
  * - `./calendar.ts`: Reads the log, appends entries to it, changes their events, and adds days to a day.
  * - `./categories.ts`: Names the category and the types of skill entries and writes what a skill entry was.
- * - `./day.ts`: Gives the month file of the log for the start of an entry.
+ * - `./day.ts`: Gives the log an entry belongs into, the log of its skill.
  * - `./documents.ts`: Builds the links of a skill entry, to the folder of its skill, to its documents
  *   with their fingerprints and to the folders of its chapters, and gives the links it could not repair.
  * - `./notes.ts`: Reads the modules of the semester with their chapters and notes, and every module folder.
@@ -80,7 +80,7 @@ import {
     propertiesPut,
 } from "./calendar.ts";
 import { semesterFor, skillName, skillTypes } from "./categories.ts";
-import { fileOf } from "./day.ts";
+import { logFileOf } from "./day.ts";
 import {
     chaptersOf, documentLinksOf, linksLostRead, linksOf, skillTitleOf, titleOf,
 } from "./documents.ts";
@@ -1095,8 +1095,8 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
 }
 
 /**
- * Writes a new skill entry into the log, into the month file of its start, from the entry by category:
- * `CATEGORIES` is `Skill`, `SUMMARY` its module and type with the folder of its skill as `ALTREP`,
+ * Writes a new skill entry into the log, into the log of its skill, see `logFileOf` in `day.ts`, from the entry
+ * by category: `CATEGORIES` is `Skill`, `SUMMARY` its module and type with the folder of its skill as `ALTREP`,
  * like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `titleOf` in `documents.ts`, its place and note,
  * the documents it used, see `linksOf` in `documents.ts`, one `X-CHAPTER` per chapter,
  * see {@link chaptersWith}, one `X-ATTEMPT` per attempt, and the box it is logged from, which is done then.
@@ -1133,7 +1133,7 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
     own.push(...values.map((value: string): [string, string] => ["x-attempt", value]));
     if (entry.planned !== "")
         own.push(["related-to", entry.planned]);
-    entryAppend(fileOf(fields.start), fields, own);
+    entryAppend(logFileOf(fields), fields, own);
     if (entry.planned !== "")
         boxDone(entry.planned);
 }
@@ -1141,8 +1141,8 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
 /**
  * Changes a skill entry of the log from the entry by category: its type, module, place, semester, chapters,
  * documents, note and times, and adds the new attempts after those it has, every other line as it is; the entry moves
- * into the month file of its new start when that is another file. What it is, its `SUMMARY`, follows its skill
- * and type, see `titleOf` in `documents.ts`, and its links its skill and documents, see `linksOf`
+ * into the log of its new skill when that is another file, see `logFileOf` in `day.ts`. What it is, its `SUMMARY`,
+ * follows its skill and type, see `titleOf` in `documents.ts`, and its links its skill and documents, see `linksOf`
  * there: a document it had keeps its link with its fingerprint, a new one gets its own; its chapters are its
  * `X-CHAPTER`s, the folders of chapters an older entry links going. Its place keeps its link while it stays the same,
  * see `placeLinkOf` in `places.ts`.
@@ -1176,14 +1176,15 @@ export function skillEntryEdit(change: SkillEntryChange): void {
         ["x-attempt", values],
     ]);
     const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" });
-    entryChange(file, old, {
+    const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: change.location,
         locationLink: placeLinkOf(change.location, old), from: "",
         module: change.module, type: change.type,
         semester: semesterFor(skillName, change.semester, berlinDateOf(new Date(change.start))),
         note: change.note.trim(),
         start: new Date(change.start), end: new Date(change.end),
-    }, fileOf(new Date(change.start)));
+    };
+    entryChange(file, old, fields, logFileOf(fields));
 }
 
 /**
@@ -1197,7 +1198,8 @@ export function skillEntryEdit(change: SkillEntryChange): void {
  * - `worked`: Identities of the tasks of the new lines.
  * - `chapters`: Chapters of a new entry, those of the tasks of the new lines, or of the open entry with them.
  * - `own`: The chapters, attempts, tutors and box of a new entry, as properties of my own.
- * - `start`: Start of a new entry, a quarter hour before its end, which names its month file.
+ * - `start`: Start of a new entry, a quarter hour before its end.
+ * - `fields`: Fields and times of a new entry, which go into the log of the module, see `logFileOf` in `day.ts`.
  * - `values`: `X-ATTEMPT`s of the open entry with the new ones.
  * - `properties`: Properties of the open entry to write again, its chapters as `X-CHAPTER`s and its links
  *   to files, without the folders of chapters an older entry links, see `documentLinksOf` in `documents.ts`.
@@ -1228,12 +1230,13 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
         const start: Date = new Date(quarter.getTime() - quarterHour);
         const [title, titleLink]: [string, string] =
             titleOf({ category: skillName, title: "", module: module, type: type });
-        entryAppend(fileOf(start), {
+        const fields: EntryFields = {
             category: skillName, title: title, titleLink: titleLink, location: plan?.location ?? "",
             locationLink: plan?.locationLink ?? "", from: "",
             module: module, type: type, semester: semesterFor(skillName, plan?.semester ?? "", berlinDateOf(start)),
             note: "", start: start, end: quarter,
-        }, own);
+        };
+        entryAppend(logFileOf(fields), fields, own);
         if (plan !== undefined)
             boxDone(plan.id);
         return;

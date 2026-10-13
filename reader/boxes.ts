@@ -16,10 +16,11 @@
  * the dialog adds it, see {@link numberNextOf}. One the university cancels gets `X-NUMBER:NONE` by its own button,
  * see {@link boxUniversity}, and the later ones of its series move up a number; it is neither done nor carried along.
  *
- * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan file of its month,
- * like `2026/2026_10/2026_10_Plan.ics`, or in the plan of its module, like
- * `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`, both in `NomManagecalendar`, see `calendar.ts`;
- * a box of a month moves into the plan file of the month of its new day when its day changes, a box of a module stays:
+ * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan of its year, like `Living/2026_Plan.ics`,
+ * or a skill box in the plan of its skill, like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`,
+ * both in `NomManagecalendar`, see `sources.ts` and `calendar.ts`; a box moves into the plan it belongs into
+ * when its day moves into another year or it changes its category or its skill, also one from a month file
+ * of the layout before, see {@link planFileAfter}:
  * - its day and its expected time in `DTSTART`: `DTSTART;VALUE=DATE:20261013` without time,
  *   `DTSTART;TZID=Europe/Berlin:20261013T120000` with;
  * - or instead its deadline in `DUE`, like a homework I must hand in: `DUE;TZID=Europe/Berlin:20261023T120000`,
@@ -61,31 +62,29 @@
  * `STATUS:CANCELLED`, which events have too, and it is done when a log entry points to it.
  *
  * Above its boxes a day shows its birthdays and holidays, those of `Birthdays.ics` and `Holidays.ics`
- * in `NomManagecalendar`, see `sources.ts`, each on its date, a yearly series on each of its days, with its category,
- * like `Birthday: KarlbauerFlorian` or `Holiday: Ostermontag (AT, DE)`, and my gift idea for it, its `DESCRIPTION`,
- * see `gifts.ts`; none of a file while it is missing.
+ * in `NomManagecalendar/Meta/`, see `sources.ts`, each on its date, a yearly series on each of its days,
+ * with its category, like `Birthday: KarlbauerFlorian` or `Holiday: Ostermontag (AT, DE)`, and my gift idea for it,
+ * its `DESCRIPTION`, see `gifts.ts`; none of a file while it is missing.
  *
- * - `node:path`: Gives the name of a plan file.
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
  * - `./categories.ts`: Tells whether a box fits its category, names the category of skill entries,
  *   and gives the semester of a skill box.
  * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill, its links to documents,
- *   and reads its chapters.
+ *   reads its chapters, and gives the plan a box belongs into.
  * - `./notes.ts`: Finds the chapters of a module, which a skill box may name.
  * - `./places.ts`: Gives the link of the place of a box.
- * - `./sources.ts`: Names the plan, the log and the birthdays and holidays, and builds the path of a plan file.
+ * - `./sources.ts`: Names the plan, the log and the birthdays and holidays.
  */
 
-import { basename } from "node:path";
 import {
     berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryIdOf, entryLookup, entryRemove,
     occurrenceLookup, occurrenceOwn, propertiesPut, pushesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, semesterFor, skillName } from "./categories.ts";
-import { chaptersOf, linksOf, titleOf } from "./documents.ts";
+import { calendarFileOf, chaptersOf, linksOf, titleOf } from "./documents.ts";
 import { moduleContentsRead, moduleFolderOf } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
-import { day, monthFileOf, planEnding } from "./sources.ts";
+import { day, planEnding } from "./sources.ts";
 
 import type { Entry, EntryFields, EntryTexts, Link, TodoFields } from "./calendar.ts";
 
@@ -220,28 +219,31 @@ const deadlineDays: number = 4;
 
 
 /**
- * Builds the path of the plan file of the month of a day.
+ * Gives the plan a box belongs into, see the top of this file: the plan of its skill for a skill box,
+ * else the plan of the year of its day, see `calendarFileOf` in `documents.ts`.
  *
- * @param date - Day like `2026-10-13`
- * @returns Path like `2026/2026_10/2026_10_Plan.ics` in `NomManagecalendar`
+ * @param box - Category and skill of the box, like `Skill` and `IN2028`, or `Talk` and no skill
+ * @param date - Its day, like `2026-10-13`
+ * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics` or `Living/2026_Plan.ics`
+ *   in `NomManagecalendar`
  */
-function planFileOf(date: string): string {
-    return monthFileOf(date, planEnding);
+function planFileOf(box: { category: string; module: string }, date: string): string {
+    return calendarFileOf(box, date, planEnding);
 }
 
 /**
- * Gives the plan file a box is written into once its day changes, see the top of this file: the plan file
- * of the month of its new day when it lies in the plan file of a month, like `2026_10_Plan.ics`,
- * else the file it lies in, like the plan of a module, `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`,
- * and always the file of its series for one occurrence of a series.
+ * Gives the plan file a box is written into once it changes, see the top of this file: the plan it belongs into
+ * with its new category, skill and day, see {@link planFileOf}, also for a box from a month file of the layout before,
+ * like `2026/2026_10/2026_10_Plan.ics`; always the file of its series for one occurrence of a series.
  *
  * @param file - Path of the plan file the box lies in
  * @param entry - Entry of the box
- * @param date - New day of the box, like `2026-11-02`
- * @returns Path like `2026/2026_11/2026_11_Plan.ics` or the path of its file
+ * @param box - New category and skill of the box
+ * @param date - New day of the box, like `2027-01-04`
+ * @returns Path like `Living/2027_Plan.ics` or the path of its file
  */
-function planFileAfter(file: string, entry: Entry, date: string): string {
-    return entry.recurrence === "" && /^\d{4}_\d{2}_Plan\.ics$/.test(basename(file)) ? planFileOf(date) : file;
+function planFileAfter(file: string, entry: Entry, box: { category: string; module: string }, date: string): string {
+    return entry.recurrence === "" ? planFileOf(box, date) : file;
 }
 
 /**
@@ -612,10 +614,10 @@ function numberNextOf(title: string, date: string): string {
 }
 
 /**
- * Adds a box to the plan, as a to-do in the plan file of its day, see the top of this file, a skill box
+ * Adds a box to the plan, as a to-do in the plan it belongs into, see {@link planFileOf}, a skill box
  * with its chapters and documents, see {@link boxLinksPut}, a lecture, an exercise, a tutorial or a sheet
  * with its number in its series, see {@link numberNextOf}.
- * - `file`: The plan file of its day.
+ * - `file`: The plan it belongs into.
  * - `id`: Identifier of the new box.
  *
  * @param box - The box as the page sends it
@@ -624,7 +626,7 @@ function numberNextOf(title: string, date: string): string {
  */
 export function boxAdd(box: BoxNew): string {
     boxCheck(box, null);
-    const file: string = planFileOf(box.day);
+    const file: string = planFileOf(box, box.day);
     const id: string = todoAppend(file, todoFieldsOf(box, null));
     boxLinksPut(file, id, box, null);
     if (box.category === skillName && numberedTypes.includes(box.type))
@@ -674,7 +676,7 @@ export function boxUniversity(id: string, cancelled: boolean): void {
 
 /**
  * Changes a box of the new system, see {@link boxCheck}, one occurrence of a series alone, see {@link boxOwn};
- * a box of a month moves into the plan file of its new day when that is another, see {@link planFileAfter}.
+ * a box moves into the plan it belongs into now when that is another file, see {@link planFileAfter}.
  * A to-do changes as it is sent; an event, like a lecture imported from TUMonline, keeps a time and a duration,
  * its start and its end. A skill box takes its chapters and documents, see {@link boxLinksPut}.
  * - `target`: The plan file it belongs into now.
@@ -691,7 +693,7 @@ export function boxEdit(change: BoxChange): void {
         throw new Error(`${entry.title} may not be changed`);
     boxCheck(change, entry);
     boxOwn(file, entry);
-    const target: string = planFileAfter(file, entry, change.day);
+    const target: string = planFileAfter(file, entry, change, change.day);
     if (entry.todo) {
         todoChange(file, entry, todoFieldsOf(change, entry), target);
         boxLinksPut(target, change.id, change, entry);
@@ -730,8 +732,8 @@ export function boxDelete(id: string): void {
 
 /**
  * Pushes an open box of the new system to the next day, with one tap: notes the day it leaves in one more `X-PUSHED`,
- * then moves its day and its time by one day, its time of day kept, a box of a month into the plan file
- * of the next day, see {@link planFileAfter}; one occurrence of a series alone, see {@link boxOwn}.
+ * then moves its day and its time by one day, its time of day kept, into the plan of the next year on the last day
+ * of a year, see {@link planFileAfter}; one occurrence of a series alone, see {@link boxOwn}.
  * A box with a deadline stays, since its day is the day of its deadline.
  * - `next`: The next day.
  * - `texts`: Its text fields, as they are.
@@ -756,11 +758,11 @@ export function boxPush(id: string): void {
         todoChange(file, entry, {
             ...texts, day: next, time: box.time === "" ? null : berlinLater(new Date(box.time), 1), minutes: entry.minutes,
             deadline: "",
-        }, planFileAfter(file, entry, next));
+        }, planFileAfter(file, entry, entry, next));
     else
         entryChange(file, entry, {
             ...texts, start: berlinLater(new Date(entry.start), 1), end: berlinLater(new Date(entry.end), 1),
-        }, planFileAfter(file, entry, next));
+        }, planFileAfter(file, entry, entry, next));
 }
 
 /**

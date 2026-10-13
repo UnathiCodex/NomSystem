@@ -35,6 +35,8 @@
  * Fingerprints are kept by path, size and time of change, so only new or changed files are read again.
  * The reader sends a file a skill entry links, read only, so the page opens it in the browser's own viewer,
  * see {@link linkedFileRead}; no other file of `NomWorkspace`.
+ * By the folder of its skill a skill entry also finds its log and a skill box its plan, any other entry or box
+ * the log or the plan of its year, see {@link calendarFileOf}.
  *
  * - `node:fs`: Reads files and their sizes and times of change.
  * - `node:path`: Builds file paths for the operating system.
@@ -44,7 +46,7 @@
  * - `./notes.ts`: Finds the folder of a module by its code and of a chapter by its name, lists the documents
  *   of a module, names a folder to read, and gives the content type of a file.
  * - `./sources.ts`: Names `NomWorkspace`, the folders of my modules and of their drafts, the skills of the semester
- *   and the log of the skill area.
+ *   and the log of the skill area, and builds the paths of the files of plan and log of a year and of a skill.
  */
 
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -56,7 +58,9 @@ import {
 import {
     chapterNameOf, codeOf, contentTypeOf, draftsName, moduleContentsRead, moduleFolderOf,
 } from "./notes.ts";
-import { activeModules, draftsFolder, moduleIs, modulesFolder, projectOf, skillLog, vault } from "./sources.ts";
+import {
+    activeModules, draftsFolder, moduleIs, modulesFolder, projectOf, skillFileOf, skillLog, vault, yearFileOf,
+} from "./sources.ts";
 
 import type { Stats } from "node:fs";
 import type { Entry, EntryFields, Link } from "./calendar.ts";
@@ -167,11 +171,21 @@ export function skillFolderOf(code: string): string | undefined {
 }
 
 /**
+ * Gives the name of the folder of a skill, the last part of its path from `NomWorkspace`, see {@link skillFolderOf};
+ * a skill without folder by its name alone.
+ *
+ * @param code - Name of the skill, like `IN2028` or `WokFlow`, empty for none
+ * @returns Name like `IN2028_BusinessAnalyticsMachineLearning` or `WokFlow`, empty for no skill
+ */
+function skillFolderNameOf(code: string): string {
+    return skillFolderOf(code)?.split("/").at(-1) ?? code;
+}
+
+/**
  * Names a skill entry as its `SUMMARY` says it, see the top of this file: the name of the folder of its skill,
  * with its type in round brackets when it has one; a skill without folder by its name alone; an entry without skill
  * by its type in brackets alone, like `(VO)`, or not at all.
- * - `folder`: Folder of the skill from `NomWorkspace`, see {@link skillFolderOf}, `undefined` for none.
- * - `name`: Name of that folder, the last part of its path.
+ * - `name`: Name of the folder of the skill, see {@link skillFolderNameOf}.
  *
  * @param code - Name of the skill, like `IN2028` or `WokFlow`
  * @param type - Its type, like `VO`, empty for none, like my own learning
@@ -179,8 +193,7 @@ export function skillFolderOf(code: string): string | undefined {
  *   or `WokFlow`, empty for neither skill nor type
  */
 export function skillTitleOf(code: string, type: string): string {
-    const folder: string | undefined = skillFolderOf(code);
-    const name: string = folder?.split("/").at(-1) ?? code;
+    const name: string = skillFolderNameOf(code);
     if (type === "")
         return name;
     return name === "" ? `(${type})` : `${name} (${type})`;
@@ -199,6 +212,26 @@ export function titleOf(fields: { category: string; title: string; module: strin
     if (fields.category !== skillName)
         return [fields.title, ""];
     return [skillTitleOf(fields.module, fields.type), skillFolderOf(fields.module) ?? ""];
+}
+
+/**
+ * Gives the file of the plan or of the log in `NomManagecalendar` an entry or a box belongs into, see `sources.ts`:
+ * for a skill entry the log of its skill and for a skill box its plan, in `Skilling/` named like the folder
+ * of the skill, see {@link skillFolderNameOf}, those without skill in the files named `Skill`; for any other
+ * the log or the plan of the year of its day in `Living/`.
+ * - `name`: Name of the folder of the skill, empty for none.
+ *
+ * @param fields - Category and skill of the entry or the box, like `Skill` and `IN2028`, or `Food` and no skill
+ * @param date - Its day in Berlin time, like `2026-10-13`
+ * @param ending - End of the name of the file, `logEnding` or `planEnding` of `sources.ts`
+ * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Log.ics`, `Skilling/Skill_Plan.ics`
+ *   or `Living/2026_Log.ics` in `NomManagecalendar`
+ */
+export function calendarFileOf(fields: { category: string; module: string }, date: string, ending: string): string {
+    if (fields.category !== skillName)
+        return yearFileOf(date, ending);
+    const name: string = skillFolderNameOf(fields.module);
+    return skillFileOf(name === "" ? skillName : name, ending);
 }
 
 /**

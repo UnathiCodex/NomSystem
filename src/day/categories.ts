@@ -938,7 +938,7 @@ function fieldsRead(): EntryFields {
  * Reads fields, note, start, end and deadline of the dialog for a box, as for an entry of the log: its day is the day
  * of its start, its expected time its start, its expected duration the minutes from its start to its end,
  * so `19.10.2026 09:15` to `10:45` moves a box of 12 October at 14:00 to 19 October at 09:15 for 90 minutes,
- * and the reader into the plan file of that day; a box whose times stay empty lies on its day without time,
+ * and the reader into the plan it belongs into; a box whose times stay empty lies on its day without time,
  * keeping the duration it had, like `45 min`; with a deadline it lies on the day of its deadline, without
  * expected time, start and end off, keeping the duration it had; an empty deadline is none.
  * - `day`: Typed day of the start, like `2026-10-19`, the day the dialog opened with should it be no date.

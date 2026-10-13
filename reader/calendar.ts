@@ -3,7 +3,7 @@
  *
  * Reads `.ics` files into entries, their events, `VEVENT`, and their to-dos, `VTODO`, the boxes of the plan,
  * see `boxes.ts`; appends events and to-dos to them, changes and removes single ones,
- * and moves one from one file into another, like into the file of another month.
+ * and moves one from one file into another, like into the log of another year.
  * Keeps each read file until it changes on disk, so a file is read again only once it changed.
  * Every entry states its facts in its own lines, for every field, now and later: a link, the `ALTREP` of a `SUMMARY`
  * or a `LOCATION` or an `ATTACH`, only points to more and is never the only place of a fact, since a folder may be
@@ -791,7 +791,7 @@ function linesWrite(file: string, text: FileLines): void {
 /**
  * Creates an empty calendar with only the header the standard asks for, `PRODID` and `VERSION`,
  * and the time zone {@link zoneName}, which every `DTSTART` names. No `X-WR-CALNAME`, since its name is the name
- * of its file, like `2026_10_Log`, no `X-WR-TIMEZONE`, no `CALSCALE`, since `GREGORIAN` is the default,
+ * of its file, like `2026_Log`, no `X-WR-TIMEZONE`, no `CALSCALE`, since `GREGORIAN` is the default,
  * and no `METHOD`, which only invitations need.
  *
  * @returns Calendar without events
@@ -1403,7 +1403,7 @@ function textsPut(component: string[], entry: Entry, fields: EntryTexts): void {
 
 /**
  * Writes the changed lines of an event or a to-do back where they stood in their file, or moves them into another file,
- * like the file of another month: writes them there first, so a failure in between leaves them twice
+ * like the log of another year: writes them there first, so a failure in between leaves them twice
  * instead of losing them; its lines in the fixed order, see {@link linesOrdered}. Every other line of both files
  * stays as it is, byte for byte.
  *

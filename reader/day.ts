@@ -3,8 +3,10 @@
  *
  * Reads the log of a day, my one calendar, and adds, changes and removes its entries, by category, see `categories.ts`;
  * the plan of the day is a list of boxes beside it, see `boxes.ts`.
- * Writes into the month files of the log of the new system, like `2026/2026_10/2026_10_Log.ics`,
- * by the month in Berlin time; an entry whose start moves into another month moves into the file of that month.
+ * Writes into the logs of the new system, see `sources.ts`: a skill entry into the log of its skill,
+ * like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Log.ics`, any other into the log of its year in Berlin time,
+ * like `Living/2026_Log.ics`; an entry whose start moves into another year, or that changes its category or its skill,
+ * moves into the log it belongs into then, as one from a month file of the layout before.
  * A skill entry names the folder of its skill and its type in its `SUMMARY` alone, linking the folder:
  * `CATEGORIES:Skill`,
  * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
@@ -30,20 +32,21 @@
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
  * - `./categories.ts`: Tells whether the fields of an entry fit its category, how long a meal usually lasts,
  *   and names the category of skill entries.
- * - `./documents.ts`: Writes what a skill entry was, linking the folder of its skill, and gives its chapters.
+ * - `./documents.ts`: Writes what a skill entry was, linking the folder of its skill, gives its chapters,
+ *   and the log an entry belongs into.
  * - `./food.ts`: Tells what meals give, whether a line `X-FOOD` is well formed, what a dish held the last time,
  *   and how a meal is named by its foods.
- * - `./sources.ts`: Names every folder and file the reader reads, and builds the path of a month file.
+ * - `./sources.ts`: Names every folder and file the reader reads.
  * - `./trackers.ts`: Tells whether an entry is a glass of water.
  */
 
 import { boxDone, boxFind, boxOpenFind, boxReopen } from "./boxes.ts";
 import { berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryRemove, propertiesPut } from "./calendar.ts";
 import { categoryAllows, semesterFor, skillName, usualLengthRead } from "./categories.ts";
-import { chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
+import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
 import { dishFoodsRead, foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
 import { placeLinkOf } from "./places.ts";
-import { day, logEnding, monthFileOf } from "./sources.ts";
+import { day, logEnding } from "./sources.ts";
 import { glassIs } from "./trackers.ts";
 
 import type { Box } from "./boxes.ts";
@@ -144,13 +147,15 @@ const realCount: number = 3;
 
 
 /**
- * Builds the path of the month file of the log for the start of an entry, in Berlin time.
+ * Gives the log an entry belongs into, see the top of this file: the log of its skill for a skill entry,
+ * else the log of the year of its start in Berlin time, see `calendarFileOf` in `documents.ts`.
  *
- * @param start - Start of the entry
- * @returns Path like `2026/2026_10/2026_10_Log.ics` in `NomManagecalendar`
+ * @param fields - Category, skill and start of the entry, like `Skill`, `IN2028` and 2026-10-13 10:00
+ * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Log.ics` or `Living/2026_Log.ics`
+ *   in `NomManagecalendar`
  */
-export function fileOf(start: Date): string {
-    return monthFileOf(berlinDateOf(start), logEnding);
+export function logFileOf(fields: { category: string; module: string; start: Date }): string {
+    return calendarFileOf(fields, berlinDateOf(fields.start), logEnding);
 }
 
 /**
@@ -261,8 +266,8 @@ export function realMinutesRead(category: string, title: string, module: string,
 }
 
 /**
- * Adds an entry to the log, into the month file of its start, a meal with one line `X-FOOD` per food,
- * see {@link fieldsCheck}; an entry logged from a box with its `RELATED-TO`, after which the box is done;
+ * Adds an entry to the log, into the log it belongs into, see {@link logFileOf}, a meal with one line `X-FOOD`
+ * per food, see {@link fieldsCheck}; an entry logged from a box with its `RELATED-TO`, after which the box is done;
  * a long neck session with my pain as `X-PAIN`, see {@link painCheck}.
  * - `pain`: My pain, empty for none.
  * - `own`: Properties of my own beyond the fields: the foods, the box and the pain.
@@ -285,7 +290,7 @@ export function entryAdd(entry: EntryNew): string {
         own.push(["related-to", entry.planned]);
     if (pain !== "")
         own.push(["x-pain", pain]);
-    const id: string = entryAppend(fileOf(fields.start), fields, own);
+    const id: string = entryAppend(logFileOf(fields), fields, own);
     if (entry.planned !== "")
         boxDone(entry.planned);
     return id;
@@ -323,7 +328,7 @@ export function boxLog(logged: BoxLogged): string {
         start: new Date(logged.start), end: new Date(logged.end),
     };
     fieldsCheck(fields, [], box);
-    const id: string = entryAppend(fileOf(fields.start), fields, [
+    const id: string = entryAppend(logFileOf(fields), fields, [
         ["related-to", box.id],
         ...(skill ? documentLinksOf(box.links) : []).map((link: Link): [string, Link] => ["attach", link]),
         ...(skill ? box.chapters : []).map((chapter: string): [string, string] => ["x-chapter", chapter]),
@@ -391,7 +396,7 @@ export function mealAfterCookAdd(id: string): string {
         start: start, end: new Date(start.getTime() + usualLengthRead(foodName, start.toISOString()) * 60 * 1000),
     };
     fieldsCheck(fields, foods, null);
-    return entryAppend(fileOf(start), fields,
+    return entryAppend(logFileOf(fields), fields,
         [...foods.map((food: string): [string, string] => ["x-food", food]), ["x-cooked", id]]);
 }
 
@@ -399,7 +404,7 @@ export function mealAfterCookAdd(id: string): string {
  * Changes fields, foods, pain and times of an entry of the log, see {@link fieldsCheck}:
  * changed foods replace all lines `X-FOOD` of the entry first, a changed pain its `X-PAIN`,
  * then its fields and times change.
- * The entry moves into the month file of its new start when that is another file.
+ * The entry moves into the log it belongs into now when that is another file, see {@link logFileOf}.
  *
  * @param change - Changed entry as the dialogs or the calendar send it, the calendar with the foods as they were
  * @throws {Error} - When there is no such entry, it may not be changed, the fields or foods are not allowed,
@@ -417,7 +422,7 @@ export function entryEdit(change: EntryChange): void {
         propertiesPut(file, entry.id, [["x-food", change.foods]]);
     if (change.pain !== undefined && change.pain !== entry.pain)
         propertiesPut(file, entry.id, [["x-pain", change.pain === "" ? [] : [change.pain]]]);
-    entryChange(file, entry, fields, fileOf(fields.start));
+    entryChange(file, entry, fields, logFileOf(fields));
 }
 
 /**
