@@ -1752,6 +1752,12 @@ svg.route-arrow {
         background: none;
     }
 
+    /* The date on a phone only as wide as itself, since the arrows stand at the edges, so the bar never grows wider
+       than the screen */
+    #day-title {
+        min-width: 0;
+    }
+
     .day-nav .day-title {
         text-align: center;
         font-size: 1.0625rem;
