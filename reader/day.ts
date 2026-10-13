@@ -16,7 +16,8 @@
  * of a series with that date, like `RELATED-TO;X-RECURRENCE-ID=20261026T130000Z:<UID>`, see `relatedOf`
  * in `calendar.ts`, written once when the log entry is added, also when a box is logged through the dialog,
  * so the box shows as done, with expected and real time, and offers no second log; removing the log entry opens
- * the box again. An older log entry points to its box with `X-PLANNED:<UID of the box>`, which is still read.
+ * the box again, and so does one click on the check of the done box, see {@link boxUndo}. An older log entry points
+ * to its box with `X-PLANNED:<UID of the box>`, which is still read.
  *
  * The dialog of a box shows how long the last entries like it really lasted, see {@link realMinutesRead}.
  *
@@ -25,7 +26,7 @@
  * A meal eaten right after cooking points to its entry `Cook` with `X-COOKED:<UID of the Cook entry>`,
  * written once when the meal is added, so the dialog offers that meal only once.
  *
- * - `./boxes.ts`: Finds an open box of the plan, and marks a box done or open again.
+ * - `./boxes.ts`: Finds a box of the plan, an open one, and marks a box done or open again.
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
  * - `./categories.ts`: Tells whether the fields of an entry fit its category, how long a meal usually lasts,
  *   and names the category of skill entries.
@@ -36,7 +37,7 @@
  * - `./trackers.ts`: Tells whether an entry is a glass of water.
  */
 
-import { boxDone, boxOpenFind, boxReopen } from "./boxes.ts";
+import { boxDone, boxFind, boxOpenFind, boxReopen } from "./boxes.ts";
 import { berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryRemove, propertiesPut } from "./calendar.ts";
 import { categoryAllows, semesterFor, skillName, usualLengthRead } from "./categories.ts";
 import { chaptersOf, titleOf } from "./documents.ts";
@@ -327,6 +328,35 @@ export function boxLog(logged: BoxLogged): string {
     ]);
     boxDone(box.id);
     return id;
+}
+
+/**
+ * Takes a done box back to open, with one click on its check, see the top of this file: removes the log entry
+ * written from it, as if I had not logged it; one that holds what I added since, attempts, copies for my tutor
+ * or a note, stays in the log and only lets go of the box, its `RELATED-TO` or its older `X-PLANNED` taken out.
+ * A to-do done in another app, `COMPLETED` without log entry, is `NEEDS-ACTION` again.
+ * - `box`: The box with its state and the times of its log entry.
+ * - `logged`: The log entry pointing to it, `undefined` for none.
+ * - `file`: `.ics` file of that log entry.
+ *
+ * @param id - Identifier of the box, like `study-13@nomsystem`
+ * @throws {Error} - When there is no such box or it is not done
+ */
+export function boxUndo(id: string): void {
+    const [, , box]: [string, Entry, Box] = boxFind(id);
+    if (box.state !== "done")
+        throw new Error(`${box.title} is not done`);
+    const logged: Entry | undefined = box.log === null ? undefined
+        : entriesRead(day.log, box.log.start, new Date(Date.parse(box.log.end) + 1).toISOString())
+            .find((entry: Entry): boolean => entry.planned === id);
+    if (logged !== undefined) {
+        const [file]: [string, Entry] = entryFind(day.log, logged.id);
+        if (logged.attempts.length > 0 || logged.tutors.length > 0 || logged.note.trim() !== "")
+            propertiesPut(file, logged.id, [["related-to", []], ["x-planned", []]]);
+        else
+            entryRemove(file, logged.id);
+    }
+    boxReopen(id);
 }
 
 /**

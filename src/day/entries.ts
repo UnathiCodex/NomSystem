@@ -2,7 +2,7 @@
  * ## Entries
  *
  * Sends new, changed and removed entries of the log to the reader, the meal of a cooking, and the boxes of the plan:
- * new, changed and removed ones, a box logged at its real time, pushed to the next day or dropped.
+ * new, changed and removed ones, a box logged at its real time or taken back, pushed to the next day or dropped.
  * After a change of the log the log of the shown day loads again, so the page shows what the files hold,
  * and with it the boxes, which are done once a log entry points to them, see `boxes.ts`;
  * after a change of a box alone, its sender loads the boxes again itself.
@@ -192,6 +192,19 @@ export async function entryDelete(calendar: Calendar, id: string): Promise<void>
 export async function boxLog(calendar: Calendar, box: string, start: Date, end: Date): Promise<void> {
     await logSend(calendar, "POST", "/api/day/logged",
         { box: box, start: start.toISOString(), end: end.toISOString() });
+}
+
+/**
+ * Takes a done box back to open, with one click on its check: the reader removes the log entry written from it,
+ * or, when that holds what I added since, like attempts or a note, only lets it go of the box, see `boxUndo`
+ * in `reader/day.ts`; then the log of the shown day loads again, and with it the boxes.
+ *
+ * @param calendar - Calendar of the day
+ * @param id - Identifier of the box
+ * @throws {Error} - When the reader does not take it back, like for a box that is not done
+ */
+export async function boxUndo(calendar: Calendar, id: string): Promise<void> {
+    await logSend(calendar, "POST", "/api/day/undone", { box: id });
 }
 
 /**

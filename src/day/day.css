@@ -209,9 +209,9 @@
     max-width: 100%;
 }
 
-/* Ring of a box, as high as its first line: for an open box that can be changed a button, an empty ring in the grey
-   of the plan like the circle of a to-do, lighter under the pointer with its check showing, which logs the box
-   as expected; for any other box a place without edge, holding the grey check of a done box or nothing;
+/* Ring of a box, as high as its first line: for an open box a button, an empty ring in the grey of the plan
+   like the circle of a to-do, lighter under the pointer with its check showing, which logs the box as expected;
+   for a done box a button too, its grey check, see `.box-checked`; for a skipped box a place without edge;
    `.box .box-ring svg` wins over the size of icons in `base.css`, being more exact */
 .box-ring {
     display: inline-flex;
@@ -244,6 +244,15 @@ button.box-ring:hover {
 }
 
 button.box-ring:hover svg {
+    opacity: 1;
+}
+
+/* Check of a done box, a button too, which takes the box back to open: grey without edge, its check always shown */
+button.box-ring.box-checked {
+    border-color: transparent;
+}
+
+button.box-ring.box-checked svg {
     opacity: 1;
 }
 
@@ -287,9 +296,9 @@ button.box-ring:hover svg {
     border-color: var(--plan);
 }
 
-/* Buttons at the right of a box, small and round, grey, lighter under the pointer: push and cancel, take back,
-   or plan and dismiss a suggestion. With a pointer that hovers, those of a box show only while the pointer is over it
-   or one of them has the focus, so the list stays calm; those of a suggestion always show */
+/* Buttons at the right of a box, small and round, grey, lighter under the pointer: push and skip, take back,
+   or plan and dismiss a suggestion. They always show, but for the arrow that pushes a box: with a pointer that hovers,
+   it shows only while the pointer is over its box or a button of it has the focus, so the list stays calm */
 .box-actions {
     display: flex;
     flex: none;
@@ -322,7 +331,7 @@ button.box-ring:hover svg {
 }
 
 @media (hover: hover) {
-    .box:not(.box-suggested):not(:hover):not(:focus-within) .box-actions {
+    .box:not(:hover):not(:focus-within) .box-push {
         visibility: hidden;
     }
 }

@@ -13,7 +13,7 @@
  * - `node:http`: Builds the server that answers the browser page
  * - `node:stream/consumers`: Reads a whole request body into one value
  * - `./day.ts`: Reads the log of a day, adds, changes and removes its entries, adds the meal of a cooking,
- *   logs a box of the plan at its real time, and reads how long entries like a box really lasted
+ *   logs a box of the plan at its real time and takes it back, and reads how long entries like a box really lasted
  * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, and the boxes carried along
  *   to a day, adds, changes and removes boxes, pushes them to the next day and drops them
  * - `./gifts.ts`: Writes my gift idea for a birthday or holiday as its `DESCRIPTION` into `Birthdays.ics`
@@ -39,7 +39,9 @@
 
 import { createServer } from "node:http";
 import { json } from "node:stream/consumers";
-import { boxLog, dayEntriesRead, entryAdd, entryDelete, entryEdit, mealAfterCookAdd, realMinutesRead } from "./day.ts";
+import {
+    boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, mealAfterCookAdd, realMinutesRead,
+} from "./day.ts";
 import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush } from "./boxes.ts";
 import { giftWrite } from "./gifts.ts";
 import { calloutsRead, calloutWrite, noteRead } from "./note.ts";
@@ -132,6 +134,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `DELETE /api/day/boxes?id=…`: Removes box of the identifier.
  * - `POST /api/day/logged`: Logs the box named in the body at the start and end in the body,
  *   and sends the identifier of the log entry.
+ * - `POST /api/day/undone`: Takes the done box named in the body back to open, removing the log entry from it
+ *   unless it holds what I added since.
  * - `POST /api/day/pushed`: Pushes the box named in the body to the next day.
  * - `POST /api/day/dropped`: Drops the box named in the body, or takes it back when the body says `dropped: false`.
  * - `POST /api/day/callouts`: Writes the callout of the body into its daily note, my gratitude or my paragraph about the day.
@@ -243,6 +247,10 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "POST" && url.pathname === "/api/day/logged") {
         responseSend(response, 200, boxLog(await json(request) as BoxLogged));
+
+    } else if (request.method === "POST" && url.pathname === "/api/day/undone") {
+        boxUndo((await json(request) as { box: string }).box);
+        responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/pushed") {
         boxPush((await json(request) as { box: string }).box);
