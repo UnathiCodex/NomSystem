@@ -6,8 +6,9 @@
  * in the scripts view, where I solve it, record the attempt and see its history and source.
  * - At the top the name of the module and the ready number, its sections whose cold task has its three runs,
  *   like `Ready 0 / 36`, since the section is the unit, not the task; below it grey its exam,
- *   like `Exam ≈ Thu, 25.02.2027`, `≈` while the day is estimated; then what needs a look:
- *   task headings found twice and attempts on removed tasks.
+ *   like `Exam ≈ Thu, 25.02.2027`, `≈` while the day is estimated, and the section that comes next, the first
+ *   I never tried, linking to its note, like `Next 01_01_SampleMeanStandardError`, see {@link nextOf};
+ *   then what needs a look: task headings found twice and attempts on removed tasks.
  * - Due today: the tasks due today or earlier, the earliest first, a cold task with its parts still open;
  *   each opens as a card, its text alone, so I choose the method myself, see `cardSet` in `../notes/notes.ts`.
  * - Its old exams from the folder of its examinations, see `papersRead` in `reader/notes.ts`, in a fold closed
@@ -210,6 +211,25 @@ function sectionOf(section: SkillSection, tasks: SkillTask[], today: string): HT
 }
 
 /**
+ * Builds the line of the section that comes next: the first section of the module, in the order of the notes,
+ * none of whose tasks I tried yet, since I go through the sections in order and what I tried comes back when due;
+ * its name links to its note, like `Next 01_01_SampleMeanStandardError`.
+ * - `next`: The section, `undefined` once I tried every section.
+ * - `line`: The line.
+ *
+ * @param module - Module with its sections
+ * @returns The line, none once I tried every section
+ */
+function nextOf(module: SkillModule): HTMLElement[] {
+    const next: SkillSection | undefined = module.sections.find((section: SkillSection): boolean => section.tried === 0);
+    if (next === undefined)
+        return [];
+    const line: HTMLElement = elementOf("p", "skill-exam", "Next ");
+    line.append(linkOf("skill-next", next.title, noteAddressOf(next.note, "")));
+    return [line];
+}
+
+/**
  * Counts the sections whose cold task is ready.
  *
  * @param module - Module with its tasks
@@ -365,7 +385,8 @@ function moduleElementOf(module: SkillModule, today: string): HTMLElement {
     if (module.tasks.length > 0)
         head.append(elementOf("span", "skill-ready", `Ready ${readyOf(module, module.sections)} / ${module.sections.length}`));
     section.append(head, elementOf("p", "skill-exam",
-        `Exam ${module.exam.estimated ? "≈ " : ""}${dayTextOf(module.exam.day, true)} · ${daysLeftOf(module.exam.day, today)}`));
+        `Exam ${module.exam.estimated ? "≈ " : ""}${dayTextOf(module.exam.day, true)} · ${daysLeftOf(module.exam.day, today)}`),
+        ...nextOf(module));
     module.duplicates.forEach((task: Task): void => {
         const notice: HTMLElement = elementOf("p", "skill-notice", "Task heading found twice: ");
         notice.append(linkOf("", task.name, noteAddressOf(task.note, task.heading)));

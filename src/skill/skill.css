@@ -217,10 +217,20 @@
     rotate: 0deg;
 }
 
-/* Exam of the module, grey below its head */
+/* Exam of the module, grey below its head, and the section that comes next */
 .skill-exam {
     margin: 0.25rem 0 0;
     color: var(--text-muted);
+}
+
+/* Name of the section that comes next, a link to its note in the text of a name, a line under the pointer */
+.skill-next {
+    color: var(--text-main);
+    text-decoration: none;
+}
+
+.skill-next:hover {
+    text-decoration: underline;
 }
 
 /* `cold` after the name of a cold task, small and grey */
