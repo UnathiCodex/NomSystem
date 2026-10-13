@@ -1,7 +1,7 @@
 /**
  * ## Daily notes
  *
- * Reads the daily notes of the new system, one per day in `NomSystemdiary`, like `2026/2026_10/2026_10_12.md`,
+ * Reads the daily notes of the new system, one per day in `NomFrequencediary`, like `2026/2026_10/2026_10_12.md`,
  * and writes into them what I write in the dashboard, all a note holds: my gratitude into the callout
  * `> [!tip] Dankbarkeiten`, as points, and my short paragraph about the day overall into the callout
  * `> [!note] Tagesfazit`, as text.
@@ -65,7 +65,7 @@ const pointStart: string = "> - ";
  * Builds the path of the daily note of a date in the new system.
  *
  * @param date - Date like `2026-10-12`
- * @returns Path `<JJJJ>/<JJJJ_MM>/<JJJJ_MM_TT>.md` in `NomSystemdiary`, like `2026/2026_10/2026_10_12.md`
+ * @returns Path `<JJJJ>/<JJJJ_MM>/<JJJJ_MM_TT>.md` in `NomFrequencediary`, like `2026/2026_10/2026_10_12.md`
  * @throws {Error} - When the date is not written like `2026-10-12`
  */
 function noteFileOf(date: string): string {

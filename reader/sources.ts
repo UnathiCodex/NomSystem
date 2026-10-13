@@ -2,8 +2,8 @@
  * ## Sources
  *
  * Names every folder and file the reader reads, and every address on the web it asks, grouped by area.
- * My new system is three folders in `NomManageplannings`, see {@link systemRoots}: `NomSystemcalendar` for plan
- * and log, {@link calendarRoot}, `NomSystemdiary` for the daily notes, {@link diaryRoot}, and `NomSystemdata`
+ * My new system is three folders in `NomManageplannings`, see {@link systemRoots}: `NomManagecalendar` for plan
+ * and log, {@link calendarRoot}, `NomFrequencediary` for the daily notes, {@link diaryRoot}, and `NomMetainformations`
  * for my foods and places, {@link dataRoot}; my old system, `NomSystemprevious`, lies beside them and is never read.
  * The reader reads only the new system, my modules and the drafts, see {@link notes}, and the files the skill
  * entries link, in my modules and my projects, see {@link activeSkills} and `documents.ts`, and nothing that is
@@ -45,23 +45,23 @@ export const vault: string = process.env.NOM_VAULT
 export const manageRoot: string = join(vault, "NomManageplannings");
 
 /**
- * Folder of plan and log of my new system, `NomSystemcalendar`: one folder per year and one per month,
+ * Folder of plan and log of my new system, `NomManagecalendar`: one folder per year and one per month,
  * like `2026/2026_10/`, holding the log `2026_10_Log.ics` and the plan `2026_10_Plan.ics`; in `Skilling/` a plan
  * per module, like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`, read as plan too; at its top
  * `Birthdays.ics` and `Holidays.ics`.
  */
-export const calendarRoot: string = join(manageRoot, "NomSystemcalendar");
+export const calendarRoot: string = join(manageRoot, "NomManagecalendar");
 
 /**
- * Folder of my daily notes, `NomSystemdiary`: one note per day in a folder per year and one per month,
+ * Folder of my daily notes, `NomFrequencediary`: one note per day in a folder per year and one per month,
  * like `2026/2026_10/2026_10_13.md`, see `note.ts`.
  */
-export const diaryRoot: string = join(manageRoot, "NomSystemdiary");
+export const diaryRoot: string = join(manageRoot, "NomFrequencediary");
 
 /**
- * Folder of my data, `NomSystemdata`: my foods, `Foods.md`, and my places, `Places.md`.
+ * Folder of my data, `NomMetainformations`: my foods, `Foods.md`, and my places, `Places.md`.
  */
-export const dataRoot: string = join(manageRoot, "NomSystemdata");
+export const dataRoot: string = join(manageRoot, "NomMetainformations");
 
 /**
  * The three folders of my new system, the only ones the reader writes into, but for the drafts of the editor.

@@ -11,7 +11,7 @@
  *
  * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan file of its month,
  * like `2026/2026_10/2026_10_Plan.ics`, or in the plan of its module, like
- * `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`, both in `NomSystemcalendar`, see `calendar.ts`;
+ * `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`, both in `NomManagecalendar`, see `calendar.ts`;
  * a box of a month moves into the plan file of the month of its new day when its day changes, a box of a module stays:
  * - its day and its expected time in `DTSTART`: `DTSTART;VALUE=DATE:20261013` without time,
  *   `DTSTART;TZID=Europe/Berlin:20261013T120000` with;
@@ -43,7 +43,7 @@
  * `STATUS:CANCELLED`, which events have too, and it is done when a log entry points to it.
  *
  * Above its boxes a day shows its birthdays and holidays, those of `Birthdays.ics` and `Holidays.ics`
- * in `NomSystemcalendar`, see `sources.ts`, each on its date, a yearly series on each of its days, with its category,
+ * in `NomManagecalendar`, see `sources.ts`, each on its date, a yearly series on each of its days, with its category,
  * like `Birthday: KarlbauerFlorian` or `Holiday: Ostermontag (AT, DE)`, and my gift idea for it, its `DESCRIPTION`,
  * see `gifts.ts`; none of a file while it is missing.
  *
@@ -168,7 +168,7 @@ const deadlineDays: number = 4;
  * Builds the path of the plan file of the month of a day.
  *
  * @param date - Day like `2026-10-13`
- * @returns Path like `2026/2026_10/2026_10_Plan.ics` in `NomSystemcalendar`
+ * @returns Path like `2026/2026_10/2026_10_Plan.ics` in `NomManagecalendar`
  */
 function planFileOf(date: string): string {
     return monthFileOf(date, planEnding);
