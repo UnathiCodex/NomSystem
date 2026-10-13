@@ -7,11 +7,13 @@
  * those with an expected time by their time, like my lectures, a cancelled one faded in its place, then those with
  * a deadline, then those without either, then tomorrow's suggested study sessions, dashed, see `suggestions.ts`,
  * and the cancelled boxes without time last; on today below them the boxes carried along, see below.
- * Every box has the same three lines, open or done: its category in bold with a colon and what,
- * like `Skill: IN0004_EinfuehrungRechnerarchitektur VO`, as an entry of the log does, then grey its expected time
- * and length and how often it was pushed, like `11:30 – 13:00 (90 min)` or `75 min · pushed once`, then its place
- * on a line of its own, by its label alone, like `Audimax im Galileo`, which opens its link on a click when it has
- * one; a line without anything to say is left out.
+ * Every box has the same lines, open or done: its category in bold with a colon and what,
+ * like `Skill: IN0004_EinfuehrungRechnerarchitektur VO`, as an entry of the log does, then grey its expected time,
+ * its length only where no end shows it, and how often it was pushed, with its place after them, by its label alone,
+ * like `11:30 – 13:00 · Audimax im Galileo` or `75 min · pushed once`, the place opening its link on a click when
+ * it has one; then what it is about, each of its chapters and documents on a line of its own with a bullet,
+ * by the last part of its path, like `02_LogisticPoissonRegression` and `04_LogisticPoissonRegression.pdf`, none
+ * for a lecture, whose topic is not known before; a line without anything to say is left out.
  * An open box pushed three times or more asks instead of counting on, `pushed 3 times · smaller or skip?`,
  * since a task I keep pushing is often too big or no longer wanted, and a click on it opens it to cut it.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
@@ -66,6 +68,7 @@ import { breakableOf } from "./choices.ts";
 import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } from "./suggestions.ts";
 import { giftOpen } from "./gifts.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
+import { linkNameOf } from "../skill/links.ts";
 import { boxMinutes, boxTimesOf, dateTextOf, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
@@ -366,20 +369,20 @@ const pushesAsking: number = 3;
  * see {@link boxContentOf}, which a middle dot parts,
  * the same whether it is open or done, since the log shows its real time: its own day when it is carried along
  * to a later day, like `Mon, 12.10.2026`, its expected start and end, or its deadline, like
- * `Deadline Fri, 23.10.2026, 12:00`, see {@link deadlineTextOf}, its expected duration after them,
- * like `11:30 – 13:00 · 90 min`, or alone, like `75 min`, how near its deadline is while it is open,
+ * `Deadline Fri, 23.10.2026, 12:00`, see {@link deadlineTextOf}, its expected duration where no end shows it,
+ * after a deadline or alone, like `75 min`, how near its deadline is while it is open,
  * see {@link nearOf}, and how often it was pushed, from {@link pushesAsking} pushes on, while it is open,
  * with the question `smaller or skip?`, like `75 min · pushed once`; the week leaves out
  * how near a deadline is, since it shows a deadline only on its own day, which its row names; one the university
- * cancelled says so at its end, like `16:00 – 17:30 · 90 min · cancelled by university`.
+ * cancelled says so at its end, like `16:00 – 17:30 · cancelled by university`.
  * - `pushes`: How often it was pushed, empty for never.
  * - `asking`: The question whether to make it smaller or skip it, empty while it does not ask.
  * - `near`: How near its deadline is, empty for a box without, one not open, or in the week.
  * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
  * - `start`: Its expected start, `null` for none.
  * - `when`: Its deadline, else its expected start and end, or its start alone without duration, empty for neither.
- * - `length`: Its expected duration, empty for none; a space that never breaks between its number and `min`,
- *   so a narrow box keeps `90 min` together on one line.
+ * - `length`: Its expected duration, empty for none and where its start and end show it; a space that never breaks
+ *   between its number and `min`, so a narrow box keeps `90 min` together on one line.
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
@@ -401,26 +404,27 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
         when = `${timeOf(start)} – ${timeOf(new Date(start.getTime() + box.minutes * 60 * 1000))}`;
     if (box.deadline !== "")
         when = deadlineTextOf(box);
-    const length: string = box.minutes === null ? "" : `${box.minutes}\u00a0min`;
+    const length: string =
+        box.minutes === null || (start !== null && box.deadline === "") ? "" : `${box.minutes}\u00a0min`;
     return [over, when, length, near, pushes, asking, box.state === "university" ? "cancelled by university" : ""]
         .filter((part: string): boolean => part !== "");
 }
 
 /**
- * Makes the lines of a box, in the day and in the week alike, the same three whether it is open or done, see the top
+ * Makes the lines of a box, in the day and in the week alike, the same whether it is open or done, see the top
  * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf},
  * like **`Skill: IN0004_EinfuehrungRechnerarchitektur VO`**, see {@link shownWhatOf}, its long names breakable,
- * see `breakableOf` in `choices.ts`,
- * its time and length in the light grey of a time, its parts apart by a middle dot with room on both sides,
- * see {@link timePartsOf}, like `16:00 – 17:30 · 90 min`, and its place on a line of its own in the darker grey,
- * by its label alone, its address hidden, like `Audimax im Galileo`, a way its route,
- * like `HomeMunich → TumGarching`, see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click
- * instead of the box; a line without anything to say is left out, a line wider than the box goes on below,
- * see `.box-what` in `day.css`.
+ * see `breakableOf` in `choices.ts`; then its time in the light grey of a time, its parts apart by a middle dot
+ * with room on both sides, see {@link timePartsOf}, and after it its place in the darker grey, by its label alone,
+ * its address hidden, like `16:00 – 17:30 · Audimax im Galileo`, a way its route, like `HomeMunich → TumGarching`,
+ * see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click instead of the box; then its topics,
+ * one per line with a bullet, see {@link topicsOf}; a line without anything to say is left out, a line wider than
+ * the box goes on below, see `.box-what` in `day.css`.
  * - `what`: What it is as shown.
- * - `times`: The parts of the line of its time and length, the first plain, each further one after its dot,
- *   see `.entry-parted` in `day.css`.
+ * - `times`: The parts of its time, the first plain, each further one after its dot, see `.entry-parted` in `day.css`.
  * - `place`: The label of its place or the route of a way, empty for none.
+ * - `meta`: Its time and its place, as far as it has them, the place after a dot when a time stands before it.
+ * - `topics`: Its chapters and documents.
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
@@ -432,13 +436,34 @@ export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLEle
     const times: (string | Node)[] = timePartsOf(box, day, nearShown).map((part: string, index: number):
         string | Node => index === 0 ? part : entryPartOf("span", "entry-parted", [part]));
     const place: string = whereOf(box.category, box.from, box.location);
+    const meta: HTMLElement[] = [
+        ...(times.length === 0 ? [] : [entryPartOf("span", "box-part box-time", times)]),
+        ...(place === "" ? [] : [entryPartOf("span", times.length === 0 ? "box-part" : "box-part entry-parted",
+            whereLinkedOf(box.category, box.from, box.location, box.locationLink))]),
+    ];
+    const topics: string[] = topicsOf(box);
     return [
         entryPartOf("div", "box-what", whatOf(box.category, what === box.category ? "" : breakableOf(what))),
-        ...(times.length === 0 ? []
-            : [entryPartOf("div", "box-meta box-time", [entryPartOf("span", "box-part", times)])]),
-        ...(place === "" ? [] : [entryPartOf("div", "box-meta", [
-            entryPartOf("span", "box-part", whereLinkedOf(box.category, box.from, box.location, box.locationLink)),
-        ])]),
+        ...(meta.length === 0 ? [] : [entryPartOf("div", "box-meta", meta)]),
+        ...(topics.length === 0 ? [] : [entryPartOf("ul", "box-topics", topics.map((topic: string): HTMLElement =>
+            entryPartOf("li", "", [breakableOf(topic)])))]),
+    ];
+}
+
+/**
+ * Gives what a box is about, as I planned it: each of its chapters by the name of its folder, like
+ * `02_LogisticPoissonRegression` of `02 Logistic Poisson Regression`, undoing `titleOf` in `reader/notes.ts`,
+ * then each document it links by its name, the last part of its path, like `04_LogisticPoissonRegression.pdf`;
+ * a folder it links, which an older box may, shows as its chapter or not at all, see `chaptersOf`
+ * in `reader/documents.ts`.
+ *
+ * @param box - The box
+ * @returns Its chapters and documents, in order, none for none
+ */
+function topicsOf(box: Box): string[] {
+    return [
+        ...box.chapters.map((chapter: string): string => chapter.replace(" ", "_").replace(/ /g, "")),
+        ...box.links.filter((link: Link): boolean => link.fingerprint !== "").map(linkNameOf),
     ];
 }
 

@@ -7,13 +7,18 @@
              to the day before and after left and right of it; a small icon beside the date leads back to today, saving
              the room of a button Today, faded and off on today. A click on the date opens the month to pick
              a day from, see month.ts. On a phone the date stands in the middle, the weekday above it.
-             The trackers of the shown day at the right end, above the log -->
+             Between them the timer of a session running now; the trackers of the shown day at the right end,
+             above the log -->
         <div class="day-bar day-nav">
             <button class="day-arrow" id="day-back" type="button"></button>
             <h2 class="day-title"><button class="day-title-button" id="day-title" type="button" title="Pick a day"><span
                 class="day-weekday" id="day-weekday"></span> <span class="day-date" id="day-date"></span></button></h2>
             <button class="day-today" id="day-today" type="button" disabled></button>
             <button class="day-arrow" id="day-next" type="button"></button>
+
+            <!-- Timer of a session of mine running now, in the middle; filled by timer.ts, hidden while none runs,
+                 never on a phone -->
+            <span class="session-timer" id="session-timer" hidden></span>
 
             <!-- Trackers of the shown day: the night's sleep, glasses of water and food; filled by trackers.ts;
                  not on a phone -->

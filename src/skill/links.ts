@@ -1,7 +1,7 @@
 /**
  * ## Links
  *
- * Shows what a skill entry is and its links, in the entry by category and in the timer of the session running now:
+ * Shows what a skill entry is and its links, in the entry by category:
  * what it is as written, its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, which for a module
  * opens the module in the scripts view in a new tab, its folder being the `ALTREP` of the `SUMMARY`, see
  * `reader/documents.ts`, and for a project, which the scripts view has not, opens nothing, like `WokFlow`;

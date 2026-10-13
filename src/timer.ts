@@ -1,14 +1,15 @@
 /**
  * ## Session timer
  *
- * A quiet timer at the right of the areas while a session of mine runs, in every area: what its skill entry is
- * as written, a module opening in the scripts view, and the minutes since its skill entry started,
- * like `IN2028_BusinessAnalyticsMachineLearning · 32 min` or `WokFlow · 32 min`, in grey, then the document it uses
- * by its name, opening in a new tab, see `skill/links.ts`.
- * A session is the skill entry of the moment, of a type I pace myself, homework, or none, my own learning
+ * A quiet timer in the bar of the day, between the date and the trackers, in a soft frame like them, while a session
+ * of mine runs: what its skill entry is as written, a module opening in the scripts view, and the minutes left
+ * of the session, like `IN2028_BusinessAnalyticsMachineLearning (HU) · 43 min left` or `WokFlow · 43 min left`,
+ * in grey; never on a phone.
+ * A session is the skill entry of the moment in the log, of a type I pace myself, homework, or none, my own learning
  * or work on a project,
  * see `reader/skill.ts`: the first button of a task starts one, and a study session logged from the plan is one.
- * One calm mark at a time says what to do, in the light grey of the text, no sound and no popup, the first that holds:
+ * One calm mark at a time says what to do in place of the minutes left, in the light grey of the text, no sound
+ * and no popup, the first that holds:
  * - after 4 hours of learning today, lectures included: `4 h today: stop by plan`;
  * - after a whole session, 75 minutes: `Session done, 20 min away`;
  * - after one focused stretch, 45 minutes since the session started or since my last break in it:
@@ -19,12 +20,12 @@
  *
  * - `./icons.ts`: Makes the icon of the mark.
  * - `lucide`: The icon footprints.
- * - `./skill/links.ts`: Shows what a skill entry is and a link of it by its name.
+ * - `./skill/links.ts`: Shows what a skill entry is.
  */
 
 import { iconOf } from "./icons.ts";
 import { Footprints } from "lucide";
-import { linkElementOf, skillTitleElementOf } from "./skill/links.ts";
+import { skillTitleElementOf } from "./skill/links.ts";
 
 import type { Link } from "./skill/attempts.ts";
 
@@ -145,13 +146,13 @@ function markOf(session: Session, minutes: number, focus: number): [string, bool
 
 /**
  * Shows the session running now in the timer, see the top of this file, or hides the timer while none runs.
- * - `timer`: The timer at the right of the areas, in `index.html`.
+ * - `timer`: The timer in the bar of the day, in `day.html`.
  * - `minutes`: Whole minutes since the session started.
  * - `focus`: Whole minutes since its focused stretch started.
  * - `mark`, `offers`: Words of the mark, empty for none, and whether it offers to log a break.
  * - `dotOf`: Makes a dot of its own, so the gap of the timer parts it from its neighbours.
- * - `parts`: What the skill entry is, see `skill/links.ts`, the minutes and the mark, each after a dot.
- * - `links`: The links of its skill entry to files, each after a dot.
+ * - `left`: Whole minutes left of the session, none below 0.
+ * - `parts`: What the skill entry is, see `skill/links.ts`, then the minutes left or the mark, after a dot.
  *
  * @throws {Error} - When the reader cannot answer
  */
@@ -170,11 +171,11 @@ async function timerShow(): Promise<void> {
         dot.textContent = "·";
         return dot;
     };
+    const left: number = Math.max(0, session.sessionMinutes - minutes);
     const parts: (HTMLElement | string)[] = [skillTitleElementOf(session.title, session.titleLink), dotOf(),
-        `${minutes} min`, ...(mark === "" ? [] : [dotOf(), mark])];
-    const links: HTMLElement[] = session.links.flatMap((link: Link): HTMLElement[] => [dotOf(), linkElementOf(link)]);
+        mark === "" ? `${left} min left` : mark];
     timer.classList.toggle("session-break", mark !== "");
-    timer.replaceChildren(...(mark === "" ? [] : [iconOf(Footprints)]), ...parts, ...links,
+    timer.replaceChildren(...(mark === "" ? [] : [iconOf(Footprints)]), ...parts,
         ...(offers ? [breakButtonOf()] : []));
     timer.title = mark === ""
         ? `Session running since ${new Date(session.start).toTimeString().slice(0, 5)}; `
@@ -183,7 +184,7 @@ async function timerShow(): Promise<void> {
 }
 
 /**
- * Starts the timer in every area, after the router has marked the shown one: shows it now, then every minute.
+ * Starts the timer of the day: shows it now, then every minute.
  * - `look`: Shows the timer, a failure only written to the console.
  * - {@link setInterval}: Calls a function again and again, after a number of milliseconds each time.
  */

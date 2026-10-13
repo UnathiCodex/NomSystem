@@ -45,6 +45,7 @@
  * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the day on to the new day
  *   while it shows today.
  * - `../icons.ts`: Puts the icons of the arrows and of `+` into their buttons.
+ * - `../timer.ts`: Shows the timer of a session running now in the bar of the day.
  * - `lucide`: The icons of the arrows and plus.
  */
 
@@ -66,6 +67,7 @@ import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
 import { iconPut } from "../icons.ts";
+import { timerStart } from "../timer.ts";
 import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from "lucide";
 import "fullcalendar/skeleton.css";
 import "fullcalendar/themes/forma/theme.css";
@@ -447,7 +449,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * The theme keeps its own classes beside `slot-label`, `entry`, `entry-inner` and the others;
  * `day.css` wins because it comes after the theme's stylesheet.
  *
- * @param note - Whether the day shows its daily note, see {@link noteStart}; never on a phone
+ * @param note - Whether the day shows its daily note, see {@link noteStart}, and the timer of a session, see
+ *   `timer.ts`; never on a phone
  */
 export function dayStart(note: boolean): void {
     const calendar: Calendar = new Calendar(document.getElementById("day-calendar") as HTMLElement, {
@@ -527,6 +530,8 @@ export function dayStart(note: boolean): void {
     }, (): void => todayButtonShow(dayOf(calendar.view.currentStart)));
     giftsStart();
     timesStart();
-    if (note)
+    if (note) {
         noteStart(calendar).catch((error: unknown): void => console.error(error));
+        timerStart();
+    }
 }

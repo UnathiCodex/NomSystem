@@ -230,13 +230,12 @@
     overflow-wrap: anywhere;
 }
 
-/* Grey line of a box, its time and length or its place, in parts side by side, a part below the one before
-   where the line has no room for both; a part too long for the whole line goes on below; the place in the darker grey
-   of a place, the time in the light grey of a time, as in the log */
+/* Grey line of a box, its time and its place, in parts side by side, apart by the middle dot alone, a part below the one before where the line
+   has no room for both; a part too long for the whole line goes on below; the place in the darker grey of a place,
+   the time in the light grey of a time, as in the log */
 .box-meta {
     display: flex;
     flex-wrap: wrap;
-    column-gap: 0.3em;
     font-size: 0.8125rem;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
@@ -248,6 +247,20 @@
 
 .box-time {
     color: var(--text-time);
+}
+
+/* What a box is about, its chapters and documents, one per line with a grey bullet, in the size and grey
+   of the line above, close below it */
+.box-topics {
+    margin: 0.125rem 0 0;
+    padding-left: 1.1em;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    list-style: disc;
+}
+
+.box-topics li {
+    overflow-wrap: anywhere;
 }
 
 /* Ring of a box, as high as its first line: for an open box a button, an empty ring in the grey of the plan
@@ -614,11 +627,66 @@ button.box-ring.box-checked svg {
     display: none;
 }
 
-/* Trackers: at the right end of the bar of the day, side by side in one line, below each other where the line
-   has no room for all */
+/* Timer of a session running now, see `timer.ts`: in the middle between the date and the trackers, in a soft frame
+   like a tracker, at least one control high, grey, every digit equally wide; at the mark of a break in the light grey
+   of the text, the icon before its words; its auto margin and that of the trackers share the room between them;
+   on one line, what the skill entry is giving way with an ellipsis where the room is too small */
+.session-timer {
+    display: inline-flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    white-space: nowrap;
+    min-height: var(--control-height);
+    margin-left: auto;
+    padding: 0.25rem 0.875rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.session-timer.session-break {
+    color: var(--text-main);
+}
+
+/* What the session's skill entry is, a module linking the scripts view, in the grey of the timer, see
+   `skill/links.ts` */
+.session-timer .skill-link {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.session-timer a.skill-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-underline-offset: 0.2em;
+}
+
+.session-timer a.skill-link:hover {
+    text-decoration-color: currentcolor;
+}
+
+/* Button of the mark of a break, which logs Neck short: small, round, a grey lighter under the pointer */
+.session-break-log {
+    padding: 0.125rem 0.625rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--background);
+    cursor: pointer;
+}
+
+.session-break-log:hover {
+    background: var(--fill);
+}
+
+/* Trackers: at the right end of the bar of the day, side by side in one line, never squeezed */
 .trackers {
     display: flex;
-    flex-wrap: wrap;
+    flex: none;
     align-items: center;
     justify-content: flex-end;
     gap: var(--control-gap);
@@ -846,12 +914,13 @@ button.box-ring.box-checked svg {
 
 /* Panel: card over the page, for the entry by category, the gift idea, a place and the month, as sketched:
    one column of rows, each its name grey at the left, `--name-width` wide, about 96 pixels, so every value starts
-   at the same place, `--value-start` from the edge of the card's content */
+   at the same place, `--value-start` from the edge of the card's content; 44rem wide, so whole names, addresses
+   and links fit, a place opened from the entry by category as wide as it; the month smaller, see `.month-panel` */
 .panel {
     --name-width: 4.8rem;
     --row-padding: 0.75rem;
     --value-start: calc(var(--row-padding) + 1px + var(--name-width) + var(--control-gap));
-    width: min(27.5rem, calc(100vw - 2 * var(--gap)));
+    width: min(44rem, calc(100vw - 2 * var(--gap)));
     padding: var(--gap);
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -993,11 +1062,15 @@ button.box-ring.box-checked svg {
     cursor: default;
 }
 
-/* Entry by category: one column of rows, wide enough for whole names and long lists, 44rem, at most as high
-   as the screen with a gap around, then scrolling as a whole, the lists of its fields too, which open inside it,
-   see `.picker-box`; its top stays where it is as a list opens or closes, so the rows above never move */
+/* Month to pick a day from: as wide as a month needs, 27.5rem */
+.month-panel {
+    width: min(27.5rem, calc(100vw - 2 * var(--gap)));
+}
+
+/* Entry by category: one column of rows, at most as high as the screen with a gap around, then scrolling
+   as a whole, the lists of its fields too, which open inside it, see `.picker-box`; its top stays where it is
+   as a list opens or closes, so the rows above never move */
 .entry-panel {
-    width: min(44rem, calc(100vw - 2 * var(--gap)));
     max-height: calc(100dvh - 2 * var(--gap));
     margin-top: max(var(--gap), 6dvh);
     overflow-y: auto;

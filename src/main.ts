@@ -10,16 +10,14 @@
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the scripts no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
- * The timer of a session running now stands at the top right above the area in every area.
  * A phone, a screen as narrow as the phone layout of the stylesheets, which {@link matchMedia} tells,
  * is only for the day, its plan and its log, as simple as can be, nothing for learning and no food for now:
- * it opens the day everywhere, without its daily note, so it loads no Markdown renderer, and runs no timer;
+ * it opens the day everywhere, without its daily note, so it loads no Markdown renderer;
  * `base.css` hides the areas, so the whole screen stays free.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
  * - `@fontsource-variable/noto-sans`: Noto Sans, the font of the page, in every weight, served with the page,
  *   so it looks the same on every device; `wght-italic.css` adds its italic.
- * - `./timer.ts`: Shows the timer of a session running now.
  * - `./day/day.html?raw`, `./week/week.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`,
  *   `./food/food.html?raw`, `./editor/editor.html?raw`: Html of day, week, scripts, skill, food and editor as text,
  *   packed into the built code by Vite.
@@ -37,7 +35,6 @@
 /// <reference types="vite/client" />
 import "@fontsource-variable/noto-sans";
 import "@fontsource-variable/noto-sans/wght-italic.css";
-import { timerStart } from "./timer.ts";
 import dayHtml from "./day/day.html?raw";
 import weekHtml from "./week/week.html?raw";
 import notesHtml from "./notes/notes.html?raw";
@@ -52,8 +49,6 @@ const areas: string[] = phone ? [] : ["/week", "/scripts", "/skill", "/food", "/
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
 document.querySelector(`.areas a[href="${area === "/edit" ? "/scripts" : area}"]`)
     ?.setAttribute("aria-current", "page");
-if (!phone)
-    timerStart();
 
 if (area === "/week") {
     const week: { weekStart: () => void } = await import("./week/week.ts");
