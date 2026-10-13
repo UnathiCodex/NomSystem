@@ -5,8 +5,8 @@
  * with one row per place, its name, like `TumMain`, and its address, like `Arcisstraße 21, 80333 München`.
  * Every field of a place, the place of an entry and where a way starts, offers only these, see `categories.ts`,
  * and an entry writes the name of its place as its `LOCATION`, like `HomeMunich`.
- * The file starts without places, none taken from the old calendar: I add each place with its address
- * from the dialog of the day the first time I need it, and the reader creates the file with that first place.
+ * The file starts without places: I add each place with its address from the dialog of the day the first time
+ * I need it, and the reader creates the file with that first place.
  *
  * - `node:fs`: Reads and writes `Places.md`.
  * - `node:path`: Gives the folder of `Places.md`.

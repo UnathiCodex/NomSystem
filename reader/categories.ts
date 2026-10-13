@@ -3,17 +3,14 @@
  *
  * Entry by category, for plan and log alike: a fixed list of categories, each with its fields,
  * like `Way` with `By`, `From` and `To`.
- * Each field of a what offers its values from the log itself, the most used first, equal ones alphabetical:
- * from the entries of the new system by their fields, and from the old log titles since 2024,
- * `Verb Objekt Ort` giving the object.
+ * Each field of a what offers its values from the log itself, the what of its entries of the category,
+ * the most used first, equal ones alphabetical.
  * Places are one list for every field of a place, the place of an entry and where a way starts: only my places
- * of `Places.md`, each with its address, see `places.ts`, the most used by the entries of the new system first;
- * nothing comes from the old calendar.
+ * of `Places.md`, each with its address, see `places.ts`, the most used by the entries of the log first.
  * A value offered in the code may come with steps, which the dialog shows while it is picked:
  * `Body` offers my neck routine, `Neck short` and `Neck long`, each with its exercises, see {@link neckRoutines},
  * and below them the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
- * A dish, the what of `Food` and `Cook`, names its foods parted by `, `, like `Reis, Bohnen, Eier`,
- * also when it comes from an old title, which joined them with `-`, like `Cook Reis-Bohnen-Eier`.
+ * A dish, the what of `Food` and `Cook`, names its foods parted by `, `, like `Reis, Bohnen, Eier`.
  * `Skill` is a category without such fields: in plan and log a module and a type, like `IN2028 VO`,
  * see {@link skillTypes}; in the log also its chapters, its document and its attempts, which only the skill area writes,
  * see `skill.ts`.
@@ -127,16 +124,11 @@ function categoryOf(name: string, routines: { [what: string]: string[] }): Categ
 export const skillName: string = "Skill";
 
 /**
- * Types of a skill entry, the abbreviations of my old naming `[CODE] TYP`, each written as its `X-TYPE`:
- * `VO` a lecture and `TU` a tutorial I attend, `HU` a homework sheet I work on, `DEV` my own study,
- * solving the tasks of my notes, `FA` an exam and `PR` a practical course.
+ * Types of a skill entry, each written as its `X-TYPE`: `VO` a lecture and `TU` a tutorial I attend,
+ * `HU` a homework sheet I work on, `DEV` my own study, solving the tasks of my notes, `FA` an exam
+ * and `PR` a practical course.
  */
 export const skillTypes: string[] = ["VO", "TU", "HU", "DEV", "FA", "PR"];
-
-/**
- * Categories whose what is a dish: its foods parted by `, `, like `Reis, Bohnen, Eier`.
- */
-const dishCategories: string[] = ["Food", "Cook"];
 
 /**
  * Categories no box of the plan has, since they happen anyway: my sleep, my meals and their cooking, my drinks
@@ -171,48 +163,25 @@ const categories: Category[] = [
     categoryOf("Game", {}),
 ];
 
-/**
- * Start of the log the lists read: since 1 January 2024 its titles are `Verb Objekt Ort`.
- */
-const vocabularyStart: string = "2024-01-01T00:00:00Z";
-
 
 /**
- * Reads the timed log entries from 2024 up to an instant.
+ * Reads the timed log entries up to an instant, from the first entry of the log on.
  *
  * @param now - Present as ISO instant
  * @returns Log entries that started before the instant
  */
 function logsRead(now: string): Entry[] {
-    return entriesRead(day.log, vocabularyStart, now).filter((log: Entry): boolean => !log.allDay);
+    return entriesRead(day.log, "1970-01-01T00:00:00Z", now).filter((log: Entry): boolean => !log.allDay);
 }
 
 /**
- * Takes the object of an old log title of a category, the word after its verb, as the what of a new entry:
- * `Watch` of `Watch YouTube Wissen` gives `YouTube`; a dish gets `, ` between its foods in place of `-`,
- * so `Cook` of `Cook Reis-Eier-Tomaten Socials` gives `Reis, Eier, Tomaten`.
- * - `words`: Words of the title, the verb first.
- *
- * @param title - Old log title
- * @param name - Name of the category, the verb
- * @returns Object, empty when the title is not of the category
- */
-function objectOf(title: string, name: string): string {
-    const words: string[] = title.split(" ");
-    if (words[0] !== name || words.length < 2)
-        return "";
-    return dishCategories.includes(name) ? words[1].replaceAll("-", ", ") : words[1];
-}
-
-/**
- * Lists the places of log entries of the new system, those with a category: their places and where their ways start;
- * an old entry gives none.
+ * Lists the places of log entries: their places and where their ways start.
  *
  * @param logs - Log entries
  * @returns Every use of a place, a place as often as it was used
  */
 function placeUsesOf(logs: Entry[]): string[] {
-    return logs.flatMap((log: Entry): string[] => log.category !== "" ? [log.location, log.from] : []);
+    return logs.flatMap((log: Entry): string[] => [log.location, log.from]);
 }
 
 /**
@@ -225,21 +194,14 @@ function placeNamesRead(): string[] {
 }
 
 /**
- * Lists the values of the field `title` of a category in log entries:
- * the what of new entries, the object of old titles.
+ * Lists the values of the field `title` of a category in log entries: the what of its entries.
  *
  * @param logs - Log entries
  * @param name - Name of the category
- * @returns Every use of a value, a value as often as it was used, empty for an entry of another verb
+ * @returns Every use of a value, a value as often as it was used
  */
 function titleUsesOf(logs: Entry[], name: string): string[] {
-    return logs.flatMap((log: Entry): string[] => {
-        if (log.category === "")
-            return [objectOf(log.title, name)];
-        if (log.category === name)
-            return [log.title];
-        return [];
-    });
+    return logs.filter((log: Entry): boolean => log.category === name).map((log: Entry): string => log.title);
 }
 
 /**
@@ -309,8 +271,8 @@ export function categoriesRead(now: string): CategoryShown[] {
 }
 
 /**
- * Reads how long the entries of a category usually last: the median length of the new entries of the category
- * and of the old titles with its verb since 2024, like 30 minutes for `Food`.
+ * Reads how long the entries of a category usually last: the median length of its entries in the log,
+ * like 30 minutes for `Food`.
  * - `lengths`: Length of each entry in minutes, the shortest first.
  *
  * @param name - Name of the category, like `Food`
@@ -319,16 +281,15 @@ export function categoriesRead(now: string): CategoryShown[] {
  */
 export function usualLengthRead(name: string, now: string): number {
     const lengths: number[] = logsRead(now)
-        .filter((log: Entry): boolean => log.category === name || (log.category === "" && objectOf(log.title, name) !== ""))
+        .filter((log: Entry): boolean => log.category === name)
         .map((log: Entry): number => Math.round((Date.parse(log.end) - Date.parse(log.start)) / 60000))
         .sort((first: number, second: number): number => first - second);
     return lengths[Math.floor(lengths.length / 2)] ?? 30;
 }
 
 /**
- * Finds where the last way before an instant ended: the place of the last `Way` of the new system,
- * when it is one of my places; an old route of the old calendar names none.
- * - `last`: Last way of the new system that started before the instant.
+ * Finds where the last way before an instant ended: the place of the last `Way`, when it is one of my places.
+ * - `last`: Last way that started before the instant.
  *
  * @param before - Start of the new entry as ISO instant
  * @returns Place, empty when there was no way before or it ended at no place of mine

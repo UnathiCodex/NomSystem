@@ -3,8 +3,8 @@
  *
  * Writes a draft note as I saved it in the editor: exactly the text sent, nothing reformatted,
  * and first keeps the change as a unified diff in the folder of my edits, so the AI can turn my corrections
- * into rules of my style. Writes only notes of the unchecked drafts, never my modules in `NomSkillingmodules`
- * or the archive. Paths are those of the notes view, with `Drafts/` before, like
+ * into rules of my style. Writes only notes of the unchecked drafts, never my modules in `NomSkillingmodules`.
+ * Paths are those of the notes view, with `Drafts/` before, like
  * `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
  *
  * - `node:fs`: Reads and writes files.

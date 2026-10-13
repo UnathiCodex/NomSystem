@@ -27,10 +27,11 @@
  * on the day of its deadline and has no expected time, so both their fields are off while the day of a deadline
  * is typed.
  * The dialog opens for the log from `+` above the time grid, from a range selected in the time grid,
- * and from a log entry of the new system to change it; for a box from `+` above the list of boxes,
+ * and from a log entry that can be changed, to change it; for a box from `+` above the list of boxes,
  * from a suggested study session, filled in as suggested, see `suggestions.ts`,
- * and from a box of the new system to change it, or to log it instead, filled in as planned;
- * a box of the archive opens it to be logged. A log entry logged from a box points to it, see `entries.ts`;
+ * and from a box that can be changed, to change it, or to log it instead, filled in as planned;
+ * one that cannot, like an occurrence of a series, opens it to be logged. A log entry logged from a box points to it,
+ * see `entries.ts`;
  * a box logged at its real time by dragging it into the log, or as expected by a tap, needs no dialog,
  * see `boxes.ts`.
  *
@@ -537,9 +538,8 @@ function textsRead(): BoxFields {
 }
 
 /**
- * Reads fields, note and times of the dialog for an entry of the log, and the box of the new system
- * a new log entry is logged from; a box of the archive is only shown, since an occurrence of a series has no box
- * of its own to point to.
+ * Reads fields, note and times of the dialog for an entry of the log, and the box a new log entry is logged from;
+ * a box that cannot be changed is only shown, like an occurrence of a series, which has no box of its own to point to.
  * Start and end are plain times on the typed day, the calendar date of the start, see {@link startRead};
  * an end at or before the start lies on the next day, like a night of sleep: `12.10.2026`, `23:30` to `07:30`
  * ends on 13 October at 07:30. What the fields show is exactly what is saved.
@@ -741,7 +741,7 @@ function timesShow(opening: EntryOpening): void {
  * Shows the dialog as an opening says, each value picked in a long list scrolled into sight once the dialog shows,
  * like the dish of a meal being changed.
  * Above the categories, small and grey: `Plan` for a box, with `Log it` to log an open box being changed,
- * or the box a log entry comes from, with `Edit plan` to change it instead, when it lies in the new system.
+ * or the box a log entry comes from, with `Edit plan` to change it instead, when it can be changed.
  * The first button, which the dialog focuses as it opens, loses the focus again, so its ring never looks like a pick.
  * - `dialog`: The dialog, open already when one of those two buttons opens it anew.
  * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page, `Esc` closes it.
@@ -819,9 +819,10 @@ export async function entryOpenNow(calendar: Calendar): Promise<void> {
 }
 
 /**
- * Opens the dialog to log a box at a start and an end, like those of its drop into the log; a box with a category,
- * one of the new system, comes with its category and fields picked as planned, a skill box with its module and type,
- * ready to save or to change, like a lecture with its chapters and slides; a box of the archive without them.
+ * Opens the dialog to log a box at a start and an end, like those of its drop into the log; a box with a category
+ * comes with its category and fields picked as planned, a skill box with its module and type,
+ * ready to save or to change, like a lecture with its chapters and slides; a box without category,
+ * like a to-do another app wrote, without them.
  * - `planned`: Whether the box has a category.
  *
  * @param box - Box to log
@@ -837,7 +838,7 @@ export async function entryOpenFromBox(box: Box, start: Date, end: Date): Promis
             ? { title: box.title, from: box.from, location: box.location }
             : { title: "", from: "", location: "" },
         note: "", foods: [], skill: { ...skillNone, module: box.module, type: box.type },
-        plan: box.id === "" ? null : box, entry: null, box: null,
+        plan: box, entry: null, box: null,
     });
 }
 

@@ -4,7 +4,7 @@
  * Reads `.ics` files into entries, their events, `VEVENT`, and their to-dos, `VTODO`, the boxes of the plan,
  * see `boxes.ts`; appends events and to-dos to them, changes and removes single ones,
  * and moves one from one file into another, like into the file of another month.
- * Keeps each read file until it changes on disk, because reading all calendars takes seconds.
+ * Keeps each read file until it changes on disk, so a file is read again only once it changed.
  * Writes only into the folder of the new system, with times in Berlin time,
  * and leaves every line it does not change as it is, byte for byte.
  *
@@ -27,12 +27,11 @@ import type { CalendarSource } from "./sources.ts";
 /**
  * One calendar entry, as the page shows it.
  *
- * - `id`: Identifier of the event, its `UID`, like `01d6ba6f1crk5tte4dcifbktee@google.com`;
- *   all occurrences of a series share it.
- * - `category`: Category of the entry, its `CATEGORIES`, like `Way`; empty for an old entry.
- * - `title`: Summary of the entry, what it was, like `U-Bahn`, or an old title like `Cook Pizza-Thunfisch-Gemüse`.
- * - `location`: Place of the entry, like `TumGarching` or `Burg-Eltz-Weg, 81375 München-Hadern, Deutschland`,
- *   empty when the event has none.
+ * - `id`: Identifier of the event, its `UID`, like `b8f1e81f-15b4-460e-910d-ef6b1b3d09b3@nomsystem`;
+ *   all occurrences of a series share it, like those of a birthday.
+ * - `category`: Category of the entry, its `CATEGORIES`, like `Way`; empty for an entry without one, like a birthday.
+ * - `title`: Summary of the entry, what it was, like `U-Bahn`.
+ * - `location`: Place of the entry, like `HomeMunich`, empty when the event has none.
  * - `from`: Where a way starts, its `X-FROM`, empty when the event has none.
  * - `module`: Module of a skill entry, its `X-MODULE`, like `IN2028`, empty when the event has none.
  * - `type`: Type of a skill entry, its `X-TYPE`, like `VO`, empty when the event has none.
@@ -177,7 +176,7 @@ type Range = {
  *
  * - `lines`: Lines of the file; a line starting with a space or a tab continues the line before,
  *   as the format folds long lines.
- * - `newline`: Line break of the file, `\r\n` like the Google archive or `\n`.
+ * - `newline`: Line break of the file, `\r\n` as the reader writes new files, or `\n`.
  */
 type FileLines = {
     lines: string[];
@@ -432,7 +431,7 @@ function occurrencesOf(series: ICAL.Event, range: Range): Entry[] {
 
 /**
  * Reads the entries of calendar sources that start in a range or overlap it, the first so a to-do with a time
- * but no length, which ends where it starts, is found too; of a closed calendar only those before its end.
+ * but no length, which ends where it starts, is found too; a source whose folder or files are missing gives none.
  * Compares all-day entries by their dates and timed entries by their instants,
  * so a birthday stays on its date in every time zone.
  *
@@ -447,14 +446,12 @@ export function entriesRead(sources: CalendarSource[], start: string, end: strin
         instants: [new Date(start).toISOString(), new Date(end).toISOString()],
     };
 
-    return sources
-        .flatMap((source: CalendarSource): Entry[] => filesOf([source])
-            .map((file: string): Calendar => calendarOf(file))
-            .flatMap((calendar: Calendar): Entry[] => [
-                ...calendar.entries,
-                ...calendar.series.flatMap((series: ICAL.Event): Entry[] => occurrencesOf(series, range)),
-            ])
-            .filter((entry: Entry): boolean => source.until === undefined || entry.start < source.until))
+    return filesOf(sources)
+        .map((file: string): Calendar => calendarOf(file))
+        .flatMap((calendar: Calendar): Entry[] => [
+            ...calendar.entries,
+            ...calendar.series.flatMap((series: ICAL.Event): Entry[] => occurrencesOf(series, range)),
+        ])
         .filter((entry: Entry): boolean => {
             const [from, to]: [string, string] = boundsOf(entry.allDay, range);
             return entry.start < to && (entry.start >= from || entry.end > from);
@@ -496,7 +493,7 @@ export function entryFind(sources: CalendarSource[], id: string): [string, Entry
 }
 
 /**
- * Stops a write outside the folder of the new system, like into the archive.
+ * Stops a write outside the folder of the new system, like into my modules.
  *
  * @param file - Path of the file to write
  * @throws {Error} - When the file lies outside the folder of the new system
@@ -530,7 +527,7 @@ function linesWrite(file: string, text: FileLines): void {
 }
 
 /**
- * Creates an empty calendar with the header of the Google archive and the time zone {@link zoneName}.
+ * Creates an empty calendar with the header calendar apps read, its name among it, and the time zone {@link zoneName}.
  *
  * @param name - Name of the calendar, shown by calendar apps
  * @returns Calendar without events
@@ -550,7 +547,7 @@ function calendarCreate(name: string): ICAL.Component {
 /**
  * Puts the lines of an event or a to-do before the last line `END:VCALENDAR` of an `.ics` file,
  * so everything already in the file stays as it is, byte for byte.
- * A missing file is created with the header of the Google archive.
+ * A missing file is created with the header of a new calendar, see {@link calendarCreate}.
  * - {@link ICAL.Component#toString}: Writes a component in the iCalendar format, lines parted by `\r\n`.
  *
  * @param file - Path of the `.ics` file

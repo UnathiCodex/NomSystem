@@ -3,9 +3,9 @@
  *
  * Reads and writes my gift ideas for birthdays and holidays in `Gifts.md`, as `food.ts` does my foods in `Foods.md`:
  * one Markdown table with one row per gift idea, the day of its birthday or holiday, like `11.10.2026`,
- * the birthday or holiday as my calendar names it, like `Geburtstag: KarlbauerFlorian`, and the gift.
- * The birthdays and holidays lie in the archive, which is read only, so my gift ideas for them lie here,
- * in the new system; the plan of a day shows each below its birthday or holiday, see `boxes.ts`.
+ * the birthday or holiday as `Birthdays.ics` names it, like `Geburtstag: KarlbauerFlorian`, and the gift.
+ * The birthdays and holidays lie in `Birthdays.ics`, which the reader only reads, so my gift ideas for them lie here,
+ * apart; the plan of a day shows each below its birthday or holiday, see `boxes.ts`.
  * I write one only when I have one.
  *
  * - `node:fs`: Reads and writes `Gifts.md`.

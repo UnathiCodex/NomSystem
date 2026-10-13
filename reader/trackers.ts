@@ -103,7 +103,7 @@ export type SleepDay = {
  * - `id`: Identifier of its entry.
  * - `start`: When I drank it, as ISO instant.
  * - `water`: Whether it is a glass of water, which the counter wrote and may take back.
- * - `editable`: Whether its entry lies in the new system, so the counter may take it back.
+ * - `editable`: Whether its entry can be changed, see `calendar.ts`, so the counter may take it back.
  */
 export type Glass = {
     id: string;

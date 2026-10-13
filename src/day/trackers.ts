@@ -105,7 +105,7 @@ type SleepDay = {
  * - `id`: Identifier of its entry.
  * - `start`: When I drank it, as ISO instant.
  * - `water`: Whether it is a glass of water, which the counter may take back.
- * - `editable`: Whether its entry lies in the new system, so it can be taken back.
+ * - `editable`: Whether its entry can be changed, so it can be taken back.
  */
 type Glass = {
     id: string;

@@ -8,8 +8,8 @@
  * A click on the date opens a month to pick any day from, see `month.ts`.
  * A box goes into the log at its real time by dragging it there, or as expected with one tap on its ring.
  * The log is written by category: `+` above the time grid opens the entry by category for the last half hour,
- * a range selected in the time grid for that range; a click on an entry of the new system changes it.
- * Entries of the new system are moved and resized by dragging, and the reader writes them back into their files.
+ * a range selected in the time grid for that range; a click on an entry changes it.
+ * Entries are moved and resized by dragging, and the reader writes them back into their files.
  * Entries look as Google Calendar shows them: what first, then the time, in one size, the time grey,
  * and a taller one its place and its note below, see {@link entryContentOf};
  * a dish, a meal or a cooking, lists its foods. The kcal of a meal stay hidden for a try; the dialog and the trackers
@@ -97,8 +97,8 @@ const gridHours: number = 29;
 
 /**
  * Event source of the log of the reader. FullCalendar adds `start` and `end` of the shown day to the address,
- * and takes the field `editable` of each entry, so only entries of the new system can be dragged.
- * - `eventDataTransform`: Lets the entries of the new system react to a click, see {@link entryClick};
+ * and takes the field `editable` of each entry, so only entries that can be changed are dragged.
+ * - `eventDataTransform`: Lets the entries that can be changed react to a click, see {@link entryClick};
  *   a glass of water shows as a background entry of the class `glass-mark`, which `day.css` draws as a small mark.
  *
  * @returns Event source for FullCalendar
@@ -116,7 +116,8 @@ function logSourceOf(): EventSourceInput {
 }
 
 /**
- * Opens the entry by category to change a clicked entry of the new system; an old entry stays as it is.
+ * Opens the entry by category to change a clicked entry; one that cannot be changed, like an occurrence of a series
+ * or an entry of the whole day, stays as it is.
  * - `startEditable`: Whether the entry can be changed, the field `editable` of the reader.
  *
  * @param info - Clicked entry
@@ -182,7 +183,7 @@ function dishOf(event: EventApi): string[] {
  *   cut with an ellipsis, its start and end on the second, like `20:00 – 23:45`, with room for three lines
  *   its place on the third, like `HomeMunich`, cut with an ellipsis, and below them its note, as many lines of it
  *   as are left, cut with an ellipsis; no place when it has none, no note when it has none or no whole line is left.
- * - `category`: Category of the entry, empty for an old entry.
+ * - `category`: Category of the entry, empty for an entry without one.
  * - `foods`: Foods of a dish, none for any other entry.
  * - `what`: What the entry was, its foods for a dish, empty when it is its category, like `Sleep`.
  * - `place`: Place of the entry, its `LOCATION`, like `HomeMunich`, empty when it has none.
@@ -338,7 +339,7 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `eventAllow`: Takes boxes and entries only in the time grid, not in the row of the whole day.
  * - `eventReceive`: Logs a box dropped into the log at the time of the drop, see `boxes.ts`.
  * - `eventsSet`: Tells the boxes and the trackers the entries of the shown day, after every change.
- * - `eventClick`: Opens the entry by category for an entry of the new system, see {@link entryClick}.
+ * - `eventClick`: Opens the entry by category for an entry that can be changed, see {@link entryClick}.
  * - `select`: Opens the entry by category for a range selected in the time grid.
  * - `selectAllow`: Allows selecting a time range, but not in the row of the whole day.
  * - `nowIndicatorLineClass`, `nowIndicatorDotClass`: Add the classes `now-line` and `now-dot` to the line of now

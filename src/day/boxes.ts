@@ -23,12 +23,13 @@
  * when that is another day, like `done Fri, 09.10.2026` for a box done a day early;
  * a done box with a deadline shows its check alone, no done line, since it is gone the next day anyway,
  * like `Skill: WI1059 HU` with `Deadline Mon, 12.10.2026, 12:00`, not `done 05:15 · 15 min`.
- * An open box of the new system is pushed to the next day with one tap on its arrow, or dropped with one tap on its cross;
- * a dropped box stays in its file, see `reader/boxes.ts`, and shows struck through at the end of the list,
- * where one tap takes it back.
+ * An open box that can be changed is pushed to the next day with one tap on its arrow, or dropped with one tap
+ * on its cross; a dropped box stays in its file, see `reader/boxes.ts`, and shows struck through at the end
+ * of the list, where one tap takes it back.
  * `+` above the list opens the entry by category for a new box of the shown day; a click on a box changes it,
- * see `categories.ts`. A box of the archive, like a box of an old daily note, which has no category and no ring,
- * opens the entry by category of the log instead, when it is dropped or clicked.
+ * see `categories.ts`. A box without category, like a to-do another app wrote into the plan, opens the entry
+ * by category of the log instead of being logged at once, when it is dropped or its ring tapped, since the log needs
+ * a category; a box that cannot be changed, like an occurrence of a series, has no ring and opens it when clicked.
  * The list loads again when the shown day or its log changes, since a box is done once a log entry points to it,
  * when the entry by category closes, and after a push, a drop or a suggestion accepted.
  * The week shows the boxes of seven days the same way, without their buttons, see `week.ts`.
@@ -69,8 +70,8 @@ export type BoxState = "open" | "done" | "dropped";
 /**
  * A box, as the reader sends it.
  *
- * - `id`: Identifier of its to-do or event; empty for a box of an old daily note.
- * - `category`: Category, like `Skill`, empty for a box of the archive.
+ * - `id`: Identifier of its to-do or event.
+ * - `category`: Category, like `Skill`, empty for a box without one, like a to-do another app wrote.
  * - `title`: What, like `WI1059 HU`.
  * - `location`: Place, empty for none.
  * - `from`: Where a way starts, empty for none.
@@ -84,7 +85,8 @@ export type BoxState = "open" | "done" | "dropped";
  * - `state`: Whether it is open, done or dropped.
  * - `pushed`: Days it was pushed from to the next day, in order.
  * - `log`: Start and end of the log entry written from it, as ISO instants, `null` for none.
- * - `editable`: Whether it lies in the new system, so it can be changed, pushed, dropped and removed.
+ * - `editable`: Whether it can be changed, pushed, dropped and removed: a to-do or an event with times
+ *   that happens once; an occurrence of a series cannot.
  * - `todo`: Whether it is a to-do; an event, like a lecture imported from TUMonline, keeps its time and duration.
  */
 export type Box = {
@@ -110,7 +112,7 @@ export type Box = {
 /**
  * A birthday or holiday of a day, as the reader sends it.
  *
- * - `title`: Its name as my calendar writes it, like `Geburtstag: KarlbauerFlorian`.
+ * - `title`: Its name as `Birthdays.ics` writes it, like `Geburtstag: KarlbauerFlorian`.
  * - `gift`: My gift idea for it, empty for none.
  */
 export type Occasion = {
@@ -165,11 +167,11 @@ export function entryPartOf(tag: string, className: string, parts: (string | Nod
 
 /**
  * Makes what an entry or a box is: its category in bold with a colon, so the list scans fast, then its what,
- * like **`Skill:`**` WI1059 HU`; only the what of an old entry without category, only the category without colon
+ * like **`Skill:`**` WI1059 HU`; only the what of an entry without category, only the category without colon
  * of an entry whose what it is, like **`Sleep`**.
  * - `bold`: The category in bold, in the size of the rest, with the colon inside when a what follows.
  *
- * @param category - Category, empty for an old entry
+ * @param category - Category, empty for an entry without one
  * @param what - What the entry was, empty when it is its category
  * @returns Texts and elements of what the entry was
  */
@@ -371,8 +373,9 @@ async function boxTap(calendar: Calendar, box: Box): Promise<void> {
 }
 
 /**
- * Acts on a click on what a box is: a box of the new system opens the entry by category to change it,
- * an open box of the archive opens the entry by category of the log at the times of a tap, see {@link boxTap}.
+ * Acts on a click on what a box is: a box that can be changed opens the entry by category to change it,
+ * an open one that cannot, like an occurrence of a series, the entry by category of the log at the times of a tap,
+ * see {@link boxTap}.
  * - `start`, `end`: The times of a tap.
  *
  * @param calendar - Calendar of the day
@@ -389,10 +392,10 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
 }
 
 /**
- * Makes the ring at the left of a box: for an open box of the new system a button, an empty ring like the circle
+ * Makes the ring at the left of a box: for an open box that can be changed a button, an empty ring like the circle
  * of a to-do, its check showing under the pointer, which logs it as expected, see {@link boxTap};
- * for a done box the check alone, grey; for a dropped box and a box of the archive an empty place,
- * since the archive cannot tell what was done.
+ * for a done box the check alone, grey; for a dropped box and an open one that cannot be changed,
+ * like an occurrence of a series, an empty place, since no log entry points to it.
  * - `ring`: The button of an open box.
  *
  * @param calendar - Calendar of the day
@@ -436,10 +439,10 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
 }
 
 /**
- * Makes the buttons at the right of a box of the new system: for an open box the arrow, which pushes it
+ * Makes the buttons at the right of a box that can be changed: for an open box the arrow, which pushes it
  * to the next day, but for a box with a deadline, which stays on the day of its deadline, and the cross,
  * which drops it; for a dropped box the arrow back, which takes it back; none for a done box and for a box
- * of the archive.
+ * that cannot be changed, like an occurrence of a series.
  *
  * @param calendar - Calendar of the day
  * @param box - The box

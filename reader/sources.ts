@@ -2,9 +2,11 @@
  * ## Sources
  *
  * Names every folder and file the reader reads, and every address on the web it asks, grouped by area.
- * The reader reads nothing that is not listed here.
- * It writes only into {@link writeRoot}, the folder of the new system, and the editor into the drafts, see {@link editor};
- * the archive of the old system is read only, never written to.
+ * The reader reads only the new system, the folder {@link writeRoot}, my modules and the drafts, see {@link notes},
+ * and nothing that is not listed here.
+ * It writes only into {@link writeRoot}, and the editor into the drafts, see {@link editor}.
+ * A file or folder of the new system that is missing, like `Birthdays.ics` or the log of a month without entries,
+ * counts as empty.
  *
  * - `node:os`: Gives the home folder and the operating system.
  * - `node:path`: Builds file paths for the operating system.
@@ -18,14 +20,11 @@ import { join, resolve, sep } from "node:path";
  * Files of a calendar: in a folder and its subfolders, the files whose names end in an ending.
  *
  * - `folder`: Folder of the files.
- * - `ending`: End of their names, like `.ics` for every calendar file or `_Log.ics` for the new log.
- * - `until`: First day the calendar holds no entries any more, like `2026-08-01` for a closed calendar,
- *   whose yearly series would else go on; none for a calendar I still keep.
+ * - `ending`: End of their names, like `_Log.ics` for the log or `Birthdays.ics` for the birthdays and holidays.
  */
 export type CalendarSource = {
     folder: string;
     ending: string;
-    until?: string;
 };
 
 /**
@@ -37,14 +36,10 @@ export const vault: string = process.env.NOM_VAULT
     ?? (platform() === "win32" ? "M:\\NomWorkspace" : join(homedir(), "NomWorkspace"));
 
 /**
- * Archive of the old system, `NomSystemarchivierung`: calendars and diary until 2026, read only.
- */
-const archive: string = join(vault, "NomManageplannings", "NomSystemarchivierung");
-
-/**
  * Folder of the new system, `NomSystemcalendar`, the folder the reader writes into, but for the drafts of the editor:
  * one folder per year and one per month, like `2026/2026_10/`, holding the log `2026_10_Log.ics`,
- * the plan `2026_10_Plan.ics` and one daily note per day, like `2026_10_12.md`.
+ * the plan `2026_10_Plan.ics` and one daily note per day, like `2026_10_12.md`; at its top `Birthdays.ics`,
+ * `Foods.md`, `Gifts.md` and `Places.md`.
  */
 export const writeRoot: string = join(vault, "NomManageplannings", "NomSystemcalendar");
 
@@ -81,7 +76,7 @@ export const notes: NotesSources = {
 };
 
 /**
- * Places the editor writes, the only ones besides {@link writeRoot}: the drafts, never my modules or the archive.
+ * Places the editor writes, the only ones besides {@link writeRoot}: the drafts, never my modules.
  *
  * - `drafts`: Unchecked drafts I correct, the drafts of {@link notes}.
  * - `edits`: My corrections, one unified diff per save, in the hidden folder `.edits` of the drafts,
@@ -116,36 +111,16 @@ export const activeModules: string[] = [
 ];
 
 /**
- * Plan calendars of the archive, one folder per semester or year.
- */
-const planning: string = join(archive, "NomFrequenzPlanung");
-
-/**
- * Google calendars of the archive, one folder per year, closed in August 2026.
- */
-const google: string = join(archive, "NomFrequenzGoogle");
-
-/**
- * First day after the Google log of the archive, 1 August 2026: its yearly series, like an old birthday
- * `SophaleMum-Geburtstag`, end there, since the log holds what happened, and the birthdays show in the plan.
- */
-const googleEnd: string = "2026-08-01";
-
-/**
- * Sources of the day area.
+ * Sources of the day area, all in the folder of the new system; the daily notes lie there too, see `note.ts`.
  *
- * - `plan`: Calendars of what I intend, read as the boxes of each day, see `boxes.ts`:
- *   the archive's, studies per semester and everything else per year, then the plan of the new system.
- * - `log`: Calendars of what really happened, written as `Verb Objekt Ort`:
- *   the archive's until August 2026, then the log of the new system, my one calendar.
- * - `system`: Calendar of birthdays and holidays, shown above the boxes of their day.
+ * - `plan`: Calendar of what I intend, the plan files of the months, read as the boxes of each day, see `boxes.ts`.
+ * - `log`: Calendar of what really happened, by category, the log files of the months, my one calendar.
+ * - `system`: Calendar of birthdays and holidays, `Birthdays.ics` in the folder of the new system,
+ *   shown above the boxes of their day; none while it is missing.
  * - `gifts`: My gift ideas for the birthdays and holidays, `Gifts.md` in the folder of the new system,
  *   one Markdown table with one row per gift idea, which the reader writes as I add them, see `gifts.ts`.
  * - `places`: My places, `Places.md` in the folder of the new system, beside `Foods.md`, one Markdown table
  *   with one row per place, its name and its address, which the reader writes as I add places, see `places.ts`.
- * - `notes`: Diary of the archive, daily notes as `FrequenzEreignis<JJJJ>/<JJJJMM>/<JJJJMMTT>.md`;
- *   a daily note of the new system comes first.
- * - `noteTemplate`: Template of a new daily note.
  */
 export type DaySources = {
     plan: CalendarSource[];
@@ -153,43 +128,17 @@ export type DaySources = {
     system: CalendarSource[];
     gifts: string;
     places: string;
-    notes: string;
-    noteTemplate: string;
 };
 
 /**
  * {@link DaySources} as they lie in the vault.
  */
 export const day: DaySources = {
-    plan: [
-        { folder: join(planning, "FrequenzSkilling2023S"), ending: ".ics" },
-        { folder: join(planning, "FrequenzSkilling2023W"), ending: ".ics" },
-        { folder: join(planning, "FrequenzSkilling2024S"), ending: ".ics" },
-        { folder: join(planning, "FrequenzSkilling2024W"), ending: ".ics" },
-        { folder: join(planning, "FrequenzSkilling2025S"), ending: ".ics" },
-        { folder: join(planning, "FrequenzSkilling2025W"), ending: ".ics" },
-        { folder: join(planning, "FrequenzSkilling2026S"), ending: ".ics" },
-        { folder: join(planning, "FrequenzPlanung2024"), ending: ".ics" },
-        { folder: join(planning, "FrequenzPlanung2025"), ending: ".ics" },
-        { folder: join(planning, "FrequenzPlanung2026"), ending: ".ics" },
-        { folder: writeRoot, ending: planEnding },
-    ],
-    log: [
-        { folder: join(google, "FrequenzGoogle2021"), ending: ".ics", until: googleEnd },
-        { folder: join(google, "FrequenzGoogle2022"), ending: ".ics", until: googleEnd },
-        { folder: join(google, "FrequenzGoogle2023"), ending: ".ics", until: googleEnd },
-        { folder: join(google, "FrequenzGoogle2024"), ending: ".ics", until: googleEnd },
-        { folder: join(google, "FrequenzGoogle2025"), ending: ".ics", until: googleEnd },
-        { folder: join(google, "FrequenzGoogle2026"), ending: ".ics", until: googleEnd },
-        { folder: writeRoot, ending: logEnding },
-    ],
-    system: [
-        { folder: google, ending: "FrequenzSystemNom.ics" },
-    ],
+    plan: [{ folder: writeRoot, ending: planEnding }],
+    log: [{ folder: writeRoot, ending: logEnding }],
+    system: [{ folder: writeRoot, ending: "Birthdays.ics" }],
     gifts: join(writeRoot, "Gifts.md"),
     places: join(writeRoot, "Places.md"),
-    notes: join(archive, "NomFrequenzEreignis"),
-    noteTemplate: join(archive, "NomFrequenzEreignis", "FrequenzEreignis2026", "202600", "Template_Daily.md"),
 };
 
 /**
@@ -200,7 +149,7 @@ export const skillLog: CalendarSource[] = [{ folder: writeRoot, ending: logEndin
 
 /**
  * Log of the trackers of the day, sleep and water: the log of the new system, where they are entries
- * of the categories `Sleep` and `Drink`; the entries of the archive have no category, so they would count nothing.
+ * of the categories `Sleep` and `Drink`.
  */
 export const trackerLog: CalendarSource[] = [{ folder: writeRoot, ending: logEnding }];
 
@@ -243,7 +192,7 @@ export function monthFileOf(date: string, ending: string): string {
 }
 
 /**
- * Tells whether the reader may write a file: only inside {@link writeRoot}, never into the archive.
+ * Tells whether the reader may write a file: only inside {@link writeRoot}, the folder of the new system.
  * - {@link resolve}: Makes a path absolute and takes out `..`, so no path leaves the folder.
  *
  * @param file - Path of a file to write

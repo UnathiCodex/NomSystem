@@ -127,11 +127,6 @@ const cookName: string = "Cook";
 const dayLength: number = 24 * 60 * 60 * 1000;
 
 /**
- * Start of the log of the new system, 1 August 2026, after the archive's.
- */
-const newSystemStart: string = "2026-08-01T00:00:00+02:00";
-
-/**
  * Number of the last entries like a box whose real minutes its dialog shows, see {@link realMinutesRead}.
  */
 const realCount: number = 3;
@@ -165,7 +160,7 @@ function fieldsOf(entry: EntryNew): EntryFields {
 /**
  * Checks fields, foods and times of an entry of the log before they are written.
  * An entry has to fit its category, see {@link categoryAllows}, or keep the category and title it had,
- * like an old entry dragged to another time.
+ * like an entry written before its category got its rules, dragged to another time.
  * Only a meal lists foods, each line well formed, see {@link foodLineAllows}.
  * - `kept`: Whether an entry being changed keeps its category and title.
  *
@@ -224,7 +219,7 @@ function painCheck(pain: string): void {
 /**
  * Reads how long the last entries of the log like a box really lasted, the latest first, so I anchor the expected
  * minutes of a box on what really happened, not on a hope, since plans run long (Buehler 1994): the last three
- * entries of the new system up to now with the same category and the same what, or for `Skill` the same module
+ * entries up to now with the same category and the same what, or for `Skill` the same module
  * and type, like `150, 165, 140` for `IN2028 DEV`.
  * - `now`: The moment.
  * - `like`: Whether an entry is like the box.
@@ -239,7 +234,7 @@ export function realMinutesRead(category: string, title: string, module: string,
     const now: Date = new Date();
     const like: (entry: Entry) => boolean = (entry: Entry): boolean => entry.category === category && !entry.allDay
         && (category === skillName ? entry.module === module && entry.type === type : entry.title === title);
-    return entriesRead(day.log, newSystemStart, now.toISOString())
+    return entriesRead(day.log, "1970-01-01T00:00:00Z", now.toISOString())
         .filter((entry: Entry): boolean => like(entry) && Date.parse(entry.end) <= now.getTime())
         .sort((first: Entry, second: Entry): number => second.start.localeCompare(first.start))
         .slice(0, realCount)

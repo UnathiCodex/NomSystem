@@ -116,7 +116,7 @@ export function documentValueOf(code: string, path: string): string {
  * Repairs the document links of skill entries of the log whose path no longer leads to a file, see the top of this file:
  * finds the document with the same fingerprint in the module folder, writes its path into the entry's `X-DOCUMENT`
  * and prints the repair, like `Repaired the document of IN2028 VO on 2026-10-13 at 14:00: VO_…/04_Old.pdf is now VO_…/04_New.pdf`.
- * Entries without document, with a document in its place, or of the archive stay as they are.
+ * Entries without document, with a document in its place, or that cannot be changed stay as they are.
  * - `path`, `fingerprint`: Path and fingerprint of the document of the entry.
  * - `folder`: Module folder of the entry, `undefined` when the module has none.
  * - `found`: Path of the document with the fingerprint, `undefined` when there is none.

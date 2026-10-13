@@ -209,7 +209,7 @@
     max-width: 100%;
 }
 
-/* Ring of a box, as high as its first line: for an open box of the new system a button, an empty ring in the grey
+/* Ring of a box, as high as its first line: for an open box that can be changed a button, an empty ring in the grey
    of the plan like the circle of a to-do, lighter under the pointer with its check showing, which logs the box
    as expected; for any other box a place without edge, holding the grey check of a done box or nothing;
    `.box .box-ring svg` wins over the size of icons in `base.css`, being more exact */
@@ -699,17 +699,10 @@ button.box-ring:hover svg {
     background: var(--fill);
 }
 
-/* Rules of the note as thin grey lines; a rule that parts nothing, at the start or the end of the note
-   or right after another, hidden, as when the parts between them held only the placeholders of the template */
+/* Rules of the note as thin grey lines */
 .day-note hr {
     border: 0;
     border-top: 1px solid var(--line);
-}
-
-#day-note-text > hr:first-child,
-#day-note-text > hr:last-child,
-#day-note-text > hr + hr {
-    display: none;
 }
 
 /* Lists of the note close to their heading */
@@ -729,7 +722,7 @@ button.box-ring:hover svg {
     white-space: pre-wrap;
 }
 
-/* Tables of the note, like Skilling: full width, rows parted by grey lines */
+/* Tables of the note: full width, rows parted by grey lines */
 .day-note table {
     width: 100%;
     border-collapse: collapse;

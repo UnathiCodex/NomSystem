@@ -31,36 +31,28 @@
  * The log entry written from a box points to it with `X-PLANNED:<UID of the box>`, which gives its real time:
  * a box is done once a log entry points to it, or once it is `COMPLETED`, like a box ticked in another app.
  *
- * The plan files also hold events, `VEVENT`s: the lectures imported from TUMonline into the new system, and the plans
- * of the archive. Each is read as a box: its time is its start, its duration its length, and one of the whole day
+ * The plan files also hold events, `VEVENT`s, like the lectures imported from TUMonline.
+ * Each is read as a box: its time is its start, its duration its length, and one of the whole day
  * is a box without time. A change keeps an event an event, so its time and duration stay: dropped, it is
  * `STATUS:CANCELLED`, which events have too, and it is done when a log entry points to it.
- * Old daily notes of the archive list their boxes in the callout Tagesplanungen; each without a plan entry of the same
- * title is a box too, without category, which the entry by category logs, see `src/day/boxes.ts`.
  *
- * Above its boxes a day shows its birthdays and holidays, those of my old calendar, see `sources.ts`, each on its date;
- * only my days that move from year to year, like Easter, move to their day by a rule, see {@link movingRules},
- * and no day is added.
+ * Above its boxes a day shows its birthdays and holidays, those of `Birthdays.ics` in the folder of the new system,
+ * see `sources.ts`, each on its date, a yearly series on each of its days; none while the file is missing.
  *
- * - `date-holidays`: Gives the day of each of my days that move, by its rule, in a year.
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
  * - `./categories.ts`: Tells whether a box fits its category, and names the category of skill entries.
  * - `./gifts.ts`: Reads my gift ideas for the birthdays and holidays.
- * - `./note.ts`: Reads the boxes of an old daily note.
  * - `./sources.ts`: Names the plan, the log and the birthdays and holidays, and builds the path of a plan file.
  */
 
-import Holidays from "date-holidays";
 import {
     berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryFind, entryLookup, entryRemove,
     livedDayOf, propertiesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, skillName } from "./categories.ts";
 import { giftOf, giftsRead } from "./gifts.ts";
-import { pointsRead } from "./note.ts";
 import { day, monthFileOf, planEnding } from "./sources.ts";
 
-import type { HolidaysTypes } from "date-holidays";
 import type { Entry, EntryFields, EntryTexts, TodoFields } from "./calendar.ts";
 import type { Gift } from "./gifts.ts";
 
@@ -73,9 +65,8 @@ export type BoxState = "open" | "done" | "dropped";
 /**
  * A box, as the page shows it.
  *
- * - `id`: Identifier of its to-do or event, its `UID`; empty for a box of an old daily note.
- * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of an entry, see `calendar.ts`;
- *   a box of an old daily note has only its title.
+ * - `id`: Identifier of its to-do or event, its `UID`.
+ * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of an entry, see `calendar.ts`.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time as ISO instant, empty for none.
  * - `minutes`: Expected duration in minutes, `null` for none.
@@ -83,7 +74,8 @@ export type BoxState = "open" | "done" | "dropped";
  * - `state`: Whether it is open, done or dropped.
  * - `pushed`: Days it was pushed from to the next day, in order, like `2026-10-12`.
  * - `log`: Start and end of the log entry written from it, as ISO instants, `null` for none.
- * - `editable`: Whether it lies in the new system, so it can be changed, pushed, dropped and removed.
+ * - `editable`: Whether it can be changed, pushed, dropped and removed: a to-do or an event with times
+ *   that happens once, see `calendar.ts`; an occurrence of a series cannot.
  * - `todo`: Whether it is a to-do; an event keeps its time and duration, see the top of this file.
  */
 export type Box = EntryTexts & {
@@ -102,7 +94,7 @@ export type Box = EntryTexts & {
 /**
  * A birthday or holiday of a day, as the page shows it.
  *
- * - `title`: Its name as my calendar writes it, like `Geburtstag: KarlbauerFlorian`.
+ * - `title`: Its name as `Birthdays.ics` writes it, like `Geburtstag: KarlbauerFlorian`.
  * - `gift`: My gift idea for it, see `gifts.ts`, empty for none.
  */
 export type Occasion = {
@@ -159,41 +151,6 @@ const dayMinutes: number = 24 * 60;
  */
 const deadlineDays: number = 4;
 
-/**
- * Start of the log of the new system, 1 August 2026, after the archive's: only the new system logs boxes.
- */
-const newSystemStart: string = "2026-08-01";
-
-/**
- * My days of the old calendar that move from year to year, by their name there, each with the rule of `date-holidays`
- * that gives its day in a year: Easter and the days counted from it, a Sunday of a month, the last Sunday of March,
- * or a day of the Chinese year. Their yearly series keep the date of their first year, like Easter Sunday
- * on 31 March, right only in 2024, so each of their days moves to the day of its rule in its year, see {@link movedOf}.
- */
-const movingRules: Record<string, string> = {
-    "Faschingdienstag (Karneval)": "easter -47",
-    "Gedenktag (Welt): Karsamstag": "easter -1",
-    "Feiertag (Welt): Ostersonntag": "easter",
-    "Feiertag (Welt): Ostermontag": "easter 1",
-    "Feiertag (Nation): ChristiHimmelfahrt": "easter 39",
-    "Feiertag: Pfingsten": "easter 49",
-    "Feiertag: Pfingstmontag": "easter 50",
-    "Feiertag (Nation): Fronleichnam": "easter 60",
-    "Gedenktag: Muttertag": "2nd sunday in May",
-    "Gedenktag: Vatertag": "2nd sunday in June",
-    "Tag (Welt): Sommerzeit Beginn": "sunday before 04-01",
-    "Feiertag (China): Silvester": "chinese 01-0-00",
-    "Feiertag (China): Neujahr": "chinese 01-0-01",
-    "Feiertag (China): 元宵节 Laternenfest": "chinese 01-0-15",
-    "Feiertag (China): 端午节 Drachenbootfest": "chinese 05-0-05",
-    "China-Feiertag: Mondfest 中秋节": "chinese 08-0-15",
-};
-
-/**
- * Calendar of `date-holidays` that knows only my days that move, see {@link movingDaysOf}.
- */
-const movingDays: Holidays = movingDaysOf();
-
 
 /**
  * Builds the path of the plan file of the month of a day.
@@ -227,39 +184,7 @@ function dateCheck(date: string): void {
 }
 
 /**
- * Builds the calendar of `date-holidays` that knows only my days that move, each by its rule, see {@link movingRules}:
- * without a country, so it adds no day of its own.
- * - `calendar`: The calendar.
- *
- * @returns The calendar
- */
-function movingDaysOf(): Holidays {
-    const calendar: Holidays = new Holidays();
-    Object.entries(movingRules).forEach(([title, rule]: [string, string]): void => {
-        calendar.setHoliday(rule, { name: title, type: "observance" });
-    });
-    return calendar;
-}
-
-/**
- * Moves a birthday or holiday of my old calendar that moves from year to year to the day of its rule in its year,
- * see {@link movingRules}, like Easter Sunday 2027 from 31 March to 28 March; any other stays as it is.
- * - `moved`: Its day in its year by its rule, `undefined` for one that does not move.
- *
- * @param occasion - Birthday or holiday of my old calendar
- * @returns It on its day
- */
-function movedOf(occasion: Entry): Entry {
-    const moved: HolidaysTypes.Holiday | undefined = occasion.title in movingRules
-        ? movingDays.getHolidays(occasion.start.slice(0, 4))
-            .find((holiday: HolidaysTypes.Holiday): boolean => holiday.name === occasion.title)
-        : undefined;
-    return moved === undefined ? occasion
-        : { ...occasion, start: moved.date.slice(0, 10), end: dayAdd(moved.date.slice(0, 10), 1) };
-}
-
-/**
- * Reads the log entries written from boxes, from the start of the new system to a day after a day,
+ * Reads the log entries written from boxes, from the first entry of the log to a day after a day,
  * so an entry of a box is found also when it lies long before the day of its box, like a homework I did early,
  * or a little after it.
  *
@@ -267,7 +192,7 @@ function movedOf(occasion: Entry): Entry {
  * @returns Log entries by the identifier of their box
  */
 function logsOf(to: string): Map<string, Entry> {
-    return new Map(entriesRead(day.log, berlinDayStartOf(newSystemStart), berlinDayStartOf(dayAdd(to, 1)))
+    return new Map(entriesRead(day.log, "1970-01-01T00:00:00Z", berlinDayStartOf(dayAdd(to, 1)))
         .filter((entry: Entry): boolean => entry.planned !== "")
         .map((entry: Entry): [string, Entry] => [entry.planned, entry]));
 }
@@ -306,24 +231,6 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
 }
 
 /**
- * Lists the boxes of the daily note of a day, from its callout Tagesplanungen, as old notes of the archive have it,
- * each without a box of the plan of the same title: a box without category, time or duration, which stays open.
- *
- * @param date - Day like `2026-07-03`
- * @param planned - Boxes of the plan of the day
- * @returns Boxes of the note, none for a note without the callout
- */
-function noteBoxesOf(date: string, planned: Box[]): Box[] {
-    return pointsRead(date, "Tagesplanungen")
-        .filter((title: string): boolean => !planned.some((box: Box): boolean => box.title === title))
-        .map((title: string): Box => ({
-            id: "", category: "", title: title, location: "", from: "", module: "", type: "", note: "",
-            day: date, time: "", minutes: null, deadline: "", state: "open", pushed: [], log: null, editable: false,
-            todo: false,
-        }));
-}
-
-/**
  * Orders two boxes: those with a deadline first, by their deadline, since nothing is more urgent,
  * then those with a time, by their time, like my lectures, then those without, in the order they were read,
  * the order I planned them in; the dropped ones last, in the same order.
@@ -356,15 +263,13 @@ function deadlineShows(box: Box, date: string): boolean {
 
 /**
  * Reads the plans of the days of a range: the birthdays and holidays of each day with my gift ideas for them,
- * and its boxes, those of the plan, each with its state and the time of its log entry, then those of an old daily note.
+ * and its boxes, each with its state and the time of its log entry.
  * A box belongs to the day it starts on, a box with a deadline to each day it shows on, see {@link deadlineShows}.
  * - `from`: Start of the first day, in Berlin time.
  * - `logs`: Log entries written from boxes, until {@link deadlineDays} days after the last day, see {@link logsOf}.
  * - `boxes`: Boxes of the plan from the first day to {@link deadlineDays} days after the last,
  *   so a deadline after the range shows in it.
- * - `occasions`: Birthdays and holidays of the whole years of the range, those that move on their day,
- *   see {@link movedOf}, since one may lie outside the range in my old calendar and inside it on its day;
- *   a day shows each name once, since two series may move to the same day, like the two of Chinese New Year's Eve.
+ * - `occasions`: Birthdays and holidays of the days of the range, none while `Birthdays.ics` is missing.
  * - `gifts`: My gift ideas.
  * - `days`: The plans so far.
  * - `planned`: Boxes of the plan of one day.
@@ -381,8 +286,7 @@ export function boxesRead(start: string, end: string): PlanDay[] {
     const logs: Map<string, Entry> = logsOf(dayAdd(end, deadlineDays));
     const boxes: Box[] = entriesRead(day.plan, from, berlinDayStartOf(dayAdd(end, deadlineDays)))
         .map((entry: Entry): Box => boxOf(entry, logs));
-    const occasions: Entry[] = entriesRead(day.system, berlinDayStartOf(`${start.slice(0, 4)}-01-01`),
-        berlinDayStartOf(`${Number(end.slice(0, 4)) + 1}-01-01`)).map(movedOf);
+    const occasions: Entry[] = entriesRead(day.system, from, berlinDayStartOf(end));
     const gifts: Gift[] = giftsRead();
 
     const days: PlanDay[] = [];
@@ -391,12 +295,13 @@ export function boxesRead(start: string, end: string): PlanDay[] {
             box.deadline === "" ? box.day === date : deadlineShows(box, date));
         days.push({
             day: date,
-            occasions: [...new Set(occasions
+            occasions: occasions
                 .filter((occasion: Entry): boolean => occasion.allDay
                     ? occasion.start <= date && occasion.end > date : dayOf(occasion) === date)
-                .map((occasion: Entry): string => occasion.title))]
-                .map((title: string): Occasion => ({ title: title, gift: giftOf(gifts, date, title) })),
-            boxes: [...planned, ...noteBoxesOf(date, planned)].sort(boxCompare),
+                .map((occasion: Entry): Occasion => ({
+                    title: occasion.title, gift: giftOf(gifts, date, occasion.title),
+                })),
+            boxes: planned.sort(boxCompare),
         });
     }
     return days;

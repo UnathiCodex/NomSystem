@@ -17,8 +17,7 @@
  * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, adds, changes and removes boxes,
  *   pushes them to the next day and drops them
  * - `./gifts.ts`: Writes my gift idea for a birthday or holiday into `Gifts.md`
- * - `./note.ts`: Reads the daily notes with their callouts, without the placeholders of the template,
- *   and writes my gratitude and my paragraph about the day into them
+ * - `./note.ts`: Reads the daily notes, and writes my gratitude and my paragraph about the day into them
  * - `./categories.ts`: Offers the categories with the values of their fields, and my places
  * - `./places.ts`: Adds a place with its address to `Places.md`
  * - `./notes.ts`: Reads the modules of the semester, the notes and files of my modules and the links that lead nowhere,
@@ -39,7 +38,7 @@ import { json } from "node:stream/consumers";
 import { boxLog, dayEntriesRead, entryAdd, entryDelete, entryEdit, mealAfterCookAdd, realMinutesRead } from "./day.ts";
 import { boxAdd, boxDelete, boxDrop, boxEdit, boxesRead, boxPush } from "./boxes.ts";
 import { giftWrite } from "./gifts.ts";
-import { calloutsRead, calloutWrite, noteShownRead } from "./note.ts";
+import { calloutsRead, calloutWrite, noteRead } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
 import { placeAdd } from "./places.ts";
 import { brokenLinksRead, fileRead, linkedNoteRead, modulesRead } from "./notes.ts";
@@ -103,8 +102,9 @@ function fileSend(response: ServerResponse, file: NotesFile): void {
  * - `GET /api/day/log?start=…&end=…`: Sends log entries of the range.
  * - `GET /api/day/boxes?start=…&end=…`: Sends the plan of each day from the first day to the day before the last,
  *   like `start=2026-10-13&end=2026-10-14` for one day: its birthdays and holidays with my gift ideas, and its boxes.
- * - `GET /api/day/note?date=…`: Sends daily note of the date without the parts just as in the template, or `null`.
- * - `GET /api/day/callouts?date=…`: Sends callouts of the daily note of the date as texts.
+ * - `GET /api/day/note?date=…`: Sends the daily note of the date, or `null` for a day without note.
+ * - `GET /api/day/callouts?date=…`: Sends my gratitude and my paragraph about the day of the daily note of the date
+ *   as texts, empty ones for a day without note.
  * - `GET /api/day/categories?now=…`: Sends the categories with the values of their fields.
  * - `GET /api/day/way-end?before=…`: Sends where the last way before the instant ended.
  * - `GET /api/day/trackers?date=…`: Sends my sleep, my glasses of water, my neck sessions and what my meals gave
@@ -175,7 +175,7 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, boxesRead(start, end));
 
     } else if (request.method === "GET" && url.pathname === "/api/day/note") {
-        responseSend(response, 200, noteShownRead(date));
+        responseSend(response, 200, noteRead(date));
 
     } else if (request.method === "GET" && url.pathname === "/api/day/callouts") {
         responseSend(response, 200, calloutsRead(date));
