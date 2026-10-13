@@ -22,9 +22,10 @@
  * a new place is added with its address through a small dialog before it is picked, see `places.ts`.
  * `From` starts where the last way before the entry ended.
  * An entry of the log has a day like `13.10.2026`, the calendar date of its start, typed to move it to any other day,
- * and a start and an end, plain times on that day, an end at or before the start on the next day, saved exactly
- * as they show; a box of the plan has a day like `19.10.2026`, typed to move it
- * to any other day, an expected time and an expected duration
+ * a start, a plain time on that day, and an end, a plain time with its own day beside it, which fills itself
+ * with the day, or the day after while the end time lies at or before the start time, until I type over it,
+ * see {@link endDayFill}; all saved exactly as they show. A box of the plan has a day like `19.10.2026`,
+ * typed to move it to any other day, an expected time and an expected duration
  * in minutes, each optional, but for a lecture imported from TUMonline, which keeps both, see `reader/boxes.ts`,
  * and optionally a deadline, a day like `23.10.2026` with a time or without; a box with a deadline lies
  * on the day of its deadline and has no expected time, so both their fields are off while the day of a deadline
@@ -201,6 +202,12 @@ let pain: string = "";
  * so they load again only when one of them changes.
  */
 let realSeen: string = "";
+
+/**
+ * Whether I typed into the day of the end of a log entry since the dialog opened, so it no longer fills itself,
+ * see {@link endDayFill}.
+ */
+let endDayTyped: boolean = false;
 
 
 /**
@@ -547,20 +554,53 @@ function textsRead(): BoxFields {
 }
 
 /**
+ * Gives the end of the entry as the fields of the dialog say: its time on the typed day of the end, like `07:30`
+ * on `13.10.2026`, on the day of the start should the typed day be no date.
+ * - `day`: Typed day of the end, like `2026-10-13`.
+ *
+ * @param start - Start of the entry, see {@link startRead}
+ * @returns End of the entry
+ */
+function endRead(start: Date): Date {
+    const day: string =
+        dateParse((document.getElementById("entry-end-day") as HTMLInputElement).value) ?? dayOf(start);
+    return dateOf(new Date(`${day}T12:00:00`), timeFieldRead(document.getElementById("entry-end") as HTMLInputElement));
+}
+
+/**
+ * Fills the day of the end of a log entry as day, start and end are typed, until I type into it myself:
+ * the day, or the day after while the end time lies at or before the start time, like a night of sleep,
+ * `12.10.2026`, `23:30` to `07:30`, ending on `13.10.2026`; nothing while one of them is no day or no time.
+ * - `day`: Typed day, like `2026-10-12`.
+ * - `start`, `end`: Typed start and end time, like `23:30` and `07:30`.
+ * - `next`: The day after the typed day.
+ */
+function endDayFill(): void {
+    const day: string | null = dateParse((document.getElementById("entry-log-day") as HTMLInputElement).value);
+    const start: string = timeFieldRead(document.getElementById("entry-start") as HTMLInputElement);
+    const end: string = timeFieldRead(document.getElementById("entry-end") as HTMLInputElement);
+    if (endDayTyped || day === null || start === "" || end === "")
+        return;
+    const next: Date = new Date(`${day}T12:00:00`);
+    next.setDate(next.getDate() + 1);
+    const field: HTMLInputElement = document.getElementById("entry-end-day") as HTMLInputElement;
+    field.value = dateTextOf(end <= start ? dayOf(next) : day);
+    field.setCustomValidity("");
+}
+
+/**
  * Reads fields, note and times of the dialog for an entry of the log, and the box a new log entry is logged from,
  * also an occurrence of a series, which is a box of its own, see `reader/boxes.ts`.
- * Start and end are plain times on the typed day, the calendar date of the start, see {@link startRead};
- * an end at or before the start lies on the next day, like a night of sleep: `12.10.2026`, `23:30` to `07:30`
- * ends on 13 October at 07:30. What the fields show is exactly what is saved.
+ * The start is a plain time on the typed day, the calendar date of the start, see {@link startRead},
+ * the end a plain time on its own typed day, see {@link endRead}, like a night of sleep: `12.10.2026`, `23:30`
+ * to `07:30` on `13.10.2026`. What the fields show is exactly what is saved.
  * - `texts`: Text fields of the dialog.
  *
  * @returns Fields of the entry
  */
 function fieldsRead(): EntryFields {
     const start: Date = startRead();
-    const end: Date = dateOf(start, timeFieldRead(document.getElementById("entry-end") as HTMLInputElement));
-    if (end <= start)
-        end.setDate(end.getDate() + 1);
+    const end: Date = endRead(start);
     const texts: BoxFields = textsRead();
     return {
         category: texts.category, title: texts.title, location: texts.location, from: texts.from,
@@ -699,12 +739,14 @@ function deadlineSee(): void {
  * Shows the times of the dialog: the day, start and end of an entry of the log, or the day, the expected time
  * and duration of a box and its deadline, the other times hidden and disabled, so the browser checks only the times
  * shown before it sends the form. The day of an entry of the log is the calendar date of the start it opens with,
- * like `13.10.2026` for a selection at 01:45 at the bottom of 12 October.
+ * like `13.10.2026` for a selection at 01:45 at the bottom of 12 October, the day of its end the calendar date
+ * of the end it opens with, which fills itself again as I type, see {@link endDayFill}.
  * The day of a box is the day the dialog opened with, like `12.10.2026`, the shown day for a new one.
  * The expected time and duration of a box may stay empty, but for an event of the plan, which keeps both
  * and has no deadline, since only a to-do has one.
  * - `boxed`: Whether the dialog writes a box.
  * - `logDay`: Field of the day of an entry of the log.
+ * - `endDay`: Field of the day of its end.
  * - `day`: Field of the day of the box.
  * - `required`: Whether the box needs both, being an event of the plan.
  * - `deadline`: Deadline of the box being changed, empty for none and for a new box.
@@ -717,6 +759,7 @@ function timesShow(opening: EntryOpening): void {
     const logTimes: HTMLFieldSetElement = document.getElementById("entry-log-times") as HTMLFieldSetElement;
     const boxTimes: HTMLFieldSetElement = document.getElementById("entry-box-times") as HTMLFieldSetElement;
     const logDay: HTMLInputElement = document.getElementById("entry-log-day") as HTMLInputElement;
+    const endDay: HTMLInputElement = document.getElementById("entry-end-day") as HTMLInputElement;
     const day: HTMLInputElement = document.getElementById("entry-box-day") as HTMLInputElement;
     const time: HTMLInputElement = document.getElementById("entry-time") as HTMLInputElement;
     const minutes: HTMLInputElement = document.getElementById("entry-minutes") as HTMLInputElement;
@@ -728,6 +771,9 @@ function timesShow(opening: EntryOpening): void {
     boxTimes.disabled = !boxed;
     logDay.value = dateTextOf(dayOf(opening.start));
     logDay.setCustomValidity("");
+    endDay.value = dateTextOf(dayOf(opening.end));
+    endDay.setCustomValidity("");
+    endDayTyped = false;
     timeFieldShow(document.getElementById("entry-start") as HTMLInputElement, opening.start);
     timeFieldShow(document.getElementById("entry-end") as HTMLInputElement, opening.end);
     day.value = dateTextOf(dayOf(opening.start));
@@ -928,8 +974,11 @@ export async function entryOpenEdit(entry: EventApi): Promise<void> {
  * Starts the entry by category after the router has put its HTML into the page:
  * `Edit plan` changes the box being logged, `Log it` logs the box being changed, as expected on the shown day,
  * which for a box with a deadline may lie before its own, in the dialog of the log, see `boxTimesOf` in `times.ts`;
- * typing a deadline turns the day and the expected time off, see {@link deadlineSee};
- * the dialog of a new place starts too, see `places.ts`.
+ * typing a deadline turns the day and the expected time off, see {@link deadlineSee}; typing the day, start or end
+ * of a log entry fills the day of its end, see {@link endDayFill}, until I type that day myself; a log entry whose end
+ * does not lie after its start is not sent, the day of its end saying so; the dialog of a new place starts too,
+ * see `places.ts`.
+ * - `endDay`: Field of the day of the end of a log entry.
  * - `start`, `end`: The times the box is logged at as expected.
  *
  * @param calendar - Calendar of the day
@@ -954,8 +1003,19 @@ export function categoriesStart(calendar: Calendar): void {
     });
     ["entry-deadline-day", "entry-deadline-time"].forEach((id: string): void =>
         document.getElementById(id)?.addEventListener("input", deadlineSee));
+    ["entry-log-day", "entry-start", "entry-end"].forEach((id: string): void =>
+        document.getElementById(id)?.addEventListener("input", endDayFill));
+    const endDay: HTMLInputElement = document.getElementById("entry-end-day") as HTMLInputElement;
+    endDay.addEventListener("input", (): void => {
+        endDayTyped = true;
+    });
     document.getElementById("entry-form")?.addEventListener("submit", (event: SubmitEvent): void => {
         event.preventDefault();
+        if (opened.target === "log" && endRead(startRead()) <= startRead()) {
+            endDay.setCustomValidity("The end lies after the start");
+            endDay.reportValidity();
+            return;
+        }
         entrySave(calendar).catch(errorShow);
     });
 }

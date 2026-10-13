@@ -1274,6 +1274,13 @@ button.box-ring:hover svg {
     gap: var(--gap);
 }
 
+/* End of a log entry with its day beside it, kept together on one line */
+.picker-end {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--control-gap);
+}
+
 /* Start and end, or expected time and minutes, without the frame a group of fields has in the browser */
 fieldset.picker-times {
     min-width: 0;
