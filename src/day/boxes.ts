@@ -5,10 +5,10 @@
  * its birthdays and holidays at the top, each with my gift idea for it below, when I have one, see `gifts.ts`,
  * and a line below them, then the boxes with a deadline, then those with an expected time,
  * by their time, like my lectures, then those without, then tomorrow's suggested study sessions, dashed,
- * see `suggestions.ts`, and the dropped boxes last.
+ * see `suggestions.ts`, and the cancelled boxes last; on today below them the boxes carried along, see below.
  * A box shows its category in bold with a colon and what, like `Skill: WI1059 HU`, as an entry of the log does, and below them, grey,
  * its expected time and duration, its place and how often it was pushed, like `12:00 · 90 min · Hörsaal 2`;
- * an open box pushed three times or more asks instead of counting on, `pushed 3 times · smaller or drop?`,
+ * an open box pushed three times or more asks instead of counting on, `pushed 3 times · smaller or cancel?`,
  * since a task I keep pushing is often too big or no longer wanted, and a click on it opens it to cut it.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
  * and on the day of its deadline always, done or not, and looks like every other box,
@@ -24,20 +24,25 @@
  * when that is another day, like `done Fri, 09.10.2026` for a box done a day early;
  * a done box with a deadline shows its check alone, no done line, since it is gone the next day anyway,
  * like `Skill: WI1059 HU` with `Deadline Mon, 12.10.2026, 12:00`, not `done 05:15 · 15 min`.
- * An open box that can be changed is pushed to the next day with one tap on its arrow, or dropped with one tap
- * on its cross; a dropped box stays in its file, see `reader/boxes.ts`, and shows struck through at the end
- * of the list, where one tap takes it back.
+ * An open box that can be changed is pushed to the next day with one tap on its arrow, or cancelled with one tap
+ * on its cross; a cancelled box stays in its file, see `reader/boxes.ts`, and shows greyed and struck through
+ * at the end of the list, where one tap takes it back.
+ * A box neither done nor cancelled stays greyed on its day once that is over, without its arrow, and is carried
+ * along on today: below the list of today, under `Carried along`, each with its day, like `Mon, 12.10.2026 · 45 min`,
+ * the earliest first, see `boxesCarried` in `reader/boxes.ts`, until I do it, dragged into the log or with its ring,
+ * or cancel it with its cross; a click on it changes it, like its day. It never moves into the next days by itself.
  * `+` above the list opens the entry by category for a new box of the shown day; a click on a box changes it,
  * see `categories.ts`. A box without category, like a to-do another app wrote into the plan, opens the entry
  * by category of the log instead of being logged at once, when it is dropped or its ring tapped, since the log needs
  * a category; a box that cannot be changed, like an occurrence of a weekly lecture, is logged like any other,
  * and opens the entry by category of the log when clicked.
  * The list loads again when the shown day or its log changes, since a box is done once a log entry points to it,
- * when the entry by category closes, and after a push, a drop or a suggestion accepted.
- * The week shows the boxes of seven days the same way, without their buttons, see `week.ts`.
+ * when the entry by category closes, and after a push, a cancel or a suggestion accepted.
+ * The week shows the boxes of seven days the same way, without their buttons and without what is carried along,
+ * see `week.ts`.
  *
  * - `fullcalendar/interaction`: Drags the boxes into the log.
- * - `./entries.ts`: Sends logged, pushed and dropped boxes to the reader.
+ * - `./entries.ts`: Sends logged, pushed and cancelled boxes to the reader.
  * - `./categories.ts`: Opens the entry by category for a new box, a box to change, and a box to log through it.
  * - `./suggestions.ts`: Loads the study sessions suggested for tomorrow, accepts and dismisses them.
  * - `./gifts.ts`: Opens the dialog of the gift idea for a birthday or holiday.
@@ -45,6 +50,7 @@
  * - `./times.ts`: Gives the times a box is logged at with one tap, and writes times of day.
  * - `../skill/attempts.ts`: Names the category of skill entries, writes a date as a day,
  *   and gives the day of a date.
+ * - `../today.ts`: Gives today's calendar date, which tells whether the day of a box is over.
  * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
  * - `lucide`: The icons plus, check, arrow, cross, undo and gift.
  * - `fullcalendar`: Calendar of the log the boxes are dropped into.
@@ -58,6 +64,7 @@ import { giftOpen } from "./gifts.ts";
 import { labelOf } from "./places.ts";
 import { boxMinutes, boxTimesOf, dateTextOf, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
+import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut } from "../icons.ts";
 import { ArrowRight, Check, Gift, Plus, Undo2, X } from "lucide";
 
@@ -67,7 +74,7 @@ import type { Suggestion } from "./suggestions.ts";
 
 
 /**
- * State of a box: open, done, since a log entry points to it, or dropped.
+ * State of a box: open, done, since a log entry points to it, or dropped, which is cancelled, `STATUS:CANCELLED`.
  */
 export type BoxState = "open" | "done" | "dropped";
 
@@ -88,7 +95,7 @@ export type BoxState = "open" | "done" | "dropped";
  * - `time`: Expected time as ISO instant, empty for none.
  * - `minutes`: Expected duration in minutes, `null` for none.
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` when it has no time; empty for none.
- * - `state`: Whether it is open, done or dropped.
+ * - `state`: Whether it is open, done or dropped, which is cancelled.
  * - `pushed`: Days it was pushed from to the next day, in order.
  * - `log`: Start and end of the log entry written from it, as ISO instants, `null` for none.
  * - `editable`: Whether it can be changed, pushed and dropped: a to-do or an event with times,
@@ -138,7 +145,7 @@ export type Occasion = {
  *
  * - `day`: The day, like `2026-10-13`.
  * - `occasions`: Its birthdays and holidays, each with my gift idea for it.
- * - `boxes`: Its boxes: those with a time first, by their time, then those without, the dropped ones last.
+ * - `boxes`: Its boxes: those with a time first, by their time, then those without, the cancelled ones last.
  */
 export type PlanDay = {
     day: string;
@@ -155,6 +162,12 @@ let shown: PlanDay = { day: "", occasions: [], boxes: [] };
  * The study sessions suggested for the shown day, as loaded last, none for any day but tomorrow.
  */
 let suggested: Suggestion[] = [];
+
+/**
+ * The boxes carried along to the shown day, as loaded last: those of the days before it, neither done nor cancelled,
+ * the earliest first; none for any day but today.
+ */
+let carried: Box[] = [];
 
 /**
  * What the list was loaded for last: the day and the log entries of it, so it loads again only when they change.
@@ -208,6 +221,45 @@ export async function boxesFetch(start: string, end: string): Promise<PlanDay[]>
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
     return await response.json() as PlanDay[];
+}
+
+/**
+ * Loads the boxes carried along to a day from the reader: those of the days before it, neither done nor cancelled,
+ * see `boxesCarried` in `reader/boxes.ts`.
+ *
+ * @param day - The day, like `2026-10-13`, today
+ * @returns The boxes, the earliest first
+ * @throws {Error} - When the reader cannot answer
+ */
+async function carriedFetch(day: string): Promise<Box[]> {
+    const response: Response = await fetch(`/api/day/carried?date=${day}`);
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as Box[];
+}
+
+/**
+ * Tells whether the day of an open box is over, so it stays greyed on its day and is carried along to today,
+ * see the top of this file: it lies before today's calendar date, for a box with a deadline the day of its deadline.
+ *
+ * @param box - The box
+ * @returns Whether it is open and its day lies before today
+ */
+function overIs(box: Box): boolean {
+    return box.state === "open" && box.day < calendarTodayOf();
+}
+
+/**
+ * Gives the classes of a box, in the day and in the week alike: `box` and its state, like `box-open`,
+ * and `box-over`, greyed, for an open box whose day is over, see {@link overIs}, but in the list carried along,
+ * where it is still to do.
+ *
+ * @param box - The box
+ * @param carriedShown - Whether it shows in the list carried along, else on a day it belongs to
+ * @returns Classes like `box box-open box-over`
+ */
+export function boxClassOf(box: Box, carriedShown: boolean): string {
+    return `box box-${box.state}${overIs(box) && !carriedShown ? " box-over" : ""}`;
 }
 
 /**
@@ -275,16 +327,18 @@ const pushesAsking: number = 3;
  * day anyway and its check says it is done, like `Skill: WI1059 HU` with its deadline alone, not `done 05:15 · 15 min`;
  * for a box done on the day shown what was expected and what was real, like `expected 12:00 · 90 min`
  * and `→ 12:15 · 85 min`, or `done 14:00 · 30 min` without expectation;
- * for any other box how near its deadline is, see {@link nearOf}, what is expected, its place by its name,
- * like `TumMain`, see `labelOf` in `places.ts`, or for a done one
+ * for any other box how near its deadline is, see {@link nearOf}, or its own day when it is carried along to a later
+ * day, like `Mon, 12.10.2026`, what is expected, its place by its name, like `TumMain`, see `labelOf` in `places.ts`,
+ * or for a done one
  * `done` and the day it was done, like `done Fri, 09.10.2026` for a box done a day early,
  * and how often it was pushed, as one part, like `in 3 days · 120 min` or `75 min · pushed once`,
- * and from {@link pushesAsking} pushes on, while it is open, the question `smaller or drop?` after them;
+ * and from {@link pushesAsking} pushes on, while it is open, the question `smaller or cancel?` after them;
  * the week leaves out how near a deadline is, since it shows a deadline only on its own day, which its row names.
  * - `lived`: Day of the start of its log entry, empty for none.
  * - `expected`: What was expected.
  * - `pushes`: How often it was pushed, empty for never, with the question when it asks.
  * - `near`: How near its deadline is, empty for a box without, one not open, or in the week.
+ * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
  * - `done`: `done` and the day it was done, only `done` without log entry, like a box ticked in another app.
  * - `open`: The one part of a box without log entry on the day shown.
  * - `start`, `end`: Real start and end, of its log entry.
@@ -306,11 +360,12 @@ function metaPartsOf(box: Box, day: string, nearShown: boolean): string[] {
     else if (box.pushed.length > 1)
         pushes = `pushed ${box.pushed.length} times`;
     if (box.pushed.length >= pushesAsking && box.state === "open")
-        pushes += " · smaller or drop?";
+        pushes += " · smaller or cancel?";
     if (box.log === null || lived !== day) {
         const near: string = !nearShown || box.deadline === "" || box.state !== "open" ? "" : nearOf(box, day);
+        const over: string = box.state === "open" && box.deadline === "" && box.day < day ? weekdayTextOf(box.day) : "";
         const done: string = lived === "" ? "done" : `done ${weekdayTextOf(lived)}`;
-        const open: string = [near, expected, box.state === "done" ? done : labelOf(box.location), pushes]
+        const open: string = [near, over, expected, box.state === "done" ? done : labelOf(box.location), pushes]
             .filter((part: string): boolean => part !== "").join(" · ");
         return open === "" ? [] : [open];
     }
@@ -465,9 +520,10 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
 
 /**
  * Makes the buttons at the right of a box that can be changed: for an open box the arrow, which pushes it
- * to the next day, but for a box with a deadline, which stays on the day of its deadline, and the cross,
- * which drops it; for a dropped box the arrow back, which takes it back; none for a done box and for a box
- * that cannot be changed. One occurrence of a series has them too and changes alone, the series staying.
+ * to the next day, but for a box with a deadline, which stays on the day of its deadline, and for one whose day
+ * is over, see {@link overIs}, whose next day is over too, and the cross, which cancels it; for a cancelled box
+ * the arrow back, which takes it back; none for a done box and for a box that cannot be changed.
+ * One occurrence of a series has them too and changes alone, the series staying.
  *
  * @param calendar - Calendar of the day
  * @param box - The box
@@ -479,15 +535,16 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
     return [entryPartOf("div", "box-actions", box.state === "dropped"
         ? [actionOf(calendar, Undo2, "Take back", (): Promise<void> => boxDrop(box.id, false))]
         : [
-            ...(box.deadline !== "" ? []
+            ...(box.deadline !== "" || overIs(box) ? []
                 : [actionOf(calendar, ArrowRight, "To tomorrow", (): Promise<void> => boxPush(box.id))]),
-            actionOf(calendar, X, "Drop", (): Promise<void> => boxDrop(box.id, true)),
+            actionOf(calendar, X, "Cancel", (): Promise<void> => boxDrop(box.id, true)),
         ])];
 }
 
 /**
  * Makes a box of the list: its ring, see {@link ringOf}, its lines, see {@link boxContentOf}, which change it
- * when clicked, see {@link boxClick}, and its buttons, see {@link actionsOf}.
+ * when clicked, see {@link boxClick}, and its buttons, see {@link actionsOf}; in the list carried along
+ * with its own day and without how near its deadline is, since its deadline line names it.
  * An open box has the class `box-draggable`, so it can be dragged into the log, see {@link boxesStart},
  * and keeps its place in the list, its category, its title and its minutes in the log as data of its element.
  * - `element`: The box.
@@ -495,12 +552,13 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
  *
  * @param calendar - Calendar of the day
  * @param box - The box
- * @param index - Its place in the boxes of the shown day
+ * @param index - Its place in the boxes of the shown day followed by those carried along, see {@link listedOf}
+ * @param carriedShown - Whether it shows in the list carried along, else among the boxes of the shown day
  * @returns The box
  */
-function boxElementOf(calendar: Calendar, box: Box, index: number): HTMLElement {
-    const element: HTMLElement = entryPartOf("div", `box box-${box.state}`, []);
-    const body: HTMLElement = entryPartOf("div", "box-body", boxContentOf(box, shown.day, true));
+function boxElementOf(calendar: Calendar, box: Box, index: number, carriedShown: boolean): HTMLElement {
+    const element: HTMLElement = entryPartOf("div", boxClassOf(box, carriedShown), []);
+    const body: HTMLElement = entryPartOf("div", "box-body", boxContentOf(box, shown.day, !carriedShown));
     element.classList.toggle("box-draggable", box.state === "open");
     element.dataset.index = String(index);
     element.dataset.category = box.category;
@@ -541,47 +599,67 @@ function suggestionElementOf(calendar: Calendar, suggestion: Suggestion): HTMLEl
 }
 
 /**
- * Shows the plan of the shown day in the list: its birthdays and holidays, its boxes that are not dropped,
- * the suggested study sessions, then the dropped boxes; a calm hint when the day has none of them.
+ * Gives the boxes of the list in the order of their places: those of the shown day, then those carried along,
+ * so the place of a box dragged into the log names it, see {@link boxReceive}.
+ *
+ * @returns The boxes
+ */
+function listedOf(): Box[] {
+    return [...shown.boxes, ...carried];
+}
+
+/**
+ * Shows the plan of the shown day in the list: its birthdays and holidays, its boxes that are not cancelled,
+ * the suggested study sessions, then the cancelled boxes, a calm hint when the day has none of them;
+ * below them, on today, the boxes carried along under `Carried along`, when there are any.
  * - `elements`: Boxes and suggestions as elements, in order.
  * - `boxes`: The boxes as elements, each with its place among the boxes of the day.
- * - `dropped`: Whether a box is dropped.
+ * - `dropped`: Whether a box is cancelled.
+ * - `carriedElements`: The heading and the boxes carried along, none when there are none.
  *
  * @param calendar - Calendar of the day
  */
 function boxesShow(calendar: Calendar): void {
     const dropped: (box: Box) => boolean = (box: Box): boolean => box.state === "dropped";
     const boxes: HTMLElement[] = shown.boxes.map((box: Box, index: number): HTMLElement =>
-        boxElementOf(calendar, box, index));
+        boxElementOf(calendar, box, index, false));
     const elements: HTMLElement[] = [
         ...occasionsOf(shown.occasions, giftOpen),
         ...boxes.filter((element: HTMLElement, index: number): boolean => !dropped(shown.boxes[index])),
         ...suggested.map((suggestion: Suggestion): HTMLElement => suggestionElementOf(calendar, suggestion)),
         ...boxes.filter((element: HTMLElement, index: number): boolean => dropped(shown.boxes[index])),
     ];
+    const carriedElements: HTMLElement[] = carried.length === 0 ? [] : [
+        entryPartOf("h3", "plan-carried", ["Carried along"]),
+        ...carried.map((box: Box, index: number): HTMLElement =>
+            boxElementOf(calendar, box, shown.boxes.length + index, true)),
+    ];
     document.getElementById("plan-boxes")?.replaceChildren(...(elements.length > 0 ? elements
-        : [entryPartOf("p", "plan-none", ["Nothing planned"])]));
+        : [entryPartOf("p", "plan-none", ["Nothing planned"])]), ...carriedElements);
 }
 
 /**
- * Loads the plan of the shown day and its suggested study sessions, and shows them, unless another day is shown
- * meanwhile, without the hint of a box not logged, see {@link logFailShow}.
+ * Loads the plan of the shown day, its suggested study sessions and, on today, the boxes carried along to it,
+ * and shows them, unless another day is shown meanwhile, without the hint of a box not logged, see {@link logFailShow}.
  * - `day`: The shown day.
  * - `plans`: Its plan, the one day of the range.
  * - `suggestions`: Its suggested study sessions.
+ * - `carriedNow`: The boxes carried along to it, none for any day but today.
  *
  * @param calendar - Calendar of the day
  * @throws {Error} - When the reader cannot answer
  */
 async function boxesLoad(calendar: Calendar): Promise<void> {
     const day: string = dayOf(calendar.view.currentStart);
-    const [plans, suggestions]: [PlanDay[], Suggestion[]] = await Promise.all([
+    const [plans, suggestions, carriedNow]: [PlanDay[], Suggestion[], Box[]] = await Promise.all([
         boxesFetch(day, dayOf(calendar.view.currentEnd)), suggestionsLoad(day),
+        day === calendarTodayOf() ? carriedFetch(day) : Promise.resolve([]),
     ]);
     if (day !== dayOf(calendar.view.currentStart))
         return;
     shown = plans[0];
     suggested = suggestions;
+    carried = carriedNow;
     document.getElementById("plan-error")?.setAttribute("hidden", "");
     boxesShow(calendar);
 }
@@ -613,7 +691,7 @@ export function boxesSee(calendar: Calendar, events: EventApi[]): void {
  * a hint above the list says when the reader does not log it, see {@link logFailShow}.
  * Takes the dropped entry out of the calendar again, because only the reader writes entries.
  * - `revert`: Removes the dropped entry from the calendar.
- * - `box`: The box, by its place among the boxes of the shown day.
+ * - `box`: The box, by its place among the boxes of the shown day and those carried along, see {@link listedOf}.
  * - `start`, `end`: Where it was dropped.
  *
  * @param calendar - Calendar of the day
@@ -621,7 +699,7 @@ export function boxesSee(calendar: Calendar, events: EventApi[]): void {
  */
 export function boxReceive(calendar: Calendar, info: EventReceiveInfo): void {
     info.revert();
-    const box: Box = shown.boxes[Number(info.draggedEl.dataset.index)];
+    const box: Box = listedOf()[Number(info.draggedEl.dataset.index)];
     const start: Date = info.event.start as Date;
     const end: Date = info.event.end as Date;
     (box.category === "" ? entryOpenFromBox(box, start, end) : boxLog(calendar, box.id, start, end))

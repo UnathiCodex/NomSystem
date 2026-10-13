@@ -257,7 +257,7 @@ button.box-ring:hover svg {
     color: var(--text-muted);
 }
 
-/* Dropped box: struck through and faded */
+/* Cancelled box: faded and struck through */
 .box-dropped {
     opacity: 0.55;
 }
@@ -266,13 +266,28 @@ button.box-ring:hover svg {
     text-decoration: line-through;
 }
 
+/* Open box whose day is over, on its day: faded like a cancelled box, but not struck through,
+   since it is still to do; it is carried along to today below the list of today */
+.box-over {
+    opacity: 0.55;
+}
+
+/* Heading of the boxes carried along to today, below the list of today:
+   small and grey like the heads of plan and log, with room above it */
+.plan-carried {
+    margin: 0.5rem 0 0;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
 /* Suggested study session: dashed in the grey of the plan, not planned yet */
 .box-suggested {
     border-style: dashed;
     border-color: var(--plan);
 }
 
-/* Buttons at the right of a box, small and round, grey, lighter under the pointer: push and drop, take back,
+/* Buttons at the right of a box, small and round, grey, lighter under the pointer: push and cancel, take back,
    or plan and dismiss a suggestion. With a pointer that hovers, those of a box show only while the pointer is over it
    or one of them has the focus, so the list stays calm; those of a suggestion always show */
 .box-actions {

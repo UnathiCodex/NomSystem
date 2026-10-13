@@ -6,8 +6,10 @@
  * and with an expected duration or without: a lecture is a box with its time and duration, a study session one
  * with only its duration, a call one with neither. What happens anyway, like my sleep, I don't plan, see `categories.ts`.
  * When I do it, it goes into the log at its real time, see `boxLog` in `day.ts`, so expected and real time
- * can be compared later; a box not done is pushed to the next day or dropped, and stays in its file as dropped,
- * so it can be counted.
+ * can be compared later; a box I decide against is cancelled, dropped with one tap, and stays in its file
+ * as `STATUS:CANCELLED`, so it can be counted. A box neither done nor cancelled stays on its day once that is over
+ * and is carried along to today, see {@link boxesCarried}, until I do it or cancel it; it never moves into the next
+ * days by itself, only when I push it there.
  *
  * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan file of its month,
  * like `2026/2026_10/2026_10_Plan.ics`, or in the plan of its module, like
@@ -383,6 +385,26 @@ export function boxesRead(start: string, end: string): PlanDay[] {
         });
     }
     return days;
+}
+
+/**
+ * Reads the boxes carried along to a day: those of the days before it that are neither done nor cancelled,
+ * also a box whose deadline is over and one date of a series, like a lecture I did not log, each on its own day,
+ * by their days, the boxes of one day in their order, see {@link boxCompare}; they stay there until I do them
+ * or cancel them.
+ * - `logs`: Log entries written from boxes, up to the day after the day, see {@link logsOf}.
+ *
+ * @param date - The day, like `2026-10-13`, today on the page
+ * @returns The boxes, the earliest first, none when all are done or cancelled
+ * @throws {Error} - When the day is not written like `2026-10-13`
+ */
+export function boxesCarried(date: string): Box[] {
+    dateCheck(date);
+    const logs: Map<string, Entry> = logsOf(date);
+    return entriesRead(day.plan, "1970-01-01T00:00:00Z", berlinDayStartOf(date))
+        .map((entry: Entry): Box => boxOf(entry, logs))
+        .filter((box: Box): boolean => box.state === "open" && box.day < date)
+        .sort((first: Box, second: Box): number => first.day.localeCompare(second.day) || boxCompare(first, second));
 }
 
 /**

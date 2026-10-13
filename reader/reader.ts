@@ -14,8 +14,8 @@
  * - `node:stream/consumers`: Reads a whole request body into one value
  * - `./day.ts`: Reads the log of a day, adds, changes and removes its entries, adds the meal of a cooking,
  *   logs a box of the plan at its real time, and reads how long entries like a box really lasted
- * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, adds, changes and removes boxes,
- *   pushes them to the next day and drops them
+ * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, and the boxes carried along
+ *   to a day, adds, changes and removes boxes, pushes them to the next day and drops them
  * - `./gifts.ts`: Writes my gift idea for a birthday or holiday as its `DESCRIPTION` into `Birthdays.ics`
  *   or `Holidays.ics`
  * - `./note.ts`: Reads the daily notes, and writes my gratitude and my paragraph about the day into them
@@ -40,7 +40,7 @@
 import { createServer } from "node:http";
 import { json } from "node:stream/consumers";
 import { boxLog, dayEntriesRead, entryAdd, entryDelete, entryEdit, mealAfterCookAdd, realMinutesRead } from "./day.ts";
-import { boxAdd, boxDelete, boxDrop, boxEdit, boxesRead, boxPush } from "./boxes.ts";
+import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush } from "./boxes.ts";
 import { giftWrite } from "./gifts.ts";
 import { calloutsRead, calloutWrite, noteRead } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
@@ -112,6 +112,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/day/log?start=…&end=…`: Sends log entries of the range.
  * - `GET /api/day/boxes?start=…&end=…`: Sends the plan of each day from the first day to the day before the last,
  *   like `start=2026-10-13&end=2026-10-14` for one day: its birthdays and holidays with my gift ideas, and its boxes.
+ * - `GET /api/day/carried?date=…`: Sends the boxes of the days before the date that are neither done nor cancelled.
  * - `GET /api/day/note?date=…`: Sends the daily note of the date, or `null` for a day without note.
  * - `GET /api/day/callouts?date=…`: Sends my gratitude and my paragraph about the day of the daily note of the date
  *   as texts, empty ones for a day without note.
@@ -189,6 +190,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "GET" && url.pathname === "/api/day/boxes") {
         responseSend(response, 200, boxesRead(start, end));
+
+    } else if (request.method === "GET" && url.pathname === "/api/day/carried") {
+        responseSend(response, 200, boxesCarried(date));
 
     } else if (request.method === "GET" && url.pathname === "/api/day/note") {
         responseSend(response, 200, noteRead(date));

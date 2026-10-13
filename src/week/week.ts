@@ -27,7 +27,7 @@
  * - `../day/day.css`: Look of the day, whose boxes the week shares.
  */
 
-import { boxContentOf, boxesFetch, entryPartOf, occasionsOf, weekdayTextOf } from "../day/boxes.ts";
+import { boxClassOf, boxContentOf, boxesFetch, entryPartOf, occasionsOf, weekdayTextOf } from "../day/boxes.ts";
 import { monthStart } from "../day/month.ts";
 import { dateTextOf } from "../day/times.ts";
 import { dayOf } from "../skill/attempts.ts";
@@ -78,14 +78,14 @@ function weekShows(box: Box, day: string): boolean {
 
 /**
  * Makes a box of the week: as in the list of the day, its lines and, when it is done, its check at the left,
- * but without buttons and without how near its deadline is, see `boxes.ts`.
+ * greyed while open once its day is over, but without buttons and without how near its deadline is, see `boxes.ts`.
  *
  * @param box - The box
  * @param day - Day it shows on, like `2026-10-20`
  * @returns The box
  */
 function boxOf(box: Box, day: string): HTMLElement {
-    return entryPartOf("div", `box box-${box.state}`, [
+    return entryPartOf("div", boxClassOf(box, false), [
         entryPartOf("span", "box-ring", box.state === "done" ? [iconOf(Check)] : []),
         entryPartOf("div", "box-body", boxContentOf(box, day, false)),
     ]);
