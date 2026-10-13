@@ -874,14 +874,16 @@ export function skillingRead(): Skilling {
 }
 
 /**
- * Finds the folder of a module by its code.
+ * Finds the folder of a module by its code: in `NomSkillingmodules`, else among the modules of the semester,
+ * whose folder may be missing yet and then counts as empty, see `notes.ts`.
  *
  * @param code - Module code, like `IN2028`
  * @returns Name of its folder, like `IN2028_BusinessAnalyticsMachineLearning`
- * @throws {Error} - When no module folder has the code
+ * @throws {Error} - When no module folder and no module of the semester has the code
  */
 function folderOf(code: string): string {
-    const folder: string | undefined = moduleFolderOf(code);
+    const folder: string | undefined = moduleFolderOf(code)
+        ?? activeModules.find((name: string): boolean => codeOf(name) === code);
     if (folder === undefined)
         throw new Error(`No module ${code}`);
     return folder;
@@ -889,11 +891,11 @@ function folderOf(code: string): string {
 
 /**
  * Reads what the dialog of a skill entry offers for a module, any module folder: its chapters and its documents,
- * see `notes.ts`.
+ * see `notes.ts`; none for a module of the semester whose folder is missing.
  *
  * @param code - Module code, like `IN2028`
  * @returns Chapters and documents of the module
- * @throws {Error} - When no module folder has the code
+ * @throws {Error} - When no module folder and no module of the semester has the code
  */
 export function moduleRead(code: string): ModuleContents {
     return moduleContentsRead(folderOf(code));

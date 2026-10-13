@@ -17,7 +17,8 @@
  * since it stays on the day of its deadline.
  * An open box is dragged into the log at the real time: the reader writes a log entry like it, pointing to it,
  * as long as its expected duration, else half an hour, and I resize the entry when it lasted otherwise.
- * The ring at its left logs it as expected with one tap: from its expected time, else ending now, see `times.ts`.
+ * The ring at its left logs it as expected with one tap: from its expected time, else ending now, see `times.ts`;
+ * when the reader does not log a box dropped or tapped, a hint says so above the list until it loads again.
  * A done box shows a check in its ring and, faded, expected and real time,
  * like `expected 12:00 · 90 min → 12:15 · 85 min`, and `done` with the day it was done, without time,
  * when that is another day, like `done Fri, 09.10.2026` for a box done a day early;
@@ -29,7 +30,8 @@
  * `+` above the list opens the entry by category for a new box of the shown day; a click on a box changes it,
  * see `categories.ts`. A box without category, like a to-do another app wrote into the plan, opens the entry
  * by category of the log instead of being logged at once, when it is dropped or its ring tapped, since the log needs
- * a category; a box that cannot be changed, like an occurrence of a series, has no ring and opens it when clicked.
+ * a category; a box that cannot be changed, like an occurrence of a weekly lecture, is logged like any other,
+ * and opens the entry by category of the log when clicked.
  * The list loads again when the shown day or its log changes, since a box is done once a log entry points to it,
  * when the entry by category closes, and after a push, a drop or a suggestion accepted.
  * The week shows the boxes of seven days the same way, without their buttons, see `week.ts`.
@@ -70,7 +72,8 @@ export type BoxState = "open" | "done" | "dropped";
 /**
  * A box, as the reader sends it.
  *
- * - `id`: Identifier of its to-do or event.
+ * - `id`: Identifier of its to-do or event, for an occurrence of a series with its start after `#`,
+ *   like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`.
  * - `category`: Category, like `Skill`, empty for a box without one, like a to-do another app wrote.
  * - `title`: What, like `WI1059 HU`.
  * - `location`: Place, empty for none.
@@ -392,10 +395,9 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
 }
 
 /**
- * Makes the ring at the left of a box: for an open box that can be changed a button, an empty ring like the circle
+ * Makes the ring at the left of a box: for an open box a button, an empty ring like the circle
  * of a to-do, its check showing under the pointer, which logs it as expected, see {@link boxTap};
- * for a done box the check alone, grey; for a dropped box and an open one that cannot be changed,
- * like an occurrence of a series, an empty place, since no log entry points to it.
+ * for a done box the check alone, grey; for a dropped box an empty place.
  * - `ring`: The button of an open box.
  *
  * @param calendar - Calendar of the day
@@ -403,7 +405,7 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
  * @returns The ring
  */
 function ringOf(calendar: Calendar, box: Box): HTMLElement {
-    if (box.state !== "open" || !box.editable)
+    if (box.state !== "open")
         return entryPartOf("span", "box-ring", box.state === "done" ? [iconOf(Check)] : []);
 
     const ring: HTMLButtonElement = document.createElement("button");
@@ -411,9 +413,20 @@ function ringOf(calendar: Calendar, box: Box): HTMLElement {
     ring.className = "box-ring";
     iconPut(ring, Check, "Log as expected");
     ring.addEventListener("click", (): void => {
-        boxTap(calendar, box).catch((error: unknown): void => console.error(error));
+        boxTap(calendar, box).catch(logFailShow);
     });
     return ring;
+}
+
+/**
+ * Says above the list of boxes that the reader did not log a box dropped into the log or tapped,
+ * like after a lost connection, until the list loads again.
+ *
+ * @param error - Why logging failed
+ */
+function logFailShow(error: unknown): void {
+    console.error(error);
+    document.getElementById("plan-error")?.removeAttribute("hidden");
 }
 
 /**
@@ -540,7 +553,7 @@ function boxesShow(calendar: Calendar): void {
 
 /**
  * Loads the plan of the shown day and its suggested study sessions, and shows them, unless another day is shown
- * meanwhile.
+ * meanwhile, without the hint of a box not logged, see {@link logFailShow}.
  * - `day`: The shown day.
  * - `plans`: Its plan, the one day of the range.
  * - `suggestions`: Its suggested study sessions.
@@ -557,6 +570,7 @@ async function boxesLoad(calendar: Calendar): Promise<void> {
         return;
     shown = plans[0];
     suggested = suggestions;
+    document.getElementById("plan-error")?.setAttribute("hidden", "");
     boxesShow(calendar);
 }
 
@@ -583,7 +597,8 @@ export function boxesSee(calendar: Calendar, events: EventApi[]): void {
 
 /**
  * Logs a box dropped into the log, at the time of the drop, as long as the box was when dragged;
- * a box without category opens the entry by category of the log at those times instead.
+ * a box without category opens the entry by category of the log at those times instead;
+ * a hint above the list says when the reader does not log it, see {@link logFailShow}.
  * Takes the dropped entry out of the calendar again, because only the reader writes entries.
  * - `revert`: Removes the dropped entry from the calendar.
  * - `box`: The box, by its place among the boxes of the shown day.
@@ -598,7 +613,7 @@ export function boxReceive(calendar: Calendar, info: EventReceiveInfo): void {
     const start: Date = info.event.start as Date;
     const end: Date = info.event.end as Date;
     (box.category === "" ? entryOpenFromBox(box, start, end) : boxLog(calendar, box.id, start, end))
-        .catch((error: unknown): void => console.error(error));
+        .catch(logFailShow);
 }
 
 /**

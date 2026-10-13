@@ -30,6 +30,10 @@
  * - its category, what, place, module, type and note as an entry of the log has them.
  * The log entry written from a box points to it with `X-PLANNED:<UID of the box>`, which gives its real time:
  * a box is done once a log entry points to it, or once it is `COMPLETED`, like a box ticked in another app.
+ * An occurrence of a series in the plan, like a weekly lecture, is a box of its own: its identifier is the `UID`
+ * of its series and its start as the series has it, after `#`,
+ * like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`, see {@link boxIdOf}, so its log entry points to it alone and it is done by that log entry alone;
+ * it is logged like any box, but cannot be changed, pushed, dropped or removed, since it lies in its series.
  *
  * The plan files also hold events, `VEVENT`s, like the lectures imported from TUMonline.
  * Each is read as a box: its time is its start, its duration its length, and one of the whole day
@@ -46,8 +50,8 @@
  */
 
 import {
-    berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryFind, entryLookup, entryRemove,
-    livedDayOf, propertiesPut, statusPut, todoAppend, todoChange,
+    berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryLookup, entryRemove, livedDayOf,
+    occurrenceLookup, propertiesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, skillName } from "./categories.ts";
 import { giftOf, giftsRead } from "./gifts.ts";
@@ -65,7 +69,8 @@ export type BoxState = "open" | "done" | "dropped";
 /**
  * A box, as the page shows it.
  *
- * - `id`: Identifier of its to-do or event, its `UID`.
+ * - `id`: Identifier of its to-do or event, its `UID`, for an occurrence of a series with its start,
+ *   see {@link boxIdOf}.
  * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of an entry, see `calendar.ts`.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time as ISO instant, empty for none.
@@ -198,6 +203,38 @@ function logsOf(to: string): Map<string, Entry> {
 }
 
 /**
+ * Gives the identifier of the box of an entry of the plan: its `UID`, for an occurrence of a series
+ * the `UID` of its series and its start after `#`, like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`,
+ * since each occurrence is a box of its own, see the top of this file.
+ *
+ * @param entry - Entry of the plan
+ * @returns Identifier, like `study-13@nomsystem`
+ */
+function boxIdOf(entry: Entry): string {
+    return entry.recurrence === "" ? entry.id : `${entry.id}#${entry.recurrence}`;
+}
+
+/**
+ * Finds the entry of the plan of a box by its identifier, see {@link boxIdOf}: the to-do or event that happens once
+ * with that `UID`, else the occurrence of a series named by the `UID` and the start after the last `#`.
+ * - `found`: Its `.ics` file and its entry, `undefined` while none is found.
+ * - `at`: Place of the last `#`, -1 for none.
+ *
+ * @param id - Identifier of the box, like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`
+ * @returns Path of its `.ics` file and its entry
+ * @throws {Error} - When the plan holds no such entry
+ */
+function planEntryFind(id: string): [string, Entry] {
+    let found: [string, Entry] | undefined = entryLookup(day.plan, id);
+    const at: number = id.lastIndexOf("#");
+    if (found === undefined && at !== -1)
+        found = occurrenceLookup(day.plan, id.slice(0, at), id.slice(at + 1));
+    if (found === undefined)
+        throw new Error(`No box ${id}`);
+    return found;
+}
+
+/**
  * Turns an entry of the plan, a to-do or an event, into a box, see the top of this file.
  * - `log`: The log entry written from it, `undefined` for none.
  *
@@ -206,7 +243,7 @@ function logsOf(to: string): Map<string, Entry> {
  * @returns The box
  */
 function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
-    const log: Entry | undefined = logs.get(entry.id);
+    const log: Entry | undefined = logs.get(boxIdOf(entry));
     let minutes: number | null = entry.minutes;
     if (!entry.todo)
         minutes = entry.allDay ? null : (Date.parse(entry.end) - Date.parse(entry.start)) / minuteLength;
@@ -216,7 +253,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
     else if (log !== undefined || entry.status === "COMPLETED")
         state = "done";
     return {
-        id: entry.id, category: entry.category, title: entry.title, location: entry.location, from: entry.from,
+        id: boxIdOf(entry), category: entry.category, title: entry.title, location: entry.location, from: entry.from,
         module: entry.module, type: entry.type, note: entry.note,
         day: dayOf(entry),
         time: entry.allDay ? "" : entry.start,
@@ -308,16 +345,16 @@ export function boxesRead(start: string, end: string): PlanDay[] {
 }
 
 /**
- * Finds a box of the plan by its identifier, with its state.
+ * Finds a box of the plan by its identifier, with its state, also an occurrence of a series, see {@link planEntryFind}.
  * - `file`, `entry`: Its `.ics` file and its entry.
  * - `date`: Its day.
  *
- * @param id - Identifier of the box
+ * @param id - Identifier of the box, like `study-13@nomsystem`
  * @returns Path of its `.ics` file, its entry and the box
- * @throws {Error} - When the plan holds no to-do or event that happens once with the identifier
+ * @throws {Error} - When the plan holds no such box
  */
 export function boxFind(id: string): [string, Entry, Box] {
-    const [file, entry]: [string, Entry] = entryFind(day.plan, id);
+    const [file, entry]: [string, Entry] = planEntryFind(id);
     const date: string = dayOf(entry);
     return [file, entry, boxOf(entry, logsOf(dayAdd(date, 1)))];
 }
@@ -487,21 +524,21 @@ export function boxDrop(id: string, dropped: boolean): void {
 }
 
 /**
- * Marks a box done once a log entry pointing to it is written: a to-do of the new system becomes `COMPLETED`,
- * as of now; an event, which has no such status, is done by the log entry alone.
+ * Marks a box done once a log entry pointing to it is written: a to-do that happens once becomes `COMPLETED`,
+ * as of now; an event, which has no such status, and an occurrence of a series are done by the log entry alone.
  *
- * @param id - Identifier of the box
- * @throws {Error} - When the plan holds no to-do or event that happens once with the identifier
+ * @param id - Identifier of the box, like `study-13@nomsystem`
+ * @throws {Error} - When the plan holds no such box
  */
 export function boxDone(id: string): void {
-    const [file, entry]: [string, Entry] = entryFind(day.plan, id);
+    const [file, entry]: [string, Entry] = planEntryFind(id);
     if (entry.todo && entry.editable)
         statusPut(file, id, "COMPLETED", new Date());
 }
 
 /**
  * Opens a box again once the log entry written from it is removed: a done to-do of the new system becomes
- * `NEEDS-ACTION`; a box no longer in the plan stays as it is.
+ * `NEEDS-ACTION`; an occurrence of a series is open again by itself, and a box no longer in the plan stays as it is.
  * - `found`: Its `.ics` file and its entry, `undefined` when it is gone.
  *
  * @param id - Identifier of the box

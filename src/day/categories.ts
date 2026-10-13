@@ -31,8 +31,8 @@
  * and from a log entry that can be changed, to change it; for a box from `+` above the list of boxes,
  * from a suggested study session, filled in as suggested, see `suggestions.ts`,
  * and from a box that can be changed, to change it, or to log it instead, filled in as planned;
- * one that cannot, like an occurrence of a series, opens it to be logged. A log entry logged from a box points to it,
- * see `entries.ts`;
+ * one that cannot, like an occurrence of a weekly lecture, opens it to be logged. A log entry logged from a box points
+ * to it, also to an occurrence of a series, see `entries.ts`;
  * a box logged at its real time by dragging it into the log, or as expected by a tap, needs no dialog,
  * see `boxes.ts`.
  *
@@ -543,8 +543,8 @@ function textsRead(): BoxFields {
 }
 
 /**
- * Reads fields, note and times of the dialog for an entry of the log, and the box a new log entry is logged from;
- * a box that cannot be changed is only shown, like an occurrence of a series, which has no box of its own to point to.
+ * Reads fields, note and times of the dialog for an entry of the log, and the box a new log entry is logged from,
+ * also an occurrence of a series, which is a box of its own, see `reader/boxes.ts`.
  * Start and end are plain times on the typed day, the calendar date of the start, see {@link startRead};
  * an end at or before the start lies on the next day, like a night of sleep: `12.10.2026`, `23:30` to `07:30`
  * ends on 13 October at 07:30. What the fields show is exactly what is saved.
@@ -562,7 +562,7 @@ function fieldsRead(): EntryFields {
         category: texts.category, title: texts.title, location: texts.location, from: texts.from,
         module: texts.module, type: texts.type, note: texts.note,
         foods: chosen?.name === foodName ? mealFoods() : [],
-        planned: opened.entry === null && opened.plan?.editable === true ? opened.plan.id : "",
+        planned: opened.entry === null ? opened.plan?.id ?? "" : "",
         pain: neckLongPicked() ? pain : "",
         start: start,
         end: end,

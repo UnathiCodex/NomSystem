@@ -258,9 +258,19 @@ function dayShow(info: DatesSetInfo): void {
     const date: string = info.startStr.slice(0, 10);
     const weekday: string = new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" });
     (document.getElementById("day-title") as HTMLElement).textContent = `${weekday}, ${dateTextOf(date)}`;
-    (document.getElementById("day-today") as HTMLButtonElement).disabled = date === calendarTodayOf();
+    todayButtonShow(date);
     history.replaceState(null, "", `?date=${date}`);
     dayNoteShow(date);
+}
+
+/**
+ * Fades `Today` above plan and log while the shown day is today's calendar date, like 13.10.2026 on that day,
+ * also once the day turned at 00:00 while the day stays, see `todayFollow` in `today.ts`.
+ *
+ * @param date - Shown day, like `2026-10-13`
+ */
+function todayButtonShow(date: string): void {
+    (document.getElementById("day-today") as HTMLButtonElement).disabled = date === calendarTodayOf();
 }
 
 /**
@@ -310,7 +320,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * Starts the day after the router has put its HTML into the page, on the day of the address or today's calendar date:
  * the arrows and `Today` above plan and log move the calendar by a day or back to today, the date opens the month
  * to pick a day from, `+` above the time grid opens the entry by category of the log for the last half hour;
- * while it shows today, the day moves on to the new day by itself, now centred again, see `todayFollow` in `today.ts`.
+ * while it shows today, the day moves on to the new day by itself, now centred again, see `todayFollow` in `today.ts`,
+ * and while it shows another day, `Today` follows the new day.
  * - `initialView`: A time grid of the shown day, one column, the log.
  * - `headerToolbar`: None, since the date and its buttons stand above plan and log together, see {@link dayShow}.
  * - `dayHeaders`: Leaves out the name of the day above the column, which the date above says already.
@@ -421,7 +432,7 @@ export function dayStart(note: boolean): void {
     todayFollow((): string => dayOf(calendar.view.currentStart), (day: string): void => {
         calendar.gotoDate(day);
         nowCenter(calendar);
-    });
+    }, (): void => todayButtonShow(dayOf(calendar.view.currentStart)));
     giftsStart();
     timesStart();
     if (note)

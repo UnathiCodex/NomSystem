@@ -48,7 +48,9 @@ import type { CalendarSource } from "./sources.ts";
  *   or without grams, like `Eier`, for its usual portion; none when the event has none.
  * - `cooked`: Identifier of the entry `Cook` a meal was cooked in, its `X-COOKED`, empty when the event has none.
  * - `pain`: My neck pain from 0 to 10 after a long neck session, its `X-PAIN`, like `5`, empty when the event has none.
- * - `planned`: Identifier of the box a log entry was logged from, its `X-PLANNED`, empty when the event has none.
+ * - `planned`: Identifier of the box a log entry was logged from, its `X-PLANNED`, like `study-13@nomsystem`,
+ *   or for an occurrence of a series its identifier and its start,
+ *   like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`, see `boxes.ts`; empty when the event has none.
  * - `note`: Free note, its `DESCRIPTION`, empty when the event has none.
  * - `todo`: Whether the entry is a to-do, a `VTODO`, a box of the plan; else it is an event, a `VEVENT`.
  * - `status`: Its `STATUS`, like `CANCELLED` for a dropped box or `COMPLETED` for a done one, empty when it has none.
@@ -68,6 +70,9 @@ import type { CalendarSource } from "./sources.ts";
  * - `end`: End, excluded, in the same form as `start`; a to-do of a day ends with the day,
  *   a to-do with a time where it starts, since how long it takes is its `minutes`.
  * - `allDay`: Whether the entry covers whole days, for a to-do whether it has no time.
+ * - `recurrence`: For an occurrence of a series its start as the series has it, like `2026-10-13T08:00:00.000Z`,
+ *   or `2026-10-13` for a series of whole days, for a changed occurrence its `RECURRENCE-ID`;
+ *   empty for an entry that happens once.
  */
 export type Entry = {
     id: string;
@@ -96,6 +101,7 @@ export type Entry = {
     start: string;
     end: string;
     allDay: boolean;
+    recurrence: string;
 };
 
 /**
@@ -269,6 +275,8 @@ function deadlineDayOf(component: ICAL.Component): [ICAL.Time, ICAL.Time] {
  * or its start when it has a time, see {@link Entry}.
  * - `todo`: Whether it is a to-do.
  * - `stamp`: Its `DTSTAMP`, an `ical.js` time when it has one.
+ * - `recurrence`: For a changed occurrence its `RECURRENCE-ID`, for an occurrence of a series its start,
+ *   empty for an event that happens once.
  *
  * @param event - Event with title and place, or the series of an occurrence, or a to-do
  * @param start - Start of the event or the occurrence
@@ -279,6 +287,11 @@ function deadlineDayOf(component: ICAL.Component): [ICAL.Time, ICAL.Time] {
 function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: boolean): Entry {
     const todo: boolean = event.component.name === "vtodo";
     const stamp: unknown = event.component.getFirstPropertyValue("dtstamp");
+    let recurrence: string = "";
+    if (event.isRecurrenceException())
+        recurrence = textOf(event.recurrenceId);
+    else if (event.isRecurring())
+        recurrence = textOf(start);
     return {
         id: event.uid,
         category: String(event.component.getFirstPropertyValue("categories") ?? ""),
@@ -311,6 +324,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         start: textOf(start),
         end: textOf(end),
         allDay: start.isDate,
+        recurrence: recurrence,
     };
 }
 
@@ -460,7 +474,8 @@ export function entriesRead(sources: CalendarSource[], start: string, end: strin
 
 /**
  * Looks for the entry of the one event or to-do with an identifier in calendar sources.
- * An occurrence of a series has the identifier of its series, so it counts as none.
+ * An occurrence of a series has the identifier of its series, so it counts as none, a changed one too,
+ * see {@link occurrenceLookup}.
  *
  * @param sources - Calendars, each the files of a folder with a name ending
  * @param id - Identifier of the event or to-do
@@ -469,9 +484,51 @@ export function entriesRead(sources: CalendarSource[], start: string, end: strin
 export function entryLookup(sources: CalendarSource[], id: string): [string, Entry] | undefined {
     for (const file of filesOf(sources)) {
         const entry: Entry | undefined = calendarOf(file).entries
-            .find((candidate: Entry): boolean => candidate.id === id);
+            .find((candidate: Entry): boolean => candidate.id === id && candidate.recurrence === "");
         if (entry !== undefined)
             return [file, entry];
+    }
+    return undefined;
+}
+
+/**
+ * Looks for an occurrence of a series in calendar sources by the identifier of the series and the start
+ * of the occurrence as the series has it, see {@link Entry}: a changed occurrence among the entries of a file,
+ * else the occurrence the series itself has at that start.
+ * - `calendar`: A file read.
+ * - `changed`: The changed occurrence with that `RECURRENCE-ID`, `undefined` for none.
+ * - `series`: The series with the identifier, `undefined` for none in the file.
+ * - `day`: Day of the occurrence, like `2026-10-13`.
+ * - `range`: From the start of the occurrence to a moment later, or to the next day for a series of whole days,
+ *   so walking the series stops right after it, see {@link occurrencesOf}.
+ * - `occurrence`: The occurrence of the series at that start, `undefined` for none.
+ *
+ * @param sources - Calendars, each the files of a folder with a name ending
+ * @param id - Identifier of the series, like `weekly-lecture@nomsystem`
+ * @param recurrence - Start of the occurrence as the series has it, like `2026-10-13T08:00:00.000Z`
+ * @returns Path of its `.ics` file and its {@link Entry}, `undefined` when no series has such an occurrence
+ */
+export function occurrenceLookup(sources: CalendarSource[], id: string,
+                                 recurrence: string): [string, Entry] | undefined {
+
+    for (const file of filesOf(sources)) {
+        const calendar: Calendar = calendarOf(file);
+        const changed: Entry | undefined = calendar.entries
+            .find((candidate: Entry): boolean => candidate.id === id && candidate.recurrence === recurrence);
+        if (changed !== undefined)
+            return [file, changed];
+
+        const series: ICAL.Event | undefined =
+            calendar.series.find((candidate: ICAL.Event): boolean => candidate.uid === id);
+        const day: string = recurrence.slice(0, 10);
+        const range: Range = {
+            days: [day, dayAdd(day, 1)],
+            instants: [recurrence, new Date(Date.parse(recurrence) + 1).toISOString()],
+        };
+        const occurrence: Entry | undefined = series === undefined ? undefined
+            : occurrencesOf(series, range).find((candidate: Entry): boolean => candidate.recurrence === recurrence);
+        if (occurrence !== undefined)
+            return [file, occurrence];
     }
     return undefined;
 }

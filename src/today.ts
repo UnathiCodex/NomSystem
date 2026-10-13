@@ -6,7 +6,7 @@
  * on 14 October; the trackers, the skill days and the done boxes still count the day I live.
  * A view that shows today moves on to the new day by itself at 00:00, and when the page becomes visible again
  * on a later day, like a tab left open overnight, whose timer the browser may have held back; a day I went to myself
- * stays.
+ * stays, and only marks today anew, like the `Today` button of the day and the row of today in the week.
  *
  * - `./skill/attempts.ts`: Writes a date as a day in the form of the reader.
  */
@@ -26,11 +26,11 @@ export function calendarTodayOf(): string {
 
 /**
  * Moves a view on to the new day while it shows today: at the next 00:00, and whenever the page becomes visible
- * again, like a tab left open overnight; a view showing another day stays on it.
+ * again, like a tab left open overnight; a view showing another day stays on it and marks today anew.
  * - `today`: Today's calendar date when the view last looked, like `2026-10-13`.
  * - `timer`: Timer of the next look, at the next 00:00.
- * - `look`: Shows the new day when the day turned while the view showed the day before, then waits for the next 00:00;
- *   a timer that comes a moment early only waits again.
+ * - `look`: Shows the new day when the day turned while the view showed the day before, else marks today anew
+ *   once it turned, then waits for the next 00:00; a timer that comes a moment early only waits again.
  * - `current`: Today's calendar date at the look.
  * - `midnight`: The next 00:00.
  * - {@link Document#visibilityState}: Tells whether the page can be seen, `visible`, or lies hidden, like in a tab
@@ -38,14 +38,18 @@ export function calendarTodayOf(): string {
  *
  * @param shown - Gives the day the view shows, like `2026-10-13`, for the week its first day
  * @param show - Shows a day, like `2026-10-14`
+ * @param mark - Marks today anew in a view that stays on another day, like its `Today` button;
+ *   none for a view without such a mark, like the food
  */
-export function todayFollow(shown: () => string, show: (day: string) => void): void {
+export function todayFollow(shown: () => string, show: (day: string) => void, mark?: () => void): void {
     let today: string = calendarTodayOf();
     let timer: number = 0;
     const look: () => void = (): void => {
         const current: string = calendarTodayOf();
         if (current !== today && shown() === today)
             show(current);
+        else if (current !== today)
+            mark?.();
         today = current;
         const midnight: Date = new Date();
         midnight.setHours(24, 0, 0, 0);

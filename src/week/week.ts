@@ -13,7 +13,7 @@
  * The arrows move by seven days, `Today` comes back, and a click on the days above opens a month,
  * whose clicked day becomes the first day shown, see `month.ts`; the address keeps the first day shown,
  * like `/week?date=2026-10-12`, so a reload stays on it. Today is today's calendar date, which turns at 00:00,
- * and a week from today moves on with it, see `today.ts`.
+ * and a week from today moves on with it, see `today.ts`; any other week marks the new today at 00:00.
  *
  * - `../day/boxes.ts`: Loads the boxes of days, shows a box and the birthdays and holidays as the day does,
  *   and writes a day with its weekday.
@@ -92,8 +92,8 @@ function boxOf(box: Box, day: string): HTMLElement {
 
 /**
  * Makes the row of a day: a link that opens it in the day view, holding its name at the left, like `Tue, 13.10.2026`,
- * marked when it is today, and beside it its birthdays and holidays and its boxes that show on it,
- * see {@link weekShows}, or a calm hint when it has none.
+ * its day as data, so it is marked when it is today, see {@link todayMark}, and beside it its birthdays and holidays
+ * and its boxes that show on it, see {@link weekShows}, or a calm hint when it has none.
  * - `row`: The link.
  * - `boxes`: Its boxes as elements.
  * - `items`: Birthdays, holidays and boxes, or the hint.
@@ -110,8 +110,7 @@ function dayRowOf(plan: PlanDay): HTMLElement {
         ? [...occasionsOf(plan.occasions, null), ...boxes] : [entryPartOf("p", "plan-none", ["Nothing planned"])];
     row.className = "week-day";
     row.href = `/?date=${plan.day}`;
-    if (plan.day === calendarTodayOf())
-        row.setAttribute("aria-current", "date");
+    row.dataset.day = plan.day;
     row.append(
         entryPartOf("div", "week-day-name", [weekdayTextOf(plan.day)]),
         entryPartOf("div", "week-boxes", items),
@@ -120,8 +119,21 @@ function dayRowOf(plan: PlanDay): HTMLElement {
 }
 
 /**
+ * Marks the row of today, today's calendar date, among the rows shown, and no other, also after 00:00
+ * in a week that stays, see `todayFollow` in `today.ts`.
+ */
+function todayMark(): void {
+    document.querySelectorAll<HTMLElement>("#week-days .week-day").forEach((row: HTMLElement): void => {
+        if (row.dataset.day === calendarTodayOf())
+            row.setAttribute("aria-current", "date");
+        else
+            row.removeAttribute("aria-current");
+    });
+}
+
+/**
  * Shows the seven days from a first day on: their range as title, like `12.10.2026 – 18.10.2026`, and one row per day,
- * see {@link dayRowOf}; writes the first day into the address.
+ * see {@link dayRowOf}, today marked, see {@link todayMark}; writes the first day into the address.
  * - `last`: The last day shown.
  * - `plans`: The plans of the seven days.
  * - {@link History#replaceState}: Changes the address without loading the page again.
@@ -136,14 +148,16 @@ async function weekShow(day: string): Promise<void> {
     (document.getElementById("week-title") as HTMLElement).textContent =
         `${dateTextOf(day)} – ${dateTextOf(last)}`;
     const plans: PlanDay[] = await boxesFetch(day, daysLater(day, weekDays));
-    if (day === first)
-        document.getElementById("week-days")?.replaceChildren(...plans.map(dayRowOf));
+    if (day !== first)
+        return;
+    document.getElementById("week-days")?.replaceChildren(...plans.map(dayRowOf));
+    todayMark();
 }
 
 /**
  * Starts the week after the router has put its HTML into the page, on the day of the address or today's calendar date:
  * the arrows move by seven days, `Today` comes back, the days above open the month to pick the first day from;
- * a week from today moves on to the new day by itself, see `todayFollow` in `today.ts`.
+ * a week from today moves on to the new day by itself, any other marks the new today, see `todayFollow` in `today.ts`.
  * - `show`: Shows the seven days from a first day on.
  * - `shown`: Gives the seven days shown, the first first.
  */
@@ -160,5 +174,5 @@ export function weekStart(): void {
     document.getElementById("week-next")?.addEventListener("click", (): void => show(daysLater(first, weekDays)));
     monthStart(document.getElementById("week-title") as HTMLElement, shown, show);
     show(new URLSearchParams(location.search).get("date") ?? calendarTodayOf());
-    todayFollow((): string => first, show);
+    todayFollow((): string => first, show, todayMark);
 }

@@ -11,6 +11,8 @@
  * Paths come and go with `/`: from `NomSkillingmodules`, like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/Tangens.svg`,
  * and from the drafts with `Drafts/` before, like `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/…`.
  * Hidden files and folders, like `.obsidian`, stay out, as in Obsidian.
+ * A missing folder counts as empty, like a module of the semester whose folder is not made yet, or `NomSkillingmodules`
+ * itself; a missing note or file is an error.
  *
  * - `node:fs`: Reads files and folders on the disk.
  * - `node:path`: Builds file paths, `posix` with `/` for paths inside the modules.
@@ -175,6 +177,17 @@ function inDrafts(path: string): boolean {
 }
 
 /**
+ * Builds the place of a path on the disk, inside the drafts or `NomSkillingmodules`, as written,
+ * without following links.
+ *
+ * @param path - Path like `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis`
+ * @returns Place on the disk, like `…/drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis`
+ */
+function placeOf(path: string): string {
+    return join(inDrafts(path) ? notes.drafts : notes.modules, inDrafts(path) ? path.slice(draftsName.length) : path);
+}
+
+/**
  * Turns a path into the path on the disk, only when it stays inside the drafts or `NomSkillingmodules`.
  * - {@link realpathSync}: Makes a path absolute and follows symbolic links, so no link leads outside.
  *
@@ -188,7 +201,7 @@ function diskPathOf(path: string): string {
         throw new Error(`No hidden path and no way up: ${path}`);
 
     const root: string = realpathSync(inDrafts(path) ? notes.drafts : notes.modules);
-    const file: string = realpathSync(join(root, inDrafts(path) ? path.slice(draftsName.length) : path));
+    const file: string = realpathSync(placeOf(path));
     if (file !== root && !file.startsWith(`${root}${sep}`))
         throw new Error(`No reading outside the drafts and the modules: ${path}`);
     return file;
@@ -227,12 +240,14 @@ export function codeOf(name: string): string {
 }
 
 /**
- * Reads the entries of a folder without hidden ones, as Obsidian lists a vault.
+ * Reads the entries of a folder without hidden ones, as Obsidian lists a vault; a missing folder counts as empty.
  *
  * @param folder - Path of the folder, like `MA0902_ReelleAnalysisInformatik`
- * @returns Entries of the folder
+ * @returns Entries of the folder, none for a missing folder
  */
 function entriesRead(folder: string): Dirent[] {
+    if (!existsSync(placeOf(folder)))
+        return [];
     return readdirSync(diskPathOf(folder), { withFileTypes: true })
         .filter((entry: Dirent): boolean => !entry.name.startsWith("."));
 }
@@ -359,8 +374,7 @@ export function titleOf(folder: string): string {
  * like `FA_UniversityModuleExaminations` with the university's material, and the other files, like images.
  * - `chapters`: Notes by the folder of their chapter.
  *
- * @returns Modules in the order of the list
- * @throws {Error} - When a module of the list has no folder in `NomSkillingmodules`
+ * @returns Modules in the order of the list, a module whose folder is missing without chapters
  */
 export function modulesRead(): NotesModule[] {
     return activeModules.map((module: string): NotesModule => {
@@ -421,8 +435,7 @@ export function moduleFolderOf(code: string): string | undefined {
  * - `chapters`: Names of the chapter folders, a chapter in both twice.
  *
  * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
- * @returns Chapters and documents of the module
- * @throws {Error} - When the module has no folder in `NomSkillingmodules`
+ * @returns Chapters and documents of the module, none for a missing folder
  */
 export function moduleContentsRead(module: string): ModuleContents {
     const chapters: string[] = foldersOf(module).flatMap((folder: string): string[] => entriesRead(folder)
