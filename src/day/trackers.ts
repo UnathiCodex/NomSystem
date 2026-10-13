@@ -5,9 +5,9 @@
  * calm and basic, without descriptions under the pointer;
  * my sleep shows in the log alone, its goal, the spread of my bedtime and the average of the week left out for now,
  * since other things come first:
- * - Water: a glass with the glasses of the day against my goal, like `6 / 10`, a check once it is reached;
- *   every other drink, like `Kaffee`, counts as a glass too; a tap logs one more glass of water,
- *   at the time of the tap on the shown day, `−` takes the last glass of water back.
+ * - Water: the glasses of the day between `−` and `+`, like `6`, without a goal, and beside them what they make
+ *   in litres, like `1.5 l`; every other drink, like `Kaffee`, counts as a glass too; `+` logs one more glass
+ *   of water, at the time of the tap on the shown day, `−` takes the last glass of water back.
  *   A day still to come takes no glasses.
  * - Food: the number of the day's meals under its name, like `3 meals`, so a meal missing shows, then their kcal
  *   and protein, totals without goals, linking to the day in the food view.
@@ -29,7 +29,7 @@
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../today.ts`: Gives today's calendar date.
  * - `../icons.ts`: Makes the icons of the buttons.
- * - `lucide`: The icons glass, minus and check.
+ * - `lucide`: The icons glass, minus, plus and check.
  * - `fullcalendar`: Calendar that shows the day.
  */
 
@@ -39,7 +39,7 @@ import { amountOf, elementOf } from "../food/foods.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconWordsOf } from "../icons.ts";
-import { Check, GlassWater, Minus } from "lucide";
+import { Check, GlassWater, Minus, Plus } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Nutrients } from "../food/foods.ts";
@@ -209,12 +209,14 @@ async function glassAdd(calendar: Calendar): Promise<void> {
 }
 
 /**
- * Builds the water: the glass with the glasses of the day against my goal, like `6 / 10`, every drink one glass,
- * which logs one more glass of water, a check once the goal is reached, and `−`, which takes the last glass of water
- * back; their words only for screen readers, no description under the pointer.
+ * Builds the water: `−`, which takes the last glass of water back, the glass with the glasses of the day,
+ * every drink one glass, like `6`, and `+`, which logs one more glass of water; beside them, grey, what the glasses
+ * make in litres, like `1.5 l` of six glasses of 250 ml; the words of the buttons only for screen readers,
+ * no description under the pointer, no goal.
  * The row takes no clicks while a glass is sent, so a double tap logs one glass; the card loads again once the log changed.
  * - `count`: Number of glasses.
- * - `goal`: Number of glasses of my goal.
+ * - `glasses`: The glass with their number.
+ * - `litres`: What they make, in litres.
  * - `last`: The last glass of water that can be taken back, `undefined` for none.
  * - `coming`: Whether the day is still to come.
  * - `send`: Sends a change of the glasses, the row inert meanwhile.
@@ -226,10 +228,11 @@ async function glassAdd(calendar: Calendar): Promise<void> {
  */
 function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
-    const add: HTMLButtonElement = document.createElement("button");
     const less: HTMLButtonElement = document.createElement("button");
+    const add: HTMLButtonElement = document.createElement("button");
     const count: number = trackers.glasses.length;
-    const goal: number = Math.round(trackers.settings.waterMl / trackers.settings.glassMl);
+    const glasses: HTMLElement = elementOf("span", "water-count", "");
+    const litres: number = count * trackers.settings.glassMl / 1000;
     const last: Glass | undefined = trackers.glasses.filter((glass: Glass): boolean => glass.water && glass.editable).at(-1);
     const coming: boolean = day > calendarTodayOf();
     const send: (change: () => Promise<void>) => void = (change: () => Promise<void>): void => {
@@ -240,20 +243,22 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
         });
     };
 
-    add.type = "button";
-    add.className = "water-add";
-    add.append(...iconWordsOf(GlassWater, `${count} / ${goal}`), ...(count >= goal ? [checkOf()] : []));
-    add.setAttribute("aria-label", `${count} of ${goal} glasses of water, one more`);
-    add.disabled = coming;
-    add.addEventListener("click", (): void => send((): Promise<void> => glassAdd(calendar)));
     less.type = "button";
-    less.className = "water-less";
+    less.className = "water-step";
     less.append(iconOf(Minus));
     less.setAttribute("aria-label", "One glass less");
     less.disabled = coming || last === undefined;
     less.addEventListener("click", (): void =>
         send((): Promise<void> => entryDelete(calendar, last?.id ?? "")));
-    row.append(elementOf("span", "tracker-name", "Water"), add, less);
+    glasses.append(...iconWordsOf(GlassWater, String(count)));
+    add.type = "button";
+    add.className = "water-step";
+    add.append(iconOf(Plus));
+    add.setAttribute("aria-label", "One glass more");
+    add.disabled = coming;
+    add.addEventListener("click", (): void => send((): Promise<void> => glassAdd(calendar)));
+    row.append(elementOf("span", "tracker-name", "Water"), less, glasses, add,
+        elementOf("span", "water-litres", `${amountOf(litres, 2)} l`));
     return row;
 }
 
