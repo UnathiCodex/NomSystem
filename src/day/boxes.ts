@@ -198,20 +198,21 @@ export function entryPartOf(tag: string, className: string, parts: (string | Nod
 }
 
 /**
- * Makes what an entry or a box is: its category in bold with a colon, so the list scans fast, then its what,
- * like **`Skill:`**` WI1059 HU` or **`Sleep:`**` Night`; only the what of an entry without category, only the category
- * without colon of an entry whose what it is, like an old **`Sleep`**, written before it had its what.
- * - `bold`: The category in bold, in the size of the rest, with the colon inside when a what follows.
+ * Makes what an entry or a box is, the first line of each, in bold as a whole, so the list scans fast:
+ * its category, a colon and its what, like **`Skill: WI1059 HU`** or **`Sleep: Night`**; only the what of an entry
+ * without category, only the category without colon of an entry whose what it is, like an old **`Sleep`**,
+ * written before it had its what.
+ * - `text`: The line, category and what.
  *
  * @param category - Category, empty for an entry without one
  * @param what - What the entry was, empty when it is its category
- * @returns Texts and elements of what the entry was
+ * @returns The line in bold
  */
 export function whatOf(category: string, what: string): (string | Node)[] {
+    let text: string = what === "" ? category : `${category}: ${what}`;
     if (category === "")
-        return [what];
-    const bold: HTMLElement = entryPartOf("strong", "entry-category", [what === "" ? category : `${category}:`]);
-    return what === "" ? [bold] : [bold, ` ${what}`];
+        text = what;
+    return [entryPartOf("strong", "entry-heading", [text])];
 }
 
 /**
@@ -354,9 +355,10 @@ function timeLineOf(box: Box, day: string, nearShown: boolean): string {
 
 /**
  * Makes the lines of a box, in the day and in the week alike, the same three whether it is open or done, see the top
- * of this file: what it is, see {@link whatOf}, like **`Skill:`**` IN0004 VO`, its time and length, see
- * {@link timeLineOf}, like `16:00 · 90 min`, and its place on a line of its own, by its label alone,
- * like `Audimax im Galileo`, see `labelOf` in `places.ts`; a line without anything to say is left out.
+ * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf}, like **`Skill: IN0004 VO`**,
+ * its time and length in the light grey of a time, see {@link timeLineOf}, like `16:00 · 90 min`, and its place
+ * on a line of its own in the darker grey, by its label alone, like `Audimax im Galileo`, see `labelOf`
+ * in `places.ts`; a line without anything to say is left out.
  * - `time`: The line of its time and length.
  * - `place`: The label of its place, empty for none.
  *
@@ -370,7 +372,7 @@ export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLEle
     const place: string = labelOf(box.location);
     return [
         entryPartOf("div", "box-what", whatOf(box.category, box.title === box.category ? "" : box.title)),
-        ...(time === "" ? [] : [entryPartOf("div", "box-meta", [entryPartOf("span", "box-part", [time])])]),
+        ...(time === "" ? [] : [entryPartOf("div", "box-meta box-time", [entryPartOf("span", "box-part", [time])])]),
         ...(place === "" ? [] : [entryPartOf("div", "box-meta", [entryPartOf("span", "box-part", [place])])]),
     ];
 }

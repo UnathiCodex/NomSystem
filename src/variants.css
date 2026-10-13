@@ -12,6 +12,7 @@
     --background: #1e1e1e;
     --text-main: #ececec;
     --text-muted: #999999;
+    --text-time: color-mix(in oklab, var(--text-muted) 50%, var(--text-main));
     --line: #323232;
     --fill: #262626;
     --chosen: #3a3a3a;

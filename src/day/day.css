@@ -195,7 +195,8 @@
 }
 
 /* Grey line of a box, its time and length or its place, in parts side by side, a part below the one before
-   where the line has no room for both; a part too long for the whole line is cut */
+   where the line has no room for both; a part too long for the whole line is cut; the place in the darker grey
+   of a place, the time in the light grey of a time, as in the log */
 .box-meta {
     display: flex;
     flex-wrap: wrap;
@@ -207,6 +208,10 @@
 
 .box-part {
     max-width: 100%;
+}
+
+.box-time {
+    color: var(--text-time);
 }
 
 /* Ring of a box, as high as its first line: for an open box a button, an empty ring in the grey of the plan
@@ -1380,20 +1385,21 @@ fieldset.entry-times {
     overflow: hidden;
 }
 
-/* Category in bold, so the log and the boxes scan fast, in the size of the rest */
-.entry-category {
+/* First line of an entry or a box in bold as a whole, category and what, so the log and the boxes scan fast,
+   in the size of the rest */
+.entry-heading {
     font-weight: 700;
 }
 
-/* Time, a light grey halfway between the grey of place and note and the white of what, about `#c2c2c2`,
-   so it stands out a little: on one line after what never cut, like `, 05:15 – 05:45`;
+/* Time in normal weight and the light grey of a time, see `--text-time`, so it stands out a little:
+   on one line after what never cut, like `, 05:15 – 05:45`;
    on its own second line, like `20:00 – 23:45`, cut with an ellipsis where a narrow entry ends */
 .entry-time {
     flex: none;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: color-mix(in oklab, var(--text-muted) 50%, var(--text-main));
+    color: var(--text-time);
 }
 
 /* Place of a taller entry on its third line, below the time and above the note, like `HomeMunich`,
