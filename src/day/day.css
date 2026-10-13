@@ -1214,6 +1214,15 @@ button.box-ring:hover svg {
     color: var(--text-muted);
 }
 
+/* Place of a taller entry on its third line, below the time and above the note, like `HomeMunich`,
+   grey like the time and cut with an ellipsis where a narrow entry ends */
+.entry-place {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--text-muted);
+}
+
 /* Start and end side by side */
 .picker-times {
     display: flex;

@@ -11,7 +11,7 @@
  * a range selected in the time grid for that range; a click on an entry of the new system changes it.
  * Entries of the new system are moved and resized by dragging, and the reader writes them back into their files.
  * Entries look as Google Calendar shows them: what first, then the time, in one size, the time grey,
- * and a taller one its note below, see {@link entryContentOf};
+ * and a taller one its place and its note below, see {@link entryContentOf};
  * a dish, a meal or a cooking, lists its foods. The kcal of a meal stay hidden for a try; the dialog and the trackers
  * show them. A glass of water is no block but a small mark at the edge of the log,
  * since the counter of the trackers counts it.
@@ -178,11 +178,13 @@ function dishOf(event: EventApi): string[] {
  * - A taller one with room for one line shows the same line with start and end,
  *   like `Skill: IN2028 DEV, 20:00 – 20:30`.
  * - A taller one with room for two lines or more shows what on its first line, like `Skill: IN2028 DEV`,
- *   cut with an ellipsis, its start and end on the second, like `20:00 – 23:45`, and below them its note,
- *   as many lines of it as are left, cut with an ellipsis; no note when it has none or no whole line is left.
+ *   cut with an ellipsis, its start and end on the second, like `20:00 – 23:45`, with room for three lines
+ *   its place on the third, like `HomeMunich`, cut with an ellipsis, and below them its note, as many lines of it
+ *   as are left, cut with an ellipsis; no place when it has none, no note when it has none or no whole line is left.
  * - `category`: Category of the entry, empty for an old entry.
  * - `foods`: Foods of a dish, none for any other entry.
  * - `what`: What the entry was, its foods for a dish, empty when it is its category, like `Sleep`.
+ * - `place`: Place of the entry, its `LOCATION`, like `HomeMunich`, empty when it has none.
  * - `note`: Note of the entry, its `DESCRIPTION`, empty when it has none.
  * - `start`, `end`: Start and end of the entry.
  * - `time`: Start of a short entry, start and end of a taller one.
@@ -193,7 +195,8 @@ function dishOf(event: EventApi): string[] {
  * - `lines`: Lines the shown part of a taller entry has room for, its height less its padding of 0.5rem,
  *   see {@link lineMinutes}: that Sleep has (360 - 7.5) / 13.5 = 26 lines, not 35 for its whole 8 hours.
  * - `timeLine`: The second line, start and end, grey, cut with an ellipsis, see `.entry-time` in `day.css`.
- * - `below`: The note below both lines, grey, its line clamp the lines left, see `.entry-note` in `day.css`.
+ * - `shown`: The lines shown above the note: what, the time, and the place, grey, see `.entry-place` in `day.css`.
+ * - `below`: The note below the lines shown, grey, its line clamp the lines left, see `.entry-note` in `day.css`.
  *
  * @param info - Entry with its render details
  * @returns Lines of the entry for FullCalendar
@@ -206,6 +209,7 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
         what = foods.join(", ");
     else if (what === category)
         what = "";
+    const place: string = info.event.extendedProps.location ?? "";
     const note: string = (info.event.extendedProps.note ?? "").trim();
     const start: Date = info.event.start as Date;
     const end: Date = info.event.end ?? start;
@@ -226,11 +230,14 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     }
 
     const timeLine: HTMLElement = entryPartOf("div", "entry-time", [time]);
-    if (note === "" || lines < 3)
-        return { domNodes: [line, timeLine] };
+    const shown: HTMLElement[] = [line, timeLine];
+    if (place !== "" && lines >= 3)
+        shown.push(entryPartOf("div", "entry-place", [place]));
+    if (note === "" || lines <= shown.length)
+        return { domNodes: shown };
     const below: HTMLElement = entryPartOf("div", "entry-note", [note]);
-    below.style.webkitLineClamp = String(lines - 2);
-    return { domNodes: [line, timeLine, below] };
+    below.style.webkitLineClamp = String(lines - shown.length);
+    return { domNodes: [...shown, below] };
 }
 
 /**
