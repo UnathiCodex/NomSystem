@@ -66,7 +66,8 @@ export async function sectionsLoad(date: string): Promise<{ [title in SectionTit
 }
 
 /**
- * Sends the text of a section to the reader, which writes it into the daily note of its date.
+ * Sends the text of a section to the reader, which writes it into the daily note of its date;
+ * `keepalive` lets it arrive also when the page closes meanwhile.
  *
  * @param date - Date like `2026-07-03`
  * @param title - Title of the section
@@ -77,6 +78,7 @@ export async function sectionSend(date: string, title: SectionTitle, text: strin
     const response: Response = await fetch("/api/day/sections", {
         method: "POST",
         body: JSON.stringify({ date: date, title: title, text: text }),
+        keepalive: true,
     });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);

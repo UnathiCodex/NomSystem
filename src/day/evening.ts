@@ -134,9 +134,14 @@ export async function eveningShow(day: string): Promise<void> {
 
 /**
  * Starts the lists after the router has put their HTML into the page, each a list of points, see `points.ts`,
- * saved a moment after the typing pauses and when the focus leaves the list.
+ * saved a moment after the typing pauses, when the focus leaves the list, and when the page goes out of sight,
+ * like when I close it or switch to another app, so nothing typed gets lost.
  */
 export function eveningStart(): void {
+    document.addEventListener("visibilitychange", (): void => {
+        if (document.visibilityState === "hidden")
+            boxesSave().catch(errorShow);
+    });
     boxes.forEach((box: Box): void => {
         pointsShow(listOf(box), "");
         pointsStart(listOf(box), (): void => {
