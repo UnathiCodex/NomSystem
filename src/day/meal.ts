@@ -1,10 +1,11 @@
 /**
  * ## Meal in the entry by category
  *
- * The foods of a meal, after the times of `Food`: one line like every field, the names of the foods picked,
- * which opens the food search as its list on top, see `popOf` in `choices.ts` and `../food/search.ts`,
- * which finds my foods first, then those of Open Food Facts; below the line the foods picked, each a row
- * with its name, its grams, its kcal and a button to remove it, and the kcal of the whole meal below them.
+ * The foods of a meal, after the place of `Food`: one line like every field, the names of the foods picked,
+ * which opens the food search as its list right under the row, see `listOf` in `choices.ts`
+ * and `../food/search.ts`, which finds my foods first, then those of Open Food Facts; below the line the foods
+ * picked, each a row with its name, its grams, its kcal and a button to remove it, and the kcal of the whole meal
+ * below them.
  * A click on one of my foods picks it and closes the list, and so does adding a product, which goes into
  * `Foods.md` first.
  * Grams are optional: a food without them counts its usual portion, shown grey in its empty field,
@@ -16,14 +17,14 @@
  * A meal eaten out, where nothing can be weighed, I log by photo through Claude, who writes its entry through the reader;
  * the dialog itself takes no photo.
  *
- * - `./choices.ts`: Opens the food search as a list on top of the dialog.
+ * - `./choices.ts`: Opens the food search as a list under the line of the foods.
  * - `../food/foods.ts`: Finds my foods, writes amounts and makes elements.
  * - `../food/search.ts`: The food search.
  * - `../icons.ts`: Puts the icon of remove into the button of a row, its words as tooltip.
  * - `lucide`: The icon remove.
  */
 
-import { popOf } from "./choices.ts";
+import { listOf } from "./choices.ts";
 import { amountOf, elementOf, foodsFind } from "../food/foods.ts";
 import { foodSearchOf } from "../food/search.ts";
 import { iconPut } from "../icons.ts";
@@ -74,9 +75,14 @@ let search: HTMLInputElement | null = null;
 let line: HTMLButtonElement = document.createElement("button");
 
 /**
- * List on top with the food search, which the line opens.
+ * List with the food search, which the line opens under the row.
  */
-let pop: HTMLElement = document.createElement("div");
+let box: HTMLElement = document.createElement("div");
+
+/**
+ * Closes the list with the food search.
+ */
+let close: () => void = (): void => {};
 
 
 /**
@@ -174,8 +180,8 @@ function foodRowOf(pick: FoodPick, changed: () => void): HTMLElement {
         if (event.key !== "Enter")
             return;
         event.preventDefault();
-        if (!pop.matches(":popover-open"))
-            pop.showPopover();
+        if (box.hidden)
+            line.click();
     });
     grams.append(input, " g");
     remove.type = "button";
@@ -243,16 +249,15 @@ function foodPick(food: Food, changed: () => void): void {
         rowsShow(changed);
         changed();
     }
-    if (pop.matches(":popover-open"))
-        pop.hidePopover();
+    close();
     rows.querySelectorAll<HTMLInputElement>(".meal-grams input")[index]?.focus();
 }
 
 /**
  * Builds the foods of a meal, see the top of this file, with the foods it lists already, after loading my foods:
- * the line, its list on top with the food search, which focuses its field as it opens, and the foods picked.
+ * the line, the foods picked, and the list with the food search, which focuses its field as it opens.
  * - `found`: All my foods, as the search finds them for an empty text.
- * - `foods`: The line, its list and the foods picked.
+ * - `foods`: The line, the foods picked and the list, a picker.
  * - `searchElement`: The food search.
  *
  * @param lines - Lines `X-FOOD` of the meal, like `Reis;150`; none for a new meal
@@ -263,18 +268,18 @@ function foodPick(food: Food, changed: () => void): void {
 export async function mealOf(lines: string[], changed: () => void): Promise<HTMLElement> {
     picks = lines.map(pickOf);
     const found: FoodsFound = await foodsFind("");
-    const foods: HTMLElement = elementOf("div", "meal", "");
+    const foods: HTMLElement = elementOf("div", "meal picker", "");
     const searchElement: HTMLElement = foodSearchOf((food: Food): void => foodPick(food, changed));
     mine = new Map(found.foods.map((food: Food): [string, Food] => [food.name.toLowerCase(), food]));
     rows = elementOf("div", "meal-rows", "");
     search = searchElement.querySelector("input");
     line = document.createElement("button");
-    pop = elementOf("div", "picker-pop meal-pop", "");
+    box = elementOf("div", "picker-box meal-box", "");
     line.className = "picker-line";
-    pop.append(searchElement);
-    popOf(line, pop, (): void => search?.focus(), (): void => {});
+    box.append(searchElement);
+    close = listOf(foods, line, box, (): void => search?.focus(), (): void => {});
     rowsShow(changed);
-    foods.append(line, pop, rows);
+    foods.append(line, rows, box);
     return foods;
 }
 

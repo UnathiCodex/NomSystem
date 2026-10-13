@@ -1,8 +1,9 @@
 /**
  * ## Categories
  *
- * Entry by category, for plan and log alike: a fixed list of categories, each with its fields,
- * like `Way` with `By`, `From` and `To`.
+ * Entry by category, for plan and log alike: a fixed list of categories, each with its fields, named as the file
+ * names them, its `Summary`, its `SUMMARY`, and its `Place`, its `LOCATION`, like `Way` with `Summary`, `From`
+ * and `Place`.
  * Each field of a what offers its values from the log itself, the what of its entries of the category,
  * the most used first, equal ones alphabetical.
  * Places are one list for every field of a place, the place of an entry and where a way starts: only my places
@@ -45,7 +46,7 @@ export type FieldKey = "title" | "from" | "location";
 /**
  * A field of a category, picked from its list.
  *
- * - `name`: Name shown, like `By`.
+ * - `name`: Name shown, like `Summary`.
  * - `key`: Field of the entry it writes into.
  * - `values`: Values to pick, the most used first; in the code only those offered before any use.
  * - `steps`: Steps of a value offered in the code, by the value, which the dialog shows while it is picked,
@@ -122,7 +123,7 @@ export const neckRoutines: { [what: string]: string[] } = {
 };
 
 /**
- * Builds a category with the fields `What` and `Place`.
+ * Builds a category with the fields `Summary` and `Place`.
  *
  * @param name - Name of the category, like `Food`
  * @param routines - Values offered as its what before any use, each with its steps, like {@link neckRoutines};
@@ -133,7 +134,7 @@ function categoryOf(name: string, routines: { [what: string]: string[] }): Categ
     return {
         name: name,
         fields: [
-            { name: "What", key: "title", values: Object.keys(routines), steps: routines, fixed: false },
+            { name: "Summary", key: "title", values: Object.keys(routines), steps: routines, fixed: false },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
         ],
     };
@@ -188,7 +189,7 @@ const categories: Category[] = [
     {
         name: "Sleep",
         fields: [
-            { name: "What", key: "title", values: sleepWhats, steps: {}, fixed: true },
+            { name: "Summary", key: "title", values: sleepWhats, steps: {}, fixed: true },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
         ],
     },
@@ -200,10 +201,10 @@ const categories: Category[] = [
         name: "Way",
         fields: [
             {
-                name: "By", key: "title", values: transports, steps: {}, fixed: true,
+                name: "Summary", key: "title", values: transports, steps: {}, fixed: true,
             },
             { name: "From", key: "from", values: [], steps: {}, fixed: false },
-            { name: "To", key: "location", values: [], steps: {}, fixed: false },
+            { name: "Place", key: "location", values: [], steps: {}, fixed: false },
         ],
     },
     categoryOf("Talk", {}),

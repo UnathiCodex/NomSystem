@@ -3,16 +3,10 @@
  *
  * My gift ideas for the birthdays and holidays at the top of the plan, see `reader/gifts.ts`,
  * written only when I have one: a click on a birthday or holiday opens a small dialog with one field, my gift idea for it,
- * which `Enter` or the check saves as its `DESCRIPTION` in its file, `Birthdays.ics` or `Holidays.ics`, for every year
- * of it; an empty field, or the bin, takes the idea out again.
+ * which `Enter` or `Save` saves as its `DESCRIPTION` in its file, `Birthdays.ics` or `Holidays.ics`, for every year
+ * of it; an empty field, or `Remove`, takes the idea out again.
  * The plan shows each idea below its birthday or holiday, see `boxes.ts`, and loads again when the dialog closes.
- *
- * - `../icons.ts`: Puts the icons into the buttons of the dialog.
- * - `lucide`: The icons check, cross and bin.
  */
-
-import { iconPut } from "../icons.ts";
-import { Check, Trash2, X } from "lucide";
 
 import type { Occasion } from "./boxes.ts";
 
@@ -76,13 +70,10 @@ export function giftOpen(occasion: Occasion): void {
 }
 
 /**
- * Starts the dialog after the router has put its HTML into the page: the cross closes it, the bin takes the idea out,
- * `Enter` and the check save it.
+ * Starts the dialog after the router has put its HTML into the page: `Cancel` closes it, `Remove` takes the idea out,
+ * `Enter` and `Save` save it.
  */
 export function giftsStart(): void {
-    iconPut(document.getElementById("gift-cancel") as HTMLElement, X, "Cancel");
-    iconPut(document.getElementById("gift-remove") as HTMLElement, Trash2, "Remove");
-    iconPut(document.getElementById("gift-save") as HTMLElement, Check, "Save");
     document.getElementById("gift-cancel")?.addEventListener("click", (): void =>
         (document.getElementById("gift") as HTMLDialogElement).close());
     document.getElementById("gift-remove")?.addEventListener("click", (): void => giftSave(""));

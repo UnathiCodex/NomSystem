@@ -18,13 +18,9 @@
  * A way shows its route by labels, see {@link whereOf}.
  *
  * - `./choices.ts`: The picker whether entries written before keep their address.
- * - `../icons.ts`: Puts the icons into the buttons of the dialog.
- * - `lucide`: The icons check and cross.
  */
 
 import { choicesOf, rowOf, searchOf } from "./choices.ts";
-import { iconPut } from "../icons.ts";
-import { Check, X } from "lucide";
 
 import type { Choice } from "./choices.ts";
 
@@ -168,7 +164,8 @@ function placeSave(): void {
 
 /**
  * Opens the dialog of a new place over the entry by category: the place filled with the typed text,
- * like `HomeMunich`, the address empty and focused, since the place is typed already, the link empty.
+ * like `HomeMunich`, the address empty and focused, since the place is typed already, the link empty;
+ * the place focused while nothing is typed, like for `+ New place` of an empty search.
  *
  * @param name - Typed name of the place, like `HomeMunich`
  * @returns The place as written once it is saved, `null` when the dialog closes without saving
@@ -176,7 +173,7 @@ function placeSave(): void {
 export function placeOpen(name: string): Promise<Place | null> {
     editing = "";
     document.getElementById("place-fix")?.setAttribute("hidden", "");
-    return placeShow({ name: name, address: "", link: "" }, "place-address");
+    return placeShow({ name: name, address: "", link: "" }, name === "" ? "place-name" : "place-address");
 }
 
 /**
@@ -226,14 +223,12 @@ function placeShow(place: Place, focused: string): Promise<Place | null> {
 }
 
 /**
- * Starts the dialog of a new place after the router has put its HTML into the page: the cross closes it,
- * `Enter` and the check save the place, and every closing without saving answers `null`, so nothing is picked.
- * - `close`: Comes when the dialog closes, by the cross, by `Esc` or by a click beside it.
+ * Starts the dialog of a new place after the router has put its HTML into the page: `Cancel` closes it,
+ * `Enter` and `Save` save the place, and every closing without saving answers `null`, so nothing is picked.
+ * - `close`: Comes when the dialog closes, by `Cancel`, by `Esc` or by a click beside it.
  */
 export function placesStart(): void {
     const dialog: HTMLDialogElement = document.getElementById("place") as HTMLDialogElement;
-    iconPut(document.getElementById("place-cancel") as HTMLElement, X, "Cancel");
-    iconPut(document.getElementById("place-save") as HTMLElement, Check, "Save");
     document.getElementById("place-cancel")?.addEventListener("click", (): void => dialog.close());
     dialog.addEventListener("close", (): void => {
         answer?.(null);

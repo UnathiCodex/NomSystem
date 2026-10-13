@@ -773,10 +773,13 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-/* Panel: card over the page, for the entry by category, the gift idea, a place and the month; the names of its rows
-   all `--name-width` wide, so every field starts at the same place */
+/* Panel: card over the page, for the entry by category, the gift idea, a place and the month, as sketched:
+   one column of rows, each its name grey at the left, `--name-width` wide, about 96 pixels, so every value starts
+   at the same place, `--value-start` from the edge of the card's content */
 .panel {
-    --name-width: 4.5rem;
+    --name-width: 4.8rem;
+    --row-padding: 0.75rem;
+    --value-start: calc(var(--row-padding) + 1px + var(--name-width) + var(--control-gap));
     width: min(27.5rem, calc(100vw - 2 * var(--gap)));
     padding: var(--gap);
     border: 1px solid var(--line);
@@ -790,51 +793,71 @@ button.box-ring.box-checked svg {
     background: rgb(0 0 0 / 0.6);
 }
 
-/* Parts of a panel from top to bottom; a part without rows, like the fields of a category not yet picked,
-   takes no room, so the gap between two rows stays the same everywhere */
+/* Parts of a panel from top to bottom, its rows close below each other, each with its own room; a part without rows,
+   like the fields of a category not yet picked, takes no room, so the space between two rows stays the same */
 .panel-form {
     display: flex;
     flex-direction: column;
-    gap: var(--gap);
+    gap: 0.125rem;
 }
 
 .panel-form > div:empty {
     display: none;
 }
 
-/* Fields of a panel one control high, a text area as high as its lines, with half the space beside above and below */
+/* Fields of a panel as plain values in their rows, without a frame of their own: the row shows its faint frame
+   under the pointer and while I type in it, see `.panel-field` */
 .panel input,
 .panel textarea {
-    padding: calc(var(--control-padding) / 2) var(--control-padding);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--background);
-}
-
-.panel input {
-    height: var(--control-height);
-}
-
-/* Row of a panel, the same for every field: its name at the left, then its field, one line showing its value,
-   like the place, or its day and time, or the note, as wide as the panel beside the name,
-   the name on the line of the field's first text */
-.panel-field {
-    display: flex;
-    align-items: baseline;
-    gap: var(--control-gap);
-    margin: 0;
-}
-
-.panel-field > :last-child {
-    flex: 1;
     min-width: 0;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--text-main);
+    font: inherit;
 }
 
-/* Two rows side by side, like the skill and the type of a skill entry, the first wider */
+/* Row of a panel, the same for every field: its name small and grey at the left, its value at the right,
+   like the place, or its day and time, or the note, the name on the line of the value's first text;
+   generous room around both, and a faint frame under the pointer, while I type in it and while its list is open */
+.panel-field {
+    display: grid;
+    grid-template-columns: var(--name-width) minmax(0, 1fr);
+    column-gap: var(--control-gap);
+    align-items: baseline;
+    margin: 0;
+    padding: 0.625rem var(--row-padding);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+}
+
+.panel-field:hover,
+.panel-field:focus-within,
+.panel-field:has(.picker-open) {
+    border-color: var(--line);
+}
+
+/* Two pickers side by side in one row, like the skill and the type of a skill entry in its summary, the first wider;
+   the list of either opens below both, as wide as the row */
 .panel-pair {
     display: grid;
     grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    gap: var(--gap);
+    column-gap: var(--gap);
+    align-items: baseline;
+}
+
+.panel-pair > .picker {
+    display: contents;
+}
+
+.panel-pair .picker-head {
+    grid-row: 1;
+}
+
+.panel-pair .picker-box {
+    grid-row: 2;
+    grid-column: 1 / -1;
 }
 
 /* Remove button apart from the others, at the left */
@@ -845,21 +868,22 @@ button.box-ring.box-checked svg {
 /* Hint when the reader does not take what a panel sends */
 .panel-error {
     margin: 0;
+    padding: 0 var(--row-padding);
 }
 
-/* Cancel and the main button at the right */
+/* Cancel and Save at the bottom right, with room above them */
 .panel-buttons {
     display: flex;
     justify-content: flex-end;
     gap: var(--control-gap);
+    margin-top: 0.75rem;
 }
 
-/* Buttons of a panel, one control high and at least as wide, an icon in the middle, like the check of save */
+/* Buttons of a panel, one control high, their word in the middle, like `Cancel` */
 .panel-buttons button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: var(--control-height);
     min-height: var(--control-height);
     padding: 0 var(--control-padding);
     border: 1px solid var(--line);
@@ -868,7 +892,7 @@ button.box-ring.box-checked svg {
     cursor: pointer;
 }
 
-/* Main button in the calm grey of what is picked */
+/* Main button, `Save`, slightly lighter, in the calm grey of what is picked */
 .panel-buttons .panel-main {
     border-color: var(--chosen-line);
     background: var(--chosen);
@@ -881,117 +905,137 @@ button.box-ring.box-checked svg {
 }
 
 /* Entry by category: one column of rows, wide enough for whole names, at most as high as the screen with a gap
-   around, then scrolling as a whole; the lists of its fields open on top of it, see `.picker-pop` */
+   around, then scrolling as a whole, the lists of its fields too, which open inside it, see `.picker-box`;
+   its top stays where it is as a list opens or closes, so the rows above never move */
 .entry-panel {
     width: min(36rem, calc(100vw - 2 * var(--gap)));
     max-height: calc(100dvh - 2 * var(--gap));
+    margin-top: max(var(--gap), 6dvh);
+    overflow-y: auto;
 }
 
-/* Start, end and the deadline of a box, without the frame a group of fields has in the browser */
+/* Title of the entry by category, `Log entry` or `Plan entry`, in line with the names of the rows,
+   with the button to log the box or to change the plan beside it at the right */
+.entry-head {
+    display: flex;
+    align-items: center;
+    gap: var(--control-gap);
+    padding: 0 var(--row-padding) 0.5rem;
+}
+
+.entry-dialog-title {
+    margin: 0 auto 0 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+/* Button to log the box or to change the plan, one chip high and outlined */
+.entry-head button {
+    min-height: var(--chip-height);
+    padding: 0 var(--control-padding);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--background);
+    cursor: pointer;
+}
+
+/* Start and end, and the deadline of a box, rows like the others, without the frame a group of fields has
+   in the browser */
 fieldset.entry-times {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
     min-width: 0;
     margin: 0;
     padding: 0;
     border: 0;
 }
 
-/* Day and time of a row side by side, like `13.10.2026` and `14:00` */
+/* Day and time of a row side by side, like `13.10.2026   01:45` */
 .entry-moment {
     display: flex;
-    gap: var(--control-gap);
+    gap: 1.5rem;
 }
 
-/* Plan, small and grey above the categories: an entry of the plan, or the plan entry the entry by category logs,
-   with the button to log it or to change it instead */
+/* The box a log entry comes from, small and grey below the title, in line with the names of the rows */
 .entry-from-plan {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
     margin: 0;
+    padding: 0 var(--row-padding) 0.25rem;
     font-size: 0.75rem;
     color: var(--text-muted);
 }
 
-/* Real minutes of the last entries like a box, small and grey under its minutes, in line with them */
+/* Real minutes of the last entries like a box, small and grey under its end, in line with the values */
 .entry-real {
-    margin: 0 0 0 calc(var(--name-width) + var(--control-gap));
+    margin: 0 0 0 var(--value-start);
     font-size: 0.75rem;
     color: var(--text-muted);
 }
 
-/* Hint in place of a picker, calm and grey, like No chapters yet for a module without chapter notes,
-   as high as the line of a field, so the rows keep their rhythm */
+/* Hint in place of a picker, calm and grey, like No chapters yet for a module without chapter notes */
 .entry-none {
-    display: flex;
-    align-items: center;
-    min-height: var(--control-height);
     margin: 0;
     color: var(--text-muted);
 }
 
-/* Steps of a value picked, like the exercises of my neck routine: one per line, grey, below its field
-   and in line with it, after the name of the field and the gap beside it */
+/* Steps of a value picked, like the exercises of my neck routine: one per line, grey, below its value */
 .entry-steps {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    margin: 0 0 0 calc(var(--name-width) + var(--control-gap));
+    margin: 0.375rem 0 0;
     padding: 0;
     list-style: none;
     color: var(--text-muted);
 }
 
-/* Whole line of the place picked, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, grey, below its field
-   and in line with it, as the steps, with the pencil that changes the place beside it; a click on the line opens
-   its link, underlined under the pointer, when it has one */
-.entry-place-line {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-left: calc(var(--name-width) + var(--control-gap));
-}
-
-.entry-place-line[hidden] {
+.entry-steps:empty {
     display: none;
 }
 
+/* Address of the place picked below its name, small and grey, like `Burg-Eltz-Weg, 81375 München, Deutschland`;
+   a click opens its link, underlined under the pointer, when it has one */
 .entry-address {
-    min-width: 0;
+    display: block;
+    margin-top: 0.125rem;
+    overflow: hidden;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     color: var(--text-muted);
     text-decoration: none;
 }
 
-/* Pencil of a place, small and round like the buttons of a box, grey, lighter under the pointer */
-.entry-place-edit {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: 1.625rem;
-    height: 1.625rem;
-    padding: 0;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--background);
-    color: var(--text-muted);
-    cursor: pointer;
-}
-
-.entry-place-edit:hover {
-    border-color: var(--chosen-line);
-    background: var(--chosen);
-    color: var(--text-main);
-}
-
-.entry-place-edit svg {
-    width: 0.875rem;
-    height: 0.875rem;
+.entry-address[hidden] {
+    display: none;
 }
 
 .entry-address[href]:hover {
     text-decoration: underline;
     text-underline-offset: 0.2em;
+}
+
+/* Pencil `✎` right beside a name, of a place or a summary, small and grey, lighter under the pointer */
+.entry-pencil {
+    flex: none;
+    padding: 0 0.25rem;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.entry-pencil:hover {
+    color: var(--text-main);
+}
+
+/* Field of a summary the pencil opens below it, to edit it or write a new one, outlined while I type */
+.panel .entry-summary-edit {
+    width: 100%;
+    margin-top: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
 }
 
 /* Links of a skill entry being changed, one after the other: the folder of its skill by its grey name,
@@ -1020,102 +1064,86 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Button to log the plan entry or to change it, one chip high and outlined */
-.entry-from-plan button {
-    min-height: var(--chip-height);
-    padding: 0 var(--control-padding);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--background);
-    cursor: pointer;
-}
-
-/* Picker: the line of its field, which opens its list */
+/* Picker: the line of its field, with what stands beside and below it, then its list */
 .picker {
     min-width: 0;
 }
 
-/* Line of a field, as every field of a panel: one control high, outlined in grey with round corners, its value
-   cut with an ellipsis, or grey what it is while nothing is picked, like `None`; its outline lighter under the pointer
-   and while its list is open */
+/* Line of a field with what stands beside it, like the pencil of a place, right after its text */
+.picker-head {
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+}
+
+/* Line of a field: its value as plain text, cut with an ellipsis, or grey what it is while nothing is picked,
+   like `No type`; the whole row opens its list, see `rowOf` in `choices.ts` */
 .picker-line {
-    display: block;
-    width: 100%;
-    height: var(--control-height);
-    padding: 0 var(--control-padding);
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 0;
     overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--background);
+    border: 0;
+    background: none;
     color: var(--text-main);
+    font: inherit;
     text-align: left;
     white-space: nowrap;
     text-overflow: ellipsis;
     cursor: pointer;
 }
 
-.picker-line:hover,
-.picker:has(.picker-pop:popover-open) .picker-line {
-    border-color: var(--chosen-line);
-}
-
 .picker-line.picker-empty {
     color: var(--text-muted);
 }
 
-/* List of a field on top of the dialog, a popover of the browser: as wide as the line, at least wide enough
-   for whole names, at most 24rem high or most of the screen, its search field above its values, which scroll alone;
-   outlined in the grey of what is picked, a shadow below it. Its place `choices.ts` sets */
-.picker-pop {
-    position: fixed;
-    inset: auto;
-    min-width: 14rem;
-    max-height: min(24rem, 70dvh);
-    margin: 0;
-    padding: 0.375rem;
-    border: 1px solid var(--chosen-line);
-    border-radius: var(--radius);
-    background: var(--background);
-    color: var(--text-main);
-    box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.5);
-}
-
-.picker-pop:popover-open {
+/* List of a field right under its row, inside the dialog, pushing the rows below down: its search field,
+   its values, `+ New …` at its end */
+.picker-box {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
+    margin-top: 0.625rem;
 }
 
-/* Search field of a list, one chip high */
+.picker-box[hidden] {
+    display: none;
+}
+
+/* Search field of a list, one chip high and outlined, like `Search or add a place` */
 .panel .picker-search {
     flex: none;
     height: var(--chip-height);
     padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
 }
 
 /* Values of a list, many or few, like places, tasks or Night and Day, one whole name per row, never as chips,
-   each row `--picker-row` high, a little higher than a chip, for my 4K monitor; scrolling alone in its list */
+   each row `--picker-row` high, a little higher than a chip, for my 4K monitor */
 .picker-list {
     --picker-row: 2.125rem;
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    overflow-y: auto;
 }
 
-.picker-list button {
+.picker-list button,
+.picker-new {
     flex: none;
-    min-height: var(--picker-row);
+    min-height: var(--picker-row, 2.125rem);
     padding: 0 0.75rem;
     border: 0;
     border-radius: var(--radius);
     background: none;
+    color: var(--text-main);
+    font: inherit;
     text-align: left;
     cursor: pointer;
 }
 
 /* Row under the pointer one grey lighter, a picked row in the calm grey of what is picked */
-.picker-list button:hover {
+.picker-list button:hover,
+.picker-new:hover {
     background: var(--fill);
 }
 
@@ -1123,22 +1151,37 @@ fieldset.entry-times {
     background: var(--chosen);
 }
 
+/* Detail of a value grey beside it, like the address of a place */
+.picker-detail {
+    margin-left: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
 
-/* Results of the tasks picked for a session, in line with the pickers after their names, in the columns
-   of the topics, see `.skill-topic`: the name of a task grey, the line of its result, and below that line
-   where I got stuck or why I skipped, and my effort */
+/* `+ New place` at the end of a list, grey */
+.picker-new {
+    color: var(--text-muted);
+}
+
+/* Results of the tasks picked for a session, below their list, in the columns of the topics, see `.skill-topic`:
+   the name of a task grey, the line of its result, and below that line where I got stuck or why I skipped,
+   and my effort */
 .skill-results {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    margin-left: calc(var(--name-width) + var(--control-gap));
+    margin-top: 0.5rem;
+}
+
+.skill-results:empty {
+    display: none;
 }
 
 .skill-result {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
     gap: 0.375rem var(--gap);
-    align-items: center;
+    align-items: baseline;
 }
 
 .skill-result-name {
@@ -1163,14 +1206,13 @@ fieldset.entry-times {
     width: 100%;
 }
 
-/* Topics of the chapters and documents picked, one line each below the line of the topics, in line with it:
-   the name grey at the left, cut with an ellipsis, its topic in a field beside it, as high as every field;
-   no room taken while nothing is picked */
+/* Topics of the documents picked, one line each below their list: the name grey at the left, cut with an ellipsis,
+   its topic beside it, as plain text to change; no room taken while nothing is picked */
 .skill-topics {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-    margin-left: calc(var(--name-width) + var(--control-gap));
+    margin-top: 0.5rem;
 }
 
 .skill-topics:empty {
@@ -1186,7 +1228,7 @@ fieldset.entry-times {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
     gap: var(--gap);
-    align-items: center;
+    align-items: baseline;
 }
 
 .skill-topic-name {
@@ -1289,32 +1331,28 @@ fieldset.entry-times {
     background: var(--fill);
 }
 
-/* Food search of a meal in its list on top, see `.picker-pop`: its field one chip high, as the search of every list;
-   its results only name, kcal and portion, scrolling alone below it */
-.meal-pop .food-search {
+/* Food search of a meal in its list under the line of the foods, see `.picker-box`: its field one chip high,
+   as the search of every list; its results only name, kcal and portion */
+.meal-box .food-search {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-    min-height: 0;
 }
 
-.meal-pop .food-search > input {
+.panel .meal-box .food-search > input {
     flex: none;
     height: var(--chip-height);
     margin-top: 0;
     padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
 }
 
-.meal-pop .food-results {
-    min-height: 0;
-    overflow-y: auto;
-}
-
-.meal-pop .food-row {
+.meal-box .food-row {
     grid-template-columns: minmax(0, 1fr) 4.25rem 4.75rem;
 }
 
-.meal-pop .food-macro {
+.meal-box .food-macro {
     display: none;
 }
 
@@ -1327,10 +1365,8 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Name of a field of a panel, small and grey, all names `--name-width` wide, see `.panel` */
+/* Name of a field of a panel, small and grey, `--name-width` wide, see `.panel` */
 .entry-name {
-    flex: none;
-    width: var(--name-width);
     font-size: 0.75rem;
     color: var(--text-muted);
 }
@@ -1420,14 +1456,14 @@ fieldset.entry-times {
     margin-left: 0.3em;
 }
 
-/* Time field as wide as a time like 14:00, with the space beside it and its border */
+/* Time field as wide as a time like 14:00 */
 .time-field {
-    width: calc(5ch + 2 * var(--control-padding) + 2px);
+    width: 5ch;
 }
 
-/* Date field as wide as a date like 23.10.2026, with the space beside it and its border */
+/* Date field as wide as a date like 23.10.2026 */
 .date-field {
-    width: calc(10ch + 2 * var(--control-padding) + 2px);
+    width: 10ch;
 }
 
 /* Start and end of a box faded while they are off, because the box has a deadline */
@@ -1436,12 +1472,12 @@ fieldset.entry-times {
     opacity: 0.4;
 }
 
-/* Note of an entry: diary-sized, three lines with the space above and below them and the border,
-   full width beside its name, growing with its text */
+/* Note of an entry, my diary of the unit: `Note` grey while empty, three lines high, full width beside its name,
+   growing with its text */
 #entry-note {
-    min-height: calc(3lh + var(--control-padding) + 2px);
+    min-height: 3lh;
     field-sizing: content;
-    resize: vertical;
+    resize: none;
 }
 
 /* Phone: the boxes above the calendar, both one screen high, the trackers below, panels from below,

@@ -63,19 +63,22 @@
     </aside>
 </div>
 
-<!-- Entry by category for the log and the boxes of the plan, shown over the page, one column of rows, each its name
-     at the left, all names equally wide, and one line showing its value: the category first, then the fields
-     of the category, the times, more fields, the note and the buttons. A click on a line of a field opens its list
-     on top, see choices.ts. Esc or a click beside it closes it without saving -->
+<!-- Entry by category for the log and the boxes of the plan, shown over the page: its title, Log entry or Plan entry,
+     then one column of rows in the order of the file, each its name grey at the left, all names equally wide,
+     and its value at the right: the category first, then the summary, start and end, the place, more fields,
+     the note, and the buttons. A click on a row opens its list right under it, see choices.ts.
+     Esc or a click beside the dialog closes it without saving -->
 <dialog class="panel entry-panel" id="entry" closedby="any">
     <form class="panel-form entry-form" id="entry-form">
-        <!-- Plan, small and grey: a box of the plan, which may be logged instead,
-             or the box the log entry comes from, which may be changed instead -->
-        <p class="entry-from-plan" id="entry-plan" hidden>
-            <span id="entry-plan-title"></span>
+        <!-- Title, with the button to log a box of the plan instead, or to change the box a log entry comes from -->
+        <div class="entry-head">
+            <h2 class="entry-dialog-title" id="entry-heading">Log entry</h2>
             <button id="entry-plan-log" type="button" hidden>Log it</button>
             <button id="entry-plan-edit" type="button" hidden>Edit plan</button>
-        </p>
+        </div>
+
+        <!-- The box a log entry comes from, small and grey -->
+        <p class="entry-from-plan" id="entry-plan" hidden><span id="entry-plan-title"></span></p>
 
         <!-- The category, one line; for a box only the categories I plan -->
         <div id="entry-category"></div>
@@ -119,9 +122,9 @@
         <!-- Fields after the times: for Skill its place, topics, semester and attempts, for Food its foods -->
         <div class="panel-form" id="entry-more"></div>
 
-        <!-- Free note, my diary note about the entry, growing with its text -->
+        <!-- Free note, my diary of the unit, how it felt and what I learned, growing with its text -->
         <label class="panel-field"><span class="entry-name">Note</span>
-            <textarea id="entry-note" rows="3"></textarea></label>
+            <textarea id="entry-note" rows="3" placeholder="Note"></textarea></label>
 
         <!-- Hint when the reader does not take the entry -->
         <p class="panel-error" id="entry-error" hidden>Saving failed</p>
@@ -136,11 +139,12 @@
 </dialog>
 
 <!-- Gift idea for a birthday or holiday of the plan, opened by a click on it, see gifts.ts:
-     its name small and grey, then one field for the idea; an empty field takes the idea out again -->
+     its name small and grey, then one row for the idea; an empty field takes the idea out again -->
 <dialog class="panel" id="gift" closedby="any">
     <form class="panel-form" id="gift-form">
         <p class="entry-from-plan" id="gift-occasion"></p>
-        <input id="gift-text" type="text" autocomplete="off" placeholder="Gift idea" aria-label="Gift idea">
+        <label class="panel-field"><span class="entry-name">Gift</span>
+            <input id="gift-text" type="text" autocomplete="off" placeholder="Gift idea"></label>
 
         <!-- Hint when the reader does not take the idea -->
         <p class="panel-error" id="gift-error" hidden>Saving failed</p>

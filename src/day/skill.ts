@@ -2,10 +2,10 @@
  * ## Skill in the entry by category
  *
  * A skill entry in the dialog, for a box of the plan and the log alike, one row per field, each one line showing
- * its value, see `choices.ts`: on top its skill and its type side by side, like `IN2028` and `VO`, the type `None`
- * for my own learning or a project, like `WokFlow`; the reader writes what it is from both, like
+ * its value, see `choices.ts`: on top its summary, its skill and its type side by side, like `IN2028` and `VO`,
+ * the type `No type` for my own learning or a project, like `WokFlow`; the reader writes what it is from both, like
  * `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `reader/documents.ts`, and writes it anew when I change
- * either later. Below the times its place, with its whole line and its pencil below it, see `categories.ts`;
+ * either later. Below the times its place, its name with its pencil and its address below it, see `categories.ts`;
  * its chapters and its topics; then its semester, from which semester the lecture or the material is,
  * not when I did it:
  * the semester of the day of the dialog, which follows that day as I type it, until I pick another, offered with
@@ -638,7 +638,7 @@ async function contentsLoad(): Promise<void> {
  * - `resultsShow`: Shows a result for each task picked.
  *
  * @param changed - Tells the dialog that what is picked changed, so it allows saving or not
- * @returns The row of the tasks and the results, none while the chapters picked have no tasks
+ * @returns The row of the tasks with the results below its line, none while the chapters picked have no tasks
  */
 function tasksOf(changed: () => void): HTMLElement[] {
     const module: SkillModule | undefined = skilling.modules.find((candidate: SkillModule): boolean =>
@@ -657,8 +657,9 @@ function tasksOf(changed: () => void): HTMLElement[] {
     results.className = "skill-results";
     resultsShow();
     return [rowOf("Tasks", choicesOf({
+        below: [results],
         search: searchOf(taskChoicesOf(tasks)), picked: picks.attempts.map((pick: AttemptPick): string => pick.task),
-        many: true, adding: false, empty: "None",
+        many: true, adding: false, empty: "None", noun: "task",
         pick: (values: string[]): void => {
             picks.attempts = values.map((task: string): AttemptPick =>
                 picks.attempts.find((pick: AttemptPick): boolean => pick.task === task)
@@ -666,7 +667,7 @@ function tasksOf(changed: () => void): HTMLElement[] {
             resultsShow();
             changed();
         },
-    })), results];
+    }))];
 }
 
 /**
@@ -684,7 +685,7 @@ function chapterRowOf(tasksShow: () => void, changed: () => void): HTMLElement {
     if (choices.length === 0)
         return rowOf("Chapters", hintOf("No chapters yet"));
     return rowOf("Chapters", choicesOf({
-        search: searchOf(choices), picked: picks.chapters, many: true, adding: false, empty: "None",
+        search: searchOf(choices), picked: picks.chapters, many: true, adding: false, empty: "None", noun: "chapter",
         pick: (values: string[]): void => {
             picks.chapters = values;
             tasksShow();
@@ -700,17 +701,19 @@ function chapterRowOf(tasksShow: () => void, changed: () => void): HTMLElement {
  * shows their lines as they are picked, see {@link topicsOf}, the list staying open on top.
  * - `choices`: Choices of the list.
  *
+ * @param topics - The lines of the topics picked, below the line of the topics
  * @param topicsShow - Shows the lines of the topics picked
  * @param changed - Tells the dialog that what is picked changed, so it allows saving or not
  * @returns The row
  */
-function topicRowOf(topicsShow: () => void, changed: () => void): HTMLElement {
+function topicRowOf(topics: HTMLElement, topicsShow: () => void, changed: () => void): HTMLElement {
     const choices: Choice[] = topicChoicesOf();
     if (choices.length === 0)
         return rowOf("Topics", hintOf(picks.type === "" ? "No chapter notes yet"
             : `No ${picks.type} files of ${skillSemesterOf(semesterDay)} yet`));
     return rowOf("Topics", choicesOf({
         search: groupedSearchOf(choices), picked: picks.documents, many: true, adding: false, empty: "None",
+        noun: "document", below: [topics],
         pick: (values: string[]): void => {
             picks.documents = values;
             topicsShow();
@@ -720,10 +723,11 @@ function topicRowOf(topicsShow: () => void, changed: () => void): HTMLElement {
 }
 
 /**
- * Shows the fields of `Skill` as picked so far, see the top of this file: skill and type side by side above
- * the times; below them the place, in the log the chapters, see {@link chapterRowOf}, the topics, see
- * {@link topicRowOf}, with a line for each topic picked, see {@link topicsOf}, and a hint when a document picked
- * is in the module no more, which the reader could not find by its fingerprint either; then the semester,
+ * Shows the fields of `Skill` as picked so far, see the top of this file: skill and type side by side in the row
+ * of its summary above the times; below them the place, in the log the chapters, see {@link chapterRowOf},
+ * the topics, see {@link topicRowOf}, with a line for each topic picked, see {@link topicsOf}, and a hint when
+ * a document picked is in the module no more, which the reader could not find by its fingerprint either;
+ * then the semester,
  * and in the log the tasks of the chapters picked with a result for each task picked, see {@link tasksOf},
  * the links of the entry, see {@link linkedOf}, and the attempts the entry has.
  * Picking a skill loads its chapters and documents and shows the fields again, with no topics or tasks picked;
@@ -753,18 +757,18 @@ function picksShow(shown: SkillShown): void {
         tasks.replaceChildren(...tasksOf(shown.changed));
     };
 
-    shown.head.replaceChildren(pairOf(
-        rowOf("Skill", choicesOf({
+    shown.head.replaceChildren(rowOf("Summary", pairOf(
+        choicesOf({
             search: moduleSearchOf(), picked: picks.module === "" ? [] : [picks.module], many: false, adding: false,
-            empty: "Pick one",
+            empty: "Skill", noun: "skill",
             pick: (values: string[]): void => {
                 picks = { ...picks, module: values[0] ?? "", chapters: [], documents: [], topics: {}, attempts: [] };
                 contentsLoad().then(again).catch((error: unknown): void => console.error(error));
             },
-        })),
-        rowOf("Type", choicesOf({
+        }),
+        choicesOf({
             search: searchOf(skilling.types.map(choiceOf)), picked: picks.type === "" ? [] : [picks.type],
-            many: false, adding: false, empty: "None",
+            many: false, adding: false, empty: "No type", noun: "type",
             pick: (values: string[]): void => {
                 picks.type = values[0] ?? "";
                 again();
@@ -776,7 +780,7 @@ function picksShow(shown: SkillShown): void {
     tasksShow();
     const rows: HTMLElement[] = [...shown.place];
     if (picks.module !== "")
-        rows.push(chapterRowOf(tasksShow, shown.changed), topicRowOf(topicsShow, shown.changed), topics);
+        rows.push(chapterRowOf(tasksShow, shown.changed), topicRowOf(topics, topicsShow, shown.changed));
     rows.push(rowOf("Semester", choicesOf({
         search: searchOf(semesterChoicesOf()), picked: [skillSemesterOf(semesterDay)], many: false, adding: true,
         add: semesterAdd,
