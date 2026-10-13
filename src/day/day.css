@@ -768,11 +768,6 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-/* Hint for a day without note */
-.day-note-none {
-    color: var(--text-muted);
-}
-
 /* Panel: card over the page, for the entry by category, the gift idea and the month */
 .panel {
     width: min(27.5rem, calc(100vw - 2 * var(--gap)));

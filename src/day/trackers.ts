@@ -19,10 +19,6 @@
  *   then my neck pain, rated 0 to 10 with each long session, the mean of my first four weeks against the last four,
  *   like `5.2 → 4.0` over `pain`, the outcome the routine is judged by.
  *   Hidden until I start my neck routine, see {@link neckShown}; its code stays.
- * - Log: my log itself, three tiles: the entries of the day, like `14` over `entries`; how long after its end
- *   I wrote an entry, the median, like `40 min` over `written after`, since entries written in the moment hold
- *   and those rebuilt from memory drift; and on how many of the seven days up to it I logged, like `6 / 7`
- *   over `days logged`, never a streak.
  * A glass is a log entry `Drink` `Water` of five minutes, sent to the one writer of the log, see `entries.ts`;
  * the time grid shows glasses only as small marks, see `day.ts`. The card loads again whenever the log of the day changes.
  * The food view loads the trackers too, for the water of its day.
@@ -135,25 +131,11 @@ type NeckWeek = {
 };
 
 /**
- * My log on a day, as the reader sends it.
- *
- * - `entries`: Entries of the day, glasses of water left out.
- * - `late`: Median minutes between the end of an entry and the moment I wrote it, `null` for a day without entries.
- * - `days`: Days of the seven up to the day with at least one entry.
- */
-type LogDay = {
-    entries: number;
-    late: number | null;
-    days: number;
-};
-
-/**
  * The trackers of a day, as the reader sends them.
  *
  * - `settings`: My goals, the size of a glass and the numbers of my learning.
  * - `sleep`: My sleep.
  * - `glasses`: My glasses of water and of every other drink, in the order I drank them.
- * - `log`: My log itself.
  * - `neck`: My neck routine in the seven days up to the day.
  * - `food`: What my meals gave, `estimate` when one of them counts a usual portion, and the number of my meals.
  */
@@ -161,7 +143,6 @@ export type Trackers = {
     settings: TrackerSettings;
     sleep: SleepDay;
     glasses: Glass[];
-    log: LogDay;
     neck: NeckWeek;
     food: Nutrients & { estimate: boolean; meals: number };
 };
@@ -401,30 +382,6 @@ function neckOf(trackers: Trackers): HTMLElement {
 }
 
 /**
- * Builds the log: three tiles, the entries of the day, the median of how long after its end I wrote an entry,
- * and the days of the seven up to the day I logged on; no checks, since no goal is set for them.
- * - `log`: My log on the day.
- * - `tiles`: The tiles side by side.
- *
- * @param trackers - Trackers of the day
- * @returns Row of the log
- */
-function logOf(trackers: Trackers): HTMLElement {
-    const log: LogDay = trackers.log;
-    const row: HTMLElement = elementOf("div", "tracker-row", "");
-    const tiles: HTMLElement = elementOf("div", "tiles", "");
-    tiles.append(
-        tileOf(String(log.entries), false, "entries", "Entries of the day, glasses of water left out"),
-        tileOf(log.late === null ? "" : spanOf(log.late), false, "written after",
-            "How long after its end I wrote an entry, the median of the day; in the moment it holds, "
-                + "from memory it drifts"),
-        tileOf(`${log.days} / 7`, false, "days logged", "Days of the 7 up to this day with at least one entry"),
-    );
-    row.append(elementOf("span", "tracker-name", "Log"), tiles);
-    return row;
-}
-
-/**
  * Loads the trackers of a day from the reader.
  *
  * @param day - Day like `2026-10-10`
@@ -453,7 +410,7 @@ async function trackersLoad(calendar: Calendar): Promise<void> {
     if (day !== dayOf(calendar.view.currentStart))
         return;
     document.getElementById("trackers")?.replaceChildren(sleepOf(trackers), waterOf(calendar, trackers, day),
-        foodOf(trackers, day), ...(neckShown ? [neckOf(trackers)] : []), logOf(trackers));
+        foodOf(trackers, day), ...(neckShown ? [neckOf(trackers)] : []));
 }
 
 /**

@@ -37,7 +37,7 @@ function markdownOf(note: string): string {
 }
 
 /**
- * Shows the daily note of a date, or a hint when the day has none.
+ * Shows the daily note of a date, nothing when the day has none.
  * - {@link Marked#parse}: Turns Markdown into HTML, with `async: false` directly as text.
  *
  * @param date - Date like `2026-07-03`
@@ -48,9 +48,7 @@ export async function noteShow(date: string): Promise<void> {
     const note: string | null = await response.json();
 
     const element: HTMLElement = document.getElementById("day-note-text") as HTMLElement;
-    element.innerHTML = note === null
-        ? `<p class="day-note-none">No daily note on this day</p>`
-        : markdown.parse(markdownOf(note), { async: false });
+    element.innerHTML = note === null ? "" : markdown.parse(markdownOf(note), { async: false });
 }
 
 /**

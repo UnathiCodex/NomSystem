@@ -22,11 +22,6 @@
  * A long session carries my neck pain from 0 to 10, its `X-PAIN`, the outcome the routine is judged by:
  * the mean of my first four weeks of pain against that of the last four, up to the day.
  * A study day is a day with an entry `Skill` in the log, like a lecture or a study session.
- * My log itself is tracked too, since an entry written hours later is rebuilt from memory and drifts
- * (Stone 2003, Lauderdale 2008), and my delay grew from a median of 2.4 hours in 2023 to 19 in 2026
- * (`.claude/life/tracking.md`): how many entries the day holds, how long after its end each was written, the median,
- * from its `DTSTAMP`, and on how many of the seven days up to it I logged at all, without streaks, since a broken one
- * makes people quit (Silverman 2023). Glasses of water stay out, since the counter writes them at the tap.
  *
  * - `./calendar.ts`: Reads the log and writes instants and their days in Berlin time.
  * - `./categories.ts`: Names the neck routines and the category of skill entries.
@@ -132,25 +127,11 @@ export type NeckWeek = {
 };
 
 /**
- * My log on a day.
- *
- * - `entries`: Entries of the day, glasses of water left out.
- * - `late`: Median minutes between the end of an entry and the moment I wrote it, `null` for a day without entries.
- * - `days`: Days of the seven up to the day with at least one entry.
- */
-export type LogDay = {
-    entries: number;
-    late: number | null;
-    days: number;
-};
-
-/**
  * The trackers of a day.
  *
  * - `settings`: My goals, the size of a glass and the numbers of my learning, see {@link settings}.
  * - `sleep`: My sleep.
  * - `glasses`: My glasses of water and of every other drink, in the order I drank them.
- * - `log`: My log itself: its entries, how late I wrote them, and the days I logged.
  * - `neck`: My neck routine in the seven days up to the day, the day included.
  * - `food`: What my meals gave, totals without goals, see `food.ts`, with the number of my meals,
  *   so a meal I forgot to log does not read as a day I ate little.
@@ -159,7 +140,6 @@ export type Trackers = {
     settings: TrackerSettings;
     sleep: SleepDay;
     glasses: Glass[];
-    log: LogDay;
     neck: NeckWeek;
     food: Nutrients & { estimate: boolean; meals: number };
 };
@@ -444,37 +424,6 @@ function painRead(date: string): [number | null, number | null] {
 }
 
 /**
- * Reads my log on a day, see {@link LogDay}: the entries of the log of the new system with times, glasses of water
- * left out, read from noon eight days before to noon the day after, which holds the seven days up to the day;
- * each by the day of its start in Berlin time.
- * - `noon`: Noon of the day in UTC, in milliseconds.
- * - `first`: The first of the seven days, like `2026-10-04`.
- * - `entries`: Entries of the seven days.
- * - `own`: Entries of the day.
- * - `lates`: Minutes from the end of each entry of the day to when I wrote it, at least 0, the fewest first.
- *
- * @param date - Day like `2026-10-10`
- * @returns My log on the day
- */
-function logRead(date: string): LogDay {
-    const noon: number = new Date(`${date}T12:00:00Z`).getTime();
-    const first: string = new Date(noon - (weekDays - 1) * dayLength).toISOString().slice(0, 10);
-    const entries: Entry[] = entriesRead(trackerLog, new Date(noon - (weekDays + 1) * dayLength).toISOString(),
-        new Date(noon + dayLength).toISOString())
-        .filter((entry: Entry): boolean => !entry.allDay && !entry.todo && !glassIs(entry)
-            && berlinDateOf(new Date(entry.start)) >= first && berlinDateOf(new Date(entry.start)) <= date);
-    const own: Entry[] = entries.filter((entry: Entry): boolean => berlinDateOf(new Date(entry.start)) === date);
-    const lates: number[] = own.filter((entry: Entry): boolean => entry.written !== "")
-        .map((entry: Entry): number => Math.max(0, Math.round((Date.parse(entry.written) - Date.parse(entry.end)) / 60000)))
-        .sort((one: number, other: number): number => one - other);
-    return {
-        entries: own.length,
-        late: lates.length === 0 ? null : lates[Math.floor(lates.length / 2)],
-        days: new Set(entries.map((entry: Entry): string => berlinDateOf(new Date(entry.start)))).size,
-    };
-}
-
-/**
  * Reads the trackers of a day, see {@link Trackers}.
  * - `food`: The meals of the day with what they give.
  *
@@ -491,7 +440,6 @@ export function trackersRead(date: string): Trackers {
         settings: settings,
         sleep: sleepRead(date),
         glasses: glassesRead(date),
-        log: logRead(date),
         neck: neckRead(date),
         food: {
             kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat, estimate: food.estimate,
