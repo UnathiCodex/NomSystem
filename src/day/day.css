@@ -1513,13 +1513,23 @@ fieldset.entry-times {
     margin-inline: 0.5em;
 }
 
-/* Place beside the time on its line, like `· HomeMunich` or a route like `· HomeMunich -> TumGarching`;
+/* Place beside the time on its line, like `· HomeMunich` or a route like `· HomeMunich → TumGarching`;
    it takes only the room left beside what and the time, cut with an ellipsis, so a narrow entry cuts the place,
    never what or the time; with less room than for about four letters it moves onto the next line, which
    `.entry-lines` hides, so no dot stands alone at the end */
 .entry-beside {
     flex: 1 1 0;
     min-width: min(5em, 100%);
+}
+
+/* Arrow of a route between where a way starts and its goal, like `HomeMunich → TumGarching`: drawn as an icon
+   as high as a letter, in the grey of its line, its middle on the middle of the letters, with a third of a letter
+   of room on both sides, see `routeArrowOf` in `places.ts` */
+svg.route-arrow {
+    width: 1em;
+    height: 1em;
+    margin-inline: 0.3em;
+    vertical-align: -0.15em;
 }
 
 /* Place with a link, its `ALTREP`, in an entry or a box, like `8120.01.101 (Audimax im Galileo)`: in the grey

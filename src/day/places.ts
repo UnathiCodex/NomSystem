@@ -19,8 +19,14 @@
  * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens the link
  * of the place, written with it as its `ALTREP`, when it has one, and nothing else: nothing opens a map by itself,
  * only a link stored with the place opens on a click.
- * A way shows its route by labels, see {@link whereOf}.
+ * A way shows its route by labels, with an arrow drawn between them, see {@link whereLinkedOf}.
+ *
+ * - `lucide`: The arrow of a route.
+ * - `../icons.ts`: Makes the element of an icon.
  */
+
+import { ArrowRight } from "lucide";
+import { iconOf } from "../icons.ts";
 
 
 /**
@@ -81,10 +87,10 @@ export function labelOf(line: string): string {
 export const wayName: string = "Way";
 
 /**
- * Writes where an entry or a box was, by labels alone, see {@link labelOf}: the route of a way, from where it starts,
- * its `X-FROM`, to its goal, its `LOCATION`, like `HomeMunich -> TumGarching`, with a plain hyphen and greater-than
- * sign, which stand in the middle of the line as the letters do, unlike an arrow character; a missing end left out
- * beside its arrow, like `-> TumGarching`; the place of any other entry, like `HomeMunich`.
+ * Writes where an entry or a box was, by labels alone, see {@link labelOf}, as text, which tells whether it has
+ * a place at all: the route of a way, from where it starts, its `X-FROM`, to its goal, its `LOCATION`,
+ * like `HomeMunich -> TumGarching`, a missing end left out beside its arrow, like `-> TumGarching`; the place
+ * of any other entry, like `HomeMunich`. The page shows it with the arrow drawn, see {@link whereLinkedOf}.
  * - `start`: Label of where a way starts, empty for none.
  * - `goal`: Label of the place or the goal, empty for none.
  *
@@ -102,14 +108,47 @@ export function whereOf(category: string, from: string, location: string): strin
 }
 
 /**
- * Writes where an entry or a box was, as {@link whereOf} does, its place a link when it has one, its `ALTREP`,
- * which opens in a new tab, like `8120.01.101 (Audimax im Galileo)` opening `https://nav.tum.de/room/8120.01.101`;
- * of a way its goal, which its `LOCATION` names, like `TumGarching` of `HomeMunich -> TumGarching`.
- * A click on the link opens only the link, never the entry or the box it stands in, so it does not reach
- * their own click; a place without link is plain text.
- * - `where`: Where it was, like `HomeMunich -> TumGarching`.
- * - `goal`: Label of the place or the goal, like `TumGarching`.
+ * Makes the link of a place, its `ALTREP`, which opens in a new tab, like `8120.01.101 (Audimax im Galileo)` opening
+ * `https://nav.tum.de/room/8120.01.101`. A click on it opens only the link, never the entry or the box it stands in,
+ * so it does not reach their own click.
  * - `anchor`: The link.
+ *
+ * @param label - Label of the place, like `8120.01.101 (Audimax im Galileo)`
+ * @param link - Its link, like `https://nav.tum.de/room/8120.01.101`
+ * @returns The link
+ */
+function placeAnchorOf(label: string, link: string): HTMLAnchorElement {
+    const anchor: HTMLAnchorElement = document.createElement("a");
+    anchor.className = "place-link";
+    anchor.href = link;
+    anchor.target = "_blank";
+    anchor.rel = "noopener";
+    anchor.textContent = label;
+    anchor.addEventListener("click", (event: MouseEvent): void => event.stopPropagation());
+    return anchor;
+}
+
+/**
+ * Makes the arrow of a route between where a way starts and its goal: drawn as an icon, not a character,
+ * so it stands in the middle of the line, with a little room on both sides, see `.route-arrow` in `day.css`.
+ * - `arrow`: The icon.
+ *
+ * @returns The arrow
+ */
+function routeArrowOf(): SVGElement {
+    const arrow: SVGElement = iconOf(ArrowRight);
+    arrow.classList.add("route-arrow");
+    return arrow;
+}
+
+/**
+ * Shows where an entry or a box was, as {@link whereOf} writes it, the arrow of a route drawn, see
+ * {@link routeArrowOf}, like `HomeMunich` → `TumGarching`, and its place a link when it has one, its `ALTREP`,
+ * see {@link placeAnchorOf}; of a way its goal, which its `LOCATION` names, like `TumGarching`.
+ * A place without link is plain text.
+ * - `start`: Label of where a way starts, like `HomeMunich`, empty for none.
+ * - `goal`: Label of the place or the goal, like `TumGarching`, empty for none.
+ * - `place`: The place or the goal as shown, a link or plain text, none for none.
  *
  * @param category - Category of the entry, like `Way`
  * @param from - Where a way starts, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`, empty for none
@@ -118,18 +157,12 @@ export function whereOf(category: string, from: string, location: string): strin
  * @returns Where it was, its place or goal a link, none for no place at all
  */
 export function whereLinkedOf(category: string, from: string, location: string, link: string): (string | Node)[] {
-    const where: string = whereOf(category, from, location);
+    const start: string = labelOf(from);
     const goal: string = labelOf(location);
-    if (link === "" || goal === "")
-        return where === "" ? [] : [where];
-    const anchor: HTMLAnchorElement = document.createElement("a");
-    anchor.className = "place-link";
-    anchor.href = link;
-    anchor.target = "_blank";
-    anchor.rel = "noopener";
-    anchor.textContent = goal;
-    anchor.addEventListener("click", (event: MouseEvent): void => event.stopPropagation());
-    return where === goal ? [anchor] : [where.slice(0, where.length - goal.length), anchor];
+    const place: (string | Node)[] = goal === "" ? [] : [link === "" ? goal : placeAnchorOf(goal, link)];
+    if (category !== wayName || (start === "" && goal === ""))
+        return place;
+    return [start, routeArrowOf(), ...place];
 }
 
 /**
