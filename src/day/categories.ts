@@ -96,7 +96,9 @@ type FieldKey = "title" | "from" | "location";
  * - `values`: Values to pick, the most used first.
  * - `steps`: Steps of a value offered in the code, by the value, like the exercises of `Neck short`.
  * - `fixed`: Whether it takes only its values, like `Night` and `Day` of `Sleep`, and no new ones.
- * - `links`: For a field of a place, the link of each of my places that has one, by its line,
+ * - `rooms`: For a field of a place, the rooms of the university in `Rooms.md`, each as the line an entry writes,
+ *   which its list offers only as I search, see {@link placeSearchOf}; none for any other field.
+ * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
  *   like `https://nav.tum.de/room/0509.EG.980`; none for any other field.
  */
 type Field = {
@@ -105,6 +107,7 @@ type Field = {
     values: string[];
     steps: { [value: string]: string[] };
     fixed: boolean;
+    rooms: string[];
     links: { [value: string]: string };
 };
 
@@ -363,15 +366,16 @@ function endFill(): void {
 
 /**
  * Takes a value picked into the list of every field of its kind that lacks it, like a new place,
- * because places are one list for every field of a place.
+ * because places are one list for every field of a place; a room picked stays among the rooms, which the list
+ * offers only as I search, see {@link placeSearchOf}.
  *
  * @param field - Field the value was picked in
  * @param value - Value picked, maybe new
  */
 function valueAdd(field: Field, value: string): void {
     (chosen?.fields ?? [])
-        .filter((other: Field): boolean =>
-            (other.key === "title") === (field.key === "title") && !other.values.includes(value))
+        .filter((other: Field): boolean => (other.key === "title") === (field.key === "title")
+            && !other.values.includes(value) && !other.rooms.includes(value))
         .forEach((other: Field): void => {
             other.values.push(value);
         });
@@ -693,10 +697,31 @@ async function placeAdd(name: string): Promise<string | null> {
 }
 
 /**
+ * Builds the search of the list of a field of a place: while nothing is typed my places, the most used first,
+ * and the place picked when it is none of them, like a room or an older place by its name alone, so its line
+ * shows it by its label; as I type my places, then the rooms of the university, like `Audimax` or `0509` finding
+ * `0509.EG.980 (Audimax Werner-von-Siemens-Hörsaal)`, each with its address beside it, see {@link fieldChoiceOf}.
+ * - `line`: The place picked, empty for none.
+ * - `shown`: Places the search looks through, each once.
+ *
+ * @param field - Field of a place, like `Place`
+ * @returns Search for the picker
+ */
+function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
+    return async (text: string): Promise<Choice[]> => {
+        const line: string = values[field.key];
+        const shown: string[] = text.trim() !== "" ? [...new Set([...field.values, ...field.rooms])]
+            : [...field.values, ...(line === "" || mineOf(field) !== undefined ? [] : [line])];
+        return await searchOf(shown.map((value: string): Choice => fieldChoiceOf(field, value)))(text);
+    };
+}
+
+/**
  * Builds the row of a field of the category picked: its name and one line showing its value, see {@link choicesOf},
  * whose list offers its values, the most used first, searched as I type, the typed text taken as a new value
  * with `+ New …`, see {@link valueAdd}, but in a field that takes no new values, like the summary of `Sleep`,
- * a new place only once it is saved with its address in the dialog of a new place, see `placeOpen` in `places.ts`.
+ * a new place only once it is saved with its address in the dialog of a new place, see `placeOpen` in `places.ts`;
+ * a field of a place offers the rooms of the university only as I search, see {@link placeSearchOf}.
  * A place shows by its name, once, however often it was used and whatever address an entry kept, which a place picked
  * again keeps, with its pencil beside it and its address below it, see {@link placePartsOf}; a summary that takes
  * new values with its pencil, see {@link summaryPartsOf}, and below it the steps of the value picked,
@@ -717,7 +742,7 @@ function fieldRowsOf(field: Field): HTMLElement[] {
     steps.className = "entry-steps";
     stepsShow(steps, field);
     return [rowOf(field.name, choicesOf({
-        search: (text: string): Promise<Choice[]> =>
+        search: field.key !== "title" ? placeSearchOf(field) : (text: string): Promise<Choice[]> =>
             searchOf(field.values.map((value: string): Choice => fieldChoiceOf(field, value)))(text),
         picked: values[field.key] === "" ? [] : [mineOf(field) ?? values[field.key]],
         many: false,

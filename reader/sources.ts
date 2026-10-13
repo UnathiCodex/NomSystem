@@ -58,7 +58,8 @@ export const calendarRoot: string = join(manageRoot, "NomManagecalendar");
 export const diaryRoot: string = join(manageRoot, "NomFrequencediary");
 
 /**
- * Folder of my data, `NomMetainformations`: my foods, `Foods.md`, and my places, `Places.md`.
+ * Folder of my data, `NomMetainformations`: my foods, `Foods.md`, my places, `Places.md`, and the rooms
+ * of the university, `Rooms.md`.
  */
 export const dataRoot: string = join(manageRoot, "NomMetainformations");
 
@@ -237,12 +238,15 @@ export const activeModules: string[] = activeSkills
  *   which the reader writes, see `gifts.ts`; none of a file while it is missing.
  * - `places`: My places, `Places.md` in {@link dataRoot}, beside `Foods.md`, one Markdown table
  *   with one row per place, its name and its address, which the reader writes as I add places, see `places.ts`.
+ * - `rooms`: The rooms of the university, `Rooms.md` beside `Places.md`, one table of the same form,
+ *   its name, its address and its link to NavigaTUM, which the reader writes as I add a room, see `places.ts`.
  */
 export type DaySources = {
     plan: CalendarSource[];
     log: CalendarSource[];
     system: CalendarSource[];
     places: string;
+    rooms: string;
 };
 
 /**
@@ -253,6 +257,7 @@ export const day: DaySources = {
     log: [{ folder: calendarRoot, ending: logEnding }],
     system: [{ folder: calendarRoot, ending: "Birthdays.ics" }, { folder: calendarRoot, ending: "Holidays.ics" }],
     places: join(dataRoot, "Places.md"),
+    rooms: join(dataRoot, "Rooms.md"),
 };
 
 /**

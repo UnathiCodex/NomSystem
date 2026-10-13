@@ -143,8 +143,10 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/day/callouts`: Writes the callout of the body into its daily note, my gratitude or my paragraph about the day.
  * - `POST /api/day/gifts`: Writes the gift idea of the body for its birthday or holiday into its file,
  *   `Birthdays.ics` or `Holidays.ics`, or takes it out when it is empty.
- * - `POST /api/day/places`: Adds the place of the body with its address to `Places.md` and sends it as written.
- * - `PATCH /api/day/places`: Changes the place of the old name of the body in `Places.md` and sends it as written;
+ * - `POST /api/day/places`: Adds the place of the body with its address to `Places.md`, a room to `Rooms.md`,
+ *   and sends it as written.
+ * - `PATCH /api/day/places`: Changes the place of the old name of the body in `Places.md`, or the room in `Rooms.md`,
+ *   and sends it as written;
  *   when the body says its old address was wrong, also in the entries and boxes that carry it.
  * - `GET /api/notes/modules`: Sends the modules of the semester with their chapters and notes.
  * - `GET /api/notes/note?path=…`: Sends a note with the files its links lead to.

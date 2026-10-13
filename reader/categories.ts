@@ -30,7 +30,7 @@
  */
 
 import { entriesRead, skillName } from "./calendar.ts";
-import { labelOf, lineOf, placesRead } from "./places.ts";
+import { labelOf, lineOf, placesRead, roomsRead } from "./places.ts";
 import { day } from "./sources.ts";
 
 import type { Entry, EntryTexts } from "./calendar.ts";
@@ -75,12 +75,15 @@ export type Category = {
 };
 
 /**
- * A {@link Field} as the page gets it, with the links of its places.
+ * A {@link Field} as the page gets it, with the rooms and the links of its places.
  *
- * - `links`: For a field of a place, the link of each of my places that has one, by its line,
+ * - `rooms`: For a field of a place, the rooms of `Rooms.md`, each as the line an entry writes, in the order
+ *   of the table, which the list offers only as I search, see `places.ts`; none for any other field.
+ * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
  *   like `https://nav.tum.de/room/0509.EG.980`, see `places.ts`; none for any other field.
  */
 export type FieldShown = Field & {
+    rooms: string[];
     links: { [value: string]: string };
 };
 
@@ -271,12 +274,12 @@ function placeUsesOf(logs: Entry[]): string[] {
 }
 
 /**
- * Gives the names of my places, see `places.ts`.
+ * Gives the names of my places and of the rooms of the university, which an entry writes as places, see `places.ts`.
  *
- * @returns Names like `HomeMunich`, in the order of `Places.md`
+ * @returns Names like `HomeMunich`, in the order of `Places.md`, then those of `Rooms.md`
  */
 function placeNamesRead(): string[] {
-    return placesRead().map((place: Place): string => place.name);
+    return [...placesRead(), ...roomsRead()].map((place: Place): string => place.name);
 }
 
 /**
@@ -339,7 +342,9 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * - `names`: Their names.
  * - `places`: One list of places for every field of a place: my places, the most used first, see {@link placeUsesOf},
  *   each as the line an entry writes, see `lineOf` in `places.ts`.
- * - `links`: The links of my places that have one, by their lines.
+ * - `rooms`: The rooms of the university for every field of a place, each as the line an entry writes, in the order
+ *   of `Rooms.md`, none of the name of one of my places.
+ * - `links`: The links of my places and rooms that have one, by their lines.
  *
  * @param now - Present as ISO instant, as the page knows it
  * @returns {@link CategoryShown}s in their order
@@ -350,7 +355,8 @@ export function categoriesRead(now: string): CategoryShown[] {
     const names: string[] = mine.map((place: Place): string => place.name);
     const places: string[] = valuesOrder(placeUsesOf(logs).filter((use: string): boolean => names.includes(use)), names)
         .map((name: string): string => lineOf(mine[names.indexOf(name)]));
-    const links: { [value: string]: string } = Object.fromEntries(mine
+    const rooms: Place[] = roomsRead().filter((room: Place): boolean => !names.includes(room.name));
+    const links: { [value: string]: string } = Object.fromEntries([...mine, ...rooms]
         .filter((place: Place): boolean => place.link !== "")
         .map((place: Place): [string, string] => [lineOf(place), place.link]));
     return categories.map((category: Category): CategoryShown => ({
@@ -360,6 +366,7 @@ export function categoriesRead(now: string): CategoryShown[] {
             values: field.key !== "title" ? places
                 : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values),
             steps: stepsWithNoteOf(logs, category.name, field.steps),
+            rooms: field.key === "title" ? [] : rooms.map(lineOf),
             links: field.key === "title" ? {} : links,
         })),
         plan: !unplannedNames.includes(category.name),
@@ -385,11 +392,12 @@ export function usualLengthRead(name: string, now: string): number {
 
 /**
  * Finds where the last way before an instant ended: the place of the last `Way` as it wrote it, with the address
- * it had then, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, when its name is one of my places.
+ * it had then, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, when its name is one of my places
+ * or of the rooms.
  * - `last`: Last way that started before the instant.
  *
  * @param before - Start of the new entry as ISO instant
- * @returns Place, empty when there was no way before or it ended at no place of mine
+ * @returns Place, empty when there was no way before or it ended at no place of mine and no room
  */
 export function wayEndRead(before: string): string {
     const last: Entry | undefined = logsRead(before)
