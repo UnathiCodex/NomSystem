@@ -4,8 +4,9 @@
  * Shows what I ate on a day, and my foods.
  * The day: its date with buttons to the day before, today and the day after; the number of its meals and its totals
  * of kcal, protein, carbs and fat, all alike, without goals, so the log stays a log, not calorie control,
- * and beside them what I drank, in litres and in glasses against my goal, every drink a glass, counted on the day view; then each meal of the log: its start, linking to the day in the day view,
- * what and where, and its kcal, below it each of its foods with its grams and kcal.
+ * and beside them what I drank in litres against my goal, every drink a glass of 0.25 l, counted on the day view;
+ * then each meal of the log: its start, linking to the day in the day view, what and where, and its kcal, below it
+ * each of its foods with its grams and kcal.
  * A food listed without grams counts its usual portion, so what it gives is an estimate, marked `≈`,
  * and so is every sum that holds one; a food not in `Foods.md` and a meal that lists no foods count nothing,
  * and a line below the totals says so.
@@ -69,12 +70,11 @@ function dateOf(day: string): Date {
 }
 
 /**
- * Shows the totals of a day: the number of meals, kcal, protein, carbs and fat, then the water in litres,
- * its glasses against my goal in its name, each with its name small above;
+ * Shows the totals of a day: the number of meals, kcal, protein, carbs and fat, then the water in litres against
+ * my goal, like `1.5 / 2.5 l`, each with its name small above;
  * below them a line for what they estimate and one for each kind of food or meal they leave out.
  * - `totals`: The totals side by side.
- * - `glasses`: Glasses of the day, every drink one.
- * - `goal`: Glasses of my goal.
+ * - `litres`: What I drank on the day, every drink one glass, see `day/trackers.ts`.
  * - `tiles`: Name, amount and class of each total.
  * - `unknown`: Names of the foods not in `Foods.md`, each once.
  * - `empty`: Number of meals that list no foods.
@@ -85,15 +85,14 @@ function dateOf(day: string): Date {
  */
 function totalsShow(day: FoodDay, trackers: Trackers): void {
     const totals: HTMLElement = elementOf("div", "food-totals", "");
-    const glasses: number = trackers.glasses.length;
-    const goal: number = Math.round(trackers.settings.waterMl / trackers.settings.glassMl);
+    const litres: number = trackers.glasses.length * trackers.settings.glassMl / 1000;
     const tiles: [string, string][] = [
         ["Meals", String(day.meals.length)],
         ["Energy", amountTextOf(day.kcal, "kcal", day.estimate)],
         ["Protein", amountTextOf(day.protein, "g", day.estimate)],
         ["Carbs", amountTextOf(day.carbs, "g", day.estimate)],
         ["Fat", amountTextOf(day.fat, "g", day.estimate)],
-        [`Water · ${glasses} / ${goal} glasses`, `${amountOf(glasses * trackers.settings.glassMl / 1000, 2)} l`],
+        ["Water", `${amountOf(litres, 2)} / ${amountOf(trackers.settings.waterMl / 1000, 2)} l`],
     ];
     for (const [name, amount] of tiles) {
         const tile: HTMLElement = elementOf("div", "food-total", "");

@@ -1,14 +1,13 @@
 /**
  * ## Trackers
  *
- * The card of the trackers of the shown day, below the log above the daily note, as the reader counts them,
+ * The trackers of the shown day, at the right of the bar of the day, as the reader counts them,
  * see `reader/trackers.ts`, calm and basic, side by side in one line, without descriptions under the pointer:
  * - Sleep: how long the night of the day lasted, the sleep I woke up from that morning, like `07h 30m`;
  *   its goal, the spread of my bedtime and the average of the week left out for now, since other things come first.
- * - Water: the glasses of the day between `−` and `+`, like `6`, without a goal, and beside them what they make
- *   in litres, like `1.5 l`; every other drink, like `Kaffee`, counts as a glass too; `+` logs one more glass
- *   of water, at the time of the tap on the shown day, `−` takes the last glass of water back.
- *   A day still to come takes no glasses.
+ * - Water: what I drank on the day in litres between `−` and `+`, like `1.5 l`, without a goal; `+` logs 0.25 l more,
+ *   one glass of water, at the time of the tap on the shown day, `−` takes the last glass of water back;
+ *   every other drink, like `Kaffee`, counts as one glass too. A day still to come takes no glasses.
  * - Food: the kcal of the day's meals, a total without goal, and in brackets after it the number of the meals,
  *   like `1,850 kcal (3 meals)`, so a meal missing shows, linking to the day in the food view.
  * - Neck: two tiles over the seven days up to the day: on how many of my study days I did
@@ -19,7 +18,7 @@
  *   then my neck pain, rated 0 to 10 with each long session, the mean of my first four weeks against the last four,
  *   like `5.2 → 4.0` over `pain`, the outcome the routine is judged by.
  *   Hidden until I start my neck routine, see {@link neckShown}; its code stays.
- * A glass is a log entry `Drink` `Water` of five minutes, sent to the one writer of the log, see `entries.ts`;
+ * A glass, 0.25 l, is a log entry `Drink` `Water` of five minutes, sent to the one writer of the log, see `entries.ts`;
  * the time grid shows glasses only as small marks, see `day.ts`. The card loads again whenever the log of the day changes.
  * The food view loads the trackers too, for the water of its day.
  *
@@ -38,8 +37,8 @@ import { lengthOf, nowOn } from "./times.ts";
 import { amountOf, elementOf } from "../food/foods.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { iconOf, iconWordsOf } from "../icons.ts";
-import { Check, GlassWater, Minus, Plus } from "lucide";
+import { iconOf } from "../icons.ts";
+import { Check, Minus, Plus } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Nutrients } from "../food/foods.ts";
@@ -209,14 +208,11 @@ async function glassAdd(calendar: Calendar): Promise<void> {
 }
 
 /**
- * Builds the water: `−`, which takes the last glass of water back, the glass with the glasses of the day,
- * every drink one glass, like `6`, and `+`, which logs one more glass of water; beside them, grey, what the glasses
- * make in litres, like `1.5 l` of six glasses of 250 ml; the words of the buttons only for screen readers,
- * no description under the pointer, no goal.
+ * Builds the water: `−`, which takes the last glass of water back, what I drank in litres, every drink one glass
+ * of 0.25 l, like `1.5 l` of six glasses, and `+`, which logs one more glass of water; the words of the buttons only
+ * for screen readers, no description under the pointer, no goal.
  * The row takes no clicks while a glass is sent, so a double tap logs one glass; the card loads again once the log changed.
- * - `count`: Number of glasses.
- * - `glasses`: The glass with their number.
- * - `litres`: What they make, in litres.
+ * - `litres`: What I drank, in litres.
  * - `last`: The last glass of water that can be taken back, `undefined` for none.
  * - `coming`: Whether the day is still to come.
  * - `send`: Sends a change of the glasses, the row inert meanwhile.
@@ -230,9 +226,7 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const less: HTMLButtonElement = document.createElement("button");
     const add: HTMLButtonElement = document.createElement("button");
-    const count: number = trackers.glasses.length;
-    const glasses: HTMLElement = elementOf("span", "water-count", "");
-    const litres: number = count * trackers.settings.glassMl / 1000;
+    const litres: number = trackers.glasses.length * trackers.settings.glassMl / 1000;
     const last: Glass | undefined = trackers.glasses.filter((glass: Glass): boolean => glass.water && glass.editable).at(-1);
     const coming: boolean = day > calendarTodayOf();
     const send: (change: () => Promise<void>) => void = (change: () => Promise<void>): void => {
@@ -246,19 +240,18 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
     less.type = "button";
     less.className = "water-step";
     less.append(iconOf(Minus));
-    less.setAttribute("aria-label", "One glass less");
+    less.setAttribute("aria-label", "0.25 l less");
     less.disabled = coming || last === undefined;
     less.addEventListener("click", (): void =>
         send((): Promise<void> => entryDelete(calendar, last?.id ?? "")));
-    glasses.append(...iconWordsOf(GlassWater, String(count)));
     add.type = "button";
     add.className = "water-step";
     add.append(iconOf(Plus));
-    add.setAttribute("aria-label", "One glass more");
+    add.setAttribute("aria-label", "0.25 l more");
     add.disabled = coming;
     add.addEventListener("click", (): void => send((): Promise<void> => glassAdd(calendar)));
-    row.append(elementOf("span", "tracker-name", "Water"), less, glasses, add,
-        elementOf("span", "water-litres", `${amountOf(litres, 2)} l`));
+    row.append(elementOf("span", "tracker-name", "Water"), less,
+        elementOf("span", "water-litres", `${amountOf(litres, 2)} l`), add);
     return row;
 }
 
