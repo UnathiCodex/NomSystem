@@ -8,10 +8,10 @@
  * a deadline, then those without either, then tomorrow's suggested study sessions, dashed, see `suggestions.ts`,
  * and the cancelled boxes without time last; on today below them the boxes carried along, see below.
  * Every box has the same three lines, open or done: its category in bold with a colon and what,
- * like `Skill: IN0004 Einfuehrung Rechnerarchitektur VO`, as an entry of the log does, then grey its expected time
- * and length and how often it was pushed, like `11:30 – 13:00 (90 min)` or `75 min · pushed once`, then its place
- * on a line of its own, by its label alone, like `Audimax im Galileo`, which opens its link on a click when it has
- * one; a line without anything to say is left out.
+ * like `Skill: IN0004_EinfuehrungRechnerarchitektur VO`, as an entry of the log does, then grey its expected time and length and how often it was
+ * pushed, like `11:30 – 13:00 (90 min)` or `75 min · pushed once`, then its place on a line of its own, by its label
+ * alone, like `Audimax im Galileo`, which opens its link on a click when it has one; a line without anything to say
+ * is left out.
  * An open box pushed three times or more asks instead of counting on, `pushed 3 times · smaller or skip?`,
  * since a task I keep pushing is often too big or no longer wanted, and a click on it opens it to cut it.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
@@ -62,7 +62,7 @@
 import { Draggable } from "fullcalendar/interaction";
 import { boxDrop, boxLog, boxPush, boxUndo, boxUniversity } from "./entries.ts";
 import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
-import { breakableOf, readableOf } from "./choices.ts";
+import { breakableOf } from "./choices.ts";
 import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } from "./suggestions.ts";
 import { giftOpen } from "./gifts.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
@@ -238,23 +238,23 @@ export function whatOf(category: string, what: string): (string | Node)[] {
 
 /**
  * Gives what an entry or a box shows as its what, see {@link whatOf}: a skill entry or box by its skill and its type,
- * the skill by its code with its name, as the scripts view names it, see `readableOf` in `choices.ts`,
- * like `IN0004 Einfuehrung Rechnerarchitektur VO` of `IN0004_EinfuehrungRechnerarchitektur (VO)`, on a phone
- * by its code alone, like `IN0004 VO`, so it stays short there; a project by its name, like `WokFlow`; one without
- * skill and type, like an older entry, and any other entry or box by its what as written.
- * - `skill`: The skill as shown: the name to read of its folder, the part of the what before ` (`, when the what
- *   starts with its code and `_`, else its code.
+ * the skill by the name of its folder, its code with its name, like `IN0004_EinfuehrungRechnerarchitektur VO`
+ * of `IN0004_EinfuehrungRechnerarchitektur (VO)`, on a phone by its code alone, like `IN0004 VO`, so it stays short
+ * there; a project by its name, like `WokFlow`; one without skill and type, like an older entry, and any other entry
+ * or box by its what as written.
+ * - `skill`: The skill as shown: the name of its folder, the part of the what before ` (`, when the what starts
+ *   with its code and `_`, else its code.
  *
  * @param category - Its category, like `Skill`
  * @param title - Its what as written, its `SUMMARY`, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
  * @param module - Its skill, like `IN0004`, empty for none
  * @param type - Its type, like `VO`, empty for none
- * @returns What it shows, like `IN0004 Einfuehrung Rechnerarchitektur VO`
+ * @returns What it shows, like `IN0004_EinfuehrungRechnerarchitektur VO`
  */
 export function shownWhatOf(category: string, title: string, module: string, type: string): string {
     if (category !== skillName || (module === "" && type === ""))
         return title;
-    const skill: string = !phone && title.startsWith(`${module}_`) ? readableOf(title.split(" (")[0]) : module;
+    const skill: string = !phone && title.startsWith(`${module}_`) ? title.split(" (")[0] : module;
     return [skill, type].filter((part: string): boolean => part !== "").join(" ");
 }
 
@@ -409,8 +409,7 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
 /**
  * Makes the lines of a box, in the day and in the week alike, the same three whether it is open or done, see the top
  * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf},
- * like **`Skill: IN0004 Einfuehrung Rechnerarchitektur VO`**, see {@link shownWhatOf}, its long names breakable,
- * see `breakableOf` in `choices.ts`,
+ * like **`Skill: IN0004_EinfuehrungRechnerarchitektur VO`**, see {@link shownWhatOf}, its long names breakable, see `breakableOf` in `choices.ts`,
  * its time and length in the light grey of a time, its parts apart by a middle dot with room on both sides,
  * see {@link timePartsOf}, like `16:00 – 17:30 · 90 min`, and its place on a line of its own in the darker grey,
  * by its label alone, its address hidden, like `Audimax im Galileo`, a way its route,

@@ -29,16 +29,18 @@
     </head>
 
     <body>
-        <!-- Areas of the life system; main.ts marks the shown one and opens it below -->
+        <!-- Timer of a session of mine running now, at the top right above the area; filled by timer.ts,
+             hidden while none runs -->
+        <span class="session-timer" id="session-timer" hidden></span>
+
+        <!-- Areas of the life system at the left edge, each by its icon, its name as tooltip; main.ts puts
+             the icons in, marks the shown one and opens it -->
         <nav class="areas">
             <a href="/">Day</a>
             <a href="/week">Week</a>
             <a href="/scripts">Scripts</a>
             <a href="/skill">Skill</a>
             <a href="/food">Food</a>
-
-            <!-- Timer of a session of mine running now, at the right; filled by timer.ts, hidden while none runs -->
-            <span class="session-timer" id="session-timer" hidden></span>
         </nav>
     </body>
 </html>

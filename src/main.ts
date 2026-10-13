@@ -1,7 +1,7 @@
 /**
  * ## Router
  *
- * Opens one area of the life system below the areas named in `index.html`, by the address:
+ * Opens one area of the life system beside the areas named in `index.html`, each shown by its icon, by the address:
  * the week at `/week`, the scripts, my notes of my modules, at `/scripts`, the skill area at `/skill`, the food area
  * at `/food`, the editor of my drafts and of the files of my new system at `/edit`, the day everywhere else;
  * an older address of the scripts, `/notes`, opens them too and becomes `/scripts`.
@@ -9,16 +9,18 @@
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the scripts no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
- * The timer of a session running now stands at the right of the areas in every area.
+ * The timer of a session running now stands at the top right above the area in every area.
  * A phone, a screen as narrow as the phone layout of the stylesheets, which {@link matchMedia} tells,
  * is only for the day, its plan and its log, as simple as can be, nothing for learning and no food for now:
  * it opens the day everywhere, without its daily note, so it loads no Markdown renderer, and runs no timer;
- * `base.css` hides the areas, so the top stays free.
+ * `base.css` hides the areas, so the whole screen stays free.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
  * - `@fontsource-variable/noto-sans`: Noto Sans, the font of the page, in every weight, served with the page,
  *   so it looks the same on every device; `wght-italic.css` adds its italic.
  * - `./timer.ts`: Shows the timer of a session running now.
+ * - `./icons.ts`: Shows the icon of each area in its link, its name as tooltip.
+ * - `lucide`: The icons of the areas.
  * - `./day/day.html?raw`, `./week/week.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`,
  *   `./food/food.html?raw`, `./editor/editor.html?raw`: Html of day, week, scripts, skill, food and editor as text,
  *   packed into the built code by Vite.
@@ -37,6 +39,8 @@
 import "@fontsource-variable/noto-sans";
 import "@fontsource-variable/noto-sans/wght-italic.css";
 import { timerStart } from "./timer.ts";
+import { iconPut } from "./icons.ts";
+import { BookOpenText, Calendar1, CalendarRange, GraduationCap, Utensils } from "lucide";
 import dayHtml from "./day/day.html?raw";
 import weekHtml from "./week/week.html?raw";
 import notesHtml from "./notes/notes.html?raw";
@@ -44,7 +48,19 @@ import skillHtml from "./skill/skill.html?raw";
 import foodHtml from "./food/food.html?raw";
 import editorHtml from "./editor/editor.html?raw";
 
+import type { IconNode } from "lucide";
+
+/**
+ * Icon of each area by its address: a day, seven days, an open book for the scripts, a mortarboard for the skill
+ * and a fork and knife for the food.
+ */
+const areaIcons: { [address: string]: IconNode } = {
+    "/": Calendar1, "/week": CalendarRange, "/scripts": BookOpenText, "/skill": GraduationCap, "/food": Utensils,
+};
+
 const phone: boolean = matchMedia("(max-width: 900px)").matches;
+document.querySelectorAll(".areas a").forEach((link: Element): void =>
+    iconPut(link as HTMLElement, areaIcons[link.getAttribute("href") ?? ""], link.textContent ?? ""));
 if (location.pathname === "/notes")
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
 const areas: string[] = phone ? [] : ["/week", "/scripts", "/skill", "/food", "/edit"];
