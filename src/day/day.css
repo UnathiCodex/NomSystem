@@ -1479,13 +1479,14 @@ fieldset.entry-times {
 }
 
 /* Inside of an entry: all its lines in one size, as in Google Calendar, its text 0.75rem, 0.75rem left of its lines
-   and 0.5rem right of them; its lines cut at the edge of the entry, so text never sticks out.
+   and 0.5rem right of them; its lines cut at the edge of the entry, so text never sticks out, by `clip`,
+   which scrolls nothing, so its lines can stay in sight, see `.entry-lines`.
    A taller entry, like an hour of sleep, keeps 0.5rem above its first line and 0.25rem below its last,
    and its lines stand apart, each 1.05rem high at a line height of 1.4, 15.75 minutes of the time grid,
    see `lineMinutes` in `day.ts`; a short one keeps no space above and below its one line, 0.9rem high
    at a line height of 1.2, so a quarter hour, 1rem high, holds it */
 .entry-inner {
-    overflow: hidden;
+    overflow: clip;
     padding-block: 0.5rem 0.25rem;
     padding-inline: 0.75rem 0.5rem;
     font-size: 0.75rem;
@@ -1507,8 +1508,12 @@ fieldset.entry-times {
 }
 
 /* All lines of an entry, as high as the lines it has room for, which `day.ts` sets in units of a line: a line moved
-   down by what taking a line more, like a long skill on a phone, hides as a whole, never cut in half at the bottom */
+   down by what taking a line more, like a long skill on a phone, hides as a whole, never cut in half at the bottom.
+   An entry scrolled partly out of sight at the top keeps its lines in sight, 0.5rem below the top of the grid,
+   as far as the entry reaches, so a night from 01:45, scrolled to 06:00, still says `Sleep: Night` */
 .entry-lines {
+    position: sticky;
+    top: 0.5rem;
     overflow: hidden;
 }
 
