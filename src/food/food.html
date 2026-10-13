@@ -1,22 +1,24 @@
-<!-- Food: what I ate on a day with its totals, my water of the day, and my foods with the search that also finds them
-     on Open Food Facts -->
+<!-- Food: the bar of the shown day as the day has it, my water at its right end; below it what I ate that day with its
+     totals, beside my foods with the search that also finds them on Open Food Facts -->
 <div class="food">
-    <!-- Day: arrows and its date, its totals, then its meals from the log, each with its foods -->
+    <!-- The date of the shown day between its arrows, a small icon beside it back to today, faded and off on today;
+         my water of the day at the right end of the bar, filled by water.ts -->
+    <div class="food-bar">
+        <button class="food-arrow" id="food-before" type="button"></button>
+        <h2 class="food-day-title"><span class="food-weekday" id="food-weekday"></span> <span id="food-date"></span></h2>
+        <button class="food-today" id="food-today" type="button" disabled></button>
+        <button class="food-arrow" id="food-after" type="button"></button>
+        <section class="water" id="food-water"></section>
+    </div>
+
+    <!-- Day: its totals, then its meals from the log, each with its foods -->
     <section class="food-day">
-        <div class="food-head">
-            <button id="food-before" type="button" title="Day before">‹</button>
-            <button id="food-today" type="button">Today</button>
-            <button id="food-after" type="button" title="Day after">›</button>
-            <h2 id="food-date"></h2>
-        </div>
         <div id="food-totals"></div>
         <div id="food-meals"></div>
     </section>
 
-    <!-- My water of the day as a card above my foods, filled by water.ts;
-         my foods: the search shows mine first, then those of Open Food Facts, and adds new ones -->
+    <!-- My foods: the search shows mine first, then those of Open Food Facts, and adds new ones -->
     <section class="food-foods">
-        <div class="water" id="food-water"></div>
         <h2 class="food-heading">Foods</h2>
         <div id="food-search"></div>
     </section>

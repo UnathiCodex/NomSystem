@@ -12,9 +12,8 @@
  * the summary of `Sleep` only `Night` or `Day`, a nap, that of `Way` my means of transport;
  * a value with steps shows them below its line while it is picked, with the note of its last entry;
  * `Body` is my body care, like `Shower`;
- * in the log, the summary of `Food` is the meal itself: its line names it, its list picks meals eaten before and foods,
- * and below it stand its foods, each with its grams, and what the meal gives, see `meal.ts`; a meal is named
- * by its foods, like `Haferflocken, Milch`, or by a name of its own, like `Salat`;
+ * in the log, `Food` has its summary written by itself from its meals and its foods, each in a row of its own
+ * with its own list, my meals of `Meals.md` and my foods, like `Käsesalat, Brot`, see `meal.ts`;
  * and `Cook` below them one tap for the meal eaten right after it, which the reader adds with the cooking,
  * pointing to it.
  * `Skill` is a skill and a type or none side by side, like `IN2028` and `VO` or the project `WokFlow`, in plan and log,
@@ -60,7 +59,7 @@
  *
  * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top.
  * - `./entries.ts`: Sends new, changed and removed entries to the reader.
- * - `./meal.ts`: The what of a meal of the log: its name, the meals eaten before and foods to pick, its foods.
+ * - `./meal.ts`: A meal of the log: its summary, its meals and its foods, each picked from its own list.
  * - `./places.ts`: The dialog of a place, which adds a new one with its address to `Places.md` or changes mine.
  * - `./skill.ts`: The fields of `Skill`: skill and type, place, semester, chapters, documents,
  *   and in the log attempts.
@@ -214,10 +213,10 @@ let opened: EntryOpening = {
 let chosen: Category | null = null;
 
 /**
- * The summary of a meal of the log, its line with the foods below it, see `meal.ts`, while `Food` is picked
- * for the log; `null` for every other category, whose summary is a plain field.
+ * The rows of a meal of the log in place of its summary: its summary, written by itself, its meals and its foods,
+ * see `meal.ts`, while `Food` is picked for the log; `null` for every other category, whose summary is a plain field.
  */
-let meal: HTMLElement | null = null;
+let meal: HTMLElement[] | null = null;
 
 /**
  * Whether the remove button was clicked once and waits for the second click.
@@ -663,8 +662,8 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
  * a field of a place offers the rooms of the university only as I search, see {@link placeSearchOf}.
  * A place shows by its name, once, however often it was used and whatever address an entry kept, which a place picked
  * again keeps, with its pencil beside it and its address below it, see {@link placePartsOf}; a summary with the steps
- * of the value picked below it, see {@link stepsShow}. The summary of a meal of the log is the meal itself,
- * its line with its foods below, see {@link meal}.
+ * of the value picked below it, see {@link stepsShow}. A meal of the log has its summary, its meals and its foods
+ * in place of the summary, see {@link meal}.
  * - `place`: Pencil and address of a place, `null` for any other field.
  * - `steps`: Place of the steps of the field.
  *
@@ -673,7 +672,7 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
  */
 function fieldRowsOf(field: Field): HTMLElement[] {
     if (field.key === "title" && meal !== null)
-        return [rowOf(field.name, meal)];
+        return meal;
     const place: [HTMLButtonElement, HTMLAnchorElement] | null = field.key === "title" ? null : placePartsOf(field);
     const steps: HTMLElement = document.createElement("ul");
     steps.className = "entry-steps";
@@ -750,13 +749,13 @@ async function wayEndLoad(): Promise<string> {
  * Picks a category: shows its fields, keeping the places picked under the category before, and an older value
  * of a field that takes only its values as that field writes it, see {@link fixedValueOf}.
  * A new entry of a category with the field `from` starts where the last way ended.
- * `Food` in the log shows the meal as its summary, with the foods and the summary of the meal being changed,
- * see `meal.ts`, built before its fields show, unless another category was picked meanwhile;
+ * `Food` in the log shows its summary, its meals and its foods in place of the summary, with those of the meal being
+ * changed, see `meal.ts`, built before its fields show, unless another category was picked meanwhile;
  * `Skill` shows its skill and type before the times, and its place, semester, chapters, documents and attempts
  * after them,
  * see `skill.ts`.
  * - `changing`: Whether the dialog changes a meal, whose foods and what the meal starts with.
- * - `built`: The what of the meal.
+ * - `built`: The rows of the meal.
  *
  * @param category - Category to pick, or `null` for none yet
  * @throws {Error} - When the reader gives no valid answer
@@ -781,7 +780,7 @@ async function categoryPick(category: Category | null): Promise<void> {
         values.from = await wayEndLoad();
     if (category?.name === foodName && opened.target === "log") {
         const changing: boolean = opened.category === foodName;
-        const built: HTMLElement = await mealOf(changing ? opened.foods : [], changing ? opened.values.title : "",
+        const built: HTMLElement[] = await mealOf(changing ? opened.foods : [], changing ? opened.values.title : "",
             saveAllow);
         if (chosen !== category)
             return;

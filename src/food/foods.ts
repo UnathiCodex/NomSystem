@@ -3,7 +3,7 @@
  *
  * Finds foods through the reader, mine first, then on Open Food Facts, of a brand when one is picked and page by page,
  * loads the brands of the search, sends new ones and removes them, sends new foods to `Foods.md`,
- * loads the meals I ate before,
+ * loads my meals of `Meals.md` and sends new ones,
  * loads the meals of a day with what they give, and writes amounts as the page shows them:
  * for the food view and the entry by category of the day alike.
  */
@@ -101,19 +101,16 @@ export type Meal = Nutrients & {
 };
 
 /**
- * A meal I ate before, by its what and its foods, as the reader sends it, to pick it again with all its foods;
- * one what with other foods is another meal eaten before, like `Brotzeit` with `Käse` or with `Aufstrich`.
+ * A meal of mine, as the reader sends it from `Meals.md`: two or more of my foods with the grams of one portion.
  *
- * - `title`: What, like `Salat` or `Brot, Gouda, Butter`.
- * - `foods`: Lines `X-FOOD` of the latest meal of it, like `Gurke;100`.
- * - `kcal`: kcal of that meal.
- * - `meals`: How often I ate it so, with these foods.
+ * - `name`: Name of the meal, like `Käsesalat`.
+ * - `foods`: Its foods as lines of a food and its grams, like `Käse;100`, or without grams for the usual portion.
+ * - `kcal`: kcal of one portion.
  */
 export type Dish = {
-    title: string;
+    name: string;
     foods: string[];
     kcal: number;
-    meals: number;
 };
 
 /**
@@ -146,13 +143,29 @@ export async function foodsFind(query: string, brand: string, page: number): Pro
 }
 
 /**
- * Loads the meals I ate before from the reader, the most eaten first.
+ * Loads my meals of `Meals.md` from the reader, in the order of the file.
  *
- * @returns Meals eaten before, each by its what with its foods of the last time
+ * @returns My meals, each with its foods and the kcal of one portion
  * @throws {Error} - When the reader cannot answer
  */
 export async function dishesLoad(): Promise<Dish[]> {
-    const response: Response = await fetch("/api/food/dishes");
+    const response: Response = await fetch("/api/food/meals");
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as Dish[];
+}
+
+/**
+ * Sends a new meal to the reader, which adds it to `Meals.md`.
+ *
+ * @param name - Name of the meal, like `Käsesalat`
+ * @param foods - Its foods, each a food and its grams of one portion, like `Käse;100`, or a food alone
+ * @returns All my meals after, the new one with them
+ * @throws {Error} - When the reader does not take the meal, like for a name another meal has or a single food
+ */
+export async function dishSend(name: string, foods: string[]): Promise<Dish[]> {
+    const response: Response = await fetch("/api/food/meals",
+        { method: "POST", body: JSON.stringify({ name: name, foods: foods }) });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
     return await response.json() as Dish[];

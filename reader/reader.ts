@@ -31,8 +31,8 @@
  * - `./documents.ts`: Checks the links of the skill entries at the start and every night, repairing what it can,
  *   and reads a file a skill entry links
  * - `./suggestions.ts`: Suggests study sessions as boxes for the plan of a day, never written until I accept one
- * - `./food.ts`: Finds foods, mine first, then on Open Food Facts, adds foods to `Foods.md` and brands to `Brands.md`,
- *   reads the meals of a day and the meals I ate before
+ * - `./food.ts`: Finds foods, mine first, then on Open Food Facts, adds foods to `Foods.md`, brands to `Brands.md`
+ *   and meals to `Meals.md`, reads the meals of a day and my meals
  * - `./trackers.ts`: Reads my sleep against my goals, my glasses of water, my neck sessions and what my meals gave
  *   on a day
  * - `./page.ts`: Gives out the files of the page through Vite
@@ -56,7 +56,7 @@ import {
 } from "./skill.ts";
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
-import { brandAdd, brandRemove, brandsRead, dishesRead, foodAdd, foodDayRead, foodsFind } from "./food.ts";
+import { brandAdd, brandRemove, brandsRead, dishAdd, dishesRead, foodAdd, foodDayRead, foodsFind } from "./food.ts";
 import { trackersRead } from "./trackers.ts";
 import { pageCreate } from "./page.ts";
 
@@ -174,7 +174,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/food/brands`: Adds the brand `name` of the body to `Brands.md` and sends all brands.
  * - `DELETE /api/food/brands?name=…`: Removes the brand from `Brands.md` and sends all brands left.
  * - `GET /api/food/day?date=…`: Sends the meals of the date with what they give.
- * - `GET /api/food/dishes`: Sends the meals I ate before, each by its what with its foods of the last time.
+ * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each with its foods and the kcal of one portion.
+ * - `POST /api/food/meals`: Adds the meal of the body, its name and foods, to `Meals.md` and sends all my meals.
  * - Any other address: Hands request to the page.
  *
  * A request as the page sends it:
@@ -365,8 +366,11 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
     } else if (request.method === "GET" && url.pathname === "/api/food/day") {
         responseSend(response, 200, foodDayRead(date));
 
-    } else if (request.method === "GET" && url.pathname === "/api/food/dishes") {
+    } else if (request.method === "GET" && url.pathname === "/api/food/meals") {
         responseSend(response, 200, dishesRead());
+
+    } else if (request.method === "POST" && url.pathname === "/api/food/meals") {
+        responseSend(response, 200, dishAdd(await json(request) as { name?: string; foods?: string[] }));
 
     } else {
         page.middlewares(request, response);

@@ -1,15 +1,17 @@
 /**
  * ## Food
  *
- * Shows what I ate on a day, what I drank, and my foods.
- * The day: its date with buttons to the day before, today and the day after; the number of its meals and its totals
+ * Shows what I ate on a day, what I drank, and my foods, in the scheme of the day view.
+ * The bar of the day, as the day has it: its weekday short and its date, like `Tue, 13.10.2026`, between the arrows
+ * to the day before and after, a small icon beside it back to today, faded and off on today; my water at its right end,
+ * see `water.ts`.
+ * The day: the number of its meals and its totals
  * of kcal, protein, carbs and fat, all alike, without goals, so the log stays a log, not calorie control;
  * then each meal of the log: its start, linking to the day in the day view,
  * what and where, and its kcal, below it each of its foods with its grams and kcal.
  * A food listed without grams counts its usual portion; every amount is rounded and an estimate anyway,
  * so none is marked as one. A food not in `Foods.md` and a meal that lists no foods count nothing,
  * and a line below the totals says so.
- * My water: the card above my foods, with the glass that logs one more and `−`, for the shown day, see `water.ts`.
  * My foods: the food search, which finds mine first, then those of Open Food Facts, and adds new ones, see `search.ts`.
  * It opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today it moves on
  * with it; only a link like `/food?date=2026-10-10` opens on that day, see `today.ts`.
@@ -18,11 +20,12 @@
  * - `./search.ts`: Finds foods, mine first, then on Open Food Facts, and adds new ones.
  * - `./water.ts`: Shows the water of a day and logs glasses.
  * - `../day/places.ts`: Gives the name of the place of a meal.
- * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader and a day out with its weekday.
+ * - `../day/times.ts`: Writes a day as its date, like `13.10.2026`.
+ * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the food view on to the new day
  *   while it shows today.
- * - `../icons.ts`: Puts the arrows into the buttons to the day before and after, their words as tooltip.
- * - `lucide`: The icons of the arrows.
+ * - `../icons.ts`: Puts the arrows and the icon back to today into their buttons, their words as tooltip.
+ * - `lucide`: The icons of the arrows and of today.
  * - `./food.css`: Look of the food view.
  */
 
@@ -30,10 +33,11 @@ import { amountOf, elementOf, foodDayLoad } from "./foods.ts";
 import { foodSearchOf } from "./search.ts";
 import { waterOpen } from "./water.ts";
 import { labelOf } from "../day/places.ts";
-import { dayOf, dayTextOf } from "../skill/attempts.ts";
+import { dateTextOf } from "../day/times.ts";
+import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
 import { iconPut } from "../icons.ts";
-import { ChevronLeft, ChevronRight } from "lucide";
+import { CalendarCheck, ChevronLeft, ChevronRight } from "lucide";
 import "./food.css";
 
 import type { Eaten, FoodDay, Meal } from "./foods.ts";
@@ -161,8 +165,8 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
 }
 
 /**
- * Shows a day: writes its date as heading, then loads its meals
- * and shows them with their totals, unless another day was asked for meanwhile.
+ * Shows a day: writes its weekday short and its date in the bar, like `Tue, 13.10.2026`, turns the icon back to today
+ * off on today, then loads its meals and shows them with their totals, unless another day was asked for meanwhile.
  * - `food`: Meals of the day with what they give.
  * - `lines`: Lines of all meals.
  *
@@ -171,7 +175,10 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
  */
 async function dayShow(day: string): Promise<void> {
     shown = day;
-    (document.getElementById("food-date") as HTMLElement).textContent = dayTextOf(day, true);
+    (document.getElementById("food-weekday") as HTMLElement).textContent =
+        new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short" });
+    (document.getElementById("food-date") as HTMLElement).textContent = dateTextOf(day);
+    (document.getElementById("food-today") as HTMLButtonElement).disabled = day === calendarTodayOf();
 
     const food: FoodDay = await foodDayLoad(day);
     if (day !== shown)
@@ -212,18 +219,20 @@ function dayMove(days: number): void {
 
 /**
  * Starts the food view after the router has put its HTML into the page:
- * the arrows as icons, the buttons of the day, the day a link asks for or today's calendar date, which moves on
+ * the arrows and the icon back to today, the day a link asks for or today's calendar date, which moves on
  * to the new day by itself while it is shown, see `today.ts`, and the food search.
- * - `before`, `after`: Buttons to the day before and after.
+ * - `before`, `after`, `today`: Buttons to the day before and after, and back to today.
  */
 export function foodStart(): void {
     const before: HTMLElement = document.getElementById("food-before") as HTMLElement;
     const after: HTMLElement = document.getElementById("food-after") as HTMLElement;
+    const today: HTMLElement = document.getElementById("food-today") as HTMLElement;
     iconPut(before, ChevronLeft, "Day before");
     iconPut(after, ChevronRight, "Day after");
+    iconPut(today, CalendarCheck, "Back to today");
     before.addEventListener("click", (): void => dayMove(-1));
     after.addEventListener("click", (): void => dayMove(1));
-    document.getElementById("food-today")?.addEventListener("click", (): void => dayOpen(calendarTodayOf()));
+    today.addEventListener("click", (): void => dayOpen(calendarTodayOf()));
     document.getElementById("food-search")?.append(foodSearchOf(null, null));
     dayOpen(askedDayOf() ?? calendarTodayOf());
     todayFollow((): string => shown, dayOpen);
