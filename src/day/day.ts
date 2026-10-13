@@ -57,7 +57,7 @@ import englishLocale from "fullcalendar/locales/en-gb";
 import { entryChange } from "./entries.ts";
 import { categoriesStart, cookName, entryOpen, entryOpenEdit, entryOpenNow } from "./categories.ts";
 import { foodName } from "./meal.ts";
-import { boxesSee, boxesStart, boxReceive, entryPartOf, whatOf } from "./boxes.ts";
+import { boxesSee, boxesStart, boxReceive, entryPartOf, shownWhatOf, whatOf } from "./boxes.ts";
 import { breakableOf } from "./choices.ts";
 import { monthStart } from "./month.ts";
 import { giftsStart } from "./gifts.ts";
@@ -231,12 +231,13 @@ function linesOf(info: EventDisplayInfo): number {
  * move down, and those the entry has no more room for stay hidden, see `.entry-lines` in `day.css`.
  * - `category`: Category of the entry, empty for an entry without one.
  * - `foods`: Foods of a dish, none for any other entry.
- * - `what`: What the entry was, its foods for a dish, empty when it is its category, like an old `Sleep`
+ * - `what`: What the entry was, a skill entry by its code and type, like `IN0004 VO`, see `shownWhatOf`
+ *   in `boxes.ts`, its foods for a dish, empty when it is its category, like an old `Sleep`
  *   written before it had its what.
  * - `from`: Where a way starts, its `X-FROM`, empty for none.
  * - `location`: Place of the entry, its `LOCATION`, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`.
  * - `place`: Place of the entry by its label, like `HomeMunich`, for a way its route from its `X-FROM`,
- *   like `HomeMunich -> TumGarching`, see `whereOf` in `places.ts`; empty when it has none.
+ *   like `HomeMunich -> TumGarching`, see `whereOf` in `places.ts`, shown with its arrow drawn; empty when it has none.
  * - `link`: Link of the place, its `ALTREP`, like `https://nav.tum.de/room/8120.01.101`, empty for none.
  * - `note`: Note of the entry, its `DESCRIPTION`, empty when it has none.
  * - `start`, `end`: Start and end of the entry.
@@ -257,7 +258,8 @@ function linesOf(info: EventDisplayInfo): number {
 function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     const category: string = info.event.extendedProps.category ?? "";
     const foods: string[] = dishOf(info.event);
-    let what: string = info.event.title;
+    let what: string = shownWhatOf(category, info.event.title, info.event.extendedProps.module ?? "",
+        info.event.extendedProps.type ?? "");
     if (foods.length > 0)
         what = foods.join(", ");
     else if (what === category)

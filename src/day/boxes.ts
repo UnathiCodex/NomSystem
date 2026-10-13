@@ -231,6 +231,24 @@ export function whatOf(category: string, what: string): (string | Node)[] {
 }
 
 /**
+ * Gives what an entry or a box shows as its what, see {@link whatOf}: a skill entry or box by the code of its skill
+ * and its type alone, like `IN0004 VO` of `IN0004_EinfuehrungRechnerarchitektur (VO)`, or a project by its name,
+ * like `WokFlow`, so it stays short; one without skill and type, like an older entry, and any other entry or box
+ * by its what as written.
+ *
+ * @param category - Its category, like `Skill`
+ * @param title - Its what as written, its `SUMMARY`, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
+ * @param module - Its skill, like `IN0004`, empty for none
+ * @param type - Its type, like `VO`, empty for none
+ * @returns What it shows, like `IN0004 VO`
+ */
+export function shownWhatOf(category: string, title: string, module: string, type: string): string {
+    if (category !== skillName || (module === "" && type === ""))
+        return title;
+    return [module, type].filter((part: string): boolean => part !== "").join(" ");
+}
+
+/**
  * Loads the plans of the days of a range from the reader.
  *
  * @param start - First day, like `2026-10-13`
@@ -334,36 +352,37 @@ function nearOf(box: Box, day: string): string {
 const pushesAsking: number = 3;
 
 /**
- * Writes the line of the time and length of a box, the second of its three lines, see {@link boxContentOf},
+ * Writes the parts of the line of the time and length of a box, the second of its three lines,
+ * see {@link boxContentOf}, which a middle dot parts,
  * the same whether it is open or done, since the log shows its real time: its own day when it is carried along
  * to a later day, like `Mon, 12.10.2026`, its expected start and end, or its deadline, like
- * `Deadline Fri, 23.10.2026, 12:00`, see {@link deadlineTextOf}, its expected duration in brackets after them,
- * like `11:30 – 13:00 (90 min)`, alone without them, like `75 min`, how near its deadline is while it is open,
+ * `Deadline Fri, 23.10.2026, 12:00`, see {@link deadlineTextOf}, its expected duration after them,
+ * like `11:30 – 13:00 · 90 min`, or alone, like `75 min`, how near its deadline is while it is open,
  * see {@link nearOf}, and how often it was pushed, from {@link pushesAsking} pushes on, while it is open,
  * with the question `smaller or skip?`, like `75 min · pushed once`; the week leaves out
  * how near a deadline is, since it shows a deadline only on its own day, which its row names; one the university
- * cancelled says so at its end, like `16:00 – 17:30 (90 min) · cancelled by university`.
- * - `pushes`: How often it was pushed, empty for never, with the question when it asks.
+ * cancelled says so at its end, like `16:00 – 17:30 · 90 min · cancelled by university`.
+ * - `pushes`: How often it was pushed, empty for never.
+ * - `asking`: The question whether to make it smaller or skip it, empty while it does not ask.
  * - `near`: How near its deadline is, empty for a box without, one not open, or in the week.
  * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
  * - `start`: Its expected start, `null` for none.
  * - `when`: Its deadline, else its expected start and end, or its start alone without duration, empty for neither.
- * - `length`: Its expected duration, in brackets after `when`, empty for none; a space that never breaks
- *   between its number and `min`, so a narrow box keeps `(90 min)` together on one line.
+ * - `length`: Its expected duration, empty for none; a space that never breaks between its number and `min`,
+ *   so a narrow box keeps `90 min` together on one line.
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
  * @param nearShown - Whether to write how near its deadline is, as the day does, but not the week
- * @returns The line, empty when there is nothing to write
+ * @returns The parts of the line, in order, none when there is nothing to write
  */
-function timeLineOf(box: Box, day: string, nearShown: boolean): string {
+function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
     let pushes: string = "";
     if (box.pushed.length === 1)
         pushes = "pushed once";
     else if (box.pushed.length > 1)
         pushes = `pushed ${box.pushed.length} times`;
-    if (box.pushed.length >= pushesAsking && box.state === "open")
-        pushes += " · smaller or skip?";
+    const asking: string = box.pushed.length >= pushesAsking && box.state === "open" ? "smaller or skip?" : "";
     const near: string = !nearShown || box.deadline === "" || box.state !== "open" ? "" : nearOf(box, day);
     const over: string = box.state === "open" && box.deadline === "" && box.day < day ? weekdayTextOf(box.day) : "";
     const start: Date | null = box.time === "" ? null : new Date(box.time);
@@ -372,24 +391,24 @@ function timeLineOf(box: Box, day: string, nearShown: boolean): string {
         when = `${timeOf(start)} – ${timeOf(new Date(start.getTime() + box.minutes * 60 * 1000))}`;
     if (box.deadline !== "")
         when = deadlineTextOf(box);
-    let length: string = box.minutes === null ? "" : `${box.minutes}\u00a0min`;
-    if (when !== "" && length !== "")
-        length = `(${length})`;
-    return [over, [when, length].filter((part: string): boolean => part !== "").join(" "), near, pushes,
-        box.state === "university" ? "cancelled by university" : ""]
-        .filter((part: string): boolean => part !== "").join(" · ");
+    const length: string = box.minutes === null ? "" : `${box.minutes}\u00a0min`;
+    return [over, when, length, near, pushes, asking, box.state === "university" ? "cancelled by university" : ""]
+        .filter((part: string): boolean => part !== "");
 }
 
 /**
  * Makes the lines of a box, in the day and in the week alike, the same three whether it is open or done, see the top
  * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf}, like **`Skill: IN0004 VO`**,
- * its long names breakable, see `breakableOf` in `choices.ts`, its time and length in the light grey of a time,
- * see {@link timeLineOf}, like `16:00 – 17:30 (90 min)`, and its place on a line of its own in the darker grey,
+ * a skill by its code, see {@link shownWhatOf}, its long names breakable, see `breakableOf` in `choices.ts`,
+ * its time and length in the light grey of a time, its parts apart by a middle dot with room on both sides,
+ * see {@link timePartsOf}, like `16:00 – 17:30 · 90 min`, and its place on a line of its own in the darker grey,
  * by its label alone, its address hidden, like `Audimax im Galileo`, a way its route,
  * like `HomeMunich → TumGarching`, see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click
  * instead of the box; a line without anything to say is left out, a line wider than the box goes on below,
  * see `.box-what` in `day.css`.
- * - `time`: The line of its time and length.
+ * - `what`: What it is as shown.
+ * - `times`: The parts of the line of its time and length, the first plain, each further one after its dot,
+ *   see `.entry-parted` in `day.css`.
  * - `place`: The label of its place or the route of a way, empty for none.
  *
  * @param box - The box
@@ -398,11 +417,14 @@ function timeLineOf(box: Box, day: string, nearShown: boolean): string {
  * @returns Its lines
  */
 export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] {
-    const time: string = timeLineOf(box, day, nearShown);
+    const what: string = shownWhatOf(box.category, box.title, box.module, box.type);
+    const times: (string | Node)[] = timePartsOf(box, day, nearShown).map((part: string, index: number):
+        string | Node => index === 0 ? part : entryPartOf("span", "entry-parted", [part]));
     const place: string = whereOf(box.category, box.from, box.location);
     return [
-        entryPartOf("div", "box-what", whatOf(box.category, box.title === box.category ? "" : breakableOf(box.title))),
-        ...(time === "" ? [] : [entryPartOf("div", "box-meta box-time", [entryPartOf("span", "box-part", [time])])]),
+        entryPartOf("div", "box-what", whatOf(box.category, what === box.category ? "" : breakableOf(what))),
+        ...(times.length === 0 ? []
+            : [entryPartOf("div", "box-meta box-time", [entryPartOf("span", "box-part", times)])]),
         ...(place === "" ? [] : [entryPartOf("div", "box-meta", [
             entryPartOf("span", "box-part", whereLinkedOf(box.category, box.from, box.location, box.locationLink)),
         ])]),

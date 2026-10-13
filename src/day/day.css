@@ -1508,8 +1508,9 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Part of a line after a middle dot, like `· 05:15 – 05:45` or `· HomeMunich`: the dot drawn before it
-   with half a letter of space on both sides, which a line in parts would drop as spaces at the start of a part */
+/* Part of a line after a middle dot, like `· 05:15 – 05:45` or `· HomeMunich` in the log, or `· 90 min` in a box:
+   the dot drawn before it with half a letter of space on both sides, which a line in parts would drop as spaces
+   at the start of a part */
 .entry-parted::before {
     content: "·";
     margin-inline: 0.5em;
