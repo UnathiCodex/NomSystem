@@ -3,7 +3,7 @@
  *
  * Opens one area of the life system below the areas named in `index.html`, by the address:
  * the week at `/week`, the notes at `/notes`, the skill area at `/skill`, the food area at `/food`,
- * the editor of a draft note at `/edit`, the day everywhere else.
+ * the editor of my drafts and of the files of my new system at `/edit`, the day everywhere else.
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the notes no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
@@ -25,7 +25,8 @@
  * - `./notes/notes.ts`: Shows the modules of the semester and their notes, rendered like Obsidian.
  * - `./skill/skill.ts`: Shows my tasks, due ones first, and records my attempts.
  * - `./food/food.ts`: Shows what I ate on a day with its totals, and my foods.
- * - `./editor/editor.ts`: Edits a draft note as its text, its Markdown shown as in the notes, saved exactly as edited.
+ * - `./editor/editor.ts`: Edits a draft note or a Markdown file of my new system as its text, its Markdown shown
+ *   as in the notes, saved exactly as edited, with the tree of my new system on the left.
  */
 
 /// <reference types="vite/client" />

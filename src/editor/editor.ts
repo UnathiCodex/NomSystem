@@ -1,15 +1,21 @@
 /**
  * ## Editor
  *
- * Edits a draft note as its text, its Markdown shown as in the notes view away from the cursor, see `./preview.ts`.
+ * Edits a draft note or a Markdown file of my new system as its text, its Markdown shown as in the notes view
+ * away from the cursor, see `./preview.ts`.
  * It edits the text of the file itself: saving writes exactly the edited text, nothing reformatted,
  * tabs, spacers `⠀` and soft hyphens, spaces at the ends of lines and the line breaks of the file as they were.
- * The reader writes only the unchecked drafts and keeps each change as a diff, so the AI learns my style from my corrections;
- * any other note opens to read only.
- * The address names the note by its path in the notes view, like
+ * Of my modules the reader writes only the unchecked drafts and keeps each change as a diff, so the AI learns my style
+ * from my corrections; any other note opens to read only.
+ * On the left the tree of `NomManageplannings`, folders first, as the reader lists it, without my old system,
+ * see `reader/files.ts`: a click on a Markdown file of the three folders of my new system, like `Foods.md`,
+ * `Places.md` or a daily note, opens it to edit, saved back into its file without a diff; an `.ics` file opens
+ * as its plain text, to read only; any other file shows in the tree, faint, and opens not.
+ * The address names a file of my new system by its path in the tree, like `/edit?file=NomMetainformations/Foods.md`,
+ * and a draft by its path in the notes view, like
  * `/edit?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
  * Saves with the save button or Ctrl+S, refused when the file changed on the disk since it was read,
- * and asks before leaving with changes unsaved.
+ * and asks before leaving with changes unsaved, also for another file of the tree.
  *
  * - `@codemirror/state`, `@codemirror/view`: The editor, CodeMirror 6, the engine of Obsidian's editor.
  * - `@codemirror/commands`: Undo, redo and the usual keys, Tab indenting a line.
@@ -19,7 +25,8 @@
  * - `../icons.ts`: Puts the icon into the save button.
  * - `./syntax.ts`: Obsidian syntax for the Markdown parser.
  * - `./preview.ts`: Shows the Markdown as in the notes view.
- * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images.
+ * - `../notes/tree.ts`: Makes the folders of the tree, as the menu of the notes view has them.
+ * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images, and of the tree.
  * - `./editor.css`: Look of the editor.
  */
 
@@ -32,6 +39,7 @@ import { Check } from "lucide";
 import { iconPut } from "../icons.ts";
 import { obsidianSyntax } from "./syntax.ts";
 import { livePreview } from "./preview.ts";
+import { folderOf } from "../notes/tree.ts";
 import "../notes/notes.css";
 import "./editor.css";
 
@@ -54,18 +62,70 @@ type LinkedNote = {
 };
 
 /**
+ * A file of my new system, as the reader sends it.
+ *
+ * - `path`: Its path in the tree, like `NomMetainformations/Foods.md`.
+ * - `text`: Its text, as it lies in the file.
+ * - `editable`: Whether I may change it: a Markdown file, not an `.ics` file.
+ */
+type SystemFile = {
+    path: string;
+    text: string;
+    editable: boolean;
+};
+
+/**
+ * A folder or file of the tree, as the reader sends it.
+ *
+ * - `name`: Its name, like `2026_10` or `Foods.md`.
+ * - `path`: Its path in the tree, like `NomMetainformations/Foods.md`.
+ * - `folder`: Whether it is a folder.
+ * - `opens`: Whether the editor opens it: a Markdown or `.ics` file of the three folders of my new system.
+ * - `children`: What a folder holds, its folders first.
+ */
+type FileNode = {
+    name: string;
+    path: string;
+    folder: boolean;
+    opens: boolean;
+    children: FileNode[];
+};
+
+/**
+ * The file the editor shows, a draft note or a file of my new system, see {@link openedRead}.
+ *
+ * - `text`: Its text, as it lies in the file.
+ * - `links`: For a note of my modules the files its links lead to; none for a file of my new system,
+ *   whose links stay as they are written.
+ * - `markdown`: Whether it is Markdown, shown with its preview; else its plain text, like an `.ics` file.
+ * - `editable`: Whether I may change it: a draft note or a Markdown file of my new system.
+ */
+type Opened = {
+    text: string;
+    links: Links;
+    markdown: boolean;
+    editable: boolean;
+};
+
+/**
  * Markdown as my notes are written: CommonMark with GitHub's tables, task lists, strikethrough and links,
  * and the Obsidian syntax of `./syntax.ts`.
  */
 const markdownLanguage: Language = new Language(defineLanguageFacet(), parser.configure([GFM, obsidianSyntax]), [], "markdown");
 
 /**
- * Path of the note, as the notes view takes it.
+ * Path of the file: of a note as the notes view takes it, of a file of my new system as the tree names it.
  */
 let path: string = "";
 
 /**
- * Text of the note as it lies in the file: as read, then as saved last.
+ * Address of the reader that writes the file: `/api/edit/note` for a draft, which keeps a diff,
+ * `/api/edit/file` for a file of my new system.
+ */
+let saveAddress: string = "/api/edit/note";
+
+/**
+ * Text of the file as it lies on the disk: as read, then as saved last.
  */
 let saved: string = "";
 
@@ -75,13 +135,13 @@ let saved: string = "";
 let saving: boolean = false;
 
 /**
- * The editor, once the note is read.
+ * The editor, once the file is read.
  */
 let view: EditorView;
 
 
 /**
- * Shows whether the note has changes not yet saved: the save button in the calm grey of a main button while it has,
+ * Shows whether the file has changes not yet saved: the save button in the calm grey of a main button while it has,
  * and beside it a notice, like `Saved`, else `Unsaved` while it has changes.
  * - {@link EditorState#sliceDoc}: Gives the text, its lines joined by the line break of the file.
  *
@@ -97,9 +157,9 @@ function stateShow(notice: string): void {
 }
 
 /**
- * Saves the note: sends its text to the reader with the text it had when read or saved last;
- * the reader writes it, and its change as a diff, when the file has not changed since.
- * Does nothing while a save is on its way, when nothing changed, or for a note to read only.
+ * Saves the file: sends its text to the reader with the text it had when read or saved last;
+ * the reader writes it when the file has not changed since, a draft with its change as a diff.
+ * Does nothing while a save is on its way, when nothing changed, or for a file to read only.
  */
 async function noteSave(): Promise<void> {
     const text: string = view.state.sliceDoc();
@@ -108,7 +168,7 @@ async function noteSave(): Promise<void> {
 
     saving = true;
     try {
-        const response: Response = await fetch("/api/edit/note", {
+        const response: Response = await fetch(saveAddress, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ path: path, base: saved, text: text }),
@@ -142,30 +202,32 @@ function keyDown(event: KeyboardEvent): void {
 }
 
 /**
- * Builds the extensions of the editor for a note.
+ * Builds the extensions of the editor for a file.
  * - `lineSeparator`: Splits and joins the lines by the line break of the file, `\r\n` or `\n`,
  *   so saving writes the line breaks as they were, also a single other one, which stays inside its line.
- * - `readOnly`: Lets me read a note that is no draft, never change it.
+ * - `readOnly`: Lets me read a note that is no draft, or an `.ics` file, never change it.
+ * - `markdownLanguage`, `livePreview`: Read a Markdown file as Markdown and show it as in the notes view;
+ *   any other file stays its plain text.
  * - `indentUnit`: Indents with a tab, as my notes do.
  * - `lineWrapping`: Wraps long lines at the reading width, as the notes view does, so I see where a line overflows.
  * - `darkTheme`: Draws cursor and selection for a dark page.
- * - `updateListener`: Shows whether the note has unsaved changes after each change of the text.
+ * - `updateListener`: Shows whether the file has unsaved changes after each change of the text.
  *
- * @param note - Note with the files its links lead to
+ * @param opened - The file
  * @returns Extensions
  */
-function extensionsOf(note: LinkedNote): Extension[] {
+function extensionsOf(opened: Opened): Extension[] {
     return [
-        EditorState.lineSeparator.of(note.text.includes("\r\n") ? "\r\n" : "\n"),
-        EditorState.readOnly.of(!path.startsWith("Drafts/")),
-        markdownLanguage,
+        EditorState.lineSeparator.of(opened.text.includes("\r\n") ? "\r\n" : "\n"),
+        EditorState.readOnly.of(!opened.editable),
+        ...(opened.markdown ? [markdownLanguage] : []),
         indentUnit.of("\t"),
         history(),
         drawSelection(),
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
         EditorView.lineWrapping,
         EditorView.darkTheme.of(true),
-        livePreview(note.links),
+        ...(opened.markdown ? [livePreview(opened.links)] : []),
         EditorView.updateListener.of((update: ViewUpdate): void => {
             if (update.docChanged)
                 stateShow("");
@@ -175,31 +237,124 @@ function extensionsOf(note: LinkedNote): Extension[] {
 
 
 /**
- * Starts the editor after the router has put its HTML into the page: reads the note the address names
- * and shows it to edit, with the save button, Ctrl+S, and a question before leaving with changes unsaved;
- * a note that cannot be read shows a hint instead.
- * - `beforeunload`: Comes before the page closes or loads again; `preventDefault` makes the browser ask.
+ * Makes an entry of the tree: a folder that folds, open at the top and on the way to the file shown,
+ * its entries in it; a file that opens as a link to it, named as on the disk, the file shown in the grey
+ * of what is picked; any other file faint, opening nothing.
+ * - `folder`: The folder of a folder.
+ * - `link`: The link of a file that opens.
+ * - `name`: The name of any other file.
+ *
+ * @param node - Folder or file of the tree
+ * @param shown - Path of the file of my new system shown, like `NomMetainformations/Foods.md`, empty for none
+ * @returns Its entry
+ */
+function nodeOf(node: FileNode, shown: string): HTMLElement {
+    if (node.folder) {
+        const folder: HTMLDetailsElement = folderOf(node.name);
+        folder.open = !node.path.includes("/") || shown.startsWith(`${node.path}/`);
+        folder.lastElementChild?.append(...node.children.map((child: FileNode): HTMLElement => nodeOf(child, shown)));
+        return folder;
+    }
+    if (node.opens) {
+        const link: HTMLAnchorElement = document.createElement("a");
+        link.className = "tree-file";
+        link.classList.toggle("shown", node.path === shown);
+        link.href = `/edit?file=${encodeURIComponent(node.path)}`;
+        link.textContent = node.name;
+        return link;
+    }
+    const name: HTMLSpanElement = document.createElement("span");
+    name.className = "tree-file editor-closed";
+    name.title = "Only Markdown and .ics files of the three folders of my new system open";
+    name.textContent = node.name;
+    return name;
+}
+
+/**
+ * Loads the tree of `NomManageplannings` from the reader and shows it on the left, see {@link nodeOf}.
+ * - `tree`: Its folders and files.
+ *
+ * @param shown - Path of the file of my new system shown, like `NomMetainformations/Foods.md`, empty for none
+ * @throws {Error} - When the reader cannot answer
+ */
+async function treeShow(shown: string): Promise<void> {
+    const response: Response = await fetch("/api/edit/tree");
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    const tree: FileNode[] = await response.json() as FileNode[];
+    document.getElementById("editor-tree")?.replaceChildren(...tree.map((node: FileNode): HTMLElement =>
+        nodeOf(node, shown)));
+}
+
+/**
+ * Reads the file the address names, see the top of this file: a file of my new system, else a note.
+ * - `response`: Answer of the reader.
+ * - `sent`: The file of my new system as the reader sends it.
+ * - `note`: The note as the reader sends it.
+ *
+ * @param file - Path of a file of my new system, like `NomMetainformations/Foods.md`, empty for a note
+ * @returns The file, `null` when the reader cannot read it
+ */
+async function openedRead(file: string): Promise<Opened | null> {
+    if (file !== "") {
+        const response: Response = await fetch(`/api/edit/file?path=${encodeURIComponent(file)}`);
+        if (!response.ok)
+            return null;
+        const sent: SystemFile = await response.json() as SystemFile;
+        return { text: sent.text, links: {}, markdown: /\.md$/i.test(sent.path), editable: sent.editable };
+    }
+
+    const response: Response = await fetch(`/api/notes/note?path=${encodeURIComponent(path)}`);
+    if (!response.ok)
+        return null;
+    const note: LinkedNote = await response.json() as LinkedNote;
+    return { text: note.text, links: note.links, markdown: true, editable: path.startsWith("Drafts/") };
+}
+
+/**
+ * Starts the editor after the router has put its HTML into the page: shows the tree on the left,
+ * reads the file the address names and shows it to edit, with the save button, Ctrl+S, and a question
+ * before leaving with changes unsaved; a file to read only says so, a file that cannot be read shows a hint instead,
+ * and so does the editor while it shows no file.
+ * - `address`: The parameters of the address.
+ * - `file`: Path of the file of my new system, empty for a note.
+ * - `opened`: The file read.
+ * - `text`: Element of the text, with the look of the notes for Markdown, else of plain text.
+ * - `beforeunload`: Comes before the page closes or loads again, also for another file of the tree;
+ *   `preventDefault` makes the browser ask.
  */
 export async function editorStart(): Promise<void> {
-    path = new URLSearchParams(location.search).get("path") ?? "";
-    (document.getElementById("editor-title") as HTMLElement).textContent = path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";
-    const response: Response | null = path === "" ? null : await fetch(`/api/notes/note?path=${encodeURIComponent(path)}`);
-    if (response === null || !response.ok) {
-        (document.getElementById("editor-state") as HTMLElement).textContent = "This note cannot be read";
+    const address: URLSearchParams = new URLSearchParams(location.search);
+    const file: string = address.get("file") ?? "";
+    const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
+    path = file !== "" ? file : address.get("path") ?? "";
+    saveAddress = file !== "" ? "/api/edit/file" : "/api/edit/note";
+    treeShow(file).catch((error: unknown): void => console.error(error));
+    (document.getElementById("editor-title") as HTMLElement).textContent =
+        path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";
+    const opened: Opened | null = path === "" ? null : await openedRead(file);
+    if (opened === null) {
+        save.hidden = true;
+        (document.getElementById("editor-state") as HTMLElement).textContent =
+            path === "" ? "Choose a file on the left" : "This file cannot be read";
         return;
     }
 
-    const note: LinkedNote = await response.json() as LinkedNote;
-    saved = note.text;
+    const text: HTMLElement = document.getElementById("editor-text") as HTMLElement;
+    text.classList.toggle("markdown", opened.markdown);
+    text.classList.toggle("editor-plain", !opened.markdown);
+    saved = opened.text;
     view = new EditorView({
-        parent: document.getElementById("editor-text") as HTMLElement,
-        state: EditorState.create({ doc: note.text, extensions: extensionsOf(note) }),
+        parent: text,
+        state: EditorState.create({ doc: opened.text, extensions: extensionsOf(opened) }),
     });
-    const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
     iconPut(save, Check, "Save");
     save.addEventListener("click", noteSave);
     save.hidden = view.state.readOnly;
-    stateShow(view.state.readOnly ? "Read only: only drafts can be edited" : "");
+    if (!view.state.readOnly)
+        stateShow("");
+    else
+        stateShow(file === "" ? "Read only: only drafts can be edited" : "Read only");
     window.addEventListener("keydown", keyDown);
     window.addEventListener("beforeunload", (event: BeforeUnloadEvent): void => {
         if (view.state.sliceDoc() !== saved)

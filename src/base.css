@@ -70,11 +70,12 @@ body {
 }
 
 /* A phone only looks at the day and its food, nothing for learning, see `main.ts`:
-   no links to the week, the notes and the skill area; the timer never runs there */
+   no links to the week, the notes, the skill area and the editor; the timer never runs there */
 @media (max-width: 900px) {
     .areas a[href="/week"],
     .areas a[href="/notes"],
-    .areas a[href="/skill"] {
+    .areas a[href="/skill"],
+    .areas a[href="/edit"] {
         display: none;
     }
 }

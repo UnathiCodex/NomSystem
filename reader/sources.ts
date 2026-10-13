@@ -9,8 +9,9 @@
  * entries link, in my modules and my projects, see {@link activeSkills} and `documents.ts`, and nothing that is
  * not listed here.
  * It writes only into the three folders of the new system, see {@link writeAllowed}, and the editor into the drafts,
- * see {@link editor}. A file or folder of the new system that is missing, like `Birthdays.ics` or the log of a month
- * without entries, counts as empty.
+ * see {@link editor}; the editor shows the tree of `NomManageplannings` but for my old system, and opens only
+ * the files of the three folders, see {@link systemFiles}. A file or folder of the new system that is missing,
+ * like `Birthdays.ics` or the log of a month without entries, counts as empty.
  *
  * - `node:os`: Gives the home folder and the operating system.
  * - `node:path`: Builds file paths for the operating system.
@@ -130,6 +131,30 @@ export type EditorSources = {
 export const editor: EditorSources = {
     drafts: notes.drafts,
     edits: join(notes.drafts, ".edits"),
+};
+
+/**
+ * Files of my new system the editor shows, see `files.ts`.
+ *
+ * - `tree`: Folder whose tree the editor shows on the left, `NomManageplannings`, with every folder I add to it later,
+ *   but without `previous` and without hidden files and folders, like `.obsidian`.
+ * - `previous`: Name of my old system, `NomSystemprevious`, left out of the tree at any depth and never read.
+ * - `folders`: The only folders whose files the editor reads and writes, the three folders of my new system,
+ *   see {@link systemRoots}: a Markdown file, like `Foods.md`, to edit, an `.ics` file only to read.
+ */
+export type SystemFilesSources = {
+    tree: string;
+    previous: string;
+    folders: string[];
+};
+
+/**
+ * {@link SystemFilesSources} as they lie in the vault.
+ */
+export const systemFiles: SystemFilesSources = {
+    tree: manageRoot,
+    previous: previousName,
+    folders: systemRoots,
 };
 
 /**

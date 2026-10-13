@@ -1,15 +1,25 @@
-<!-- Editor: one draft note as its text, its Markdown shown as in the notes away from the cursor, saved exactly as edited -->
+<!-- Editor: the tree of my new system on the left, the file on the right, a draft note or a file of my new system
+     as its text, its Markdown shown as in the notes away from the cursor, saved exactly as edited -->
 <div class="editor">
-    <!-- Page of the note in the reading width of the notes view, in the middle -->
-    <div class="editor-page">
-        <!-- Head: name of the note, whether its changes are saved, and the save button; stays on top while scrolling -->
-        <div class="editor-head">
-            <h1 class="editor-title" id="editor-title"></h1>
-            <span class="editor-state" id="editor-state"></span>
-            <button type="button" class="editor-save" id="editor-save"></button>
-        </div>
+    <!-- Tree of `NomManageplannings` without my old system, folders first, like the menu of the notes view;
+         filled by editor.ts -->
+    <nav class="editor-tree" id="editor-tree"></nav>
 
-        <!-- Text of the note, CodeMirror inside; `markdown` gives its rendered pieces the look of the notes view -->
-        <div class="editor-text markdown" id="editor-text"></div>
+    <!-- The file, scrolls alone -->
+    <div class="editor-file">
+        <!-- Page of the file in the reading width of the notes view, in the middle -->
+        <div class="editor-page">
+            <!-- Head: name of the file, whether its changes are saved, and the save button;
+                 stays on top while scrolling -->
+            <div class="editor-head">
+                <h1 class="editor-title" id="editor-title"></h1>
+                <span class="editor-state" id="editor-state"></span>
+                <button type="button" class="editor-save" id="editor-save"></button>
+            </div>
+
+            <!-- Text of the file, CodeMirror inside; `markdown` gives the rendered pieces of a Markdown file the look
+                 of the notes view, `editor-plain` shows any other file as its plain text -->
+            <div class="editor-text markdown" id="editor-text"></div>
+        </div>
     </div>
 </div>

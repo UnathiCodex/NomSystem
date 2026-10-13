@@ -22,6 +22,7 @@
  *
  * - `./markdown.ts`: Turns the Markdown of a note into HTML, with Obsidian's syntax.
  * - `./math.ts`: Renders the formulas, as Obsidian does.
+ * - `./tree.ts`: Makes the folders of the menu.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due.
  * - `../today.ts`: Gives today's calendar date, for when a task is due.
  * - `../skill/task.ts`: Builds the row of a task with its buttons, the label of a cold task, and the copy icon.
@@ -34,6 +35,7 @@
 
 import { htmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
+import { folderOf } from "./tree.ts";
 import { skillingLoad } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { coldLabelOf, taskRowOf, tutorCopyOf } from "../skill/task.ts";
@@ -166,23 +168,6 @@ async function readerAsk<T>(address: string): Promise<T> {
  */
 function noteRead(path: string): Promise<LinkedNote> {
     return readerAsk<LinkedNote>(`/api/notes/note?path=${encodeURIComponent(path)}`);
-}
-
-/**
- * Makes a folder of the menu that folds, like a chapter: its name, and below it the place of its entries.
- *
- * @param name - Name shown, like `01 Regression Analysis`
- * @returns Folder, its entries to go into its last child
- */
-function folderOf(name: string): HTMLDetailsElement {
-    const folder: HTMLDetailsElement = document.createElement("details");
-    const summary: HTMLElement = document.createElement("summary");
-    const children: HTMLDivElement = document.createElement("div");
-    folder.className = "tree-folder";
-    summary.textContent = name;
-    children.className = "tree-children";
-    folder.append(summary, children);
-    return folder;
 }
 
 /**

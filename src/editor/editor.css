@@ -1,10 +1,38 @@
-/* Editor: the page of the note in the middle, filling the screen below the areas with a grey line between, scrolls alone */
+/* Editor: the tree on the left, the file on the right, filling the screen below the areas with a grey line between,
+   as the notes view */
 .editor {
+    display: grid;
+    grid-template-columns: var(--tree-width) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
     margin-top: 0.5rem;
     border-top: 1px solid var(--line);
+}
+
+/* Tree: own column with a line beside it, scrolls alone, each row in the text of controls and one chip high,
+   as the menu of the notes view, whose folders and files it shares, see `../notes/notes.css` */
+.editor-tree {
+    overflow-y: auto;
+    padding: var(--gap) 0.75rem;
+    border-right: 1px solid var(--line);
+    font-size: var(--control-text);
+    line-height: var(--chip-height);
+}
+
+/* A file that does not open, faint and without the grey under the pointer */
+.editor-tree .editor-closed {
+    color: var(--reading-marker);
+    cursor: default;
+}
+
+.editor-tree .editor-closed:hover {
+    background: none;
+}
+
+/* The file: the page of it in the middle, scrolls alone */
+.editor-file {
+    overflow-y: auto;
 }
 
 /* Page in my Obsidian's reading width with 40 px inside on each side, as the page of the notes view,
@@ -225,4 +253,10 @@
     position: absolute;
     left: 0;
     color: var(--reading-marker);
+}
+
+/* A file that is no Markdown, like an `.ics` file, as its plain text in a font of even width */
+.editor-plain .cm-editor .cm-content {
+    font-family: ui-monospace, monospace;
+    font-size: 0.875em;
 }

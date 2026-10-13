@@ -24,6 +24,7 @@
  * - `./notes.ts`: Reads the modules of the semester, the notes and files of my modules and the links that lead nowhere,
  *   read only
  * - `./edit.ts`: Writes a draft note as I edited it, and keeps the change as a diff
+ * - `./files.ts`: Lists the files of my new system for the editor, reads one and writes a Markdown file back
  * - `./skill.ts`: Reads the tasks of my chapter notes with when each is due and what a module offers a skill entry,
  *   writes skill entries, attempts, efforts and copies for my tutor into the log, and reads the session running now
  * - `./documents.ts`: Checks the links of the skill entries at the start and every night, repairing what it can,
@@ -46,6 +47,7 @@ import { categoriesRead, wayEndRead } from "./categories.ts";
 import { placeAdd } from "./places.ts";
 import { brokenLinksRead, fileRead, linkedNoteRead, modulesRead } from "./notes.ts";
 import { noteWrite } from "./edit.ts";
+import { systemFileRead, systemFileWrite, treeRead } from "./files.ts";
 import {
     attemptAdd, effortSet, moduleRead, sessionRead, skillEntryAdd, skillEntryEdit, skillingRead, tutorAdd,
 } from "./skill.ts";
@@ -140,6 +142,10 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/notes/file?path=…`: Sends a file of my modules, like an image of a note.
  * - `GET /api/notes/broken`: Sends the links that lead nowhere in the notes of the semester, each with its note.
  * - `PUT /api/edit/note`: Writes draft note of the body, refused with 409 when its file changed since the editor read it.
+ * - `GET /api/edit/tree`: Sends the tree of `NomManageplannings` for the editor, without my old system, read only.
+ * - `GET /api/edit/file?path=…`: Sends a file of the three folders of my new system, Markdown or `.ics`.
+ * - `PUT /api/edit/file`: Writes Markdown file of the body into the three folders of my new system, without a diff,
+ *   refused with 409 when its file changed since the editor read it.
  * - `GET /api/skill/tasks`: Sends the modules with their tasks, when each is due, every module folder,
  *   and the reasons to skip, the types and the efforts.
  * - `GET /api/skill/module?code=…`: Sends the chapters and documents of the skill of the name, none for a project.
@@ -268,6 +274,15 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "PUT" && url.pathname === "/api/edit/note") {
         responseSend(response, noteWrite(await json(request) as NoteChange) ? 200 : 409, null);
+
+    } else if (request.method === "GET" && url.pathname === "/api/edit/tree") {
+        responseSend(response, 200, treeRead());
+
+    } else if (request.method === "GET" && url.pathname === "/api/edit/file") {
+        responseSend(response, 200, systemFileRead(path));
+
+    } else if (request.method === "PUT" && url.pathname === "/api/edit/file") {
+        responseSend(response, systemFileWrite(await json(request) as NoteChange) ? 200 : 409, null);
 
     } else if (request.method === "GET" && url.pathname === "/api/skill/tasks") {
         responseSend(response, 200, skillingRead());
