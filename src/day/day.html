@@ -1,6 +1,6 @@
-<!-- Day: the plan as a list of boxes beside the log, my one calendar; at the right the trackers and the daily note -->
+<!-- Day: the plan as a list of boxes beside the log, my one calendar; below the log the trackers and the daily note -->
 <div class="day">
-    <!-- Left side: the shown day above its plan and its log, side by side -->
+    <!-- The shown day above its plan and its log, side by side -->
     <div class="day-main" id="day-main" data-shown="plan">
         <!-- The date of the shown day at the right end, above the log, always fully readable, the arrows
              to the day before and after left and right of it; on another day than today a small icon beside the date
@@ -35,6 +35,35 @@
                 <h2>Log</h2>
             </div>
             <div class="day-calendar" id="day-calendar"></div>
+
+            <!-- Below the time grid, out of the way of the log: the trackers of the day in one line, then the daily
+                 note, its gratitude and its points about the day side by side; not on a phone -->
+            <div class="day-below">
+                <!-- Trackers of the shown day: glasses of water, food and the night's sleep; filled by trackers.ts -->
+                <section class="trackers" id="trackers"></section>
+
+                <!-- Daily note of the shown day, read only below my gratitude and my points about the day,
+                     which write into it -->
+                <article class="day-note">
+                    <h2>Daily note</h2>
+
+                    <!-- What I write into the note any time of the day, saved as I type, each a list of points
+                         with their bullets, see points.ts: my gratitude, and my points about the day overall -->
+                    <div class="note-boxes">
+                        <section class="note-box">
+                            <h3 class="note-box-name">Gratitude</h3>
+                            <ul class="note-points" id="gratitude" aria-label="Gratitude"></ul>
+                        </section>
+                        <section class="note-box">
+                            <h3 class="note-box-name">About the day</h3>
+                            <ul class="note-points" id="about-day" aria-label="About the day"></ul>
+                        </section>
+                        <p class="panel-error" id="note-boxes-error" hidden>Saving failed</p>
+                    </div>
+
+                    <div id="day-note-text"></div>
+                </article>
+            </div>
             <div class="column-foot">
                 <button class="column-new" id="log-new" type="button"></button>
             </div>
@@ -48,33 +77,6 @@
             <button class="column-new" id="day-new" type="button"></button>
         </div>
     </div>
-
-    <!-- Right side: the trackers above the daily note -->
-    <aside class="day-side">
-        <!-- Trackers of the shown day: sleep against my goals, glasses of water, food; filled by trackers.ts -->
-        <section class="trackers" id="trackers"></section>
-
-        <!-- Daily note of the shown day, read only below my gratitude and my paragraph about the day, which write into it -->
-        <article class="day-note">
-            <h2>Daily note</h2>
-
-            <!-- What I write into the note any time of the day, saved as I type, each a list of points
-                 with their bullets, see points.ts: my gratitude, and my points about the day overall -->
-            <div class="note-boxes">
-                <section class="note-box">
-                    <h3 class="note-box-name">Gratitude</h3>
-                    <ul class="note-points" id="gratitude" aria-label="Gratitude"></ul>
-                </section>
-                <section class="note-box">
-                    <h3 class="note-box-name">About the day</h3>
-                    <ul class="note-points" id="about-day" aria-label="About the day"></ul>
-                </section>
-                <p class="panel-error" id="note-boxes-error" hidden>Saving failed</p>
-            </div>
-
-            <div id="day-note-text"></div>
-        </article>
-    </aside>
 </div>
 
 <!-- Entry by category for the log and the boxes of the plan, shown over the page, without a title, all its room

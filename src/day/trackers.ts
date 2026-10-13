@@ -1,16 +1,16 @@
 /**
  * ## Trackers
  *
- * The card of the trackers of the shown day above the daily note, as the reader counts them, see `reader/trackers.ts`,
- * calm and basic, without descriptions under the pointer;
- * my sleep shows in the log alone, its goal, the spread of my bedtime and the average of the week left out for now,
- * since other things come first:
+ * The card of the trackers of the shown day, below the log above the daily note, as the reader counts them,
+ * see `reader/trackers.ts`, calm and basic, side by side in one line, without descriptions under the pointer:
+ * - Sleep: how long the night of the day lasted, the sleep I woke up from that morning, like `7 h 30 min`;
+ *   its goal, the spread of my bedtime and the average of the week left out for now, since other things come first.
  * - Water: the glasses of the day between `−` and `+`, like `6`, without a goal, and beside them what they make
  *   in litres, like `1.5 l`; every other drink, like `Kaffee`, counts as a glass too; `+` logs one more glass
  *   of water, at the time of the tap on the shown day, `−` takes the last glass of water back.
  *   A day still to come takes no glasses.
- * - Food: the number of the day's meals under its name, like `3 meals`, so a meal missing shows, then their kcal
- *   and protein, totals without goals, linking to the day in the food view.
+ * - Food: the kcal of the day's meals, a total without goal, and in brackets after it the number of the meals,
+ *   like `1,850 kcal (3 meals)`, so a meal missing shows, linking to the day in the food view.
  * - Neck: two tiles over the seven days up to the day: on how many of my study days I did
  *   a neck routine, short or long, like `2 / 5` over `short · study days`, a check from two thirds of them on,
  *   since about two thirds of the sessions already gave the large effects (Chen 2018), and on how many days a long
@@ -263,12 +263,10 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
 }
 
 /**
- * Builds the food: under its name the number of the day's meals, like `3 meals`;
- * beside it their kcal and protein, `≈` when they hold a usual portion, like `≈ 1,850 kcal · ≈ 95 g protein`,
- * linking to the day in the food view.
+ * Builds the food: the kcal of the day's meals, `≈` when they hold a usual portion, and in brackets the number
+ * of the meals, like `≈ 1,850 kcal (3 meals)` or `0 kcal (0 meals)`, linking to the day in the food view.
  * - `food`: What the meals gave.
  * - `about`: `≈ ` before an estimate.
- * - `name`: Name of the tracker with the number of meals under it.
  *
  * @param trackers - Trackers of the day
  * @param day - The shown day, like `2026-10-10`
@@ -279,15 +277,33 @@ function foodOf(trackers: Trackers, day: string): HTMLElement {
     const link: HTMLAnchorElement = document.createElement("a");
     const food: Nutrients & { estimate: boolean; meals: number } = trackers.food;
     const about: string = food.estimate ? "≈ " : "";
-    const name: HTMLElement = elementOf("span", "tracker-name", "Food");
     link.className = "tracker-link";
     link.href = `/food?date=${day}`;
-    link.textContent = food.meals === 0
-        ? "No meals logged"
-        : `${about}${amountOf(food.kcal, 0)} kcal · ${about}${amountOf(food.protein, 0)} g protein`;
-    if (food.meals > 0)
-        name.append(elementOf("span", "", `${food.meals} ${food.meals === 1 ? "meal" : "meals"}`));
-    row.append(name, link);
+    link.textContent = `${about}${amountOf(food.kcal, 0)} kcal (${food.meals} ${food.meals === 1 ? "meal" : "meals"})`;
+    row.append(elementOf("span", "tracker-name", "Food"), link);
+    return row;
+}
+
+/**
+ * Builds the sleep: how long the night of the day lasted, the sleep I woke up from that morning, in hours
+ * and minutes, like `7 h 30 min`, or `7 h` on the hour; a dash while no night is logged.
+ * - `night`: The night of the day, `null` for none.
+ * - `length`: How long it lasted as shown.
+ * - `hours`, `minutes`: Its length in whole hours and the minutes left.
+ *
+ * @param trackers - Trackers of the day
+ * @returns Row of the sleep
+ */
+function sleepOf(trackers: Trackers): HTMLElement {
+    const row: HTMLElement = elementOf("div", "tracker-row", "");
+    const night: Night | null = trackers.sleep.night;
+    let length: string = "–";
+    if (night !== null) {
+        const hours: number = Math.floor(night.minutes / 60);
+        const minutes: number = night.minutes % 60;
+        length = minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
+    }
+    row.append(elementOf("span", "tracker-name", "Sleep"), elementOf("span", "tracker-value", length));
     return row;
 }
 
@@ -349,8 +365,8 @@ async function trackersLoad(calendar: Calendar): Promise<void> {
     const trackers: Trackers = await trackersFetch(day);
     if (day !== dayOf(calendar.view.currentStart))
         return;
-    document.getElementById("trackers")?.replaceChildren(waterOf(calendar, trackers, day), foodOf(trackers, day),
-        ...(neckShown ? [neckOf(trackers)] : []));
+    document.getElementById("trackers")?.replaceChildren(sleepOf(trackers), waterOf(calendar, trackers, day),
+        foodOf(trackers, day), ...(neckShown ? [neckOf(trackers)] : []));
 }
 
 /**

@@ -1,15 +1,15 @@
-/* Day: calendar on the left, daily note on the right, filling the screen */
+/* Day: plan and log over the whole width, filling the screen; the trackers and the daily note below the log */
 .day {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--note-width);
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--gap);
     flex: 1;
     min-height: 0;
     padding: var(--gap);
 }
 
-/* Left side: the bar of the shown day above its plan and its log, side by side, equally wide, since the plan
-   counts as much as the log, both filling the height */
+/* The bar of the shown day above its plan and its log, side by side, equally wide, since the plan counts as much
+   as the log, both filling the height */
 .day-main {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -142,12 +142,15 @@
     background: color-mix(in oklab, var(--chosen) 85%, var(--text-main));
 }
 
-/* Right side: the trackers above the daily note, the note filling the rest of the height */
-.day-side {
+/* Below the time grid of the log, splitting its column: the trackers in one line above the daily note, together
+   at most two fifths of the height, the grid taking the rest; the note scrolls alone when it is longer */
+.day-below {
     display: flex;
+    flex: 0 1 auto;
     flex-direction: column;
     gap: var(--gap);
     min-height: 0;
+    max-height: 40%;
 }
 
 /* Boxes of the plan one below the other, a little apart, so the plan looks airy, filling the height above its +
@@ -604,9 +607,9 @@ button.box-ring.box-checked svg {
     margin-inline-start: -12px;
 }
 
-/* Daily note: own card below the trackers, filling the rest of the height, scrolls alone */
+/* Daily note: own card below the trackers, as high as its text, scrolls alone when it is longer than its room */
 .day-note {
-    flex: 1;
+    flex: 0 1 auto;
     min-height: 0;
     overflow-y: auto;
     padding: var(--gap);
@@ -614,11 +617,14 @@ button.box-ring.box-checked svg {
     border-radius: var(--radius);
 }
 
-/* Trackers: own card like the daily note, its trackers one below the other */
+/* Trackers: own card like the daily note, its trackers side by side in one line, below each other
+   where the line has no room for all */
 .trackers {
     display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.625rem calc(2 * var(--gap));
     padding: var(--gap);
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -658,7 +664,7 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-/* Row of a tracker: its name small and grey in a column of its own, then its tiles or controls */
+/* A tracker: its name small and grey, then its tiles or controls */
 .tracker-row {
     display: flex;
     align-items: center;
@@ -666,10 +672,7 @@ button.box-ring.box-checked svg {
 }
 
 .tracker-name {
-    display: flex;
     flex: none;
-    flex-direction: column;
-    width: 4.5rem;
     font-size: 0.75rem;
     color: var(--text-muted);
 }
@@ -678,6 +681,12 @@ button.box-ring.box-checked svg {
     margin: 0;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
+}
+
+/* Value of a tracker without controls, like the length of the night, in the colour of the text */
+.tracker-value {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 /* `−` and `+` of the water, small round chips one chip high, a grey lighter under the pointer, faded while they
@@ -732,13 +741,17 @@ button.box-ring.box-checked svg {
     text-decoration: underline;
 }
 
-/* My gratitude and my points about the day at the top of the daily note, one below the other:
+/* My gratitude and my points about the day at the top of the daily note, side by side, each half of the note:
    each its name small and grey above its list of points, see `.note-points` */
 .note-boxes {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap);
-    margin: 0.75rem 0 var(--gap);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--gap) calc(2 * var(--gap));
+    margin: 0.75rem 0 0;
+}
+
+.note-boxes .panel-error {
+    grid-column: 1 / -1;
 }
 
 .note-box {
@@ -979,11 +992,11 @@ button.box-ring.box-checked svg {
     cursor: default;
 }
 
-/* Entry by category: one column of rows, wide enough for whole names, at most as high as the screen with a gap
-   around, then scrolling as a whole, the lists of its fields too, which open inside it, see `.picker-box`;
-   its top stays where it is as a list opens or closes, so the rows above never move */
+/* Entry by category: one column of rows, wide enough for whole names and long lists, 44rem, at most as high
+   as the screen with a gap around, then scrolling as a whole, the lists of its fields too, which open inside it,
+   see `.picker-box`; its top stays where it is as a list opens or closes, so the rows above never move */
 .entry-panel {
-    width: min(36rem, calc(100vw - 2 * var(--gap)));
+    width: min(44rem, calc(100vw - 2 * var(--gap)));
     max-height: calc(100dvh - 2 * var(--gap));
     margin-top: max(var(--gap), 6dvh);
     overflow-y: auto;
@@ -1594,7 +1607,7 @@ svg.route-arrow {
         grid-template-rows: auto minmax(0, 1fr) auto;
     }
 
-    .day-side,
+    .day-below,
     .column-head,
     .column-foot {
         display: none;
