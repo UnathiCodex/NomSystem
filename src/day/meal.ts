@@ -41,8 +41,8 @@ import { listOf, rowOf } from "./choices.ts";
 import { amountOf, dishesLoad, elementOf, foodsFind } from "../food/foods.ts";
 import { kcalTextOf, mealFormOf, variantTextOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf } from "../food/search.ts";
-import { iconOf, iconPut } from "../icons.ts";
-import { ArrowLeftRight, ChevronDown, ChevronRight, X } from "lucide";
+import { iconOf, iconPut, iconWordsOf } from "../icons.ts";
+import { ArrowLeftRight, ChevronDown, ChevronRight, Plus, X } from "lucide";
 
 import type { Dish, Food, FoodsFound, Variant } from "../food/foods.ts";
 
@@ -254,6 +254,21 @@ function buttonOf(className: string, text: string, click: () => void): HTMLButto
 }
 
 /**
+ * Makes the row at the end of a list that adds, like `+ New meal`, the icon of every + of the page before its words,
+ * as the lists of `choices.ts` have it.
+ * - `button`: The row.
+ *
+ * @param words - What it adds, like `New meal`
+ * @param click - What a click does
+ * @returns The row
+ */
+function addButtonOf(words: string, click: () => void): HTMLButtonElement {
+    const button: HTMLButtonElement = buttonOf("picker-new", "", click);
+    button.append(...iconWordsOf(Plus, words));
+    return button;
+}
+
+/**
  * Makes the small field of a number, grams or servings, with its unit after it, what it counts while empty grey in it,
  * marking itself invalid while its text is no number above 0, so the dialog does not send it.
  *
@@ -407,14 +422,17 @@ function summaryShow(): void {
 }
 
 /**
- * Shows the lines of the meals and the foods below their rows: grey `+ Meal` and `+ Food` while some are picked,
- * nothing while none is, so the empty row opens its list like every empty field.
+ * Shows the lines of the meals and the foods below their rows: while some are picked, the square + of the page,
+ * `Add a meal` or `Add a food` as its tooltip, see `.picker-line.meal-add` in `day.css`; nothing while none is,
+ * so the empty row opens its list like every empty field.
  */
 function linesShow(): void {
-    mealsLine.textContent = meals.length === 0 ? "" : "+ Meal";
+    mealsLine.replaceChildren(...meals.length === 0 ? [] : [iconOf(Plus)]);
+    mealsLine.title = meals.length === 0 ? "" : "Add a meal";
     mealsLine.classList.toggle("picker-empty", meals.length === 0);
     mealsLine.classList.toggle("meal-add", meals.length > 0);
-    foodsLine.textContent = picks.length === 0 ? "" : "+ Food";
+    foodsLine.replaceChildren(...picks.length === 0 ? [] : [iconOf(Plus)]);
+    foodsLine.title = picks.length === 0 ? "" : "Add a food";
     foodsLine.classList.toggle("picker-empty", picks.length === 0);
     foodsLine.classList.toggle("meal-add", picks.length > 0);
 }
@@ -537,7 +555,7 @@ function variantsShow(dish: Dish, changed: () => void): void {
                 + `${variant.servings === 1 ? "serving" : "servings"} · ${kcalTextOf(variant.kcal)} a serving · `
                 + variantTextOf(variant.foods)));
             return button;
-        }), buttonOf("picker-new", "+ New variant", (): void => formShow(dish.name, dish, changed)));
+        }), addButtonOf("New variant", (): void => formShow(dish.name, dish, changed)));
     mealsBox.replaceChildren(list);
 }
 
@@ -572,7 +590,7 @@ function mealsListShow(changed: () => void): void {
                     ? `${kcalTextOf(latest?.kcal ?? 0)} a serving · ${variantTextOf(latest?.foods ?? [])}`
                     : `${dish.variants.length} variants · ${kcalTextOf(latest?.kcal ?? 0)} a serving of the latest`));
                 return button;
-            }), buttonOf("picker-new", typed === "" || known ? "+ New meal" : `+ New meal „${typed}“`,
+            }), addButtonOf(typed === "" || known ? "New meal" : `New meal „${typed}“`,
             (): void => formShow(known ? "" : typed, null, changed)));
     };
     input.type = "text";

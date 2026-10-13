@@ -22,7 +22,13 @@
  * A short list that takes no new values, like the types, needs no search field and has none.
  * A value wider than its row goes on below, never cut, a long name broken where its parts meet,
  * see {@link breakableOf}.
+ *
+ * - `../icons.ts`: Puts the icon of every + of the page before the words of `+ New …`.
+ * - `lucide`: The icon plus.
  */
+
+import { iconWordsOf } from "../icons.ts";
+import { Plus } from "lucide";
 
 
 /**
@@ -365,9 +371,9 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
             group.textContent = choice.group;
             return [group, button];
         }));
-        newButton.textContent = text !== "" && !found.some((choice: Choice): boolean =>
+        newButton.replaceChildren(...iconWordsOf(Plus, text !== "" && !found.some((choice: Choice): boolean =>
             searchTextOf(choice.value) === searchTextOf(text) || searchTextOf(choice.text) === searchTextOf(text))
-            ? `+ New ${noun} “${text}”` : `+ New ${noun}`;
+            ? `New ${noun} “${text}”` : `New ${noun}`));
     };
     const typedPick: (value: string) => void = (value: string): void => {
         input.value = "";

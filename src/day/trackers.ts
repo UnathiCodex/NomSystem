@@ -238,14 +238,14 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
     };
 
     less.type = "button";
-    less.className = "water-step";
+    less.className = "chip-button";
     less.append(iconOf(Minus));
     less.setAttribute("aria-label", "0.25 l less");
     less.disabled = coming || last === undefined;
     less.addEventListener("click", (): void =>
         send((): Promise<void> => entryDelete(calendar, last?.id ?? "")));
     add.type = "button";
-    add.className = "water-step";
+    add.className = "chip-button";
     add.append(iconOf(Plus));
     add.setAttribute("aria-label", "0.25 l more");
     add.disabled = coming;

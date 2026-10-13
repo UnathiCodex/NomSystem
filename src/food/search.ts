@@ -6,8 +6,8 @@
  * and below them the products of Open Food Facts, a page of them at a time, `More` loading the next page,
  * beside it how many it shows of how many the search matches, like `8 of 54`.
  * It searches once the typing pauses, so a word asks only once; an empty field lists all my foods.
- * Below the field the brands as chips: `All brands`, then those of `Brands.md`, Edeka first, then `+ Brand`,
- * which takes any brand typed; a chip picked shows only products of its brand, my foods stay all,
+ * Below the field the brands as chips: `All brands`, then those of `Brands.md`, Edeka first, then the square + of the
+ * page, see `.chip-button` in `base.css`, `Brand` as its tooltip, which takes any brand typed; a chip picked shows only products of its brand, my foods stay all,
  * and carries `×`, which removes its brand from `Brands.md`.
  * Each food shows kcal, protein, carbs and fat per 100 g and its usual portion, its brand after its name and below it
  * small its store, like `Gouda · Milbona` over `Lidl`, so the same name of two shops never mixes up; a product also
@@ -16,7 +16,8 @@
  * both prefilled, 100 g for a product without serving, its name with its brand after it when one of my foods has
  * its name already; it goes into `Foods.md` with its brand and store, and its brand into `Brands.md`,
  * a chip from then on.
- * `+ Own food by hand` at the end, for a food found nowhere, opens one to add it with its values per 100 g typed.
+ * The square + at the end, `Own food by hand, when nothing is found` as its tooltip, for a food found nowhere,
+ * opens one to add it with its values per 100 g typed.
  * Where a food is wanted, like in a meal, a click on one of my foods picks it, and so does adding one,
  * so a meal lists only foods of `Foods.md`; there rows of its own may stand above my foods, like the meals eaten before,
  * built anew for each search. Nothing in the search is a form or sends one, so it can stand inside the form of a dialog.
@@ -28,7 +29,7 @@
  */
 
 import { amountOf, brandDelete, brandSend, brandsLoad, elementOf, foodSend, foodsFind } from "./foods.ts";
-import { iconPut, iconWordsOf } from "../icons.ts";
+import { iconPut } from "../icons.ts";
 import { Check, Plus, X } from "lucide";
 import "./search.css";
 
@@ -175,7 +176,7 @@ function numberRead(text: string): number {
 }
 
 /**
- * Opens the form to add a food below a row or below `+ Own food by hand`, in place of any form open before:
+ * Opens the form to add a food below a row or below the + of an own food by hand, in place of any form open before:
  * name and portion prefilled from the food given, for a food by hand also its values per 100 g, empty where 0.
  * Add, its check, or Enter in a field, sends the food with its brand and store; Cancel, its cross, or Escape in a field,
  * closes the form. When the reader does not take the food, like for a name another food has,
@@ -187,7 +188,7 @@ function numberRead(text: string): number {
  * - `add`: Sends the food, the form taking no clicks meanwhile, so a double click adds it once.
  * - `save`, `cancel`: Buttons Add and Cancel.
  *
- * @param after - Row of the product, or the button `+ Own food by hand`
+ * @param after - Row of the product, or the + of an own food by hand
  * @param food - Food whose values fill the form
  * @param byHand - Whether the food is typed by hand, so the form asks for its values too
  * @param added - Takes the food once the reader wrote it
@@ -246,11 +247,11 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
 
 /**
  * Shows the chips of the brands: `All brands`, each brand, the one picked in the grey of what is picked,
- * and `+ Brand`, which turns into a field for a brand to add, see {@link brandType}.
+ * and the + of a brand, which turns into a field for a brand to add, see {@link brandType}.
  * A click on a chip picks its brand and searches again from the first page; the chip of a brand picked carries `×`,
  * which removes its brand, see {@link brandRemove}.
  * - `chipOf`: Makes the chip of a brand, empty for every brand.
- * - `add`: The chip `+ Brand`.
+ * - `add`: The + of a brand.
  *
  * @param search - The search
  */
@@ -267,8 +268,8 @@ function chipsShow(search: Search): void {
         chip.setAttribute("aria-pressed", String(brand === search.brand));
         return chip;
     };
-    const add: HTMLButtonElement = buttonOf("food-chip", "", (): void => brandType(search, add));
-    add.append(...iconWordsOf(Plus, "Brand"));
+    const add: HTMLButtonElement = buttonOf("chip-button", "", (): void => brandType(search, add));
+    iconPut(add, Plus, "Brand");
     search.chips.replaceChildren(chipOf(""), ...search.brands.map(chipOf), add);
 }
 
@@ -311,14 +312,14 @@ function brandRemove(search: Search, brand: string, remove: HTMLButtonElement): 
 }
 
 /**
- * Turns the chip `+ Brand` into a field for a brand, any one, like `Spar`: Enter sends it to `Brands.md`,
+ * Turns the + of a brand into a field for a brand, any one, like `Spar`: Enter sends it to `Brands.md`,
  * then picks it and searches again, so it stays a chip from then on; Escape, or leaving the field empty,
  * turns it back into the chip. When the reader does not take the brand, the field stays and is marked invalid.
  * - `field`: The field, in place of the chip.
  * - `typed`: The brand typed, without spaces at its ends.
  *
  * @param search - The search
- * @param chip - The chip `+ Brand`
+ * @param chip - The + of a brand
  */
 function brandType(search: Search, chip: HTMLElement): void {
     const field: HTMLInputElement = document.createElement("input");
@@ -361,7 +362,7 @@ function brandType(search: Search, chip: HTMLElement): void {
 
 /**
  * Loads the brands of the chips again and shows them, like after a product added brought its brand,
- * unless a brand is being typed into the field of `+ Brand`, which would go with the chips shown anew.
+ * unless a brand is being typed into the field of the + of a brand, which would go with the chips shown anew.
  *
  * @param search - The search
  */
@@ -377,7 +378,7 @@ function brandsShow(search: Search): void {
  * Shows what the search found: the rows above my foods, see {@link Before}, the head of the columns, my foods,
  * then, for a search of some letters,
  * the products of Open Food Facts of every page loaded, under the brand picked, how many of how many,
- * like `8 of 54`, `More` while a next page holds more, and `+ Own food by hand` at the end, with its hint.
+ * like `8 of 54`, `More` while a next page holds more, and the + of an own food by hand at the end.
  * Where `pick` takes foods, a click on one of mine picks it; a click on a product opens the form to add it.
  * A food once added is searched for by its name, so it shows among my foods, and picked;
  * the chips load again, for the brand it brought.
@@ -433,10 +434,10 @@ function resultsShow(search: Search): void {
             rows.push(moreOf(search, products.length, found));
     }
 
-    const newFood: HTMLButtonElement = buttonOf("food-new", "", (): void => formShow(newFood,
+    const newFood: HTMLButtonElement = buttonOf("chip-button food-new", "", (): void => formShow(newFood,
         { name: query, kcal: 0, protein: 0, carbs: 0, fat: 0, portion: portionUsual, barcode: "", brand: "", store: "" },
         true, added));
-    newFood.append(...iconWordsOf(Plus, "Own food by hand"), elementOf("span", "food-new-hint", "when nothing is found"));
+    iconPut(newFood, Plus, "Own food by hand, when nothing is found");
     rows.push(newFood);
     search.results.replaceChildren(...rows);
 }

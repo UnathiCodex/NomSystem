@@ -165,6 +165,34 @@ body {
     }
 }
 
+/* A small button one chip high and as wide, with an icon in place of its word, which is its tooltip, the same
+   everywhere: every + that adds, a box or an entry of the day, a meal, a variant, a brand or a food, and the − and +
+   of the water; square with slightly round corners, flat, outlined, a grey lighter under the pointer, faded while it
+   cannot be used */
+.chip-button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--chip-height);
+    height: var(--chip-height);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    background: var(--background);
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+.chip-button:enabled:hover {
+    background: var(--fill);
+}
+
+.chip-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
 /* Buttons and fields take the page font and colour, in the text of controls */
 button,
 input,

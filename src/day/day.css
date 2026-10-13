@@ -106,25 +106,6 @@
     display: none;
 }
 
-/* + of plan and log, the ways to start a box and an entry: square, one chip high,
-   in the calm grey of the main buttons, one grey lighter under the pointer */
-.column-new {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--chip-height);
-    height: var(--chip-height);
-    padding: 0;
-    border: 1px solid var(--chosen-line);
-    border-radius: 999px;
-    background: var(--chosen);
-    cursor: pointer;
-}
-
-.column-new:hover {
-    background: color-mix(in oklab, var(--chosen) 85%, var(--text-main));
-}
-
 /* Boxes of the plan one below the other, a little apart, so the plan looks airy, filling the height above its +
    and scrolling alone when they are many */
 .plan-boxes {
@@ -669,31 +650,8 @@ button.box-ring.box-checked svg {
     white-space: nowrap;
 }
 
-/* `−` and `+` of the water, small round chips one chip high, a grey lighter under the pointer, faded while they
-   cannot be used; between them the glass with the number of glasses, as wide as two digits, so the buttons stay
-   in place as it counts; after them the litres, grey */
-.water-step {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--chip-height);
-    height: var(--chip-height);
-    padding: 0;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--background);
-    cursor: pointer;
-}
-
-.water-step:hover {
-    background: var(--fill);
-}
-
-.water-step:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-
+/* What I drank between the `−` and `+` of the water, see `.chip-button` in `base.css`, as wide as `2.75 l`,
+   so the buttons stay in place as it counts */
 .water-litres {
     min-width: 4.5ch;
     text-align: center;
@@ -1231,8 +1189,11 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* `+ New place` at the end of a list, grey */
+/* `+ New place` at the end of a list, grey, the + the icon of every + of the page before its words */
 .picker-new {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
     color: var(--text-muted);
 }
 
@@ -1334,9 +1295,17 @@ fieldset.entry-times {
     margin-top: 0.375rem;
 }
 
+/* The line of the meals or foods while some are picked: the square + of the page, see `.chip-button` in `base.css`,
+   which opens the list to add one more */
 .picker-line.meal-add {
-    color: var(--text-muted);
-    font-size: 0.875rem;
+    justify-content: center;
+    width: var(--chip-height);
+    min-height: var(--chip-height);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    background: var(--background);
+    color: var(--text-main);
 }
 
 /* Row of a meal or a food: its name, its portions or grams, its kcal, replace and remove, the last two one chip wide */
@@ -1701,7 +1670,7 @@ svg.route-arrow {
         background: var(--chosen);
     }
 
-    .day-switch .column-new {
+    .day-switch .chip-button {
         width: var(--control-height);
         height: var(--control-height);
     }

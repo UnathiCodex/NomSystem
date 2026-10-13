@@ -11,10 +11,11 @@
  *   the food search, which adds one; `Cancel` and `Save`, which takes no click until the meal has a name and two foods.
  *   A new variant starts as a copy of the latest, to change what was different that time. Saved, the reader writes it
  *   into `Meals.md`, named by today and its note, like `13.10.2026 · MitMais`, see `reader/food.ts`.
- * - The section of the food view: `Meals` with `+ New meal`, then a row per meal: its name, how many variants
+ * - The section of the food view: `Meals` with its + for a new meal, the square + of the page, see `.chip-button`
+ *   in `base.css`, then a row per meal: its name, how many variants
  *   and the kcal of a serving of the latest; a click shows below it its variants, the latest first, each its name,
  *   its servings and the kcal of a serving, its foods below, and `×`, whose first click only asks, as the remove of the entry
- *   dialog does, the cross turning into a question mark, `Really remove?` as its tooltip; then `+ New variant`.
+ *   dialog does, the cross turning into a question mark, `Really remove?` as its tooltip; then its + for a new variant.
  *
  * - `./foods.ts`: Loads my foods and meals, sends and removes variants, writes amounts and makes elements.
  * - `./search.ts`: The food search, which adds a food to the form.
@@ -25,7 +26,7 @@
 
 import { amountOf, dishDelete, dishesLoad, dishSend, elementOf, foodsFind } from "./foods.ts";
 import { foodSearchClear, foodSearchOf } from "./search.ts";
-import { iconPut, iconWordsOf } from "../icons.ts";
+import { iconPut } from "../icons.ts";
 import { CircleQuestionMark, Plus, X } from "lucide";
 import "./meals.css";
 
@@ -137,6 +138,20 @@ function buttonOf(className: string, text: string, click: () => void): HTMLButto
     button.className = className;
     button.textContent = text;
     button.addEventListener("click", click);
+    return button;
+}
+
+/**
+ * Makes a + of the page, see `.chip-button` in `base.css`: the square button with the icon plus, its words as tooltip.
+ * - `button`: The +.
+ *
+ * @param words - What it adds, like `New variant`
+ * @param click - What a click does
+ * @returns The +
+ */
+function plusOf(words: string, click: () => void): HTMLButtonElement {
+    const button: HTMLButtonElement = buttonOf("chip-button", "", click);
+    iconPut(button, Plus, words);
     return button;
 }
 
@@ -278,7 +293,7 @@ export function mealsSectionOf(): HTMLElement {
     const section: HTMLElement = elementOf("section", "food-dishes", "");
     const head: HTMLElement = elementOf("div", "dish-head", "");
     const list: HTMLElement = elementOf("div", "dish-list", "");
-    const newMeal: HTMLButtonElement = buttonOf("dish-new", "", (): void => formOpen("", false, 1, []));
+    const newMeal: HTMLButtonElement = plusOf("New meal", (): void => formOpen("", false, 1, []));
     let dishes: Dish[] = [];
     let mine: Map<string, Food> = new Map();
     let open: string = "";
@@ -353,7 +368,7 @@ export function mealsSectionOf(): HTMLElement {
                     + ` · ${kcalTextOf(variant.kcal)} a serving`), remove,
                     elementOf("p", "dish-hint dish-variant-foods", variantTextOf(variant.foods)));
                 return line;
-            }), buttonOf("dish-add", "+ New variant", (): void =>
+            }), plusOf("New variant", (): void =>
                 formOpen(dish.name, true, latest?.servings ?? 1, latest?.foods ?? [])));
             return [row, detail];
         });
@@ -361,7 +376,6 @@ export function mealsSectionOf(): HTMLElement {
             ...dishes.length === 0 && form === null ? [elementOf("p", "food-none", "No meals yet")] : []);
     };
 
-    newMeal.append(...iconWordsOf(Plus, "New meal"));
     head.append(elementOf("h2", "food-heading", "Meals"), newMeal);
     section.append(head, list);
     load();
