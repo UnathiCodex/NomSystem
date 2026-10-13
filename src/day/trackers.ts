@@ -1,13 +1,14 @@
 /**
  * ## Trackers
  *
- * The card of the trackers of the shown day above the daily note, as the reader counts them, see `reader/trackers.ts`:
- * - Sleep: my goal with its healthy band under its name; first how much my bedtime varied over the week,
- *   a check within 30 minutes up or down, since regularity is the lever; then how long I slept the night
- *   that ended on the day, and on average over the week, a check in the healthy band.
- * - Food: the number of the day's meals under its name, like `3 meals`, so a meal missing shows, then their kcal
- *   and protein, totals without goals, rounded and so never marked as estimates, linking to the day in the food view.
- * - Neck: two tiles like those of the sleep, over the seven days up to the day: on how many of my study days I did
+ * The card of the trackers of the shown day, below the log above the daily note, as the reader counts them,
+ * see `reader/trackers.ts`, calm and basic, side by side in one line, without descriptions under the pointer:
+ * - Sleep: how long the night of the day lasted, the sleep I woke up from that morning, like `7 h 30 min`;
+ *   its goal, the spread of my bedtime and the average of the week left out for now, since other things come first.
+ * - Food: the kcal of the day's meals, a total without goal, rounded and so never marked as an estimate,
+ *   and in brackets after it the number of the meals, like `1,850 kcal (3 meals)`, so a meal missing shows,
+ *   linking to the day in the food view.
+ * - Neck: two tiles over the seven days up to the day: on how many of my study days I did
  *   a neck routine, short or long, like `2 / 5` over `short · study days`, a check from two thirds of them on,
  *   since about two thirds of the sessions already gave the large effects (Chen 2018), and on how many days a long
  *   one against my goal, like `1 / 3` over `long · 7 days`, a check once it is reached; a session is an entry `Body`
@@ -15,8 +16,9 @@
  *   then my neck pain, rated 0 to 10 with each long session, the mean of my first four weeks against the last four,
  *   like `5.2 → 4.0` over `pain`, the outcome the routine is judged by.
  *   Hidden until I start my neck routine, see {@link neckShown}; its code stays.
- * My water I count in the food view, see `../food/water.ts`, which loads the trackers too, for the glasses of its day;
- * the time grid shows glasses only as small marks, see `day.ts`. The card loads again whenever the log of the day changes.
+ * My water I count in the food view, with a bar against my goal, see `../food/water.ts`, which loads the trackers too,
+ * for the glasses of its day; the time grid shows glasses only as small marks, see `day.ts`.
+ * The card loads again whenever the log of the day changes.
  *
  * - `../food/foods.ts`: Writes amounts and makes elements.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
@@ -123,7 +125,7 @@ type NeckWeek = {
  * The trackers of a day, as the reader sends them.
  *
  * - `settings`: My goals, the size of a glass and the numbers of my learning.
- * - `sleep`: My sleep.
+ * - `sleep`: My sleep, which the card leaves out for now.
  * - `glasses`: My glasses of water and of every other drink, in the order I drank them.
  * - `neck`: My neck routine in the seven days up to the day.
  * - `food`: What my meals gave, `estimate` when one of them counts a usual portion, and the number of my meals.
@@ -149,28 +151,6 @@ let seen: string = "";
 
 
 /**
- * Writes minutes as hours and minutes, like a duration on a clock.
- *
- * @param minutes - Minutes, like 435
- * @returns Text like `7:15 h`
- */
-function hoursOf(minutes: number): string {
-    return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")} h`;
-}
-
-/**
- * Writes minutes as a span in words.
- *
- * @param minutes - Minutes, like 100
- * @returns Text like `1 h 40 min`, `25 min` or `2 h`
- */
-function spanOf(minutes: number): string {
-    const hours: number = Math.floor(minutes / 60);
-    return [hours > 0 ? `${hours} h` : "", minutes % 60 > 0 || hours === 0 ? `${minutes % 60} min` : ""]
-        .filter((part: string): boolean => part !== "").join(" ");
-}
-
-/**
  * Makes the check of a goal met, small and grey, see the class `tracker-check` in `day.css`.
  *
  * @returns Icon of the check
@@ -182,67 +162,27 @@ function checkOf(): SVGElement {
 }
 
 /**
- * Makes a tile of a tracker, of the sleep or the neck: its value over its name, a check after a value
+ * Makes a tile of a tracker, of the neck: its value over its name, a check after a value
  * in the healthy band or at its goal, a dash for a value not logged.
  *
  * @param value - Value, empty for none
  * @param met - Whether it lies in the healthy band or reaches its goal
- * @param name - What the value is, like `last night`
- * @param tooltip - More about the value, like when I fell asleep and woke up
+ * @param name - What the value is, like `long · 7 days`
  * @returns Tile
  */
-function tileOf(value: string, met: boolean, name: string, tooltip: string): HTMLElement {
+function tileOf(value: string, met: boolean, name: string): HTMLElement {
     const tile: HTMLElement = elementOf("div", "tile", "");
     const amount: HTMLElement = elementOf("span", "tile-value", value === "" ? "–" : value);
     if (value !== "" && met)
         amount.append(checkOf());
-    tile.title = tooltip;
     tile.append(amount, elementOf("span", "tile-name", name));
     return tile;
 }
 
 /**
- * Builds the sleep: under its name my goal with its healthy band, like `8 h · 7–9`; then tiles of how much my bedtime
- * varied over the week, a check within my limit, and of how long I slept last night and on average over the week,
- * a check in the healthy band.
- * - `sleep`: My sleep on the day.
- * - `low`, `high`: Fewest and most hours of a healthy night.
- * - `healthy`: Whether minutes of sleep lie in the healthy band.
- * - `name`: Name of the tracker with the goal under it.
- * - `tiles`: The tiles side by side.
- *
- * @param trackers - Trackers of the day
- * @returns Row of the sleep
- */
-function sleepOf(trackers: Trackers): HTMLElement {
-    const sleep: SleepDay = trackers.sleep;
-    const [low, high]: [number, number] = trackers.settings.sleepBand;
-    const healthy: (minutes: number | null) => boolean = (minutes: number | null): boolean =>
-        minutes !== null && minutes >= low * 60 && minutes <= high * 60;
-    const row: HTMLElement = elementOf("div", "tracker-row", "");
-    const name: HTMLElement = elementOf("span", "tracker-name", "Sleep");
-    const tiles: HTMLElement = elementOf("div", "tiles", "");
-    name.append(elementOf("span", "", `${trackers.settings.sleepHours} h · ${low}–${high}`));
-    name.title = `Goal ${trackers.settings.sleepHours} hours a night; a healthy night lasts ${low} to ${high} hours`;
-    tiles.append(
-        tileOf(sleep.varied === null ? "" : `±${spanOf(sleep.varied)}`, (sleep.varied ?? 0) <= trackers.settings.bedtimeVaried,
-            "bedtime varied", `How much my bedtime varied over the nights of the 7 days, a check within `
-                + `${trackers.settings.bedtimeVaried} minutes; regular sleep goes with better grades`),
-        tileOf(sleep.night === null ? "" : hoursOf(sleep.night.minutes), healthy(sleep.night?.minutes ?? null), "last night",
-            sleep.night === null ? "No night logged; a sleep Day, or one under 3 hours, is a nap"
-                : `Asleep ${sleep.night.asleep}, awake ${sleep.night.awake}`),
-        tileOf(sleep.minutes === null ? "" : hoursOf(sleep.minutes), healthy(sleep.minutes), "Ø 7 days",
-            `${sleep.nights} ${sleep.nights === 1 ? "night" : "nights"} logged in the 7 days up to this day`),
-    );
-    row.append(name, tiles);
-    return row;
-}
-
-/**
- * Builds the food: under its name the number of the day's meals, like `3 meals`, as the sleep has its goal there;
- * beside it their kcal and protein, like `1,850 kcal · 95 g protein`, linking to the day in the food view.
+ * Builds the food: the kcal of the day's meals and in brackets the number of the meals,
+ * like `1,850 kcal (3 meals)` or `0 kcal (0 meals)`, linking to the day in the food view.
  * - `food`: What the meals gave.
- * - `name`: Name of the tracker with the number of meals under it.
  *
  * @param trackers - Trackers of the day
  * @param day - The shown day, like `2026-10-10`
@@ -252,15 +192,33 @@ function foodOf(trackers: Trackers, day: string): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const link: HTMLAnchorElement = document.createElement("a");
     const food: Nutrients & { estimate: boolean; meals: number } = trackers.food;
-    const name: HTMLElement = elementOf("span", "tracker-name", "Food");
     link.className = "tracker-link";
     link.href = `/food?date=${day}`;
-    link.textContent = food.meals === 0
-        ? "No meals logged"
-        : `${amountOf(food.kcal, 0)} kcal · ${amountOf(food.protein, 0)} g protein`;
-    if (food.meals > 0)
-        name.append(elementOf("span", "", `${food.meals} ${food.meals === 1 ? "meal" : "meals"}`));
-    row.append(name, link);
+    link.textContent = `${amountOf(food.kcal, 0)} kcal (${food.meals} ${food.meals === 1 ? "meal" : "meals"})`;
+    row.append(elementOf("span", "tracker-name", "Food"), link);
+    return row;
+}
+
+/**
+ * Builds the sleep: how long the night of the day lasted, the sleep I woke up from that morning, in hours
+ * and minutes, like `7 h 30 min`, or `7 h` on the hour; a dash while no night is logged.
+ * - `night`: The night of the day, `null` for none.
+ * - `length`: How long it lasted as shown.
+ * - `hours`, `minutes`: Its length in whole hours and the minutes left.
+ *
+ * @param trackers - Trackers of the day
+ * @returns Row of the sleep
+ */
+function sleepOf(trackers: Trackers): HTMLElement {
+    const row: HTMLElement = elementOf("div", "tracker-row", "");
+    const night: Night | null = trackers.sleep.night;
+    let length: string = "–";
+    if (night !== null) {
+        const hours: number = Math.floor(night.minutes / 60);
+        const minutes: number = night.minutes % 60;
+        length = minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
+    }
+    row.append(elementOf("span", "tracker-name", "Sleep"), elementOf("span", "tracker-value", length));
     return row;
 }
 
@@ -286,12 +244,9 @@ function neckOf(trackers: Trackers): HTMLElement {
     const tiles: HTMLElement = elementOf("div", "tiles", "");
     tiles.append(
         tileOf(neck.studyDays === 0 ? "" : `${neck.short} / ${neck.studyDays}`, neck.short * 3 >= neck.studyDays * 2,
-            "short · study days", "Study days of the 7 up to this day, days with a Skill entry, on which I did "
-                + "a neck routine, short or long; a check from two thirds of them on"),
-        tileOf(`${neck.long} / ${goal}`, neck.long >= goal, "long · 7 days",
-            `Days with Neck long in the 7 up to this day, against ${goal}`),
-        tileOf(pain, false, "pain", "My neck pain from 0 to 10, rated with each Neck long: "
-            + "the mean of my first 4 weeks against the last 4; judge the routine after 10 to 12 weeks"),
+            "short · study days"),
+        tileOf(`${neck.long} / ${goal}`, neck.long >= goal, "long · 7 days"),
+        tileOf(pain, false, "pain"),
     );
     row.append(elementOf("span", "tracker-name", "Neck"), tiles);
     return row;

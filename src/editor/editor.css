@@ -1,5 +1,5 @@
 /* Editor: the tree on the left, the file on the right, filling the screen below the areas with a grey line between,
-   as the notes view, whose tree it shares, see `../notes/notes.css` */
+   as the scripts view, whose tree it shares, see `../notes/notes.css` */
 .editor {
     display: grid;
     grid-template-columns: var(--tree-width) minmax(0, 1fr);
@@ -15,13 +15,10 @@
     overflow-y: auto;
 }
 
-/* Page in my Obsidian's reading width with 40 px inside on each side, as the page of the notes view,
-   so lines wrap at about the width of the notes view's; its text 16 px in Obsidian's grey, grown with the page;
-   room below the last line, so it can scroll up to the middle */
+/* Page as wide as the room beside the tree, with little room left and right; its text 16 px in Obsidian's grey,
+   grown with the page; room below the last line, so it can scroll up to the middle */
 .editor-page {
-    max-width: var(--reading-width);
-    margin: 0 auto;
-    padding: 0 2.5rem 50dvh;
+    padding: 0 var(--gap) 50dvh calc(1.5 * var(--gap));
     font-size: 1rem;
     color: var(--reading-text);
 }
@@ -38,7 +35,7 @@
     background: var(--background);
 }
 
-/* Name of the note as the title of the notes view, cut with an ellipsis */
+/* Name of the note as the title of the scripts view, cut with an ellipsis */
 .editor-title {
     flex: 1;
     overflow: hidden;
@@ -51,24 +48,22 @@
     text-overflow: ellipsis;
 }
 
-/* Notice beside the save button, like `Saved`, grey in the text of controls */
+/* Notice beside the save button when something went wrong, like `Not saved`, or for a file to read only, grey
+   in the text of controls */
 .editor-state {
     color: var(--text-muted);
     font-size: var(--control-text);
 }
 
-/* Save button one control high and square, outlined, its icon in the middle;
+/* Button `Save` one control high, outlined, as the buttons of the dialogs;
    in the calm grey of a main button while the note has unsaved changes */
 .editor-save {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--control-height);
-    height: var(--control-height);
-    padding: 0;
+    min-height: var(--control-height);
+    padding: 0 var(--control-padding);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--background);
+    font-size: var(--control-text);
     cursor: pointer;
 }
 
@@ -77,14 +72,14 @@
     background: var(--chosen);
 }
 
-/* Text in the font and lines of the notes view, without a frame when focused and without room around the lines;
+/* Text in the font and lines of the scripts view, without a frame when focused and without room around the lines;
    `.editor-text .cm-editor` wins over CodeMirror's own look, being more exact */
 .editor-text .cm-editor.cm-focused {
     outline: none;
 }
 
 /* Text not cut at the sides of the page, so markup shown left of it, like `##`, stays in sight;
-   what is too wide, like a long formula or table, scrolls sideways on its own, as in the notes view */
+   what is too wide, like a long formula or table, scrolls sideways on its own, as in the scripts view */
 .editor-text .cm-editor .cm-scroller {
     overflow: visible;
     font-family: inherit;
@@ -107,7 +102,7 @@
     background: var(--chosen);
 }
 
-/* Headings, lists and quotes stand in the elements of the notes view and take its look, see `./preview.ts`,
+/* Headings, lists and quotes stand in the elements of the scripts view and take its look, see `./preview.ts`,
    but not its space above headings and around quotes: CodeMirror measures no space between lines,
    so the empty line before a block gives it */
 .editor-text.markdown :is(h1, h2, h3, h4, h5, h6, blockquote) {
@@ -126,9 +121,9 @@
     white-space: pre;
 }
 
-/* List item the cursor is on: its marker as written in place of the notes view's bullet or number, which hides,
+/* List item the cursor is on: its marker as written in place of the scripts view's bullet or number, which hides,
    left of the text, so the text keeps its place: `-` where the bullet stands, 0.95em before the text,
-   a number ending a space before the text, in the digits of equal width of the notes view's numbers */
+   a number ending a space before the text, in the digits of equal width of the scripts view's numbers */
 .editor-text li.cm-source::before,
 .editor-text li.cm-source::marker {
     content: none;
@@ -151,7 +146,7 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Bold semibold and italic, as in the notes view, struck text struck through */
+/* Bold semibold and italic, as in the scripts view, struck text struck through */
 .editor-text .cm-strong {
     font-weight: 600;
 }
@@ -164,7 +159,7 @@
     text-decoration: line-through;
 }
 
-/* Links in my accent's lighter grey, as in the notes view, the address of a Markdown link in the faint grey */
+/* Links in my accent's lighter grey, as in the scripts view, the address of a Markdown link in the faint grey */
 .editor-text .cm-link {
     color: var(--reading-link);
 }
@@ -173,7 +168,7 @@
     color: var(--reading-marker);
 }
 
-/* Code within a line on a grey ground in a font of fixed width, with its room around it, as in the notes view;
+/* Code within a line on a grey ground in a font of fixed width, with its room around it, as in the scripts view;
    code blocks on grey line by line, their code without a ground of its own */
 .editor-text .cm-monospace,
 .editor-text .cm-code-block {
@@ -194,7 +189,7 @@
 }
 
 /* Formula `$$…$$` rendered after what stands before it on its line, as wide as the line at most,
-   too wide ones scrolling sideways as in the notes view; being edited, rendered below its TeX on a line of its own */
+   too wide ones scrolling sideways as in the scripts view; being edited, rendered below its TeX on a line of its own */
 .editor-text .cm-math-display {
     display: inline-block;
     max-width: 100%;
@@ -205,10 +200,10 @@
     display: block;
 }
 
-/* Table or HTML block rendered with the spaces, line breaks and word breaks of the notes view,
+/* Table or HTML block rendered with the spaces, line breaks and word breaks of the scripts view,
    not those of the text around it, which would break a table in two and its words anywhere;
    its own space above and below it kept inside, so CodeMirror measures it, the space below taking in
-   the space above the next block, `--space-below`, as the notes view lets them overlap, see `./preview.ts` */
+   the space above the next block, `--space-below`, as the scripts view lets them overlap, see `./preview.ts` */
 .editor-text .cm-rendered {
     display: flow-root;
     white-space: normal;
@@ -239,4 +234,26 @@
 .editor-plain .cm-editor .cm-content {
     font-family: ui-monospace, monospace;
     font-size: 0.875em;
+}
+
+/* Lines of an `.ics` file left-aligned at the depth of their block, two characters a step, and the room of an empty
+   line above each entry, drawn as padding, which CodeMirror measures, see `ics.ts` */
+.editor-text .cm-editor .cm-line.ics-depth-1 {
+    padding-left: 2ch;
+}
+
+.editor-text .cm-editor .cm-line.ics-depth-2 {
+    padding-left: 4ch;
+}
+
+.editor-text .cm-editor .cm-line.ics-depth-3 {
+    padding-left: 6ch;
+}
+
+.editor-text .cm-editor .cm-line.ics-depth-4 {
+    padding-left: 8ch;
+}
+
+.editor-text .cm-editor .cm-line.ics-entry {
+    padding-top: 1lh;
 }

@@ -130,7 +130,8 @@ function minutesOf(box: Box, date: string): number {
  */
 export function suggestionsRead(date: string): Suggestion[] {
     const skills: Box[] = boxesRead(date, dayAdd(date, 1))[0].boxes
-        .filter((box: Box): boolean => box.category === skillName && box.state !== "dropped");
+        .filter((box: Box): boolean => box.category === skillName && box.state !== "dropped"
+            && box.state !== "university");
     const needs: ModuleNeed[] = skillingRead().modules.map((module: SkillModule): ModuleNeed => ({
         code: module.code,
         tasks: module.tasks.filter((task: SkillTask): boolean => !task.skipped && (task.due === ""

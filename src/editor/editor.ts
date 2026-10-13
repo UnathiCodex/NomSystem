@@ -1,31 +1,32 @@
 /**
  * ## Editor
  *
- * Edits a draft note or a Markdown file of my new system as its text, its Markdown shown as in the notes view
+ * Edits a draft note or a Markdown file of my new system as its text, its Markdown shown as in the scripts view
  * away from the cursor, see `./preview.ts`.
  * It edits the text of the file itself: saving writes exactly the edited text, nothing reformatted,
  * tabs, spacers `⠀` and soft hyphens, spaces at the ends of lines and the line breaks of the file as they were.
  * Of my modules the reader writes only the unchecked drafts and keeps each change as a diff, so the AI learns my style
  * from my corrections; any other note opens to read only.
- * One view with the notes view: on the left the same tree with its two roots, see `../notes/tree.ts`;
+ * One view with the scripts view: on the left the same tree with its two roots, see `../notes/tree.ts`;
  * in `NomManageplannings` a click on a Markdown file of the three folders of my new system, like `Foods.md`,
  * `Places.md` or a daily note, opens it here to edit, saved back into its file without a diff; an `.ics` file opens
- * as its plain text, to read only; any other file shows in the tree, faint, and opens not.
- * A note of `NomSkillingmodules` opens in the notes view, a draft from there by its pencil here.
+ * as its plain text, to read only, each block of it drawn one step in and its entries apart, see `./ics.ts`;
+ * any other file shows in the tree, faint, and opens not.
+ * A note of `NomSkillingmodules` opens in the scripts view, a draft from there by its pencil here.
  * The address names a file of my new system by its path in the tree, like `/edit?file=NomMetainformations/Foods.md`,
- * and a draft by its path in the notes view, like
+ * and a draft by its path in the scripts view, like
  * `/edit?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
- * Saves with the save button or Ctrl+S, refused when the file changed on the disk since it was read,
- * and asks before leaving with changes unsaved, also for another file of the tree.
+ * Saves only with its button `Save` or Ctrl+S, never by itself, refused when the file changed on the disk since
+ * it was read, and asks before leaving with changes unsaved, also for another file of the tree; the button turns
+ * the calm grey of a main button while there are changes, and a notice says only what went wrong.
  *
  * - `@codemirror/state`, `@codemirror/view`: The editor, CodeMirror 6, the engine of Obsidian's editor.
  * - `@codemirror/commands`: Undo, redo and the usual keys, Tab indenting a line.
  * - `@codemirror/language`: Reads the note as Markdown, indents with tabs.
  * - `@lezer/markdown`: Markdown parser, with GitHub's tables and the Obsidian syntax of `./syntax.ts`.
- * - `lucide`: The check of the save button, as the dialogs have it.
- * - `../icons.ts`: Puts the icon into the save button.
+ * - `./ics.ts`: Shows an `.ics` file with its blocks one step in and its entries apart.
  * - `./syntax.ts`: Obsidian syntax for the Markdown parser.
- * - `./preview.ts`: Shows the Markdown as in the notes view.
+ * - `./preview.ts`: Shows the Markdown as in the scripts view.
  * - `../notes/tree.ts`: Shows the tree with its two roots, the file shown marked.
  * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images, and of the tree.
  * - `./editor.css`: Look of the editor.
@@ -36,8 +37,7 @@ import { EditorView, drawSelection, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { Language, defineLanguageFacet, indentUnit } from "@codemirror/language";
 import { GFM, parser } from "@lezer/markdown";
-import { Check } from "lucide";
-import { iconPut } from "../icons.ts";
+import { icsLook } from "./ics.ts";
 import { obsidianSyntax } from "./syntax.ts";
 import { livePreview } from "./preview.ts";
 import { treeShow } from "../notes/tree.ts";
@@ -98,7 +98,7 @@ type Opened = {
 const markdownLanguage: Language = new Language(defineLanguageFacet(), parser.configure([GFM, obsidianSyntax]), [], "markdown");
 
 /**
- * Path of the file: of a note as the notes view takes it, of a file of my new system as the tree names it.
+ * Path of the file: of a note as the scripts view takes it, of a file of my new system as the tree names it.
  */
 let path: string = "";
 
@@ -125,19 +125,16 @@ let view: EditorView;
 
 
 /**
- * Shows whether the file has changes not yet saved: the save button in the calm grey of a main button while it has,
- * and beside it a notice, like `Saved`, else `Unsaved` while it has changes.
+ * Shows whether the file has changes not yet saved: the button `Save` in the calm grey of a main button while it has,
+ * and beside it a notice when something went wrong, like `Not saved`, or for a file to read only.
  * - {@link EditorState#sliceDoc}: Gives the text, its lines joined by the line break of the file.
  *
- * @param notice - Notice of the moment, like `Saved`, empty for none
+ * @param notice - Notice of the moment, like `Not saved`, empty for none
  */
 function stateShow(notice: string): void {
     const unsaved: boolean = view.state.sliceDoc() !== saved;
     (document.getElementById("editor-save") as HTMLElement).classList.toggle("unsaved", unsaved);
-    let text: string = notice;
-    if (text === "" && unsaved)
-        text = "Unsaved";
-    (document.getElementById("editor-state") as HTMLElement).textContent = text;
+    (document.getElementById("editor-state") as HTMLElement).textContent = notice;
 }
 
 /**
@@ -159,7 +156,7 @@ async function noteSave(): Promise<void> {
         });
         if (response.ok) {
             saved = text;
-            stateShow("Saved");
+            stateShow("");
         } else if (response.status === 409) {
             stateShow("Not saved: it changed on the disk, reload it");
         } else {
@@ -190,10 +187,10 @@ function keyDown(event: KeyboardEvent): void {
  * - `lineSeparator`: Splits and joins the lines by the line break of the file, `\r\n` or `\n`,
  *   so saving writes the line breaks as they were, also a single other one, which stays inside its line.
  * - `readOnly`: Lets me read a note that is no draft, or an `.ics` file, never change it.
- * - `markdownLanguage`, `livePreview`: Read a Markdown file as Markdown and show it as in the notes view;
- *   any other file stays its plain text.
+ * - `markdownLanguage`, `livePreview`: Read a Markdown file as Markdown and show it as in the scripts view;
+ *   any other file stays its plain text, an `.ics` file with its blocks one step in, see `./ics.ts`.
  * - `indentUnit`: Indents with a tab, as my notes do.
- * - `lineWrapping`: Wraps long lines at the reading width, as the notes view does, so I see where a line overflows.
+ * - `lineWrapping`: Wraps long lines at the reading width, as the scripts view does, so I see where a line overflows.
  * - `darkTheme`: Draws cursor and selection for a dark page.
  * - `updateListener`: Shows whether the file has unsaved changes after each change of the text.
  *
@@ -212,6 +209,7 @@ function extensionsOf(opened: Opened): Extension[] {
         EditorView.lineWrapping,
         EditorView.darkTheme.of(true),
         ...(opened.markdown ? [livePreview(opened.links)] : []),
+        ...(/\.ics$/i.test(path) ? [icsLook()] : []),
         EditorView.updateListener.of((update: ViewUpdate): void => {
             if (update.docChanged)
                 stateShow("");
@@ -283,7 +281,7 @@ export async function editorStart(): Promise<void> {
         parent: text,
         state: EditorState.create({ doc: opened.text, extensions: extensionsOf(opened) }),
     });
-    iconPut(save, Check, "Save");
+    save.textContent = "Save";
     save.addEventListener("click", noteSave);
     save.hidden = view.state.readOnly;
     if (!view.state.readOnly)

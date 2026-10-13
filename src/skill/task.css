@@ -1,4 +1,4 @@
-/* Row of a task under its heading in the notes view, calm and airy, everything from the left: when it is due,
+/* Row of a task under its heading in the scripts view, calm and airy, everything from the left: when it is due,
    its buttons after it on the same line while they fit, else on the next; its history and the field of Stuck or Skip
    below, each across the row; lines one gap apart, the buttons a gap and a half after when it is due */
 .task-row {

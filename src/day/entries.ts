@@ -59,6 +59,8 @@ export type EntryFields = {
  * - `minutes`: Expected duration in minutes, `null` for none.
  * - `deadline`: Deadline as the reader takes it: ISO instant, or its day like `2026-10-23` without time;
  *   empty for none.
+ * - `chapters`, `documents`: Chapters and documents of a skill box, see `SkillLinks` in `skill.ts`;
+ *   none for any other box.
  */
 export type BoxFields = {
     category: string;
@@ -73,6 +75,8 @@ export type BoxFields = {
     time: Date | null;
     minutes: number | null;
     deadline: string;
+    chapters: string[];
+    documents: string[];
 };
 
 
@@ -247,6 +251,18 @@ export async function boxDelete(id: string): Promise<void> {
  */
 export async function boxPush(id: string): Promise<void> {
     await requestSend("POST", "/api/day/pushed", { box: id });
+}
+
+/**
+ * Marks a box cancelled by the university, like a lecture that does not take place, or takes that back;
+ * the reader renumbers the later boxes of its series.
+ *
+ * @param id - Identifier of the box
+ * @param cancelled - Whether the university cancelled it, else taking that back
+ * @throws {Error} - When the reader does not take it
+ */
+export async function boxUniversity(id: string, cancelled: boolean): Promise<void> {
+    await requestSend("POST", "/api/day/university", { box: id, cancelled: cancelled });
 }
 
 /**

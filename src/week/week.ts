@@ -65,15 +65,16 @@ function daysLater(day: string, days: number): string {
 }
 
 /**
- * Tells whether a box shows on a day of the week: never when dropped, a box with a deadline only on the day
- * of its deadline, its day, which the reader sends it for always, see `reader/boxes.ts`, any other box on its day.
+ * Tells whether a box shows on a day of the week: never when cancelled, by me or by the university, a box with
+ * a deadline only on the day of its deadline, its day, which the reader sends it for always, see `reader/boxes.ts`,
+ * any other box on its day.
  *
  * @param box - The box, as the reader sends it for the day
  * @param day - The day, like `2026-10-20`
  * @returns Whether it shows on the day
  */
 function weekShows(box: Box, day: string): boolean {
-    return box.state !== "dropped" && (box.deadline === "" || box.day === day);
+    return box.state !== "dropped" && box.state !== "university" && (box.deadline === "" || box.day === day);
 }
 
 /**

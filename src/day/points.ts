@@ -1,117 +1,194 @@
 /**
  * ## Points
  *
- * A text area that is a list of points while I type, like a Markdown list, for the callouts of the daily note,
- * like my gratitude: each line is one point and starts with `- `. Enter starts the next point,
- * on an empty point it does nothing; Backspace on an empty point removes it,
- * and right after the `- ` of a point joins the point to the one above, undoing an Enter.
- * An empty area starts its first point when it gets the focus, and is empty again when left without text.
- * The callout keeps the points as its own list, see `reader/note.ts`; a line indented continues the point above.
+ * A list of points for the callouts of the daily note, my gratitude and my points about the day, shown as Markdown
+ * shows a list: each point a bullet with a small field of its own beside it, wrapping and growing with its text.
+ * Enter starts the next point below, taking along the text after the cursor, on an empty point it does nothing;
+ * Backspace at the start of an empty point removes it, at the start of one with text joins it to the point above;
+ * the arrows up and down at the start and at the end of a point go to the point above and below.
+ * Text pasted over several lines becomes one point per line, a `- ` in front of a line dropped.
+ * A list without points shows one empty point, so there is always a bullet to write at; a click beside the points
+ * goes to the end of the last.
+ * The callout keeps the points as its own list, one `> - ` line each, see `reader/note.ts`; a further line
+ * of a point, indented in an older note, joins its point with a space.
  */
 
 
 /**
- * Start of every point while I type.
+ * A point in a line of a callout as it may be written or pasted, `- ` in front, which the list leaves out.
  */
-const marker: string = "- ";
+const marker: RegExp = /^\s*[-*•]\s+/;
 
 
 /**
- * Shows the text of a callout as points.
+ * Gives the fields of the points of a list, in order.
  *
- * @param area - Text area of points
+ * @param list - List of points
+ * @returns Their fields
+ */
+function fieldsOf(list: HTMLElement): HTMLTextAreaElement[] {
+    return [...list.querySelectorAll<HTMLTextAreaElement>("textarea")];
+}
+
+/**
+ * Makes a point: a list item, its bullet drawn by the list, with its field.
+ * - `item`: The list item.
+ * - `field`: Its field, one line high at first and growing with its text.
+ *
+ * @param text - Text of the point
+ * @returns The field, inside its list item
+ */
+function pointOf(text: string): HTMLTextAreaElement {
+    const item: HTMLLIElement = document.createElement("li");
+    const field: HTMLTextAreaElement = document.createElement("textarea");
+    item.className = "note-point";
+    field.rows = 1;
+    field.value = text;
+    field.setAttribute("aria-label", "Point");
+    item.append(field);
+    return field;
+}
+
+/**
+ * Puts the cursor into the field of a point.
+ *
+ * @param field - Field of a point
+ * @param at - Where the cursor goes, like 0 for the start
+ */
+function caretPut(field: HTMLTextAreaElement, at: number): void {
+    field.focus();
+    field.setSelectionRange(at, at);
+}
+
+/**
+ * Shows the text of a callout as points, one empty point for none.
+ * - `points`: Texts of the points, a further line joined to its point.
+ *
+ * @param list - List of points
  * @param text - Text of the callout as the reader gives it, one point per line, a further line indented
  */
-export function pointsShow(area: HTMLTextAreaElement, text: string): void {
-    area.value = text.split("\n")
-        .filter((line: string): boolean => line.trim() !== "")
-        .map((line: string): string => /^\s/.test(line) ? line : `${marker}${line}`)
+export function pointsShow(list: HTMLElement, text: string): void {
+    const points: string[] = [];
+    for (const line of text.split("\n")) {
+        if (line.trim() === "")
+            continue;
+        if (/^\s/.test(line) && points.length > 0)
+            points[points.length - 1] = `${points[points.length - 1]} ${line.trim()}`;
+        else
+            points.push(line.replace(marker, "").trim());
+    }
+    list.replaceChildren(...(points.length > 0 ? points : [""]).map((point: string): HTMLElement =>
+        pointOf(point).parentElement as HTMLElement));
+}
+
+/**
+ * Reads the points of a list as the text of a callout: one point per line, empty points left out.
+ *
+ * @param list - List of points
+ * @returns Text of the callout, empty for no points
+ */
+export function pointsRead(list: HTMLElement): string {
+    return fieldsOf(list)
+        .map((field: HTMLTextAreaElement): string => field.value.replace(/\s+/g, " ").trim())
+        .filter((point: string): boolean => point !== "")
         .join("\n");
 }
 
 /**
- * Reads the points of a text area as the text of a callout: each line without its `- `, empty points left out.
+ * Puts points in place of a point whose text holds line breaks, as after a paste: one point per line,
+ * a `- ` in front dropped, empty lines left out; the cursor at the end of the last.
+ * - `lines`: The lines of its text that hold something.
+ * - `fields`: Fields of the new points.
  *
- * @param area - Text area of points
- * @returns Text of the callout, one point per line, a further line indented; empty for no points
+ * @param field - Field of the point
  */
-export function pointsRead(area: HTMLTextAreaElement): string {
-    return area.value.split("\n")
-        .map((line: string): string => line.replace(/^-(?: |$)/, ""))
-        .filter((line: string): boolean => line.trim() !== "")
-        .join("\n");
+function pointSplit(field: HTMLTextAreaElement): void {
+    const lines: string[] = field.value.split("\n")
+        .map((line: string): string => line.replace(marker, "").trim())
+        .filter((line: string): boolean => line !== "");
+    const fields: HTMLTextAreaElement[] = (lines.length > 0 ? lines : [""]).map(pointOf);
+    (field.parentElement as HTMLElement).replaceWith(...fields.map((other: HTMLTextAreaElement): HTMLElement =>
+        other.parentElement as HTMLElement));
+    const last: HTMLTextAreaElement = fields[fields.length - 1];
+    caretPut(last, last.value.length);
 }
 
 /**
- * Changes the text of a text area like typing does, the cursor after the new text,
- * and tells the listeners of the area, like a save that waits for a pause.
- * - {@link HTMLTextAreaElement#setRangeText}: Puts a text in place of a range of the text.
+ * Handles Enter, Backspace and the arrows in the field of a point, see the top of this file.
+ * - `fields`: Fields of the points of the list.
+ * - `index`: Place of the point among them.
+ * - `caret`: Where the cursor stands, `null` while text is selected.
+ * - `above`, `below`: Fields of the points above and below, `undefined` for none.
+ * - `next`: Field of the new point below.
+ * - `joined`: Where the text of the point starts in the point above, once joined to it.
  *
- * @param area - Text area of points
- * @param text - New text, empty to remove the range
- * @param start - Start of the range
- * @param end - End of the range, excluded
- */
-function textPut(area: HTMLTextAreaElement, text: string, start: number, end: number): void {
-    area.setRangeText(text, start, end, "end");
-    area.dispatchEvent(new Event("input"));
-}
-
-/**
- * Handles Enter and Backspace in a text area of points, see the top of this file.
- * - `caret`: Where the cursor stands.
- * - `lineStart`, `lineEnd`: Start of the line of the cursor and its end, before its line break.
- * - `lineBreak`: Where the line break after the cursor stands, -1 for none.
- * - `line`: The line of the cursor.
- * - `empty`: Whether the line is a point without text.
- *
- * @param area - Text area of points
+ * @param list - List of points
+ * @param field - Field the key was pressed in
  * @param event - Key pressed
+ * @param changed - Tells that the points changed, like a save that waits for a pause
  */
-function keyHandle(area: HTMLTextAreaElement, event: KeyboardEvent): void {
+function keyHandle(list: HTMLElement, field: HTMLTextAreaElement, event: KeyboardEvent, changed: () => void): void {
     if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
         return;
-    const caret: number = area.selectionStart;
-    const lineStart: number = caret === 0 ? 0 : area.value.lastIndexOf("\n", caret - 1) + 1;
-    const lineBreak: number = area.value.indexOf("\n", caret);
-    const lineEnd: number = lineBreak === -1 ? area.value.length : lineBreak;
-    const line: string = area.value.slice(lineStart, lineEnd);
-    const empty: boolean = line.trim() === "" || line.trim() === "-";
+    const fields: HTMLTextAreaElement[] = fieldsOf(list);
+    const index: number = fields.indexOf(field);
+    const caret: number | null = field.selectionStart === field.selectionEnd ? field.selectionStart : null;
+    const above: HTMLTextAreaElement | undefined = fields[index - 1];
+    const below: HTMLTextAreaElement | undefined = fields[index + 1];
 
     if (event.key === "Enter") {
         event.preventDefault();
-        if (!empty)
-            textPut(area, `\n${marker}`, Math.max(caret, lineStart + (line.startsWith(marker) ? marker.length : 0)),
-                Math.max(area.selectionEnd, caret));
-    } else if (event.key === "Backspace" && area.selectionEnd === caret) {
-        if (empty) {
-            event.preventDefault();
-            if (lineStart > 0)
-                textPut(area, "", lineStart - 1, lineEnd);
-            else
-                textPut(area, "", 0, Math.min(lineEnd + 1, area.value.length));
-        } else if (lineStart > 0 && line.startsWith(marker) && caret === lineStart + marker.length) {
-            event.preventDefault();
-            textPut(area, "", lineStart - 1, caret);
-        }
+        if (field.value.trim() === "")
+            return;
+        const next: HTMLTextAreaElement = pointOf(field.value.slice(field.selectionEnd).trim());
+        field.value = field.value.slice(0, field.selectionStart).trimEnd();
+        (field.parentElement as HTMLElement).after(next.parentElement as HTMLElement);
+        caretPut(next, 0);
+        changed();
+    } else if (event.key === "Backspace" && caret === 0 && above !== undefined) {
+        event.preventDefault();
+        const joined: number = above.value.length;
+        above.value = field.value === "" ? above.value : `${above.value}${above.value === "" ? "" : " "}${field.value}`;
+        (field.parentElement as HTMLElement).remove();
+        caretPut(above, field.value === "" || joined === 0 ? joined : joined + 1);
+        changed();
+    } else if (event.key === "ArrowUp" && caret === 0 && above !== undefined) {
+        event.preventDefault();
+        caretPut(above, above.value.length);
+    } else if (event.key === "ArrowDown" && caret === field.value.length && below !== undefined) {
+        event.preventDefault();
+        caretPut(below, 0);
     }
 }
 
 /**
- * Makes a text area a list of points, see the top of this file.
- * - `focus`: Starts the first point of an empty area.
- * - `blur`: Empties an area left without text, so it shows as empty.
+ * Makes a list a list of points, see the top of this file; its points are shown by {@link pointsShow}.
+ * - `keydown`: Handles Enter, Backspace and the arrows in a point.
+ * - `input`: Splits a point that holds line breaks, as after a paste, and tells of the change.
+ * - `focusout`: Tells that the focus left the list, not when it only went to another of its points.
+ * - `click`: Puts the cursor at the end of the last point on a click into the list beside its points.
  *
- * @param area - Text area, like the one of my gratitude
+ * @param list - List, like the one of my gratitude
+ * @param changed - Tells that the points changed, like a save that waits for a pause
+ * @param left - Tells that the focus left the list, like a save right away
  */
-export function pointsStart(area: HTMLTextAreaElement): void {
-    area.addEventListener("keydown", (event: KeyboardEvent): void => keyHandle(area, event));
-    area.addEventListener("focus", (): void => {
-        if (area.value === "")
-            area.value = marker;
+export function pointsStart(list: HTMLElement, changed: () => void, left: () => void): void {
+    list.addEventListener("keydown", (event: KeyboardEvent): void => {
+        if (event.target instanceof HTMLTextAreaElement)
+            keyHandle(list, event.target, event, changed);
     });
-    area.addEventListener("blur", (): void => {
-        if (pointsRead(area) === "")
-            area.value = "";
+    list.addEventListener("input", (event: Event): void => {
+        if (event.target instanceof HTMLTextAreaElement && event.target.value.includes("\n"))
+            pointSplit(event.target);
+        changed();
+    });
+    list.addEventListener("focusout", (event: FocusEvent): void => {
+        if (!(event.relatedTarget instanceof Node && list.contains(event.relatedTarget)))
+            left();
+    });
+    list.addEventListener("click", (event: MouseEvent): void => {
+        const last: HTMLTextAreaElement | undefined = fieldsOf(list).at(-1);
+        if (!(event.target instanceof HTMLTextAreaElement) && last !== undefined)
+            caretPut(last, last.value.length);
     });
 }

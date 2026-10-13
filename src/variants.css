@@ -12,6 +12,7 @@
     --background: #1e1e1e;
     --text-main: #ececec;
     --text-muted: #999999;
+    --text-time: color-mix(in oklab, var(--text-muted) 50%, var(--text-main));
     --line: #323232;
     --fill: #262626;
     --chosen: #3a3a3a;
@@ -34,8 +35,7 @@
     --gap: 1rem;
     --slot-margin: 0.5rem;
     --radius: 0.75rem;
-    --note-width: 23.75rem;
-    --plan-width: 18rem;
+    --note-width: 18rem;
     --tree-width: 24rem;
     --reading-width: 50rem;
     color-scheme: dark;

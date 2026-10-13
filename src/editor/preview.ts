@@ -1,24 +1,25 @@
 /**
  * ## Live preview
  *
- * Shows a note in the editor as Obsidian's live preview does: the text of the file as it is,
- * its Markdown drawn as in the notes view with the markup hidden, and the markup shown where the cursor is, to edit it.
+ * Shows a note in the editor as Obsidian's live preview does: the text of the file as it is, its Markdown drawn
+ * as in the scripts view with the markup hidden, and the markup shown where the cursor is, to edit it.
  * Only the look changes, never the text: every hidden or rendered piece stays in the text as written.
- * Away from the cursor a note looks as in the notes view, drawn by the rules of the notes view in `../notes/notes.css`:
- * - Headings, lists and quotes stand in the elements the notes view draws them in, `h1` to `h6`, `ul`, `ol`, `li`
+ * Away from the cursor a note looks as in the scripts view, drawn by the rules of the scripts view
+ * in `../notes/notes.css`:
+ * - Headings, lists and quotes stand in the elements the scripts view draws them in, `h1` to `h6`, `ul`, `ol`, `li`
  *   and `blockquote`, so they get its sizes, its bullets and numbers, its indentation per level with an item's
  *   wrapped and further lines under its text, its guide lines and the line of quotes.
  *   Their `##`, `>`, indentation, `-` and `1.` are hidden; on the line of the cursor the `##` and `>` show left of the text,
  *   and the `-` or number of an item shows in place of its bullet or number, so the text never moves.
- * - Empty lines as high as the space the notes view leaves between the blocks around them, see {@link spaceLook}.
+ * - Empty lines as high as the space the scripts view leaves between the blocks around them, see {@link spaceLook}.
  * - Bold, italic, struck and code without `**`, `*`, `~~` and `` ` ``, Markdown links and wiki links
  *   `[[Note#Heading|Text]]` as their text; the markup of the piece the cursor touches shows.
- * - Task boxes `[ ]` and `[x]` as the boxes of the notes view, as written on the line of the cursor.
- * - Formulas `$…$` and `$$…$$` rendered as in the notes view, as their TeX while the cursor touches them;
+ * - Task boxes `[ ]` and `[x]` as the boxes of the scripts view, as written on the line of the cursor.
+ * - Formulas `$…$` and `$$…$$` rendered as in the scripts view, as their TeX while the cursor touches them;
  *   a formula `$$…$$` being edited shows rendered below its TeX, as in Obsidian.
- * - Images `![[Image.svg|300]]` shown, tables, code blocks and HTML blocks like `<table>` rendered as in the notes view,
- *   those right below each other as one, as their text while the cursor is on one of their lines.
- * - Spacers `⠀` (U+2800) and invisible characters like the soft hyphen blank, as in the notes view;
+ * - Images `![[Image.svg|300]]` shown, tables, code blocks and HTML blocks like `<table>` rendered as in the scripts
+ *   view, those right below each other as one, as their text while the cursor is on one of their lines.
+ * - Spacers `⠀` (U+2800) and invisible characters like the soft hyphen blank, as in the scripts view;
  *   on the line of the cursor as faint dots, so I see where they stand.
  * A click on a rendered piece puts the cursor there, so it shows as text; while the editor is not focused,
  * like before the first click, the whole note shows rendered.
@@ -29,8 +30,8 @@
  *   and put lines into elements with block wrappers.
  * - `@codemirror/language`: Gives the syntax tree of the note, read with `./syntax.ts`.
  * - `@lezer/highlight`: Gives pieces of the syntax the classes of their look, see `./editor.css`.
- * - `../notes/math.ts`: Renders formulas as the notes view does.
- * - `../notes/markdown.ts`: Renders tables, code blocks and HTML blocks as the notes view does.
+ * - `../notes/math.ts`: Renders formulas as the scripts view does.
+ * - `../notes/markdown.ts`: Renders tables, code blocks and HTML blocks as the scripts view does.
  */
 
 import { RangeSet, StateEffect, StateField } from "@codemirror/state";
@@ -85,7 +86,7 @@ type Drawing = {
 };
 
 /**
- * Endings of images shown when embedded, as in the notes view.
+ * Endings of images shown when embedded, as in the scripts view.
  */
 const imageEndings: string[] = ["png", "jpg", "jpeg", "gif", "bmp", "svg", "webp", "avif"];
 
@@ -130,7 +131,7 @@ const hanging: Decoration = Decoration.mark({ class: "cm-hanging" });
 const spacerMark: Decoration = Decoration.mark({ class: "cm-spacer" });
 
 /**
- * Link that leads nowhere, faded as in the notes view.
+ * Link that leads nowhere, faded as in the scripts view.
  */
 const unresolved: Decoration = Decoration.mark({ class: "is-unresolved" });
 
@@ -172,7 +173,7 @@ const highlighter: Highlighter = tagHighlighter([
 
 
 /**
- * Formula rendered by MathJax, as the notes view renders it: `$…$` within the line, `$$…$$` on its own.
+ * Formula rendered by MathJax, as the scripts view renders it: `$…$` within the line, `$$…$$` on its own.
  */
 class MathWidget extends WidgetType {
     /**
@@ -205,7 +206,7 @@ class MathWidget extends WidgetType {
     }
 
     /**
-     * Renders the formula as the notes view does, from an element of the class `math` with its TeX.
+     * Renders the formula as the scripts view does, from an element of the class `math` with its TeX.
      */
     toDOM(): HTMLElement {
         const box: HTMLSpanElement = document.createElement("span");
@@ -231,7 +232,7 @@ class MathWidget extends WidgetType {
 }
 
 /**
- * Embedded image, as the notes view shows it.
+ * Embedded image, as the scripts view shows it.
  */
 class ImageWidget extends WidgetType {
     /**
@@ -287,7 +288,7 @@ class ImageWidget extends WidgetType {
 }
 
 /**
- * Task box of a list item, as the notes view shows it: a box that cannot be ticked here.
+ * Task box of a list item, as the scripts view shows it: a box that cannot be ticked here.
  */
 class TaskBoxWidget extends WidgetType {
     /**
@@ -308,7 +309,7 @@ class TaskBoxWidget extends WidgetType {
     }
 
     /**
-     * Shows the box, as marked writes it for the notes view.
+     * Shows the box, as marked writes it for the scripts view.
      */
     toDOM(): HTMLElement {
         const box: HTMLInputElement = document.createElement("input");
@@ -327,8 +328,8 @@ class TaskBoxWidget extends WidgetType {
 }
 
 /**
- * Tables, code blocks or HTML blocks right below each other, rendered as the notes view renders them,
- * with their images and formulas, and with the space the notes view leaves below them.
+ * Tables, code blocks or HTML blocks right below each other, rendered as the scripts view renders them,
+ * with their images and formulas, and with the space the scripts view leaves below them.
  */
 class BlockWidget extends WidgetType {
     /**
@@ -342,7 +343,8 @@ class BlockWidget extends WidgetType {
     readonly links: Links;
 
     /**
-     * Space the notes view leaves above the block after them, in CSS, which takes in their own space below, see `./editor.css`.
+     * Space the scripts view leaves above the block after them, in CSS, which takes in their own space below,
+     * see `./editor.css`.
      */
     readonly below: string;
 
@@ -390,7 +392,7 @@ class BlockWidget extends WidgetType {
 /**
  * Builds the address of a file at the reader, like an image of a note.
  *
- * @param path - Path, as the notes view takes it
+ * @param path - Path, as the scripts view takes it
  * @returns Address like `/api/notes/file?path=…`
  */
 function fileAddressOf(path: string): string {
@@ -460,8 +462,8 @@ function linesMark(look: Look, from: number, to: number, line: Decoration): void
 }
 
 /**
- * Puts the lines of a piece of syntax into an element, as the notes view draws the piece, like a list item into an `li`,
- * so the rules of the notes view give it their look. Pieces inside each other nest by rank:
+ * Puts the lines of a piece of syntax into an element, as the scripts view draws the piece, like a list item
+ * into an `li`, so the rules of the scripts view give it their look. Pieces inside each other nest by rank:
  * the deeper a piece lies among those of {@link wrapped}, the lower its rank.
  * - {@link BlockWrapper}: Element around the lines starting in a stretch of the text.
  *
@@ -480,7 +482,7 @@ function wrap(look: Look, node: SyntaxNode, tagName: string, attributes: { [name
 }
 
 /**
- * Heading `##`: its line in an `h2`, as the notes view draws it, its `##` hidden,
+ * Heading `##`: its line in an `h2`, as the scripts view draws it, its `##` hidden,
  * on the line of the cursor shown left of the text, which keeps its place.
  *
  * @param look - Look being built
@@ -583,7 +585,7 @@ function mathLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * List: its lines in a `ul` or `ol`, as the notes view draws them, a numbered list counting from its first number.
+ * List: its lines in a `ul` or `ol`, as the scripts view draws them, a numbered list counting from its first number.
  *
  * @param look - Look being built
  * @param node - `BulletList` or `OrderedList`
@@ -597,7 +599,7 @@ function listLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * List item: its lines in an `li`, which draws its bullet or number as in the notes view;
+ * List item: its lines in an `li`, which draws its bullet or number as in the scripts view;
  * while the cursor is on its first line, without them, as its marker shows there as written, see {@link listMarkLook}.
  *
  * @param look - Look being built
@@ -632,7 +634,7 @@ function listMarkLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * Paragraph: the indentation of its further lines hidden, as the notes view leaves it out,
+ * Paragraph: the indentation of its further lines hidden, as the scripts view leaves it out,
  * in a list item putting them under the item's text.
  *
  * @param look - Look being built
@@ -649,7 +651,7 @@ function paragraphLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * Task box `[ ]` or `[x]` of a list item: the box of the notes view, as written on the line of the cursor.
+ * Task box `[ ]` or `[x]` of a list item: the box of the scripts view, as written on the line of the cursor.
  *
  * @param look - Look being built
  * @param node - Box, `TaskMarker`
@@ -664,7 +666,7 @@ function taskBoxLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * Quote: its lines in a `blockquote`, with the line of quotes beside them, as the notes view draws it.
+ * Quote: its lines in a `blockquote`, with the line of quotes beside them, as the scripts view draws it.
  *
  * @param look - Look being built
  * @param node - Quote, `Blockquote`
@@ -691,7 +693,7 @@ function quoteMarkLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * Gives the space the notes view leaves above a block of the note, by the rules of `../notes/notes.css`:
+ * Gives the space the scripts view leaves above a block of the note, by the rules of `../notes/notes.css`:
  * none above the first block, above a list and right below a heading, whose section it begins;
  * 1.5em above a paragraph, 1em above a quote; above a heading 1rem below a heading or an HTML block that is no table,
  * else 2.5rem. The text is 1rem big, so its em are rem.
@@ -719,7 +721,7 @@ function spaceAboveOf(look: Look, block: SyntaxNode, before: SyntaxNode | null):
 
 /**
  * Table, code block or HTML block, with those right below it: their whole lines rendered as one while the cursor is
- * on none of them, so the space between them is that of the notes view, and below them the space the notes view
+ * on none of them, so the space between them is that of the scripts view, and below them the space the scripts view
  * leaves above the next block of the note, see {@link spaceAboveOf}.
  *
  * @param look - Look being built
@@ -751,7 +753,7 @@ function blockLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * Code block: rendered as in the notes view while the cursor is on none of its lines,
+ * Code block: rendered as in the scripts view while the cursor is on none of its lines,
  * else each of its lines on grey, in a font of fixed width.
  *
  * @param look - Look being built
@@ -799,7 +801,7 @@ const looks: { [name: string]: (look: Look, node: SyntaxNode) => boolean } = {
 };
 
 /**
- * Empty lines between the blocks of the note as high as the space the notes view leaves between them,
+ * Empty lines between the blocks of the note as high as the space the scripts view leaves between them,
  * the larger of the space below the block before, 1em below a quote, and the space above the block after,
  * see {@link spaceAboveOf}; without height next to a block rendered whole, which keeps its own space.
  *

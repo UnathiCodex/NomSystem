@@ -3,7 +3,8 @@
  *
  * Start with `npm start`.
  *
- * Reads the vault named in `sources.ts` and waits at `localhost:3000`
+ * Reads the vault named in `sources.ts` and waits at `127.0.0.1:3000`, IPv4 by its address, not `localhost`,
+ * which some servers turn into `::1` first while `tailscale serve` hands requests to `127.0.0.1:3000`,
  * to answer the browser page with data, and with the page itself.
  *
  * - Node may read from disk but browser cannot.
@@ -42,7 +43,7 @@ import { json } from "node:stream/consumers";
 import {
     boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, mealAfterCookAdd, realMinutesRead,
 } from "./day.ts";
-import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush } from "./boxes.ts";
+import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxUniversity } from "./boxes.ts";
 import { giftWrite } from "./gifts.ts";
 import { calloutsRead, calloutWrite, noteRead } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
@@ -138,11 +139,15 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   unless it holds what I added since.
  * - `POST /api/day/pushed`: Pushes the box named in the body to the next day.
  * - `POST /api/day/dropped`: Drops the box named in the body, or takes it back when the body says `dropped: false`.
+ * - `POST /api/day/university`: Marks the box named in the body cancelled by the university, renumbering its series,
+ *   or takes it back when the body says `cancelled: false`.
  * - `POST /api/day/callouts`: Writes the callout of the body into its daily note, my gratitude or my paragraph about the day.
  * - `POST /api/day/gifts`: Writes the gift idea of the body for its birthday or holiday into its file,
  *   `Birthdays.ics` or `Holidays.ics`, or takes it out when it is empty.
- * - `POST /api/day/places`: Adds the place of the body with its address to `Places.md` and sends it as written.
- * - `PATCH /api/day/places`: Changes the place of the old name of the body in `Places.md` and sends it as written.
+ * - `POST /api/day/places`: Adds the place of the body with its address to `Places.md`, a room to `Rooms.md`,
+ *   and sends it as written.
+ * - `PATCH /api/day/places`: Changes the place of the old name of the body in `Places.md`, or the room in `Rooms.md`,
+ *   and nothing else, and sends it as written.
  * - `GET /api/notes/modules`: Sends the modules of the semester with their chapters and notes.
  * - `GET /api/notes/note?path=…`: Sends a note with the files its links lead to.
  * - `GET /api/notes/file?path=…`: Sends a file of my modules, like an image of a note.
@@ -176,7 +181,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *
  * ```
  * GET /api/day/log?start=2026-07-03T00%3A00%3A00%2B02%3A00&end=2026-07-04T00%3A00%3A00%2B02%3A00 HTTP/1.1
- * Host: localhost:3000
+ * Host: 127.0.0.1:3000
  * ```
  *
  * @param page - Vite, answers requests for the page
@@ -264,6 +269,11 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
     } else if (request.method === "POST" && url.pathname === "/api/day/dropped") {
         const dropped: { box: string; dropped: boolean } = await json(request) as { box: string; dropped: boolean };
         boxDrop(dropped.box, dropped.dropped);
+        responseSend(response, 200, null);
+
+    } else if (request.method === "POST" && url.pathname === "/api/day/university") {
+        const marked: { box: string; cancelled: boolean } = await json(request) as { box: string; cancelled: boolean };
+        boxUniversity(marked.box, marked.cancelled);
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/callouts") {
@@ -371,5 +381,5 @@ server.on("request", (request: IncomingMessage, response: ServerResponse): void 
         responseSend(response, 500, { error: "The reader failed" });
     });
 });
-server.listen(3000, "localhost", (): void => console.log("http://localhost:3000"));
+server.listen(3000, "127.0.0.1", (): void => console.log("http://127.0.0.1:3000"));
 linksCheckStart();

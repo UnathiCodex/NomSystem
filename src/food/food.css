@@ -1,16 +1,29 @@
-/* Food: the day and my foods side by side where both fit, else one below the other;
-   filling the screen below the areas with a grey line between, as the notes and the skill view do, and scrolling alone */
+/* Food: the day and my foods side by side where both fit, else one below the other, below the areas with a grey line
+   between, as the notes and the skill view have it; the page itself scrolls, no box of its own, so the wheel, a swipe,
+   the keys and the scrollbar all scroll it, on a computer and on a phone alike */
 .food {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 34rem), 1fr));
     align-content: start;
     gap: calc(2.5 * var(--gap)) calc(3 * var(--gap));
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
+    flex: none;
     margin-top: 0.5rem;
     padding: var(--gap) calc(2 * var(--gap)) calc(4 * var(--gap));
     border-top: 1px solid var(--line);
+}
+
+/* The page of the food view grows with its content instead of being one screen high, see `body` in `base.css` */
+body:has(> .food) {
+    height: auto;
+    min-height: 100dvh;
+}
+
+/* The areas stay on top while the page scrolls below them, as in every other view */
+body:has(> .food) .areas {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--background);
 }
 
 /* Head of the day: its buttons, then its date, in the text of controls */

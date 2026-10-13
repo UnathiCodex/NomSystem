@@ -8,18 +8,23 @@
  * and an entry writes its place as Google Calendar does, its name and its address in one line, see {@link lineOf},
  * like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, as its `LOCATION`, and where its way starts
  * as its `X-FROM`, so it keeps the address it had then, also once the address in `Places.md` changes;
- * its name is the part before the first comma, see {@link labelOf}. An older entry keeps the name alone,
- * like `HomeMunich`.
+ * its name is the part before the first comma, see {@link labelOf}, so a name never holds a comma: one typed
+ * or read with a comma loses it, see {@link nameOf}. An older entry keeps the name alone, like `HomeMunich`.
  * A third column, `Link`, may hold a link of a place, like `https://nav.tum.de/room/0509.EG.980`, which an entry
  * writes with it as the standard parameter `ALTREP` of its `LOCATION`, see {@link placeLinkOf}.
  * The file starts without places: I add each place with its address from the dialog of the day the first time
  * I need it, and the reader creates the file with that first place; the pencil below a place picked in the dialog
  * changes its row, its name, its address and its link, see {@link placeChange}, while every entry written before
  * keeps the line and the link it had.
+ * Beside it `Rooms.md` holds the rooms of the university in one table of the same form, `| Room | Address | Link |`,
+ * like `0509.EG.980 (Audimax Werner-von-Siemens-Hörsaal)` with `Arcisstraße 21, 80333 München, Deutschland`
+ * and `https://nav.tum.de/room/0509.EG.980`, read the same way, see {@link roomsRead}; an entry writes a room
+ * as a place. A new place goes into `Rooms.md` when its name starts like the code of a room, digits and a dot,
+ * see {@link roomForm}, otherwise into `Places.md`; a name is unique over both files.
  *
- * - `node:fs`: Reads and writes `Places.md`.
- * - `node:path`: Gives the folder of `Places.md`.
- * - `./sources.ts`: Names `Places.md` and tells which files the reader may write.
+ * - `node:fs`: Reads and writes `Places.md` and `Rooms.md`.
+ * - `node:path`: Gives the folder of a file.
+ * - `./sources.ts`: Names `Places.md`, `Rooms.md`, the plan and the log, and tells which files the reader may write.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -28,9 +33,10 @@ import { day, writeAllowed } from "./sources.ts";
 
 
 /**
- * A place, one row of `Places.md`.
+ * A place, one row of `Places.md`, or a room, one row of `Rooms.md`.
  *
- * - `name`: Name, like `TumMain`; unique, ignoring case, without `|` and without a comma, which ends it in a line.
+ * - `name`: Name, like `TumMain`; unique, ignoring case, without `|` and without a comma, which ends it in a line,
+ *   see {@link nameOf}.
  * - `address`: Its address with its country, like `Arcisstraße 21, 80333 München, Deutschland`, without `|`.
  * - `link`: Its link, like `https://nav.tum.de/room/0509.EG.980`, a web address without spaces; empty for none.
  */
@@ -61,6 +67,17 @@ export type PlaceChanged = {
 const fileHead: string[] = ["| Place | Address | Link |", "|---|---|---|"];
 
 /**
+ * Head of the table of a new `Rooms.md`, its header and the line below it.
+ */
+const roomHead: string[] = ["| Room | Address | Link |", "|---|---|---|"];
+
+/**
+ * Beginning of the name of a room, the code of a room of the TUM: digits and a dot, like `0509.EG.980` of
+ * `0509.EG.980 (Audimax Werner-von-Siemens-Hörsaal)` or `8120.01.101` of `8120.01.101 (Audimax im Galileo)`.
+ */
+const roomForm: RegExp = /^\d+\./;
+
+/**
  * A link of a place, a web address without spaces, like `https://nav.tum.de/room/0509.EG.980`.
  */
 const linkForm: RegExp = /^https?:\/\/\S+$/;
@@ -79,6 +96,19 @@ const tableHead: number = 2;
  */
 function cellOf(text: string): string {
     return text.replace(/\|/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Cleans the name of a place, its label, which never holds a comma, since an entry writes its place as one line
+ * whose first comma ends the label: as a cell, see {@link cellOf}, each comma dropped, leaving a space,
+ * as for a name of a room from NavigaTUM, `0509.EG.980 (Audimax, Werner-von-Siemens-Hörsaal)` becoming
+ * `0509.EG.980 (Audimax Werner-von-Siemens-Hörsaal)`, and for a name typed with a comma.
+ *
+ * @param text - Name as typed or read, like `0509.EG.980 (Audimax, Werner-von-Siemens-Hörsaal)`
+ * @returns Name without comma, like `0509.EG.980 (Audimax Werner-von-Siemens-Hörsaal)`
+ */
+function nameOf(text: string): string {
+    return cellOf(text.replace(/,/g, " "));
 }
 
 /**
@@ -105,8 +135,8 @@ export function labelOf(line: string): string {
 /**
  * Gives the link to write with a place as the `ALTREP` of `LOCATION`: the link it had in the entry or box
  * it comes from, like the box a log entry is logged from or the entry being changed, while it is that same place,
- * else the link of my place of that line in `Places.md`, else none.
- * - `mine`: My place of the line, `undefined` for none.
+ * else the link of my place or the room of that line in `Places.md` or `Rooms.md`, else none.
+ * - `mine`: My place or the room of the line, `undefined` for none.
  *
  * @param line - Place as an entry writes it, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`
  * @param from - The entry or box it comes from, `null` for none
@@ -115,71 +145,95 @@ export function labelOf(line: string): string {
 export function placeLinkOf(line: string, from: { location: string; locationLink: string } | null): string {
     if (from !== null && from.location === line)
         return from.locationLink;
-    const mine: Place | undefined = placesRead().find((place: Place): boolean => lineOf(place) === line);
+    const mine: Place | undefined = [...placesRead(), ...roomsRead()]
+        .find((place: Place): boolean => lineOf(place) === line);
     return mine?.link ?? "";
 }
 
 /**
- * Reads my places, the rows of the table of `Places.md`: its lines starting with `|`, after the head of the table.
+ * Reads the rows of the table of `Places.md` or `Rooms.md`: its lines starting with `|`, after the head of the table.
  * A row without a name stays out, a row without link has none.
  * - `cells`: Cells of a row, without the empty texts before its first `|` and after its last.
  *
- * @returns Places in the order of the table, none while `Places.md` does not exist
+ * @param file - Path of the file, like that of `Rooms.md`
+ * @returns Places in the order of the table, none while the file does not exist
  */
-export function placesRead(): Place[] {
-    if (!existsSync(day.places))
+function tableRead(file: string): Place[] {
+    if (!existsSync(file))
         return [];
 
-    return readFileSync(day.places, "utf8").split("\n")
+    return readFileSync(file, "utf8").split("\n")
         .filter((line: string): boolean => line.startsWith("|"))
         .slice(tableHead)
         .map((line: string): string[] => line.split("|").slice(1, -1).map((cell: string): string => cell.trim()))
         .filter((cells: string[]): boolean => (cells[0] ?? "") !== "")
-        .map((cells: string[]): Place => ({ name: cells[0], address: cells[1] ?? "", link: cells[2] ?? "" }));
+        .map((cells: string[]): Place => ({ name: nameOf(cells[0]), address: cells[1] ?? "", link: cells[2] ?? "" }));
 }
 
 /**
- * Cleans a place as the page sends it, see {@link cellOf}, and checks it against my other places.
+ * Reads my places, the rows of `Places.md`, see {@link tableRead}.
+ *
+ * @returns Places in the order of the table, none while `Places.md` does not exist
+ */
+export function placesRead(): Place[] {
+    return tableRead(day.places);
+}
+
+/**
+ * Reads the rooms of the university, the rows of `Rooms.md`, see {@link tableRead}, like
+ * `0509.EG.980 (Audimax Werner-von-Siemens-Hörsaal)` with its address and its link to NavigaTUM.
+ *
+ * @returns Rooms in the order of the table, none while `Rooms.md` does not exist
+ */
+export function roomsRead(): Place[] {
+    return tableRead(day.rooms);
+}
+
+/**
+ * Cleans a place as the page sends it, see {@link cellOf}, a comma in its name dropped, see {@link nameOf},
+ * and checks it against my other places and the rooms: its name is needed, its address and its link may stay empty,
+ * and an address needs no number of a house, like `Burg-Eltz-Weg, 81375 München, Deutschland`.
  * - `clean`: The place cleaned.
  *
  * @param sent - Place as the page sends it, its name, its address and its link as typed
- * @param others - My other places, whose names it may not have
+ * @param others - My other places and the rooms, whose names it may not have
  * @returns The place cleaned
- * @throws {Error} - When the name or the address is empty, the name holds a comma, another place has the name,
- *   ignoring case, or the link is no web address
+ * @throws {Error} - When the name is empty, another place has the name, ignoring case,
+ *   or the link is no web address
  */
 function placeCleanOf(sent: Place, others: Place[]): Place {
     const clean: Place = {
-        name: cellOf(String(sent.name ?? "")), address: cellOf(String(sent.address ?? "")),
+        name: nameOf(String(sent.name ?? "")), address: cellOf(String(sent.address ?? "")),
         link: cellOf(String(sent.link ?? "")),
     };
-    if (clean.name === "" || clean.name.includes(",")
+    if (clean.name === ""
         || others.some((mine: Place): boolean => mine.name.toLowerCase() === clean.name.toLowerCase()))
         throw new Error(`No new name of a place: ${clean.name}`);
-    if (clean.address === "")
-        throw new Error(`No address of ${clean.name}`);
     if (clean.link !== "" && !linkForm.test(clean.link))
         throw new Error(`No link of ${clean.name}: ${clean.link}`);
     return clean;
 }
 
 /**
- * Reads the lines of `Places.md` to write a place into, a head of only two columns given the column `Link`;
- * those of a new file, the head of its table, see {@link fileHead}, when it does not exist yet.
- * - `lines`: Lines of `Places.md`.
+ * Reads the lines of `Places.md` or `Rooms.md` to write a place into, a head of only two columns given the column
+ * `Link`; those of a new file, the head of its table, see {@link fileHead} and {@link roomHead}, when it does not
+ * exist yet.
+ * - `lines`: Lines of the file.
  * - `first`, `last`: Index of the first line of its table, its header, and of its last.
  *
- * @returns Lines of `Places.md`
- * @throws {Error} - When `Places.md` lies outside the new system or holds no table
+ * @param file - Path of the file, like that of `Places.md`
+ * @returns Lines of the file
+ * @throws {Error} - When the file lies outside the new system or holds no table
  */
-function placeLinesRead(): string[] {
-    if (!writeAllowed(day.places))
-        throw new Error(`No writing outside the new system: ${day.places}`);
-    const lines: string[] = existsSync(day.places) ? readFileSync(day.places, "utf8").split("\n") : [...fileHead, ""];
+function placeLinesRead(file: string): string[] {
+    if (!writeAllowed(file))
+        throw new Error(`No writing outside the new system: ${file}`);
+    const lines: string[] = existsSync(file) ? readFileSync(file, "utf8").split("\n")
+        : [...(file === day.rooms ? roomHead : fileHead), ""];
     const first: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
     const last: number = lines.findLastIndex((line: string): boolean => line.startsWith("|"));
     if (first === -1 || last === first)
-        throw new Error(`No table in ${day.places}`);
+        throw new Error(`No table in ${file}`);
     if (lines[first].split("|").length - 2 < 3) {
         lines[first] = `${lines[first].trimEnd()} Link |`;
         lines[first + 1] = `${lines[first + 1].trimEnd()}---|`;
@@ -188,7 +242,7 @@ function placeLinesRead(): string[] {
 }
 
 /**
- * Writes a place as a row of the table of `Places.md`.
+ * Writes a place as a row of the table of `Places.md` or `Rooms.md`.
  *
  * @param place - Place cleaned
  * @returns Row like `| TumMain | Arcisstraße 21, 80333 München, Deutschland | https://nav.tum.de |`
@@ -198,53 +252,59 @@ function rowOf(place: Place): string {
 }
 
 /**
- * Adds a place to `Places.md` as the last row of its table, with its link or an empty cell, every other line
- * staying as it is, see {@link placeLinesRead}; creates `Places.md` when it does not exist yet.
+ * Adds a place as the last row of the table of `Rooms.md` when its name starts like the code of a room,
+ * see {@link roomForm}, like `5602.EG.001 (Hörsaal 1)`, else of `Places.md`, with its link or an empty cell,
+ * every other line staying as it is, see {@link placeLinesRead}; creates the file when it does not exist yet.
  * - `added`: The place as written, cleaned, see {@link placeCleanOf}.
- * - `lines`: Lines of `Places.md`.
+ * - `file`: `Rooms.md` or `Places.md`.
+ * - `lines`: Lines of the file.
  * - `last`: Index of the last line of its table.
  *
  * @param sent - Place as the page sends it, its name, its address and its link as typed
  * @returns The place as written
- * @throws {Error} - When the name or the address is empty, the name holds a comma, another place has the name,
- *   ignoring case, the link is no web address, or `Places.md` lies outside the new system or holds no table
+ * @throws {Error} - When the name is empty, another place or a room has the name, ignoring case,
+ *   the link is no web address, or the file lies outside the new system or holds no table
  */
 export function placeAdd(sent: Place): Place {
-    const added: Place = placeCleanOf(sent, placesRead());
-    const lines: string[] = placeLinesRead();
+    const added: Place = placeCleanOf(sent, [...placesRead(), ...roomsRead()]);
+    const file: string = roomForm.test(added.name) ? day.rooms : day.places;
+    const lines: string[] = placeLinesRead(file);
     const last: number = lines.findLastIndex((line: string): boolean => line.startsWith("|"));
     lines.splice(last + 1, 0, rowOf(added));
-    mkdirSync(dirname(day.places), { recursive: true });
-    writeFileSync(day.places, lines.join("\n"));
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, lines.join("\n"));
     return added;
 }
 
 /**
- * Changes my place of a name in `Places.md`, its name, its address and its link, in its own row, every other line
- * staying as it is, see {@link placeLinesRead}; every entry written before keeps the line and the link it had,
- * since each writes its place itself.
+ * Changes my place of a name in `Places.md`, or a room in `Rooms.md`, its name, its address and its link, in its own
+ * row, every other line staying as it is, see {@link placeLinesRead}, and nothing else: every entry written before
+ * keeps the line and the link it had, since each writes its place itself.
  * - `old`: The old name in small letters, as names compare, ignoring case.
+ * - `file`: `Places.md`, or `Rooms.md` for a room.
  * - `changed`: The place as written, cleaned, see {@link placeCleanOf}.
- * - `lines`: Lines of `Places.md`.
+ * - `lines`: Lines of the file.
  * - `first`: Index of the first line of its table, its header.
  * - `row`: Index of the row of the place, -1 for none.
  *
  * @param sent - The place as the page sends it, its old name and its name, address and link as typed
  * @returns The place as written
- * @throws {Error} - When no place has the old name, the name or the address is empty, the name holds a comma,
- *   another place has the name, ignoring case, the link is no web address, or `Places.md` lies outside the new system
+ * @throws {Error} - When no place has the old name, the name is empty, another place or a room has the name,
+ *   ignoring case, the link is no web address, or the file lies outside the new system
  */
 export function placeChange(sent: PlaceChanged): Place {
-    const old: string = String(sent.old ?? "").toLowerCase();
-    const changed: Place = placeCleanOf(sent, placesRead().filter((mine: Place): boolean =>
+    const old: string = nameOf(String(sent.old ?? "")).toLowerCase();
+    const file: string = roomsRead().some((room: Place): boolean => room.name.toLowerCase() === old)
+        ? day.rooms : day.places;
+    const changed: Place = placeCleanOf(sent, [...placesRead(), ...roomsRead()].filter((mine: Place): boolean =>
         mine.name.toLowerCase() !== old));
-    const lines: string[] = placeLinesRead();
+    const lines: string[] = placeLinesRead(file);
     const first: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
     const row: number = lines.findIndex((line: string, index: number): boolean => index >= first + tableHead
-        && line.startsWith("|") && (line.split("|")[1] ?? "").trim().toLowerCase() === old);
+        && line.startsWith("|") && nameOf(line.split("|")[1] ?? "").toLowerCase() === old);
     if (old === "" || row === -1)
         throw new Error(`No place of the name: ${sent.old}`);
     lines[row] = rowOf(changed);
-    writeFileSync(day.places, lines.join("\n"));
+    writeFileSync(file, lines.join("\n"));
     return changed;
 }

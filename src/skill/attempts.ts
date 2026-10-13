@@ -47,7 +47,7 @@ export type Attempt = {
  * - `name`: Name in its heading, like `Airline Revenue Interval`.
  * - `heading`: Its heading as written, like `Task. Airline Revenue Interval`.
  * - `source`: Its source line without `> `, like `Original: [[…|exam 2024/25 endterm 1a]]`, empty without one.
- * - `note`: Path of its note, as the notes view takes it.
+ * - `note`: Path of its note, as the scripts view takes it.
  * - `chapter`: Name to read of its chapter, like `01 Regression Analysis`.
  * - `section`: Name to read of its section, its note, like `01_01 Sample Mean Standard Error`.
  * - `cold`: Whether it is a cold task of its section, its heading ending with `(cold)`.
@@ -121,12 +121,15 @@ export type ExamDate = {
  *
  * - `day`: Its day, like `2026-10-06`, for a homework sheet the day of its deadline.
  * - `time`: Its time as ISO instant, for a homework sheet the time of its deadline, empty for none.
- * - `state`: Whether it is open, done, since a log entry relates to it, or dropped, which is cancelled.
+ * - `state`: Whether it is open, done, since a log entry relates to it, dropped, which I cancelled, or cancelled
+ *   by the university.
+ * - `number`: Its number in its series as stored, like `3`, `NONE` for one the university cancelled, empty for none.
  */
 export type PlannedEntry = {
     day: string;
     time: string;
-    state: "open" | "done" | "dropped";
+    state: "open" | "done" | "dropped" | "university";
+    number: string;
 };
 
 /**
@@ -170,6 +173,8 @@ export type SkillModule = {
  * - `skills`: The skills of the semester in their order, for the Skill picker: a module by its code, like `IN2028`,
  *   a project by its folder name, like `WokFlow`.
  * - `otherModules`: The other module folders by their codes, like `IN0024`, for the search of the Skill picker.
+ * - `folders`: The whole name of the folder of each of them by its name, which the Skill picker shows,
+ *   like `IN2028_BusinessAnalyticsMachineLearning` for `IN2028`.
  * - `skips`: Reasons to pick when skipping a task.
  * - `types`: Types of a skill entry, like `VO`.
  * - `efforts`: Efforts to rate an attempt with, the lowest first.
@@ -179,6 +184,7 @@ export type Skilling = {
     modules: SkillModule[];
     skills: string[];
     otherModules: string[];
+    folders: { [name: string]: string };
     skips: string[];
     types: string[];
     efforts: Effort[];
@@ -190,12 +196,10 @@ export type Skilling = {
  *
  * - `path`: Path from `NomWorkspace`, parted by `/`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
  * - `fingerprint`: SHA-256 of a file, empty for a folder.
- * - `topic`: What the file or the folder is about, its `X-TOPIC`, like `Logistic Regression`, empty for none.
  */
 export type Link = {
     path: string;
     fingerprint: string;
-    topic: string;
 };
 
 /**
@@ -215,11 +219,19 @@ export type LinkLost = {
 /**
  * What a skill offers a skill entry, as the reader sends it; a project offers nothing.
  *
+ * - `folder`: The module folder from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
+ *   empty for a project.
+ * - `drafts`: The folder of its drafts from `NomWorkspace`, like
+ *   `NomSystemdashboard/.claude/modules/drafts/IN2028_BusinessAnalyticsMachineLearning`, empty for a project.
  * - `chapters`: Names to read of its chapter folders, also of the empty ones, like `05 Decision Trees Ensembles`.
- * - `documents`: Its files outside the chapter folders, the university's material, by their paths from the module folder,
- *   like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`.
+ * - `documents`: Its files outside the chapter folders, the university's material, and the notes of its chapters,
+ *   by their paths from the module folder, like `VO_UniversityLectureLessons/TUM_2025W/04_….pdf`
+ *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`; the notes of a chapter without notes there
+ *   from its drafts, like `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
  */
 export type ModuleContents = {
+    folder: string;
+    drafts: string;
     chapters: string[];
     documents: string[];
 };
@@ -252,8 +264,6 @@ export type AttemptNew = {
  * - `chapters`: Names to read of the chapters it covered, none for none.
  * - `documents`: Paths from the folder of its skill of the documents it used, none for none; the reader links each
  *   with its fingerprint, see `reader/documents.ts`.
- * - `topics`: Topic of each chapter by its name and of each document by its path, as the dialog shows it,
- *   like `Logistic Regression`.
  * - `attempts`: Its attempts, none for none.
  * - `location`: Place, like the room of a lecture logged from the plan.
  * - `planned`: Identifier of the plan entry it is logged from, empty for none.
@@ -267,7 +277,6 @@ export type SkillEntryNew = {
     semester: string;
     chapters: string[];
     documents: string[];
-    topics: { [value: string]: string };
     attempts: AttemptNew[];
     location: string;
     planned: string;
@@ -427,18 +436,6 @@ export function semesterOf(day: string): string {
     if (month <= 3)
         return `${year - 1}W`;
     return `${year}S`;
-}
-
-/**
- * Gives the semester before a semester: the summer before a winter of the same year, the winter of the year before
- * before a summer.
- *
- * @param semester - Semester like `2026W`
- * @returns Semester like `2026S`, or `2025W` for `2026S`
- */
-export function semesterBefore(semester: string): string {
-    const year: number = Number(semester.slice(0, 4));
-    return semester.endsWith("W") ? `${year}S` : `${year - 1}W`;
 }
 
 /**

@@ -1,21 +1,28 @@
-<!-- Day: the plan as a list of boxes beside the log, my one calendar; at the right the trackers and the daily note -->
+<!-- Day: the plan as a list of boxes beside the log, my one calendar, equally wide; the date and the trackers in the bar
+     above them, my gratitude and my points about the day below them -->
 <div class="day">
-    <!-- Left side: the shown day above its plan and its log, side by side -->
-    <div class="day-main">
-        <!-- Arrows and Today, then the date of the shown day, for plan and log together;
-             a click on the date opens the month to pick a day from, see month.ts -->
-        <div class="day-bar">
-            <div class="day-buttons">
-                <button id="day-back" type="button"></button>
-                <button id="day-today" type="button">Today</button>
-                <button id="day-next" type="button"></button>
-            </div>
-            <h2 class="day-title"><button class="day-title-button" id="day-title" type="button" title="Pick a day"></button></h2>
+    <!-- The shown day above its plan and its log, side by side, its daily note below them -->
+    <div class="day-main" id="day-main" data-shown="plan">
+        <!-- The date of the shown day at the left end of the bar, above the plan, always fully readable, the arrows
+             to the day before and after left and right of it; on another day than today a small icon beside the date
+             leads back to today, saving the room of a button Today. A click on the date opens the month to pick
+             a day from, see month.ts. On a phone the date stands in the middle, the weekday above it.
+             The trackers of the shown day at the right end, above the log -->
+        <div class="day-bar day-nav">
+            <button class="day-arrow" id="day-back" type="button"></button>
+            <h2 class="day-title"><button class="day-title-button" id="day-title" type="button" title="Pick a day"><span
+                class="day-weekday" id="day-weekday"></span> <span class="day-date" id="day-date"></span></button></h2>
+            <button class="day-today" id="day-today" type="button" hidden></button>
+            <button class="day-arrow" id="day-next" type="button"></button>
+
+            <!-- Trackers of the shown day: the night's sleep and food; filled by trackers.ts; my water is in the food view;
+                 not on a phone -->
+            <section class="trackers" id="trackers"></section>
         </div>
 
         <!-- Plan: the boxes of the day, dragged into the log at the real time or logged as expected with their ring,
-             filled by boxes.ts; its + opens the entry by category for a new box -->
-        <section class="day-column">
+             filled by boxes.ts; its + beside its name opens the entry by category for a new box -->
+        <section class="day-column" id="day-plan">
             <div class="column-head">
                 <h2>Plan</h2>
                 <button class="column-new" id="plan-new" type="button"></button>
@@ -25,138 +32,128 @@
             <div class="plan-boxes" id="plan-boxes"></div>
         </section>
 
-        <!-- Log: the time grid of what happened, drawn by FullCalendar; its + opens the entry by category -->
-        <section class="day-column">
+        <!-- Log: the time grid of what happened, drawn by FullCalendar; its + beside its name opens the entry
+             by category -->
+        <section class="day-column" id="day-log">
             <div class="column-head">
                 <h2>Log</h2>
                 <button class="column-new" id="log-new" type="button"></button>
             </div>
             <div class="day-calendar" id="day-calendar"></div>
         </section>
+
+        <!-- My daily note below plan and log, looking like them: my gratitude below the plan, my points about the day
+             overall below the log, written any time of the day and saved as I type, each a list of points with their
+             bullets, see points.ts; below both the rest of the note, read only; not on a phone -->
+        <div class="note-boxes">
+            <section class="day-column">
+                <div class="column-head">
+                    <h2>Gratitude</h2>
+                </div>
+                <ul class="note-points" id="gratitude" aria-label="Gratitude"></ul>
+            </section>
+            <section class="day-column">
+                <div class="column-head">
+                    <h2>About the day</h2>
+                </div>
+                <ul class="note-points" id="about-day" aria-label="About the day"></ul>
+            </section>
+            <p class="panel-error" id="note-boxes-error" hidden>Saving failed</p>
+            <div class="day-note" id="day-note-text"></div>
+        </div>
+
+        <!-- Only on a phone, which shows plan or log, one at a time, filling the screen: at the bottom the buttons
+             that switch between them, the shown one picked, and + for a new box or entry of the shown one -->
+        <div class="day-switch" id="day-switch">
+            <button id="day-show-plan" type="button" aria-pressed="true">Plan</button>
+            <button id="day-show-log" type="button" aria-pressed="false">Log</button>
+            <button class="column-new" id="day-new" type="button"></button>
+        </div>
     </div>
-
-    <!-- Right side: the trackers above the daily note -->
-    <aside class="day-side">
-        <!-- Trackers of the shown day: sleep against my goals, food; filled by trackers.ts; my water is in the food view -->
-        <section class="trackers" id="trackers"></section>
-
-        <!-- Daily note of the shown day, read only below my gratitude and my paragraph about the day, which write into it -->
-        <article class="day-note">
-            <h2>Daily note</h2>
-
-            <!-- What I write into the note any time of the day, saved as I type:
-                 my gratitude, a list of points, and one short paragraph about the day overall -->
-            <div class="note-boxes">
-                <section class="note-box">
-                    <h3 class="note-box-name">Gratitude</h3>
-                    <textarea id="gratitude" rows="1" aria-label="Gratitude"></textarea>
-                </section>
-                <section class="note-box">
-                    <h3 class="note-box-name">About the day</h3>
-                    <textarea id="day-paragraph" rows="1" aria-label="About the day"></textarea>
-                </section>
-                <p class="panel-error" id="note-boxes-error" hidden>Saving failed</p>
-            </div>
-
-            <div id="day-note-text"></div>
-        </article>
-    </aside>
 </div>
 
-<!-- Entry by category for the log and the boxes of the plan, shown over the page, one column of rows, each its name
-     at the left, all names equally wide, and one line showing its value: the category first, then the fields
-     of the category, the times, more fields, the note and the buttons. A click on a line of a field opens its list
-     on top, see choices.ts. Esc or a click beside it closes it without saving -->
+<!-- Entry by category for the log and the boxes of the plan, shown over the page, without a title, all its room
+     for the fields: one column of rows in the order of the file, each its name grey at the left, all names equally
+     wide, and its value at the right, an empty field empty, without dash or placeholder: start and end fixed at the
+     top, then the category, below it the fields of the category one after another, the note always at the bottom,
+     and the buttons. A click on a row opens its list right under it, see choices.ts.
+     Esc or a click beside the dialog closes it without saving -->
 <dialog class="panel entry-panel" id="entry" closedby="any">
     <form class="panel-form entry-form" id="entry-form">
-        <!-- Plan, small and grey: a box of the plan, which may be logged instead,
-             or the box the log entry comes from, which may be changed instead -->
-        <p class="entry-from-plan" id="entry-plan" hidden>
-            <span id="entry-plan-title"></span>
-            <button id="entry-plan-log" type="button" hidden>Log it</button>
-            <button id="entry-plan-edit" type="button" hidden>Edit plan</button>
-        </p>
-
-        <!-- The category, one line; for a box only the categories I plan -->
-        <div id="entry-category"></div>
-
-        <!-- Fields before the times: what, place and where a way starts, or the skill and its type side by side -->
-        <div class="panel-form" id="entry-fields"></div>
-
-        <!-- Start and end of a log entry, one row each, its day and its time, as calendar apps write them:
-             the day of the start like 13.10.2026, filled with the date of the entry, of the selected slot,
-             or of the half hour before now for +; the times plain, like 14:00, 1415 or 14; the day of the end
-             fills itself with the day of the start, or the day after while the end time lies at or before
-             the start time, like 12.10.2026 23:30 to 13.10.2026 07:30, until I type over it;
-             what the fields show is exactly what is saved -->
-        <fieldset class="panel-form entry-times" id="entry-log-times">
+        <!-- Start and end, one row each, its day and its time, as calendar apps write them, the same for the log
+             and the plan: the day of the start like 13.10.2026, filled with the date of the entry or the box,
+             of the selected slot, or of the half hour before now for +; the times plain, like 14:00, 1415 or 14;
+             the day of the end fills itself with the day of the start, or the day after while the end time lies
+             at or before the start time, like 12.10.2026 23:30 to 13.10.2026 07:30, until I type over it.
+             The times of a box of the plan may stay empty, a box of its day, but for an imported lecture, which keeps
+             both; only a box of the plan has a deadline, its day and its time, which turns start and end off,
+             since the box then lies on its deadline. What the fields show is exactly what is saved -->
+        <fieldset class="panel-form entry-times" id="entry-times">
             <label class="panel-field"><span class="entry-name">Start</span>
                 <span class="entry-moment">
-                    <input class="date-field" id="entry-log-day" type="text" inputmode="decimal" autocomplete="off"
+                    <input class="date-field" id="entry-start-day" type="text" inputmode="decimal" autocomplete="off"
                            required aria-label="Day of the start">
                     <input class="time-field" id="entry-start" type="text" inputmode="numeric" autocomplete="off"
-                           required aria-label="Time of the start"></span></label>
+                           aria-label="Time of the start"></span></label>
             <label class="panel-field"><span class="entry-name">End</span>
                 <span class="entry-moment">
                     <input class="date-field" id="entry-end-day" type="text" inputmode="decimal" autocomplete="off"
                            required aria-label="Day of the end">
                     <input class="time-field" id="entry-end" type="text" inputmode="numeric" autocomplete="off"
-                           required aria-label="Time of the end"></span></label>
-        </fieldset>
-
-        <!-- Shown instead of start and end while the dialog writes a box, one row each like them: its day like
-             19.10.2026 (the shown day for a new one) with its expected time beside it, its minutes like 90 (both may
-             stay empty, but an imported lecture keeps both), and a to-do's deadline, its day and its time;
-             a deadline day turns the day and the expected time off, since the box then lies on its deadline -->
-        <fieldset class="panel-form entry-times" id="entry-box-times" hidden disabled>
-            <label class="panel-field"><span class="entry-name">Day</span>
-                <span class="entry-moment">
-                    <input class="date-field" id="entry-box-day" type="text" inputmode="decimal" autocomplete="off"
-                           required aria-label="Day">
-                    <input class="time-field" id="entry-time" type="text" inputmode="numeric" autocomplete="off"
-                           placeholder="Time" aria-label="Expected time"></span></label>
-            <label class="panel-field"><span class="entry-name">Minutes</span>
-                <span class="entry-moment">
-                    <input class="minutes-field" id="entry-minutes" type="text" inputmode="numeric" autocomplete="off"
-                           pattern="[0-9]{1,4}" title="Whole minutes, like 90"
-                           aria-label="Expected minutes"></span></label>
-            <label class="panel-field entry-deadline"><span class="entry-name">Deadline</span>
+                           aria-label="Time of the end"></span></label>
+            <label class="panel-field" id="entry-deadline"><span class="entry-name">Deadline</span>
                 <span class="entry-moment">
                     <input class="date-field" id="entry-deadline-day" type="text" inputmode="decimal"
                            autocomplete="off" aria-label="Day of the deadline">
                     <input class="time-field" id="entry-deadline-time" type="text" inputmode="numeric"
-                           autocomplete="off" placeholder="Time" aria-label="Time of the deadline"></span></label>
+                           autocomplete="off" aria-label="Time of the deadline"></span></label>
         </fieldset>
 
         <!-- How long the last entries like the box really lasted, small and grey under its minutes,
              like Real, last 3: 150 · 165 · 140 min; hidden while none is logged -->
         <p class="entry-real" id="entry-real" hidden></p>
 
-        <!-- Fields after the times: for Skill its place, topics, semester and attempts, for Food its foods -->
+        <!-- The category, one line; for a box only the categories I plan -->
+        <div id="entry-category"></div>
+
+        <!-- Fields of the category: what, or the skill and its type side by side -->
+        <div class="panel-form" id="entry-fields"></div>
+
+        <!-- More fields of the category: where a way starts and its place; for Skill its place, semester, chapters,
+             documents and attempts, for Food its foods -->
         <div class="panel-form" id="entry-more"></div>
 
-        <!-- Free note, my diary note about the entry, growing with its text -->
+        <!-- Free note, my diary of the unit, how it felt and what I learned, growing with its text -->
         <label class="panel-field"><span class="entry-name">Note</span>
-            <textarea id="entry-note" rows="3"></textarea></label>
+            <textarea id="entry-note" rows="3" aria-label="Note"></textarea></label>
+
+        <!-- The box a log entry comes from, small and grey -->
+        <p class="entry-from-plan" id="entry-plan" hidden><span id="entry-plan-title"></span></p>
 
         <!-- Hint when the reader does not take the entry -->
         <p class="panel-error" id="entry-error" hidden>Saving failed</p>
 
-        <!-- Remove asks once more, cancel closes the dialog, save sends the entry once its fields are picked -->
+        <!-- The copy at the left duplicates the entry or the box being changed, a new one filled in alike;
+             Remove asks once more; for a box of the plan Log it logs it instead, for a log entry from a box Edit plan
+             changes that box; cancel closes the dialog, save sends the entry once its fields are picked -->
         <div class="panel-buttons">
+            <button class="panel-duplicate" id="entry-duplicate" type="button" hidden></button>
             <button class="panel-remove" id="entry-remove" type="button" hidden>Remove</button>
-            <button id="entry-cancel" type="button">Cancel</button>
-            <button class="panel-main" id="entry-save" type="submit" disabled>Save</button>
+            <button id="entry-plan-edit" type="button" hidden>Edit plan</button>
+            <button id="entry-plan-log" type="button" hidden>Log it</button>
+            <button id="entry-cancel" type="button"></button>
+            <button class="panel-main" id="entry-save" type="submit" disabled></button>
         </div>
     </form>
 </dialog>
 
 <!-- Gift idea for a birthday or holiday of the plan, opened by a click on it, see gifts.ts:
-     its name small and grey, then one field for the idea; an empty field takes the idea out again -->
+     its name small and grey, then one row for the idea; an empty field takes the idea out again -->
 <dialog class="panel" id="gift" closedby="any">
     <form class="panel-form" id="gift-form">
         <p class="entry-from-plan" id="gift-occasion"></p>
-        <input id="gift-text" type="text" autocomplete="off" placeholder="Gift idea" aria-label="Gift idea">
+        <label class="panel-field"><span class="entry-name">Gift</span>
+            <input id="gift-text" type="text" autocomplete="off" placeholder="Gift idea"></label>
 
         <!-- Hint when the reader does not take the idea -->
         <p class="panel-error" id="gift-error" hidden>Saving failed</p>
@@ -164,33 +161,34 @@
         <!-- Remove takes the idea out, cancel closes the dialog, save sends the idea -->
         <div class="panel-buttons">
             <button class="panel-remove" id="gift-remove" type="button" hidden>Remove</button>
-            <button id="gift-cancel" type="button">Cancel</button>
-            <button class="panel-main" id="gift-save" type="submit">Save</button>
+            <button id="gift-cancel" type="button"></button>
+            <button class="panel-main" id="gift-save" type="submit"></button>
         </div>
     </form>
 </dialog>
 
-<!-- New place, opened over the entry by category by + of a list of places, see places.ts:
-     the place, filled with what I typed, and its address with its country, both required, and its link, optional -->
+<!-- New place, opened over the entry by category by + of a list of places, or my place to change by its pencil,
+     see places.ts: the place, filled with what I typed, required, its address with its country and its link,
+     both optional, each empty field showing its form; the link of a new place follows its address as the search
+     of Google Maps until I type in it -->
 <dialog class="panel" id="place" closedby="any">
     <form class="panel-form" id="place-form">
         <label class="panel-field"><span class="entry-name">Place</span>
             <input id="place-name" type="text" autocomplete="off" required></label>
         <label class="panel-field"><span class="entry-name">Address</span>
-            <input id="place-address" type="text" autocomplete="off" required
-                   placeholder="Arcisstraße 21, 80333 München, Deutschland"></label>
+            <input id="place-address" type="text" autocomplete="off"
+                   placeholder="Street (number), postcode town, country"></label>
         <label class="panel-field"><span class="entry-name">Link</span>
-            <input id="place-link" type="url" autocomplete="off"
-                   placeholder="Optional, like https://nav.tum.de/room/0509.EG.980"></label>
+            <input id="place-link" type="url" autocomplete="off" placeholder="https://…"></label>
 
         <!-- Hint when the reader does not take the place -->
         <p class="panel-error" id="place-error" hidden>
-            Not saved: it needs a new name without comma, an address, and a link only as a web address</p>
+            Not saved: it needs a new name, and a link only as a web address</p>
 
         <!-- Cancel closes the dialog and picks nothing, save adds the place to Places.md and picks it -->
         <div class="panel-buttons">
-            <button id="place-cancel" type="button">Cancel</button>
-            <button class="panel-main" id="place-save" type="submit">Save</button>
+            <button id="place-cancel" type="button"></button>
+            <button class="panel-main" id="place-save" type="submit"></button>
         </div>
     </form>
 </dialog>

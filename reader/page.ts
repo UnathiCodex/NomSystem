@@ -22,7 +22,7 @@ import type { ViteDevServer } from "vite";
  * - `middlewareMode`: Answers only the requests the reader hands over, without a server of its own.
  * - `hmr.server`: Sends its reload messages through the server of the reader.
  * - `allowedHosts`: Answers my devices too, which reach skriptum through Tailscale by a name ending in `.ts.net`,
- *   like `skriptum.tail1234.ts.net`; Vite refuses every other name but `localhost`.
+ *   like `skriptum.tail1234.ts.net`; Vite refuses every other name but `localhost` and addresses like `127.0.0.1`.
  * - `watch.ignored`: Leaves out `.claude/`, where Claude sessions write files of their own:
  *   every new `.html` there reloaded every open page.
  * - `appType`: Answers unknown addresses with `index.html`, as for a single page.

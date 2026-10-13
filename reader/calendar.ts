@@ -3,7 +3,7 @@
  *
  * Reads `.ics` files into entries, their events, `VEVENT`, and their to-dos, `VTODO`, the boxes of the plan,
  * see `boxes.ts`; appends events and to-dos to them, changes and removes single ones,
- * and moves one from one file into another, like into the file of another month.
+ * and moves one from one file into another, like into the log of another year.
  * Keeps each read file until it changes on disk, so a file is read again only once it changed.
  * Every entry states its facts in its own lines, for every field, now and later: a link, the `ALTREP` of a `SUMMARY`
  * or a `LOCATION` or an `ATTACH`, only points to more and is never the only place of a fact, since a folder may be
@@ -37,8 +37,9 @@ import type { CalendarSource } from "./sources.ts";
  * - `id`: Identifier of the event, its `UID`, like `b8f1e81f-15b4-460e-910d-ef6b1b3d09b3@nomsystem`;
  *   all occurrences of a series share it, like those of a birthday.
  * - `category`: Category of the entry, its `CATEGORIES`, like `Way`; empty for an entry without one, like a birthday.
- * - `title`: Summary of the entry, what it was, like `U-Bahn`, for a skill entry the name of the folder of its skill
- *   with its type in round brackets, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see {@link skillPartsOf}.
+ * - `title`: Summary of the entry, what it was, like `UBahn`, for a skill entry the name of the folder of its skill
+ *   with its type in round brackets, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see {@link skillPartsOf};
+ *   empty for an entry without `SUMMARY`.
  * - `titleLink`: Link of what it was, the standard parameter `ALTREP` of its `SUMMARY`: for a skill entry the folder
  *   of its skill from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
  *   see `documents.ts`; empty when it has none.
@@ -81,6 +82,8 @@ import type { CalendarSource } from "./sources.ts";
  *   empty for none and for an event.
  * - `pushed`: Days a box was pushed from to the next day, its `X-PUSHED`s in order, like `2026-10-12`
  *   of `X-PUSHED;VALUE=DATE:20261012`, see {@link pushedDayOf}; none when it has none.
+ * - `number`: Number of a lecture, an exercise, a tutorial or a sheet in its series, its `X-NUMBER`, like `3`,
+ *   `NONE` for one the university cancelled, see `boxUniversity` in `boxes.ts`; empty for none.
  * - `written`: When the entry was written, its `DTSTAMP`, as ISO instant, which the reader sets once as it adds an entry;
  *   empty when the event has none.
  * - `editable`: Whether the dashboard may change the entry: it lies in the new system and has times or is a to-do;
@@ -121,6 +124,7 @@ export type Entry = {
     minutes: number | null;
     deadline: string;
     pushed: string[];
+    number: string;
     written: string;
     editable: boolean;
     start: string;
@@ -131,21 +135,18 @@ export type Entry = {
 
 /**
  * A link of an entry to a file or a folder, one `ATTACH`: its value a path from `NomWorkspace`, never absolute,
- * since `NomWorkspace` lies elsewhere on each computer, its topic as parameter `X-TOPIC` in double quotes,
- * and for a file the fingerprint of its content as parameter, so the link survives a rename, see `documents.ts`, like
- * `ATTACH;X-TOPIC="Logistic Regression";X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_…/04_Logistic….pdf`
- * or `ATTACH;X-TOPIC="Logistic Poisson Regression":NomSkillingmodules/IN2028_…/02_LogisticPoissonRegression`
- * for the folder of a chapter. The value is no full URI, so other calendar apps may ignore it.
+ * since `NomWorkspace` lies elsewhere on each computer, and for a file the fingerprint of its content as parameter,
+ * so the link survives a rename, see `documents.ts`, like
+ * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_…/04_LogisticRegression.pdf`,
+ * or `ATTACH:NomSkillingmodules/IN2028_…/02_LogisticPoissonRegression` for the folder of a chapter in an older entry;
+ * nothing more, the name of the file says what it is. The value is no full URI, so other calendar apps may ignore it.
  *
  * - `path`: Path from `NomWorkspace`, parted by `/`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
  * - `fingerprint`: SHA-256 of the file's bytes, its parameter `X-SHA256`, as 64 hexadecimal digits; empty for a folder.
- * - `topic`: What the file or folder is about, its parameter `X-TOPIC`, like `Logistic Regression` or `Sheet 03`;
- *   empty for none, like in an older entry.
  */
 export type Link = {
     path: string;
     fingerprint: string;
-    topic: string;
 };
 
 /**
@@ -275,7 +276,7 @@ const zone: ICAL.Timezone = new ICAL.Timezone(zoneComponent);
  * `DURATION` and `ESTIMATED-DURATION` after them, then `RRULE`, `RDATE`, `EXDATE` and `RECURRENCE-ID`;
  * what, `CATEGORIES`, `SUMMARY`, `STATUS`, with `COMPLETED` after it; where, `LOCATION`; more about it,
  * `DESCRIPTION`, `ATTACH` and `RELATED-TO`; then every other line of the standard, then the `X-` lines,
- * each in the order it had.
+ * each in the order it had, those of a skill entry last, see {@link lineEnding}.
  */
 const lineOrder: string[] = [
     "UID", "DTSTAMP",
@@ -286,19 +287,18 @@ const lineOrder: string[] = [
 ];
 
 /**
+ * The last lines of every event and to-do, after every other `X-` line, in this order: the semester of a skill entry,
+ * `X-SEMESTER`, then all its `X-CHAPTER`s, then all its `X-ATTEMPT`s.
+ */
+const lineEnding: string[] = ["X-SEMESTER", "X-CHAPTER", "X-ATTEMPT"];
+
+/**
  * The parameter `ALTREP` in double quotes, as the standard writes a link there, also one without `:`, like
  * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":…`: `ical.js` quotes on its own only a value with `,`, `:` or `;`,
  * and every value of a parameter of several values that asks for it, so `ALTREP` is described as one, of one value
  * here, see {@link textPropertyOf}; one value still reads as its text.
  */
 ICAL.design.icalendar.param.altrep = { multiValue: ",", multiValueSeparateDQuote: true };
-
-/**
- * The parameter `X-TOPIC` of an `ATTACH` in double quotes, like `ATTACH;X-TOPIC="Logistic Regression":…`, also
- * a topic without `,`, `:` or `;`, as {@link ICAL.design.icalendar.param.altrep}; a `"` in it goes as `^'`
- * (RFC 6868), which `ical.js` reads back.
- */
-ICAL.design.icalendar.param["x-topic"] = { multiValue: ",", multiValueSeparateDQuote: true };
 
 /**
  * Category of skill entries, `CATEGORIES:Skill`, whose `SUMMARY` names their skill and type, see {@link skillPartsOf};
@@ -315,7 +315,7 @@ export const skillName: string = "Skill";
  * of the `SUMMARY`, lies outside `NomSkillingmodules`, like `WokFlow`. An older `SUMMARY` without brackets
  * but with a space, like `IN2028 VO`, has its skill and type parted at the first space. A skill entry carries
  * no `X-MODULE` and no `X-TYPE`; those lines of an older entry count no more and go once its `SUMMARY` changes,
- * see {@link textsPut}.
+ * see {@link textsPut}. An entry without skill has only its type in brackets, like `(VO)`, or no `SUMMARY`.
  * - `bracketed`: Name and type of a `SUMMARY` with a type in brackets, `null` for none.
  * - `space`: Place of the first space, -1 for none.
  * - `name`: Name of the folder of the skill.
@@ -325,7 +325,7 @@ export const skillName: string = "Skill";
  * @returns Skill and type, like `IN2028` and `VO`, or `WokFlow` and an empty type
  */
 function skillPartsOf(summary: string, link: string): [string, string] {
-    const bracketed: RegExpExecArray | null = /^(.+) \((\w+)\)$/.exec(summary);
+    const bracketed: RegExpExecArray | null = /^(.*?) ?\((\w+)\)$/.exec(summary);
     const space: number = summary.indexOf(" ");
     if (bracketed === null && space !== -1)
         return [summary.slice(0, space), summary.slice(space + 1)];
@@ -478,7 +478,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
     return {
         id: event.uid,
         category: category,
-        title: event.summary,
+        title: event.summary ?? "",
         titleLink: titleLink,
         location: event.location ?? "",
         locationLink: String(event.component.getFirstProperty("location")?.getParameter("altrep") ?? ""),
@@ -490,7 +490,6 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
         links: event.component.getAllProperties("attach").map((property: ICAL.Property): Link => ({
             path: String(property.getFirstValue()), fingerprint: String(property.getParameter("x-sha256") ?? ""),
-            topic: String(property.getParameter("x-topic") ?? ""),
         })),
         attempts: event.component.getAllProperties("x-attempt")
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
@@ -508,6 +507,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         deadline: todo ? deadlineOf(event.component) : "",
         pushed: event.component.getAllProperties("x-pushed")
             .map((property: ICAL.Property): string => pushedDayOf(property.getFirstValue())),
+        number: String(event.component.getFirstPropertyValue("x-number") ?? ""),
         written: stamp instanceof ICAL.Time ? stamp.toJSDate().toISOString() : "",
         editable: writable && (todo || !start.isDate),
         start: textOf(start),
@@ -791,7 +791,7 @@ function linesWrite(file: string, text: FileLines): void {
 /**
  * Creates an empty calendar with only the header the standard asks for, `PRODID` and `VERSION`,
  * and the time zone {@link zoneName}, which every `DTSTART` names. No `X-WR-CALNAME`, since its name is the name
- * of its file, like `2026_10_Log`, no `X-WR-TIMEZONE`, no `CALSCALE`, since `GREGORIAN` is the default,
+ * of its file, like `2026_Log`, no `X-WR-TIMEZONE`, no `CALSCALE`, since `GREGORIAN` is the default,
  * and no `METHOD`, which only invitations need.
  *
  * @returns Calendar without events
@@ -806,7 +806,8 @@ function calendarCreate(): ICAL.Component {
 
 /**
  * Gives the place of a line of an event or a to-do in the fixed order, see {@link lineOrder}:
- * the place of its property in the list, after them every other line of the standard, then the `X-` lines.
+ * the place of its property in the list, after them every other line of the standard, then the `X-` lines,
+ * and last those of {@link lineEnding}, in their order.
  * - `name`: Name of its property, like `DTSTART` of `DTSTART;TZID=Europe/Berlin:20261013T100000`.
  * - `place`: Its place in the list, -1 for none.
  *
@@ -818,6 +819,8 @@ function lineRankOf(line: string): number {
     const place: number = lineOrder.indexOf(name);
     if (place !== -1)
         return place;
+    if (lineEnding.includes(name))
+        return lineOrder.length + 2 + lineEnding.indexOf(name);
     return name.startsWith("X-") ? lineOrder.length + 1 : lineOrder.length;
 }
 
@@ -1153,8 +1156,7 @@ export function berlinInstantOf(day: string, hour: number): Date {
 
 /**
  * Builds a property; a time in Berlin time gets the parameter `TZID`, like `DTSTART;TZID=Europe/Berlin:…`,
- * a link its path as value, its topic as parameter `X-TOPIC` and the fingerprint of a file as parameter `X-SHA256`,
- * see {@link Link}.
+ * a link its path as value and the fingerprint of a file as parameter `X-SHA256`, see {@link Link}.
  *
  * @param name - Name of the property, like `dtstart`, `attach` for a link
  * @param value - Value of the property
@@ -1166,8 +1168,6 @@ function propertyOf(name: string, value: string | ICAL.Time | Link): ICAL.Proper
         property.setValue(value);
     else {
         property.setValue(value.path);
-        if (value.topic !== "")
-            property.setParameter("x-topic", [value.topic]);
         if (value.fingerprint !== "")
             property.setParameter("x-sha256", value.fingerprint);
     }
@@ -1403,7 +1403,7 @@ function textsPut(component: string[], entry: Entry, fields: EntryTexts): void {
 
 /**
  * Writes the changed lines of an event or a to-do back where they stood in their file, or moves them into another file,
- * like the file of another month: writes them there first, so a failure in between leaves them twice
+ * like the log of another year: writes them there first, so a failure in between leaves them twice
  * instead of losing them; its lines in the fixed order, see {@link linesOrdered}. Every other line of both files
  * stays as it is, byte for byte.
  *

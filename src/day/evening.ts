@@ -1,16 +1,16 @@
 /**
  * ## Evening
  *
- * What I write into the daily note of the shown day, any time of the day, at the top of the note:
- * my gratitude, a list of points, see `points.ts`, into the callout Dankbarkeiten,
- * and one short paragraph about the day overall into the callout Tagesfazit.
- * Both are saved into the day's note a moment after I stop typing, and when I leave a field or the day;
+ * What I write into the daily note of the shown day, any time of the day, at the top of the note, each a list
+ * of points with their bullets, see `points.ts`: my gratitude into the callout Dankbarkeiten, and my points
+ * about the day overall into the callout Tagesfazit, both apart, though they go hand in hand.
+ * Both are saved into the day's note a moment after I stop typing, and when I leave a list or the day;
  * the note below leaves both callouts out.
  * It is all that is left of the evening panel: what happened is my log and the boxes for tomorrow are plan entries,
  * so neither is written any more, and the notes keep what they hold.
  *
  * - `./note.ts`: Loads and writes the callouts of a daily note and shows the note.
- * - `./points.ts`: Writes a list of points like a Markdown list.
+ * - `./points.ts`: A list of points, each a bullet with its own field, like a Markdown list.
  */
 
 import { calloutsLoad, calloutSend, noteShow } from "./note.ts";
@@ -20,24 +20,22 @@ import type { CalloutTitle } from "./note.ts";
 
 
 /**
- * A field of the daily note I write.
+ * A list of points of the daily note I write.
  *
- * - `id`: Identifier of its text area, like `gratitude`.
+ * - `id`: Identifier of its list, like `gratitude`.
  * - `title`: Callout it writes into, like `Dankbarkeiten`.
- * - `points`: Whether it is a list of points, else one paragraph.
  */
 type Box = {
     id: string;
     title: CalloutTitle;
-    points: boolean;
 };
 
 /**
- * The fields of the daily note I write: my gratitude and my paragraph about the day.
+ * The lists of the daily note I write: my gratitude and my points about the day.
  */
 const boxes: Box[] = [
-    { id: "gratitude", title: "Dankbarkeiten", points: true },
-    { id: "day-paragraph", title: "Tagesfazit", points: false },
+    { id: "gratitude", title: "Dankbarkeiten" },
+    { id: "about-day", title: "Tagesfazit" },
 ];
 
 /**
@@ -51,7 +49,7 @@ const pause: number = 1000;
 let shown: string = "";
 
 /**
- * Texts of the fields as last loaded or saved, as their callouts hold them, by the titles of the callouts.
+ * Texts of the lists as last loaded or saved, as their callouts hold them, by the titles of the callouts.
  */
 let saved: Map<CalloutTitle, string> = new Map();
 
@@ -62,24 +60,23 @@ let waiting: number = 0;
 
 
 /**
- * Gives the text area of a field.
+ * Gives the list of points of a box.
  *
- * @param box - Field
- * @returns Its text area
+ * @param box - Box
+ * @returns Its list
  */
-function areaOf(box: Box): HTMLTextAreaElement {
-    return document.getElementById(box.id) as HTMLTextAreaElement;
+function listOf(box: Box): HTMLElement {
+    return document.getElementById(box.id) as HTMLElement;
 }
 
 /**
- * Reads the text of a field as its callout holds it: the points of my gratitude, see `points.ts`,
- * my paragraph without spaces at its ends.
+ * Reads the text of a box as its callout holds it, its points, see `points.ts`.
  *
- * @param box - Field
- * @returns Its text, empty for none
+ * @param box - Box
+ * @returns Its text, one point per line, empty for none
  */
 function textOf(box: Box): string {
-    return box.points ? pointsRead(areaOf(box)) : areaOf(box).value.trim();
+    return pointsRead(listOf(box));
 }
 
 /**
@@ -93,10 +90,10 @@ function errorShow(error: unknown): void {
 }
 
 /**
- * Saves each field whose text changed, one after the other, since both write into the same note,
+ * Saves each list whose text changed, one after the other, since both write into the same note,
  * then shows the note again, which the first save of a day may create.
  * - `day`: Day the texts belong to.
- * - `changed`: Fields whose text changed since it was loaded or saved.
+ * - `changed`: Lists whose text changed since it was loaded or saved.
  *
  * @throws {Error} - When the reader does not take a text
  */
@@ -118,7 +115,7 @@ async function boxesSave(): Promise<void> {
 }
 
 /**
- * Shows my gratitude and my paragraph of a day, after saving what was typed for the day shown before.
+ * Shows my gratitude and my points about a day, after saving what was typed for the day shown before.
  * - `callouts`: Callouts of the day's note.
  *
  * @param day - Day like `2026-10-10`
@@ -131,30 +128,23 @@ export async function eveningShow(day: string): Promise<void> {
     if (day !== shown)
         return;
     saved = new Map(boxes.map((box: Box): [CalloutTitle, string] => [box.title, callouts[box.title]]));
-    boxes.forEach((box: Box): void => {
-        if (box.points)
-            pointsShow(areaOf(box), callouts[box.title]);
-        else
-            areaOf(box).value = callouts[box.title];
-    });
+    boxes.forEach((box: Box): void => pointsShow(listOf(box), callouts[box.title]));
     document.getElementById("note-boxes-error")?.setAttribute("hidden", "");
 }
 
 /**
- * Starts the fields after the router has put their HTML into the page: my gratitude a list of points;
- * both saved a moment after the typing pauses and when a field loses the focus.
+ * Starts the lists after the router has put their HTML into the page, each a list of points, see `points.ts`,
+ * saved a moment after the typing pauses and when the focus leaves the list.
  */
 export function eveningStart(): void {
     boxes.forEach((box: Box): void => {
-        if (box.points)
-            pointsStart(areaOf(box));
-        areaOf(box).addEventListener("input", (): void => {
+        pointsShow(listOf(box), "");
+        pointsStart(listOf(box), (): void => {
             clearTimeout(waiting);
             waiting = window.setTimeout((): void => {
                 boxesSave().catch(errorShow);
             }, pause);
-        });
-        areaOf(box).addEventListener("blur", (): void => {
+        }, (): void => {
             boxesSave().catch(errorShow);
         });
     });

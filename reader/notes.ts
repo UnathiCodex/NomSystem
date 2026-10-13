@@ -1,7 +1,7 @@
 /**
  * ## Notes
  *
- * Reads my modules and the drafts for the notes view, read only: the modules of the semester with their chapters
+ * Reads my modules and the drafts for the scripts view, read only: the modules of the semester with their chapters
  * and notes for the menu, a note with the files its links lead to, the links of the notes that lead nowhere,
  * and single files, like the images of a note; for the skill entries of the day, every module folder
  * with its chapters and the university's documents in it.
@@ -16,7 +16,8 @@
  *
  * - `node:fs`: Reads files and folders on the disk.
  * - `node:path`: Builds file paths, `posix` with `/` for paths inside the modules.
- * - `./sources.ts`: Names the folders of the drafts and of my modules, and the modules of the semester.
+ * - `./sources.ts`: Names the folders of the drafts and of my modules for the scripts view, and the modules
+ *   of the semester.
  */
 
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
@@ -102,12 +103,21 @@ export type BrokenLink = {
 /**
  * What a module folder holds besides its notes, for a skill entry of the day.
  *
+ * - `folder`: The module folder from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
+ *   empty for a project.
+ * - `drafts`: The folder of its drafts from `NomWorkspace`, like
+ *   `NomSystemdashboard/.claude/modules/drafts/IN2028_BusinessAnalyticsMachineLearning`, empty for a project.
  * - `chapters`: Names to read of its chapter folders and of those of its drafts, also of the empty ones,
  *   like `05 Decision Trees Ensembles`, in order.
- * - `documents`: Its files outside the chapter folders, the university's material, by their paths from the module folder,
- *   like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`, in order.
+ * - `documents`: Its files outside the chapter folders, the university's material, and the notes of its chapters,
+ *   by their paths from the module folder, like `VO_UniversityLectureLessons/TUM_2025W/04_….pdf`
+ *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, the notes of a chapter without notes there
+ *   from its drafts, with `Drafts/` before, like `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`,
+ *   in order.
  */
 export type ModuleContents = {
+    folder: string;
+    drafts: string;
     chapters: string[];
     documents: string[];
 };
@@ -130,7 +140,7 @@ const markdownLink: RegExp = /\]\(\s*(?:<([^>#]*)|([^\s)#]*))/g;
 const external: RegExp = /^[a-z][a-z\d+.-]*:/i;
 
 /**
- * Content types of the files the notes view shows or opens, and of the files skill entries link,
+ * Content types of the files the scripts view shows or opens, and of the files skill entries link,
  * by their ending; any other file comes as bytes.
  */
 const types: { [ending: string]: string } = {
@@ -164,7 +174,7 @@ const moduleFolder: RegExp = /^[A-Z]+\d+_/;
 /**
  * First part of the paths of the drafts; a module folder named so would be taken for them.
  */
-const draftsName: string = "Drafts";
+export const draftsName: string = "Drafts";
 
 
 /**
@@ -431,51 +441,45 @@ export function moduleFolderOf(code: string): string | undefined {
 }
 
 /**
- * Reads what a module folder holds besides its notes, see {@link ModuleContents}: the chapter folders of the module
- * and of its drafts together, a chapter in both once, and every file of the module outside them, like the lecture's slides.
- * - `chapters`: Names of the chapter folders, a chapter in both twice.
+ * Reads what a module folder holds for a skill entry, see {@link ModuleContents}: the chapter folders of the module
+ * and of its drafts together, a chapter in both once, and as documents every file of the module outside them,
+ * like the lecture's slides, and the notes of its chapters in the module folder, like
+ * `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, but not their images; a chapter without notes there
+ * gives the notes of its unchecked drafts, like `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
+ * - `chapters`: Names of the chapter folders, each once, in order.
+ * - `notesOf`: Paths of the notes right in a folder, like `IN2028_…/01_RegressionAnalysis/01_01_….md`.
+ * - `notes`: Paths of the notes of every chapter, from the module folder or, with `Drafts/` before, from its drafts.
+ * - `material`: Paths of the files of the module outside its chapter folders.
  *
  * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
  * @returns Chapters and documents of the module, none for a missing folder
  */
 export function moduleContentsRead(module: string): ModuleContents {
-    const chapters: string[] = foldersOf(module).flatMap((folder: string): string[] => entriesRead(folder)
+    const chapters: string[] = [...new Set(foldersOf(module).flatMap((folder: string): string[] => entriesRead(folder)
         .filter((entry: Dirent): boolean => entry.isDirectory() && chapterFolder.test(entry.name))
-        .map((entry: Dirent): string => entry.name));
+        .map((entry: Dirent): string => entry.name)))].sort(collator.compare);
+    const notesOf: (folder: string) => string[] = (folder: string): string[] => entriesRead(folder)
+        .filter((note: Dirent): boolean => !note.isDirectory() && note.name.toLowerCase().endsWith(".md"))
+        .map((note: Dirent): string => `${folder}/${note.name}`);
+    const notes: string[] = chapters.flatMap((chapter: string): string[] => {
+        const own: string[] = notesOf(`${module}/${chapter}`)
+            .map((note: string): string => note.slice(module.length + 1));
+        return own.length > 0 ? own : notesOf(`${draftsName}/${module}/${chapter}`)
+            .map((note: string): string => `${draftsName}/${note.slice(draftsName.length + module.length + 2)}`);
+    });
+    const material: string[] = entriesRead(module)
+        .flatMap((entry: Dirent): string[] => entry.isDirectory()
+            ? (chapterFolder.test(entry.name) ? [] : filesRead(`${module}/${entry.name}`))
+            : [`${module}/${entry.name}`])
+        .map((file: string): string => file.slice(module.length + 1));
     return {
-        chapters: [...new Set(chapters)].sort(collator.compare).map(titleOf),
-        documents: entriesRead(module)
-            .flatMap((entry: Dirent): string[] => entry.isDirectory()
-                ? (chapterFolder.test(entry.name) ? [] : filesRead(`${module}/${entry.name}`))
-                : [`${module}/${entry.name}`])
-            .map((file: string): string => file.slice(module.length + 1))
-            .sort(collator.compare),
+        folder: `${modulesFolder}/${module}`, drafts: `${draftsFolder}/${module}`,
+        chapters: chapters.map(titleOf), documents: [...material, ...notes].sort(collator.compare),
     };
 }
 
 /**
- * Finds the folder of a chapter of a module by its name to read, see {@link titleOf}, which a skill entry links,
- * see `chapterLinksOf` in `documents.ts`: in the module folder of `NomSkillingmodules`, else in its drafts,
- * like a chapter not checked yet.
- * - `found`: The folder of the chapter in one of them, `undefined` while none is found.
- *
- * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
- * @param chapter - Name to read of the chapter, like `02 Logistic Poisson Regression`
- * @returns Its path from `NomWorkspace`, like `NomSkillingmodules/IN2028_…/02_LogisticPoissonRegression`
- *   or `NomSystemdashboard/.claude/modules/drafts/IN2028_…/03_…`, `undefined` for none
- */
-export function chapterPathOf(module: string, chapter: string): string | undefined {
-    for (const folder of foldersOf(module)) {
-        const found: Dirent | undefined = entriesRead(folder).find((entry: Dirent): boolean =>
-            entry.isDirectory() && chapterFolder.test(entry.name) && titleOf(entry.name) === chapter);
-        if (found !== undefined)
-            return `${folder === module ? modulesFolder : draftsFolder}/${module}/${found.name}`;
-    }
-    return undefined;
-}
-
-/**
- * Gives the name to read of the chapter whose folder a path leads to, the other way of {@link chapterPathOf}.
+ * Gives the name to read of the chapter whose folder a path leads to, like the folder an older skill entry links.
  *
  * @param path - Path of the folder of a chapter from `NomWorkspace`,
  *   like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning/02_LogisticPoissonRegression`

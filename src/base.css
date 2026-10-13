@@ -3,6 +3,35 @@
     box-sizing: border-box;
 }
 
+/* Scrollbars thin and calm, so they hardly show, like the one of the log: in Chrome a bar 6 px wide, its thumb
+   one grey lighter than the page and rounded, a little lighter under the pointer, on no track of its own;
+   Firefox, which has none of these, takes its thin bar in the same greys */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: var(--chosen);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--chosen-line);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--chosen) transparent;
+    }
+}
+
 /* Hidden elements stay hidden, also when their class sets a display like flex */
 [hidden] {
     display: none !important;
@@ -69,12 +98,10 @@ body {
     text-decoration-color: currentcolor;
 }
 
-/* A phone only looks at the day and its food, nothing for learning, see `main.ts`:
-   no links to the week, the notes with the editor and the skill area; the timer never runs there */
+/* A phone only looks at the day, its plan and its log, nothing for learning, see `main.ts`: no areas at the top,
+   which stays free; the timer never runs there */
 @media (max-width: 900px) {
-    .areas a[href="/week"],
-    .areas a[href="/notes"],
-    .areas a[href="/skill"] {
+    .areas {
         display: none;
     }
 }

@@ -1,16 +1,16 @@
 /**
  * ## Tree
  *
- * The one tree on the left of the notes view, see `./notes.ts`, and of the editor, see `../editor/editor.ts`,
+ * The one tree on the left of the scripts view, see `./notes.ts`, and of the editor, see `../editor/editor.ts`,
  * as Obsidian's file explorer, with two roots, so both are one view:
  * - `NomManageplannings`, my new system, as the reader lists it, without my old system `NomSystemprevious`,
  *   see `reader/files.ts`: a Markdown file, like `Foods.md`, opens in the editor to edit, an `.ics` file
  *   as its plain text to read, any other file shows faint and opens not;
  * - `NomSkillingmodules`, the modules of the semester, each folding its chapters, of its folder and of its drafts
- *   together, with their notes, which open in the notes view to read; my module notes are written only
+ *   together, with their notes, which open in the scripts view to read; my module notes are written only
  *   through their drafts, whose pencil opens them in the editor.
  * Folders come first. Both roots stand open, every other folder closed but those on the way to the file or note
- * shown; while none is shown, the first module opens, as the notes view always opened it.
+ * shown; while none is shown, the first module opens, as the scripts view always opened it.
  * The look of the tree is in `./notes.css`.
  */
 
@@ -86,14 +86,14 @@ export function folderOf(name: string): HTMLDetailsElement {
 }
 
 /**
- * Builds the address of a note in the notes view.
+ * Builds the address of a note in the scripts view.
  *
  * @param path - Path of the note
  * @param heading - Heading to scroll to, empty for the top
- * @returns Address like `/notes?path=…#Heading`
+ * @returns Address like `/scripts?path=…#Heading`
  */
 export function noteAddressOf(path: string, heading: string): string {
-    const address: string = `/notes?path=${encodeURIComponent(path)}`;
+    const address: string = `/scripts?path=${encodeURIComponent(path)}`;
     if (heading === "")
         return address;
     return `${address}#${encodeURIComponent(heading)}`;
@@ -147,7 +147,7 @@ function fileNodeOf(node: FileNode): HTMLElement {
 /**
  * Makes a module of the semester: a folder by its name to read, like `IN2028 Business Analytics Machine Learning`,
  * the name of its folder as data, so it can be opened, see {@link treeShow}, its chapters in it, each folding
- * its notes, which link to the notes view, named without `.md` as in Obsidian;
+ * its notes, which link to the scripts view, named without `.md` as in Obsidian;
  * a module without chapter notes holds a calm `No chapters yet`, as the skill view says it.
  * - `folder`: Folder of the module.
  * - `chapter`: Folder of a chapter.

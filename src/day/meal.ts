@@ -2,7 +2,7 @@
  * ## Meal in the entry by category
  *
  * The what of a meal, the first field of `Food` in the log: one line like every field, the name of the meal,
- * which opens its list on top, see `popOf` in `choices.ts`: the food search, see `../food/search.ts`,
+ * which opens its list right under the meal, see `listOf` in `choices.ts`: the food search, see `../food/search.ts`,
  * which finds my foods first, then those of Open Food Facts, and above them the meals I ate before that match
  * what is typed, the most eaten first, each way I ate them, its foods below a name of its own,
  * like `Brotzeit` over `Brot, Käse, Salat`. Each time the list opens, its search starts empty.
@@ -24,14 +24,14 @@
  * A meal eaten out, where nothing can be weighed, I log by photo through Claude, who writes its entry through the reader;
  * the dialog itself takes no photo.
  *
- * - `./choices.ts`: Opens the list of the what on top of the dialog.
+ * - `./choices.ts`: Opens the list of the what under the meal, inside the dialog.
  * - `../food/foods.ts`: Finds my foods, loads the meals eaten before, writes amounts and makes elements.
  * - `../food/search.ts`: The food search, with the meals eaten before above my foods.
  * - `../icons.ts`: Puts the icons into the buttons, their words as tooltip.
  * - `lucide`: The icons remove, replace, name, fold and unfold.
  */
 
-import { popOf } from "./choices.ts";
+import { listOf } from "./choices.ts";
 import { amountOf, dishesLoad, elementOf, foodsFind } from "../food/foods.ts";
 import { foodSearchClear, foodSearchOf } from "../food/search.ts";
 import { iconOf, iconPut } from "../icons.ts";
@@ -122,9 +122,14 @@ let searchElement: HTMLElement = document.createElement("div");
 let line: HTMLButtonElement = document.createElement("button");
 
 /**
- * List on top with the meals eaten before and the food search, which the line opens.
+ * List with the meals eaten before and the food search, which the line opens under the meal.
  */
-let pop: HTMLElement = document.createElement("div");
+let box: HTMLElement = document.createElement("div");
+
+/**
+ * Closes the list.
+ */
+let close: () => void = (): void => {};
 
 
 /**
@@ -223,7 +228,12 @@ function foodRowOf(pick: FoodPick, changed: () => void): HTMLElement {
     const kcal: HTMLElement = elementOf("span", "meal-kcal", "");
     const replace: HTMLButtonElement = buttonOf("", (): void => {
         replacing = pick;
-        pop.showPopover();
+        if (box.hidden)
+            line.click();
+        else {
+            foodSearchClear(searchElement);
+            searchElement.querySelector("input")?.focus();
+        }
     });
     const remove: HTMLButtonElement = buttonOf("", (): void => {
         picks = picks.filter((other: FoodPick): boolean => other !== pick);
@@ -257,8 +267,8 @@ function foodRowOf(pick: FoodPick, changed: () => void): HTMLElement {
         if (event.key !== "Enter")
             return;
         event.preventDefault();
-        if (!pop.matches(":popover-open"))
-            pop.showPopover();
+        if (box.hidden)
+            line.click();
     });
     grams.append(input, " g");
     iconPut(replace, ArrowLeftRight, `Replace ${pick.name}`);
@@ -372,8 +382,7 @@ function foodPick(food: Food, changed: () => void): void {
     unfolded = true;
     rowsShow(changed);
     changed();
-    if (pop.matches(":popover-open"))
-        pop.hidePopover();
+    close();
     rows.querySelectorAll<HTMLInputElement>(".meal-grams input")[index]?.focus();
 }
 
@@ -398,7 +407,7 @@ function dishPick(dish: Dish, changed: () => void): void {
     unfolded = false;
     rowsShow(changed);
     changed();
-    pop.hidePopover();
+    close();
 }
 
 /**
@@ -473,12 +482,12 @@ function nameFieldOf(changed: () => void): HTMLElement {
 
 /**
  * Builds the what of a meal, see the top of this file, with the foods and the name it has already,
- * after loading my foods and the meals eaten before: the line, its list on top with the food search, which starts
- * empty and focuses its field as the list opens, below the line the foods picked, then the field of the name.
+ * after loading my foods and the meals eaten before: the line, below it the foods picked, then the field of the name,
+ * and the list with the food search, which starts empty and focuses its field as it opens.
  * A meal written before keeps its what as name of its own when it is not just its foods.
  * - `found`: All my foods, as the search finds them for an empty text.
  * - `eaten`: The meals eaten before.
- * - `meal`: The line, its list, the foods picked and the field of the name.
+ * - `meal`: The line, the foods picked, the field of the name and the list, a picker.
  *
  * @param lines - Lines `X-FOOD` of the meal, like `Reis;150`; none for a new meal
  * @param title - What of the meal written before, like `Salat`; empty for a new meal
@@ -488,7 +497,7 @@ function nameFieldOf(changed: () => void): HTMLElement {
  */
 export async function mealOf(lines: string[], title: string, changed: () => void): Promise<HTMLElement> {
     const [found, eaten]: [FoodsFound, Dish[]] = await Promise.all([foodsFind("", "", 1), dishesLoad()]);
-    const meal: HTMLElement = elementOf("div", "meal", "");
+    const meal: HTMLElement = elementOf("div", "meal picker", "");
     picks = lines.map(pickOf);
     named = picks.length > 0 && title.trim().toLowerCase() !== foodsTitleOf(picks).toLowerCase() ? title.trim() : "";
     unfolded = false;
@@ -500,17 +509,17 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     rows = elementOf("div", "meal-rows", "");
     nameField = nameFieldOf(changed);
     line = document.createElement("button");
-    pop = elementOf("div", "picker-pop meal-pop", "");
+    box = elementOf("div", "picker-box meal-box", "");
     line.className = "picker-line";
-    pop.append(searchElement);
-    popOf(line, pop, (): void => {
+    box.append(searchElement);
+    close = listOf(meal, line, box, (): void => {
         foodSearchClear(searchElement);
         searchElement.querySelector("input")?.focus();
     }, (): void => {
         replacing = null;
     });
     rowsShow(changed);
-    meal.append(line, pop, rows, nameField);
+    meal.append(line, rows, nameField, box);
     return meal;
 }
 

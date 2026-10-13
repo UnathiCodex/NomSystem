@@ -7,14 +7,20 @@
  * with only its duration, a call one with neither. What happens anyway, like my sleep, I don't plan, see `categories.ts`.
  * When I do it, it goes into the log at its real time, see `boxLog` in `day.ts`, so expected and real time
  * can be compared later; a box I decide against is cancelled, dropped with one tap, and stays in its file
- * as `STATUS:CANCELLED`, so it can be counted. A box neither done nor cancelled stays on its day once that is over
- * and is carried along to today, see {@link boxesCarried}, until I do it or cancel it; it never moves into the next
- * days by itself, only when I push it there.
+ * as `STATUS:CANCELLED`, so it can be counted; `STATUS:CANCELLED` is always my own decision, lectures included.
+ * A box neither done nor cancelled stays on its day once that is over and is carried along to today,
+ * see {@link boxesCarried}, lectures too, until I do it or cancel it; it never moves into the next days by itself,
+ * only when I push it there.
+ * A lecture, an exercise, a tutorial and a sheet, a skill box of a type of {@link numberedTypes}, carries its number
+ * in its series, the boxes of the same `SUMMARY` by date, as `X-NUMBER`, like `X-NUMBER:3`, the next one when
+ * the dialog adds it, see {@link numberNextOf}. One the university cancels gets `X-NUMBER:NONE` by its own button,
+ * see {@link boxUniversity}, and the later ones of its series move up a number; it is neither done nor carried along.
  *
- * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan file of its month,
- * like `2026/2026_10/2026_10_Plan.ics`, or in the plan of its module, like
- * `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`, both in `NomManagecalendar`, see `calendar.ts`;
- * a box of a month moves into the plan file of the month of its new day when its day changes, a box of a module stays:
+ * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan of its year, like `Living/2026_Plan.ics`,
+ * or a skill box in the plan of its skill, like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`,
+ * both in `NomManagecalendar`, see `sources.ts` and `calendar.ts`; a box moves into the plan it belongs into
+ * when its day moves into another year or it changes its category or its skill, also one from a month file
+ * of the layout before, see {@link planFileAfter}:
  * - its day and its expected time in `DTSTART`: `DTSTART;VALUE=DATE:20261013` without time,
  *   `DTSTART;TZID=Europe/Berlin:20261013T120000` with;
  * - or instead its deadline in `DUE`, like a homework I must hand in: `DUE;TZID=Europe/Berlin:20261023T120000`,
@@ -32,7 +38,9 @@
  * - each push in one `X-PUSHED` with the day it was pushed from, as a date of the iCalendar format,
  *   like `X-PUSHED;VALUE=DATE:20261013`, since the standard has nothing for it;
  * - its category, what, place, module, type, semester and note as an entry of the log has them, a skill box its
- *   semester as `X-SEMESTER`, like `X-SEMESTER:2026W`, see `semesterFor` in `categories.ts`.
+ *   semester as `X-SEMESTER`, like `X-SEMESTER:2026W`, see `semesterFor` in `categories.ts`, its chapters
+ *   as `X-CHAPTER`s and the documents it will use as `ATTACH`es, like the slides of a lecture,
+ *   see `linksOf` in `documents.ts`, which a log entry from it gets too.
  * The log entry written from a box points to it the standard way, with `RELATED-TO:<UID of the box>`, which gives
  * its real time, an older one with `X-PLANNED:<UID of the box>`: a box is done once a log entry points to it,
  * or once it is `COMPLETED`, like a box ticked in another app.
@@ -54,36 +62,43 @@
  * `STATUS:CANCELLED`, which events have too, and it is done when a log entry points to it.
  *
  * Above its boxes a day shows its birthdays and holidays, those of `Birthdays.ics` and `Holidays.ics`
- * in `NomManagecalendar`, see `sources.ts`, each on its date, a yearly series on each of its days, with its category,
- * like `Birthday: KarlbauerFlorian` or `Holiday: Ostermontag (AT, DE)`, and my gift idea for it, its `DESCRIPTION`,
- * see `gifts.ts`; none of a file while it is missing.
+ * in `NomManagecalendar/Meta/`, see `sources.ts`, each on its date, a yearly series on each of its days,
+ * with its category, like `Birthday: KarlbauerFlorian` or `Holiday: Ostermontag (AT, DE)`, and my gift idea for it,
+ * its `DESCRIPTION`, see `gifts.ts`; none of a file while it is missing.
  *
- * - `node:path`: Gives the name of a plan file.
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
  * - `./categories.ts`: Tells whether a box fits its category, names the category of skill entries,
  *   and gives the semester of a skill box.
- * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill.
+ * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill, its links to documents,
+ *   reads its chapters, and gives the plan a box belongs into.
+ * - `./notes.ts`: Finds the chapters of a module, which a skill box may name.
  * - `./places.ts`: Gives the link of the place of a box.
- * - `./sources.ts`: Names the plan, the log and the birthdays and holidays, and builds the path of a plan file.
+ * - `./sources.ts`: Names the plan, the log and the birthdays and holidays.
  */
 
-import { basename } from "node:path";
 import {
     berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryIdOf, entryLookup, entryRemove,
-    occurrenceLookup, occurrenceOwn, pushesPut, statusPut, todoAppend, todoChange,
+    occurrenceLookup, occurrenceOwn, propertiesPut, pushesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, semesterFor, skillName } from "./categories.ts";
-import { titleOf } from "./documents.ts";
+import { calendarFileOf, chaptersOf, linksOf, titleOf } from "./documents.ts";
+import { moduleContentsRead, moduleFolderOf } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
-import { day, monthFileOf, planEnding } from "./sources.ts";
+import { day, planEnding } from "./sources.ts";
 
 import type { Entry, EntryFields, EntryTexts, Link, TodoFields } from "./calendar.ts";
 
 
 /**
- * State of a box: open, done, since a log entry points to it, or dropped.
+ * State of a box: open, done, since a log entry points to it, dropped, cancelled by me, or cancelled
+ * by the university, its `X-NUMBER:NONE`.
  */
-export type BoxState = "open" | "done" | "dropped";
+export type BoxState = "open" | "done" | "dropped" | "university";
+
+/**
+ * Types of skill boxes that carry their number in their series: lectures, exercises, tutorials and sheets.
+ */
+const numberedTypes: string[] = ["VO", "UE", "TU", "HU"];
 
 /**
  * A box, as the page shows it.
@@ -106,6 +121,10 @@ export type BoxState = "open" | "done" | "dropped";
  * - `todo`: Whether it is a to-do; an event keeps its time and duration, see the top of this file.
  * - `links`: Its links, its `ATTACH`es, like the slides a lecture of my plan links, see `documents.ts`;
  *   none for none.
+ * - `chapters`: Chapters of my system a skill box belongs to, its `X-CHAPTER`s, or those whose folders an older box
+ *   links, see `chaptersOf` in `documents.ts`, like `02 Logistic Poisson Regression`; none for none.
+ * - `number`: Its number in its series, its `X-NUMBER`, like `3`, `NONE` for one the university cancelled;
+ *   empty for none.
  */
 export type Box = EntryTexts & {
     id: string;
@@ -120,6 +139,8 @@ export type Box = EntryTexts & {
     series: boolean;
     todo: boolean;
     links: Link[];
+    chapters: string[];
+    number: string;
 };
 
 /**
@@ -162,12 +183,18 @@ export type PlanDay = {
  * - `time`: Expected time as ISO instant, on its day, empty for none and for a box with a deadline.
  * - `minutes`: Expected duration in whole minutes, `null` for none.
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` without time, empty for none.
+ * - `chapters`: Names to read of the chapters of my system a skill box belongs to, like `01 Regression Analysis`,
+ *   none for none and for any other box.
+ * - `documents`: Paths from the folder of its skill of the documents a skill box will use, like
+ *   `VO_UniversityLectureLessons/TUM_2026W/01_Introduction.pdf`, none for none and for any other box.
  */
 export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink"> & {
     day: string;
     time: string;
     minutes: number | null;
     deadline: string;
+    chapters: string[];
+    documents: string[];
 };
 
 /**
@@ -192,28 +219,31 @@ const deadlineDays: number = 4;
 
 
 /**
- * Builds the path of the plan file of the month of a day.
+ * Gives the plan a box belongs into, see the top of this file: the plan of its skill for a skill box,
+ * else the plan of the year of its day, see `calendarFileOf` in `documents.ts`.
  *
- * @param date - Day like `2026-10-13`
- * @returns Path like `2026/2026_10/2026_10_Plan.ics` in `NomManagecalendar`
+ * @param box - Category and skill of the box, like `Skill` and `IN2028`, or `Talk` and no skill
+ * @param date - Its day, like `2026-10-13`
+ * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics` or `Living/2026_Plan.ics`
+ *   in `NomManagecalendar`
  */
-function planFileOf(date: string): string {
-    return monthFileOf(date, planEnding);
+function planFileOf(box: { category: string; module: string }, date: string): string {
+    return calendarFileOf(box, date, planEnding);
 }
 
 /**
- * Gives the plan file a box is written into once its day changes, see the top of this file: the plan file
- * of the month of its new day when it lies in the plan file of a month, like `2026_10_Plan.ics`,
- * else the file it lies in, like the plan of a module, `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`,
- * and always the file of its series for one occurrence of a series.
+ * Gives the plan file a box is written into once it changes, see the top of this file: the plan it belongs into
+ * with its new category, skill and day, see {@link planFileOf}, also for a box from a month file of the layout before,
+ * like `2026/2026_10/2026_10_Plan.ics`; always the file of its series for one occurrence of a series.
  *
  * @param file - Path of the plan file the box lies in
  * @param entry - Entry of the box
- * @param date - New day of the box, like `2026-11-02`
- * @returns Path like `2026/2026_11/2026_11_Plan.ics` or the path of its file
+ * @param box - New category and skill of the box
+ * @param date - New day of the box, like `2027-01-04`
+ * @returns Path like `Living/2027_Plan.ics` or the path of its file
  */
-function planFileAfter(file: string, entry: Entry, date: string): string {
-    return entry.recurrence === "" && /^\d{4}_\d{2}_Plan\.ics$/.test(basename(file)) ? planFileOf(date) : file;
+function planFileAfter(file: string, entry: Entry, box: { category: string; module: string }, date: string): string {
+    return entry.recurrence === "" ? planFileOf(box, date) : file;
 }
 
 /**
@@ -286,7 +316,8 @@ function planEntryFind(id: string): [string, Entry] {
 }
 
 /**
- * Turns an entry of the plan, a to-do or an event, into a box, see the top of this file.
+ * Turns an entry of the plan, a to-do or an event, into a box, see the top of this file: dropped while I cancelled it,
+ * done once a log entry points to it, cancelled by the university while its number is `NONE`, else open.
  * - `log`: The log entry written from it, `undefined` for none.
  *
  * @param entry - Entry of the plan
@@ -303,6 +334,8 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         state = "dropped";
     else if (log !== undefined || entry.status === "COMPLETED")
         state = "done";
+    else if (entry.number === "NONE")
+        state = "university";
     return {
         id: entryIdOf(entry), category: entry.category, title: entry.title, titleLink: entry.titleLink,
         location: entry.location, locationLink: entry.locationLink, from: entry.from, module: entry.module,
@@ -318,24 +351,32 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         series: entry.recurrence !== "",
         todo: entry.todo,
         links: entry.links,
+        chapters: chaptersOf(entry),
+        number: entry.number,
     };
 }
 
 /**
- * Orders two boxes: those with a deadline first, by their deadline, since nothing is more urgent,
- * then those with a time, by their time, like my lectures, then those without, in the order they were read,
- * the order I planned them in; the dropped ones last, in the same order.
- * - `rankOf`: 0 for a box with a deadline, 1 for one with a time, 2 for one without, 3 more when dropped.
+ * Orders two boxes as the stations of the day, so the plan reads like the log: those with a time by their time,
+ * like my lectures, also one cancelled, which keeps its place faded, then those with a deadline by their deadline,
+ * then those without either in the order they were read, the order I planned them in, the cancelled ones of them
+ * last.
+ * - `rankOf`: 0 for a box with a time, 1 for one with a deadline, 2 for one without, 3 for one without, cancelled.
  *
  * @param first - A box
  * @param second - Another box
  * @returns Below zero when the first comes first, above zero when the second does, zero when they stay as they are
  */
 function boxCompare(first: Box, second: Box): number {
-    const rankOf: (box: Box) => number = (box: Box): number =>
-        (box.deadline !== "" ? 0 : box.time === "" ? 2 : 1) + (box.state === "dropped" ? 3 : 0);
-    return rankOf(first) - rankOf(second) || first.deadline.localeCompare(second.deadline)
-        || first.time.localeCompare(second.time);
+    const rankOf: (box: Box) => number = (box: Box): number => {
+        if (box.time !== "")
+            return 0;
+        if (box.deadline !== "")
+            return 1;
+        return box.state === "dropped" || box.state === "university" ? 3 : 2;
+    };
+    return rankOf(first) - rankOf(second) || first.time.localeCompare(second.time)
+        || first.deadline.localeCompare(second.deadline);
 }
 
 /**
@@ -468,9 +509,12 @@ export function boxOpenFind(id: string): Box {
  * Checks a new or changed box before it is written: its day, its fields, which fit its category, one I plan,
  * see {@link planAllows}, or keep what the box was, its category and title, for a skill box its skill and type,
  * like an older `IN2028 DEV` of a type no longer offered, its time on its day, its duration, whole minutes
- * of at most a day, and its deadline, on its day and without expected time, see the top of this file.
+ * of at most a day, its deadline, on its day and without expected time, see the top of this file, and the chapters
+ * of a skill box among those of its module or those it had.
  * - `kept`: Whether a changed box keeps what it was.
  * - `deadlineDay`: Day of its deadline, empty for none.
+ * - `folder`: Name of the folder of the module of a skill box, `undefined` for none.
+ * - `offered`: Chapters of that module, and those the box had.
  *
  * @param box - The box as sent
  * @param old - The box as it was, `null` for a new one
@@ -490,6 +534,33 @@ function boxCheck(box: BoxNew, old: Entry | null): void {
         : berlinDateOf(new Date(box.deadline));
     if (box.deadline !== "" && (deadlineDay !== box.day || box.time !== ""))
         throw new Error(`${box.title}: a box with a deadline lies on the day of its deadline, without expected time`);
+    const folder: string | undefined = moduleFolderOf(box.module);
+    const offered: string[] = [...(folder === undefined ? [] : moduleContentsRead(folder).chapters),
+        ...(old === null ? [] : chaptersOf(old))];
+    if (box.chapters.some((chapter: string): boolean => !offered.includes(chapter)))
+        throw new Error(`${box.title}: no chapters ${box.chapters.join(", ")} in ${box.module}`);
+}
+
+/**
+ * Writes the chapters of a skill box as its `X-CHAPTER`s and the documents it will use as its `ATTACH`es,
+ * see `linksOf` in `documents.ts`, a document it linked already kept, also one not there yet, like the slides
+ * of a lecture to come; for a box that is no skill box, or no more, takes them out, but leaves the links of a box
+ * that never was one, like a to-do of another app, as they are.
+ *
+ * @param file - Path of the `.ics` file the box lies in now
+ * @param id - Identifier of the box
+ * @param box - The box as sent
+ * @param old - The box as it was, `null` for a new one
+ * @throws {Error} - When a document is none of the module's
+ */
+function boxLinksPut(file: string, id: string, box: BoxNew, old: Entry | null): void {
+    if (box.category === skillName)
+        propertiesPut(file, id, [
+            ["x-chapter", box.chapters],
+            ["attach", linksOf(box.module, box.documents, old?.links ?? [])],
+        ]);
+    else if (old?.category === skillName)
+        propertiesPut(file, id, [["x-chapter", []], ["attach", []]]);
 }
 
 /**
@@ -512,28 +583,109 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
 }
 
 /**
- * Adds a box to the plan, as a to-do in the plan file of its day, see the top of this file.
+ * Reads the series of a skill box, see the top of this file: the boxes of the plan of the same `SUMMARY`, like
+ * `IN2028_BusinessAnalyticsMachineLearning (VO)`, by date, whatever their state, each with its plan file.
+ * - `entries`: Every entry of the plan.
+ *
+ * @param title - `SUMMARY` of the series
+ * @returns The entries of the series, the earliest first
+ */
+function seriesOf(title: string): Entry[] {
+    const entries: Entry[] = entriesRead(day.plan, "1970-01-01T00:00:00Z", "2100-01-01T00:00:00Z");
+    return entries
+        .filter((entry: Entry): boolean => entry.category === skillName && entry.title === title)
+        .sort((first: Entry, second: Entry): number => first.start.localeCompare(second.start));
+}
+
+/**
+ * Gives the next number of a series for a new skill box of a type of {@link numberedTypes}, see the top of this file:
+ * one more than the highest number of the boxes of its series before its day, `1` for the first.
+ * - `before`: Numbers of the boxes of its series before it, `NONE` left out.
+ *
+ * @param title - `SUMMARY` of the new box, like `IN2028_BusinessAnalyticsMachineLearning (VO)`
+ * @param date - Its day, like `2026-10-20`
+ * @returns The number, like `4`
+ */
+function numberNextOf(title: string, date: string): string {
+    const before: number[] = seriesOf(title)
+        .filter((entry: Entry): boolean => dayOf(entry) < date && /^\d+$/.test(entry.number))
+        .map((entry: Entry): number => Number(entry.number));
+    return String(Math.max(0, ...before) + 1);
+}
+
+/**
+ * Adds a box to the plan, as a to-do in the plan it belongs into, see {@link planFileOf}, a skill box
+ * with its chapters and documents, see {@link boxLinksPut}, a lecture, an exercise, a tutorial or a sheet
+ * with its number in its series, see {@link numberNextOf}.
+ * - `file`: The plan it belongs into.
+ * - `id`: Identifier of the new box.
  *
  * @param box - The box as the page sends it
  * @returns Identifier of the new box
- * @throws {Error} - When the box is not right, see {@link boxCheck}
+ * @throws {Error} - When the box is not right, see {@link boxCheck}, or a document is none of the module's
  */
 export function boxAdd(box: BoxNew): string {
     boxCheck(box, null);
-    return todoAppend(planFileOf(box.day), todoFieldsOf(box, null));
+    const file: string = planFileOf(box, box.day);
+    const id: string = todoAppend(file, todoFieldsOf(box, null));
+    boxLinksPut(file, id, box, null);
+    if (box.category === skillName && numberedTypes.includes(box.type))
+        propertiesPut(file, id, [["x-number", [numberNextOf(titleOf(box)[0], box.day)]]]);
+    return id;
+}
+
+/**
+ * Marks a box the university cancelled, like a lecture that does not take place, or takes that back, with one tap,
+ * see the top of this file: cancelled, its number becomes `NONE`, and every later box of its series with a number
+ * moves up one, `5` becoming `4`, once, here; taken back, it gets the number after the last one before it, or
+ * the first number after it, or `1`, and every later box with a number moves down one again, so the numbers are
+ * as before. Boxes I cancelled myself keep their numbers. One occurrence of a series changes alone, see {@link boxOwn}.
+ * - `file`, `entry`, `box`: The box with its file.
+ * - `series`: The boxes of its series, see {@link seriesOf}.
+ * - `before`: The numbers of the boxes of its series before it, `NONE` left out.
+ * - `after`: The boxes of its series after it with a number, the earliest first.
+ * - `number`: The new number of the box.
+ * - `step`: How much the later numbers change.
+ *
+ * @param id - Identifier of the box, like `lecture-26@nomsystem`
+ * @param cancelled - Whether the university cancelled it, else taking that back
+ * @throws {Error} - When there is no such box in the new system, it is not open, or, taken back, not cancelled
+ *   by the university
+ */
+export function boxUniversity(id: string, cancelled: boolean): void {
+    const [file, entry, box]: [string, Entry, Box] = boxFind(id);
+    if (!entry.editable || box.state !== (cancelled ? "open" : "university"))
+        throw new Error(`${entry.title} is no box of the new system to mark`);
+    const series: Entry[] = seriesOf(entry.title).filter((other: Entry): boolean => entryIdOf(other) !== id);
+    const before: number[] = series.filter((other: Entry): boolean => other.start < entry.start
+        && /^\d+$/.test(other.number)).map((other: Entry): number => Number(other.number));
+    const after: Entry[] = series.filter((other: Entry): boolean => other.start > entry.start
+        && /^\d+$/.test(other.number));
+    let number: string = "NONE";
+    if (!cancelled)
+        number = before.length > 0 ? String(Math.max(...before) + 1) : after[0]?.number ?? "1";
+    const step: number = cancelled ? -1 : 1;
+    boxOwn(file, entry);
+    propertiesPut(file, id, [["x-number", [number]]]);
+    after.forEach((other: Entry): void => {
+        const [otherFile, otherEntry]: [string, Entry] = planEntryFind(entryIdOf(other));
+        boxOwn(otherFile, otherEntry);
+        propertiesPut(otherFile, entryIdOf(other), [["x-number", [String(Number(other.number) + step)]]]);
+    });
 }
 
 /**
  * Changes a box of the new system, see {@link boxCheck}, one occurrence of a series alone, see {@link boxOwn};
- * a box of a month moves into the plan file of its new day when that is another, see {@link planFileAfter}.
+ * a box moves into the plan it belongs into now when that is another file, see {@link planFileAfter}.
  * A to-do changes as it is sent; an event, like a lecture imported from TUMonline, keeps a time and a duration,
- * its start and its end.
+ * its start and its end. A skill box takes its chapters and documents, see {@link boxLinksPut}.
+ * - `target`: The plan file it belongs into now.
  * - `start`: New start of an event.
  * - `fields`: New fields and times of an event.
  *
  * @param change - The changed box as the page sends it
  * @throws {Error} - When there is no such box in the new system, the box is not right,
- *   or an event would lose its time or its duration
+ *   an event would lose its time or its duration, or a document is none of the module's
  */
 export function boxEdit(change: BoxChange): void {
     const [file, entry]: [string, Entry, Box] = boxFind(change.id);
@@ -541,8 +693,10 @@ export function boxEdit(change: BoxChange): void {
         throw new Error(`${entry.title} may not be changed`);
     boxCheck(change, entry);
     boxOwn(file, entry);
+    const target: string = planFileAfter(file, entry, change, change.day);
     if (entry.todo) {
-        todoChange(file, entry, todoFieldsOf(change, entry), planFileAfter(file, entry, change.day));
+        todoChange(file, entry, todoFieldsOf(change, entry), target);
+        boxLinksPut(target, change.id, change, entry);
         return;
     }
 
@@ -557,7 +711,8 @@ export function boxEdit(change: BoxChange): void {
         note: change.note,
         start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
     };
-    entryChange(file, entry, fields, planFileAfter(file, entry, change.day));
+    entryChange(file, entry, fields, target);
+    boxLinksPut(target, change.id, change, entry);
 }
 
 /**
@@ -577,8 +732,8 @@ export function boxDelete(id: string): void {
 
 /**
  * Pushes an open box of the new system to the next day, with one tap: notes the day it leaves in one more `X-PUSHED`,
- * then moves its day and its time by one day, its time of day kept, a box of a month into the plan file
- * of the next day, see {@link planFileAfter}; one occurrence of a series alone, see {@link boxOwn}.
+ * then moves its day and its time by one day, its time of day kept, into the plan of the next year on the last day
+ * of a year, see {@link planFileAfter}; one occurrence of a series alone, see {@link boxOwn}.
  * A box with a deadline stays, since its day is the day of its deadline.
  * - `next`: The next day.
  * - `texts`: Its text fields, as they are.
@@ -603,11 +758,11 @@ export function boxPush(id: string): void {
         todoChange(file, entry, {
             ...texts, day: next, time: box.time === "" ? null : berlinLater(new Date(box.time), 1), minutes: entry.minutes,
             deadline: "",
-        }, planFileAfter(file, entry, next));
+        }, planFileAfter(file, entry, entry, next));
     else
         entryChange(file, entry, {
             ...texts, start: berlinLater(new Date(entry.start), 1), end: berlinLater(new Date(entry.end), 1),
-        }, planFileAfter(file, entry, next));
+        }, planFileAfter(file, entry, entry, next));
 }
 
 /**
