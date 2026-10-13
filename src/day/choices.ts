@@ -7,7 +7,7 @@
  * so `mensa garch` finds `Mensa-Garching`; Enter picks the first match,
  * and where a list takes new values, `+` adds the typed text, or first asks for what a new value needs,
  * like the address of a new place. A few short values show as chips, more or longer ones
- * as a list with one whole name per row, three rows and a half high, then scrolling.
+ * as a list with one whole name per row, six rows and a half high, then scrolling, see `.picker-list` in `day.css`.
  * Values keep their order, like the most used first; a group, like `Due today`, stands above its first value.
  * Picked values are a lighter grey; a click picks a value, a click on a picked one takes it back.
  * The values come from a search function, so a list can later come from the reader, like the foods.

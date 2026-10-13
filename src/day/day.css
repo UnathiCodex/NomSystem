@@ -960,12 +960,14 @@ button.box-ring:hover svg {
     padding: 0 0.75rem;
 }
 
-/* Many or long choices, like places or tasks, as a list with one whole name per row, rows one chip high
-   like the rows of the menu, three rows and a half high, then scrolling; a grey line around */
+/* Many or long choices, like places or tasks, as a list with one whole name per row, each row `--picker-row` high,
+   a little higher than a chip, for my 4K monitor; six rows and a half high, about twice as high as a list
+   of three rows and a half one chip high, then scrolling, the half row showing there is more; a grey line around */
 .picker-list {
+    --picker-row: 2.125rem;
     display: flex;
     flex-direction: column;
-    max-height: calc(3.5 * var(--chip-height) + 2px);
+    max-height: calc(6.5 * var(--picker-row) + 2px);
     overflow-y: auto;
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -973,7 +975,7 @@ button.box-ring:hover svg {
 
 .picker-list button {
     flex: none;
-    min-height: var(--chip-height);
+    min-height: var(--picker-row);
     padding: 0 0.75rem;
     border: 0;
     border-radius: var(--radius);
