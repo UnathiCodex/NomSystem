@@ -51,25 +51,6 @@ export function dateOf(day: Date, time: string): Date {
 }
 
 /**
- * Puts a typed time on the day an instant belongs to as I live it, a time before 05:00 in the night after it,
- * as the day I live runs from 05:00 to 05:00, see `livedDayOf` in `../skill/attempts.ts`: `01:30` with an entry of 12 October at 14:00 or at 01:00
- * of 13 October gives 01:30 of 13 October.
- * - `lived`: A moment on the day the instant belongs to as I live it, 5 hours earlier.
- * - `date`: The time on that day.
- *
- * @param instant - Instant on the day, like the start of an entry or of a selection in the grid
- * @param time - Time like `01:30`
- * @returns Date at the time
- */
-export function livedDateOf(instant: Date, time: string): Date {
-    const lived: Date = new Date(instant.getTime() - dayStartHour * 60 * 60 * 1000);
-    const date: Date = dateOf(lived, time);
-    if (date.getHours() < dayStartHour)
-        date.setDate(date.getDate() + 1);
-    return date;
-}
-
-/**
  * Gives now on a shown day, to the minute: now itself while the day is today as I live it, since after midnight
  * now lies on the next calendar day, like 01:10 of 13 October on 12 October; on any other day the time of now
  * on that day as I live it, a time before 05:00 in the night after it, like a glass of water added to a past day.

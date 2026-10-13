@@ -16,7 +16,9 @@
  * Each list comes from the log, the most used first, searched as I type, see `choices.ts`;
  * the typed text can be added as a new value, which is then picked.
  * `From` starts where the last way before the entry ended.
- * An entry of the log has a start and an end; a box of the plan has a day like `19.10.2026`, typed to move it
+ * An entry of the log has a day like `13.10.2026`, the calendar date of its start, typed to move it to any other day,
+ * and a start and an end, plain times on that day, an end at or before the start on the next day, saved exactly
+ * as they show; a box of the plan has a day like `19.10.2026`, typed to move it
  * to any other day, an expected time and an expected duration
  * in minutes, each optional, but for a lecture imported from TUMonline, which keeps both, see `reader/boxes.ts`,
  * and optionally a deadline, a day like `23.10.2026` with a time or without; a box with a deadline lies
@@ -34,8 +36,8 @@
  * - `./entries.ts`: Sends new, changed and removed entries to the reader.
  * - `./meal.ts`: The foods of a meal, the fields of `Food` below what and place.
  * - `./skill.ts`: The fields of `Skill`: module and type, and in the log chapters, document and attempts.
- * - `./times.ts`: Turns dates into the values of time fields and back, gives the times a box is logged at,
- *   and now on the shown day.
+ * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
+ *   gives the times a box is logged at, and now on the shown day.
  * - `../skill/attempts.ts`: Names the category of skill entries.
  * - `../icons.ts`: Shows icons in the buttons of the dialog, its words as tooltip.
  * - `lucide`: The icons save, cancel and remove.
@@ -46,7 +48,7 @@ import { choiceOf, choicesOf, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealAfterCookAdd } from "./entries.ts";
 import { foodName, mealDishFill, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import { skillFieldsShow, skillModuleType, skillReady, skillSave } from "./skill.ts";
-import { boxTimesOf, dateOf, dateParse, dateTextOf, livedDateOf, nowOn, timeFieldRead, timeFieldShow } from "./times.ts";
+import { boxTimesOf, dateOf, dateParse, dateTextOf, nowOn, timeFieldRead, timeFieldShow } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
 import { Check, CircleQuestionMark, Trash2, X } from "lucide";
@@ -202,13 +204,17 @@ async function categoriesLoad(): Promise<Category[]> {
 }
 
 /**
- * Gives the start of the entry as the time field of the dialog says, on the day the dialog opened with
- * as I live it, a time before 05:00 in the night after it, see `livedDateOf` in `times.ts`.
+ * Gives the start of the entry as the fields of the dialog say: its time on its typed day, like `01:45`
+ * on `13.10.2026`, on the day the dialog opened with should the typed day be no date.
+ * - `day`: Typed day, like `2026-10-13`.
  *
  * @returns Start of the entry
  */
 function startRead(): Date {
-    return livedDateOf(opened.start, timeFieldRead(document.getElementById("entry-start") as HTMLInputElement));
+    const day: string =
+        dateParse((document.getElementById("entry-log-day") as HTMLInputElement).value) ?? dayOf(opened.start);
+    return dateOf(new Date(`${day}T12:00:00`),
+        timeFieldRead(document.getElementById("entry-start") as HTMLInputElement));
 }
 
 /**
@@ -528,23 +534,18 @@ function textsRead(): BoxFields {
  * Reads fields, note and times of the dialog for an entry of the log, and the box of the new system
  * a new log entry is logged from; a box of the archive is only shown, since an occurrence of a series has no box
  * of its own to point to.
- * The times lie on the day of the start the dialog opened with as I live it, a time before 05:00 in the night
- * after it; an end before the start lies on the next day, like a night of sleep. The log holds what happened,
- * so a log entry that would lie wholly in the future lies one day earlier, in every category: `23:30` to `07:30`
- * typed on Monday morning is the night from Sunday to Monday, and `00:30` typed at 14:00 the night before.
+ * Start and end are plain times on the typed day, the calendar date of the start, see {@link startRead};
+ * an end at or before the start lies on the next day, like a night of sleep: `12.10.2026`, `23:30` to `07:30`
+ * ends on 13 October at 07:30. What the fields show is exactly what is saved.
  * - `texts`: Text fields of the dialog.
  *
  * @returns Fields of the entry
  */
 function fieldsRead(): EntryFields {
     const start: Date = startRead();
-    const end: Date = livedDateOf(opened.start, timeFieldRead(document.getElementById("entry-end") as HTMLInputElement));
+    const end: Date = dateOf(start, timeFieldRead(document.getElementById("entry-end") as HTMLInputElement));
     if (end <= start)
         end.setDate(end.getDate() + 1);
-    if (start > new Date()) {
-        start.setDate(start.getDate() - 1);
-        end.setDate(end.getDate() - 1);
-    }
     const texts: BoxFields = textsRead();
     return {
         category: texts.category, title: texts.title, location: texts.location, from: texts.from,
@@ -680,12 +681,15 @@ function deadlineSee(): void {
 }
 
 /**
- * Shows the times of the dialog: start and end of an entry of the log, or the day, the expected time and duration
- * of a box and its deadline, the other times hidden and disabled, so the browser checks only the times shown before
- * it sends the form. The day of a box is the day the dialog opened with, like `12.10.2026`, the shown day for a new one.
+ * Shows the times of the dialog: the day, start and end of an entry of the log, or the day, the expected time
+ * and duration of a box and its deadline, the other times hidden and disabled, so the browser checks only the times
+ * shown before it sends the form. The day of an entry of the log is the calendar date of the start it opens with,
+ * like `13.10.2026` for a selection at 01:45 at the bottom of 12 October.
+ * The day of a box is the day the dialog opened with, like `12.10.2026`, the shown day for a new one.
  * The expected time and duration of a box may stay empty, but for an event of the plan, which keeps both
  * and has no deadline, since only a to-do has one.
  * - `boxed`: Whether the dialog writes a box.
+ * - `logDay`: Field of the day of an entry of the log.
  * - `day`: Field of the day of the box.
  * - `required`: Whether the box needs both, being an event of the plan.
  * - `deadline`: Deadline of the box being changed, empty for none and for a new box.
@@ -697,6 +701,7 @@ function timesShow(opening: EntryOpening): void {
     const required: boolean = opening.box !== null && !opening.box.todo;
     const logTimes: HTMLFieldSetElement = document.getElementById("entry-log-times") as HTMLFieldSetElement;
     const boxTimes: HTMLFieldSetElement = document.getElementById("entry-box-times") as HTMLFieldSetElement;
+    const logDay: HTMLInputElement = document.getElementById("entry-log-day") as HTMLInputElement;
     const day: HTMLInputElement = document.getElementById("entry-box-day") as HTMLInputElement;
     const time: HTMLInputElement = document.getElementById("entry-time") as HTMLInputElement;
     const minutes: HTMLInputElement = document.getElementById("entry-minutes") as HTMLInputElement;
@@ -706,6 +711,8 @@ function timesShow(opening: EntryOpening): void {
     logTimes.disabled = boxed;
     boxTimes.hidden = !boxed;
     boxTimes.disabled = !boxed;
+    logDay.value = dateTextOf(dayOf(opening.start));
+    logDay.setCustomValidity("");
     timeFieldShow(document.getElementById("entry-start") as HTMLInputElement, opening.start);
     timeFieldShow(document.getElementById("entry-end") as HTMLInputElement, opening.end);
     day.value = dateTextOf(dayOf(opening.start));
@@ -774,7 +781,8 @@ async function entryShow(opening: EntryOpening): Promise<void> {
 }
 
 /**
- * Opens the dialog for a new entry of the log with start and end.
+ * Opens the dialog for a new entry of the log with start and end, its day the calendar date of the start,
+ * like `13.10.2026` for a selection at 01:45 at the bottom of 12 October.
  *
  * @param start - Start of the new entry
  * @param end - End of the new entry

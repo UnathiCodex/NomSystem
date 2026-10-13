@@ -82,10 +82,13 @@
         </div>
 
         <div class="panel-form">
-            <!-- Start and end of a log entry, typed on the day of the entry, like 14:00, 1415 or 14;
-                 an end before the start lies on the next day, and a log entry that would lie wholly
-                 in the future one day earlier, like a night of sleep logged the next morning -->
+            <!-- Day, start and end of a log entry: the day like 13.10.2026, the calendar date of the start,
+                 filled with the date of the entry, of the selected slot, or of the half hour before now for +;
+                 start and end plain times on that day, like 14:00, 1415 or 14, an end at or before the start
+                 on the next day, like 23:30 to 07:30 of a night of sleep; what the fields show is what is saved -->
             <fieldset class="picker-times" id="entry-log-times">
+                <label>Day <input class="date-field" id="entry-log-day" type="text"
+                                  inputmode="decimal" autocomplete="off" required></label>
                 <label>Start <input class="time-field" id="entry-start" type="text"
                                     inputmode="numeric" autocomplete="off" required></label>
                 <label>End <input class="time-field" id="entry-end" type="text"
