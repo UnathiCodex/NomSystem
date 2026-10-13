@@ -49,7 +49,7 @@ import { skillFieldsShow, skillModuleType, skillReady, skillSave } from "./skill
 import { boxTimesOf, dateOf, dateParse, dateTextOf, livedDateOf, nowOn, timeFieldRead, timeFieldShow } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
-import { Check, Trash2, X } from "lucide";
+import { Check, CircleQuestionMark, Trash2, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -644,7 +644,7 @@ async function entrySave(calendar: Calendar): Promise<void> {
 
 /**
  * Removes the entry of the log or the box being changed on the second click, then closes the dialog;
- * the first click only asks. A box planned by mistake is removed; a box I decided against is dropped instead,
+ * the first click only asks, its trash turning into a question mark of the same size, so the button never jumps. A box planned by mistake is removed; a box I decided against is dropped instead,
  * with its cross in the list, so it can be counted.
  *
  * @param calendar - Calendar of the day
@@ -654,7 +654,7 @@ async function entryRemove(calendar: Calendar): Promise<void> {
     const button: HTMLButtonElement = document.getElementById("entry-remove") as HTMLButtonElement;
     if (!removeAsked) {
         removeAsked = true;
-        button.textContent = "Really remove?";
+        iconPut(button, CircleQuestionMark, "Really remove?");
         return;
     }
 
