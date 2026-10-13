@@ -8,7 +8,7 @@
  * a deadline, then those without either, then tomorrow's suggested study sessions, dashed, see `suggestions.ts`,
  * and the cancelled boxes without time last; on today below them the boxes carried along, see below.
  * Every box has the same three lines, open or done: its category in bold with a colon and what,
- * like `Skill: IN0004 VO`, as an entry of the log does, then grey its expected time and length and how often it was
+ * like `Skill: IN0004_EinfuehrungRechnerarchitektur VO`, as an entry of the log does, then grey its expected time and length and how often it was
  * pushed, like `11:30 – 13:00 (90 min)` or `75 min · pushed once`, then its place on a line of its own, by its label
  * alone, like `Audimax im Galileo`, which opens its link on a click when it has one; a line without anything to say
  * is left out.
@@ -34,7 +34,7 @@
  * along on today: below the list of today, under `Carried along`, each with its day, like `Mon, 12.10.2026 · 45 min`,
  * the earliest first, see `boxesCarried` in `reader/boxes.ts`, until I do it, dragged into the log or with its ring,
  * or cancel it with its cross; a click on it changes it, like its day. It never moves into the next days by itself.
- * `+` below the list opens the entry by category for a new box of the shown day; a click on a box changes it,
+ * `+` beside the name of the plan opens the entry by category for a new box of the shown day; a click on a box changes it,
  * see `categories.ts`. A box without category, like a to-do another app wrote into the plan, opens the entry
  * by category of the log instead of being logged at once, when it is dropped or its ring tapped, since the log needs
  * a category; a box that cannot be changed, like an occurrence of a weekly lecture, is logged like any other,
@@ -89,6 +89,12 @@ export type BoxState = "open" | "done" | "dropped" | "university";
  * exercises, tutorials and sheets.
  */
 const numberedTypes: string[] = ["VO", "UE", "TU", "HU"];
+
+/**
+ * A phone, a screen as narrow as the phone layout of the stylesheets, as in `main.ts`, which shows a skill by its code
+ * alone, see {@link shownWhatOf}, since its whole name would fill a box there.
+ */
+const phone: boolean = matchMedia("(max-width: 900px)").matches;
 
 /**
  * A box, as the reader sends it.
@@ -231,21 +237,25 @@ export function whatOf(category: string, what: string): (string | Node)[] {
 }
 
 /**
- * Gives what an entry or a box shows as its what, see {@link whatOf}: a skill entry or box by the code of its skill
- * and its type alone, like `IN0004 VO` of `IN0004_EinfuehrungRechnerarchitektur (VO)`, or a project by its name,
- * like `WokFlow`, so it stays short; one without skill and type, like an older entry, and any other entry or box
- * by its what as written.
+ * Gives what an entry or a box shows as its what, see {@link whatOf}: a skill entry or box by its skill and its type,
+ * the skill by the name of its folder, its code with its name, like `IN0004_EinfuehrungRechnerarchitektur VO`
+ * of `IN0004_EinfuehrungRechnerarchitektur (VO)`, on a phone by its code alone, like `IN0004 VO`, so it stays short
+ * there; a project by its name, like `WokFlow`; one without skill and type, like an older entry, and any other entry
+ * or box by its what as written.
+ * - `skill`: The skill as shown: the name of its folder, the part of the what before ` (`, when the what starts
+ *   with its code and `_`, else its code.
  *
  * @param category - Its category, like `Skill`
  * @param title - Its what as written, its `SUMMARY`, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
  * @param module - Its skill, like `IN0004`, empty for none
  * @param type - Its type, like `VO`, empty for none
- * @returns What it shows, like `IN0004 VO`
+ * @returns What it shows, like `IN0004_EinfuehrungRechnerarchitektur VO`
  */
 export function shownWhatOf(category: string, title: string, module: string, type: string): string {
     if (category !== skillName || (module === "" && type === ""))
         return title;
-    return [module, type].filter((part: string): boolean => part !== "").join(" ");
+    const skill: string = !phone && title.startsWith(`${module}_`) ? title.split(" (")[0] : module;
+    return [skill, type].filter((part: string): boolean => part !== "").join(" ");
 }
 
 /**
@@ -398,8 +408,8 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
 
 /**
  * Makes the lines of a box, in the day and in the week alike, the same three whether it is open or done, see the top
- * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf}, like **`Skill: IN0004 VO`**,
- * a skill by its code, see {@link shownWhatOf}, its long names breakable, see `breakableOf` in `choices.ts`,
+ * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf},
+ * like **`Skill: IN0004_EinfuehrungRechnerarchitektur VO`**, see {@link shownWhatOf}, its long names breakable, see `breakableOf` in `choices.ts`,
  * its time and length in the light grey of a time, its parts apart by a middle dot with room on both sides,
  * see {@link timePartsOf}, like `16:00 – 17:30 · 90 min`, and its place on a line of its own in the darker grey,
  * by its label alone, its address hidden, like `Audimax im Galileo`, a way its route,
