@@ -4,9 +4,12 @@
  * A new place for a field of a place, the place of an entry or where a way starts, see `categories.ts`,
  * since the fields offer only my places of `Places.md`, each with its address, see `reader/places.ts`:
  * a place typed that is none of mine yet, then `+` or Enter, opens a small dialog over the entry by category
- * with three fields, the place, filled with what I typed, its address with its country, like
- * `Burg-Eltz-Weg, 81375 München, Deutschland`, the number of the house optional, and its link, like
- * `https://nav.tum.de/room/0509.EG.980`; address and link may stay empty, each showing its form while empty.
+ * with three fields, the place, filled with what I typed, its address in German as on an envelope, umlauts included,
+ * with its country, like `Burg-Eltz-Weg, 81375 München, Deutschland`, the number of the house optional, and its link,
+ * like `https://nav.tum.de/room/0509.EG.980`; address and link may stay empty, each showing its form while empty.
+ * As I type the address of a new place, its link follows as the search of the address in Google Maps, in the form
+ * Google gives for it, see {@link mapsLinkOf}, which I keep or delete; a link I typed or pasted myself, like the
+ * NavigaTUM page of a room, stays as it is.
  * Save adds the place to `Places.md` and picks it; Cancel, `Esc` or a click beside the dialog pick nothing.
  * The pencil below a place picked opens the same dialog filled with my place, see {@link placeEdit}, and Save
  * changes its row in `Places.md`, its name, its address and its link; entries written before keep their address
@@ -14,7 +17,8 @@
  * An entry writes a place as one line, its name and its address, like
  * `TumMain, Arcisstraße 21, 80333 München, Deutschland`, see {@link lineOf}; it shows by its name, the part
  * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens the link
- * of the place, written with it as its `ALTREP`, when it has one, and nothing else, no search of a map.
+ * of the place, written with it as its `ALTREP`, when it has one, and nothing else: nothing opens a map by itself,
+ * only a link stored with the place opens on a click.
  * A way shows its route by labels, see {@link whereOf}.
  *
  * - `./choices.ts`: The picker whether entries written before keep their address.
@@ -73,6 +77,12 @@ let answer: ((place: Place | null) => void) | null = null;
  * Name of my place the open dialog changes, like `TumMain`, empty while it adds a new place.
  */
 let editing: string = "";
+
+/**
+ * Whether the link of the open dialog follows the address as I type it, see {@link mapsLinkOf}: for a new place
+ * until I type in the link myself, never for my place being changed.
+ */
+let linkFollows: boolean = false;
 
 
 /**
@@ -152,6 +162,20 @@ export function whereLinkedOf(category: string, from: string, location: string, 
     return where === goal ? [anchor] : [where.slice(0, where.length - goal.length), anchor];
 }
 
+/**
+ * Gives the link of the search of an address in Google Maps, in the form Google gives for a link to it,
+ * the address encoded for an address of the web, like
+ * `https://www.google.com/maps/search/?api=1&query=Burg-Eltz-Weg%2C%2081375%20M%C3%BCnchen%2C%20Deutschland`
+ * of `Burg-Eltz-Weg, 81375 München, Deutschland`.
+ *
+ * @param address - Address as typed
+ * @returns The link, empty for an empty address
+ */
+function mapsLinkOf(address: string): string {
+    return address.trim() === "" ? ""
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address.trim())}`;
+}
+
 
 /**
  * Sends a new place to the reader, which adds it to `Places.md`, or my place being changed, with its old name,
@@ -195,7 +219,8 @@ function placeSave(): void {
 
 /**
  * Opens the dialog of a new place over the entry by category: the place filled with the typed text,
- * like `HomeMunich`, the address empty and focused, since the place is typed already, the link empty;
+ * like `HomeMunich`, the address empty and focused, since the place is typed already, the link empty, following
+ * the address as I type it, see {@link linkFollows};
  * the place focused while nothing is typed, like for `+ New place` of an empty search.
  *
  * @param name - Typed name of the place, like `HomeMunich`
@@ -203,6 +228,7 @@ function placeSave(): void {
  */
 export function placeOpen(name: string): Promise<Place | null> {
     editing = "";
+    linkFollows = true;
     document.getElementById("place-fix")?.setAttribute("hidden", "");
     return placeShow({ name: name, address: "", link: "" }, name === "" ? "place-name" : "place-address");
 }
@@ -221,6 +247,7 @@ export function placeOpen(name: string): Promise<Place | null> {
 export async function placeEdit(place: Place): Promise<PlaceEdited | null> {
     const fix: HTMLElement = document.getElementById("place-fix") as HTMLElement;
     editing = place.name;
+    linkFollows = false;
     fixing = false;
     fix.replaceChildren(rowOf("Entries", choicesOf({
         search: searchOf(fixChoices), picked: ["keep"], many: false, adding: false,
@@ -255,11 +282,22 @@ function placeShow(place: Place, focused: string): Promise<Place | null> {
 
 /**
  * Starts the dialog of a new place after the router has put its HTML into the page: `Cancel` closes it,
- * `Enter` and `Save` save the place, and every closing without saving answers `null`, so nothing is picked.
+ * `Enter` and `Save` save the place, and every closing without saving answers `null`, so nothing is picked;
+ * the link of a new place follows its address as I type it, until I type in the link myself, see {@link linkFollows}.
  * - `close`: Comes when the dialog closes, by `Cancel`, by `Esc` or by a click beside it.
+ * - `input`: Comes as I type in a field.
  */
 export function placesStart(): void {
     const dialog: HTMLDialogElement = document.getElementById("place") as HTMLDialogElement;
+    const address: HTMLInputElement = document.getElementById("place-address") as HTMLInputElement;
+    const link: HTMLInputElement = document.getElementById("place-link") as HTMLInputElement;
+    address.addEventListener("input", (): void => {
+        if (linkFollows)
+            link.value = mapsLinkOf(address.value);
+    });
+    link.addEventListener("input", (): void => {
+        linkFollows = false;
+    });
     document.getElementById("place-cancel")?.addEventListener("click", (): void => dialog.close());
     dialog.addEventListener("close", (): void => {
         answer?.(null);
