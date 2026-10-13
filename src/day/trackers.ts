@@ -1,13 +1,14 @@
 /**
  * ## Trackers
  *
- * The card of the trackers of the shown day above the daily note, as the reader counts them, see `reader/trackers.ts`;
+ * The card of the trackers of the shown day above the daily note, as the reader counts them, see `reader/trackers.ts`,
+ * calm and basic, without descriptions under the pointer;
  * my sleep shows in the log alone, its goal, the spread of my bedtime and the average of the week left out for now,
  * since other things come first:
  * - Water: a glass with the glasses of the day against my goal, like `6 / 10`, a check once it is reached;
  *   every other drink, like `Kaffee`, counts as a glass too; a tap logs one more glass of water,
- *   at the time of the tap on the shown day, `−` takes the last glass of water back;
- *   the litres beside them. A day still to come takes no glasses.
+ *   at the time of the tap on the shown day, `−` takes the last glass of water back.
+ *   A day still to come takes no glasses.
  * - Food: the number of the day's meals under its name, like `3 meals`, so a meal missing shows, then their kcal
  *   and protein, totals without goals, linking to the day in the food view.
  * - Neck: two tiles over the seven days up to the day: on how many of my study days I did
@@ -27,7 +28,7 @@
  * - `../food/foods.ts`: Writes amounts and makes elements.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../today.ts`: Gives today's calendar date.
- * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
+ * - `../icons.ts`: Makes the icons of the buttons.
  * - `lucide`: The icons glass, minus and check.
  * - `fullcalendar`: Calendar that shows the day.
  */
@@ -37,7 +38,7 @@ import { nowOn } from "./times.ts";
 import { amountOf, elementOf } from "../food/foods.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { iconOf, iconPut, iconWordsOf } from "../icons.ts";
+import { iconOf, iconWordsOf } from "../icons.ts";
 import { Check, GlassWater, Minus } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
@@ -181,15 +182,13 @@ function checkOf(): SVGElement {
  * @param value - Value, empty for none
  * @param met - Whether it lies in the healthy band or reaches its goal
  * @param name - What the value is, like `long · 7 days`
- * @param tooltip - More about the value, like what it counts
  * @returns Tile
  */
-function tileOf(value: string, met: boolean, name: string, tooltip: string): HTMLElement {
+function tileOf(value: string, met: boolean, name: string): HTMLElement {
     const tile: HTMLElement = elementOf("div", "tile", "");
     const amount: HTMLElement = elementOf("span", "tile-value", value === "" ? "–" : value);
     if (value !== "" && met)
         amount.append(checkOf());
-    tile.title = tooltip;
     tile.append(amount, elementOf("span", "tile-name", name));
     return tile;
 }
@@ -211,8 +210,8 @@ async function glassAdd(calendar: Calendar): Promise<void> {
 
 /**
  * Builds the water: the glass with the glasses of the day against my goal, like `6 / 10`, every drink one glass,
- * which logs one more glass of water, a check once the goal is reached, `−`, which takes the last glass of water back,
- * and the litres.
+ * which logs one more glass of water, a check once the goal is reached, and `−`, which takes the last glass of water
+ * back; their words only for screen readers, no description under the pointer.
  * The row takes no clicks while a glass is sent, so a double tap logs one glass; the card loads again once the log changed.
  * - `count`: Number of glasses.
  * - `goal`: Number of glasses of my goal.
@@ -244,18 +243,17 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
     add.type = "button";
     add.className = "water-add";
     add.append(...iconWordsOf(GlassWater, `${count} / ${goal}`), ...(count >= goal ? [checkOf()] : []));
-    add.title = "One glass of water more; every other drink counts as a glass too";
     add.setAttribute("aria-label", `${count} of ${goal} glasses of water, one more`);
     add.disabled = coming;
     add.addEventListener("click", (): void => send((): Promise<void> => glassAdd(calendar)));
     less.type = "button";
     less.className = "water-less";
-    iconPut(less, Minus, "One glass less");
+    less.append(iconOf(Minus));
+    less.setAttribute("aria-label", "One glass less");
     less.disabled = coming || last === undefined;
     less.addEventListener("click", (): void =>
         send((): Promise<void> => entryDelete(calendar, last?.id ?? "")));
-    row.append(elementOf("span", "tracker-name", "Water"), add, less,
-        elementOf("span", "tracker-meta", `${amountOf(count * trackers.settings.glassMl / 1000, 2)} l`));
+    row.append(elementOf("span", "tracker-name", "Water"), add, less);
     return row;
 }
 
@@ -310,12 +308,9 @@ function neckOf(trackers: Trackers): HTMLElement {
     const tiles: HTMLElement = elementOf("div", "tiles", "");
     tiles.append(
         tileOf(neck.studyDays === 0 ? "" : `${neck.short} / ${neck.studyDays}`, neck.short * 3 >= neck.studyDays * 2,
-            "short · study days", "Study days of the 7 up to this day, days with a Skill entry, on which I did "
-                + "a neck routine, short or long; a check from two thirds of them on"),
-        tileOf(`${neck.long} / ${goal}`, neck.long >= goal, "long · 7 days",
-            `Days with Neck long in the 7 up to this day, against ${goal}`),
-        tileOf(pain, false, "pain", "My neck pain from 0 to 10, rated with each Neck long: "
-            + "the mean of my first 4 weeks against the last 4; judge the routine after 10 to 12 weeks"),
+            "short · study days"),
+        tileOf(`${neck.long} / ${goal}`, neck.long >= goal, "long · 7 days"),
+        tileOf(pain, false, "pain"),
     );
     row.append(elementOf("span", "tracker-name", "Neck"), tiles);
     return row;

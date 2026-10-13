@@ -8,10 +8,11 @@
     padding: var(--gap);
 }
 
-/* Left side: the bar of the shown day above its plan and its log, side by side, both filling the height */
+/* Left side: the bar of the shown day above its plan and its log, side by side, equally wide, since the plan
+   counts as much as the log, both filling the height */
 .day-main {
     display: grid;
-    grid-template-columns: var(--plan-width) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     gap: var(--gap);
     min-height: 0;
@@ -271,27 +272,15 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-/* Cancelled box: faded and struck through */
-.box-dropped {
-    opacity: 0.55;
-}
-
-.box-dropped .box-what {
-    text-decoration: line-through;
-}
-
-/* Box the university cancelled, like a lecture that does not take place: faded and struck through as a cancelled
-   one, its time line saying so */
+/* Cancelled box, skipped by me or cancelled by the university, like a lecture that does not take place:
+   only faded, never struck through; the time line of one the university cancelled says so */
+.box-dropped,
 .box-university {
     opacity: 0.55;
 }
 
-.box-university .box-what {
-    text-decoration: line-through;
-}
-
-/* Open box whose day is over, on its day: faded like a cancelled box, but not struck through,
-   since it is still to do; it is carried along to today below the list of today */
+/* Open box whose day is over, on its day: faded like a cancelled box, since it is still to do;
+   it is carried along to today below the list of today */
 .box-over {
     opacity: 0.55;
 }
@@ -1503,18 +1492,20 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Part of a line after a middle dot, like `· 05:15 – 05:45` or `· HomeMunich`, a little space before it,
-   which a line in parts would drop at the start of a part */
-.entry-parted {
-    margin-left: 0.3em;
+/* Part of a line after a middle dot, like `· 05:15 – 05:45` or `· HomeMunich`: the dot drawn before it
+   with half a letter of space on both sides, which a line in parts would drop as spaces at the start of a part */
+.entry-parted::before {
+    content: "·";
+    margin-inline: 0.5em;
 }
 
-/* Place beside the time on its line, like `· HomeMunich` or a route like `· HomeMunich → TumGarching`;
+/* Place beside the time on its line, like `· HomeMunich` or a route like `· HomeMunich -> TumGarching`;
    it takes only the room left beside what and the time, cut with an ellipsis, so a narrow entry cuts the place,
-   never what or the time */
+   never what or the time; with less room than for about four letters it moves onto the next line, which
+   `.entry-lines` hides, so no dot stands alone at the end */
 .entry-beside {
     flex: 1 1 0;
-    min-width: 0;
+    min-width: min(5em, 100%);
 }
 
 /* Place with a link, its `ALTREP`, in an entry or a box, like `8120.01.101 (Audimax im Galileo)`: in the grey

@@ -227,8 +227,8 @@ function breakableOf(what: string): string {
  * cut with an ellipsis, see `day.css`.
  * An entry of the whole day shows only what it was.
  * - An entry with room for one line, of a quarter hour or half an hour, see {@link linesOf}, shows what,
- *   then its start and end, then its place, parted by a middle dot with a little space, never by commas,
- *   since names hold commas,
+ *   then its start and end, then its place, parted by a middle dot with space on both sides, which `day.css` draws,
+ *   never by commas, since names hold commas,
  *   like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO) · 16:00 – 16:30 · 8120.01.101 (Audimax im Galileo)`;
  *   where an entry is narrower than what and its time, as on a phone, what stays whole and its time moves
  *   onto a next line, which the entry hides, and only what wider than the whole entry ends with an ellipsis.
@@ -248,7 +248,7 @@ function breakableOf(what: string): string {
  * - `from`: Where a way starts, its `X-FROM`, empty for none.
  * - `location`: Place of the entry, its `LOCATION`, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`.
  * - `place`: Place of the entry by its label, like `HomeMunich`, for a way its route from its `X-FROM`,
- *   like `HomeMunich → TumGarching`, see `whereOf` in `places.ts`; empty when it has none.
+ *   like `HomeMunich -> TumGarching`, see `whereOf` in `places.ts`; empty when it has none.
  * - `link`: Link of the place, its `ALTREP`, like `https://nav.tum.de/room/8120.01.101`, empty for none.
  * - `note`: Note of the entry, its `DESCRIPTION`, empty when it has none.
  * - `start`, `end`: Start and end of the entry.
@@ -291,17 +291,17 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     if (lines < 2) {
         const line: HTMLElement = entryPartOf("div", "entry-line", [
             entryPartOf("span", "entry-what", whatOf(category, what)),
-            entryPartOf("span", "entry-time entry-parted", [`· ${time}`]),
+            entryPartOf("span", "entry-time entry-parted", [time]),
         ]);
         if (place !== "")
             line.append(entryPartOf("span", "entry-place entry-parted entry-beside",
-                ["· ", ...whereLinkedOf(category, from, location, link)]));
+                whereLinkedOf(category, from, location, link)));
         shown = [line];
     } else if (lines === 2) {
         const timeLine: HTMLElement = entryPartOf("div", "entry-line", [entryPartOf("span", "entry-time", [time])]);
         if (place !== "")
             timeLine.append(entryPartOf("span", "entry-place entry-parted entry-beside",
-                ["· ", ...whereLinkedOf(category, from, location, link)]));
+                whereLinkedOf(category, from, location, link)));
         shown = [entryPartOf("div", "entry-whole", whole), timeLine];
     } else {
         shown = [entryPartOf("div", "entry-whole", whole), entryPartOf("div", "entry-time", [time])];

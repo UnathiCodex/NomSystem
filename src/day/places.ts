@@ -113,31 +113,32 @@ export const wayName: string = "Way";
 
 /**
  * Writes where an entry or a box was, by labels alone, see {@link labelOf}: the route of a way, from where it starts,
- * its `X-FROM`, to its goal, its `LOCATION`, like `HomeMunich → TumGarching`, a missing end left out beside
- * its arrow, like `→ TumGarching`; the place of any other entry, like `HomeMunich`.
+ * its `X-FROM`, to its goal, its `LOCATION`, like `HomeMunich -> TumGarching`, with a plain hyphen and greater-than
+ * sign, which stand in the middle of the line as the letters do, unlike an arrow character; a missing end left out
+ * beside its arrow, like `-> TumGarching`; the place of any other entry, like `HomeMunich`.
  * - `start`: Label of where a way starts, empty for none.
  * - `goal`: Label of the place or the goal, empty for none.
  *
  * @param category - Category of the entry, like `Way`
  * @param from - Where a way starts, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`, empty for none
  * @param location - Place or goal, like `TumGarching, Boltzmannstraße 3, 85748 Garching, Deutschland`
- * @returns Where it was, like `HomeMunich → TumGarching`, empty for no place at all
+ * @returns Where it was, like `HomeMunich -> TumGarching`, empty for no place at all
  */
 export function whereOf(category: string, from: string, location: string): string {
     const start: string = labelOf(from);
     const goal: string = labelOf(location);
     if (category !== wayName || (start === "" && goal === ""))
         return goal;
-    return `${start} → ${goal}`.trim();
+    return `${start} -> ${goal}`.trim();
 }
 
 /**
  * Writes where an entry or a box was, as {@link whereOf} does, its place a link when it has one, its `ALTREP`,
  * which opens in a new tab, like `8120.01.101 (Audimax im Galileo)` opening `https://nav.tum.de/room/8120.01.101`;
- * of a way its goal, which its `LOCATION` names, like `TumGarching` of `HomeMunich → TumGarching`.
+ * of a way its goal, which its `LOCATION` names, like `TumGarching` of `HomeMunich -> TumGarching`.
  * A click on the link opens only the link, never the entry or the box it stands in, so it does not reach
  * their own click; a place without link is plain text.
- * - `where`: Where it was, like `HomeMunich → TumGarching`.
+ * - `where`: Where it was, like `HomeMunich -> TumGarching`.
  * - `goal`: Label of the place or the goal, like `TumGarching`.
  * - `anchor`: The link.
  *
