@@ -184,8 +184,8 @@ function dishOf(event: EventApi): string[] {
  * - A short entry, one line high, shows what, then its start after a comma, like `Talk: Planungen, 05:15`;
  *   what ends with an ellipsis where the line is cut, the time never, see `day.css`.
  * - A taller one with room for one line shows the same line with start and end,
- *   like `Skill: IN2028 DEV, 20:00 – 20:30`.
- * - A taller one with room for two lines or more shows what on its first line, like `Skill: IN2028 DEV`,
+ *   like `Skill: IN2028, 20:00 – 20:30`.
+ * - A taller one with room for two lines or more shows what on its first line, like `Skill: IN2028 VO`,
  *   cut with an ellipsis, its start and end on the second, like `20:00 – 23:45`, with room for three lines
  *   its place on the third, like `HomeMunich`, cut with an ellipsis, and below them its note, as many lines of it
  *   as are left, cut with an ellipsis; no place when it has none, no note when it has none or no whole line is left.

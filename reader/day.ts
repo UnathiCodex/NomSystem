@@ -164,16 +164,17 @@ function fieldsOf(entry: EntryNew, from: { location: string; locationLink: strin
 /**
  * Checks fields, foods and times of an entry of the log before they are written.
  * An entry has to fit its category, see {@link categoryAllows}, or keep the category and title it had,
- * like an entry written before its category got its rules, dragged to another time.
+ * or those of the box it is logged from, like an entry written before its category got its rules, dragged
+ * to another time, or an older skill box `IN2028 DEV` of a type no longer offered.
  * Only a meal lists foods, each line well formed, see {@link foodLineAllows}.
- * - `kept`: Whether an entry being changed keeps its category and title.
+ * - `kept`: Whether the entry keeps the category and title of the entry being changed or of its box.
  *
  * @param fields - Fields and times to write
  * @param foods - Lines `X-FOOD` to write, none for an entry that is no meal
- * @param old - Entry being changed, `null` for a new entry
+ * @param old - Entry being changed, or the box a new entry is logged from, `null` for none
  * @throws {Error} - When the fields or foods are not allowed or the end is not after the start
  */
-function fieldsCheck(fields: EntryFields, foods: string[], old: Entry | null): void {
+function fieldsCheck(fields: EntryFields, foods: string[], old: { category: string; title: string } | null): void {
     const kept: boolean = old !== null && old.title !== ""
         && fields.title === old.title && fields.category === old.category;
     if (!(kept || categoryAllows(fields)))
@@ -223,14 +224,14 @@ function painCheck(pain: string): void {
  * Reads how long the last entries of the log like a box really lasted, the latest first, so I anchor the expected
  * minutes of a box on what really happened, not on a hope, since plans run long (Buehler 1994): the last three
  * entries up to now with the same category and the same what, or for `Skill` the same module
- * and type, like `150, 165, 140` for `IN2028 DEV`.
+ * and type, like `150, 165, 140` for `IN2028 VO`, or for `IN2028` without type.
  * - `now`: The moment.
  * - `like`: Whether an entry is like the box.
  *
  * @param category - Category of the box, like `Skill`
  * @param title - What of the box, like `Neck long`, ignored for `Skill`
  * @param module - Module of a skill box, like `IN2028`
- * @param type - Type of a skill box, like `DEV`
+ * @param type - Type of a skill box, like `VO`, empty for none
  * @returns Minutes of each, the latest first, none for none
  */
 export function realMinutesRead(category: string, title: string, module: string, type: string): number[] {
@@ -275,7 +276,7 @@ function skillLinksOf(fields: EntryFields): [string, Link][] {
 export function entryAdd(entry: EntryNew): string {
     const plan: Box | null = entry.planned === "" ? null : boxOpenFind(entry.planned);
     const fields: EntryFields = fieldsOf(entry, plan);
-    fieldsCheck(fields, entry.foods, null);
+    fieldsCheck(fields, entry.foods, plan);
 
     const pain: string = entry.pain ?? "";
     painCheck(pain);
@@ -314,7 +315,7 @@ export function boxLog(logged: BoxLogged): string {
         from: box.from, module: box.module, type: box.type, note: "",
         start: new Date(logged.start), end: new Date(logged.end),
     };
-    fieldsCheck(fields, [], null);
+    fieldsCheck(fields, [], box);
     const id: string = entryAppend(fileOf(fields.start), fields, [["x-planned", box.id], ...skillLinksOf(fields)]);
     boxDone(box.id);
     return id;

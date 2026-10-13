@@ -39,9 +39,9 @@
  * of the attempt, so the half hour of a pause counts from the attempt.
  * Without one, a new entry starts, covering the quarter hour of the attempt, in the steps of the day view: of the type
  * of the open skill box of the module for now, logged from it, so the attempts do the box, see `skillBoxOf`
- * in `boxes.ts`, else of the type DEV.
+ * in `boxes.ts`, else without type, my own learning, like `IN2028`.
  * The skill entry of the moment of any module is the session running now, whose timer the page shows
- * when it is of a type I pace myself, study or homework, see {@link sessionRead}.
+ * when it is of a type I pace myself, my own learning or homework, see {@link sessionRead}.
  * Due by my protocol, per section, a note like `01_01_SampleMeanStandardError.md`, whose cold task carries its runs
  * (decisions 73 to 76 in `.claude/life/decisions.md`): a task of the ladder is new until tried, done once right,
  * and due 2 days after a wrong, stuck or guided attempt, until its section has its first cold run, after which
@@ -316,7 +316,7 @@ export type EffortNew = {
  * A session of mine running now, as the timer of the page shows it, see {@link sessionRead}.
  *
  * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
- * - `type`: Its type, `DEV` or `HU`, empty for none.
+ * - `type`: Its type, `HU`, empty for none, like my own learning or a project.
  * - `start`: Start of its skill entry, as ISO instant.
  * - `links`: Links of its skill entry, to the folder of its skill and to the document it uses, see `documents.ts`.
  * - `focusStart`: Start of the focused stretch running now, as ISO instant: the start of the session,
@@ -461,15 +461,11 @@ const sessionPause: number = 30 * 60 * 1000;
 const breakName: string = "Body";
 
 /**
- * Type of a skill entry the buttons of a task start when nothing is planned: solving the tasks of my notes.
+ * Types of skill entries I pace myself, whose sessions run a timer: homework, `HU`, and no type, my own learning,
+ * theory and tasks together, like `IN2028`, or work on a project, like `WokFlow`; a lecture, an exercise
+ * or a tutorial keeps the pace of its room.
  */
-const studyType: string = "DEV";
-
-/**
- * Types of skill entries I pace myself, whose sessions run a timer: my own study, `DEV`, homework, `HU`,
- * and no type, like work on a project; a lecture or a tutorial keeps the pace of its room.
- */
-const pacedTypes: string[] = [studyType, "HU", ""];
+const pacedTypes: string[] = ["HU", ""];
 
 /**
  * Heading of a task, `## Task. <name>`, or `## Task. <name> (cold)` for a cold task:
@@ -962,19 +958,20 @@ function tasksOf(values: string[]): string[] {
 }
 
 /**
- * Checks a skill entry before it is written: one of the types or none, a module with a folder or a project,
- * chapters among the module's or among those the entry had, attempts at tasks of its module only,
- * and an end after the start.
+ * Checks a skill entry before it is written: one of the types, the type it had, like an older `DEV` no longer
+ * offered, or none, a module with a folder or a project, chapters among the module's or among those the entry had,
+ * attempts at tasks of its module only, and an end after the start.
  * - `offered`: Chapters of the module, see `notes.ts`.
  * - `unknown`: First chapter that is neither offered nor kept.
  *
  * @param entry - Skill entry as the page sends it
  * @param values - `X-ATTEMPT`s it will hold
  * @param kept - Chapters the entry had, none for a new entry
+ * @param keptType - Type the entry or the box it is logged from had, like `DEV`, empty for none
  * @throws {Error} - When one of these does not hold
  */
-function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[]): void {
-    if (entry.type !== "" && !skillTypes.includes(entry.type))
+function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[], keptType: string): void {
+    if (entry.type !== "" && entry.type !== keptType && !skillTypes.includes(entry.type))
         throw new Error(`No type ${entry.type}`);
     const offered: string[] = moduleRead(entry.module).chapters;
     const unknown: string | undefined = entry.chapters.find((chapter: string): boolean =>
@@ -1006,8 +1003,8 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[])
 export function skillEntryAdd(entry: SkillEntryNew): void {
     const tasks: Task[] = tasksRead();
     const values: string[] = entry.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks, ""));
-    skillEntryCheck(entry, values, []);
     const plan: Box | null = entry.planned === "" ? null : boxOpenFind(entry.planned);
+    skillEntryCheck(entry, values, [], plan?.type ?? "");
 
     const fields: EntryFields = {
         category: skillName, title: skillTitleOf(entry.module, entry.type), location: entry.location,
@@ -1046,7 +1043,7 @@ export function skillEntryEdit(change: SkillEntryChange): void {
     const tasks: Task[] = tasksRead();
     const values: string[] = [...old.attempts,
         ...change.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks, ""))];
-    skillEntryCheck(change, values, old.chapters);
+    skillEntryCheck(change, values, old.chapters, old.type);
 
     propertiesPut(file, old.id, [
         ["x-chapter", chaptersWith(change.chapters, [...tasksOf(values), ...old.tutors], tasks)],
@@ -1065,10 +1062,10 @@ export function skillEntryEdit(change: SkillEntryChange): void {
  * Writes lines into the skill entry of the moment of a module, see the top of this file: adds the new `X-ATTEMPT`s
  * and `X-TUTOR`s after those it has, with the chapters of their tasks, and moves its end to the end of the quarter hour
  * of now, if that is later. Without an open entry of the module, starts one covering the quarter hour of now:
- * logged from the open skill box of the module for now, with its type, which is done then, else of the type DEV.
+ * logged from the open skill box of the module for now, with its type, which is done then, else without type.
  * - `quarter`: End of the quarter hour of now, now rounded up to the quarter hour.
  * - `plan`: Open skill box of the module for now, see `skillBoxOf` in `boxes.ts`.
- * - `type`: Type of a new entry, the box's or study.
+ * - `type`: Type of a new entry, the box's or none.
  * - `worked`: Identities of the tasks of the new lines.
  * - `own`: Chapters, the link to the folder of its module, attempts, tutors and box of a new entry,
  *   as properties of my own.
@@ -1090,7 +1087,7 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
     const worked: string[] = [...tasksOf(attempts), ...tutors];
     if (open === undefined) {
         const plan: Box | undefined = skillBoxOf(module, now);
-        const type: string = plan?.type ?? studyType;
+        const type: string = plan?.type ?? "";
         const own: [string, string | Link][] = chaptersWith([], worked, tasks)
             .map((chapter: string): [string, string] => ["x-chapter", chapter]);
         own.push(...linksOf(module, "", []).map((link: Link): [string, Link] => ["attach", link]),

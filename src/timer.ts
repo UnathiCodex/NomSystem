@@ -2,10 +2,11 @@
  * ## Session timer
  *
  * A quiet timer at the right of the areas while a session of mine runs, in every area: its skill and type,
- * and the minutes since its skill entry started, like `IN2028 DEV · 32 min` or `WokFlow · 32 min`, in grey,
- * then the links of its skill entry by their names, the folder of its skill and the document it uses, a document
- * opening in a new tab, see `skill/links.ts`.
- * A session is the skill entry of the moment, of a type I pace myself, study, homework or none, like work on a project,
+ * and the minutes since its skill entry started, like `IN2028 · 32 min`, `IN2028 HU · 32 min` or `WokFlow · 32 min`,
+ * in grey, then the links of its skill entry by their names, the folder of its skill and the document it uses,
+ * a document opening in a new tab, see `skill/links.ts`.
+ * A session is the skill entry of the moment, of a type I pace myself, homework, or none, my own learning
+ * or work on a project,
  * see `reader/skill.ts`: the first button of a task starts one, and a study session logged from the plan is one.
  * One calm mark at a time says what to do, in the light grey of the text, no sound and no popup, the first that holds:
  * - after 4 hours of learning today, lectures included: `4 h today: stop by plan`;
@@ -32,7 +33,7 @@ import type { Link } from "./skill/attempts.ts";
  * A session running now, as the reader sends it.
  *
  * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
- * - `type`: Its type, `DEV` or `HU`, empty for none.
+ * - `type`: Its type, `HU`, empty for none, like my own learning or a project.
  * - `start`: Start of its skill entry, as ISO instant.
  * - `links`: Links of its skill entry, to the folder of its skill and to the document it uses.
  * - `focusStart`: Start of the focused stretch running now, the start or the end of my last break, as ISO instant.
@@ -143,8 +144,8 @@ function markOf(session: Session, minutes: number, focus: number): [string, bool
  * - `timer`: The timer at the right of the areas, in `index.html`.
  * - `minutes`: Whole minutes since the session started.
  * - `focus`: Whole minutes since its focused stretch started.
- * - `what`: Skill and type, like `IN2028 DEV`, the skill alone without type, like `WokFlow`.
- * - `text`: What and minutes, like `IN2028 DEV · 32 min`.
+ * - `what`: Skill and type, like `IN2028 HU`, the skill alone without type, like `IN2028` or `WokFlow`.
+ * - `text`: What and minutes, like `IN2028 · 32 min`.
  * - `mark`, `offers`: Words of the mark, empty for none, and whether it offers to log a break.
  * - `links`: The links of its skill entry, each after a dot of its own, so the gap of the timer parts them,
  *   see `skill/links.ts`.

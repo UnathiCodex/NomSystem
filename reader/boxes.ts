@@ -410,16 +410,20 @@ export function boxOpenFind(id: string): Box {
 
 /**
  * Checks a new or changed box before it is written: its day, its fields, which fit its category, one I plan,
- * see {@link planAllows}, its time on its day, its duration, whole minutes of at most a day,
+ * see {@link planAllows}, or keep the category and title the box had, like an older `IN2028 DEV` of a type
+ * no longer offered, its time on its day, its duration, whole minutes of at most a day,
  * and its deadline, on its day and without expected time, see the top of this file.
+ * - `kept`: Whether a changed box keeps its category and title.
  * - `deadlineDay`: Day of its deadline, empty for none.
  *
  * @param box - The box as sent
+ * @param old - The box as it was, `null` for a new one
  * @throws {Error} - When one of them is not right
  */
-function boxCheck(box: BoxNew): void {
+function boxCheck(box: BoxNew, old: Entry | null): void {
+    const kept: boolean = old !== null && box.category === old.category && box.title === old.title;
     dateCheck(box.day);
-    if (!planAllows(box))
+    if (!(kept || planAllows(box)))
         throw new Error(`No box ${box.category} ${box.title}`);
     if (box.time !== "" && berlinDateOf(new Date(box.time)) !== box.day)
         throw new Error(`${box.title}: its time lies on another day than ${box.day}`);
@@ -455,7 +459,7 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
  * @throws {Error} - When the box is not right, see {@link boxCheck}
  */
 export function boxAdd(box: BoxNew): string {
-    boxCheck(box);
+    boxCheck(box, null);
     return todoAppend(planFileOf(box.day), todoFieldsOf(box, null));
 }
 
@@ -475,7 +479,7 @@ export function boxEdit(change: BoxChange): void {
     const [file, entry]: [string, Entry, Box] = boxFind(change.id);
     if (!entry.editable)
         throw new Error(`${entry.title} may not be changed`);
-    boxCheck(change);
+    boxCheck(change, entry);
     boxOwn(file, entry);
     if (entry.todo) {
         todoChange(file, entry, todoFieldsOf(change, entry), planFileAfter(file, entry, change.day));

@@ -3,7 +3,7 @@
  *
  * Suggests study sessions for the plan of a day, from the tasks of my notes: computed every time, never written,
  * until I accept one in the day view, which writes it as a box of the plan with its duration and without time,
- * like `SUMMARY:IN2028 DEV` with `ESTIMATED-DURATION:PT1H15M`, see `boxes.ts`.
+ * of my own learning, without type, like `SUMMARY:IN2028` with `ESTIMATED-DURATION:PT1H15M`, see `boxes.ts`.
  * A session gets no time, since study planned as an appointment never held for me: I drag its box into the log
  * when I study. The day view asks for tomorrow only and shows them as dashed boxes below the boxes of the day,
  * see `src/day/boxes.ts`.
@@ -39,7 +39,7 @@ import type { Attempt, SkillModule, SkillTask } from "./skill.ts";
  * A suggested study session, as the day view shows it.
  *
  * - `module`: Code of its module, like `IN2028`.
- * - `title`: What it is, like `IN2028 DEV`.
+ * - `title`: What it is, its module alone, like `IN2028`.
  * - `minutes`: How long it is expected to last.
  */
 export type Suggestion = {
@@ -60,11 +60,6 @@ type ModuleNeed = {
     tasks: number;
     sessions: number;
 };
-
-/**
- * Type of the suggested sessions: solving the tasks of my notes.
- */
-const studyType: string = "DEV";
 
 
 /**
@@ -138,7 +133,7 @@ export function suggestionsRead(date: string): Suggestion[] {
         tasks: module.tasks.filter((task: SkillTask): boolean => !task.skipped && (task.due === ""
             ? !task.done && !task.ready && task.attempts.every((attempt: Attempt): boolean => attempt.result === "skipped")
             : task.due <= date)).length,
-        sessions: skills.filter((box: Box): boolean => box.module === module.code && box.type === studyType
+        sessions: skills.filter((box: Box): boolean => box.module === module.code && box.type === ""
             && box.deadline === "").length,
     })).filter((need: ModuleNeed): boolean => need.tasks > 0);
     if (needs.length === 0)
@@ -149,6 +144,6 @@ export function suggestionsRead(date: string): Suggestion[] {
     return lengthsOf(minutes).map((length: number): Suggestion => {
         const need: ModuleNeed = moduleNext(needs);
         need.sessions++;
-        return { module: need.code, title: skillTitleOf(need.code, studyType), minutes: length };
+        return { module: need.code, title: skillTitleOf(need.code, ""), minutes: length };
     });
 }

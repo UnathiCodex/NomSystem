@@ -1000,7 +1000,7 @@ export async function boxOpenNew(day: Date): Promise<void> {
  *
  * @param day - A date on the day of the suggestion
  * @param module - Its module, like `IN2028`
- * @param type - Its type, `DEV`
+ * @param type - Its type, empty for my own learning
  * @param minutes - Its expected duration
  * @throws {Error} - When the reader gives no valid answer
  */

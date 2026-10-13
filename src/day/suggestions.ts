@@ -3,10 +3,10 @@
  *
  * The study sessions the reader suggests for tomorrow's plan, see `reader/suggestions.ts`, computed and never written
  * until I accept one: dashed boxes below the boxes of tomorrow, each with its module and its expected duration,
- * and a check and a cross at its right, see `boxes.ts`. The check accepts it, writing a box like `IN2028 DEV`
- * with its duration and without time, which I drag into the log when I study; the cross dismisses it
- * for as long as the page stays open; a click on it opens the entry by category of a new box filled in as suggested,
- * to change it before saving, which accepts it too.
+ * and a check and a cross at its right, see `boxes.ts`. The check accepts it, writing a box of my own learning
+ * without type, like `IN2028`, with its duration and without time, which I drag into the log when I study;
+ * the cross dismisses it for as long as the page stays open; a click on it opens the entry by category of a new box
+ * filled in as suggested, to change it before saving, which accepts it too.
  * Every change of the plan suggests anew, since the plan sets the minutes left.
  * Only tomorrow gets suggestions, the day I plan in the evening before.
  *
@@ -26,7 +26,7 @@ import { calendarTodayOf } from "../today.ts";
  * A suggested study session, as the reader sends it.
  *
  * - `module`: Code of its module, like `IN2028`.
- * - `title`: What it is, like `IN2028 DEV`.
+ * - `title`: What it is, its module alone, like `IN2028`.
  * - `minutes`: How long it is expected to last.
  */
 type SuggestionSent = {
@@ -41,11 +41,6 @@ type SuggestionSent = {
  * like `2026-10-14 IN2028 2`.
  */
 export type Suggestion = SuggestionSent & { key: string };
-
-/**
- * Type of the suggested sessions, `DEV`, like `SUMMARY:IN2028 DEV`.
- */
-const studyType: string = "DEV";
 
 /**
  * Keys of the suggestions dismissed while the page is open.
@@ -93,7 +88,7 @@ export async function suggestionsLoad(day: string): Promise<Suggestion[]> {
 }
 
 /**
- * Accepts a suggestion: writes it as a box of its day, a skill box of its module of the type DEV,
+ * Accepts a suggestion: writes it as a box of its day, a skill box of its module without type, my own learning,
  * with its duration and without time.
  *
  * @param suggestion - Suggestion to accept
@@ -103,7 +98,7 @@ export async function suggestionsLoad(day: string): Promise<Suggestion[]> {
 export async function suggestionAccept(suggestion: Suggestion, day: string): Promise<void> {
     await boxAdd({
         category: skillName, title: suggestion.title, location: "", from: "",
-        module: suggestion.module, type: studyType, note: "", day: day, time: null, minutes: suggestion.minutes,
+        module: suggestion.module, type: "", note: "", day: day, time: null, minutes: suggestion.minutes,
         deadline: "",
     });
 }
@@ -119,7 +114,7 @@ export function suggestionDismiss(suggestion: Suggestion): void {
 }
 
 /**
- * Opens the entry by category of a new box filled in as suggested, its module, the type DEV and its duration
+ * Opens the entry by category of a new box filled in as suggested, its module without type and its duration
  * picked, so I change it before saving, which accepts it.
  *
  * @param suggestion - Suggestion to open
@@ -127,5 +122,5 @@ export function suggestionDismiss(suggestion: Suggestion): void {
  * @throws {Error} - When the reader gives no valid answer
  */
 export async function suggestionOpen(suggestion: Suggestion, day: Date): Promise<void> {
-    await boxOpenSuggestion(day, suggestion.module, studyType, suggestion.minutes);
+    await boxOpenSuggestion(day, suggestion.module, "", suggestion.minutes);
 }

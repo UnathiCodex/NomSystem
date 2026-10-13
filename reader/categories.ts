@@ -144,12 +144,12 @@ function categoryOf(name: string, routines: { [what: string]: string[] }): Categ
 export { skillName };
 
 /**
- * Types of a skill entry, each written after its skill in its `SUMMARY`, like `IN2028 VO`: `VO` a lecture
- * and `TU` a tutorial I attend,
- * `HU` a homework sheet I work on, `DEV` my own study, solving the tasks of my notes, `FA` an exam
- * and `PR` a practical course.
+ * Types of a skill entry, each written after its skill in its `SUMMARY`, like `IN2028 VO`; a type names only
+ * a fixed form I take part in: `VO` a lecture, `UE` an exercise, `TU` a tutorial, `HU` a homework sheet,
+ * `FA` an exam and `PR` a practical course. My own learning, theory and tasks together, has no type,
+ * like `Skill: IN2028`, as a project, `Skill: WokFlow`.
  */
-export const skillTypes: string[] = ["VO", "TU", "HU", "DEV", "FA", "PR"];
+export const skillTypes: string[] = ["VO", "UE", "TU", "HU", "FA", "PR"];
 
 /**
  * The only whats of `Sleep`, in this order: `Night`, the sleep of a night, and `Day`, a nap,
