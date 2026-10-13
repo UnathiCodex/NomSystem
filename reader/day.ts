@@ -29,7 +29,7 @@
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
  * - `./categories.ts`: Tells whether the fields of an entry fit its category, how long a meal usually lasts,
  *   and names the category of skill entries.
- * - `./documents.ts`: Writes what a skill entry was, linking the folder of its skill.
+ * - `./documents.ts`: Writes what a skill entry was, linking the folder of its skill, and gives its chapters.
  * - `./food.ts`: Tells what meals give, whether a line `X-FOOD` is well formed, what a dish held the last time,
  *   and how a meal is named by its foods.
  * - `./sources.ts`: Names every folder and file the reader reads, and builds the path of a month file.
@@ -39,7 +39,7 @@
 import { boxDone, boxOpenFind, boxReopen } from "./boxes.ts";
 import { berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryRemove, propertiesPut } from "./calendar.ts";
 import { categoryAllows, semesterFor, skillName, usualLengthRead } from "./categories.ts";
-import { titleOf } from "./documents.ts";
+import { chaptersOf, titleOf } from "./documents.ts";
 import { dishFoodsRead, foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, logEnding, monthFileOf } from "./sources.ts";
@@ -106,9 +106,11 @@ export type BoxLogged = {
 };
 
 /**
- * An entry as the day gets it: an {@link Entry}, with what a meal gives, whether a cooking was eaten,
- * and whether it is a glass of water.
+ * An entry as the day gets it: an {@link Entry}, with the chapters of a skill entry, what a meal gives,
+ * whether a cooking was eaten, and whether it is a glass of water.
  *
+ * - `chapters`: Chapters a skill entry covered, from the folders it links and from older `X-CHAPTER`s,
+ *   see `chaptersOf` in `documents.ts`; none for any other entry.
  * - `kcal`: kcal of a meal that lists foods, see `food.ts`; `null` for any other entry.
  *   The day hides them on its entries for now; its dialog and its trackers show them.
  * - `estimate`: Whether those kcal hold the usual portion of a food listed without grams.
@@ -213,6 +215,7 @@ export function dayEntriesRead(start: string, end: string): DayEntry[] {
     const cooked: Set<string> = new Set(entries.map((entry: Entry): string => entry.cooked));
     return entries.map((entry: Entry): DayEntry => ({
         ...entry,
+        chapters: chaptersOf(entry),
         kcal: meals.get(entry.id)?.kcal ?? null,
         estimate: meals.get(entry.id)?.estimate ?? false,
         eaten: entry.category === cookName && cooked.has(entry.id),
@@ -292,12 +295,10 @@ export function entryAdd(entry: EntryNew): string {
  * with its skill and type, written as the reader writes them, see `titleOf` in `documents.ts`, linking the folder
  * of its skill, from the start to the end the day sends,
  * pointing to the box with `RELATED-TO`, after which the box is done. Its note stays empty, since the note
- * of a log entry is my diary note about what happened, but for a skill box with a type, like a lecture, whose
- * `DESCRIPTION` states its topic or its sheet, like `Logistic Regression`, which the log entry states too,
- * with the links of the box, like its slides, see `documents.ts`; chapters and documents a skill entry gets
- * later in the dialog.
+ * of a log entry is my diary note about what happened; a skill box hands on its links, like the slides of a lecture
+ * with their topics, see `documents.ts`, and more chapters and documents a skill entry gets later in the dialog.
  * - `box`: The box.
- * - `material`: Whether it is a skill box with a type, whose topic and links go along.
+ * - `skill`: Whether it is a skill box, whose links go along.
  * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
  * - `fields`: Fields and times of the log entry.
  * - `id`: Identifier of the new log entry.
@@ -311,18 +312,18 @@ export function boxLog(logged: BoxLogged): string {
     if (box.category === "")
         throw new Error(`${box.title} has no category; the dialog logs it`);
 
-    const material: boolean = box.category === skillName && box.type !== "";
+    const skill: boolean = box.category === skillName;
     const [title, titleLink]: [string, string] = titleOf(box);
     const fields: EntryFields = {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
         locationLink: box.locationLink, from: box.from, module: box.module, type: box.type,
-        semester: semesterFor(box.category, box.semester, box.day), note: material ? box.note : "",
+        semester: semesterFor(box.category, box.semester, box.day), note: "",
         start: new Date(logged.start), end: new Date(logged.end),
     };
     fieldsCheck(fields, [], box);
     const id: string = entryAppend(fileOf(fields.start), fields, [
         ["related-to", box.id],
-        ...(material ? box.links : []).map((link: Link): [string, Link] => ["attach", link]),
+        ...(skill ? box.links : []).map((link: Link): [string, Link] => ["attach", link]),
     ]);
     boxDone(box.id);
     return id;

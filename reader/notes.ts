@@ -21,7 +21,7 @@
 
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { extname, join, posix, sep } from "node:path";
-import { activeModules, notes } from "./sources.ts";
+import { activeModules, draftsFolder, modulesFolder, notes } from "./sources.ts";
 
 import type { Dirent } from "node:fs";
 
@@ -454,17 +454,35 @@ export function moduleContentsRead(module: string): ModuleContents {
 }
 
 /**
- * Finds the folder of a chapter in a module folder of `NomSkillingmodules` by its name to read, see {@link titleOf},
- * which a skill entry of my own learning links, see `chapterLinksOf` in `documents.ts`; a chapter only in the drafts
- * has none there.
+ * Finds the folder of a chapter of a module by its name to read, see {@link titleOf}, which a skill entry links,
+ * see `chapterLinksOf` in `documents.ts`: in the module folder of `NomSkillingmodules`, else in its drafts,
+ * like a chapter not checked yet.
+ * - `found`: The folder of the chapter in one of them, `undefined` while none is found.
  *
  * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
  * @param chapter - Name to read of the chapter, like `02 Logistic Poisson Regression`
- * @returns Name of its folder, like `02_LogisticPoissonRegression`, `undefined` for none
+ * @returns Its path from `NomWorkspace`, like `NomSkillingmodules/IN2028_…/02_LogisticPoissonRegression`
+ *   or `NomSystemdashboard/.claude/modules/drafts/IN2028_…/03_…`, `undefined` for none
  */
-export function chapterFolderOf(module: string, chapter: string): string | undefined {
-    return entriesRead(module).find((entry: Dirent): boolean =>
-        entry.isDirectory() && chapterFolder.test(entry.name) && titleOf(entry.name) === chapter)?.name;
+export function chapterPathOf(module: string, chapter: string): string | undefined {
+    for (const folder of foldersOf(module)) {
+        const found: Dirent | undefined = entriesRead(folder).find((entry: Dirent): boolean =>
+            entry.isDirectory() && chapterFolder.test(entry.name) && titleOf(entry.name) === chapter);
+        if (found !== undefined)
+            return `${folder === module ? modulesFolder : draftsFolder}/${module}/${found.name}`;
+    }
+    return undefined;
+}
+
+/**
+ * Gives the name to read of the chapter whose folder a path leads to, the other way of {@link chapterPathOf}.
+ *
+ * @param path - Path of the folder of a chapter from `NomWorkspace`,
+ *   like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning/02_LogisticPoissonRegression`
+ * @returns Name like `02 Logistic Poisson Regression`
+ */
+export function chapterNameOf(path: string): string {
+    return titleOf(path.split("/").at(-1) ?? "");
 }
 
 /**

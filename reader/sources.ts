@@ -90,6 +90,11 @@ export const planEnding: string = "_Plan.ics";
 export const modulesFolder: string = "NomSkillingmodules";
 
 /**
+ * Folder of the drafts of my chapters in `NomWorkspace`, parted by `/`, one folder per module, see {@link notes}.
+ */
+export const draftsFolder: string = "NomSystemdashboard/.claude/modules/drafts";
+
+/**
  * Sources of the notes area, read only for it; only the editor writes, and only the drafts, see {@link editor};
  * each module in them is a vault of its own, as in Obsidian.
  *
@@ -106,7 +111,7 @@ export type NotesSources = {
  * {@link NotesSources} as they lie in the vault.
  */
 export const notes: NotesSources = {
-    drafts: join(vault, "NomSystemdashboard", ".claude", "modules", "drafts"),
+    drafts: join(vault, ...draftsFolder.split("/")),
     modules: join(vault, modulesFolder),
 };
 

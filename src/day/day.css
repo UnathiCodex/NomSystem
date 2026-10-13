@@ -1072,6 +1072,34 @@ button.box-ring:hover svg {
     padding: 0 0.75rem;
 }
 
+/* Topics of the chapters and documents picked, one line each: the name grey at the left, cut with an ellipsis,
+   its topic in a field beside it */
+.skill-topics {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.skill-topic {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--gap);
+    align-items: center;
+}
+
+.skill-topic-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--text-muted);
+}
+
+.skill-topic input {
+    width: 100%;
+    height: var(--chip-height);
+    padding: 0 0.75rem;
+}
+
 /* Foods of a meal in the entry by category: a row per food, its name, its grams, its kcal and remove,
    the kcal of the meal below them, then the food search, its results a few rows high, then scrolling */
 .meal {

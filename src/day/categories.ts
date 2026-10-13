@@ -982,10 +982,9 @@ export async function entryOpenNow(calendar: Calendar): Promise<void> {
 
 /**
  * Opens the dialog to log a box at a start and an end, like those of its drop into the log; a box with a category
- * comes with its category and fields picked as planned, a skill box with its skill, type, semester and documents,
- * a skill box with a type with its note, its topic or its sheet, like `Logistic Regression`, see `skill.ts`,
- * ready to save or to change, like a lecture with its chapters and slides; a box without category,
- * like a to-do another app wrote, without them.
+ * comes with its category and fields picked as planned, a skill box with its skill, type, semester and documents
+ * with their topics, see `skill.ts`, ready to save or to change, like a lecture with its chapters and slides;
+ * a box without category, like a to-do another app wrote, without them.
  * - `planned`: Whether the box has a category.
  *
  * @param box - Box to log
@@ -1000,7 +999,7 @@ export async function entryOpenFromBox(box: Box, start: Date, end: Date): Promis
         values: planned
             ? { title: box.title, from: box.from, location: box.location }
             : { title: "", from: "", location: "" },
-        note: box.category === skillName && box.type !== "" ? box.note : "", foods: [],
+        note: "", foods: [],
         skill: { ...skillNone, module: box.module, type: box.type, semester: box.semester, links: box.links },
         plan: box, entry: null, box: null,
     });

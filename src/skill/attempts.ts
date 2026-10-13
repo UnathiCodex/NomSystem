@@ -190,10 +190,12 @@ export type Skilling = {
  *
  * - `path`: Path from `NomWorkspace`, parted by `/`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
  * - `fingerprint`: SHA-256 of a file, empty for a folder.
+ * - `topic`: What the file or the folder is about, its `X-TOPIC`, like `Logistic Regression`, empty for none.
  */
 export type Link = {
     path: string;
     fingerprint: string;
+    topic: string;
 };
 
 /**
@@ -250,6 +252,8 @@ export type AttemptNew = {
  * - `chapters`: Names to read of the chapters it covered, none for none.
  * - `documents`: Paths from the folder of its skill of the documents it used, none for none; the reader links each
  *   with its fingerprint, see `reader/documents.ts`.
+ * - `topics`: Topic of each chapter by its name and of each document by its path, as the dialog shows it,
+ *   like `Logistic Regression`.
  * - `attempts`: Its attempts, none for none.
  * - `location`: Place, like the room of a lecture logged from the plan.
  * - `planned`: Identifier of the plan entry it is logged from, empty for none.
@@ -263,6 +267,7 @@ export type SkillEntryNew = {
     semester: string;
     chapters: string[];
     documents: string[];
+    topics: { [value: string]: string };
     attempts: AttemptNew[];
     location: string;
     planned: string;

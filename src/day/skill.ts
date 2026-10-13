@@ -18,8 +18,10 @@
  * a homework's in `HU_UniversityHomeExercises`, each under the folder of its semester, like `TUM_2026W`,
  * the newest semester first, searched by folder and name together; my own learning, without type, every file of
  * the module outside its chapters; a project offers neither, like a module without chapters.
- * Picking documents fills the note with their topic, the name of each to read, like `04 Logistic Poisson Regression`
- * or `Sheet 03`, since the entry states its topic itself and its links only point to more, until I type my own.
+ * Each chapter and document picked gets its topic below them, filled from its name, like `Logistic Regression`
+ * of `04_LogisticRegression.pdf` or `Logistic Poisson Regression` of the chapter `02 Logistic Poisson Regression`,
+ * which I may change; the reader writes it as the `X-TOPIC` of its `ATTACH`, since the entry states its topics
+ * itself and its links only point to more, see `reader/documents.ts`. The note is only my free note.
  * The tasks of the chapters picked come below, the due ones first, then a result for each task picked:
  * Right, Wrong, Stuck with where I got stuck, or Skip with a reason, and after Right, Wrong or Stuck
  * one tap for my effort, low, medium or high. Any type may hold attempts, like the tasks I solved in a tutorial.
@@ -77,6 +79,8 @@ type AttemptPick = {
  *   see {@link semesterDay}.
  * - `chapters`: Names to read of the chapters, like `01 Regression Analysis`.
  * - `documents`: Paths of the documents from the module folder, in the order they were picked.
+ * - `topics`: Topic of each chapter by its name and of each document by its path, as changed or kept;
+ *   one without has the topic of its name, see {@link topicOf}.
  * - `attempts`: Tasks picked, in the order they were picked, each with its result.
  */
 type SkillPicks = {
@@ -85,6 +89,7 @@ type SkillPicks = {
     semester: string;
     chapters: string[];
     documents: string[];
+    topics: { [value: string]: string };
     attempts: AttemptPick[];
 };
 
@@ -141,7 +146,9 @@ let skilling: Skilling = { modules: [], skills: [], otherModules: [], skips: [],
 /**
  * What is picked so far.
  */
-let picks: SkillPicks = { module: "", type: "", semester: "", chapters: [], documents: [], attempts: [] };
+let picks: SkillPicks = {
+    module: "", type: "", semester: "", chapters: [], documents: [], topics: {}, attempts: [],
+};
 
 /**
  * Beginning of the name of the folder of the material of each type in a module, whose files the documents offer
@@ -152,12 +159,6 @@ let picks: SkillPicks = { module: "", type: "", semester: "", chapters: [], docu
 const materialFolders: { [type: string]: string } = {
     VO: "VO_", UE: "TU_", TU: "TU_", HU: "HU_", FA: "FA_", PR: "PR_",
 };
-
-/**
- * Topic the note was last filled with from the documents picked, see {@link noteFill}, empty for none;
- * a note I typed differs from it and stays.
- */
-let noteFilled: string = "";
 
 /**
  * Day of the dialog, like `2026-10-13`, whose semester the entry has while I pick none, see {@link skillDaySet}.
@@ -359,33 +360,96 @@ function documentChoicesOf(): Choice[] {
 }
 
 /**
- * Writes the topic of a document as the note states it: its name to read, without its ending, `_` as spaces,
- * words and numbers apart, like `04 Logistic Poisson Regression` of `04_LogisticPoissonRegression.pdf`
- * or `Sheet 03` of `Sheet03.pdf`.
- * - `name`: Name of the file without its ending.
+ * Writes the topic of a chapter or a document as it stands until I change it, as the reader does, see `topicOf`
+ * in `reader/documents.ts`: its name to read, without the ending of a file and the number in front of it,
+ * `_` as spaces, words and numbers apart, like `Logistic Regression` of `04_LogisticRegression.pdf`,
+ * `Logistic Poisson Regression` of the chapter `02 Logistic Poisson Regression`, or `Sheet 03` of `Sheet03.pdf`.
+ * - `name`: The last part of the value, for a document without its ending.
  *
- * @param path - Path of the document, like `VO_…/TUM_2026W/04_LogisticPoissonRegression.pdf`
+ * @param value - Name to read of a chapter, or path of a document, like `VO_…/TUM_2026W/04_LogisticRegression.pdf`
+ * @param chapter - Whether it is a chapter, whose name has no ending
  * @returns The topic
  */
-function topicOf(path: string): string {
-    const name: string = (path.split("/").at(-1) ?? path).replace(/\.[^.]*$/, "");
-    return name.replaceAll("_", " ").replace(/(?<=\p{Ll})(?=\p{Lu})|(?<=\p{L})(?=\d)/gu, " ").trim();
+function topicOf(value: string, chapter: boolean): string {
+    const name: string = chapter ? value : (value.split("/").at(-1) ?? value).replace(/\.[^.]*$/, "");
+    return name.replace(/^\d+[_ ]/, "").replaceAll("_", " ")
+        .replace(/(?<=\p{Ll})(?=\p{Lu})|(?<=\p{L})(?=\d)/gu, " ").trim();
 }
 
 /**
- * Fills the note with the topics of the documents picked, see {@link topicOf}, like
- * `04 Logistic Poisson Regression, 05 Decision Trees`, while it is empty or holds what it was last filled with,
- * so a note I typed stays; no documents picked empty a note filled so.
- * - `note`: Field of the note of the dialog.
- * - `topic`: Topics of the documents picked.
+ * Gives the topics of the links of a skill entry or a box, as the dialog keys them: each document by its path
+ * from the module folder, see {@link documentPathsOf}, each chapter by its name to read from the name of its folder,
+ * as the reader names it, see `chapterNameOf` in `reader/notes.ts`; a link without topic is left out.
+ * - `rest`: Path of a link from the folder of its module.
+ * - `folder`: Name of the folder of a chapter, the last part of its path.
+ *
+ * @param links - Links of the entry, like `NomSkillingmodules/IN2028_…/02_LogisticPoissonRegression`
+ * @returns Topics like `Logistic Regression` by path or name
  */
-function noteFill(): void {
-    const note: HTMLTextAreaElement = document.getElementById("entry-note") as HTMLTextAreaElement;
-    const topic: string = picks.documents.map(topicOf).join(", ");
-    if (note.value.trim() !== "" && note.value.trim() !== noteFilled)
-        return;
-    note.value = topic;
-    noteFilled = topic;
+function linkTopicsOf(links: Link[]): { [value: string]: string } {
+    const documents: string[] = documentPathsOf(links);
+    return Object.fromEntries(links
+        .filter((link: Link): boolean => link.topic !== "")
+        .map((link: Link): [string, string] => {
+            const rest: string = link.path.split("/").slice(2).join("/");
+            const folder: string = link.path.split("/").at(-1) ?? "";
+            return documents.includes(rest) ? [rest, link.topic]
+                : [folder.replace("_", " ").replace(/(?<=\p{Ll})(?=\p{Lu})/gu, " "), link.topic];
+        }));
+}
+
+/**
+ * Builds the topics of the chapters and documents picked, one line each below them: its name, a chapter by its name
+ * to read, a document by the name of its file, then its topic in a field, filled from its name, see {@link topicOf},
+ * which I may change; empty, it is the topic of its name again.
+ * - `items`: Chapters and documents picked, each its value and the name it shows.
+ * - `list`: The lines.
+ *
+ * @returns Row of the topics, none while nothing is picked
+ */
+function topicsOf(): HTMLElement[] {
+    const items: [string, string, boolean][] = [
+        ...picks.chapters.map((chapter: string): [string, string, boolean] => [chapter, chapter, true]),
+        ...picks.documents.map((path: string): [string, string, boolean] =>
+            [path, path.split("/").at(-1) ?? path, false]),
+    ];
+    if (items.length === 0)
+        return [];
+    const list: HTMLDivElement = document.createElement("div");
+    list.className = "skill-topics";
+    list.append(...items.map(([value, name, chapter]: [string, string, boolean]): HTMLElement => {
+        const line: HTMLLabelElement = document.createElement("label");
+        const label: HTMLSpanElement = document.createElement("span");
+        const input: HTMLInputElement = document.createElement("input");
+        line.className = "skill-topic";
+        label.className = "skill-topic-name";
+        label.textContent = name;
+        label.title = name;
+        input.type = "text";
+        input.autocomplete = "off";
+        input.value = picks.topics[value] ?? topicOf(value, chapter);
+        input.setAttribute("aria-label", `Topic of ${name}`);
+        input.addEventListener("input", (): void => {
+            picks.topics[value] = input.value.trim() === "" ? topicOf(value, chapter) : input.value.trim();
+        });
+        line.append(label, input);
+        return line;
+    }));
+    return [rowOf("Topics", list)];
+}
+
+/**
+ * Gives the topics to send for the chapters and documents picked, see {@link topicsOf}: each as changed or kept,
+ * else the topic of its name.
+ *
+ * @returns Topics by the name of each chapter and the path of each document
+ */
+function topicsPicked(): { [value: string]: string } {
+    return Object.fromEntries([
+        ...picks.chapters.map((chapter: string): [string, string] =>
+            [chapter, picks.topics[chapter] ?? topicOf(chapter, true)]),
+        ...picks.documents.map((path: string): [string, string] => [path, picks.topics[path] ?? topicOf(path, false)]),
+    ]);
 }
 
 /**
@@ -556,7 +620,7 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
         rowOf("Skill", choicesOf({
             search: moduleSearchOf(), picked: picks.module === "" ? [] : [picks.module], many: false, adding: false,
             pick: (values: string[]): void => {
-                picks = { ...picks, module: values[0] ?? "", chapters: [], documents: [], attempts: [] };
+                picks = { ...picks, module: values[0] ?? "", chapters: [], documents: [], topics: {}, attempts: [] };
                 contentsLoad().then(again).catch((error: unknown): void => console.error(error));
             },
         })),
@@ -593,11 +657,12 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
                 search: groupedSearchOf(documentChoicesOf()), picked: picks.documents, many: true, adding: false,
                 pick: (values: string[]): void => {
                     picks.documents = values;
-                    noteFill();
+                    again();
                 },
             })));
         if (picks.documents.some((path: string): boolean => !contents.documents.includes(path)))
             rows.push(rowOf("", hintOf("Not in the module any more, not even by its fingerprint; the link stays as written")));
+        rows.push(...topicsOf());
     }
     if (!inPlan && tasks.length > 0)
         rows.push(rowOf("Tasks", choicesOf({
@@ -638,9 +703,8 @@ export async function skillFieldsShow(fields: HTMLElement, plan: boolean, values
         : { title: values.title, titleLink: values.titleLink, links: values.links };
     picks = {
         module: values.module, type: values.type, semester: values.semester, chapters: values.chapters,
-        documents: documentPathsOf(values.links), attempts: [],
+        documents: documentPathsOf(values.links), topics: linkTopicsOf(values.links), attempts: [],
     };
-    noteFilled = "";
     await contentsLoad();
     picksShow(fields, changed);
 }
@@ -703,7 +767,7 @@ export async function skillSave(calendar: Calendar, id: string, fields: EntryFie
 
     await skillEntrySend(id, {
         type: picks.type, module: picks.module, semester: fields.semester, chapters: picks.chapters,
-        documents: picks.documents, attempts: attempts,
+        documents: picks.documents, topics: topicsPicked(), attempts: attempts,
         location: fields.location, planned: fields.planned, note: fields.note, start: fields.start, end: fields.end,
     });
     calendar.getEventSourceById("log")?.refetch();
