@@ -30,14 +30,15 @@
  * a new place is added with its address and maybe its link through a small dialog before it is picked,
  * see `places.ts`.
  * `From` starts where the last way before the entry ended.
- * An entry of the log has a start and an end, each a day like `13.10.2026` and a plain time, as calendar apps
+ * Plan and log use one and the same dialog with the same fields and lists, see `skill.ts`: an entry of the log
+ * and a box of the plan alike have a start and an end, each a day like `13.10.2026` and a plain time, as calendar apps
  * write them: the day of the start, its calendar date, typed to move it to any other day, and the day of the end,
  * which fills itself with the day of the start, or the day after while the end time lies at or before
  * the start time, until I type over it, see {@link endDayFill}; all saved exactly as they show.
- * A box of the plan has a day like `19.10.2026`, typed to move it to any other day, an expected time
- * and an expected duration in minutes, each optional, but for a lecture imported from TUMonline, which keeps both,
- * see `reader/boxes.ts`, and optionally a deadline, a day like `23.10.2026` with a time or without; a box
- * with a deadline lies on the day of its deadline and has no expected time, so both their fields are off while
+ * The times of a box may stay empty, a box of its day, but for a lecture imported from TUMonline, which keeps both,
+ * see `reader/boxes.ts`; its start is its expected time, the minutes to its end its expected duration.
+ * Only a to-do of the plan has one more field, its deadline, a day like `23.10.2026` with a time or without; a box
+ * with a deadline lies on the day of its deadline and has no expected time, so start and end are off while
  * the day of a deadline is typed.
  * The dialog opens for the log from `+` above the time grid, from a range selected in the time grid,
  * and from a log entry that can be changed, to change it; for a box from `+` above the list of boxes,
@@ -66,7 +67,7 @@ import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealA
 import { foodName, mealDishFill, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import { labelOf, lineOf, placeEdit, placeOpen, placesStart } from "./places.ts";
 import {
-    skillDaySet, skillFieldsShow, skillModuleType, skillPlaceShow, skillSave, skillSemesterOf,
+    skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPlaceShow, skillSave, skillSemesterOf,
 } from "./skill.ts";
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
@@ -78,7 +79,7 @@ import type { Box } from "./boxes.ts";
 import type { Choice } from "./choices.ts";
 import type { Place } from "./places.ts";
 import type { BoxFields, EntryFields } from "./entries.ts";
-import type { ModuleType, SkillValues } from "./skill.ts";
+import type { ModuleType, SkillLinks, SkillValues } from "./skill.ts";
 
 
 /**
@@ -221,6 +222,11 @@ let pain: string = "";
 let realSeen: string = "";
 
 /**
+ * Median of the real minutes of the last entries like a new box, see {@link realShow}, `null` while none is loaded.
+ */
+let realMiddle: number | null = null;
+
+/**
  * Whether I typed into the day of the end of a log entry since the dialog opened, so it no longer fills itself,
  * see {@link endDayFill}.
  */
@@ -239,7 +245,7 @@ async function categoriesLoad(): Promise<Category[]> {
 }
 
 /**
- * Gives the start of the entry as the fields of the dialog say: its time on its typed day, like `01:45`
+ * Gives the start of the entry or the box as the fields of the dialog say: its time on its typed day, like `01:45`
  * on `13.10.2026`, on the day the dialog opened with should the typed day be no date.
  * - `day`: Typed day, like `2026-10-13`.
  *
@@ -247,7 +253,7 @@ async function categoriesLoad(): Promise<Category[]> {
  */
 function startRead(): Date {
     const day: string =
-        dateParse((document.getElementById("entry-log-day") as HTMLInputElement).value) ?? dayOf(opened.start);
+        dateParse((document.getElementById("entry-start-day") as HTMLInputElement).value) ?? dayOf(opened.start);
     return dateOf(new Date(`${day}T12:00:00`),
         timeFieldRead(document.getElementById("entry-start") as HTMLInputElement));
 }
@@ -286,14 +292,15 @@ function saveAllow(): void {
 }
 
 /**
- * Shows under the minutes of a box how long the last three entries like it really lasted, the latest first,
+ * Shows under the end of a box how long the last three entries like it really lasted, the latest first,
  * like `Real, last 3: 150 · 165 · 140 min`, so I plan by what happened, not by a hope (Buehler 1994);
- * a new box whose minutes are still empty gets their median. Hidden for an entry of the log and while none is logged.
- * - `line`: The line under the minutes.
+ * a new box gets their median as its length, see {@link endFill}. Hidden for an entry of the log and while none
+ * is logged.
+ * - `line`: The line under the end.
  * - `texts`: Category, what, module and type picked.
  * - `key`: The same as one text, to load only when they change.
  * - `real`: Minutes of the last entries like the box, the latest first.
- * - `middle`: Their median, the middle one when sorted.
+ * - `sorted`: The same, the shortest first.
  *
  * @throws {Error} - When the reader cannot answer
  */
@@ -304,6 +311,7 @@ async function realShow(): Promise<void> {
     if (key === realSeen)
         return;
     realSeen = key;
+    realMiddle = null;
     line.hidden = true;
     if (opened.target !== "box" || texts.category === "")
         return;
@@ -316,13 +324,28 @@ async function realShow(): Promise<void> {
     const real: number[] = await response.json() as number[];
     if (key !== realSeen || real.length === 0)
         return;
-    const minutes: HTMLInputElement = document.getElementById("entry-minutes") as HTMLInputElement;
     const sorted: number[] = [...real].sort((first: number, second: number): number => first - second);
-    const middle: number = sorted[Math.floor(real.length / 2)];
+    realMiddle = sorted[Math.floor(real.length / 2)];
     line.textContent = `Real, last ${real.length}: ${real.join(" · ")} min`;
     line.hidden = false;
-    if (opened.box === null && minutes.value === "")
-        minutes.value = String(middle);
+    endFill();
+}
+
+/**
+ * Fills the end of a new box while its time is empty, from its start and the median of the real minutes of the last
+ * entries like it, see {@link realShow}, like `16:00` to `18:30` for 150 minutes, with its day; nothing for a box
+ * being changed, an entry of the log, a box without start time, or while no entry like it is logged.
+ * - `end`: Field of the time of the end.
+ * - `start`: Start of the box as typed.
+ */
+function endFill(): void {
+    const end: HTMLInputElement = document.getElementById("entry-end") as HTMLInputElement;
+    if (opened.target !== "box" || opened.box !== null || realMiddle === null || end.value.trim() !== ""
+        || timeFieldRead(document.getElementById("entry-start") as HTMLInputElement) === "")
+        return;
+    const start: Date = startRead();
+    timeFieldShow(end, new Date(start.getTime() + realMiddle * 60 * 1000));
+    endDayFill();
 }
 
 /**
@@ -741,16 +764,20 @@ function titleRead(picked: string): string {
 
 /**
  * Reads the text fields of the dialog, as an entry of the log and a box have them, a skill entry its place too,
- * like the room of a lecture imported into the plan.
+ * like the room of a lecture imported into the plan, and its chapters and documents.
  * - `picked`: Values picked in the lists.
  * - `skill`: Skill and type of a skill entry, empty for any other entry.
+ * - `links`: Chapters and documents of a skill entry with their topics, none for any other entry.
  *
- * @returns Category, what, place, where a way starts, module, type, semester and note, as a box of the day the dialog
- *   opened with, without time, duration and deadline; the semester of a skill entry as picked, else of that day
+ * @returns Category, what, place, where a way starts, module, type, semester, note, chapters and documents,
+ *   as a box of the day the dialog opened with, without time, duration and deadline; the semester of a skill entry
+ *   as picked, else of that day
  */
 function textsRead(): BoxFields {
     const picked: { [key in FieldKey]: string } = valuesRead();
     const skill: ModuleType = chosen?.name === skillName ? skillModuleType() : { module: "", type: "" };
+    const links: SkillLinks =
+        chosen?.name === skillName ? skillLinksRead() : { chapters: [], documents: [], topics: {} };
     return {
         category: chosen?.name ?? "",
         title: titleRead(picked.title),
@@ -764,30 +791,29 @@ function textsRead(): BoxFields {
         time: null,
         minutes: null,
         deadline: "",
+        ...links,
     };
 }
 
 /**
- * Gives the day of the entry as the fields of the dialog say: for an entry of the log the typed day of its start,
- * for a box the typed day of its deadline, else its typed day; the day the dialog opened with while the typed day
- * is no date.
- * - `deadlineDay`: Typed day of the deadline of a box, `null` for none.
+ * Gives the day of the entry as the fields of the dialog say: the typed day of its start, for a box with a deadline
+ * the typed day of its deadline; the day the dialog opened with while the typed day is no date.
+ * - `deadlineDay`: Typed day of the deadline of a box, `null` for none and for an entry of the log.
  * - `typed`: The typed day, `null` when it is no date.
  *
  * @returns Day like `2026-10-13`
  */
 function dayRead(): string {
-    const deadlineDay: string | null =
-        dateParse((document.getElementById("entry-deadline-day") as HTMLInputElement).value);
-    const typed: string | null = opened.target === "log"
-        ? dateParse((document.getElementById("entry-log-day") as HTMLInputElement).value)
-        : deadlineDay ?? dateParse((document.getElementById("entry-box-day") as HTMLInputElement).value);
+    const deadlineDay: string | null = opened.target === "box"
+        ? dateParse((document.getElementById("entry-deadline-day") as HTMLInputElement).value) : null;
+    const typed: string | null =
+        deadlineDay ?? dateParse((document.getElementById("entry-start-day") as HTMLInputElement).value);
     return typed ?? dayOf(opened.start);
 }
 
 /**
- * Gives the end of the entry as the fields of the dialog say: its time on the typed day of the end, like `07:30`
- * on `13.10.2026`, on the day of the start should the typed day be no date.
+ * Gives the end of the entry or the box as the fields of the dialog say: its time on the typed day of the end,
+ * like `07:30` on `13.10.2026`, on the day of the start should the typed day be no date.
  * - `day`: Typed day of the end, like `2026-10-13`.
  *
  * @param start - Start of the entry, see {@link startRead}
@@ -800,7 +826,7 @@ function endRead(start: Date): Date {
 }
 
 /**
- * Fills the day of the end of a log entry as the day of the start and the times are typed, until I type into it myself:
+ * Fills the day of the end as the day of the start and the times are typed, until I type into it myself:
  * the day of the start, or the day after while the end time lies at or before the start time, like a night of sleep,
  * `12.10.2026 23:30` to `13.10.2026 07:30`; nothing while one of them is no day or no time.
  * - `day`: Typed day of the start, like `2026-10-12`.
@@ -808,7 +834,7 @@ function endRead(start: Date): Date {
  * - `next`: The day after the typed day.
  */
 function endDayFill(): void {
-    const day: string | null = dateParse((document.getElementById("entry-log-day") as HTMLInputElement).value);
+    const day: string | null = dateParse((document.getElementById("entry-start-day") as HTMLInputElement).value);
     const start: string = timeFieldRead(document.getElementById("entry-start") as HTMLInputElement);
     const end: string = timeFieldRead(document.getElementById("entry-end") as HTMLInputElement);
     if (endDayTyped || day === null || start === "" || end === "")
@@ -847,32 +873,41 @@ function fieldsRead(): EntryFields {
 }
 
 /**
- * Reads fields, note, day, expected time, expected duration and deadline of the dialog for a box, on its typed day,
- * its expected time on that day, so `19.10.2026` and `09:15` move a box of 12 October at 14:00 to 19 October at 09:15,
- * and the reader into the plan file of that day; or with a deadline on the day of its deadline,
- * without expected time; an empty time, duration or deadline is none.
- * - `day`: Typed day, like `2026-10-19`, the day the dialog opened with should it be no date.
- * - `time`: Typed expected time, empty for none.
- * - `minutes`: Typed expected duration, empty for none.
+ * Reads fields, note, start, end and deadline of the dialog for a box, as for an entry of the log: its day is the day
+ * of its start, its expected time its start, its expected duration the minutes from its start to its end,
+ * so `19.10.2026 09:15` to `10:45` moves a box of 12 October at 14:00 to 19 October at 09:15 for 90 minutes,
+ * and the reader into the plan file of that day; a box whose times stay empty lies on its day without time,
+ * keeping the duration it had, like `45 min`; with a deadline it lies on the day of its deadline, without
+ * expected time, start and end off, keeping the duration it had; an empty deadline is none.
+ * - `day`: Typed day of the start, like `2026-10-19`, the day the dialog opened with should it be no date.
+ * - `startTime`, `endTime`: Typed times of start and end, empty for none.
  * - `deadlineDay`: Typed day of the deadline, like `2026-10-23`, empty for none.
  * - `deadlineTime`: Typed time of the deadline, empty for none.
+ * - `start`: Start of the box, `null` without start time.
+ * - `minutes`: Minutes from its start to its end, the ones it had while both times stay empty, else `null`
+ *   without both.
  *
  * @returns Fields of the box
  */
 function boxFieldsRead(): BoxFields {
     const day: string =
-        dateParse((document.getElementById("entry-box-day") as HTMLInputElement).value) ?? dayOf(opened.start);
-    const time: string = timeFieldRead(document.getElementById("entry-time") as HTMLInputElement);
-    const minutes: string = (document.getElementById("entry-minutes") as HTMLInputElement).value.trim();
+        dateParse((document.getElementById("entry-start-day") as HTMLInputElement).value) ?? dayOf(opened.start);
+    const startTime: string = timeFieldRead(document.getElementById("entry-start") as HTMLInputElement);
+    const endTime: string = timeFieldRead(document.getElementById("entry-end") as HTMLInputElement);
     const deadlineDay: string =
         dateParse((document.getElementById("entry-deadline-day") as HTMLInputElement).value) ?? "";
     const deadlineTime: string = timeFieldRead(document.getElementById("entry-deadline-time") as HTMLInputElement);
+    const start: Date | null = startTime === "" ? null : dateOf(new Date(`${day}T12:00:00`), startTime);
+    let minutes: number | null = start === null || endTime === "" ? null
+        : Math.round((endRead(start).getTime() - start.getTime()) / (60 * 1000));
+    if (deadlineDay !== "" || (startTime === "" && endTime === ""))
+        minutes = opened.minutes;
     return {
         ...textsRead(),
         semester: chosen?.name === skillName ? skillSemesterOf(deadlineDay === "" ? day : deadlineDay) : "",
         day: deadlineDay === "" ? day : deadlineDay,
-        time: deadlineDay !== "" || time === "" ? null : dateOf(new Date(`${day}T12:00:00`), time),
-        minutes: minutes === "" ? null : Number(minutes),
+        time: deadlineDay !== "" ? null : start,
+        minutes: minutes,
         deadline: deadlineDay === "" || deadlineTime === "" ? deadlineDay
             : dateOf(new Date(`${deadlineDay}T12:00:00`), deadlineTime).toISOString(),
     };
@@ -891,7 +926,7 @@ function errorShow(error: unknown): void {
 /**
  * Sends the new or changed box to the reader, then closes the dialog, after which the list of boxes loads again,
  * see `boxes.ts`.
- * - `fields`: Fields, note, day, expected time, duration and deadline of the dialog.
+ * - `fields`: Fields, note, start, end and deadline of the dialog.
  *
  * @throws {Error} - When the reader does not take the box
  */
@@ -956,68 +991,64 @@ async function entryRemove(calendar: Calendar): Promise<void> {
 }
 
 /**
- * Turns the day and the expected time of a box off while the day of a deadline is typed, since a box with a deadline
- * lies on the day of its deadline and has no expected time, so `23.10.2026` typed as deadline leaves the day unread;
+ * Turns start and end of a box off while the day of a deadline is typed, since a box with a deadline lies on the day
+ * of its deadline and has no expected time, so `23.10.2026` typed as deadline leaves them unread;
  * and asks for the day of a deadline while its time is typed, since a time alone is no deadline.
  * - `deadlineDay`, `deadlineTime`: Fields of the day and the time of the deadline.
+ * - `off`: Whether start and end are off.
  */
 function deadlineSee(): void {
     const deadlineDay: HTMLInputElement = document.getElementById("entry-deadline-day") as HTMLInputElement;
     const deadlineTime: HTMLInputElement = document.getElementById("entry-deadline-time") as HTMLInputElement;
-    (document.getElementById("entry-box-day") as HTMLInputElement).disabled = deadlineDay.value.trim() !== "";
-    (document.getElementById("entry-time") as HTMLInputElement).disabled = deadlineDay.value.trim() !== "";
+    const off: boolean = opened.target === "box" && deadlineDay.value.trim() !== "";
+    ["entry-start-day", "entry-start", "entry-end-day", "entry-end"].forEach((id: string): void => {
+        (document.getElementById(id) as HTMLInputElement).disabled = off;
+    });
     deadlineDay.required = deadlineTime.value.trim() !== "";
 }
 
 /**
- * Shows the times of the dialog: the day, start and end of an entry of the log, or the day, the expected time
- * and duration of a box and its deadline, the other times hidden and disabled, so the browser checks only the times
- * shown before it sends the form. The day of an entry of the log is the calendar date of the start it opens with,
- * like `13.10.2026` for a selection at 01:45 at the bottom of 12 October, the day of its end the calendar date
- * of the end it opens with, which fills itself again as I type, see {@link endDayFill}.
- * The day of a box is the day the dialog opened with, like `12.10.2026`, the shown day for a new one.
- * The expected time and duration of a box may stay empty, but for an event of the plan, which keeps both
+ * Shows the times of the dialog, the same for an entry of the log and a box of the plan: the day and the time
+ * of the start and of the end, and for a box its deadline, hidden and disabled for an entry of the log,
+ * so the browser checks only the times shown before it sends the form. The day of the start is the calendar date
+ * of the start it opens with, like `13.10.2026` for a selection at 01:45 at the bottom of 12 October, the day
+ * of its end the calendar date of the end it opens with, which fills itself again as I type, see {@link endDayFill}.
+ * A box starts at its expected time, on the day the dialog opened with, like `12.10.2026`, the shown day for a new one,
+ * and ends after its expected duration; its times may stay empty, but for an event of the plan, which keeps both
  * and has no deadline, since only a to-do has one.
  * - `boxed`: Whether the dialog writes a box.
- * - `logDay`: Field of the day of the start of an entry of the log.
- * - `endDay`: Field of the day of its end.
- * - `day`: Field of the day of the box.
- * - `required`: Whether the box needs both, being an event of the plan.
+ * - `required`: Whether the times are needed: for an entry of the log and an event of the plan.
+ * - `start`: Start shown, the expected time of a box, `null` for none.
+ * - `end`: End shown, after the expected duration of a box, `null` for none.
  * - `deadline`: Deadline of the box being changed, empty for none and for a new box.
  *
  * @param opening - What the dialog shows
  */
 function timesShow(opening: EntryOpening): void {
     const boxed: boolean = opening.target === "box";
-    const required: boolean = opening.box !== null && !opening.box.todo;
-    const logTimes: HTMLFieldSetElement = document.getElementById("entry-log-times") as HTMLFieldSetElement;
-    const boxTimes: HTMLFieldSetElement = document.getElementById("entry-box-times") as HTMLFieldSetElement;
-    const logDay: HTMLInputElement = document.getElementById("entry-log-day") as HTMLInputElement;
+    const required: boolean = !boxed || (opening.box !== null && !opening.box.todo);
+    const start: Date | null = boxed ? opening.time : opening.start;
+    const end: Date | null = !boxed ? opening.end : opening.time === null || opening.minutes === null ? null
+        : new Date(opening.time.getTime() + opening.minutes * 60 * 1000);
+    const startDay: HTMLInputElement = document.getElementById("entry-start-day") as HTMLInputElement;
     const endDay: HTMLInputElement = document.getElementById("entry-end-day") as HTMLInputElement;
-    const day: HTMLInputElement = document.getElementById("entry-box-day") as HTMLInputElement;
-    const time: HTMLInputElement = document.getElementById("entry-time") as HTMLInputElement;
-    const minutes: HTMLInputElement = document.getElementById("entry-minutes") as HTMLInputElement;
+    const startTime: HTMLInputElement = document.getElementById("entry-start") as HTMLInputElement;
+    const endTime: HTMLInputElement = document.getElementById("entry-end") as HTMLInputElement;
+    const deadlineRow: HTMLElement = document.getElementById("entry-deadline") as HTMLElement;
     const deadlineDay: HTMLInputElement = document.getElementById("entry-deadline-day") as HTMLInputElement;
     const deadline: string = opening.box?.deadline ?? "";
-    logTimes.hidden = boxed;
-    logTimes.disabled = boxed;
-    boxTimes.hidden = !boxed;
-    boxTimes.disabled = !boxed;
-    logDay.value = dateTextOf(dayOf(opening.start));
-    logDay.setCustomValidity("");
-    endDay.value = dateTextOf(dayOf(opening.end));
+    startDay.value = dateTextOf(dayOf(opening.start));
+    startDay.setCustomValidity("");
+    endDay.value = dateTextOf(dayOf(end ?? opening.start));
     endDay.setCustomValidity("");
     endDayTyped = false;
-    timeFieldShow(document.getElementById("entry-start") as HTMLInputElement, opening.start);
-    timeFieldShow(document.getElementById("entry-end") as HTMLInputElement, opening.end);
-    day.value = dateTextOf(dayOf(opening.start));
-    day.setCustomValidity("");
-    timeFieldShow(time, opening.time);
-    minutes.value = opening.minutes === null ? "" : String(opening.minutes);
-    time.required = required;
-    minutes.required = required;
-    document.querySelectorAll(".entry-deadline").forEach((label: Element): void => {
-        label.toggleAttribute("hidden", required);
+    timeFieldShow(startTime, start);
+    timeFieldShow(endTime, end);
+    startTime.required = required;
+    endTime.required = required;
+    deadlineRow.hidden = required;
+    deadlineRow.querySelectorAll("input").forEach((field: HTMLInputElement): void => {
+        field.disabled = required;
     });
     deadlineDay.value = deadline === "" ? "" : dateTextOf(opening.box?.day ?? "");
     deadlineDay.setCustomValidity("");
@@ -1043,6 +1074,7 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     opened = opening;
     chosen = null;
     realSeen = "";
+    realMiddle = null;
     (document.getElementById("entry-real") as HTMLElement).hidden = true;
     removeAsked = false;
     eatenAfter = false;
@@ -1167,8 +1199,8 @@ export async function boxOpenSuggestion(day: Date, module: string, type: string,
 }
 
 /**
- * Opens the dialog to change a box of the new system, its fields picked, a skill box with its skill and type,
- * its expected time and duration typed as far as it has them.
+ * Opens the dialog to change a box of the new system, its fields picked, a skill box with its skill, type, chapters
+ * and documents, its start and end typed as far as it has them.
  * - `day`: A date on its day, at its expected time when it has one.
  *
  * @param box - Box to change
@@ -1180,7 +1212,10 @@ export async function boxOpenEdit(box: Box): Promise<void> {
         target: "box", start: day, end: day, time: box.time === "" ? null : day, minutes: box.minutes,
         category: box.category === "" ? null : box.category,
         values: { title: box.title, from: box.from, location: box.location }, note: box.note, foods: [],
-        skill: { ...skillNone, module: box.module, type: box.type, semester: box.semester },
+        skill: {
+            ...skillNone, module: box.module, type: box.type, semester: box.semester, chapters: box.chapters,
+            links: box.links,
+        },
         plan: null, entry: null, box: box,
     });
 }
@@ -1211,16 +1246,42 @@ export async function entryOpenEdit(entry: EventApi): Promise<void> {
 }
 
 /**
+ * Checks the times before the dialog sends them, saying what is wrong at its field: the end lies after the start,
+ * for an entry of the log and for a box with both times, and a box with the time of its end has the time of its start;
+ * a box with a deadline has no times to check.
+ * - `startTime`, `endTime`: Fields of the times of start and end.
+ * - `field`: The field that is wrong, `null` for none.
+ *
+ * @returns Whether the times are right
+ */
+function timesCheck(): boolean {
+    const startTime: HTMLInputElement = document.getElementById("entry-start") as HTMLInputElement;
+    const endTime: HTMLInputElement = document.getElementById("entry-end") as HTMLInputElement;
+    let field: HTMLInputElement | null = null;
+    if (startTime.disabled)
+        return true;
+    if (timeFieldRead(startTime) === "" && timeFieldRead(endTime) !== "") {
+        field = startTime;
+        field.setCustomValidity("A start before the end");
+    } else if (timeFieldRead(startTime) !== "" && timeFieldRead(endTime) !== ""
+        && endRead(startRead()) <= startRead()) {
+        field = document.getElementById("entry-end-day") as HTMLInputElement;
+        field.setCustomValidity("The end lies after the start");
+    }
+    field?.reportValidity();
+    return field === null;
+}
+
+/**
  * Starts the entry by category after the router has put its HTML into the page:
  * `Edit plan` changes the box being logged, `Log it` logs the box being changed, as expected on the shown day,
  * which for a box with a deadline may lie before its own, in the dialog of the log, see `boxTimesOf` in `times.ts`;
- * typing a deadline turns the day and the expected time off, see {@link deadlineSee}; typing the day, start or end
- * of a log entry fills the day of its end, see {@link endDayFill}, until I type that day myself; typing a day
- * of a skill entry gives it the semester of that day while I picked none, see `skillDaySet` in `skill.ts`;
- * a log entry whose end
- * does not lie after its start is not sent, the day of its end saying so; the dialog of a new place starts too,
- * see `places.ts`.
- * - `endDay`: Field of the day of the end of a log entry.
+ * typing a deadline turns start and end of a box off, see {@link deadlineSee}; typing the day, start or end
+ * fills the day of the end, see {@link endDayFill}, until I type that day myself, and a start typed for a new box
+ * its end, see {@link endFill}; typing a day of a skill entry gives it the semester of that day while I picked none,
+ * see `skillDaySet` in `skill.ts`; times that are not right are not sent, see {@link timesCheck};
+ * the dialog of a new place starts too, see `places.ts`.
+ * - `endDay`: Field of the day of the end.
  * - `start`, `end`: The times the box is logged at as expected.
  *
  * @param calendar - Calendar of the day
@@ -1245,9 +1306,10 @@ export function categoriesStart(calendar: Calendar): void {
     });
     ["entry-deadline-day", "entry-deadline-time"].forEach((id: string): void =>
         document.getElementById(id)?.addEventListener("input", deadlineSee));
-    ["entry-log-day", "entry-start", "entry-end"].forEach((id: string): void =>
+    ["entry-start-day", "entry-start", "entry-end"].forEach((id: string): void =>
         document.getElementById(id)?.addEventListener("input", endDayFill));
-    ["entry-log-day", "entry-box-day", "entry-deadline-day"].forEach((id: string): void =>
+    document.getElementById("entry-start")?.addEventListener("change", endFill);
+    ["entry-start-day", "entry-deadline-day"].forEach((id: string): void =>
         document.getElementById(id)?.addEventListener("input", (): void => {
             if (chosen?.name === skillName)
                 skillDaySet(dayRead());
@@ -1258,11 +1320,7 @@ export function categoriesStart(calendar: Calendar): void {
     });
     document.getElementById("entry-form")?.addEventListener("submit", (event: SubmitEvent): void => {
         event.preventDefault();
-        if (opened.target === "log" && endRead(startRead()) <= startRead()) {
-            endDay.setCustomValidity("The end lies after the start");
-            endDay.reportValidity();
-            return;
-        }
-        entrySave(calendar).catch(errorShow);
+        if (timesCheck())
+            entrySave(calendar).catch(errorShow);
     });
 }

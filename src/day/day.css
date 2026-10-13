@@ -887,7 +887,7 @@ button.box-ring.box-checked svg {
     max-height: calc(100dvh - 2 * var(--gap));
 }
 
-/* Start and end, or day, minutes and deadline, without the frame a group of fields has in the browser */
+/* Start, end and the deadline of a box, without the frame a group of fields has in the browser */
 fieldset.entry-times {
     min-width: 0;
     margin: 0;
@@ -1420,10 +1420,8 @@ fieldset.entry-times {
     margin-left: 0.3em;
 }
 
-/* Time field as wide as a time like 14:00, and minutes field as wide as four digits,
-   with the space beside them and their border */
-.time-field,
-.minutes-field {
+/* Time field as wide as a time like 14:00, with the space beside it and its border */
+.time-field {
     width: calc(5ch + 2 * var(--control-padding) + 2px);
 }
 
@@ -1432,7 +1430,7 @@ fieldset.entry-times {
     width: calc(10ch + 2 * var(--control-padding) + 2px);
 }
 
-/* Expected time and day faded while they are off, because the box has a deadline */
+/* Start and end of a box faded while they are off, because the box has a deadline */
 .time-field:disabled,
 .date-field:disabled {
     opacity: 0.4;

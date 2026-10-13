@@ -32,7 +32,9 @@
  * - each push in one `X-PUSHED` with the day it was pushed from, as a date of the iCalendar format,
  *   like `X-PUSHED;VALUE=DATE:20261013`, since the standard has nothing for it;
  * - its category, what, place, module, type, semester and note as an entry of the log has them, a skill box its
- *   semester as `X-SEMESTER`, like `X-SEMESTER:2026W`, see `semesterFor` in `categories.ts`.
+ *   semester as `X-SEMESTER`, like `X-SEMESTER:2026W`, see `semesterFor` in `categories.ts`, its chapters
+ *   as `X-CHAPTER`s and the documents it will use as `ATTACH`es with their topics, like the slides of a lecture,
+ *   see `linksOf` in `documents.ts`, which a log entry from it gets too.
  * The log entry written from a box points to it the standard way, with `RELATED-TO:<UID of the box>`, which gives
  * its real time, an older one with `X-PLANNED:<UID of the box>`: a box is done once a log entry points to it,
  * or once it is `COMPLETED`, like a box ticked in another app.
@@ -62,7 +64,9 @@
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
  * - `./categories.ts`: Tells whether a box fits its category, names the category of skill entries,
  *   and gives the semester of a skill box.
- * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill, and reads its chapters.
+ * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill, its links to documents,
+ *   and reads its chapters.
+ * - `./notes.ts`: Finds the chapters of a module, which a skill box may name.
  * - `./places.ts`: Gives the link of the place of a box.
  * - `./sources.ts`: Names the plan, the log and the birthdays and holidays, and builds the path of a plan file.
  */
@@ -70,14 +74,16 @@
 import { basename } from "node:path";
 import {
     berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryIdOf, entryLookup, entryRemove,
-    occurrenceLookup, occurrenceOwn, pushesPut, statusPut, todoAppend, todoChange,
+    occurrenceLookup, occurrenceOwn, propertiesPut, pushesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, semesterFor, skillName } from "./categories.ts";
-import { chaptersOf, titleOf } from "./documents.ts";
+import { chaptersOf, linksOf, titleOf } from "./documents.ts";
+import { moduleContentsRead, moduleFolderOf } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, monthFileOf, planEnding } from "./sources.ts";
 
 import type { Entry, EntryFields, EntryTexts, Link, TodoFields } from "./calendar.ts";
+import type { Topics } from "./documents.ts";
 
 
 /**
@@ -165,12 +171,20 @@ export type PlanDay = {
  * - `time`: Expected time as ISO instant, on its day, empty for none and for a box with a deadline.
  * - `minutes`: Expected duration in whole minutes, `null` for none.
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` without time, empty for none.
+ * - `chapters`: Names to read of the chapters of my system a skill box belongs to, like `01 Regression Analysis`,
+ *   none for none and for any other box.
+ * - `documents`: Paths from the folder of its skill of the documents a skill box will use, like
+ *   `VO_UniversityLectureLessons/TUM_2026W/01_Introduction.pdf`, none for none and for any other box.
+ * - `topics`: Topic of each document as I changed or kept it, see `Topics` in `documents.ts`.
  */
 export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink"> & {
     day: string;
     time: string;
     minutes: number | null;
     deadline: string;
+    chapters: string[];
+    documents: string[];
+    topics: Topics;
 };
 
 /**
@@ -472,9 +486,12 @@ export function boxOpenFind(id: string): Box {
  * Checks a new or changed box before it is written: its day, its fields, which fit its category, one I plan,
  * see {@link planAllows}, or keep what the box was, its category and title, for a skill box its skill and type,
  * like an older `IN2028 DEV` of a type no longer offered, its time on its day, its duration, whole minutes
- * of at most a day, and its deadline, on its day and without expected time, see the top of this file.
+ * of at most a day, its deadline, on its day and without expected time, see the top of this file, and the chapters
+ * of a skill box among those of its module or those it had.
  * - `kept`: Whether a changed box keeps what it was.
  * - `deadlineDay`: Day of its deadline, empty for none.
+ * - `folder`: Name of the folder of the module of a skill box, `undefined` for none.
+ * - `offered`: Chapters of that module, and those the box had.
  *
  * @param box - The box as sent
  * @param old - The box as it was, `null` for a new one
@@ -494,6 +511,33 @@ function boxCheck(box: BoxNew, old: Entry | null): void {
         : berlinDateOf(new Date(box.deadline));
     if (box.deadline !== "" && (deadlineDay !== box.day || box.time !== ""))
         throw new Error(`${box.title}: a box with a deadline lies on the day of its deadline, without expected time`);
+    const folder: string | undefined = moduleFolderOf(box.module);
+    const offered: string[] = [...(folder === undefined ? [] : moduleContentsRead(folder).chapters),
+        ...(old === null ? [] : chaptersOf(old))];
+    if (box.chapters.some((chapter: string): boolean => !offered.includes(chapter)))
+        throw new Error(`${box.title}: no chapters ${box.chapters.join(", ")} in ${box.module}`);
+}
+
+/**
+ * Writes the chapters of a skill box as its `X-CHAPTER`s and the documents it will use as its `ATTACH`es with their
+ * topics, see `linksOf` in `documents.ts`, a document it linked already kept, also one not there yet, like the slides
+ * of a lecture to come; for a box that is no skill box, or no more, takes them out, but leaves the links of a box
+ * that never was one, like a to-do of another app, as they are.
+ *
+ * @param file - Path of the `.ics` file the box lies in now
+ * @param id - Identifier of the box
+ * @param box - The box as sent
+ * @param old - The box as it was, `null` for a new one
+ * @throws {Error} - When a document is none of the module's
+ */
+function boxLinksPut(file: string, id: string, box: BoxNew, old: Entry | null): void {
+    if (box.category === skillName)
+        propertiesPut(file, id, [
+            ["x-chapter", box.chapters],
+            ["attach", linksOf(box.module, box.documents, box.topics, old?.links ?? [])],
+        ]);
+    else if (old?.category === skillName)
+        propertiesPut(file, id, [["x-chapter", []], ["attach", []]]);
 }
 
 /**
@@ -516,28 +560,35 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
 }
 
 /**
- * Adds a box to the plan, as a to-do in the plan file of its day, see the top of this file.
+ * Adds a box to the plan, as a to-do in the plan file of its day, see the top of this file, a skill box
+ * with its chapters and documents, see {@link boxLinksPut}.
+ * - `file`: The plan file of its day.
+ * - `id`: Identifier of the new box.
  *
  * @param box - The box as the page sends it
  * @returns Identifier of the new box
- * @throws {Error} - When the box is not right, see {@link boxCheck}
+ * @throws {Error} - When the box is not right, see {@link boxCheck}, or a document is none of the module's
  */
 export function boxAdd(box: BoxNew): string {
     boxCheck(box, null);
-    return todoAppend(planFileOf(box.day), todoFieldsOf(box, null));
+    const file: string = planFileOf(box.day);
+    const id: string = todoAppend(file, todoFieldsOf(box, null));
+    boxLinksPut(file, id, box, null);
+    return id;
 }
 
 /**
  * Changes a box of the new system, see {@link boxCheck}, one occurrence of a series alone, see {@link boxOwn};
  * a box of a month moves into the plan file of its new day when that is another, see {@link planFileAfter}.
  * A to-do changes as it is sent; an event, like a lecture imported from TUMonline, keeps a time and a duration,
- * its start and its end.
+ * its start and its end. A skill box takes its chapters and documents, see {@link boxLinksPut}.
+ * - `target`: The plan file it belongs into now.
  * - `start`: New start of an event.
  * - `fields`: New fields and times of an event.
  *
  * @param change - The changed box as the page sends it
  * @throws {Error} - When there is no such box in the new system, the box is not right,
- *   or an event would lose its time or its duration
+ *   an event would lose its time or its duration, or a document is none of the module's
  */
 export function boxEdit(change: BoxChange): void {
     const [file, entry]: [string, Entry, Box] = boxFind(change.id);
@@ -545,8 +596,10 @@ export function boxEdit(change: BoxChange): void {
         throw new Error(`${entry.title} may not be changed`);
     boxCheck(change, entry);
     boxOwn(file, entry);
+    const target: string = planFileAfter(file, entry, change.day);
     if (entry.todo) {
-        todoChange(file, entry, todoFieldsOf(change, entry), planFileAfter(file, entry, change.day));
+        todoChange(file, entry, todoFieldsOf(change, entry), target);
+        boxLinksPut(target, change.id, change, entry);
         return;
     }
 
@@ -561,7 +614,8 @@ export function boxEdit(change: BoxChange): void {
         note: change.note,
         start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
     };
-    entryChange(file, entry, fields, planFileAfter(file, entry, change.day));
+    entryChange(file, entry, fields, target);
+    boxLinksPut(target, change.id, change, entry);
 }
 
 /**

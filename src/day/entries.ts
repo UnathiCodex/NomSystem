@@ -59,6 +59,8 @@ export type EntryFields = {
  * - `minutes`: Expected duration in minutes, `null` for none.
  * - `deadline`: Deadline as the reader takes it: ISO instant, or its day like `2026-10-23` without time;
  *   empty for none.
+ * - `chapters`, `documents`, `topics`: Chapters and documents of a skill box with their topics, see `SkillLinks`
+ *   in `skill.ts`; none for any other box.
  */
 export type BoxFields = {
     category: string;
@@ -73,6 +75,9 @@ export type BoxFields = {
     time: Date | null;
     minutes: number | null;
     deadline: string;
+    chapters: string[];
+    documents: string[];
+    topics: { [path: string]: string };
 };
 
 

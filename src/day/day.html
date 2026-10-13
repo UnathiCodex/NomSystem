@@ -83,44 +83,28 @@
         <!-- Fields before the times: what, place and where a way starts, or the skill and its type side by side -->
         <div class="panel-form" id="entry-fields"></div>
 
-        <!-- Start and end of a log entry, one row each, its day and its time, as calendar apps write them:
-             the day of the start like 13.10.2026, filled with the date of the entry, of the selected slot,
-             or of the half hour before now for +; the times plain, like 14:00, 1415 or 14; the day of the end
-             fills itself with the day of the start, or the day after while the end time lies at or before
-             the start time, like 12.10.2026 23:30 to 13.10.2026 07:30, until I type over it;
-             what the fields show is exactly what is saved -->
-        <fieldset class="panel-form entry-times" id="entry-log-times">
+        <!-- Start and end, one row each, its day and its time, as calendar apps write them, the same for the log
+             and the plan: the day of the start like 13.10.2026, filled with the date of the entry or the box,
+             of the selected slot, or of the half hour before now for +; the times plain, like 14:00, 1415 or 14;
+             the day of the end fills itself with the day of the start, or the day after while the end time lies
+             at or before the start time, like 12.10.2026 23:30 to 13.10.2026 07:30, until I type over it.
+             The times of a box of the plan may stay empty, a box of its day, but for an imported lecture, which keeps
+             both; only a box of the plan has a deadline, its day and its time, which turns start and end off,
+             since the box then lies on its deadline. What the fields show is exactly what is saved -->
+        <fieldset class="panel-form entry-times" id="entry-times">
             <label class="panel-field"><span class="entry-name">Start</span>
                 <span class="entry-moment">
-                    <input class="date-field" id="entry-log-day" type="text" inputmode="decimal" autocomplete="off"
+                    <input class="date-field" id="entry-start-day" type="text" inputmode="decimal" autocomplete="off"
                            required aria-label="Day of the start">
                     <input class="time-field" id="entry-start" type="text" inputmode="numeric" autocomplete="off"
-                           required aria-label="Time of the start"></span></label>
+                           placeholder="Time" aria-label="Time of the start"></span></label>
             <label class="panel-field"><span class="entry-name">End</span>
                 <span class="entry-moment">
                     <input class="date-field" id="entry-end-day" type="text" inputmode="decimal" autocomplete="off"
                            required aria-label="Day of the end">
                     <input class="time-field" id="entry-end" type="text" inputmode="numeric" autocomplete="off"
-                           required aria-label="Time of the end"></span></label>
-        </fieldset>
-
-        <!-- Shown instead of start and end while the dialog writes a box, one row each like them: its day like
-             19.10.2026 (the shown day for a new one) with its expected time beside it, its minutes like 90 (both may
-             stay empty, but an imported lecture keeps both), and a to-do's deadline, its day and its time;
-             a deadline day turns the day and the expected time off, since the box then lies on its deadline -->
-        <fieldset class="panel-form entry-times" id="entry-box-times" hidden disabled>
-            <label class="panel-field"><span class="entry-name">Day</span>
-                <span class="entry-moment">
-                    <input class="date-field" id="entry-box-day" type="text" inputmode="decimal" autocomplete="off"
-                           required aria-label="Day">
-                    <input class="time-field" id="entry-time" type="text" inputmode="numeric" autocomplete="off"
-                           placeholder="Time" aria-label="Expected time"></span></label>
-            <label class="panel-field"><span class="entry-name">Minutes</span>
-                <span class="entry-moment">
-                    <input class="minutes-field" id="entry-minutes" type="text" inputmode="numeric" autocomplete="off"
-                           pattern="[0-9]{1,4}" title="Whole minutes, like 90"
-                           aria-label="Expected minutes"></span></label>
-            <label class="panel-field entry-deadline"><span class="entry-name">Deadline</span>
+                           placeholder="Time" aria-label="Time of the end"></span></label>
+            <label class="panel-field" id="entry-deadline"><span class="entry-name">Deadline</span>
                 <span class="entry-moment">
                     <input class="date-field" id="entry-deadline-day" type="text" inputmode="decimal"
                            autocomplete="off" aria-label="Day of the deadline">

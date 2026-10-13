@@ -6,7 +6,7 @@
  * for my own learning or a project, like `WokFlow`; the reader writes what it is from both, like
  * `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `reader/documents.ts`, and writes it anew when I change
  * either later. Below the times its place, with its whole line and its pencil below it, see `categories.ts`;
- * in the log its chapters and its topics; then its semester, from which semester the lecture or the material is,
+ * its chapters and its topics; then its semester, from which semester the lecture or the material is,
  * not when I did it:
  * the semester of the day of the dialog, which follows that day as I type it, until I pick another, offered with
  * the two before it, like `2026W`, `2026S` and `2025W`, or typed with `+`, like `2024W`.
@@ -33,8 +33,8 @@
  * and the document it used by its name, opening in a new tab, see `../skill/links.ts`, and its attempts, which stay;
  * new ones are added after them. Everything stays editable, its skill too, whose older attempts keep their task.
  * Saving sends a skill entry of the log to the reader's one writer of skill entries, with the times, the place
- * and the note of the dialog; a skill box of the plan is a plain box of skill, type, place and semester,
- * which the dialog writes itself.
+ * and the note of the dialog; a skill box of the plan has the same fields but tasks and attempts, which only happen
+ * in the log, and the dialog writes it itself as a box with its chapters and documents.
  *
  * - `./choices.ts`: Pickers, each one line in a row with its name, and two rows side by side.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due and what a module offers, groups the tasks,
@@ -224,7 +224,8 @@ let logged: string[] = [];
 let linked: { title: string; titleLink: string; links: Link[] } = { title: "", titleLink: "", links: [] };
 
 /**
- * Whether the dialog writes a box of the plan, which takes only skill, type and semester.
+ * Whether the dialog writes a box of the plan, which has the same fields as the log but tasks and attempts,
+ * which only happen in the log.
  */
 let inPlan: boolean = false;
 
@@ -608,9 +609,9 @@ function loggedOf(): HTMLElement[] {
 }
 
 /**
- * Loads the chapters and documents of the skill picked, none while no skill is picked or in the plan,
- * none for a project, and none for a module without folder, like a module code of the plan that has none, so its entry still opens;
- * what comes for a skill picked before another one is dropped.
+ * Loads the chapters and documents of the skill picked, in plan and log alike, none while no skill is picked,
+ * none for a project, and none for a module without folder, like a module code of the plan that has none,
+ * so its entry still opens; what comes for a skill picked before another one is dropped.
  * - `module`: Skill picked when the loading starts.
  * - `none`: No chapters and no documents.
  * - `loaded`: Chapters and documents of the module.
@@ -618,7 +619,7 @@ function loggedOf(): HTMLElement[] {
 async function contentsLoad(): Promise<void> {
     const module: string = picks.module;
     const none: ModuleContents = { chapters: [], documents: [] };
-    const loaded: ModuleContents = module === "" || inPlan ? none
+    const loaded: ModuleContents = module === "" ? none
         : await moduleLoad(module).catch((error: unknown): ModuleContents => {
             console.error(error);
             return none;
@@ -774,7 +775,7 @@ function picksShow(shown: SkillShown): void {
     topicsShow();
     tasksShow();
     const rows: HTMLElement[] = [...shown.place];
-    if (!inPlan && picks.module !== "")
+    if (picks.module !== "")
         rows.push(chapterRowOf(tasksShow, shown.changed), topicRowOf(topicsShow, shown.changed), topics);
     rows.push(rowOf("Semester", choicesOf({
         search: searchOf(semesterChoicesOf()), picked: [skillSemesterOf(semesterDay)], many: false, adding: true,
@@ -794,7 +795,7 @@ function picksShow(shown: SkillShown): void {
  * @param head - Place of skill and type in the dialog, above the times
  * @param more - Place of the fields below the times, before the note
  * @param place - Rows of the place of the entry, put first below the times
- * @param plan - Whether it is a box of the plan, which takes only skill, type, place and semester
+ * @param plan - Whether it is a box of the plan, which takes no tasks and attempts
  * @param values - Values of the entry, empty for a new one
  * @param day - Day of the dialog, like `2026-10-13`, whose semester the entry has while it has none
  * @param changed - Tells the dialog that what is picked changed, so it allows saving or not
@@ -815,6 +816,28 @@ export async function skillFieldsShow(head: HTMLElement, more: HTMLElement, plac
     };
     await contentsLoad();
     picksShow({ head: head, more: more, place: place, changed: changed });
+}
+
+/**
+ * Links of a skill entry or box as picked, which the reader writes, see `linksOf` in `reader/documents.ts`.
+ *
+ * - `chapters`: Names to read of its chapters, its `X-CHAPTER`s, like `01 Regression Analysis`.
+ * - `documents`: Paths of its documents from the folder of its skill, its `ATTACH`es.
+ * - `topics`: Topic of each document by its path, its `X-TOPIC`.
+ */
+export type SkillLinks = {
+    chapters: string[];
+    documents: string[];
+    topics: { [path: string]: string };
+};
+
+/**
+ * Reads the chapters and documents picked with their topics, of a box of the plan or an entry of the log.
+ *
+ * @returns Chapters, documents and topics, none while nothing is picked
+ */
+export function skillLinksRead(): SkillLinks {
+    return { chapters: picks.chapters, documents: picks.documents, topics: topicsPicked() };
 }
 
 /**
