@@ -55,7 +55,8 @@
  * one that cannot, like an occurrence of a weekly lecture, opens it to be logged. A log entry logged from a box points
  * to it, also to an occurrence of a series, see `entries.ts`;
  * a box logged at its real time by dragging it into the log, or as expected by a tap, needs no dialog,
- * see `boxes.ts`.
+ * see `boxes.ts`. The dialog of an entry or a box being changed duplicates it with the copy at the left of its
+ * buttons, see {@link entryDuplicate}.
  *
  * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top.
  * - `./entries.ts`: Sends new, changed and removed entries to the reader.
@@ -66,6 +67,8 @@
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
  *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
+ * - `../icons.ts`: Shows the icon of the copy in its button.
+ * - `lucide`: The icon of the copy.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
@@ -78,6 +81,8 @@ import {
 } from "./skill.ts";
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
+import { iconPut } from "../icons.ts";
+import { Copy } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -1153,6 +1158,8 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     (document.getElementById("entry-remove") as HTMLElement).textContent = "Remove";
     document.getElementById("entry-remove")?.toggleAttribute("hidden",
         opening.entry === null && (opening.box === null || opening.box.state === "done" || opening.box.series));
+    document.getElementById("entry-duplicate")?.toggleAttribute("hidden",
+        opening.entry === null && opening.box === null);
     document.getElementById("entry-error")?.setAttribute("hidden", "");
     await categoryPick(categories.find((category: Category): boolean => category.name === opening.category) ?? null);
     categoryShow();
@@ -1303,6 +1310,21 @@ export async function entryOpenEdit(entry: EventApi): Promise<void> {
 }
 
 /**
+ * Opens the dialog anew for a copy of the entry of the log or the box it shows, as it was saved: a new entry
+ * or a new box with the same category, fields, note, times and foods, a skill one with its skill, type, semester,
+ * chapters and documents, but without its attempts, the box it was logged from and its deadline, so I change
+ * what differs, like its day, and save it as one more; the entry or the box itself stays as it is.
+ * A copy of a box is always a to-do, also that of a lecture imported from TUMonline.
+ */
+async function entryDuplicate(): Promise<void> {
+    await entryShow({
+        ...opened,
+        skill: { ...opened.skill, title: "", titleLink: "", attempts: [] },
+        plan: null, entry: null, box: null,
+    });
+}
+
+/**
  * Checks the times before the dialog sends them, saying what is wrong at its field: the end lies after the start,
  * for an entry of the log and for a box with both times, and a box with the time of its end has the time of its start;
  * a box with a deadline has no times to check.
@@ -1331,7 +1353,8 @@ function timesCheck(): boolean {
 
 /**
  * Starts the entry by category after the router has put its HTML into the page:
- * `Edit plan` changes the box being logged, `Log it` logs the box being changed, as expected on the shown day,
+ * the copy duplicates the entry or the box being changed, see {@link entryDuplicate}, `Edit plan` changes the box
+ * being logged, `Log it` logs the box being changed, as expected on the shown day,
  * which for a box with a deadline may lie before its own, in the dialog of the log, see `boxTimesOf` in `times.ts`;
  * typing a deadline turns start and end of a box off, see {@link deadlineSee}; typing the day, start or end
  * fills the day of the end, see {@link endDayFill}, until I type that day myself, and a start typed for a new box
@@ -1350,6 +1373,10 @@ export function categoriesStart(calendar: Calendar): void {
         (document.getElementById("entry") as HTMLDialogElement).close());
     document.getElementById("entry-remove")?.addEventListener("click", (): void => {
         entryRemove(calendar).catch(errorShow);
+    });
+    iconPut(document.getElementById("entry-duplicate") as HTMLElement, Copy, "Duplicate");
+    document.getElementById("entry-duplicate")?.addEventListener("click", (): void => {
+        entryDuplicate().catch(errorShow);
     });
     document.getElementById("entry-plan-edit")?.addEventListener("click", (): void => {
         if (opened.plan !== null)

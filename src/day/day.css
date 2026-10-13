@@ -945,8 +945,9 @@ button.box-ring.box-checked svg {
     order: 1;
 }
 
-/* Remove button apart from the others, at the left */
-.panel-buttons .panel-remove {
+/* The copy and Remove apart from the others, at the left, the copy alone there while Remove is hidden */
+.panel-buttons .panel-remove,
+.panel-buttons .panel-duplicate:has(+ .panel-remove[hidden]) {
     margin-right: auto;
 }
 
@@ -1695,7 +1696,8 @@ svg.route-arrow {
         grid-auto-flow: column;
     }
 
-    .panel-buttons .panel-remove {
+    .panel-buttons .panel-remove,
+    .panel-buttons .panel-duplicate:has(+ .panel-remove[hidden]) {
         margin-right: 0;
     }
 
