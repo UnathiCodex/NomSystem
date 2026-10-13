@@ -1,15 +1,17 @@
 /**
  * ## Notes
  *
- * Shows a menu on the left and the chosen note on the right, rendered like Obsidian, read only.
- * The menu holds the modules of the semester at the top and below them the chapters of the chosen one,
- * each folding its notes, or `No chapters yet`; under the shown note stands its outline, as Obsidian's outline.
+ * One view with the editor: the tree on the left, with its two roots, `NomManageplannings` and `NomSkillingmodules`,
+ * see `tree.ts`, and on the right the chosen note of my modules, rendered like Obsidian, read only,
+ * or a file of my new system in the editor, see `../editor/editor.ts`.
+ * Under the shown note in the tree stands its outline, as Obsidian's outline.
  * The reader gives the modules, each with the chapters of its folder and of its drafts together.
  * Paths are those of the reader: from `NomSkillingmodules`, or with `Drafts/` before for the drafts.
- * A note opens from the menu or from a link in a note, without loading the page again; a link may also lead
- * to a note of a module not in the menu. Its links lead to notes and files of the same module, as the reader resolved them,
- * a draft's also to the files of its module, like the lecture's slides; a PDF opens at the page its link names,
- * like `#page=10`, and a link that leads nowhere is faded and dotted, its tooltip naming what it looked for.
+ * A note opens from the tree or from a link in a note, without loading the page again; a link may also lead
+ * to a note of a module not in the tree. Its links lead to notes and files of the same module, as the reader
+ * resolved them, a draft's also to the files of its module, like the lecture's slides; a PDF opens at the page
+ * its link names, like `#page=10`, and a link that leads nowhere is faded and dotted, its tooltip naming what it
+ * looked for.
  * Images and embedded notes come from the reader, and the formulas are rendered last.
  * Here I read and solve: each block under a heading `##` folds by a click on its heading, and under the heading
  * of each task of the semester stands its row: when it is due, its history, the buttons for the next attempt,
@@ -22,7 +24,8 @@
  *
  * - `./markdown.ts`: Turns the Markdown of a note into HTML, with Obsidian's syntax.
  * - `./math.ts`: Renders the formulas, as Obsidian does.
- * - `./tree.ts`: Makes the folders of the menu.
+ * - `./tree.ts`: Shows the tree with its two roots, marks the note shown in it, makes the folders of the outline
+ *   and builds the address of a note.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due.
  * - `../today.ts`: Gives today's calendar date, for when a task is due.
  * - `../skill/task.ts`: Builds the row of a task with its buttons, the label of a cold task, and the copy icon.
@@ -30,12 +33,12 @@
  *   on the clipboard.
  * - `lucide`: The pencil beside the name of a draft.
  * - `../icons.ts`: Puts the pencil into its link.
- * - `./notes.css`: Look of the menu and of the notes.
+ * - `./notes.css`: Look of the tree and of the notes.
  */
 
 import { htmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
-import { folderOf } from "./tree.ts";
+import { folderOf, noteAddressOf, treeMark, treeShow } from "./tree.ts";
 import { skillingLoad } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { coldLabelOf, taskRowOf, tutorCopyOf } from "../skill/task.ts";
@@ -46,41 +49,6 @@ import "./notes.css";
 
 import type { SkillModule, SkillTask, Skilling } from "../skill/attempts.ts";
 
-
-/**
- * A note of a chapter, as the reader sends it.
- *
- * - `name`: Name of the file, like `01_01_EstimatorConfidenceInterval.md`.
- * - `path`: Path.
- */
-type NoteEntry = {
-    name: string;
-    path: string;
-};
-
-/**
- * A chapter with its notes, as the reader sends it.
- *
- * - `title`: Its name to read, like `01 Regression Analysis`.
- * - `notes`: Its notes in order.
- */
-type Chapter = {
-    title: string;
-    notes: NoteEntry[];
-};
-
-/**
- * A module of the semester with its chapters, as the reader sends it.
- *
- * - `name`: Name of its folder, like `IN2028_BusinessAnalyticsMachineLearning`.
- * - `title`: Its name to read, like `IN2028 Business Analytics Machine Learning`.
- * - `chapters`: Its chapters that hold notes, in order.
- */
-type NotesModule = {
-    name: string;
-    title: string;
-    chapters: Chapter[];
-};
 
 /**
  * A note with the files its links lead to, as the reader sends it.
@@ -106,16 +74,6 @@ const embedDepth: number = 3;
 const coldMark: RegExp = /[ \t]*\(cold\)$/;
 
 /**
- * Modules of the semester with their chapters and notes, as the reader gave them when the view opened.
- */
-let modules: NotesModule[] = [];
-
-/**
- * Name of the folder of the module whose chapters the menu shows, empty before the first.
- */
-let shownModule: string = "";
-
-/**
  * Path of the note shown, empty before the first.
  */
 let shownPath: string = "";
@@ -129,20 +87,6 @@ let shownPath: string = "";
  */
 function fileAddressOf(path: string): string {
     return `/api/notes/file?path=${encodeURIComponent(path)}`;
-}
-
-/**
- * Builds the address of a note in the notes view.
- *
- * @param path - Path of the note
- * @param heading - Heading to scroll to, empty for the top
- * @returns Address like `/notes?path=…#Heading`
- */
-function noteAddressOf(path: string, heading: string): string {
-    const address: string = `/notes?path=${encodeURIComponent(path)}`;
-    if (heading === "")
-        return address;
-    return `${address}#${encodeURIComponent(heading)}`;
 }
 
 /**
@@ -171,26 +115,6 @@ function noteRead(path: string): Promise<LinkedNote> {
 }
 
 /**
- * Builds a chapter of the menu: its name to read as a folder, its notes in it, each linking to the note,
- * named without `.md` as in Obsidian.
- *
- * @param chapter - Chapter with its notes
- * @returns Folder of the chapter, closed
- */
-function chapterElementOf(chapter: Chapter): HTMLDetailsElement {
-    const folder: HTMLDetailsElement = folderOf(chapter.title);
-    folder.lastElementChild?.append(...chapter.notes.map((note: NoteEntry): HTMLAnchorElement => {
-        const link: HTMLAnchorElement = document.createElement("a");
-        link.className = "tree-file";
-        link.dataset.path = note.path;
-        link.href = noteAddressOf(note.path, "");
-        link.textContent = note.name.replace(/\.md$/i, "");
-        return link;
-    }));
-    return folder;
-}
-
-/**
  * Builds the outline of the shown note, as Obsidian's outline: each heading `##` in order, linking to it,
  * each task under the block above it that is no task, like `Definition. Standard Error of the Mean`,
  * which then folds its tasks by its arrow and still links to its heading by its name;
@@ -201,7 +125,7 @@ function chapterElementOf(chapter: Chapter): HTMLDetailsElement {
  * - `tasks`: Place of the tasks below that block, the outline itself before the first block.
  * - `link`: Link to a heading, with copies of the heading's text and formulas, without the label of a cold task.
  *
- * @returns Outline, to stand under the shown note in the menu
+ * @returns Outline, to stand under the shown note in the tree
  */
 function outlineOf(): HTMLDivElement {
     const outline: HTMLDivElement = document.createElement("div");
@@ -245,74 +169,15 @@ function outlineOf(): HTMLDivElement {
 }
 
 /**
- * Marks the shown note in the menu, when it is among the chapters shown: opens its chapter, marks it,
- * puts its outline under it and scrolls the menu to it.
- * - {@link CSS.escape}: Writes a path so it can stand inside a selector.
- * - `file`: Entry of the shown note in the menu.
+ * Marks the shown note in the tree, see `treeMark` in `tree.ts`, when it is a note of a module of the semester,
+ * and puts its outline under it; a note of another module leaves the tree unmarked.
+ * - `file`: Entry of the shown note in the tree, `null` while it is none.
  */
 function noteMark(): void {
-    const menu: HTMLElement = document.getElementById("notes-tree") as HTMLElement;
-    menu.querySelectorAll(".tree-outline").forEach((outline: Element): void => outline.remove());
-    menu.querySelectorAll(".tree-file.shown").forEach((file: Element): void => file.classList.remove("shown"));
-    const file: HTMLElement | null = menu.querySelector(`.tree-file[data-path="${CSS.escape(shownPath)}"]`);
-    if (file === null)
-        return;
-
-    file.classList.add("shown");
-    (file.closest("details") as HTMLDetailsElement).open = true;
-    file.after(outlineOf());
-    file.scrollIntoView({ block: "nearest" });
-}
-
-/**
- * Shows a module in the menu: marks it, and shows its chapters below the modules, closed but the one of the shown note,
- * or a calm `No chapters yet` for a module without chapter notes, as the skill view says it.
- * - `chapters`: Folders of the chapters of the module.
- * - `none`: The hint for a module without them.
- *
- * @param name - Name of the folder of the module
- */
-function moduleShow(name: string): void {
-    const module: NotesModule | undefined = modules.find((candidate: NotesModule): boolean => candidate.name === name);
-    const chapters: HTMLElement[] = (module?.chapters ?? []).map(chapterElementOf);
-    const none: HTMLParagraphElement = document.createElement("p");
-    shownModule = name;
-    none.className = "tree-none";
-    none.textContent = "No chapters yet";
-    document.querySelectorAll<HTMLButtonElement>("#notes-modules button").forEach((button: HTMLButtonElement): void => {
-        button.classList.toggle("shown", button.dataset.name === name);
-    });
-    document.getElementById("notes-chapters")?.replaceChildren(...(chapters.length > 0 || module === undefined ? chapters : [none]));
-    noteMark();
-}
-
-/**
- * Shows the modules of the semester at the top of the menu, each by its name to read, a click showing its chapters.
- */
-function modulesShow(): void {
-    document.getElementById("notes-modules")?.replaceChildren(...modules.map((module: NotesModule): HTMLButtonElement => {
-        const button: HTMLButtonElement = document.createElement("button");
-        button.type = "button";
-        button.dataset.name = module.name;
-        button.textContent = module.title;
-        button.addEventListener("click", (): void => moduleShow(module.name));
-        return button;
-    }));
-}
-
-/**
- * Shows in the menu the module of the shown note, when it is a module of the semester, and marks the note there.
- * A note of another module leaves the menu as it is, unmarked.
- * - `module`: Module of the semester holding the note.
- */
-function treeReveal(): void {
-    const module: NotesModule | undefined = modules.find((candidate: NotesModule): boolean =>
-        candidate.chapters.some((chapter: Chapter): boolean =>
-            chapter.notes.some((note: NoteEntry): boolean => note.path === shownPath)));
-    if (module !== undefined && module.name !== shownModule)
-        moduleShow(module.name);
-    else
-        noteMark();
+    const tree: HTMLElement = document.getElementById("notes-tree") as HTMLElement;
+    tree.querySelectorAll(".tree-outline").forEach((outline: Element): void => outline.remove());
+    const file: HTMLElement | null = treeMark(tree, shownPath);
+    file?.after(outlineOf());
 }
 
 /**
@@ -555,7 +420,8 @@ function headingShow(heading: string): void {
 /**
  * Shows a note: its name as title, as Obsidian does, for a draft with the pencil that opens it in the editor beside it,
  * its text rendered with links, images, embeds and formulas,
- * then the rows of its tasks; then scrolls to the heading and marks the note in the menu. The note shown already only scrolls.
+ * then the rows of its tasks; then scrolls to the heading and marks the note in the tree, see {@link noteMark}.
+ * The note shown already only scrolls.
  * A note asked for while another still loads wins; a note whose tasks cannot be read shows without their rows.
  *
  * @param path - Path of the note
@@ -586,7 +452,7 @@ async function noteShow(path: string, heading: string): Promise<void> {
     await tasksShow(path, note.text).catch((error: unknown): void => console.error(error));
     cardSet(heading);
     headingShow(heading);
-    treeReveal();
+    noteMark();
 }
 
 /**
@@ -645,7 +511,7 @@ function addressShow(): void {
 }
 
 /**
- * Opens a note from a click on a link to it, in the menu or in a note, without loading the page again,
+ * Opens a note from a click on a link to it, in the tree or in a note, without loading the page again,
  * and keeps it in the address and the history of the browser. Other links, and clicks with a key held, act as usual.
  * - {@link History#pushState}: Writes the address as a new step of the history, for the back button.
  *
@@ -668,17 +534,15 @@ function linkClick(event: MouseEvent): void {
 
 /**
  * Starts the notes view after the router has put its HTML into the page:
- * puts the pencil into its link, shows the modules of the semester in the menu with the chapters of the first,
- * then the note of the address.
+ * puts the pencil into its link, shows the tree with its two roots, see `tree.ts`, then the note of the address.
  * - `popstate`: Comes when the back or forward button of the browser changes the address.
  *
- * @throws {Error} - When the reader cannot read the modules
+ * @throws {Error} - When the reader cannot read the tree
  */
 export async function notesStart(): Promise<void> {
-    modules = await readerAsk<NotesModule[]>("/api/notes/modules");
+    await treeShow(document.getElementById("notes-tree") as HTMLElement,
+        new URLSearchParams(location.search).get("path") ?? "");
     iconPut(document.getElementById("notes-edit") as HTMLElement, Pencil, "Edit");
-    modulesShow();
-    moduleShow(modules[0]?.name ?? "");
     (document.querySelector(".notes") as HTMLElement).addEventListener("click", linkClick);
     window.addEventListener("popstate", addressShow);
     addressShow();

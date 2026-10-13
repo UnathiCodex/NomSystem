@@ -1,5 +1,5 @@
 /* Editor: the tree on the left, the file on the right, filling the screen below the areas with a grey line between,
-   as the notes view */
+   as the notes view, whose tree it shares, see `../notes/notes.css` */
 .editor {
     display: grid;
     grid-template-columns: var(--tree-width) minmax(0, 1fr);
@@ -8,26 +8,6 @@
     min-height: 0;
     margin-top: 0.5rem;
     border-top: 1px solid var(--line);
-}
-
-/* Tree: own column with a line beside it, scrolls alone, each row in the text of controls and one chip high,
-   as the menu of the notes view, whose folders and files it shares, see `../notes/notes.css` */
-.editor-tree {
-    overflow-y: auto;
-    padding: var(--gap) 0.75rem;
-    border-right: 1px solid var(--line);
-    font-size: var(--control-text);
-    line-height: var(--chip-height);
-}
-
-/* A file that does not open, faint and without the grey under the pointer */
-.editor-tree .editor-closed {
-    color: var(--reading-marker);
-    cursor: default;
-}
-
-.editor-tree .editor-closed:hover {
-    background: none;
 }
 
 /* The file: the page of it in the middle, scrolls alone */

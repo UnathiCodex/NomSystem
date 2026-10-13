@@ -9,8 +9,8 @@
     border-top: 1px solid var(--line);
 }
 
-/* Menu: own column with a line beside it, scrolls alone, like Obsidian's file explorer,
-   each row in the text of controls and one chip high to click */
+/* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the notes view
+   and the editor, each row in the text of controls and one chip high to click */
 .notes-tree {
     overflow-y: auto;
     padding: var(--gap) 0.75rem;
@@ -19,33 +19,7 @@
     line-height: var(--chip-height);
 }
 
-/* Captions Modules and Chapters, small and grey like the heading of the day plans */
-.notes-caption {
-    padding: 0 0.5rem 0.25rem;
-    font-size: 0.75rem;
-    font-weight: 400;
-    line-height: 1.5;
-    color: var(--text-muted);
-}
-
-/* Modules of the semester above the chapters of the chosen one, a grey line between */
-.notes-modules {
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--line);
-}
-
-/* Module as a row of the menu, grey but the chosen one */
-.notes-modules button {
-    width: 100%;
-    border: 0;
-    background: none;
-    color: var(--text-muted);
-    text-align: left;
-}
-
-/* Names in the menu on one line, cut with an ellipsis, rows a little apart, so their greys never touch */
-.notes-modules button,
+/* Names in the tree on one line, cut with an ellipsis, rows a little apart, so their greys never touch */
 .tree-folder > summary,
 .tree-file {
     display: block;
@@ -115,21 +89,24 @@
     background: none;
 }
 
-/* Entry under the pointer one grey lighter; the module chosen and the note shown in the calm grey of what is picked,
-   the module in the light text */
-.notes-modules button:hover,
+/* Entry under the pointer one grey lighter; the note or file shown in the calm grey of what is picked */
 .tree-folder > summary:hover,
 .tree-file:hover {
     background: var(--fill);
 }
 
-.notes-modules button.shown,
 .tree-file.shown {
     background: var(--chosen);
 }
 
-.notes-modules button.shown {
-    color: var(--text-main);
+/* A file of my new system that does not open, faint and without the grey under the pointer, see `tree.ts` */
+.tree-file.tree-closed {
+    color: var(--reading-marker);
+    cursor: default;
+}
+
+.tree-file.tree-closed:hover {
+    background: none;
 }
 
 /* Note: own column, scrolls alone, with Obsidian's 32 px around a file, grown with the page */

@@ -4,6 +4,7 @@
  * Opens one area of the life system below the areas named in `index.html`, by the address:
  * the week at `/week`, the notes at `/notes`, the skill area at `/skill`, the food area at `/food`,
  * the editor of my drafts and of the files of my new system at `/edit`, the day everywhere else.
+ * Notes and editor are one view with one tree and one link, `Notes`, which stays marked in the editor.
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the notes no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
@@ -43,7 +44,7 @@ import editorHtml from "./editor/editor.html?raw";
 const phone: boolean = matchMedia("(max-width: 900px)").matches;
 const areas: string[] = phone ? ["/food"] : ["/week", "/notes", "/skill", "/food", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
-document.querySelector(`.areas a[href="${area}"]`)?.setAttribute("aria-current", "page");
+document.querySelector(`.areas a[href="${area === "/edit" ? "/notes" : area}"]`)?.setAttribute("aria-current", "page");
 if (!phone)
     timerStart();
 

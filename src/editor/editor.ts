@@ -7,10 +7,11 @@
  * tabs, spacers `⠀` and soft hyphens, spaces at the ends of lines and the line breaks of the file as they were.
  * Of my modules the reader writes only the unchecked drafts and keeps each change as a diff, so the AI learns my style
  * from my corrections; any other note opens to read only.
- * On the left the tree of `NomManageplannings`, folders first, as the reader lists it, without my old system,
- * see `reader/files.ts`: a click on a Markdown file of the three folders of my new system, like `Foods.md`,
- * `Places.md` or a daily note, opens it to edit, saved back into its file without a diff; an `.ics` file opens
+ * One view with the notes view: on the left the same tree with its two roots, see `../notes/tree.ts`;
+ * in `NomManageplannings` a click on a Markdown file of the three folders of my new system, like `Foods.md`,
+ * `Places.md` or a daily note, opens it here to edit, saved back into its file without a diff; an `.ics` file opens
  * as its plain text, to read only; any other file shows in the tree, faint, and opens not.
+ * A note of `NomSkillingmodules` opens in the notes view, a draft from there by its pencil here.
  * The address names a file of my new system by its path in the tree, like `/edit?file=NomMetainformations/Foods.md`,
  * and a draft by its path in the notes view, like
  * `/edit?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
@@ -25,7 +26,7 @@
  * - `../icons.ts`: Puts the icon into the save button.
  * - `./syntax.ts`: Obsidian syntax for the Markdown parser.
  * - `./preview.ts`: Shows the Markdown as in the notes view.
- * - `../notes/tree.ts`: Makes the folders of the tree, as the menu of the notes view has them.
+ * - `../notes/tree.ts`: Shows the tree with its two roots, the file shown marked.
  * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images, and of the tree.
  * - `./editor.css`: Look of the editor.
  */
@@ -39,7 +40,7 @@ import { Check } from "lucide";
 import { iconPut } from "../icons.ts";
 import { obsidianSyntax } from "./syntax.ts";
 import { livePreview } from "./preview.ts";
-import { folderOf } from "../notes/tree.ts";
+import { treeShow } from "../notes/tree.ts";
 import "../notes/notes.css";
 import "./editor.css";
 
@@ -72,23 +73,6 @@ type SystemFile = {
     path: string;
     text: string;
     editable: boolean;
-};
-
-/**
- * A folder or file of the tree, as the reader sends it.
- *
- * - `name`: Its name, like `2026_10` or `Foods.md`.
- * - `path`: Its path in the tree, like `NomMetainformations/Foods.md`.
- * - `folder`: Whether it is a folder.
- * - `opens`: Whether the editor opens it: a Markdown or `.ics` file of the three folders of my new system.
- * - `children`: What a folder holds, its folders first.
- */
-type FileNode = {
-    name: string;
-    path: string;
-    folder: boolean;
-    opens: boolean;
-    children: FileNode[];
 };
 
 /**
@@ -237,56 +221,6 @@ function extensionsOf(opened: Opened): Extension[] {
 
 
 /**
- * Makes an entry of the tree: a folder that folds, open at the top and on the way to the file shown,
- * its entries in it; a file that opens as a link to it, named as on the disk, the file shown in the grey
- * of what is picked; any other file faint, opening nothing.
- * - `folder`: The folder of a folder.
- * - `link`: The link of a file that opens.
- * - `name`: The name of any other file.
- *
- * @param node - Folder or file of the tree
- * @param shown - Path of the file of my new system shown, like `NomMetainformations/Foods.md`, empty for none
- * @returns Its entry
- */
-function nodeOf(node: FileNode, shown: string): HTMLElement {
-    if (node.folder) {
-        const folder: HTMLDetailsElement = folderOf(node.name);
-        folder.open = !node.path.includes("/") || shown.startsWith(`${node.path}/`);
-        folder.lastElementChild?.append(...node.children.map((child: FileNode): HTMLElement => nodeOf(child, shown)));
-        return folder;
-    }
-    if (node.opens) {
-        const link: HTMLAnchorElement = document.createElement("a");
-        link.className = "tree-file";
-        link.classList.toggle("shown", node.path === shown);
-        link.href = `/edit?file=${encodeURIComponent(node.path)}`;
-        link.textContent = node.name;
-        return link;
-    }
-    const name: HTMLSpanElement = document.createElement("span");
-    name.className = "tree-file editor-closed";
-    name.title = "Only Markdown and .ics files of the three folders of my new system open";
-    name.textContent = node.name;
-    return name;
-}
-
-/**
- * Loads the tree of `NomManageplannings` from the reader and shows it on the left, see {@link nodeOf}.
- * - `tree`: Its folders and files.
- *
- * @param shown - Path of the file of my new system shown, like `NomMetainformations/Foods.md`, empty for none
- * @throws {Error} - When the reader cannot answer
- */
-async function treeShow(shown: string): Promise<void> {
-    const response: Response = await fetch("/api/edit/tree");
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    const tree: FileNode[] = await response.json() as FileNode[];
-    document.getElementById("editor-tree")?.replaceChildren(...tree.map((node: FileNode): HTMLElement =>
-        nodeOf(node, shown)));
-}
-
-/**
  * Reads the file the address names, see the top of this file: a file of my new system, else a note.
  * - `response`: Answer of the reader.
  * - `sent`: The file of my new system as the reader sends it.
@@ -329,14 +263,15 @@ export async function editorStart(): Promise<void> {
     const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
     path = file !== "" ? file : address.get("path") ?? "";
     saveAddress = file !== "" ? "/api/edit/file" : "/api/edit/note";
-    treeShow(file).catch((error: unknown): void => console.error(error));
+    treeShow(document.getElementById("notes-tree") as HTMLElement, path)
+        .catch((error: unknown): void => console.error(error));
     (document.getElementById("editor-title") as HTMLElement).textContent =
         path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";
     const opened: Opened | null = path === "" ? null : await openedRead(file);
     if (opened === null) {
         save.hidden = true;
         (document.getElementById("editor-state") as HTMLElement).textContent =
-            path === "" ? "Choose a file on the left" : "This file cannot be read";
+            path === "" ? "Choose a note or a file on the left" : "This file cannot be read";
         return;
     }
 
