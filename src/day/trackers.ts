@@ -3,7 +3,7 @@
  *
  * The card of the trackers of the shown day, below the log above the daily note, as the reader counts them,
  * see `reader/trackers.ts`, calm and basic, side by side in one line, without descriptions under the pointer:
- * - Sleep: how long the night of the day lasted, the sleep I woke up from that morning, like `7 h 30 min`;
+ * - Sleep: how long the night of the day lasted, the sleep I woke up from that morning, like `07h 30m`;
  *   its goal, the spread of my bedtime and the average of the week left out for now, since other things come first.
  * - Water: the glasses of the day between `−` and `+`, like `6`, without a goal, and beside them what they make
  *   in litres, like `1.5 l`; every other drink, like `Kaffee`, counts as a glass too; `+` logs one more glass
@@ -286,7 +286,7 @@ function foodOf(trackers: Trackers, day: string): HTMLElement {
 
 /**
  * Builds the sleep: how long the night of the day lasted, the sleep I woke up from that morning, in hours
- * and minutes, like `7 h 30 min`, or `7 h` on the hour; a dash while no night is logged.
+ * and minutes, each two digits, like `07h 30m`, or `08h 00m` on the hour; a dash while no night is logged.
  * - `night`: The night of the day, `null` for none.
  * - `length`: How long it lasted as shown.
  * - `hours`, `minutes`: Its length in whole hours and the minutes left.
@@ -301,7 +301,7 @@ function sleepOf(trackers: Trackers): HTMLElement {
     if (night !== null) {
         const hours: number = Math.floor(night.minutes / 60);
         const minutes: number = night.minutes % 60;
-        length = minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
+        length = `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
     }
     row.append(elementOf("span", "tracker-name", "Sleep"), elementOf("span", "tracker-value", length));
     return row;
