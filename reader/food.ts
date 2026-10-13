@@ -2,8 +2,12 @@
  * ## Food
  *
  * Reads my foods from `Foods.md`, finds foods by a name or a barcode, mine first, then on Open Food Facts,
- * adds new foods to `Foods.md`, reads the meals of a day from the log with what they give,
- * and the foods a dish held the last time I ate it.
+ * of one brand when one is picked and page by page, adds new foods to `Foods.md`, keeps the brands of the search
+ * in `Brands.md`, reads the meals of a day from the log with what they give,
+ * the meals I ate before, each way I ate them with its foods of the last time, and the foods a dish held the last time.
+ * A meal is named by its foods, like `Brot, Gouda, Butter`, or by a name of its own, like `Salat` or `Brotzeit`,
+ * so it is picked again by that name; a name eaten with other foods, like `Brotzeit` once with `Käse`,
+ * once with `Aufstrich`, is a meal eaten before for each of them.
  * `Foods.md` is one Markdown table with one row per food: its name, kcal, protein, carbs and fat per 100 g,
  * its usual portion in grams, and the Open Food Facts barcode it came from, empty for a food added by hand.
  * A meal is a log entry of the category `Food`: `SUMMARY` what I ate, its foods parted by `, `,
@@ -12,13 +16,20 @@
  * as in a restaurant: then the food counts its usual portion, and what it gives is an estimate.
  * Grams guessed, not weighed, like those Claude reads from a photo of a meal, carry `~`, like `X-FOOD:Döner;~400`,
  * and count as an estimate too, since a guess from a photo is about a third off (Fridolfsson 2025).
+ * A product of Open Food Facts is a pack as sold, its values per 100 g, with the size of the pack, like `450 g`,
+ * and the serving its maker gives, like 36 g, which only the product itself tells, not the search,
+ * so the reader asks for the serving of each product found and keeps it.
+ * `Brands.md` lists the brands the search offers as chips, one per line, like `- Edeka`, Edeka first, since I shop
+ * there most; the reader adds the brand of every product I add and every brand I add by hand,
+ * and removes a brand I remove, which a product of it added later brings back.
  * Open Food Facts is asked anonymously: a request carries the search and the name of the dashboard,
  * never my email or my name.
  *
- * - `node:fs`: Reads and writes `Foods.md`.
- * - `node:path`: Gives the folder of `Foods.md`.
+ * - `node:fs`: Reads and writes `Foods.md` and `Brands.md`.
+ * - `node:path`: Gives the folder of `Foods.md` and `Brands.md`.
  * - `./calendar.ts`: Reads the log and gives the day of an instant in Berlin time.
- * - `./sources.ts`: Names `Foods.md`, the log and the addresses of Open Food Facts, and tells which files the reader may write.
+ * - `./sources.ts`: Names `Foods.md`, `Brands.md`, the log and the addresses of Open Food Facts,
+ *   and tells which files the reader may write.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -59,25 +70,48 @@ export type Food = Nutrients & {
 
 /**
  * A product of Open Food Facts as a {@link Food} to add: its name as Open Food Facts writes it,
- * its portion the serving Open Food Facts gives, else 100 g.
+ * its portion the serving its maker gives, 0 when it gives none.
  *
  * - `brand`: Its first brand, like `Golden Sun`, empty when none is known.
+ * - `pack`: Size of the pack as sold, like `450 g` or `140 g (7 x 20 g)`, empty when none is known.
  */
 export type Product = Food & {
     brand: string;
+    pack: string;
 };
 
 /**
  * What a search finds.
  *
  * - `foods`: My foods whose name holds the search, ignoring case, or whose barcode it is, the most eaten first,
- *   equal ones alphabetical; all of them for an empty search.
- * - `products`: Products of Open Food Facts that are not among my foods, the best match first;
- *   none for a search shorter than {@link searchLength}; `null` when Open Food Facts cannot be reached.
+ *   equal ones alphabetical; all of them for an empty search; the brand picked does not narrow them.
+ * - `products`: Products of Open Food Facts on the page asked for, of the brand picked, that are not among my foods,
+ *   the best match first; none for a search shorter than {@link searchLength};
+ *   `null` when Open Food Facts cannot be reached.
+ * - `total`: Number of products of Open Food Facts the search matches, my foods among them;
+ *   a lower bound, like 10,000, when not `exact`.
+ * - `exact`: Whether `total` is exact.
+ * - `more`: Whether a page after the one asked for holds more products.
  */
 export type FoodsFound = {
     foods: Food[];
     products: Product[] | null;
+    total: number;
+    exact: boolean;
+    more: boolean;
+};
+
+/**
+ * One page of the products of a search of Open Food Facts.
+ *
+ * - `products`: Products that can count, the best match first.
+ * - `total`, `exact`, `more`: As those of {@link FoodsFound}.
+ */
+type ProductsPage = {
+    products: Product[];
+    total: number;
+    exact: boolean;
+    more: boolean;
 };
 
 /**
@@ -115,6 +149,22 @@ export type Meal = Nutrients & {
 };
 
 /**
+ * A meal I ate before, by its what and its foods, as the what of a new meal offers it, to pick it again with all
+ * its foods; one what with other foods is another meal eaten before, like `Brotzeit` with `Käse` or with `Aufstrich`.
+ *
+ * - `title`: What, like `Salat` or `Brot, Gouda, Butter`.
+ * - `foods`: Lines `X-FOOD` of the latest meal of it, like `Gurke;100`.
+ * - `kcal`: kcal of that meal.
+ * - `meals`: How often I ate it so, with these foods.
+ */
+export type Dish = {
+    title: string;
+    foods: string[];
+    kcal: number;
+    meals: number;
+};
+
+/**
  * The meals of a day with what they give together.
  *
  * - `meals`: Meals that start on the day in Berlin time, in the order of their starts.
@@ -131,22 +181,28 @@ export type FoodDay = Nutrients & {
  * - `code`: Barcode.
  * - `product_name`: Name.
  * - `brands`: Brands, a list from the search, a text parted by commas from the products.
- * - `serving_quantity`: Grams of a serving, as number or as text.
+ * - `quantity`: Size of the pack as its maker writes it, like `450g`.
+ * - `serving_quantity`: Grams of a serving, as number or as text; only the products send it, never the search.
  * - `nutriments`: Nutrients by their names, like `energy-kcal_100g` or `proteins_100g`.
  */
 type ProductSent = {
     code?: string;
     product_name?: string;
     brands?: string | string[];
+    quantity?: string;
     serving_quantity?: number | string;
     nutriments?: { [nutrient: string]: number | string | undefined };
 };
 
 /**
- * Answer of Open Food Facts: `hits` from the search, `product` from the products, missing for an unknown barcode.
+ * Answer of Open Food Facts: from the search its `hits`, their number, `count`, exact or a lower bound,
+ * and its number of pages, `page_count`; from the products the `product`, missing for an unknown barcode.
  */
 type Answer = {
     hits?: ProductSent[];
+    count?: number;
+    is_count_exact?: boolean;
+    page_count?: number;
     product?: ProductSent;
 };
 
@@ -175,6 +231,27 @@ const fileHead: string[] = [
 const tableHead: number = 2;
 
 /**
+ * Text a new `Brands.md` starts with: its title, and what it holds.
+ */
+const brandsHead: string[] = [
+    "# Brands",
+    "",
+    "Brands the food search offers as chips, one per line, the first first.",
+    "The dashboard adds the brand of every product I add from Open Food Facts and every brand I add by hand.",
+    "",
+];
+
+/**
+ * Brands the search offers while `Brands.md` does not exist: Edeka, where I shop most.
+ */
+const brandsFirst: string[] = ["Edeka"];
+
+/**
+ * Line of a brand in `Brands.md`, like `- Edeka`.
+ */
+const brandLine: RegExp = /^- +(.+?)\s*$/;
+
+/**
  * Line `X-FOOD` of a meal: the name of a food, then `;` and the grams when given, `~` before grams guessed,
  * like `Reis;150`, `Milch;200.5`, `Döner;~400` or `Eier`.
  */
@@ -199,7 +276,7 @@ const agent: string = "NomSystemDashboard/0.1";
 /**
  * Fields of a product the reader asks Open Food Facts for, see {@link ProductSent}.
  */
-const productFields: string = "code,product_name,brands,serving_quantity,nutriments";
+const productFields: string = "code,product_name,brands,quantity,serving_quantity,nutriments";
 
 /**
  * Languages of the names a search looks in: German, since I shop in Germany, and English.
@@ -207,14 +284,15 @@ const productFields: string = "code,product_name,brands,serving_quantity,nutrime
 const searchLanguages: string = "de,en";
 
 /**
- * Products a search asks Open Food Facts for; those without name or kcal and those among my foods fall out.
+ * Products of Open Food Facts on a page of a search; those without name or kcal and those among my foods fall out.
  */
-const productsAsked: number = 20;
+const pageSize: number = 8;
 
 /**
- * Most products of Open Food Facts a search gives.
+ * Grams of the serving of each product asked for, by its barcode, 0 for none, see {@link servingAsk};
+ * kept while the reader runs, so a product found again asks nothing.
  */
-const productsGiven: number = 8;
+const servings: Map<string, number> = new Map();
 
 /**
  * Milliseconds Open Food Facts gets to answer, before a search goes on without it.
@@ -257,6 +335,30 @@ function roundOf(value: number, digits: number): number {
  */
 function nameOf(name: string): string {
     return name.replace(/[|;]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Cleans a brand for `Brands.md` and the search: as a name, see {@link nameOf}, and without quotes and backslashes,
+ * which would end the brand in the search early.
+ *
+ * @param brand - Brand as typed or as Open Food Facts writes it, like ` Gut & Günstig`
+ * @returns Clean brand, like `Gut & Günstig`
+ */
+function brandOf(brand: string): string {
+    return nameOf(brand.replace(/["\\]/g, " "));
+}
+
+/**
+ * Writes the size of a pack with a space between number and unit, like `450 g` of `450g`, spaces in a row one;
+ * nothing for a size without a weight or volume, like `1 pcs`, which tells nothing of what it gives.
+ * - `pack`: The size written.
+ *
+ * @param quantity - Size as its maker writes it, like `450g` or `140 g (7 x 20 g)`; missing when none is known
+ * @returns Size, like `450 g`, empty for none
+ */
+function packOf(quantity: string | undefined): string {
+    const pack: string = (quantity ?? "").replace(/(\d)(?=[a-zA-Z])/g, "$1 ").replace(/\s+/g, " ").trim();
+    return /\d\s*(k?g|m?l|cl|dl)\b/i.test(pack) ? pack : "";
 }
 
 /**
@@ -344,17 +446,21 @@ function usesRead(): Map<string, number> {
 
 /**
  * Builds the address that asks Open Food Facts for a search:
- * for a barcode its product, else the products whose names match, in {@link searchLanguages}.
+ * for a barcode its product, else a page of the products whose names match, in {@link searchLanguages},
+ * of the brand when one is given, like `gouda brands:"Edeka"`, which a brand only typed after the name would not narrow.
  *
  * @param query - Name or barcode
+ * @param brand - Clean brand, see {@link brandOf}, empty for every brand
+ * @param page - Page, 1 for the first
  * @returns Address with the fields to send
  */
-function addressOf(query: string): URL {
+function addressOf(query: string, brand: string, page: number): URL {
     const address: URL = new URL(barcode.test(query) ? `${food.product}${query}` : food.search);
     if (!barcode.test(query)) {
-        address.searchParams.set("q", query);
+        address.searchParams.set("q", brand === "" ? query : `${query} brands:"${brand}"`);
         address.searchParams.set("langs", searchLanguages);
-        address.searchParams.set("page_size", String(productsAsked));
+        address.searchParams.set("page_size", String(pageSize));
+        address.searchParams.set("page", String(page));
     }
     address.searchParams.set("fields", productFields);
     return address;
@@ -362,7 +468,7 @@ function addressOf(query: string): URL {
 
 /**
  * Turns a product as Open Food Facts sends it into a {@link Product}, rounded as `Foods.md` writes it;
- * a missing nutrient counts as 0.
+ * a missing nutrient counts as 0, a missing serving too, which then is asked for, see {@link servingsFill}.
  * - `nutrients`: Its nutrients by their names.
  * - `kcal`: Its kcal per 100 g, not a number when missing.
  * - `name`: Its clean name, see {@link nameOf}.
@@ -383,24 +489,77 @@ function productOf(sent: ProductSent): Product | null {
         protein: roundOf(Number(nutrients.proteins_100g) || 0, 1),
         carbs: roundOf(Number(nutrients.carbohydrates_100g) || 0, 1),
         fat: roundOf(Number(nutrients.fat_100g) || 0, 1),
-        portion: roundOf(Number(sent.serving_quantity), 0) || 100,
+        portion: roundOf(Number(sent.serving_quantity), 0) || 0,
         barcode: sent.code ?? "",
         brand: ([sent.brands ?? ""].flat()[0] ?? "").split(",")[0].trim(),
+        pack: packOf(sent.quantity),
     };
 }
 
 /**
- * Asks Open Food Facts for the products of a search, anonymously, see {@link agent}.
- * An unknown barcode answers `404 Not Found`, with an answer without product.
- * - `answer`: Answer of Open Food Facts.
- * - `sent`: Products as sent, the hits of a search or the one product of a barcode.
+ * Asks Open Food Facts for the serving of a product, anonymously, see {@link agent}, unless asked before,
+ * see {@link servings}; an unknown barcode answers `404 Not Found` and has none.
+ * - `known`: Grams of the serving asked for before, `undefined` when not asked yet.
+ * - `address`: Address of the product, asking only for its serving.
+ * - `grams`: Grams of its serving, 0 for none.
  *
- * @param query - Name or barcode
- * @returns Products that can count, the best match first
+ * @param code - Barcode of the product
+ * @returns Grams of its serving, 0 when its maker gives none
  * @throws {Error} - When Open Food Facts does not answer in time or answers with an error
  */
-async function productsAsk(query: string): Promise<Product[]> {
-    const response: Response = await fetch(addressOf(query), {
+async function servingAsk(code: string): Promise<number> {
+    const known: number | undefined = servings.get(code);
+    if (known !== undefined)
+        return known;
+
+    const address: URL = new URL(`${food.product}${code}`);
+    address.searchParams.set("fields", "serving_quantity");
+    const response: Response = await fetch(address, {
+        headers: { "User-Agent": agent },
+        signal: AbortSignal.timeout(answerTime),
+    });
+    if (!response.ok && response.status !== 404)
+        throw new Error(`Open Food Facts answered ${response.status}`);
+    const grams: number = roundOf(Number((await response.json() as Answer).product?.serving_quantity), 0) || 0;
+    servings.set(code, grams);
+    return grams;
+}
+
+/**
+ * Fills in the serving of each product without one, which the search of Open Food Facts never sends,
+ * asking for all of them at once; a product whose serving cannot be asked for keeps none.
+ *
+ * @param products - Products, some without serving
+ * @returns The products with their servings, in their order
+ */
+async function servingsFill(products: Product[]): Promise<Product[]> {
+    return await Promise.all(products.map(async (product: Product): Promise<Product> => {
+        if (product.portion > 0 || product.barcode === "")
+            return product;
+        try {
+            return { ...product, portion: await servingAsk(product.barcode) };
+        } catch (error: unknown) {
+            console.error(new Date().toISOString(), "Open Food Facts", product.barcode, error);
+            return product;
+        }
+    }));
+}
+
+/**
+ * Asks Open Food Facts for a page of the products of a search, anonymously, see {@link agent}.
+ * An unknown barcode answers `404 Not Found`, with an answer without product; a barcode has one page.
+ * - `answer`: Answer of Open Food Facts.
+ * - `sent`: Products as sent, the hits of a search or the one product of a barcode.
+ * - `products`: Those that can count.
+ *
+ * @param query - Name or barcode
+ * @param brand - Clean brand, see {@link brandOf}, empty for every brand
+ * @param page - Page, 1 for the first
+ * @returns The page of products
+ * @throws {Error} - When Open Food Facts does not answer in time or answers with an error
+ */
+async function productsAsk(query: string, brand: string, page: number): Promise<ProductsPage> {
+    const response: Response = await fetch(addressOf(query, brand, page), {
         headers: { "User-Agent": agent },
         signal: AbortSignal.timeout(answerTime),
     });
@@ -409,23 +568,34 @@ async function productsAsk(query: string): Promise<Product[]> {
 
     const answer: Answer = await response.json() as Answer;
     const sent: ProductSent[] = answer.hits ?? (answer.product === undefined ? [] : [answer.product]);
-    return sent
+    const products: Product[] = sent
         .map((product: ProductSent): Product | null => productOf(product))
         .filter((product: Product | null): product is Product => product !== null);
+    return {
+        products: products,
+        total: answer.count ?? products.length,
+        exact: answer.is_count_exact ?? true,
+        more: page < (answer.page_count ?? 0),
+    };
 }
 
 /**
- * Finds foods by a name or a barcode, see {@link FoodsFound}: my foods first, then the products of Open Food Facts.
+ * Finds foods by a name or a barcode, see {@link FoodsFound}: my foods first, then a page of the products
+ * of Open Food Facts, of the brand when one is given, each with its serving, see {@link servingsFill}.
  * The one search for foods, of the food view and of the entry by category of the day.
  * - `query`: Search without spaces at its ends, in small letters.
  * - `mine`: My foods.
  * - `uses`: How often each food was eaten, see {@link usesRead}.
  * - `foods`: My foods found.
+ * - `none`: What a search finds on Open Food Facts that does not ask it.
+ * - `found`: The page of products found.
  *
  * @param text - Search as typed, like `ric` or `20112745`
+ * @param brand - Brand as picked, like `Edeka`, empty for every brand
+ * @param page - Page of the products, 1 for the first; anything else that is no whole number above 0 counts as 1
  * @returns Foods found
  */
-export async function foodsFind(text: string): Promise<FoodsFound> {
+export async function foodsFind(text: string, brand: string, page: number): Promise<FoodsFound> {
     const query: string = text.trim().toLowerCase();
     const mine: Food[] = foodsRead();
     const uses: Map<string, number> = usesRead();
@@ -434,24 +604,100 @@ export async function foodsFind(text: string): Promise<FoodsFound> {
         .sort((first: Food, second: Food): number =>
             (uses.get(second.name.toLowerCase()) ?? 0) - (uses.get(first.name.toLowerCase()) ?? 0)
             || first.name.localeCompare(second.name));
+    const none: Omit<FoodsFound, "foods" | "products"> = { total: 0, exact: true, more: false };
     if (query.length < searchLength)
-        return { foods: foods, products: [] };
+        return { foods: foods, products: [], ...none };
 
     try {
-        const products: Product[] = (await productsAsk(query))
-            .filter((product: Product): boolean =>
-                !mine.some((candidate: Food): boolean => candidate.barcode === product.barcode))
-            .slice(0, productsGiven);
-        return { foods: foods, products: products };
+        const found: ProductsPage = await productsAsk(query, brandOf(brand), Number.isInteger(page) && page > 0 ? page : 1);
+        const products: Product[] = await servingsFill(found.products.filter((product: Product): boolean =>
+            !mine.some((candidate: Food): boolean => candidate.barcode === product.barcode)));
+        return { foods: foods, products: products, total: found.total, exact: found.exact, more: found.more };
     } catch (error: unknown) {
         console.error(new Date().toISOString(), "Open Food Facts", error);
-        return { foods: foods, products: null };
+        return { foods: foods, products: null, ...none };
     }
 }
 
 /**
+ * Reads the brands the search offers as chips: the lines of `Brands.md` like `- Edeka`, in their order,
+ * see {@link brandLine}; {@link brandsFirst} while it does not exist.
+ *
+ * @returns Brands, the first first
+ */
+export function brandsRead(): string[] {
+    if (!existsSync(food.brands))
+        return [...brandsFirst];
+
+    return readFileSync(food.brands, "utf8").split("\n")
+        .map((line: string): string => brandOf(brandLine.exec(line)?.[1] ?? ""))
+        .filter((brand: string): boolean => brand !== "");
+}
+
+/**
+ * Adds a brand to `Brands.md` after its last brand, every other line staying as it is, unless it holds the brand
+ * already, ignoring case; creates `Brands.md` with its head and {@link brandsFirst} when it does not exist yet.
+ * - `brand`: The brand cleaned, see {@link brandOf}.
+ * - `brands`: The brands before.
+ * - `lines`: Lines of `Brands.md`.
+ * - `last`: Index of its last brand, -1 for none.
+ *
+ * @param sent - Brand as typed or of a product added, like `Spar`
+ * @returns The brands after, the first first
+ * @throws {Error} - When the brand is empty, or `Brands.md` lies outside the new system
+ */
+export function brandAdd(sent: string): string[] {
+    const brand: string = brandOf(String(sent ?? ""));
+    const brands: string[] = brandsRead();
+    if (brand === "")
+        throw new Error(`No brand: ${sent}`);
+    if (brands.some((known: string): boolean => known.toLowerCase() === brand.toLowerCase()))
+        return brands;
+    if (!writeAllowed(food.brands))
+        throw new Error(`No writing outside the new system: ${food.brands}`);
+
+    const lines: string[] = existsSync(food.brands)
+        ? readFileSync(food.brands, "utf8").split("\n")
+        : [...brandsHead, ...brandsFirst.map((first: string): string => `- ${first}`), ""];
+    const last: number = lines.findLastIndex((line: string): boolean => brandLine.test(line));
+    lines.splice(last === -1 ? lines.length : last + 1, 0, `- ${brand}`);
+    mkdirSync(dirname(food.brands), { recursive: true });
+    writeFileSync(food.brands, lines.join("\n"));
+    return [...brands, brand];
+}
+
+/**
+ * Removes a brand from `Brands.md`, ignoring case, every other line staying as it is; writes `Brands.md`
+ * with its head and {@link brandsFirst} but the brand when it does not exist yet.
+ * - `brand`: The brand in small letters, cleaned, see {@link brandOf}.
+ * - `lines`: Lines of `Brands.md`.
+ * - `kept`: The lines but those of the brand.
+ *
+ * @param sent - Brand as the chip shows it, like `Lidl`
+ * @returns The brands after, the first first
+ * @throws {Error} - When the brand is empty, or `Brands.md` lies outside the new system
+ */
+export function brandRemove(sent: string): string[] {
+    const brand: string = brandOf(String(sent ?? "")).toLowerCase();
+    if (brand === "")
+        throw new Error(`No brand: ${sent}`);
+    if (!writeAllowed(food.brands))
+        throw new Error(`No writing outside the new system: ${food.brands}`);
+
+    const lines: string[] = existsSync(food.brands)
+        ? readFileSync(food.brands, "utf8").split("\n")
+        : [...brandsHead, ...brandsFirst.map((first: string): string => `- ${first}`), ""];
+    const kept: string[] = lines.filter((line: string): boolean =>
+        brandOf(brandLine.exec(line)?.[1] ?? "").toLowerCase() !== brand);
+    mkdirSync(dirname(food.brands), { recursive: true });
+    writeFileSync(food.brands, kept.join("\n"));
+    return brandsRead();
+}
+
+/**
  * Adds a food to `Foods.md` as the last row of its table, every other line staying as it is;
- * creates `Foods.md` with its head, see {@link fileHead}, when it does not exist yet.
+ * creates `Foods.md` with its head, see {@link fileHead}, when it does not exist yet;
+ * then adds the brand of a product to `Brands.md`, so the search offers it as a chip, see {@link brandAdd}.
  * Cleans the name, see {@link nameOf}, and rounds the numbers, see {@link roundOf}.
  * A value typed that is no number comes as `null`, since JSON has no `NaN`, and is refused like any other non-number.
  * - `values`: Values of the food as sent, each to be a number of 0 or more.
@@ -459,12 +705,12 @@ export async function foodsFind(text: string): Promise<FoodsFound> {
  * - `lines`: Lines of `Foods.md`.
  * - `last`: Index of the last line of its table.
  *
- * @param sent - Food as the page sends it, picked from Open Food Facts or typed by hand
+ * @param sent - Food as the page sends it, picked from Open Food Facts with its brand, or typed by hand
  * @returns The food as written
  * @throws {Error} - When the name is empty or another food has it, ignoring case, a value is no number of 0 or more,
  *   the portion not more than 0, the barcode not only digits, or `Foods.md` lies outside the new system or holds no table
  */
-export function foodAdd(sent: Food): Food {
+export function foodAdd(sent: Food & { brand?: string }): Food {
     const values: unknown[] = [sent.kcal, sent.protein, sent.carbs, sent.fat, sent.portion];
     if (!values.every((value: unknown): boolean => typeof value === "number" && value >= 0))
         throw new Error(`No numbers of a food: ${JSON.stringify(sent)}`);
@@ -496,6 +742,8 @@ export function foodAdd(sent: Food): Food {
         + `| ${added.portion} | ${added.barcode} |`);
     mkdirSync(dirname(food.foods), { recursive: true });
     writeFileSync(food.foods, lines.join("\n"));
+    if (brandOf(String(sent.brand ?? "")) !== "")
+        brandAdd(String(sent.brand));
     return added;
 }
 
@@ -613,6 +861,34 @@ export function foodLineAllows(line: string): boolean {
  */
 export function mealTitleOf(foods: string[]): string {
     return foods.map((line: string): string => lineOf(line)[0]).join(", ");
+}
+
+/**
+ * Reads the meals I ate before that list foods, each by its what and the names of its foods, ignoring case and
+ * the order of the foods, with the foods and kcal of its latest meal, see {@link Dish};
+ * the most eaten first, equal ones alphabetical.
+ * - `mine`: My foods by their names in small letters.
+ * - `dishes`: The meals by their what and their foods in small letters.
+ * - `key`: What and sorted foods of a meal in small letters, like `brotzeit|brot,käse,salat`.
+ *
+ * @returns Meals eaten before
+ */
+export function dishesRead(): Dish[] {
+    const mine: Map<string, Food> = foodsByNameRead();
+    const dishes: Map<string, Dish> = new Map();
+    mealsRead("1970-01-01T00:00:00Z", new Date().toISOString())
+        .filter((meal: Entry): boolean => meal.foods.length > 0 && meal.title.trim() !== "")
+        .sort((first: Entry, second: Entry): number => first.start.localeCompare(second.start))
+        .forEach((meal: Entry): void => {
+            const key: string = `${meal.title.trim().toLowerCase()}|${meal.foods
+                .map((line: string): string => lineOf(line)[0].toLowerCase()).sort().join(",")}`;
+            dishes.set(key, {
+                title: meal.title.trim(), foods: meal.foods, kcal: mealOf(meal, mine).kcal,
+                meals: (dishes.get(key)?.meals ?? 0) + 1,
+            });
+        });
+    return [...dishes.values()].sort((first: Dish, second: Dish): number =>
+        second.meals - first.meals || first.title.localeCompare(second.title));
 }
 
 /**

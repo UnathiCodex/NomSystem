@@ -5,12 +5,8 @@
  * - Sleep: my goal with its healthy band under its name; first how much my bedtime varied over the week,
  *   a check within 30 minutes up or down, since regularity is the lever; then how long I slept the night
  *   that ended on the day, and on average over the week, a check in the healthy band.
- * - Water: a glass with the glasses of the day against my goal, like `6 / 10`, a check once it is reached;
- *   every other drink, like `Kaffee`, counts as a glass too; a tap logs one more glass of water,
- *   at the time of the tap on the shown day, `−` takes the last glass of water back;
- *   the litres beside them. A day still to come takes no glasses.
  * - Food: the number of the day's meals under its name, like `3 meals`, so a meal missing shows, then their kcal
- *   and protein, totals without goals, linking to the day in the food view.
+ *   and protein, totals without goals, rounded and so never marked as estimates, linking to the day in the food view.
  * - Neck: two tiles like those of the sleep, over the seven days up to the day: on how many of my study days I did
  *   a neck routine, short or long, like `2 / 5` over `short · study days`, a check from two thirds of them on,
  *   since about two thirds of the sessions already gave the large effects (Chen 2018), and on how many days a long
@@ -19,27 +15,20 @@
  *   then my neck pain, rated 0 to 10 with each long session, the mean of my first four weeks against the last four,
  *   like `5.2 → 4.0` over `pain`, the outcome the routine is judged by.
  *   Hidden until I start my neck routine, see {@link neckShown}; its code stays.
- * A glass is a log entry `Drink` `Water` of five minutes, sent to the one writer of the log, see `entries.ts`;
+ * My water I count in the food view, see `../food/water.ts`, which loads the trackers too, for the glasses of its day;
  * the time grid shows glasses only as small marks, see `day.ts`. The card loads again whenever the log of the day changes.
- * The food view loads the trackers too, for the water of its day.
  *
- * - `./entries.ts`: Sends new and removed entries to the reader.
- * - `./times.ts`: Gives now on the shown day.
  * - `../food/foods.ts`: Writes amounts and makes elements.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
- * - `../today.ts`: Gives today's calendar date.
- * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
- * - `lucide`: The icons glass, minus and check.
+ * - `../icons.ts`: Makes the icon of the check.
+ * - `lucide`: The icon of the check.
  * - `fullcalendar`: Calendar that shows the day.
  */
 
-import { entryAdd, entryDelete } from "./entries.ts";
-import { nowOn } from "./times.ts";
 import { amountOf, elementOf } from "../food/foods.ts";
 import { dayOf } from "../skill/attempts.ts";
-import { calendarTodayOf } from "../today.ts";
-import { iconOf, iconPut, iconWordsOf } from "../icons.ts";
-import { Check, GlassWater, Minus } from "lucide";
+import { iconOf } from "../icons.ts";
+import { Check } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Nutrients } from "../food/foods.ts";
@@ -99,14 +88,14 @@ type SleepDay = {
 };
 
 /**
- * A glass of a drink, of water or of another drink, like `Kaffee`, as the reader sends it.
+ * A glass of a drink, of water or of another drink, like `Kaffee`, as the reader sends it, for the water of the food view.
  *
  * - `id`: Identifier of its entry.
  * - `start`: When I drank it, as ISO instant.
  * - `water`: Whether it is a glass of water, which the counter may take back.
  * - `editable`: Whether its entry can be changed, so it can be taken back.
  */
-type Glass = {
+export type Glass = {
     id: string;
     start: string;
     water: boolean;
@@ -146,11 +135,6 @@ export type Trackers = {
     neck: NeckWeek;
     food: Nutrients & { estimate: boolean; meals: number };
 };
-
-/**
- * Minutes a glass of water lasts in the log.
- */
-const glassMinutes: number = 5;
 
 /**
  * Whether the card shows the tiles of my neck, see {@link neckOf}: not until I start my neck routine,
@@ -255,76 +239,9 @@ function sleepOf(trackers: Trackers): HTMLElement {
 }
 
 /**
- * Logs one more glass of water, at now on the shown day, five minutes long, see `nowOn` in `times.ts`.
- * - `start`: Start of the glass.
- *
- * @param calendar - Calendar of the day
- * @throws {Error} - When the reader does not take the glass
- */
-async function glassAdd(calendar: Calendar): Promise<void> {
-    const start: Date = nowOn(calendar.view.currentStart);
-    await entryAdd(calendar, {
-        category: "Drink", title: "Water", location: "", from: "", module: "", type: "", semester: "", note: "",
-        foods: [], planned: "", start: start, end: new Date(start.getTime() + glassMinutes * 60 * 1000),
-    });
-}
-
-/**
- * Builds the water: the glass with the glasses of the day against my goal, like `6 / 10`, every drink one glass,
- * which logs one more glass of water, a check once the goal is reached, `−`, which takes the last glass of water back,
- * and the litres.
- * The row takes no clicks while a glass is sent, so a double tap logs one glass; the card loads again once the log changed.
- * - `count`: Number of glasses.
- * - `goal`: Number of glasses of my goal.
- * - `last`: The last glass of water that can be taken back, `undefined` for none.
- * - `coming`: Whether the day is still to come.
- * - `send`: Sends a change of the glasses, the row inert meanwhile.
- *
- * @param calendar - Calendar of the day
- * @param trackers - Trackers of the day
- * @param day - The shown day, like `2026-10-10`
- * @returns Row of the water
- */
-function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLElement {
-    const row: HTMLElement = elementOf("div", "tracker-row", "");
-    const add: HTMLButtonElement = document.createElement("button");
-    const less: HTMLButtonElement = document.createElement("button");
-    const count: number = trackers.glasses.length;
-    const goal: number = Math.round(trackers.settings.waterMl / trackers.settings.glassMl);
-    const last: Glass | undefined = trackers.glasses.filter((glass: Glass): boolean => glass.water && glass.editable).at(-1);
-    const coming: boolean = day > calendarTodayOf();
-    const send: (change: () => Promise<void>) => void = (change: () => Promise<void>): void => {
-        row.inert = true;
-        change().catch((error: unknown): void => {
-            console.error(error);
-            row.inert = false;
-        });
-    };
-
-    add.type = "button";
-    add.className = "water-add";
-    add.append(...iconWordsOf(GlassWater, `${count} / ${goal}`), ...(count >= goal ? [checkOf()] : []));
-    add.title = "One glass of water more; every other drink counts as a glass too";
-    add.setAttribute("aria-label", `${count} of ${goal} glasses of water, one more`);
-    add.disabled = coming;
-    add.addEventListener("click", (): void => send((): Promise<void> => glassAdd(calendar)));
-    less.type = "button";
-    less.className = "water-less";
-    iconPut(less, Minus, "One glass less");
-    less.disabled = coming || last === undefined;
-    less.addEventListener("click", (): void =>
-        send((): Promise<void> => entryDelete(calendar, last?.id ?? "")));
-    row.append(elementOf("span", "tracker-name", "Water"), add, less,
-        elementOf("span", "tracker-meta", `${amountOf(count * trackers.settings.glassMl / 1000, 2)} l`));
-    return row;
-}
-
-/**
  * Builds the food: under its name the number of the day's meals, like `3 meals`, as the sleep has its goal there;
- * beside it their kcal and protein, `≈` when they hold a usual portion, like `≈ 1,850 kcal · ≈ 95 g protein`,
- * linking to the day in the food view.
+ * beside it their kcal and protein, like `1,850 kcal · 95 g protein`, linking to the day in the food view.
  * - `food`: What the meals gave.
- * - `about`: `≈ ` before an estimate.
  * - `name`: Name of the tracker with the number of meals under it.
  *
  * @param trackers - Trackers of the day
@@ -335,13 +252,12 @@ function foodOf(trackers: Trackers, day: string): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const link: HTMLAnchorElement = document.createElement("a");
     const food: Nutrients & { estimate: boolean; meals: number } = trackers.food;
-    const about: string = food.estimate ? "≈ " : "";
     const name: HTMLElement = elementOf("span", "tracker-name", "Food");
     link.className = "tracker-link";
     link.href = `/food?date=${day}`;
     link.textContent = food.meals === 0
         ? "No meals logged"
-        : `${about}${amountOf(food.kcal, 0)} kcal · ${about}${amountOf(food.protein, 0)} g protein`;
+        : `${amountOf(food.kcal, 0)} kcal · ${amountOf(food.protein, 0)} g protein`;
     if (food.meals > 0)
         name.append(elementOf("span", "", `${food.meals} ${food.meals === 1 ? "meal" : "meals"}`));
     row.append(name, link);
@@ -409,8 +325,8 @@ async function trackersLoad(calendar: Calendar): Promise<void> {
     const trackers: Trackers = await trackersFetch(day);
     if (day !== dayOf(calendar.view.currentStart))
         return;
-    document.getElementById("trackers")?.replaceChildren(sleepOf(trackers), waterOf(calendar, trackers, day),
-        foodOf(trackers, day), ...(neckShown ? [neckOf(trackers)] : []));
+    document.getElementById("trackers")?.replaceChildren(sleepOf(trackers), foodOf(trackers, day),
+        ...(neckShown ? [neckOf(trackers)] : []));
 }
 
 /**

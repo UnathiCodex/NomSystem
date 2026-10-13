@@ -141,7 +141,88 @@
     color: var(--text-muted);
 }
 
-/* Hint for a day without meals, or when the meals cannot be read */
+/* Water: own card above my foods, outlined like the cards of the day view, apart from the heading of my foods */
+.water {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-bottom: calc(1.5 * var(--gap));
+    padding: var(--gap);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+}
+
+/* Name of the water at the left, the litres against my goal grey at the right */
+.water-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.water-litres {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Bar as full as the glasses reach my goal, the light grey of the accent on a dark grey track,
+   as wide as the glass and minus beside it leave */
+.water-bar {
+    flex: 1;
+    height: 0.375rem;
+    border-radius: 999px;
+    background: var(--fill);
+    overflow: hidden;
+}
+
+.water-fill {
+    height: 100%;
+    background: var(--reading-accent);
+}
+
+/* Bar, then glass and minus at its right */
+.water-row {
+    display: flex;
+    align-items: center;
+    gap: var(--control-gap);
+}
+
+/* Glass, the main tap, in the calm grey of what is picked; minus outlined; both round, one chip high,
+   only their icon on them, a grey lighter under the pointer, faded while they cannot be used */
+.water-add,
+.water-less {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--chip-height);
+    height: var(--chip-height);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--background);
+    cursor: pointer;
+}
+
+.water-add {
+    border-color: var(--chosen-line);
+    background: var(--chosen);
+}
+
+.water-add:hover {
+    background: color-mix(in oklab, var(--chosen) 85%, var(--text-main));
+}
+
+.water-less:hover {
+    background: var(--fill);
+}
+
+.water-add:disabled,
+.water-less:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* Hint for a day without meals, or when the meals or the water cannot be read */
 .food-none {
     margin: 0.25rem 0 0;
     color: var(--text-muted);

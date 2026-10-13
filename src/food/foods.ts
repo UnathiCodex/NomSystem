@@ -1,7 +1,9 @@
 /**
  * ## Foods
  *
- * Finds foods through the reader, mine first, then on Open Food Facts, sends new foods to `Foods.md`,
+ * Finds foods through the reader, mine first, then on Open Food Facts, of a brand when one is picked and page by page,
+ * loads the brands of the search, sends new ones and removes them, sends new foods to `Foods.md`,
+ * loads the meals I ate before,
  * loads the meals of a day with what they give, and writes amounts as the page shows them:
  * for the food view and the entry by category of the day alike.
  */
@@ -36,24 +38,32 @@ export type Food = Nutrients & {
 };
 
 /**
- * A product of Open Food Facts as a {@link Food} to add, its portion the serving Open Food Facts gives, else 100 g.
+ * A product of Open Food Facts as a {@link Food} to add, its portion the serving its maker gives, 0 when it gives none.
  *
  * - `brand`: Its first brand, like `Golden Sun`, empty when none is known.
+ * - `pack`: Size of the pack as sold, like `450 g`, empty when none is known.
  */
 export type Product = Food & {
     brand: string;
+    pack: string;
 };
 
 /**
  * What a search finds, as the reader sends it.
  *
- * - `foods`: My foods found, the most eaten first; all of them for an empty search.
- * - `products`: Products of Open Food Facts that are not among my foods, the best match first;
- *   none for a search of only a few letters; `null` when Open Food Facts cannot be reached.
+ * - `foods`: My foods found, the most eaten first; all of them for an empty search; of every brand.
+ * - `products`: Products of Open Food Facts on the page asked for, of the brand picked, that are not among my foods,
+ *   the best match first; none for a search of only a few letters; `null` when Open Food Facts cannot be reached.
+ * - `total`: Number of products of Open Food Facts the search matches; a lower bound, like 10,000, when not `exact`.
+ * - `exact`: Whether `total` is exact.
+ * - `more`: Whether a page after the one asked for holds more products.
  */
 export type FoodsFound = {
     foods: Food[];
     products: Product[] | null;
+    total: number;
+    exact: boolean;
+    more: boolean;
 };
 
 /**
@@ -91,6 +101,22 @@ export type Meal = Nutrients & {
 };
 
 /**
+ * A meal I ate before, by its what and its foods, as the reader sends it, to pick it again with all its foods;
+ * one what with other foods is another meal eaten before, like `Brotzeit` with `Käse` or with `Aufstrich`.
+ *
+ * - `title`: What, like `Salat` or `Brot, Gouda, Butter`.
+ * - `foods`: Lines `X-FOOD` of the latest meal of it, like `Gurke;100`.
+ * - `kcal`: kcal of that meal.
+ * - `meals`: How often I ate it so, with these foods.
+ */
+export type Dish = {
+    title: string;
+    foods: string[];
+    kcal: number;
+    meals: number;
+};
+
+/**
  * The meals of a day with what they give together, as the reader sends them.
  *
  * - `meals`: Meals of the day, in the order of their starts.
@@ -103,27 +129,84 @@ export type FoodDay = Nutrients & {
 
 
 /**
- * Finds foods by a name or a barcode: my foods first, then the products of Open Food Facts.
+ * Finds foods by a name or a barcode: my foods first, then a page of the products of Open Food Facts.
  *
  * @param query - Search as typed, like `ric` or `20112745`; empty for all my foods
+ * @param brand - Brand picked, like `Edeka`, empty for every brand
+ * @param page - Page of the products, 1 for the first
  * @returns Foods found
  * @throws {Error} - When the reader cannot answer
  */
-export async function foodsFind(query: string): Promise<FoodsFound> {
-    const response: Response = await fetch(`/api/food/search?q=${encodeURIComponent(query)}`);
+export async function foodsFind(query: string, brand: string, page: number): Promise<FoodsFound> {
+    const response: Response = await fetch(`/api/food/search?q=${encodeURIComponent(query)}`
+        + `&brand=${encodeURIComponent(brand)}&page=${page}`);
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
     return await response.json() as FoodsFound;
 }
 
 /**
- * Sends a new food to the reader, which adds it to `Foods.md`.
+ * Loads the meals I ate before from the reader, the most eaten first.
  *
- * @param food - Food to add, picked from Open Food Facts or typed by hand
+ * @returns Meals eaten before, each by its what with its foods of the last time
+ * @throws {Error} - When the reader cannot answer
+ */
+export async function dishesLoad(): Promise<Dish[]> {
+    const response: Response = await fetch("/api/food/dishes");
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as Dish[];
+}
+
+/**
+ * Loads the brands the search offers as chips from the reader, Edeka first.
+ *
+ * @returns Brands, the first first
+ * @throws {Error} - When the reader cannot answer
+ */
+export async function brandsLoad(): Promise<string[]> {
+    const response: Response = await fetch("/api/food/brands");
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as string[];
+}
+
+/**
+ * Sends a new brand to the reader, which adds it to `Brands.md` unless it holds it.
+ *
+ * @param name - Brand as typed, like `Spar`
+ * @returns All brands after, the first first
+ * @throws {Error} - When the reader does not take the brand, like an empty one
+ */
+export async function brandSend(name: string): Promise<string[]> {
+    const response: Response = await fetch("/api/food/brands", { method: "POST", body: JSON.stringify({ name: name }) });
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as string[];
+}
+
+/**
+ * Removes a brand through the reader from `Brands.md`.
+ *
+ * @param name - Brand as its chip shows it, like `Lidl`
+ * @returns The brands left, the first first
+ * @throws {Error} - When the reader does not remove the brand
+ */
+export async function brandDelete(name: string): Promise<string[]> {
+    const response: Response = await fetch(`/api/food/brands?name=${encodeURIComponent(name)}`, { method: "DELETE" });
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as string[];
+}
+
+/**
+ * Sends a new food to the reader, which adds it to `Foods.md`, and the brand of a product to `Brands.md`.
+ *
+ * @param food - Food to add, picked from Open Food Facts with its brand, or typed by hand without
  * @returns The food as the reader wrote it, its name cleaned and its numbers rounded
  * @throws {Error} - When the reader does not take the food, like for a name another food has
  */
-export async function foodSend(food: Food): Promise<Food> {
+export async function foodSend(food: Food & { brand: string }): Promise<Food> {
     const response: Response = await fetch("/api/food/foods", { method: "POST", body: JSON.stringify(food) });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);

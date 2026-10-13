@@ -116,8 +116,8 @@ export type BoxLogged = {
  *   The day hides them on its entries for now; its dialog and its trackers show them.
  * - `estimate`: Whether those kcal hold the usual portion of a food listed without grams.
  * - `eaten`: Whether a meal of the same range points to this entry `Cook` with its `X-COOKED`.
- * - `glass`: Whether the entry is a glass of water, which the counter of the day shows instead of the time grid,
- *   see `trackers.ts`.
+ * - `glass`: Whether the entry is a glass of water, which the time grid shows only as a small mark,
+ *   since the water of the food view counts it, see `trackers.ts`.
  */
 export type DayEntry = Entry & {
     kcal: number | null;

@@ -1,5 +1,6 @@
-/* Food search: its field, then the foods found in columns, mine first, then those of Open Food Facts,
-   the form to add one below its row; the same look in the food view and in the entry by category of the day */
+/* Food search: its field, the chips of the brands, then the foods found in columns, mine first, then those
+   of Open Food Facts with how many of how many and More, the form to add one below its row;
+   the same look in the food view and in the entry by category of the day */
 /* Field of the search one control high, across the foods */
 .food-search > input {
     width: 100%;
@@ -11,8 +12,102 @@
     background: var(--background);
 }
 
-/* Row of a food in its columns: name, kcal, protein, carbs, fat and portion; one chip high,
-   a grey lighter under the pointer where a click does something */
+/* Chips of the brands below the field, side by side, wrapping: All brands, each brand, `+ Brand` and More;
+   each one chip high and round, outlined, its words grey, the one picked in the calm grey of what is picked,
+   its words light; the field of a brand to add as a chip with a soft line */
+.food-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+}
+
+.food-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: var(--chip-height);
+    padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--text-muted);
+    font-size: var(--text-size);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.food-chip:hover {
+    background: var(--fill);
+}
+
+.food-chip:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.food-chip-on {
+    border-color: var(--chosen-line);
+    background: var(--chosen);
+    color: var(--text-main);
+}
+
+.food-chip-on:hover {
+    background: color-mix(in oklab, var(--chosen) 85%, var(--text-main));
+}
+
+.food-chip svg.lucide {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Chip of the brand picked: its name, then `×` small and round inside it, which removes the brand */
+span.food-chip {
+    padding-right: 0.25rem;
+    cursor: default;
+}
+
+.food-chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(var(--chip-height) - 0.5rem);
+    height: calc(var(--chip-height) - 0.5rem);
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.food-chip-remove:hover {
+    background: color-mix(in oklab, var(--chosen) 85%, var(--text-main));
+    color: var(--text-main);
+}
+
+.food-chip-remove svg.lucide {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.food-chip-field {
+    width: 9rem;
+    height: var(--chip-height);
+    padding: 0 0.75rem;
+    border: 1px solid var(--chosen-line);
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--text-main);
+    font-size: var(--text-size);
+}
+
+.food-chip-field[aria-invalid="true"] {
+    border-color: var(--text-muted);
+}
+
+/* Row of a food in its columns: name, kcal, protein, carbs, fat and portion; at least one chip high,
+   higher for a product with its pack below its name; a grey lighter under the pointer where a click does something */
 .food-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) repeat(4, 4.25rem) 4.75rem;
@@ -20,7 +115,7 @@
     align-items: center;
     width: 100%;
     min-height: var(--chip-height);
-    padding: 0 0.75rem;
+    padding: 0.125rem 0.75rem;
     border: 0;
     border-radius: var(--radius);
     background: none;
@@ -30,6 +125,19 @@
 
 button.food-row {
     cursor: pointer;
+}
+
+/* Name of a food above the pack of a product, small and grey */
+.food-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.food-pack {
+    font-size: 0.75rem;
+    line-height: 1.25;
+    color: var(--text-muted);
 }
 
 /* Name of a food on one line, cut with an ellipsis instead of wrapping; the brand of a product grey */
@@ -43,10 +151,28 @@ button.food-row {
     color: var(--text-muted);
 }
 
-/* Values at the right of their columns, every digit equally wide, so the columns align */
+/* Values at the right of their columns, every digit equally wide, so the columns align;
+   `none` of a product without serving grey */
 .food-value {
     text-align: right;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.food-value-none {
+    color: var(--text-muted);
+}
+
+/* Below the products how many of how many, small and grey, More at the right */
+.food-more {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--control-gap);
+    margin-top: 0.5rem;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
     font-variant-numeric: tabular-nums;
 }
 
@@ -72,7 +198,7 @@ button.food-row {
     color: var(--text-muted);
 }
 
-/* New food at the end of the foods, a row with the plus before its words */
+/* Own food by hand at the end of the foods, a row with the plus before its words, its hint small and grey */
 .food-new {
     display: flex;
     align-items: center;
@@ -85,6 +211,11 @@ button.food-row {
     background: none;
     font-size: var(--text-size);
     cursor: pointer;
+}
+
+.food-new-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
 }
 
 /* Form to add a food, below its row: its fields side by side, each its name small and grey above it,

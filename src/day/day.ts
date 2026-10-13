@@ -3,7 +3,7 @@
  *
  * Shows the log of a day as my one calendar, a time grid of one column, and beside it the plan of the day,
  * not as a calendar but as a calm list of boxes, see `boxes.ts`; above both the arrows, `Today` and the date of the day;
- * at the right the trackers of the day, my sleep, my glasses of water and my food, and below them the daily note
+ * at the right the trackers of the day, my sleep and my food, and below them the daily note
  * with my gratitude and my paragraph about the day at its top, which a phone leaves out, see `main.ts`.
  * A click on the date opens a month to pick any day from, see `month.ts`.
  * A box goes into the log at its real time by dragging it there, or as expected with one tap on its ring.
@@ -12,9 +12,10 @@
  * Entries are moved and resized by dragging, and the reader writes them back into their files.
  * Entries look as Google Calendar shows them: what first, then the time, in one size, the time a light grey,
  * and a taller one its place and its note below, see {@link entryContentOf};
- * a dish, a meal or a cooking, lists its foods. The kcal of a meal stay hidden for a try; the dialog and the trackers
+ * a meal shows its name, its foods like `Brot, Gouda, Butter` or a name of its own like `Salat`, see `meal.ts`.
+ * The kcal of a meal stay hidden for a try; the dialog and the trackers
  * show them. A glass of water is no block but a small mark at the edge of the log,
- * since the counter of the trackers counts it.
+ * since the water of the food view counts it.
  * The day opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today
  * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the week, opens on that day,
  * which the address then keeps no more, see `today.ts`.
@@ -32,14 +33,13 @@
  *   only with the daily note, so a phone never loads it, see {@link noteStart}.
  * - `./entries.ts`: Sends changed entries to the reader.
  * - `./categories.ts`: Writes the log by category, each field picked from its own list.
- * - `./meal.ts`: Names the category of meals.
  * - `./boxes.ts`: Shows the boxes of the day beside the log, logs a box dropped into it, and makes what an entry is.
  * - `./evening.ts`: Writes my gratitude and my paragraph about the day into its daily note, any time of the day;
  *   loaded like `./note.ts`.
  * - `./month.ts`: Picks the day to show from a month.
  * - `./gifts.ts`: Writes my gift ideas for the birthdays and holidays of the plan.
  * - `./places.ts`: Gives the name of the place of an entry, the part of its line before the first comma.
- * - `./trackers.ts`: Shows my sleep, my glasses of water, my food and my neck sessions of the day.
+ * - `./trackers.ts`: Shows my sleep, my food and my neck sessions of the day.
  * - `./times.ts`: Reads the typed times of the panels, writes the times of entries and the date of the day.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the day on to the new day
@@ -54,8 +54,7 @@ import interactionPlugin from "fullcalendar/interaction";
 import themePlugin from "fullcalendar/themes/forma";
 import englishLocale from "fullcalendar/locales/en-gb";
 import { entryChange } from "./entries.ts";
-import { categoriesStart, cookName, entryOpen, entryOpenEdit, entryOpenNow } from "./categories.ts";
-import { foodName } from "./meal.ts";
+import { categoriesStart, entryOpen, entryOpenEdit, entryOpenNow } from "./categories.ts";
 import { boxesSee, boxesStart, boxReceive, entryPartOf, whatOf } from "./boxes.ts";
 import { monthStart } from "./month.ts";
 import { giftsStart } from "./gifts.ts";
@@ -161,26 +160,8 @@ function entryDrag(calendar: Calendar, info: EventChangeInfo): void {
 }
 
 /**
- * Lists the foods of a dish, a meal or a cooking: a meal's from its lines `X-FOOD`, like `Haferflocken`
- * of `Haferflocken;60`, else from its what, parted by `, `, like `Reis`, `Bohnen` and `Eier` of `Reis, Bohnen, Eier`.
- * - `category`: Category of the entry.
- * - `foods`: Lines `X-FOOD` of the entry, none when it lists none.
- *
- * @param event - Entry
- * @returns Foods in their order, none for an entry that is no dish
- */
-function dishOf(event: EventApi): string[] {
-    const category: string = event.extendedProps.category ?? "";
-    const foods: string[] = event.extendedProps.foods ?? [];
-    if (category !== foodName && category !== cookName)
-        return [];
-    return foods.length > 0 ? foods.map((food: string): string => food.split(";")[0].trim()) : event.title.split(", ");
-}
-
-/**
  * Content of an entry of the log, as Google Calendar shows one: what first, then the time,
- * both in one size, the time a light grey, see {@link whatOf}; a dish lists its foods, see {@link dishOf},
- * parted by commas.
+ * both in one size, the time a light grey, see {@link whatOf}; a meal its name, as the dialog wrote it.
  * An entry of the whole day shows only what it was.
  * - A short entry, one line high, shows what, then its start after a comma, like `Talk: Planungen, 05:15`;
  *   what ends with an ellipsis where the line is cut, the time never, see `day.css`.
@@ -192,8 +173,7 @@ function dishOf(event: EventApi): string[] {
  *   its place on the third, like `HomeMunich`, cut with an ellipsis, and below them its note, as many lines of it
  *   as are left, cut with an ellipsis; no place when it has none, no note when it has none or no whole line is left.
  * - `category`: Category of the entry, empty for an entry without one.
- * - `foods`: Foods of a dish, none for any other entry.
- * - `what`: What the entry was, its foods for a dish, empty when it is its category, like an old `Sleep`
+ * - `what`: What the entry was, empty when it is its category, like an old `Sleep`
  *   written before it had its what.
  * - `place`: Place of the entry, its `LOCATION`, like `HomeMunich`, empty when it has none.
  * - `note`: Note of the entry, its `DESCRIPTION`, empty when it has none.
@@ -216,12 +196,7 @@ function dishOf(event: EventApi): string[] {
  */
 function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     const category: string = info.event.extendedProps.category ?? "";
-    const foods: string[] = dishOf(info.event);
-    let what: string = info.event.title;
-    if (foods.length > 0)
-        what = foods.join(", ");
-    else if (what === category)
-        what = "";
+    const what: string = info.event.title === category ? "" : info.event.title;
     const place: string = labelOf(info.event.extendedProps.location ?? "");
     const note: string = (info.event.extendedProps.note ?? "").trim();
     const start: Date = info.event.start as Date;

@@ -1,4 +1,5 @@
-<!-- Food: what I ate on a day with its totals, and my foods with the search that also finds them on Open Food Facts -->
+<!-- Food: what I ate on a day with its totals, my water of the day, and my foods with the search that also finds them
+     on Open Food Facts -->
 <div class="food">
     <!-- Day: arrows and its date, its totals, then its meals from the log, each with its foods -->
     <section class="food-day">
@@ -12,8 +13,10 @@
         <div id="food-meals"></div>
     </section>
 
-    <!-- My foods: the search shows mine first, then those of Open Food Facts, and adds new ones -->
+    <!-- My water of the day as a card above my foods, filled by water.ts;
+         my foods: the search shows mine first, then those of Open Food Facts, and adds new ones -->
     <section class="food-foods">
+        <div class="water" id="food-water"></div>
         <h2 class="food-heading">Foods</h2>
         <div id="food-search"></div>
     </section>

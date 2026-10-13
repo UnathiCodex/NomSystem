@@ -9,8 +9,9 @@
  * A `Way` is `By`, `From` and `To`, every other category `What` and `Place`, the what of `Sleep` only `Night` or `Day`,
  * a nap;
  * a value with steps shows them below its list while it is picked, like the exercises of my neck routine in `Body`;
- * in the log, `Food` below them its foods, each with its grams, and what the meal gives, see `meal.ts`,
- * a meal with foods named by them, like `Haferflocken, Milch`, so its what only picks an earlier meal to fill them in,
+ * in the log, the what of `Food` is the meal itself: its line names it, its list picks meals eaten before and foods,
+ * and below it stand its foods, each with its grams, and what the meal gives, see `meal.ts`; a meal is named
+ * by its foods, like `Haferflocken, Milch`, or by a name of its own, like `Salat`;
  * and `Cook` below them one tap for the meal eaten right after it, which the reader adds with the cooking,
  * pointing to it.
  * `Skill` is a skill and a type or none side by side, like `IN2028` and `VO` or the project `WokFlow`, in plan and log,
@@ -50,7 +51,7 @@
  *
  * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top.
  * - `./entries.ts`: Sends new, changed and removed entries to the reader.
- * - `./meal.ts`: The foods of a meal, the fields of `Food` below what and place.
+ * - `./meal.ts`: The what of a meal of the log: its name, the meals eaten before and foods to pick, its foods.
  * - `./places.ts`: The dialog of a place, which adds a new one with its address to `Places.md` or changes mine.
  * - `./skill.ts`: The fields of `Skill`: skill and type, place, semester, and in the log topics and attempts.
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
@@ -63,7 +64,7 @@
 
 import { choiceOf, choicesOf, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealAfterCookAdd } from "./entries.ts";
-import { foodName, mealDishFill, mealFoods, mealOf, mealTitle } from "./meal.ts";
+import { foodName, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import { labelOf, lineOf, mapsAddressOf, placeEdit, placeOpen, placesStart } from "./places.ts";
 import {
     skillDaySet, skillFieldsShow, skillModuleType, skillPlaceShow, skillReady, skillSave, skillSemesterOf,
@@ -71,7 +72,7 @@ import {
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
-import { Check, CircleQuestionMark, Pencil, Trash2, X } from "lucide";
+import { Check, Pencil, Trash2, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -198,6 +199,12 @@ let opened: EntryOpening = {
  * Category picked, `null` before picking.
  */
 let chosen: Category | null = null;
+
+/**
+ * The what of a meal of the log, its line with the foods below it, see `meal.ts`, while `Food` is picked for the log;
+ * `null` for every other category, whose what is a plain field.
+ */
+let meal: HTMLElement | null = null;
 
 /**
  * Whether the remove button was clicked once and waits for the second click.
@@ -575,7 +582,7 @@ async function placeAdd(name: string): Promise<string | null> {
  * a new place only once it is saved with its address in the dialog of a new place, see `placeOpen` in `places.ts`;
  * a place by its name, its whole line and its pencil below its field, see {@link placeLineOf};
  * below the field of values that have steps, the steps of the value picked, see {@link stepsShow}.
- * The what of a meal fills in the foods its dish held the last time, while the meal lists none, see `meal.ts`.
+ * The what of a meal of the log is the meal itself, its line with its foods below, see {@link meal}.
  * - `place`: Line of the place picked in the field.
  * - `steps`: Place of the steps of the field.
  * - `row`: Its name and its line.
@@ -584,6 +591,8 @@ async function placeAdd(name: string): Promise<string | null> {
  * @returns Its row, and below it the line of its place when it is a place, the steps when its values have steps
  */
 function fieldRowsOf(field: Field): HTMLElement[] {
+    if (field.key === "title" && meal !== null)
+        return [rowOf(field.name, meal)];
     const place: HTMLElement = placeLineOf(field);
     const steps: HTMLElement = document.createElement("ul");
     steps.className = "entry-steps";
@@ -599,8 +608,6 @@ function fieldRowsOf(field: Field): HTMLElement[] {
             values[field.key] = picked[0] ?? "";
             if (values[field.key] !== "")
                 valueAdd(field, values[field.key]);
-            if (chosen?.name === foodName && opened.target === "log" && field.key === "title" && values.title !== "")
-                mealDishFill(values.title, saveAllow).catch((error: unknown): void => console.error(error));
             placeLineShow(place, field);
             stepsShow(steps, field);
             document.getElementById("entry-pain")?.toggleAttribute("hidden", !neckLongPicked());
@@ -647,10 +654,12 @@ async function wayEndLoad(): Promise<string> {
 /**
  * Picks a category: shows its fields, keeping the places picked under the category before.
  * A new entry of a category with the field `from` starts where the last way ended.
- * `Food` in the log shows its foods after the times, those of the meal being changed, see `meal.ts`;
+ * `Food` in the log shows the meal as its what, with the foods and the what of the meal being changed, see `meal.ts`,
+ * built before its fields show, unless another category was picked meanwhile;
  * `Skill` shows its skill and type before the times, and its place, topics, semester and attempts after them,
  * see `skill.ts`.
- * - `meal`: Foods of a meal, put after the times unless another category was picked meanwhile.
+ * - `changing`: Whether the dialog changes a meal, whose foods and what the meal starts with.
+ * - `built`: The what of the meal.
  *
  * @param category - Category to pick, or `null` for none yet
  * @throws {Error} - When the reader gives no valid answer
@@ -658,6 +667,7 @@ async function wayEndLoad(): Promise<string> {
 async function categoryPick(category: Category | null): Promise<void> {
     values = chosen === null ? { ...opened.values } : { ...valuesRead(), title: "" };
     chosen = category;
+    meal = null;
     document.getElementById("entry-more")?.replaceChildren();
     if (category?.name === skillName) {
         await skillFieldsShow(document.getElementById("entry-fields") as HTMLElement,
@@ -669,13 +679,15 @@ async function categoryPick(category: Category | null): Promise<void> {
     const starts: boolean = category?.fields.some((field: Field): boolean => field.key === "from") ?? false;
     if (starts && opened.entry === null && values.from === "")
         values.from = await wayEndLoad();
-    fieldsShow();
     if (category?.name === foodName && opened.target === "log") {
-        const meal: HTMLElement = await mealOf(opened.category === foodName ? opened.foods : [], saveAllow);
-        if (chosen === category)
-            document.getElementById("entry-more")?.append(rowOf("Foods", meal));
-        saveAllow();
+        const changing: boolean = opened.category === foodName;
+        const built: HTMLElement = await mealOf(changing ? opened.foods : [], changing ? opened.values.title : "",
+            saveAllow);
+        if (chosen !== category)
+            return;
+        meal = built;
     }
+    fieldsShow();
 }
 
 /**
@@ -914,7 +926,9 @@ async function entrySave(calendar: Calendar): Promise<void> {
 
 /**
  * Removes the entry of the log or the box being changed on the second click, then closes the dialog;
- * the first click only asks, its trash turning into a question mark of the same size, so the button never jumps. A box planned by mistake is removed; a box I decided against is dropped instead,
+ * the first click only asks, its trash turning into a plain question mark of the font, the class `remove-ask`
+ * in `day.css`, in a button as wide as before, so it never jumps.
+ * - `ask`: The question mark. A box planned by mistake is removed; a box I decided against is dropped instead,
  * with its cross in the list, so it can be counted.
  *
  * @param calendar - Calendar of the day
@@ -923,8 +937,14 @@ async function entrySave(calendar: Calendar): Promise<void> {
 async function entryRemove(calendar: Calendar): Promise<void> {
     const button: HTMLButtonElement = document.getElementById("entry-remove") as HTMLButtonElement;
     if (!removeAsked) {
+        const ask: HTMLElement = document.createElement("span");
         removeAsked = true;
-        iconPut(button, CircleQuestionMark, "Really remove?");
+        ask.className = "remove-ask";
+        ask.textContent = "?";
+        ask.setAttribute("aria-hidden", "true");
+        button.replaceChildren(ask);
+        button.title = "Really remove?";
+        button.setAttribute("aria-label", "Really remove?");
         return;
     }
 

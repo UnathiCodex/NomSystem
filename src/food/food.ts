@@ -1,21 +1,22 @@
 /**
  * ## Food
  *
- * Shows what I ate on a day, and my foods.
+ * Shows what I ate on a day, what I drank, and my foods.
  * The day: its date with buttons to the day before, today and the day after; the number of its meals and its totals
- * of kcal, protein, carbs and fat, all alike, without goals, so the log stays a log, not calorie control,
- * and beside them what I drank, in litres and in glasses against my goal, every drink a glass, counted on the day view; then each meal of the log: its start, linking to the day in the day view,
+ * of kcal, protein, carbs and fat, all alike, without goals, so the log stays a log, not calorie control;
+ * then each meal of the log: its start, linking to the day in the day view,
  * what and where, and its kcal, below it each of its foods with its grams and kcal.
- * A food listed without grams counts its usual portion, so what it gives is an estimate, marked `≈`,
- * and so is every sum that holds one; a food not in `Foods.md` and a meal that lists no foods count nothing,
+ * A food listed without grams counts its usual portion; every amount is rounded and an estimate anyway,
+ * so none is marked as one. A food not in `Foods.md` and a meal that lists no foods count nothing,
  * and a line below the totals says so.
+ * My water: the card above my foods, with the glass that logs one more and `−`, for the shown day, see `water.ts`.
  * My foods: the food search, which finds mine first, then those of Open Food Facts, and adds new ones, see `search.ts`.
  * It opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today it moves on
  * with it; only a link like `/food?date=2026-10-10` opens on that day, see `today.ts`.
  *
  * - `./foods.ts`: Loads the meals of a day, writes amounts and makes elements.
  * - `./search.ts`: Finds foods, mine first, then on Open Food Facts, and adds new ones.
- * - `../day/trackers.ts`: Loads the trackers of a day, for its water.
+ * - `./water.ts`: Shows the water of a day and logs glasses.
  * - `../day/places.ts`: Gives the name of the place of a meal.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader and a day out with its weekday.
  * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the food view on to the new day
@@ -27,7 +28,7 @@
 
 import { amountOf, elementOf, foodDayLoad } from "./foods.ts";
 import { foodSearchOf } from "./search.ts";
-import { trackersFetch } from "../day/trackers.ts";
+import { waterOpen } from "./water.ts";
 import { labelOf } from "../day/places.ts";
 import { dayOf, dayTextOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
@@ -36,7 +37,6 @@ import { ChevronLeft, ChevronRight } from "lucide";
 import "./food.css";
 
 import type { Eaten, FoodDay, Meal } from "./foods.ts";
-import type { Trackers } from "../day/trackers.ts";
 
 
 /**
@@ -46,15 +46,14 @@ let shown: string = "";
 
 
 /**
- * Writes an amount with its unit, whole, `≈` before an estimate.
+ * Writes an amount with its unit, whole.
  *
  * @param value - Amount
  * @param unit - Unit, like `kcal` or `g`
- * @param estimate - Whether the amount holds a usual portion instead of weighed grams
- * @returns Text like `1,284 kcal` or `≈ 62 g`
+ * @returns Text like `1,284 kcal` or `62 g`
  */
-function amountTextOf(value: number, unit: string, estimate: boolean): string {
-    return `${estimate ? "≈ " : ""}${amountOf(value, 0)} ${unit}`;
+function amountTextOf(value: number, unit: string): string {
+    return `${amountOf(value, 0)} ${unit}`;
 }
 
 /**
@@ -69,31 +68,24 @@ function dateOf(day: string): Date {
 }
 
 /**
- * Shows the totals of a day: the number of meals, kcal, protein, carbs and fat, then the water in litres,
- * its glasses against my goal in its name, each with its name small above;
- * below them a line for what they estimate and one for each kind of food or meal they leave out.
+ * Shows the totals of a day: the number of meals, kcal, protein, carbs and fat, each with its name small above;
+ * below them a line for each kind of food or meal they leave out.
  * - `totals`: The totals side by side.
- * - `glasses`: Glasses of the day, every drink one.
- * - `goal`: Glasses of my goal.
- * - `tiles`: Name, amount and class of each total.
+ * - `tiles`: Name and amount of each total.
  * - `unknown`: Names of the foods not in `Foods.md`, each once.
  * - `empty`: Number of meals that list no foods.
  * - `hints`: Lines below the totals, empty ones left out.
  *
  * @param day - Meals of the day with what they give together
- * @param trackers - Trackers of the day, for its water
  */
-function totalsShow(day: FoodDay, trackers: Trackers): void {
+function totalsShow(day: FoodDay): void {
     const totals: HTMLElement = elementOf("div", "food-totals", "");
-    const glasses: number = trackers.glasses.length;
-    const goal: number = Math.round(trackers.settings.waterMl / trackers.settings.glassMl);
     const tiles: [string, string][] = [
         ["Meals", String(day.meals.length)],
-        ["Energy", amountTextOf(day.kcal, "kcal", day.estimate)],
-        ["Protein", amountTextOf(day.protein, "g", day.estimate)],
-        ["Carbs", amountTextOf(day.carbs, "g", day.estimate)],
-        ["Fat", amountTextOf(day.fat, "g", day.estimate)],
-        [`Water · ${glasses} / ${goal} glasses`, `${amountOf(glasses * trackers.settings.glassMl / 1000, 2)} l`],
+        ["Energy", amountTextOf(day.kcal, "kcal")],
+        ["Protein", amountTextOf(day.protein, "g")],
+        ["Carbs", amountTextOf(day.carbs, "g")],
+        ["Fat", amountTextOf(day.fat, "g")],
     ];
     for (const [name, amount] of tiles) {
         const tile: HTMLElement = elementOf("div", "food-total", "");
@@ -108,7 +100,6 @@ function totalsShow(day: FoodDay, trackers: Trackers): void {
                 unknown.push(eaten.name);
     const empty: number = day.meals.filter((meal: Meal): boolean => meal.foods.length === 0).length;
     const hints: string[] = [
-        day.estimate ? "≈ counts the usual portion of a food listed without grams" : "",
         unknown.length > 0 ? `Not counted, not in my foods: ${unknown.join(", ")}` : "",
         empty > 0 ? `Not counted: ${empty} ${empty === 1 ? "meal lists" : "meals list"} no foods` : "",
     ];
@@ -132,8 +123,8 @@ function eatenLineOf(eaten: Eaten): HTMLElement {
     line.append(
         elementOf("span", "", ""),
         name,
-        elementOf("span", "food-grams", eaten.grams > 0 ? amountTextOf(eaten.grams, "g", eaten.estimate) : ""),
-        elementOf("span", "food-kcal", eaten.known ? amountTextOf(eaten.kcal, "kcal", eaten.estimate) : ""),
+        elementOf("span", "food-grams", eaten.grams > 0 ? amountTextOf(eaten.grams, "g") : ""),
+        elementOf("span", "food-kcal", eaten.known ? amountTextOf(eaten.kcal, "kcal") : ""),
     );
     return line;
 }
@@ -158,7 +149,7 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
     if (meal.location !== "")
         what.append(elementOf("span", "food-place", ` · ${labelOf(meal.location)}`));
     head.append(start, what, elementOf("span", "", ""),
-        elementOf("span", "food-kcal", meal.foods.length > 0 ? amountTextOf(meal.kcal, "kcal", meal.estimate) : ""));
+        elementOf("span", "food-kcal", meal.foods.length > 0 ? amountTextOf(meal.kcal, "kcal") : ""));
 
     const lines: HTMLElement[] = meal.foods.map(eatenLineOf);
     if (meal.foods.length === 0) {
@@ -170,10 +161,9 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
 }
 
 /**
- * Shows a day: writes its date as heading, then loads its meals and its trackers
- * and shows the meals with their totals and the water, unless another day was asked for meanwhile.
+ * Shows a day: writes its date as heading, then loads its meals
+ * and shows them with their totals, unless another day was asked for meanwhile.
  * - `food`: Meals of the day with what they give.
- * - `trackers`: Trackers of the day, for its water.
  * - `lines`: Lines of all meals.
  *
  * @param day - Day like `2026-10-10`
@@ -183,22 +173,23 @@ async function dayShow(day: string): Promise<void> {
     shown = day;
     (document.getElementById("food-date") as HTMLElement).textContent = dayTextOf(day, true);
 
-    const [food, trackers]: [FoodDay, Trackers] = await Promise.all([foodDayLoad(day), trackersFetch(day)]);
+    const food: FoodDay = await foodDayLoad(day);
     if (day !== shown)
         return;
     const lines: HTMLElement[] = food.meals.flatMap(mealLinesOf);
-    totalsShow(food, trackers);
+    totalsShow(food);
     if (lines.length === 0)
         lines.push(elementOf("p", "food-none", "No meals in the log on this day"));
     document.getElementById("food-meals")?.replaceChildren(...lines);
 }
 
 /**
- * Shows a day, or a hint when the reader cannot read its meals.
+ * Shows a day with its water, or a hint when the reader cannot read its meals.
  *
  * @param day - Day like `2026-10-10`
  */
 function dayOpen(day: string): void {
+    waterOpen(day);
     dayShow(day).catch((error: unknown): void => {
         console.error(error);
         document.getElementById("food-totals")?.replaceChildren();
@@ -233,7 +224,7 @@ export function foodStart(): void {
     before.addEventListener("click", (): void => dayMove(-1));
     after.addEventListener("click", (): void => dayMove(1));
     document.getElementById("food-today")?.addEventListener("click", (): void => dayOpen(calendarTodayOf()));
-    document.getElementById("food-search")?.append(foodSearchOf(null));
+    document.getElementById("food-search")?.append(foodSearchOf(null, null));
     dayOpen(askedDayOf() ?? calendarTodayOf());
     todayFollow((): string => shown, dayOpen);
 }

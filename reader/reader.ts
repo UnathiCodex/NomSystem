@@ -30,8 +30,8 @@
  * - `./documents.ts`: Checks the links of the skill entries at the start and every night, repairing what it can,
  *   and reads a file a skill entry links
  * - `./suggestions.ts`: Suggests study sessions as boxes for the plan of a day, never written until I accept one
- * - `./food.ts`: Finds foods, mine first, then on Open Food Facts, adds foods to `Foods.md`, reads the meals of a day
- *   and the foods a dish held the last time
+ * - `./food.ts`: Finds foods, mine first, then on Open Food Facts, adds foods to `Foods.md` and brands to `Brands.md`,
+ *   reads the meals of a day and the meals I ate before
  * - `./trackers.ts`: Reads my sleep against my goals, my glasses of water, my neck sessions and what my meals gave
  *   on a day
  * - `./page.ts`: Gives out the files of the page through Vite
@@ -55,7 +55,7 @@ import {
 } from "./skill.ts";
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
-import { dishFoodsRead, foodAdd, foodDayRead, foodsFind } from "./food.ts";
+import { brandAdd, brandRemove, brandsRead, dishesRead, foodAdd, foodDayRead, foodsFind } from "./food.ts";
 import { trackersRead } from "./trackers.ts";
 import { pageCreate } from "./page.ts";
 
@@ -162,10 +162,14 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/skill/entry`: Writes skill entry of the body into the log.
  * - `PATCH /api/skill/entry`: Changes skill entry of the body, adding its new attempts.
  * - `GET /api/skill/session`: Sends the session running now, or `null`.
- * - `GET /api/food/search?q=…`: Sends my foods for a name or barcode, the most eaten first, then those of Open Food Facts.
- * - `POST /api/food/foods`: Adds food of the body to `Foods.md` and sends it as written.
+ * - `GET /api/food/search?q=…&brand=…&page=…`: Sends my foods for a name or barcode, the most eaten first,
+ *   then a page of those of Open Food Facts, of the brand when one is given.
+ * - `POST /api/food/foods`: Adds food of the body to `Foods.md`, its brand to `Brands.md`, and sends it as written.
+ * - `GET /api/food/brands`: Sends the brands the food search offers as chips.
+ * - `POST /api/food/brands`: Adds the brand `name` of the body to `Brands.md` and sends all brands.
+ * - `DELETE /api/food/brands?name=…`: Removes the brand from `Brands.md` and sends all brands left.
  * - `GET /api/food/day?date=…`: Sends the meals of the date with what they give.
- * - `GET /api/food/dish?title=…`: Sends the lines `X-FOOD` of the last meal of the dish.
+ * - `GET /api/food/dishes`: Sends the meals I ate before, each by its what with its foods of the last time.
  * - Any other address: Hands request to the page.
  *
  * A request as the page sends it:
@@ -333,16 +337,26 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, sessionRead());
 
     } else if (request.method === "GET" && url.pathname === "/api/food/search") {
-        responseSend(response, 200, await foodsFind(url.searchParams.get("q") ?? ""));
+        responseSend(response, 200, await foodsFind(url.searchParams.get("q") ?? "", url.searchParams.get("brand") ?? "",
+            Number(url.searchParams.get("page") ?? "1")));
 
     } else if (request.method === "POST" && url.pathname === "/api/food/foods") {
-        responseSend(response, 200, foodAdd(await json(request) as Food));
+        responseSend(response, 200, foodAdd(await json(request) as Food & { brand?: string }));
+
+    } else if (request.method === "GET" && url.pathname === "/api/food/brands") {
+        responseSend(response, 200, brandsRead());
+
+    } else if (request.method === "POST" && url.pathname === "/api/food/brands") {
+        responseSend(response, 200, brandAdd((await json(request) as { name?: string }).name ?? ""));
+
+    } else if (request.method === "DELETE" && url.pathname === "/api/food/brands") {
+        responseSend(response, 200, brandRemove(url.searchParams.get("name") ?? ""));
 
     } else if (request.method === "GET" && url.pathname === "/api/food/day") {
         responseSend(response, 200, foodDayRead(date));
 
-    } else if (request.method === "GET" && url.pathname === "/api/food/dish") {
-        responseSend(response, 200, dishFoodsRead(url.searchParams.get("title") ?? ""));
+    } else if (request.method === "GET" && url.pathname === "/api/food/dishes") {
+        responseSend(response, 200, dishesRead());
 
     } else {
         page.middlewares(request, response);
