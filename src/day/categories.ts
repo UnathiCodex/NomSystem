@@ -66,8 +66,9 @@
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
  *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
- * - `../icons.ts`: Shows the icons of the copy, the bin and its question, Cancel and Save in their buttons.
- * - `lucide`: The icons of the copy, the bin and its question, Cancel and Save.
+ * - `../icons.ts`: Shows the icons of the copy, the bin and its question, Cancel and Save in their buttons,
+ *   and the pencil of a place.
+ * - `lucide`: The icons of the copy, the bin and its question, Cancel, Save and the pencil.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
@@ -81,7 +82,7 @@ import {
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
-import { Check, CircleQuestionMark, Copy, Trash, X } from "lucide";
+import { Check, CircleQuestionMark, Copy, Pencil, Trash, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -557,9 +558,7 @@ function placePartsOf(field: Field): [HTMLButtonElement, HTMLAnchorElement] {
     const address: HTMLAnchorElement = document.createElement("a");
     pencil.type = "button";
     pencil.className = "entry-pencil";
-    pencil.textContent = "✎";
-    pencil.title = "Change the place in Places.md";
-    pencil.setAttribute("aria-label", pencil.title);
+    iconPut(pencil, Pencil, "Change the place in Places.md");
     pencil.addEventListener("click", (): void => {
         placeChange(field).catch(errorShow);
     });

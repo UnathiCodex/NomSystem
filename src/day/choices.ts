@@ -23,12 +23,13 @@
  * A value wider than its row goes on below, never cut, a long name broken where its parts meet,
  * see {@link breakableOf}.
  *
- * - `../icons.ts`: Puts the icon of every + of the page before the words of `+ New …`.
- * - `lucide`: The icon plus.
+ * - `../icons.ts`: Puts the icon of every + of the page before the words of `+ New …`, and the cross into the button
+ *   that takes a value back.
+ * - `lucide`: The icons plus and cross.
  */
 
-import { iconWordsOf } from "../icons.ts";
-import { Plus } from "lucide";
+import { iconPut, iconWordsOf } from "../icons.ts";
+import { Plus, X } from "lucide";
 
 
 /**
@@ -489,9 +490,7 @@ export function addedRowOf(name: string, text: string, remove: () => void): HTML
     shown.title = text;
     button.type = "button";
     button.className = "picker-added-remove";
-    button.textContent = "×";
-    button.title = `Remove ${text}`;
-    button.setAttribute("aria-label", button.title);
+    iconPut(button, X, `Remove ${text}`);
     button.addEventListener("click", remove);
     value.append(shown, button);
     return rowOf(name, value);

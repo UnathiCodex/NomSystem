@@ -1046,9 +1046,11 @@ fieldset.entry-times {
     text-underline-offset: 0.2em;
 }
 
-/* Pencil `✎` right beside a name, of a place or a summary, small and grey, lighter under the pointer */
+/* Pencil right beside a name, of a place or a summary, the Lucide pencil small and grey, lighter under the pointer */
 .entry-pencil {
+    display: inline-flex;
     flex: none;
+    align-items: center;
     padding: 0 0.25rem;
     border: 0;
     background: none;
@@ -1214,7 +1216,9 @@ fieldset.entry-times {
 }
 
 .picker-added-remove {
+    display: inline-flex;
     flex: none;
+    align-items: center;
     padding: 0 0.25rem;
     border: 0;
     background: none;
@@ -1225,6 +1229,20 @@ fieldset.entry-times {
 
 .picker-added-remove:hover {
     color: var(--text-main);
+}
+
+/* The pencil beside a name and the cross of a value picked a little smaller than the icons of buttons, so they stay
+   quiet beside their text */
+.entry-pencil svg.lucide,
+.picker-added-remove svg.lucide {
+    width: 0.9375rem;
+    height: 0.9375rem;
+}
+
+/* The search field of a list without the browser's own clear cross, which is no Lucide icon; Escape or deleting
+   the text clears it */
+.picker-search::-webkit-search-cancel-button {
+    display: none;
 }
 
 /* Results of the tasks picked for a session, below their list, in two columns:
