@@ -355,21 +355,26 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
 }
 
 /**
- * Orders two boxes: those with a deadline first, by their deadline, since nothing is more urgent,
- * then those with a time, by their time, like my lectures, then those without, in the order they were read,
- * the order I planned them in; the dropped ones last, in the same order.
- * - `rankOf`: 0 for a box with a deadline, 1 for one with a time, 2 for one without, 3 more when dropped.
+ * Orders two boxes as the stations of the day, so the plan reads like the log: those with a time by their time,
+ * like my lectures, also one cancelled, which keeps its place faded, then those with a deadline by their deadline,
+ * then those without either in the order they were read, the order I planned them in, the cancelled ones of them
+ * last.
+ * - `rankOf`: 0 for a box with a time, 1 for one with a deadline, 2 for one without, 3 for one without, cancelled.
  *
  * @param first - A box
  * @param second - Another box
  * @returns Below zero when the first comes first, above zero when the second does, zero when they stay as they are
  */
 function boxCompare(first: Box, second: Box): number {
-    const rankOf: (box: Box) => number = (box: Box): number =>
-        (box.deadline !== "" ? 0 : box.time === "" ? 2 : 1)
-        + (box.state === "dropped" || box.state === "university" ? 3 : 0);
-    return rankOf(first) - rankOf(second) || first.deadline.localeCompare(second.deadline)
-        || first.time.localeCompare(second.time);
+    const rankOf: (box: Box) => number = (box: Box): number => {
+        if (box.time !== "")
+            return 0;
+        if (box.deadline !== "")
+            return 1;
+        return box.state === "dropped" || box.state === "university" ? 3 : 2;
+    };
+    return rankOf(first) - rankOf(second) || first.time.localeCompare(second.time)
+        || first.deadline.localeCompare(second.deadline);
 }
 
 /**

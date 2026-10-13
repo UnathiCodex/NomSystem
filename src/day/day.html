@@ -14,24 +14,28 @@
         </div>
 
         <!-- Plan: the boxes of the day, dragged into the log at the real time or logged as expected with their ring,
-             filled by boxes.ts; its + opens the entry by category for a new box -->
+             filled by boxes.ts; its + at the bottom, out of the way, opens the entry by category for a new box -->
         <section class="day-column">
             <div class="column-head">
                 <h2>Plan</h2>
-                <button class="column-new" id="plan-new" type="button"></button>
             </div>
             <!-- Hint when the reader does not log a box dropped into the log or tapped, until the plan loads again -->
             <p class="panel-error" id="plan-error" hidden>Logging failed</p>
             <div class="plan-boxes" id="plan-boxes"></div>
+            <div class="column-foot">
+                <button class="column-new" id="plan-new" type="button"></button>
+            </div>
         </section>
 
-        <!-- Log: the time grid of what happened, drawn by FullCalendar; its + opens the entry by category -->
+        <!-- Log: the time grid of what happened, drawn by FullCalendar; its + at the bottom opens the entry by category -->
         <section class="day-column">
             <div class="column-head">
                 <h2>Log</h2>
-                <button class="column-new" id="log-new" type="button"></button>
             </div>
             <div class="day-calendar" id="day-calendar"></div>
+            <div class="column-foot">
+                <button class="column-new" id="log-new" type="button"></button>
+            </div>
         </section>
     </div>
 

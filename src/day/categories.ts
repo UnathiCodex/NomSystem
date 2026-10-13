@@ -48,8 +48,8 @@
  * Only a to-do of the plan has one more field, its deadline, a day like `23.10.2026` with a time or without; a box
  * with a deadline lies on the day of its deadline and has no expected time, so start and end are off while
  * the day of a deadline is typed.
- * The dialog opens for the log from `+` above the time grid, from a range selected in the time grid,
- * and from a log entry that can be changed, to change it; for a box from `+` above the list of boxes,
+ * The dialog opens for the log from `+` below the time grid, from a range selected in the time grid,
+ * and from a log entry that can be changed, to change it; for a box from `+` below the list of boxes,
  * from a suggested study session, filled in as suggested, see `suggestions.ts`,
  * and from a box that can be changed, to change it, or to log it instead, filled in as planned;
  * one that cannot, like an occurrence of a weekly lecture, opens it to be logged. A log entry logged from a box points

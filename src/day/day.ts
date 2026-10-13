@@ -7,7 +7,7 @@
  * with my gratitude and my points about the day at its top, which a phone leaves out, see `main.ts`.
  * A click on the date opens a month to pick any day from, see `month.ts`.
  * A box goes into the log at its real time by dragging it there, or as expected with one tap on its ring.
- * The log is written by category: `+` above the time grid opens the entry by category for the last half hour,
+ * The log is written by category: `+` below the time grid opens the entry by category for the last half hour,
  * a range selected in the time grid for that range; a click on an entry changes it.
  * Entries are moved and resized by dragging, and the reader writes them back into their files.
  * Entries look as Google Calendar shows them: what first, then the time, then the place, in one size, the time a light
@@ -392,7 +392,7 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * Starts the day after the router has put its HTML into the page, on the day a link asks for or today's calendar date,
  * see `askedDayOf` in `today.ts`:
  * the arrows and `Today` above plan and log move the calendar by a day or back to today, the date opens the month
- * to pick a day from, `+` above the time grid opens the entry by category of the log for the last half hour;
+ * to pick a day from, `+` below the time grid opens the entry by category of the log for the last half hour;
  * while it shows today, the day moves on to the new day by itself, now centred again, see `todayFollow` in `today.ts`,
  * and while it shows another day, `Today` follows the new day.
  * - `initialView`: A time grid of the shown day, one column, the log.

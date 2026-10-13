@@ -3,9 +3,10 @@
  *
  * The plan of the shown day as a calm list of boxes beside the log, which is my one calendar, see `reader/boxes.ts`:
  * its birthdays and holidays at the top, each with my gift idea for it below, when I have one, see `gifts.ts`,
- * and a line below them, then the boxes with a deadline, then those with an expected time,
- * by their time, like my lectures, then those without, then tomorrow's suggested study sessions, dashed,
- * see `suggestions.ts`, and the cancelled boxes last; on today below them the boxes carried along, see below.
+ * and a line below them, then the boxes one after another like the stations of the day, as real as the log:
+ * those with an expected time by their time, like my lectures, a cancelled one faded in its place, then those with
+ * a deadline, then those without either, then tomorrow's suggested study sessions, dashed, see `suggestions.ts`,
+ * and the cancelled boxes without time last; on today below them the boxes carried along, see below.
  * Every box has the same three lines, open or done: its category in bold with a colon and what,
  * like `Skill: IN0004 VO`, as an entry of the log does, then grey its expected time and length and how often it was
  * pushed, like `11:30 – 13:00 (90 min)` or `75 min · pushed once`, then its place on a line of its own, by its label
@@ -33,7 +34,7 @@
  * along on today: below the list of today, under `Carried along`, each with its day, like `Mon, 12.10.2026 · 45 min`,
  * the earliest first, see `boxesCarried` in `reader/boxes.ts`, until I do it, dragged into the log or with its ring,
  * or cancel it with its cross; a click on it changes it, like its day. It never moves into the next days by itself.
- * `+` above the list opens the entry by category for a new box of the shown day; a click on a box changes it,
+ * `+` below the list opens the entry by category for a new box of the shown day; a click on a box changes it,
  * see `categories.ts`. A box without category, like a to-do another app wrote into the plan, opens the entry
  * by category of the log instead of being logged at once, when it is dropped or its ring tapped, since the log needs
  * a category; a box that cannot be changed, like an occurrence of a weekly lecture, is logged like any other,
