@@ -82,7 +82,7 @@ import {
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
-import { Check, CircleQuestionMark, Copy, Pencil, Trash, X } from "lucide";
+import { Check, CircleCheck, CircleQuestionMark, Copy, Pencil, Trash, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -1141,9 +1141,9 @@ function timesShow(opening: EntryOpening): void {
 
 /**
  * Shows the dialog as an opening says, a new one without category with the list of the categories open.
- * It has no title: below its fields, small and grey, the box a log entry comes from; at the bottom the copy and the bin
- * at the left, `Log it` to log an open box being changed, `Edit plan` to change the box a log entry comes from
- * instead, when it can be changed, then cancel and save, see `day.html`.
+ * It has no title: below its fields, small and grey, the box a log entry comes from, with a pencil beside it to change
+ * that box instead, when it can be changed; at the bottom the copy and the bin at the left, then for an open box being
+ * changed the ring with its check, which logs it, as its ring in the plan does, then cancel and save, see `day.html`.
  * The first button, which the dialog focuses as it opens, loses the focus again, so its ring never looks like a pick.
  * - `dialog`: The dialog, open already when one of those two buttons opens it anew.
  * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page, `Esc` closes it.
@@ -1368,8 +1368,8 @@ function timesCheck(): boolean {
 
 /**
  * Starts the entry by category after the router has put its HTML into the page:
- * the copy duplicates the entry or the box being changed, see {@link entryDuplicate}, `Edit plan` changes the box
- * being logged, `Log it` logs the box being changed, as expected on the shown day,
+ * the copy duplicates the entry or the box being changed, see {@link entryDuplicate}, the pencil beside the box being
+ * logged changes that box, the ring with its check logs the box being changed, as expected on the shown day,
  * which for a box with a deadline may lie before its own, in the dialog of the log, see `boxTimesOf` in `times.ts`;
  * typing a deadline turns start and end of a box off, see {@link deadlineSee}; typing the day, start or end
  * fills the day of the end, see {@link endDayFill}, until I type that day myself, and a start typed for a new box
@@ -1392,6 +1392,8 @@ export function categoriesStart(calendar: Calendar): void {
         entryRemove(calendar).catch(errorShow);
     });
     iconPut(document.getElementById("entry-duplicate") as HTMLElement, Copy, "Duplicate");
+    iconPut(document.getElementById("entry-plan-edit") as HTMLElement, Pencil, "Change the box in the plan");
+    iconPut(document.getElementById("entry-plan-log") as HTMLElement, CircleCheck, "Log it");
     document.getElementById("entry-duplicate")?.addEventListener("click", (): void => {
         entryDuplicate().catch(errorShow);
     });

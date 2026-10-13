@@ -994,12 +994,19 @@ fieldset.entry-times {
     gap: 1.5rem;
 }
 
-/* The box a log entry comes from, small and grey below the title, in line with the names of the rows */
+/* The box a log entry comes from, small and grey below the fields, in line with the names of the rows,
+   the pencil that changes it centred beside it */
 .entry-from-plan {
+    display: flex;
+    align-items: center;
     margin: 0;
     padding: 0 var(--row-padding) 0.25rem;
     font-size: 0.75rem;
     color: var(--text-muted);
+}
+
+.entry-from-plan[hidden] {
+    display: none;
 }
 
 /* Real minutes of the last entries like a box, small and grey under its end, in line with the values */
