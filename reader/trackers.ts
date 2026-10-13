@@ -4,9 +4,11 @@
  * Reads the trackers of a day from the log: my sleep against my goals, my glasses of water against my goal,
  * my neck sessions against my goal, and what my meals gave, see `food.ts`.
  * My goals stand here, in one place, and so do the numbers of my learning, see {@link settings}.
- * Sleep is an entry of the category `Sleep`, written by the entry by category with its start and end.
+ * Sleep is an entry of the category `Sleep`, written by the entry by category with its start and end,
+ * and its what, `Night` or `Day` for a nap, see `categories.ts`.
  * The night of a day is the longest sleep of at least 3 hours that ends on it in Berlin time, the sleep I wake up from
- * that morning, so a nap never becomes the night; the week holds the nights of the day and the six days before it,
+ * that morning, so a nap never becomes the night, and a sleep `Day` never, whatever its length; an old entry
+ * without what counts like a `Night`. The week holds the nights of the day and the six days before it,
  * those logged: how long I slept on average, and how regular I was, how much my bedtime varied.
  * Glasses, meals and neck sessions count for the day I lived, the hours after midnight until 05:00 for the evening
  * before, see `livedDayOf` in `calendar.ts`.
@@ -192,6 +194,11 @@ const sleepName: string = "Sleep";
 const nightMinutes: number = 3 * 60;
 
 /**
+ * What of a nap, `SUMMARY:Day` of a sleep, which never counts as a night, see `categories.ts`.
+ */
+const napName: string = "Day";
+
+/**
  * Category of a glass of water, `CATEGORIES:Drink`.
  */
 const drinkName: string = "Drink";
@@ -296,7 +303,7 @@ function variedOf(nights: Night[]): number | null {
  * to noon the day after, which hold every night of the week, without the naps;
  * the night of each day the longest that ends on it.
  * - `noon`: Noon of the day in UTC, in milliseconds.
- * - `sleeps`: Sleeps of the range, at least {@link nightMinutes} long.
+ * - `sleeps`: Sleeps of the range that are no `Day`, at least {@link nightMinutes} long.
  * - `nights`: Night of each day of the week, the day first, `null` for a day without one.
  * - `day`: A day of the week, like `2026-10-09`.
  * - `logged`: The nights logged.
@@ -308,7 +315,7 @@ function sleepRead(date: string): SleepDay {
     const noon: number = new Date(`${date}T12:00:00Z`).getTime();
     const sleeps: Entry[] = entriesRead(trackerLog,
         new Date(noon - (weekDays + 1) * dayLength).toISOString(), new Date(noon + dayLength).toISOString())
-        .filter((entry: Entry): boolean => entry.category === sleepName && !entry.allDay
+        .filter((entry: Entry): boolean => entry.category === sleepName && !entry.allDay && entry.title !== napName
             && lengthOf(entry) >= nightMinutes * 60 * 1000);
     const nights: (Night | null)[] = Array.from({ length: weekDays }, (_: unknown, back: number): Night | null => {
         const day: string = new Date(noon - back * dayLength).toISOString().slice(0, 10);

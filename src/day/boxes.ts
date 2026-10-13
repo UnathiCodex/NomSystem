@@ -167,8 +167,8 @@ export function entryPartOf(tag: string, className: string, parts: (string | Nod
 
 /**
  * Makes what an entry or a box is: its category in bold with a colon, so the list scans fast, then its what,
- * like **`Skill:`**` WI1059 HU`; only the what of an entry without category, only the category without colon
- * of an entry whose what it is, like **`Sleep`**.
+ * like **`Skill:`**` WI1059 HU` or **`Sleep:`**` Night`; only the what of an entry without category, only the category
+ * without colon of an entry whose what it is, like an old **`Sleep`**, written before it had its what.
  * - `bold`: The category in bold, in the size of the rest, with the colon inside when a what follows.
  *
  * @param category - Category, empty for an entry without one

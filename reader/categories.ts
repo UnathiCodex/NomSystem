@@ -11,6 +11,8 @@
  * `Body` offers my neck routine, `Neck short` and `Neck long`, each with its exercises, see {@link neckRoutines},
  * and below them the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
  * A dish, the what of `Food` and `Cook`, names its foods parted by `, `, like `Reis, Bohnen, Eier`.
+ * `Sleep` takes only two whats, `Night` and `Day`, a nap, see {@link sleepWhats}, and no new ones,
+ * so the sleep tracker tells a nap from a night, see `trackers.ts`.
  * `Skill` is a category without such fields: in plan and log a module and a type, like `IN2028 VO`,
  * see {@link skillTypes}; in the log also its chapters, its document and its attempts, which only the skill area writes,
  * see `skill.ts`.
@@ -44,17 +46,20 @@ export type FieldKey = "title" | "from" | "location";
  * - `values`: Values to pick, the most used first; in the code only those offered before any use.
  * - `steps`: Steps of a value offered in the code, by the value, which the dialog shows while it is picked,
  *   like the exercises of `Neck short`; none for the other values.
+ * - `fixed`: Whether it takes only the values offered in the code, like `Night` and `Day` of `Sleep`, and no new ones.
  */
 export type Field = {
     name: string;
     key: FieldKey;
     values: string[];
     steps: { [value: string]: string[] };
+    fixed: boolean;
 };
 
 /**
  * A category with its fields.
- * A category without a field `title` writes its own name as `SUMMARY`, like `Sleep`.
+ * A category without a field `title` writes its own name as `SUMMARY`; every category but `Skill` has one now,
+ * and only an old entry `Sleep`, written before it had its what, still has its category as its what.
  *
  * - `name`: Name of the category, written as `CATEGORIES`, like `Way`.
  * - `fields`: Its fields, in the order they are picked.
@@ -111,8 +116,8 @@ function categoryOf(name: string, routines: { [what: string]: string[] }): Categ
     return {
         name: name,
         fields: [
-            { name: "What", key: "title", values: Object.keys(routines), steps: routines },
-            { name: "Place", key: "location", values: [], steps: {} },
+            { name: "What", key: "title", values: Object.keys(routines), steps: routines, fixed: false },
+            { name: "Place", key: "location", values: [], steps: {}, fixed: false },
         ],
     };
 }
@@ -131,6 +136,12 @@ export const skillName: string = "Skill";
 export const skillTypes: string[] = ["VO", "TU", "HU", "DEV", "FA", "PR"];
 
 /**
+ * The only whats of `Sleep`, in this order: `Night`, the sleep of a night, and `Day`, a nap,
+ * which the sleep tracker never counts as a night, see `trackers.ts`.
+ */
+const sleepWhats: string[] = ["Night", "Day"];
+
+/**
  * Categories no box of the plan has, since they happen anyway: my sleep, my meals and their cooking, my drinks
  * and what I play.
  */
@@ -141,7 +152,13 @@ const unplannedNames: string[] = ["Sleep", "Food", "Cook", "Drink", "Game"];
  */
 const categories: Category[] = [
     { name: skillName, fields: [] },
-    { name: "Sleep", fields: [{ name: "Place", key: "location", values: [], steps: {} }] },
+    {
+        name: "Sleep",
+        fields: [
+            { name: "What", key: "title", values: sleepWhats, steps: {}, fixed: true },
+            { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+        ],
+    },
     categoryOf("Food", {}),
     categoryOf("Cook", {}),
     categoryOf("Body", neckRoutines),
@@ -151,10 +168,10 @@ const categories: Category[] = [
         fields: [
             {
                 name: "By", key: "title", values: ["Walk", "Bike", "U-Bahn", "S-Bahn", "Tram", "Bus", "Train", "Car"],
-                steps: {},
+                steps: {}, fixed: false,
             },
-            { name: "From", key: "from", values: [], steps: {} },
-            { name: "To", key: "location", values: [], steps: {} },
+            { name: "From", key: "from", values: [], steps: {}, fixed: false },
+            { name: "To", key: "location", values: [], steps: {}, fixed: false },
         ],
     },
     categoryOf("Talk", {}),
@@ -244,7 +261,8 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
 }
 
 /**
- * Reads the categories with the values of their fields, see {@link valuesOrder},
+ * Reads the categories with the values of their fields, see {@link valuesOrder}, a field that takes no new values
+ * only those of the code in their order, like `Night` and `Day` of `Sleep`,
  * each telling whether a box of the plan may have it; a value with steps gets the note of its last entry,
  * see {@link stepsWithNoteOf}.
  * - `logs`: Log entries up to now.
@@ -263,7 +281,8 @@ export function categoriesRead(now: string): CategoryShown[] {
         name: category.name,
         fields: category.fields.map((field: Field): Field => ({
             ...field,
-            values: field.key === "title" ? valuesOrder(titleUsesOf(logs, category.name), field.values) : places,
+            values: field.key !== "title" ? places
+                : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values),
             steps: stepsWithNoteOf(logs, category.name, field.steps),
         })),
         plan: !unplannedNames.includes(category.name),
@@ -315,11 +334,14 @@ export function skillTitleOf(module: string, type: string): string {
 
 /**
  * Tells whether the fields of an entry fit its category, in plan and log alike:
- * the category is in the list, what is picked or, without a field `title`, the name of the category,
+ * the category is in the list, what is picked, one of its values for a field that takes no new ones,
+ * like `Night` or `Day` of `Sleep`, or, without a field `title`, the name of the category,
  * `from` is only set when the category has the field, and module and type stay empty.
  * `Skill` is a module code, like `IN2028`, one of the {@link skillTypes}, and what written from both,
  * see {@link skillTitleOf}; its chapters, document and attempts in the log only the skill area writes.
  * - `keys`: Fields of the category.
+ * - `what`: Its field `title`, `undefined` for none.
+ * - `whatAllowed`: Whether what the entry was fits that field.
  *
  * @param fields - Text fields of an entry or a box to write
  * @returns Whether the entry may be written
@@ -334,8 +356,10 @@ export function categoryAllows(fields: EntryTexts): boolean {
             && fields.title === skillTitleOf(fields.module, fields.type) && fields.from === "";
 
     const keys: FieldKey[] = category.fields.map((field: Field): FieldKey => field.key);
-    return (keys.includes("title") ? fields.title.trim() !== "" : fields.title === category.name)
-        && (keys.includes("from") || fields.from === "") && fields.module === "" && fields.type === "";
+    const what: Field | undefined = category.fields.find((field: Field): boolean => field.key === "title");
+    const whatAllowed: boolean = what === undefined ? fields.title === category.name
+        : fields.title.trim() !== "" && (!what.fixed || what.values.includes(fields.title));
+    return whatAllowed && (keys.includes("from") || fields.from === "") && fields.module === "" && fields.type === "";
 }
 
 /**

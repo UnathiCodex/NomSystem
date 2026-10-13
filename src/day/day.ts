@@ -185,7 +185,8 @@ function dishOf(event: EventApi): string[] {
  *   as are left, cut with an ellipsis; no place when it has none, no note when it has none or no whole line is left.
  * - `category`: Category of the entry, empty for an entry without one.
  * - `foods`: Foods of a dish, none for any other entry.
- * - `what`: What the entry was, its foods for a dish, empty when it is its category, like `Sleep`.
+ * - `what`: What the entry was, its foods for a dish, empty when it is its category, like an old `Sleep`
+ *   written before it had its what.
  * - `place`: Place of the entry, its `LOCATION`, like `HomeMunich`, empty when it has none.
  * - `note`: Note of the entry, its `DESCRIPTION`, empty when it has none.
  * - `start`, `end`: Start and end of the entry.

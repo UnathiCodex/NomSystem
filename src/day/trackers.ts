@@ -255,7 +255,7 @@ function sleepOf(trackers: Trackers): HTMLElement {
             "bedtime varied", `How much my bedtime varied over the nights of the 7 days, a check within `
                 + `${trackers.settings.bedtimeVaried} minutes; regular sleep goes with better grades`),
         tileOf(sleep.night === null ? "" : hoursOf(sleep.night.minutes), healthy(sleep.night?.minutes ?? null), "last night",
-            sleep.night === null ? "No night logged; a sleep under 3 hours is a nap"
+            sleep.night === null ? "No night logged; a sleep Day, or one under 3 hours, is a nap"
                 : `Asleep ${sleep.night.asleep}, awake ${sleep.night.awake}`),
         tileOf(sleep.minutes === null ? "" : hoursOf(sleep.minutes), healthy(sleep.minutes), "Ø 7 days",
             `${sleep.nights} ${sleep.nights === 1 ? "night" : "nights"} logged in the 7 days up to this day`),

@@ -2,7 +2,8 @@
  * ## Categories
  *
  * Writes plan and log the same way, by category: pick the category, then each of its fields from its own list,
- * then save. A `Way` is `By`, `From` and `To`, every other category `What` and `Place`, `Sleep` only `Place`;
+ * then save. A `Way` is `By`, `From` and `To`, every other category `What` and `Place`, the what of `Sleep` only
+ * `Night` or `Day`, a nap;
  * a value with steps shows them below its list while it is picked, like the exercises of my neck routine in `Body`;
  * in the log, `Food` below them its foods, each with its grams, and what the meal gives, see `meal.ts`,
  * a meal with foods named by them, like `Haferflocken, Milch`, so its what only picks an earlier meal to fill them in,
@@ -14,7 +15,7 @@
  * The categories come in the order the reader gives them, by their importance for my life;
  * a box of the plan offers all but those I don't plan, `Sleep`, `Food`, `Cook`, `Drink` and `Game`.
  * Each list comes from the log, the most used first, searched as I type, see `choices.ts`;
- * the typed text can be added as a new value, which is then picked.
+ * the typed text can be added as a new value, which is then picked, but to the what of `Sleep`, which takes no new one.
  * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first;
  * a new place is added with its address through a small dialog before it is picked, see `places.ts`.
  * `From` starts where the last way before the entry ended.
@@ -77,16 +78,19 @@ type FieldKey = "title" | "from" | "location";
  * - `key`: Field of the entry it writes into.
  * - `values`: Values to pick, the most used first.
  * - `steps`: Steps of a value offered in the code, by the value, like the exercises of `Neck short`.
+ * - `fixed`: Whether it takes only its values, like `Night` and `Day` of `Sleep`, and no new ones.
  */
 type Field = {
     name: string;
     key: FieldKey;
     values: string[];
     steps: { [value: string]: string[] };
+    fixed: boolean;
 };
 
 /**
- * A category, as the reader gives it; without a field `title` its name is the title, like `Sleep`.
+ * A category, as the reader gives it; without a field `title` its name would be the title, as in an old `Sleep`
+ * written before it had its what.
  *
  * - `name`: Name of the category, like `Way`.
  * - `fields`: Its fields, in the order they are picked.
@@ -386,7 +390,8 @@ function stepsShow(steps: HTMLElement, field: Field): void {
 
 /**
  * Shows one picker per field of the category picked, see {@link choicesOf}: its values, the most used first,
- * searched as I type, the typed text taken as a new value with `+`, see {@link valueAdd},
+ * searched as I type, the typed text taken as a new value with `+`, see {@link valueAdd}, but in a field
+ * that takes no new values, like the what of `Sleep`,
  * a new place only once it is saved with its address in the dialog of a new place, see `placeOpen` in `places.ts`;
  * below the picker of a field whose values have steps, the steps of the value picked, see {@link stepsShow};
  * for a cooking below them the meal eaten right after it, see {@link eatenRowOf}, and for `Body` my neck pain,
@@ -404,7 +409,7 @@ function fieldsShow(): void {
             search: (text: string): Promise<Choice[]> => searchOf(field.values.map(choiceOf))(text),
             picked: values[field.key] === "" ? [] : [values[field.key]],
             many: false,
-            adding: true,
+            adding: !field.fixed,
             add: field.key === "title" ? undefined : placeOpen,
             pick: (picked: string[]): void => {
                 values[field.key] = picked[0] ?? "";
@@ -495,7 +500,7 @@ function namesShow(): void {
 /**
  * Reads what the entry was, its `SUMMARY`: a skill entry its module and type joined by a space, like `IN2028 VO`,
  * a meal of the log with foods their names, see {@link mealTitle};
- * else what is picked, or the name of a category without the field `title`, like `Sleep`.
+ * else what is picked, like `Night` of `Sleep`, or the name of a category without the field `title`.
  *
  * @param picked - What is picked in its list, empty for none
  * @returns What the entry was
