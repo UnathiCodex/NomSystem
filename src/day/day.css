@@ -1775,7 +1775,7 @@ svg.route-arrow {
         white-space: normal;
     }
 
-    .box-meta .entry-parted::before {
+    .box-meta > .entry-parted::before {
         content: none;
     }
 
