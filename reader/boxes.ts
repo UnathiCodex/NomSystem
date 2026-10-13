@@ -42,10 +42,10 @@
  * is a box without time. A change keeps an event an event, so its time and duration stay: dropped, it is
  * `STATUS:CANCELLED`, which events have too, and it is done when a log entry points to it.
  *
- * Above its boxes a day shows its birthdays and holidays, those of `Birthdays.ics` in `NomSystemcalendar`,
- * see `sources.ts`, each on its date, a yearly series on each of its days, with its category, like
- * `Birthday: KarlbauerFlorian`, and my gift idea for it, its `DESCRIPTION`, see `gifts.ts`; none while the file
- * is missing.
+ * Above its boxes a day shows its birthdays and holidays, those of `Birthdays.ics` and `Holidays.ics`
+ * in `NomSystemcalendar`, see `sources.ts`, each on its date, a yearly series on each of its days, with its category,
+ * like `Birthday: KarlbauerFlorian` or `Holiday: Ostermontag (AT, DE)`, and my gift idea for it, its `DESCRIPTION`,
+ * see `gifts.ts`; none of a file while it is missing.
  *
  * - `node:path`: Gives the name of a plan file.
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
@@ -102,9 +102,9 @@ export type Box = EntryTexts & {
 /**
  * A birthday or holiday of a day, as the page shows it.
  *
- * - `id`: Its identifier in `Birthdays.ics`, its `UID`, shared by every year of its series.
- * - `category`: Its category, like `Birthday`, empty for none.
- * - `title`: Its name as `Birthdays.ics` writes it, like `KarlbauerFlorian`.
+ * - `id`: Its identifier in `Birthdays.ics` or `Holidays.ics`, its `UID`, shared by every year of its series.
+ * - `category`: Its category, like `Birthday` or `Holiday`, empty for none.
+ * - `title`: Its name as its file writes it, like `KarlbauerFlorian` or `Ostermontag (AT, DE)`.
  * - `gift`: My gift idea for it, its `DESCRIPTION`, see `gifts.ts`, empty for none.
  */
 export type Occasion = {
@@ -326,7 +326,7 @@ function deadlineShows(box: Box, date: string): boolean {
  * - `logs`: Log entries written from boxes, until {@link deadlineDays} days after the last day, see {@link logsOf}.
  * - `boxes`: Boxes of the plan from the first day to {@link deadlineDays} days after the last,
  *   so a deadline after the range shows in it.
- * - `occasions`: Birthdays and holidays of the days of the range, none while `Birthdays.ics` is missing.
+ * - `occasions`: Birthdays and holidays of the days of the range, none of a file while it is missing.
  * - `days`: The plans so far.
  * - `planned`: Boxes of the plan of one day.
  *

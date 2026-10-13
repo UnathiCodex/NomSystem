@@ -3,8 +3,8 @@
  *
  * My gift ideas for the birthdays and holidays at the top of the plan, see `reader/gifts.ts`,
  * written only when I have one: a click on a birthday or holiday opens a small dialog with one field, my gift idea for it,
- * which `Enter` or the check saves as its `DESCRIPTION` in `Birthdays.ics`, for every year of it; an empty field,
- * or the bin, takes the idea out again.
+ * which `Enter` or the check saves as its `DESCRIPTION` in its file, `Birthdays.ics` or `Holidays.ics`, for every year
+ * of it; an empty field, or the bin, takes the idea out again.
  * The plan shows each idea below its birthday or holiday, see `boxes.ts`, and loads again when the dialog closes.
  *
  * - `../icons.ts`: Puts the icons into the buttons of the dialog.
@@ -26,7 +26,7 @@ let opened: Occasion = { id: "", category: "", title: "", gift: "" };
 /**
  * Sends my gift idea for a birthday or holiday to the reader, an empty one to take it out again.
  *
- * @param id - Identifier of the birthday or holiday in `Birthdays.ics`, like `birthday-anna@nomsystem`
+ * @param id - Identifier of the birthday or holiday in its file, like `birthday-anna@nomsystem`
  * @param gift - The gift, empty for none
  * @throws {Error} - When the reader does not take it
  */

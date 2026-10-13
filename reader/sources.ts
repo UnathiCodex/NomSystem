@@ -48,7 +48,7 @@ export const manageRoot: string = join(vault, "NomManageplannings");
  * Folder of plan and log of my new system, `NomSystemcalendar`: one folder per year and one per month,
  * like `2026/2026_10/`, holding the log `2026_10_Log.ics` and the plan `2026_10_Plan.ics`; in `Skilling/` a plan
  * per module, like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`, read as plan too; at its top
- * `Birthdays.ics`.
+ * `Birthdays.ics` and `Holidays.ics`.
  */
 export const calendarRoot: string = join(manageRoot, "NomSystemcalendar");
 
@@ -202,10 +202,11 @@ export const activeModules: string[] = activeSkills
  *
  * - `plan`: Calendar of what I intend, the plan files of the months, read as the boxes of each day, see `boxes.ts`.
  * - `log`: Calendar of what really happened, by category, the log files of the months, my one calendar.
- * - `system`: Calendar of birthdays and holidays, `Birthdays.ics` in {@link calendarRoot}, which I write
- *   by hand, each a whole day, a birthday a yearly series with `CATEGORIES:Birthday` and the name as `SUMMARY`,
- *   shown above the boxes of their day, like `Birthday: KarlbauerFlorian`; my gift idea for one is its `DESCRIPTION`,
- *   which the reader writes, see `gifts.ts`; none while it is missing.
+ * - `system`: Calendars of birthdays and holidays in {@link calendarRoot}, shown above the boxes of their day,
+ *   each a whole day: `Birthdays.ics`, which I write by hand, a birthday a yearly series with `CATEGORIES:Birthday`
+ *   and the name as `SUMMARY`, like `Birthday: KarlbauerFlorian`, and beside it `Holidays.ics`, a holiday
+ *   with `CATEGORIES:Holiday`, like `Holiday: Ostermontag (AT, DE)`; my gift idea for one is its `DESCRIPTION`,
+ *   which the reader writes, see `gifts.ts`; none of a file while it is missing.
  * - `places`: My places, `Places.md` in {@link dataRoot}, beside `Foods.md`, one Markdown table
  *   with one row per place, its name and its address, which the reader writes as I add places, see `places.ts`.
  */
@@ -222,7 +223,7 @@ export type DaySources = {
 export const day: DaySources = {
     plan: [{ folder: calendarRoot, ending: planEnding }],
     log: [{ folder: calendarRoot, ending: logEnding }],
-    system: [{ folder: calendarRoot, ending: "Birthdays.ics" }],
+    system: [{ folder: calendarRoot, ending: "Birthdays.ics" }, { folder: calendarRoot, ending: "Holidays.ics" }],
     places: join(dataRoot, "Places.md"),
 };
 

@@ -115,9 +115,9 @@ export type Box = {
 /**
  * A birthday or holiday of a day, as the reader sends it.
  *
- * - `id`: Its identifier in `Birthdays.ics`, shared by every year of it.
- * - `category`: Its category, like `Birthday`, empty for none.
- * - `title`: Its name as `Birthdays.ics` writes it, like `KarlbauerFlorian`.
+ * - `id`: Its identifier in `Birthdays.ics` or `Holidays.ics`, shared by every year of it.
+ * - `category`: Its category, like `Birthday` or `Holiday`, empty for none.
+ * - `title`: Its name as its file writes it, like `KarlbauerFlorian` or `Ostermontag (AT, DE)`.
  * - `gift`: My gift idea for it, its `DESCRIPTION`, empty for none.
  */
 export type Occasion = {

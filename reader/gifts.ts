@@ -1,13 +1,14 @@
 /**
  * ## Gifts
  *
- * Writes my gift idea for a birthday or holiday as its `DESCRIPTION` in `Birthdays.ics`, the file of my birthdays
- * I write by hand, like `DESCRIPTION:Buch über Rom` in the yearly series `KarlbauerFlorian`, so it shows below it
- * every year, see `boxes.ts`; every other line of the file stays as it is, byte for byte.
+ * Writes my gift idea for a birthday or holiday as its `DESCRIPTION` in its file, `Birthdays.ics`, the file of my
+ * birthdays I write by hand, or `Holidays.ics`, like `DESCRIPTION:Buch über Rom` in the yearly series
+ * `KarlbauerFlorian`, so it shows below it every year, see `boxes.ts`; every other line of the file stays as it is,
+ * byte for byte.
  * I write one only when I have one, and an empty one takes the line out again.
  *
  * - `./calendar.ts`: Finds the file of a birthday and puts its `DESCRIPTION`.
- * - `./sources.ts`: Names `Birthdays.ics`, the calendar of the birthdays and holidays.
+ * - `./sources.ts`: Names `Birthdays.ics` and `Holidays.ics`, the calendars of the birthdays and holidays.
  */
 
 import { fileOfId, propertiesPut } from "./calendar.ts";
@@ -17,7 +18,7 @@ import { day } from "./sources.ts";
 /**
  * A gift idea, as the page sends it.
  *
- * - `id`: Identifier of the birthday or holiday in `Birthdays.ics`, its `UID`, like `birthday-anna@nomsystem`.
+ * - `id`: Identifier of the birthday or holiday in its file, its `UID`, like `birthday-anna@nomsystem`.
  * - `gift`: The gift, like `Buch über Rom`; an empty one takes the idea out again.
  */
 export type Gift = {
@@ -27,7 +28,7 @@ export type Gift = {
 
 
 /**
- * Writes my gift idea for a birthday or holiday as its `DESCRIPTION` in `Birthdays.ics`, see the top of this file,
+ * Writes my gift idea for a birthday or holiday as its `DESCRIPTION` in its file, see the top of this file,
  * on one line, spaces in a row one, none at the ends; an empty one takes its `DESCRIPTION` out.
  * - `id`, `gift`: Identifier and gift as sent, the gift cleaned.
  * - `file`: The `.ics` file of the birthday or holiday, `undefined` for none.
