@@ -11,16 +11,17 @@
  * and without how near it is, like `today`, since its row names the day.
  * Nothing moves here: a click on a day, anywhere in its row, opens it in the day view.
  * The arrows move by seven days, `Today` comes back, and a click on the days above opens a month,
- * whose clicked day becomes the first day shown, see `month.ts`; the address keeps the first day shown,
- * like `/week?date=2026-10-12`, so a reload stays on it. Today is today's calendar date, which turns at 00:00,
- * and a week from today moves on with it, see `today.ts`; any other week marks the new today at 00:00.
+ * whose clicked day becomes the first day shown, see `month.ts`. The week opens on today, also after a reload,
+ * only a link like `/week?date=2026-10-12` on its day, see `today.ts`. Today is today's calendar date,
+ * which turns at 00:00, and a week from today moves on with it; any other week marks the new today at 00:00.
  *
  * - `../day/boxes.ts`: Loads the boxes of days, shows a box and the birthdays and holidays as the day does,
  *   and writes a day with its weekday.
  * - `../day/month.ts`: Picks the first day to show from a month.
  * - `../day/times.ts`: Writes a day in my standard way, like `12.10.2026`.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
- * - `../today.ts`: Gives today's calendar date and moves a week from today on to the new day.
+ * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves a week from today on
+ *   to the new day.
  * - `../icons.ts`: Puts the icons into the arrows, and the check into a done box.
  * - `lucide`: The icons of the arrows and the check.
  * - `../day/day.css`: Look of the day, whose boxes the week shares.
@@ -30,7 +31,7 @@ import { boxContentOf, boxesFetch, entryPartOf, occasionsOf, weekdayTextOf } fro
 import { monthStart } from "../day/month.ts";
 import { dateTextOf } from "../day/times.ts";
 import { dayOf } from "../skill/attempts.ts";
-import { calendarTodayOf, todayFollow } from "../today.ts";
+import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
 import { iconOf, iconPut } from "../icons.ts";
 import { Check, ChevronLeft, ChevronRight } from "lucide";
 import "../day/day.css";
@@ -133,17 +134,15 @@ function todayMark(): void {
 
 /**
  * Shows the seven days from a first day on: their range as title, like `12.10.2026 – 18.10.2026`, and one row per day,
- * see {@link dayRowOf}, today marked, see {@link todayMark}; writes the first day into the address.
+ * see {@link dayRowOf}, today marked, see {@link todayMark}.
  * - `last`: The last day shown.
  * - `plans`: The plans of the seven days.
- * - {@link History#replaceState}: Changes the address without loading the page again.
  *
  * @param day - First day, like `2026-10-12`
  * @throws {Error} - When the reader cannot answer
  */
 async function weekShow(day: string): Promise<void> {
     first = day;
-    history.replaceState(null, "", `?date=${day}`);
     const last: string = daysLater(day, weekDays - 1);
     (document.getElementById("week-title") as HTMLElement).textContent =
         `${dateTextOf(day)} – ${dateTextOf(last)}`;
@@ -155,7 +154,8 @@ async function weekShow(day: string): Promise<void> {
 }
 
 /**
- * Starts the week after the router has put its HTML into the page, on the day of the address or today's calendar date:
+ * Starts the week after the router has put its HTML into the page, on the day a link asks for or today's calendar date,
+ * see `askedDayOf` in `today.ts`:
  * the arrows move by seven days, `Today` comes back, the days above open the month to pick the first day from;
  * a week from today moves on to the new day by itself, any other marks the new today, see `todayFollow` in `today.ts`.
  * - `show`: Shows the seven days from a first day on.
@@ -173,6 +173,6 @@ export function weekStart(): void {
     document.getElementById("week-today")?.addEventListener("click", (): void => show(calendarTodayOf()));
     document.getElementById("week-next")?.addEventListener("click", (): void => show(daysLater(first, weekDays)));
     monthStart(document.getElementById("week-title") as HTMLElement, shown, show);
-    show(new URLSearchParams(location.search).get("date") ?? calendarTodayOf());
+    show(askedDayOf() ?? calendarTodayOf());
     todayFollow((): string => first, show, todayMark);
 }

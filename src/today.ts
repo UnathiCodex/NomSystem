@@ -7,6 +7,8 @@
  * A view that shows today moves on to the new day by itself at 00:00, and when the page becomes visible again
  * on a later day, like a tab left open overnight, whose timer the browser may have held back; a day I went to myself
  * stays, and only marks today anew, like the `Today` button of the day and the row of today in the week.
+ * A view opens on today, also when it is reloaded, opened again by the browser or started anew as the app;
+ * only a link to a day, like a row of the week, opens on that day, see {@link askedDayOf}.
  *
  * - `./skill/attempts.ts`: Writes a date as a day in the form of the reader.
  */
@@ -22,6 +24,21 @@ import { dayOf } from "./skill/attempts.ts";
  */
 export function calendarTodayOf(): string {
     return dayOf(new Date());
+}
+
+/**
+ * Reads the day a link asks a view to open on, like `2026-10-15` of `/?date=2026-10-15` from a row of the week,
+ * and takes it out of the address, so a reload or a tab the browser opens again later shows today instead,
+ * like 13 October after a night with the tab of 12 October open.
+ * - `asked`: The day of the address, `null` for none.
+ * - {@link History#replaceState}: Changes the address without loading the page again.
+ *
+ * @returns Day like `2026-10-15`, `null` when the address asks for none or for no day written like it
+ */
+export function askedDayOf(): string | null {
+    const asked: string | null = new URLSearchParams(location.search).get("date");
+    history.replaceState(null, "", location.pathname);
+    return asked !== null && /^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : null;
 }
 
 /**

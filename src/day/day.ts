@@ -15,8 +15,9 @@
  * a dish, a meal or a cooking, lists its foods. The kcal of a meal stay hidden for a try; the dialog and the trackers
  * show them. A glass of water is no block but a small mark at the edge of the log,
  * since the counter of the trackers counts it.
- * The address keeps the shown day, like `?date=2026-07-03`, so a reload stays on it; without one the day opens
- * on today's calendar date, which turns at 00:00, and while it shows today it moves on with it, see `today.ts`.
+ * The day opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today
+ * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the week, opens on that day,
+ * which the address then keeps no more, see `today.ts`.
  * The grid runs from 00:00 to 05:00 of the next day and opens at 06:00, so the hours after midnight show on both days,
  * like a sleep from 01:00 at the bottom of 12 October and at the top of 13 October; the trackers count them once,
  * for the day I lived, 12 October, see {@link dayStart}.
@@ -39,7 +40,8 @@
  * - `./trackers.ts`: Shows my sleep, my glasses of water, my food and my neck sessions of the day.
  * - `./times.ts`: Reads the typed times of the panels, writes the times of entries and the date of the day.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
- * - `../today.ts`: Gives today's calendar date and moves the day on to the new day while it shows today.
+ * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the day on to the new day
+ *   while it shows today.
  * - `../icons.ts`: Puts the icons of the arrows and of `+` into their buttons.
  * - `lucide`: The icons of the arrows and plus.
  */
@@ -58,7 +60,7 @@ import { giftsStart } from "./gifts.ts";
 import { trackersSee } from "./trackers.ts";
 import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
-import { calendarTodayOf, todayFollow } from "../today.ts";
+import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
 import { iconPut } from "../icons.ts";
 import { ChevronLeft, ChevronRight, Plus } from "lucide";
 import "fullcalendar/skeleton.css";
@@ -247,10 +249,9 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
 /**
  * Shows the date of the shown day above plan and log, its weekday and its date in my standard way,
  * like `Sunday, 11.10.2026`, `Today` faded when it is today's calendar date,
- * daily note, gratitude and paragraph of the day, see {@link dayNoteShow}, and writes the day into the address;
+ * daily note, gratitude and paragraph of the day, see {@link dayNoteShow};
  * the boxes and the trackers follow the entries of the log, see `eventsSet` in {@link dayStart}.
  * - `weekday`: Weekday of the shown day, like `Sunday`, from the day at noon.
- * - {@link History#replaceState}: Changes the address without loading the page again.
  *
  * @param info - Range of the shown day
  */
@@ -259,7 +260,6 @@ function dayShow(info: DatesSetInfo): void {
     const weekday: string = new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" });
     (document.getElementById("day-title") as HTMLElement).textContent = `${weekday}, ${dateTextOf(date)}`;
     todayButtonShow(date);
-    history.replaceState(null, "", `?date=${date}`);
     dayNoteShow(date);
 }
 
@@ -317,7 +317,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
 }
 
 /**
- * Starts the day after the router has put its HTML into the page, on the day of the address or today's calendar date:
+ * Starts the day after the router has put its HTML into the page, on the day a link asks for or today's calendar date,
+ * see `askedDayOf` in `today.ts`:
  * the arrows and `Today` above plan and log move the calendar by a day or back to today, the date opens the month
  * to pick a day from, `+` above the time grid opens the entry by category of the log for the last half hour;
  * while it shows today, the day moves on to the new day by itself, now centred again, see `todayFollow` in `today.ts`,
@@ -373,7 +374,7 @@ export function dayStart(note: boolean): void {
         plugins: [timeGridPlugin, interactionPlugin, themePlugin],
         locale: englishLocale,
         initialView: "timeGridDay",
-        initialDate: new URLSearchParams(location.search).get("date") ?? calendarTodayOf(),
+        initialDate: askedDayOf() ?? calendarTodayOf(),
         height: "100%",
         headerToolbar: false,
         dayHeaders: false,
