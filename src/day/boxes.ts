@@ -31,7 +31,7 @@
  * the log shows.
  * An open box that can be changed is skipped, cancelled, with one tap on its cross, or pushed to the next day
  * with one tap on its arrow, which shows under the pointer; a skipped box stays in its file, see `reader/boxes.ts`,
- * and shows greyed and struck through at the end of the list, where one tap on its arrow back takes it back.
+ * and shows greyed, never struck through, at the end of the list, where one tap on its arrow back takes it back.
  * A box neither done nor cancelled stays greyed on its day once that is over, without its arrow, and is carried
  * along on today: below the list of today, under `Carried along`, each with its day, like `Mon, 12.10.2026 · 45 min`,
  * the earliest first, see `boxesCarried` in `reader/boxes.ts`, until I do it, dragged into the log or with its ring,

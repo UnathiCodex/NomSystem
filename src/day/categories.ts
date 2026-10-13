@@ -1141,9 +1141,9 @@ function timesShow(opening: EntryOpening): void {
 
 /**
  * Shows the dialog as an opening says, a new one without category with the list of the categories open.
- * On top its title, `Plan entry` for a box, with `Log it` beside it to log an open box being changed,
- * else `Log entry`, and below it, small and grey, the box a log entry comes from, with `Edit plan` beside the title
- * to change it instead, when it can be changed. Its buttons say what they do: `Remove`, `Cancel` and `Save`.
+ * It has no title: below its fields, small and grey, the box a log entry comes from; at the bottom the copy and the bin
+ * at the left, `Log it` to log an open box being changed, `Edit plan` to change the box a log entry comes from
+ * instead, when it can be changed, then cancel and save, see `day.html`.
  * The first button, which the dialog focuses as it opens, loses the focus again, so its ring never looks like a pick.
  * - `dialog`: The dialog, open already when one of those two buttons opens it anew.
  * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page, `Esc` closes it.
