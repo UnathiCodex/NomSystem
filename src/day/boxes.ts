@@ -8,10 +8,10 @@
  * a deadline, then those without either, then tomorrow's suggested study sessions, dashed, see `suggestions.ts`,
  * and the cancelled boxes without time last; on today below them the boxes carried along, see below.
  * Every box has the same three lines, open or done: its category in bold with a colon and what,
- * like `Skill: IN0004_EinfuehrungRechnerarchitektur VO`, as an entry of the log does, then grey its expected time and length and how often it was
- * pushed, like `11:30 – 13:00 (90 min)` or `75 min · pushed once`, then its place on a line of its own, by its label
- * alone, like `Audimax im Galileo`, which opens its link on a click when it has one; a line without anything to say
- * is left out.
+ * like `Skill: IN0004_EinfuehrungRechnerarchitektur VO`, as an entry of the log does, then grey its expected time
+ * and length and how often it was pushed, like `11:30 – 13:00 (90 min)` or `75 min · pushed once`, then its place
+ * on a line of its own, by its label alone, like `Audimax im Galileo`, which opens its link on a click when it has
+ * one; a line without anything to say is left out.
  * An open box pushed three times or more asks instead of counting on, `pushed 3 times · smaller or skip?`,
  * since a task I keep pushing is often too big or no longer wanted, and a click on it opens it to cut it.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
@@ -409,7 +409,8 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
 /**
  * Makes the lines of a box, in the day and in the week alike, the same three whether it is open or done, see the top
  * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf},
- * like **`Skill: IN0004_EinfuehrungRechnerarchitektur VO`**, see {@link shownWhatOf}, its long names breakable, see `breakableOf` in `choices.ts`,
+ * like **`Skill: IN0004_EinfuehrungRechnerarchitektur VO`**, see {@link shownWhatOf}, its long names breakable,
+ * see `breakableOf` in `choices.ts`,
  * its time and length in the light grey of a time, its parts apart by a middle dot with room on both sides,
  * see {@link timePartsOf}, like `16:00 – 17:30 · 90 min`, and its place on a line of its own in the darker grey,
  * by its label alone, its address hidden, like `Audimax im Galileo`, a way its route,

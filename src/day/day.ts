@@ -231,7 +231,7 @@ function linesOf(info: EventDisplayInfo): number {
  * move down, and those the entry has no more room for stay hidden, see `.entry-lines` in `day.css`.
  * - `category`: Category of the entry, empty for an entry without one.
  * - `foods`: Foods of a dish, none for any other entry.
- * - `what`: What the entry was, a skill entry by its skill and type, like `IN0004 Einfuehrung Rechnerarchitektur VO`,
+ * - `what`: What the entry was, a skill entry by its skill and type, like `IN0004_EinfuehrungRechnerarchitektur VO`,
  *   see `shownWhatOf` in `boxes.ts`, its foods for a dish, empty when it is its category, like an old `Sleep`
  *   written before it had its what.
  * - `from`: Where a way starts, its `X-FROM`, empty for none.
@@ -309,18 +309,18 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
 }
 
 /**
- * Shows the date of the shown day above plan and log, its weekday and its date in my standard way,
- * like `Sunday, 11.10.2026`, always fully readable, with the icon back to today on any other day,
+ * Shows the date of the shown day above plan and log, its weekday short and its date in my standard way,
+ * like `Sun, 11.10.2026`, as the week writes it, always fully readable, with the icon back to today on any other day,
  * see {@link todayButtonShow}, and its daily note, gratitude and points about the day, see {@link dayNoteShow};
  * the boxes and the trackers follow the entries of the log, see `eventsSet` in {@link dayStart}.
  * The comma after the weekday is drawn by `day.css`, which on a phone puts the weekday above the date instead.
- * - `weekday`: Weekday of the shown day, like `Sunday`, from the day at noon.
+ * - `weekday`: Weekday of the shown day, like `Sun`, from the day at noon.
  *
  * @param info - Range of the shown day
  */
 function dayShow(info: DatesSetInfo): void {
     const date: string = info.startStr.slice(0, 10);
-    const weekday: string = new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" });
+    const weekday: string = new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short" });
     (document.getElementById("day-weekday") as HTMLElement).textContent = weekday;
     (document.getElementById("day-date") as HTMLElement).textContent = dateTextOf(date);
     todayButtonShow(date);
@@ -328,14 +328,14 @@ function dayShow(info: DatesSetInfo): void {
 }
 
 /**
- * Shows the small icon back to today beside the date while the shown day is another than today's calendar date,
- * none on today, like 13.10.2026 on that day, also once the day turned at 00:00 while the day stays,
- * see `todayFollow` in `today.ts`.
+ * Turns the small icon back to today beside the date on while the shown day is another than today's calendar date;
+ * on today, like 13.10.2026 on that day, it shows faded and off, so the bar looks the same on every day, see
+ * `.day-today` in `day.css`; also once the day turned at 00:00 while the day stays, see `todayFollow` in `today.ts`.
  *
  * @param date - Shown day, like `2026-10-13`
  */
 function todayButtonShow(date: string): void {
-    (document.getElementById("day-today") as HTMLButtonElement).hidden = date === calendarTodayOf();
+    (document.getElementById("day-today") as HTMLButtonElement).disabled = date === calendarTodayOf();
 }
 
 /**

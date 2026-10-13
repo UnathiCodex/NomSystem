@@ -4,15 +4,15 @@
     <!-- The shown day above its plan and its log, side by side, its daily note below them -->
     <div class="day-main" id="day-main" data-shown="plan">
         <!-- The date of the shown day at the left end of the bar, above the plan, always fully readable, the arrows
-             to the day before and after left and right of it; on another day than today a small icon beside the date
-             leads back to today, saving the room of a button Today. A click on the date opens the month to pick
+             to the day before and after left and right of it; a small icon beside the date leads back to today, saving
+             the room of a button Today, faded and off on today. A click on the date opens the month to pick
              a day from, see month.ts. On a phone the date stands in the middle, the weekday above it.
              The trackers of the shown day at the right end, above the log -->
         <div class="day-bar day-nav">
             <button class="day-arrow" id="day-back" type="button"></button>
             <h2 class="day-title"><button class="day-title-button" id="day-title" type="button" title="Pick a day"><span
                 class="day-weekday" id="day-weekday"></span> <span class="day-date" id="day-date"></span></button></h2>
-            <button class="day-today" id="day-today" type="button" hidden></button>
+            <button class="day-today" id="day-today" type="button" disabled></button>
             <button class="day-arrow" id="day-next" type="button"></button>
 
             <!-- Trackers of the shown day: the night's sleep, glasses of water and food; filled by trackers.ts;

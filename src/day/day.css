@@ -43,8 +43,8 @@
     content: ",";
 }
 
-/* Icon back to today beside the date, on another day than today: small, without frame, grey, lighter
-   under the pointer */
+/* Icon back to today beside the date: small, without frame, grey, lighter under the pointer; on today faded
+   and off, so the bar looks the same on every day, see `day.ts` */
 .day-today {
     display: inline-flex;
     align-items: center;
@@ -55,8 +55,13 @@
     cursor: pointer;
 }
 
-.day-today:hover {
+.day-today:enabled:hover {
     color: var(--text-main);
+}
+
+.day-today:disabled {
+    opacity: 0.4;
+    cursor: default;
 }
 
 /* Buttons of the bar one control high with round corners, the arrows square, a grey lighter under the pointer,
@@ -383,7 +388,7 @@ button.box-ring.box-checked svg {
 /* Seven rows, one below the other, scrolling together when they are many; each a link to its day:
    its name grey at the left, today's light and its edge lighter, beside it its boxes in columns of the same width,
    each at least 30rem wide, so the whole name of a skill fits on its line, like
-   `Skill: IN2028 Business Analytics Machine Learning VO`, as many as the row has room for, wrapping into the next line,
+   `Skill: IN2028_BusinessAnalyticsMachineLearning VO`, as many as the row has room for, wrapping into the next line,
    birthdays and holidays over the whole width */
 .week-days {
     display: flex;
@@ -471,7 +476,8 @@ button.box-ring.box-checked svg {
 }
 
 /* Date of the day as a button, which opens the month to pick a day from: no frame, a grey under the pointer,
-   its padding keeping room to the arrows left and right of it */
+   its padding keeping room to the arrows left and right of it; in the day as wide as its widest date, like
+   `Mon, 19.10.2026`, every digit equally wide, so the arrow after it stays in place from day to day */
 .day-title-button {
     padding: 0.25rem var(--control-gap);
     border: none;
@@ -484,6 +490,11 @@ button.box-ring.box-checked svg {
 
 .day-title-button:hover {
     background: var(--fill);
+}
+
+#day-title {
+    min-width: 9.25em;
+    font-variant-numeric: tabular-nums;
 }
 
 /* Days of the month with their number in the middle in the size of the page, a grey under the pointer,
