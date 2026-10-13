@@ -10,7 +10,9 @@
  * so it can be counted.
  *
  * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan file of its month,
- * like `2026/2026_10/2026_10_Plan.ics`, see `calendar.ts`:
+ * like `2026/2026_10/2026_10_Plan.ics`, or in the plan of its module, like
+ * `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`, both in `NomSystemcalendar`, see `calendar.ts`;
+ * a box of a month moves into the plan file of the month of its new day when its day changes, a box of a module stays:
  * - its day and its expected time in `DTSTART`: `DTSTART;VALUE=DATE:20261013` without time,
  *   `DTSTART;TZID=Europe/Berlin:20261013T120000` with;
  * - or instead its deadline in `DUE`, like a homework I must hand in: `DUE;TZID=Europe/Berlin:20261023T120000`,
@@ -40,16 +42,18 @@
  * is a box without time. A change keeps an event an event, so its time and duration stay: dropped, it is
  * `STATUS:CANCELLED`, which events have too, and it is done when a log entry points to it.
  *
- * Above its boxes a day shows its birthdays and holidays, those of `Birthdays.ics` in the folder of the new system,
+ * Above its boxes a day shows its birthdays and holidays, those of `Birthdays.ics` in `NomSystemcalendar`,
  * see `sources.ts`, each on its date, a yearly series on each of its days, with its category, like
  * `Birthday: KarlbauerFlorian`, and my gift idea for it, its `DESCRIPTION`, see `gifts.ts`; none while the file
  * is missing.
  *
+ * - `node:path`: Gives the name of a plan file.
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
  * - `./categories.ts`: Tells whether a box fits its category, and names the category of skill entries.
  * - `./sources.ts`: Names the plan, the log and the birthdays and holidays, and builds the path of a plan file.
  */
 
+import { basename } from "node:path";
 import {
     berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryLookup, entryRemove,
     occurrenceLookup, propertiesPut, statusPut, todoAppend, todoChange,
@@ -164,10 +168,23 @@ const deadlineDays: number = 4;
  * Builds the path of the plan file of the month of a day.
  *
  * @param date - Day like `2026-10-13`
- * @returns Path like `2026/2026_10/2026_10_Plan.ics` in the folder of the new system
+ * @returns Path like `2026/2026_10/2026_10_Plan.ics` in `NomSystemcalendar`
  */
 function planFileOf(date: string): string {
     return monthFileOf(date, planEnding);
+}
+
+/**
+ * Gives the plan file a box is written into once its day changes, see the top of this file: the plan file
+ * of the month of its new day when it lies in the plan file of a month, like `2026_10_Plan.ics`,
+ * else the file it lies in, like the plan of a module, `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`.
+ *
+ * @param file - Path of the plan file the box lies in
+ * @param date - New day of the box, like `2026-11-02`
+ * @returns Path like `2026/2026_11/2026_11_Plan.ics` or the path of its file
+ */
+function planFileAfter(file: string, date: string): string {
+    return /^\d{4}_\d{2}_Plan\.ics$/.test(basename(file)) ? planFileOf(date) : file;
 }
 
 /**
@@ -425,7 +442,8 @@ export function boxAdd(box: BoxNew): string {
 }
 
 /**
- * Changes a box of the new system, see {@link boxCheck}; it moves into the plan file of its new day when that is another.
+ * Changes a box of the new system, see {@link boxCheck}; a box of a month moves into the plan file of its new day
+ * when that is another, see {@link planFileAfter}.
  * A to-do changes as it is sent; an event, like a lecture imported from TUMonline, keeps a time and a duration,
  * its start and its end.
  * - `start`: New start of an event.
@@ -441,7 +459,7 @@ export function boxEdit(change: BoxChange): void {
         throw new Error(`${entry.title} may not be changed`);
     boxCheck(change);
     if (entry.todo) {
-        todoChange(file, entry, todoFieldsOf(change), planFileOf(change.day));
+        todoChange(file, entry, todoFieldsOf(change), planFileAfter(file, change.day));
         return;
     }
 
@@ -453,7 +471,7 @@ export function boxEdit(change: BoxChange): void {
         module: change.module, type: change.type, note: change.note,
         start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
     };
-    entryChange(file, entry, fields, planFileOf(change.day));
+    entryChange(file, entry, fields, planFileAfter(file, change.day));
 }
 
 /**
@@ -473,7 +491,8 @@ export function boxDelete(id: string): void {
 
 /**
  * Pushes an open box of the new system to the next day, with one tap: notes the day it leaves in one more `X-PUSHED`,
- * then moves its day and its time by one day, its time of day kept, into the plan file of the next day.
+ * then moves its day and its time by one day, its time of day kept, a box of a month into the plan file
+ * of the next day, see {@link planFileAfter}.
  * A box with a deadline stays, since its day is the day of its deadline.
  * - `next`: The next day.
  * - `texts`: Its text fields, as they are.
@@ -496,11 +515,11 @@ export function boxPush(id: string): void {
         todoChange(file, entry, {
             ...texts, day: next, time: box.time === "" ? null : berlinLater(new Date(box.time), 1), minutes: entry.minutes,
             deadline: "",
-        }, planFileOf(next));
+        }, planFileAfter(file, next));
     else
         entryChange(file, entry, {
             ...texts, start: berlinLater(new Date(entry.start), 1), end: berlinLater(new Date(entry.end), 1),
-        }, planFileOf(next));
+        }, planFileAfter(file, next));
 }
 
 /**

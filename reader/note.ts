@@ -1,21 +1,22 @@
 /**
  * ## Daily notes
  *
- * Reads the daily notes of the new system, one per day, like `2026/2026_10/2026_10_12.md`, and writes into them
- * what I write in the dashboard, all a note holds: my gratitude into the callout `> [!tip] Dankbarkeiten`, as points,
- * and my short paragraph about the day overall into the callout `> [!note] Tagesfazit`, as text.
+ * Reads the daily notes of the new system, one per day in `NomSystemdiary`, like `2026/2026_10/2026_10_12.md`,
+ * and writes into them what I write in the dashboard, all a note holds: my gratitude into the callout
+ * `> [!tip] Dankbarkeiten`, as points, and my short paragraph about the day overall into the callout
+ * `> [!note] Tagesfazit`, as text.
  * A day has no note until I first write one of them: each callout is added the first time I write into it,
  * my gratitude before my paragraph, and taken out again with its head when I empty it;
  * every other line of a note stays as it is.
  *
  * - `node:fs`: Works with files and folders on the disk.
  * - `node:path`: Builds file paths for the operating system.
- * - `./sources.ts`: Names the folder of the new system and tells which files the reader may write.
+ * - `./sources.ts`: Names the folder of the daily notes and tells which files the reader may write.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { writeAllowed, writeRoot } from "./sources.ts";
+import { diaryRoot, writeAllowed } from "./sources.ts";
 
 
 /**
@@ -64,7 +65,7 @@ const pointStart: string = "> - ";
  * Builds the path of the daily note of a date in the new system.
  *
  * @param date - Date like `2026-10-12`
- * @returns Path `<JJJJ>/<JJJJ_MM>/<JJJJ_MM_TT>.md` in the folder of the new system, like `2026/2026_10/2026_10_12.md`
+ * @returns Path `<JJJJ>/<JJJJ_MM>/<JJJJ_MM_TT>.md` in `NomSystemdiary`, like `2026/2026_10/2026_10_12.md`
  * @throws {Error} - When the date is not written like `2026-10-12`
  */
 function noteFileOf(date: string): string {
@@ -72,7 +73,7 @@ function noteFileOf(date: string): string {
         throw new Error(`No date ${date}`);
 
     const [year, month, dayOfMonth]: string[] = date.split("-");
-    return join(writeRoot, year, `${year}_${month}`, `${year}_${month}_${dayOfMonth}.md`);
+    return join(diaryRoot, year, `${year}_${month}`, `${year}_${month}_${dayOfMonth}.md`);
 }
 
 /**

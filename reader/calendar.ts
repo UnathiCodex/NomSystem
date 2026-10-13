@@ -5,7 +5,7 @@
  * see `boxes.ts`; appends events and to-dos to them, changes and removes single ones,
  * and moves one from one file into another, like into the file of another month.
  * Keeps each read file until it changes on disk, so a file is read again only once it changed.
- * Writes only into the folder of the new system, with times in Berlin time,
+ * Writes only into the three folders of the new system, with times in Berlin time,
  * and leaves every line it does not change as it is, byte for byte.
  *
  * - `node:fs`: Works with files and folders on the disk.
@@ -581,10 +581,10 @@ export function entryFind(sources: CalendarSource[], id: string): [string, Entry
 }
 
 /**
- * Stops a write outside the folder of the new system, like into my modules.
+ * Stops a write outside the three folders of the new system, like into my modules.
  *
  * @param file - Path of the file to write
- * @throws {Error} - When the file lies outside the folder of the new system
+ * @throws {Error} - When the file lies outside the folders of the new system
  */
 function writeCheck(file: string): void {
     if (!writeAllowed(file))

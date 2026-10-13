@@ -137,7 +137,7 @@ const realCount: number = 3;
  * Builds the path of the month file of the log for the start of an entry, in Berlin time.
  *
  * @param start - Start of the entry
- * @returns Path like `2026/2026_10/2026_10_Log.ics` in the folder of the new system
+ * @returns Path like `2026/2026_10/2026_10_Log.ics` in `NomSystemcalendar`
  */
 export function fileOf(start: Date): string {
     return monthFileOf(berlinDateOf(start), logEnding);

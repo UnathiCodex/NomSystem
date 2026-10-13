@@ -2,12 +2,15 @@
  * ## Sources
  *
  * Names every folder and file the reader reads, and every address on the web it asks, grouped by area.
- * The reader reads only the new system, the folder {@link writeRoot}, my modules and the drafts, see {@link notes},
- * and the files the skill entries link, in my modules and my projects, see {@link activeSkills} and `documents.ts`,
- * and nothing that is not listed here.
- * It writes only into {@link writeRoot}, and the editor into the drafts, see {@link editor}.
- * A file or folder of the new system that is missing, like `Birthdays.ics` or the log of a month without entries,
- * counts as empty.
+ * My new system is three folders in `NomManageplannings`, see {@link systemRoots}: `NomSystemcalendar` for plan
+ * and log, {@link calendarRoot}, `NomSystemdiary` for the daily notes, {@link diaryRoot}, and `NomSystemdata`
+ * for my foods and places, {@link dataRoot}; my old system, `NomSystemprevious`, lies beside them and is never read.
+ * The reader reads only the new system, my modules and the drafts, see {@link notes}, and the files the skill
+ * entries link, in my modules and my projects, see {@link activeSkills} and `documents.ts`, and nothing that is
+ * not listed here.
+ * It writes only into the three folders of the new system, see {@link writeAllowed}, and the editor into the drafts,
+ * see {@link editor}. A file or folder of the new system that is missing, like `Birthdays.ics` or the log of a month
+ * without entries, counts as empty.
  *
  * - `node:os`: Gives the home folder and the operating system.
  * - `node:path`: Builds file paths for the operating system.
@@ -37,12 +40,39 @@ export const vault: string = process.env.NOM_VAULT
     ?? (platform() === "win32" ? "M:\\NomWorkspace" : join(homedir(), "NomWorkspace"));
 
 /**
- * Folder of the new system, `NomSystemcalendar`, the folder the reader writes into, but for the drafts of the editor:
- * one folder per year and one per month, like `2026/2026_10/`, holding the log `2026_10_Log.ics`,
- * the plan `2026_10_Plan.ics` and one daily note per day, like `2026_10_12.md`; at its top `Birthdays.ics`,
- * `Foods.md` and `Places.md`.
+ * Folder `NomManageplannings`, which holds the three folders of my new system and my old system beside them.
  */
-export const writeRoot: string = join(vault, "NomManageplannings", "NomSystemcalendar");
+export const manageRoot: string = join(vault, "NomManageplannings");
+
+/**
+ * Folder of plan and log of my new system, `NomSystemcalendar`: one folder per year and one per month,
+ * like `2026/2026_10/`, holding the log `2026_10_Log.ics` and the plan `2026_10_Plan.ics`; in `Skilling/` a plan
+ * per module, like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`, read as plan too; at its top
+ * `Birthdays.ics`.
+ */
+export const calendarRoot: string = join(manageRoot, "NomSystemcalendar");
+
+/**
+ * Folder of my daily notes, `NomSystemdiary`: one note per day in a folder per year and one per month,
+ * like `2026/2026_10/2026_10_13.md`, see `note.ts`.
+ */
+export const diaryRoot: string = join(manageRoot, "NomSystemdiary");
+
+/**
+ * Folder of my data, `NomSystemdata`: my foods, `Foods.md`, and my places, `Places.md`.
+ */
+export const dataRoot: string = join(manageRoot, "NomSystemdata");
+
+/**
+ * The three folders of my new system, the only ones the reader writes into, but for the drafts of the editor.
+ */
+export const systemRoots: string[] = [calendarRoot, diaryRoot, dataRoot];
+
+/**
+ * Name of the folder of my old system beside them in `NomManageplannings`, `NomSystemprevious`,
+ * which the reader never reads, not even to list it.
+ */
+export const previousName: string = "NomSystemprevious";
 
 /**
  * End of the names of the month files of the log, like `2026_10_Log.ics`: what happened, as events.
@@ -82,7 +112,8 @@ export const notes: NotesSources = {
 };
 
 /**
- * Places the editor writes, the only ones besides {@link writeRoot}: the drafts, never my modules.
+ * Places the editor writes, the only ones besides the three folders of the new system, see {@link systemRoots}:
+ * the drafts, never my modules.
  *
  * - `drafts`: Unchecked drafts I correct, the drafts of {@link notes}.
  * - `edits`: My corrections, one unified diff per save, in the hidden folder `.edits` of the drafts,
@@ -167,15 +198,15 @@ export const activeModules: string[] = activeSkills
     .map((skill: string): string => skill.slice(modulesFolder.length + 1));
 
 /**
- * Sources of the day area, all in the folder of the new system; the daily notes lie there too, see `note.ts`.
+ * Sources of the day area, all in the new system; the daily notes lie in {@link diaryRoot}, see `note.ts`.
  *
  * - `plan`: Calendar of what I intend, the plan files of the months, read as the boxes of each day, see `boxes.ts`.
  * - `log`: Calendar of what really happened, by category, the log files of the months, my one calendar.
- * - `system`: Calendar of birthdays and holidays, `Birthdays.ics` in the folder of the new system, which I write
+ * - `system`: Calendar of birthdays and holidays, `Birthdays.ics` in {@link calendarRoot}, which I write
  *   by hand, each a whole day, a birthday a yearly series with `CATEGORIES:Birthday` and the name as `SUMMARY`,
  *   shown above the boxes of their day, like `Birthday: KarlbauerFlorian`; my gift idea for one is its `DESCRIPTION`,
  *   which the reader writes, see `gifts.ts`; none while it is missing.
- * - `places`: My places, `Places.md` in the folder of the new system, beside `Foods.md`, one Markdown table
+ * - `places`: My places, `Places.md` in {@link dataRoot}, beside `Foods.md`, one Markdown table
  *   with one row per place, its name and its address, which the reader writes as I add places, see `places.ts`.
  */
 export type DaySources = {
@@ -189,28 +220,28 @@ export type DaySources = {
  * {@link DaySources} as they lie in the vault.
  */
 export const day: DaySources = {
-    plan: [{ folder: writeRoot, ending: planEnding }],
-    log: [{ folder: writeRoot, ending: logEnding }],
-    system: [{ folder: writeRoot, ending: "Birthdays.ics" }],
-    places: join(writeRoot, "Places.md"),
+    plan: [{ folder: calendarRoot, ending: planEnding }],
+    log: [{ folder: calendarRoot, ending: logEnding }],
+    system: [{ folder: calendarRoot, ending: "Birthdays.ics" }],
+    places: join(dataRoot, "Places.md"),
 };
 
 /**
  * Log of the skill area: the log of the new system, where each block of learning is an entry of the category `Skill`,
  * holding the attempts made in it. The tasks lie in the chapter notes of the {@link activeModules}.
  */
-export const skillLog: CalendarSource[] = [{ folder: writeRoot, ending: logEnding }];
+export const skillLog: CalendarSource[] = [{ folder: calendarRoot, ending: logEnding }];
 
 /**
  * Log of the trackers of the day, sleep and water: the log of the new system, where they are entries
  * of the categories `Sleep` and `Drink`.
  */
-export const trackerLog: CalendarSource[] = [{ folder: writeRoot, ending: logEnding }];
+export const trackerLog: CalendarSource[] = [{ folder: calendarRoot, ending: logEnding }];
 
 /**
  * Sources of the food area.
  *
- * - `foods`: My foods, `Foods.md` in the folder of the new system, one Markdown table with one row per food,
+ * - `foods`: My foods, `Foods.md` in {@link dataRoot}, one Markdown table with one row per food,
  *   which the reader writes as I add foods, see `food.ts`.
  * - `log`: Log of the new system, where each meal is an entry of the category `Food` listing its foods.
  * - `search`: Search of Open Food Facts, which finds products by their names.
@@ -227,8 +258,8 @@ export type FoodSources = {
  * {@link FoodSources} as they lie in the vault and on the web.
  */
 export const food: FoodSources = {
-    foods: join(writeRoot, "Foods.md"),
-    log: [{ folder: writeRoot, ending: logEnding }],
+    foods: join(dataRoot, "Foods.md"),
+    log: [{ folder: calendarRoot, ending: logEnding }],
     search: "https://search.openfoodfacts.org/search",
     product: "https://world.openfoodfacts.org/api/v2/product/",
 };
@@ -238,20 +269,21 @@ export const food: FoodSources = {
  *
  * @param date - Day like `2026-10-13`
  * @param ending - End of the name, {@link logEnding} or {@link planEnding}
- * @returns Path like `2026/2026_10/2026_10_Plan.ics` in {@link writeRoot}
+ * @returns Path like `2026/2026_10/2026_10_Plan.ics` in {@link calendarRoot}
  */
 export function monthFileOf(date: string, ending: string): string {
     const [year, month]: string[] = date.split("-");
-    return join(writeRoot, year, `${year}_${month}`, `${year}_${month}${ending}`);
+    return join(calendarRoot, year, `${year}_${month}`, `${year}_${month}${ending}`);
 }
 
 /**
- * Tells whether the reader may write a file: only inside {@link writeRoot}, the folder of the new system.
- * - {@link resolve}: Makes a path absolute and takes out `..`, so no path leaves the folder.
+ * Tells whether the reader may write a file: only inside one of the three folders of the new system,
+ * see {@link systemRoots}.
+ * - {@link resolve}: Makes a path absolute and takes out `..`, so no path leaves the folders.
  *
  * @param file - Path of a file to write
- * @returns Whether the file lies inside the folder of the new system
+ * @returns Whether the file lies inside one of the folders of the new system
  */
 export function writeAllowed(file: string): boolean {
-    return resolve(file).startsWith(`${resolve(writeRoot)}${sep}`);
+    return systemRoots.some((root: string): boolean => resolve(file).startsWith(`${resolve(root)}${sep}`));
 }
