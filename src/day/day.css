@@ -627,60 +627,35 @@ button.box-ring.box-checked svg {
     display: none;
 }
 
-/* Timer of a session running now, see `timer.ts`: in the middle between the date and the trackers, in a soft frame
-   like a tracker, at least one control high, grey, every digit equally wide; at the mark of a break in the light grey
-   of the text, the icon before its words; its auto margin and that of the trackers share the room between them;
-   on one line, what the skill entry is giving way with an ellipsis where the room is too small */
+/* Timer of a session running now, see `timer.ts`: all the room between the date and the trackers, a gap away
+   from both, in a soft frame like a tracker, at least one control high, on one line: what the session is at the left,
+   giving way with an ellipsis where the room is too small, how long it still runs at the right, in the grey of a time,
+   every digit equally wide */
 .session-timer {
     display: inline-flex;
-    flex: 0 1 auto;
+    flex: 1 1 auto;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.375rem;
+    gap: var(--gap);
     min-width: 0;
-    white-space: nowrap;
     min-height: var(--control-height);
-    margin-left: auto;
+    margin-inline: var(--gap);
     padding: 0.25rem 0.875rem;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
-.session-timer.session-break {
-    color: var(--text-main);
-}
-
-/* What the session's skill entry is, a module linking the scripts view, in the grey of the timer, see
-   `skill/links.ts` */
-.session-timer .skill-link {
+.session-what {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.session-timer a.skill-link {
-    color: inherit;
-    text-decoration: underline;
-    text-decoration-color: var(--line);
-    text-underline-offset: 0.2em;
-}
-
-.session-timer a.skill-link:hover {
-    text-decoration-color: currentcolor;
-}
-
-/* Button of the mark of a break, which logs Neck short: small, round, a grey lighter under the pointer */
-.session-break-log {
-    padding: 0.125rem 0.625rem;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--background);
-    cursor: pointer;
-}
-
-.session-break-log:hover {
-    background: var(--fill);
+.session-left {
+    flex: none;
+    color: var(--text-time);
+    font-variant-numeric: tabular-nums;
 }
 
 /* Trackers: at the right end of the bar of the day, side by side in one line, never squeezed */

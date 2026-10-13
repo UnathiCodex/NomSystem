@@ -1,33 +1,22 @@
 /**
  * ## Session timer
  *
- * A quiet timer in the bar of the day, between the date and the trackers, in a soft frame like them, while a session
- * of mine runs: what its skill entry is as written, a module opening in the scripts view, and the minutes left
- * of the session, like `IN2028_BusinessAnalyticsMachineLearning (HU) · 43 min left` or `WokFlow · 43 min left`,
- * in grey; never on a phone.
+ * A quiet timer in the bar of the day while a session of mine runs, taking the room between the date and the trackers,
+ * in a soft frame like them: what its skill entry is at the left, as the log shows it, like `Skill: NomSystemdashboard`,
+ * and how long it still runs at the right, in hours and minutes, like `01h 23m left`; never on a phone.
  * A session is the skill entry of the moment in the log, of a type I pace myself, homework, or none, my own learning
- * or work on a project,
- * see `reader/skill.ts`: the first button of a task starts one, and a study session logged from the plan is one.
- * One calm mark at a time says what to do in place of the minutes left, in the light grey of the text, no sound
- * and no popup, the first that holds:
- * - after 4 hours of learning today, lectures included: `4 h today: stop by plan`;
- * - after a whole session, 75 minutes: `Session done, 20 min away`;
- * - after one focused stretch, 45 minutes since the session started or since my last break in it:
- *   `Short break: Neck short or a walk, away from the phone`, with a button that logs `Body` `Neck short`
- *   at now, five minutes long, which is a break, so the stretch starts again after it.
- * The numbers are my settings, see `reader/trackers.ts`.
- * The timer asks the reader again every minute, and hides while no session runs.
+ * or work on a project, see `reader/skill.ts`: the first button of a task starts one, and a study session logged
+ * from the plan is one; it ends where its entry ends.
+ * The timer asks the reader again every minute, and hides while no session runs and once it is over.
  *
- * - `./icons.ts`: Makes the icon of the mark.
- * - `lucide`: The icon footprints.
- * - `./skill/links.ts`: Shows what a skill entry is.
+ * - `./day/boxes.ts`: Writes what a skill entry is, as the log shows it.
+ * - `./day/times.ts`: Writes times of day and a length in hours and minutes.
+ * - `./skill/attempts.ts`: Names the category of skill entries.
  */
 
-import { iconOf } from "./icons.ts";
-import { Footprints } from "lucide";
-import { skillTitleElementOf } from "./skill/links.ts";
-
-import type { Link } from "./skill/attempts.ts";
+import { entryPartOf, shownWhatOf, whatOf } from "./day/boxes.ts";
+import { lengthOf, timeOf } from "./day/times.ts";
+import { skillName } from "./skill/attempts.ts";
 
 
 /**
@@ -36,38 +25,20 @@ import type { Link } from "./skill/attempts.ts";
  * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, `HU`, empty for none, like my own learning or a project.
  * - `title`: What its skill entry is as written, like `IN2028_BusinessAnalyticsMachineLearning (HU)`.
- * - `titleLink`: The folder of its skill from `NomWorkspace`, empty for none.
- * - `start`: Start of its skill entry, as ISO instant.
- * - `links`: Links of its skill entry to files, the document it uses.
- * - `focusStart`: Start of the focused stretch running now, the start or the end of my last break, as ISO instant.
- * - `dayMinutes`: Minutes of learning today, from 00:00, lectures included.
- * - `focusMinutes`: Minutes of a focused stretch after which the timer suggests a short break away from the phone.
- * - `sessionMinutes`: Minutes of a whole session.
- * - `studyMinutes`: Minutes of learning a day at most.
+ * - `start`, `end`: Start and end of its skill entry, as ISO instants.
  */
 type Session = {
     module: string;
     type: string;
     title: string;
-    titleLink: string;
     start: string;
-    links: Link[];
-    focusStart: string;
-    dayMinutes: number;
-    focusMinutes: number;
-    sessionMinutes: number;
-    studyMinutes: number;
+    end: string;
 };
 
 /**
  * Milliseconds between two looks at the reader, one minute.
  */
 const lookTime: number = 60 * 1000;
-
-/**
- * Minutes of a break the button of the mark logs, my neck routine `Neck short`.
- */
-const breakMinutes: number = 5;
 
 
 /**
@@ -84,103 +55,27 @@ async function sessionLoad(): Promise<Session | null> {
 }
 
 /**
- * Logs my break: an entry `Body` `Neck short` from now on, {@link breakMinutes} long, then shows the timer again.
- * - `start`: Now, without its seconds.
- *
- * @throws {Error} - When the reader does not take the entry
- */
-async function breakLog(): Promise<void> {
-    const start: Date = new Date();
-    start.setSeconds(0, 0);
-    const response: Response = await fetch("/api/day/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            category: "Body", title: "Neck short", location: "", from: "", module: "", type: "", note: "", foods: [],
-            planned: "", start: start.toISOString(), end: new Date(start.getTime() + breakMinutes * 60 * 1000).toISOString(),
-        }),
-    });
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    await timerShow();
-}
-
-/**
- * Makes the button of the mark of a short break, which logs `Neck short` as my break.
- *
- * @returns Button
- */
-function breakButtonOf(): HTMLButtonElement {
-    const button: HTMLButtonElement = document.createElement("button");
-    button.type = "button";
-    button.className = "session-break-log";
-    button.textContent = "Neck short";
-    button.title = `Log Neck short from now, ${breakMinutes} minutes, as my break`;
-    button.addEventListener("click", (): void => {
-        button.disabled = true;
-        breakLog().catch((error: unknown): void => {
-            console.error(error);
-            button.disabled = false;
-        });
-    });
-    return button;
-}
-
-/**
- * Gives the mark the timer shows, see the top of this file.
- *
- * @param session - The session running now
- * @param minutes - Whole minutes since the session started
- * @param focus - Whole minutes since its focused stretch started, below 0 during a break
- * @returns The words of the mark and whether it offers to log a break; empty words for no mark
- */
-function markOf(session: Session, minutes: number, focus: number): [string, boolean] {
-    if (session.dayMinutes >= session.studyMinutes)
-        return [`${Math.round(session.studyMinutes / 60)} h today: stop by plan`, false];
-    if (minutes >= session.sessionMinutes)
-        return ["Session done, 20 min away", false];
-    if (focus >= session.focusMinutes)
-        return ["Short break: Neck short or a walk, away from the phone", true];
-    return ["", false];
-}
-
-/**
- * Shows the session running now in the timer, see the top of this file, or hides the timer while none runs.
+ * Shows the session running now in the timer, see the top of this file, or hides the timer while none runs
+ * and once it is over; its start and end as tooltip, like `17:45 – 20:45`.
  * - `timer`: The timer in the bar of the day, in `day.html`.
- * - `minutes`: Whole minutes since the session started.
- * - `focus`: Whole minutes since its focused stretch started.
- * - `mark`, `offers`: Words of the mark, empty for none, and whether it offers to log a break.
- * - `dotOf`: Makes a dot of its own, so the gap of the timer parts it from its neighbours.
- * - `left`: Whole minutes left of the session, none below 0.
- * - `parts`: What the skill entry is, see `skill/links.ts`, then the minutes left or the mark, after a dot.
+ * - `left`: Whole minutes until its end, a minute begun counting whole, so `00h 01m left` shows to the last minute.
  *
  * @throws {Error} - When the reader cannot answer
  */
 async function timerShow(): Promise<void> {
     const timer: HTMLElement = document.getElementById("session-timer") as HTMLElement;
     const session: Session | null = await sessionLoad();
-    timer.hidden = session === null;
-    if (session === null)
+    const left: number = session === null ? 0 : Math.ceil((Date.parse(session.end) - Date.now()) / (60 * 1000));
+    timer.hidden = session === null || left <= 0;
+    if (session === null || left <= 0)
         return;
 
-    const minutes: number = Math.max(0, Math.floor((Date.now() - Date.parse(session.start)) / (60 * 1000)));
-    const focus: number = Math.floor((Date.now() - Date.parse(session.focusStart)) / (60 * 1000));
-    const [mark, offers]: [string, boolean] = markOf(session, minutes, focus);
-    const dotOf: () => HTMLSpanElement = (): HTMLSpanElement => {
-        const dot: HTMLSpanElement = document.createElement("span");
-        dot.textContent = "·";
-        return dot;
-    };
-    const left: number = Math.max(0, session.sessionMinutes - minutes);
-    const parts: (HTMLElement | string)[] = [skillTitleElementOf(session.title, session.titleLink), dotOf(),
-        mark === "" ? `${left} min left` : mark];
-    timer.classList.toggle("session-break", mark !== "");
-    timer.replaceChildren(...(mark === "" ? [] : [iconOf(Footprints)]), ...parts,
-        ...(offers ? [breakButtonOf()] : []));
-    timer.title = mark === ""
-        ? `Session running since ${new Date(session.start).toTimeString().slice(0, 5)}; `
-            + `${session.dayMinutes} min of learning today`
-        : `${mark}; ${session.dayMinutes} min of learning today`;
+    timer.replaceChildren(
+        entryPartOf("span", "session-what",
+            whatOf(skillName, shownWhatOf(skillName, session.title, session.module, session.type))),
+        entryPartOf("span", "session-left", [`${lengthOf(left)} left`]),
+    );
+    timer.title = `${timeOf(new Date(session.start))} – ${timeOf(new Date(session.end))}`;
 }
 
 /**

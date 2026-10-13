@@ -34,7 +34,7 @@
  */
 
 import { entryAdd, entryDelete } from "./entries.ts";
-import { nowOn } from "./times.ts";
+import { lengthOf, nowOn } from "./times.ts";
 import { amountOf, elementOf } from "../food/foods.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
@@ -288,8 +288,7 @@ function foodOf(trackers: Trackers, day: string): HTMLElement {
  * Builds the sleep: how long the night of the day lasted, the sleep I woke up from that morning, in hours
  * and minutes, each two digits, like `07h 30m`, or `08h 00m` on the hour; a dash while no night is logged.
  * - `night`: The night of the day, `null` for none.
- * - `length`: How long it lasted as shown.
- * - `hours`, `minutes`: Its length in whole hours and the minutes left.
+ * - `length`: How long it lasted as shown, see `lengthOf` in `times.ts`.
  *
  * @param trackers - Trackers of the day
  * @returns Row of the sleep
@@ -297,12 +296,7 @@ function foodOf(trackers: Trackers, day: string): HTMLElement {
 function sleepOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const night: Night | null = trackers.sleep.night;
-    let length: string = "–";
-    if (night !== null) {
-        const hours: number = Math.floor(night.minutes / 60);
-        const minutes: number = night.minutes % 60;
-        length = `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
-    }
+    const length: string = night === null ? "–" : lengthOf(night.minutes);
     row.append(elementOf("span", "tracker-name", "Sleep"), elementOf("span", "tracker-value", length));
     return row;
 }

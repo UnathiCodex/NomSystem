@@ -71,12 +71,11 @@
  * - `./notes.ts`: Reads the modules of the semester with their chapters and notes, and every module folder.
  * - `./places.ts`: Gives the link of the place of a skill entry.
  * - `./sources.ts`: Names the log of the skill area and the skills of the semester, its modules and its projects.
- * - `./trackers.ts`: Holds my settings, like the minutes after which the timer of a session suggests a break.
  */
 
 import { boxDone, boxOpenFind, skillBoxesRead, skillBoxOf } from "./boxes.ts";
 import {
-    berlinDateOf, berlinDayStartOf, berlinTimeOf, dayAdd, entriesRead, entryAppend, entryChange, entryFind,
+    berlinDateOf, berlinTimeOf, dayAdd, entriesRead, entryAppend, entryChange, entryFind,
     propertiesPut,
 } from "./calendar.ts";
 import { semesterFor, skillName, skillTypes } from "./categories.ts";
@@ -87,7 +86,6 @@ import {
 import { codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
 import { activeModules, activeSkills, projectOf, skillLog, skillNameOf } from "./sources.ts";
-import { settings } from "./trackers.ts";
 
 import type { Box, BoxState } from "./boxes.ts";
 import type { Entry, EntryFields, Link } from "./calendar.ts";
@@ -361,34 +359,19 @@ export type EffortNew = {
 };
 
 /**
- * A session of mine running now, as the timer of the page shows it, see {@link sessionRead}.
+ * A session of mine running now, as the timer of the day shows it, see {@link sessionRead}.
  *
  * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, `HU`, empty for none, like my own learning or a project.
  * - `title`: What its skill entry is, as written, like `IN2028_BusinessAnalyticsMachineLearning (HU)`.
- * - `titleLink`: The folder of its skill from `NomWorkspace`, the `ALTREP` of its `SUMMARY`, empty for none.
- * - `start`: Start of its skill entry, as ISO instant.
- * - `links`: Links of its skill entry to files, the documents it uses, see `documents.ts`.
- * - `focusStart`: Start of the focused stretch running now, as ISO instant: the start of the session,
- *   or the end of my last break in it, an entry `Body` like `Neck short`, when that is later.
- * - `dayMinutes`: Minutes of learning today, from 00:00, every skill entry of the day up to now, lectures included.
- * - `focusMinutes`: Minutes of a focused stretch after which the timer suggests a short break away from the phone,
- *   from my settings, see `trackers.ts`.
- * - `sessionMinutes`: Minutes of a whole session, after which the timer says it is done.
- * - `studyMinutes`: Minutes of learning a day at most, after which the timer says to stop.
+ * - `start`, `end`: Start and end of its skill entry, as ISO instants; the timer counts down to its end.
  */
 export type Session = {
     module: string;
     type: string;
     title: string;
-    titleLink: string;
     start: string;
-    links: Link[];
-    focusStart: string;
-    dayMinutes: number;
-    focusMinutes: number;
-    sessionMinutes: number;
-    studyMinutes: number;
+    end: string;
 };
 
 /**
@@ -512,12 +495,6 @@ const quarterHour: number = 15 * 60 * 1000;
  * Longest pause after a skill entry in which a button still writes into it, half an hour in milliseconds.
  */
 const sessionPause: number = 30 * 60 * 1000;
-
-/**
- * Category of a break in a session, `CATEGORIES:Body`, like my neck routine `Neck short`, which the timer logs
- * with one tap.
- */
-const breakName: string = "Body";
 
 /**
  * Types of skill entries I pace myself, whose sessions run a timer: homework, `HU`, and no type, my own learning,
@@ -1313,18 +1290,13 @@ export function tutorAdd(task: string): void {
 }
 
 /**
- * Reads the session running now, for the timer of the page: the skill entry of the moment, of any module,
+ * Reads the session running now, for the timer of the day: the skill entry of the moment, of any module,
  * the last one of the log that started before now and ended at most {@link sessionPause} ago, as the buttons of a task
  * write into it, see {@link attemptAdd}; only when it is of a type I pace myself, see {@link pacedTypes}.
- * Its focused stretch starts again after each break in it, an entry `Body` that started after the session did,
- * and my minutes of learning today count every skill entry of the day, from 00:00 in Berlin time, up to now.
  * - `now`: The moment.
  * - `open`: The skill entry of the moment.
- * - `breaks`: Ends of my breaks in the session, as ISO instants.
- * - `dayStart`: Start of today, 00:00 in Berlin time.
- * - `learned`: Milliseconds of the skill entries of today up to now.
  *
- * @returns The session with the minutes of my settings for its timer, `null` while none runs
+ * @returns The session, `null` while none runs
  */
 export function sessionRead(): Session | null {
     const now: Date = new Date();
@@ -1332,21 +1304,9 @@ export function sessionRead(): Session | null {
         .at(-1);
     if (open === undefined || !pacedTypes.includes(open.type))
         return null;
-
-    const breaks: string[] = entriesRead(skillLog, open.start, now.toISOString())
-        .filter((entry: Entry): boolean => entry.category === breakName && !entry.allDay && entry.start >= open.start)
-        .map((entry: Entry): string => new Date(entry.end).toISOString());
-    const dayStart: Date = new Date(berlinDayStartOf(berlinDateOf(now)));
-    const learned: number = skillEntriesRead(dayStart.toISOString(), now.toISOString())
-        .filter((entry: Entry): boolean => !entry.allDay && Date.parse(entry.start) >= dayStart.getTime())
-        .reduce((sum: number, entry: Entry): number =>
-            sum + Math.max(0, Math.min(Date.parse(entry.end), now.getTime()) - Date.parse(entry.start)), 0);
     return {
-        module: open.module, type: open.type, title: open.title, titleLink: open.titleLink, start: open.start,
-        links: open.links.filter((link: Link): boolean => link.fingerprint !== ""),
-        focusStart: [new Date(open.start).toISOString(), ...breaks].sort().at(-1) ?? open.start,
-        dayMinutes: Math.round(learned / 60000),
-        focusMinutes: settings.focusMinutes, sessionMinutes: settings.sessionMinutes, studyMinutes: settings.studyMinutes,
+        module: open.module, type: open.type, title: open.title,
+        start: new Date(open.start).toISOString(), end: new Date(open.end).toISOString(),
     };
 }
 

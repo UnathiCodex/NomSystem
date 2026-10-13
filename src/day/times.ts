@@ -39,6 +39,17 @@ export function timeOf(date: Date): string {
 }
 
 /**
+ * Writes a length of time in hours and minutes, each two digits, like `07h 30m` or `08h 00m`, as the sleep
+ * and the timer of a session show it.
+ *
+ * @param minutes - Whole minutes, like 450
+ * @returns Length like `07h 30m`
+ */
+export function lengthOf(minutes: number): string {
+    return `${String(Math.floor(minutes / 60)).padStart(2, "0")}h ${String(minutes % 60).padStart(2, "0")}m`;
+}
+
+/**
  * Puts a time of a time field on the day of a date.
  *
  * @param day - Date on the day
