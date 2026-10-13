@@ -480,9 +480,18 @@ button.box-ring.box-checked svg {
     line-height: 1rem;
 }
 
-/* Entries one grey lighter than the page, their edge in the grey of the log */
+/* Entries a grey lighter than the fill of the page, their edge in the grey of the log, 4px apart, so two entries
+   one right after the other, like a skill from 10:00 to 10:30 and a way from 10:30, stand apart at a glance */
 .entry {
-    background-color: var(--fill);
+    margin-bottom: 4px;
+    background-color: color-mix(in oklab, var(--fill) 95%, var(--text-main));
+}
+
+/* A short entry, of a quarter hour, and a glass of water keep the theme's 1px below them, since 4px would cut
+   the one line of a short entry and shrink the mark of a glass */
+.entry:has(.entry-inner-short),
+.entry.glass-mark {
+    margin-bottom: 1px;
 }
 
 /* Under a pointer that hovers, an entry turns only a little lighter, in place of the theme's bright grey,
@@ -494,7 +503,7 @@ button.box-ring.box-checked svg {
     }
 
     .entry:hover {
-        background-color: color-mix(in oklab, var(--fill) 92%, var(--text-main));
+        background-color: color-mix(in oklab, var(--fill) 89%, var(--text-main));
         transition: background-color 150ms 100ms;
     }
 }
