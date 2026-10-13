@@ -1078,7 +1078,7 @@ function deadlineSee(): void {
  * Shows the times of the dialog, the same for an entry of the log and a box of the plan: the day and the time
  * of the start and of the end, and for a box its deadline, hidden and disabled for an entry of the log,
  * so the browser checks only the times shown before it sends the form. The day of the start is the calendar date
- * of the start it opens with, like `13.10.2026` for a selection at 01:45 at the bottom of 12 October, the day
+ * of the start it opens with, like `13.10.2026` for a selection at 01:45 on 13 October, the day
  * of its end the calendar date of the end it opens with, which fills itself again as I type, see {@link endDayFill}.
  * A box starts at its expected time, on the day the dialog opened with, like `12.10.2026`, the shown day for a new one,
  * and ends after its expected duration; its times may stay empty, but for an event of the plan, which keeps both
@@ -1172,7 +1172,7 @@ async function entryShow(opening: EntryOpening): Promise<void> {
 
 /**
  * Opens the dialog for a new entry of the log with start and end, its day the calendar date of the start,
- * like `13.10.2026` for a selection at 01:45 at the bottom of 12 October.
+ * like `13.10.2026` for a selection at 01:45 on 13 October.
  *
  * @param start - Start of the new entry
  * @param end - End of the new entry
