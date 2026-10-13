@@ -476,6 +476,20 @@ button.box-ring:hover svg {
     background-color: var(--fill);
 }
 
+/* Under a pointer that hovers, an entry turns only a little lighter, in place of the theme's bright grey,
+   fading in over 150 ms after 100 ms, so passing over entries stays calm, and back over 150 ms as soon as
+   the pointer leaves; `.entry:hover` wins over the theme's rule, being as exact and coming after it */
+@media (hover: hover) {
+    .entry {
+        transition: background-color 150ms;
+    }
+
+    .entry:hover {
+        background-color: color-mix(in oklab, var(--fill) 92%, var(--text-main));
+        transition: background-color 150ms 100ms;
+    }
+}
+
 /* Entries of the time grid end 1rem before the right edge of the column, as in Google Calendar, so beside each one
    a free strip stays to select a new entry, like Sleep from 23:00 ending 1rem left of the glass marks;
    the theme ends them 2.5 % before it, 1 px in a narrow column. The theme puts that margin on the layer
