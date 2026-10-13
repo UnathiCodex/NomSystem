@@ -1400,18 +1400,44 @@ fieldset.entry-times {
     line-height: 1.2;
 }
 
-/* One line of an entry, alone in a short one, on top of a taller one: what, cut with an ellipsis where the line ends,
-   then the time after a comma, never cut, like `Skill: WI1059 HU, 05:15 – 05:45`; as high as its text and no wider
-   than the entry, so the note of a taller entry follows right below it */
+/* Inside of an entry with room for two lines, of 45 minutes: its two lines centred in the entry, without the space
+   above and below them; `safe` keeps a what taking a line more at the top, its last line hidden below */
+.entry-inner-middle {
+    display: flex;
+    flex-direction: column;
+    justify-content: safe center;
+    padding-block: 0;
+}
+
+/* All lines of an entry, as high as the lines it has room for, which `day.ts` sets in units of a line: a line moved
+   down by what taking a line more, like a long skill on a phone, hides as a whole, never cut in half at the bottom */
+.entry-lines {
+    overflow: hidden;
+}
+
+/* One line in parts, alone in an entry of a quarter hour or half an hour: what, then the time after a comma,
+   then the place after a dot, like `Skill: WI1059 (HU), 05:15 – 05:45 · HomeMunich`; what and the time keep
+   their width and only the place gives way, cut with an ellipsis; where what and the time are wider than the entry,
+   the time moves onto a next line, which `.entry-lines` hides, so what stays whole; also the line of the time
+   and the place of an entry of 45 minutes, like `16:00 – 16:45 · HomeMunich` */
 .entry-line {
     display: flex;
+    flex-wrap: wrap;
     min-width: 0;
     white-space: nowrap;
 }
 
+/* What on the one line of an entry, as wide as its text; only what wider than the whole entry ends with an ellipsis */
 .entry-what {
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* What on its own line on top of an entry with room for two lines or more, never cut: where it is wider than the entry,
+   it goes on over a line more, broken where a word ends, where the parts of a long name meet, like `IN0004_Einfuehrung`
+   and `Rechnerarchitektur`, see `breakableOf` in `day.ts`, or within a part still too long */
+.entry-whole {
+    overflow-wrap: anywhere;
 }
 
 /* Note of a taller entry below its line, grey like the time, wrapped over the lines left, which `day.ts` sets
@@ -1437,9 +1463,10 @@ fieldset.entry-times {
     font-weight: 700;
 }
 
-/* Time in normal weight and the light grey of a time, see `--text-time`, so it stands out a little:
-   on one line after what never cut, like `, 05:15 – 05:45`;
-   on its own second line, like `20:00 – 23:45`, cut with an ellipsis where a narrow entry ends */
+/* Time in normal weight and the light grey of a time, see `--text-time`, so it stands out a little, never cut:
+   after what on one line, like `, 05:15 – 05:45`, or on a line of its own, like `20:00 – 23:45`, as wide
+   as its text; only an entry narrower than the time alone, beside others in a narrow column, ends it
+   with an ellipsis */
 .entry-time {
     flex: none;
     overflow: hidden;
@@ -1448,8 +1475,9 @@ fieldset.entry-times {
     color: var(--text-time);
 }
 
-/* Place of a taller entry on its third line, below the time and above the note, like `HomeMunich`,
-   grey like the time and cut with an ellipsis where a narrow entry ends */
+/* Place of an entry, lighter than the time, like `HomeMunich`: beside the time, see `.entry-beside`,
+   or with room for three lines on the third, below the time and above the note; cut with an ellipsis
+   where a narrow entry ends */
 .entry-place {
     overflow: hidden;
     white-space: nowrap;
@@ -1457,10 +1485,10 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Route of a way on its one line after the time, like `· HomeMunich → TumGarching`, a space before it,
-   which a line in parts would drop at the start of a part; it takes only the room left beside what the way was
-   and its time, cut with an ellipsis, so a narrow entry cuts the route, never what the way was */
-.entry-route {
+/* Place beside the time on its line, like `· HomeMunich` or a route like `· HomeMunich → TumGarching`, a space
+   before it, which a line in parts would drop at the start of a part; it takes only the room left beside what
+   and the time, cut with an ellipsis, so a narrow entry cuts the place, never what or the time */
+.entry-beside {
     flex: 1 1 0;
     min-width: 0;
     margin-left: 0.3em;
