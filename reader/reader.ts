@@ -19,7 +19,8 @@
  * - `./gifts.ts`: Writes my gift idea for a birthday or holiday into `Gifts.md`
  * - `./note.ts`: Reads the daily notes with their callouts, without the placeholders of the template,
  *   and writes my gratitude and my paragraph about the day into them
- * - `./categories.ts`: Offers the categories with the values of their fields, and the places
+ * - `./categories.ts`: Offers the categories with the values of their fields, and my places
+ * - `./places.ts`: Adds a place with its address to `Places.md`
  * - `./notes.ts`: Reads the modules of the semester, the notes and files of my modules and the links that lead nowhere,
  *   read only
  * - `./edit.ts`: Writes a draft note as I edited it, and keeps the change as a diff
@@ -40,6 +41,7 @@ import { boxAdd, boxDelete, boxDrop, boxEdit, boxesRead, boxPush } from "./boxes
 import { giftWrite } from "./gifts.ts";
 import { calloutsRead, calloutWrite, noteShownRead } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
+import { placeAdd } from "./places.ts";
 import { brokenLinksRead, fileRead, linkedNoteRead, modulesRead } from "./notes.ts";
 import { noteWrite } from "./edit.ts";
 import {
@@ -56,6 +58,7 @@ import type { BoxLogged, EntryChange, EntryNew } from "./day.ts";
 import type { BoxChange, BoxNew } from "./boxes.ts";
 import type { Gift } from "./gifts.ts";
 import type { CalloutNew } from "./note.ts";
+import type { Place } from "./places.ts";
 import type { NotesFile } from "./notes.ts";
 import type { NoteChange } from "./edit.ts";
 import type { AttemptNew, EffortNew, SkillEntryChange, SkillEntryNew } from "./skill.ts";
@@ -122,6 +125,7 @@ function fileSend(response: ServerResponse, file: NotesFile): void {
  * - `POST /api/day/dropped`: Drops the box named in the body, or takes it back when the body says `dropped: false`.
  * - `POST /api/day/callouts`: Writes the callout of the body into its daily note, my gratitude or my paragraph about the day.
  * - `POST /api/day/gifts`: Writes the gift idea of the body for its birthday or holiday, or takes it out when it is empty.
+ * - `POST /api/day/places`: Adds the place of the body with its address to `Places.md` and sends it as written.
  * - `GET /api/notes/modules`: Sends the modules of the semester with their chapters and notes.
  * - `GET /api/notes/note?path=…`: Sends a note with the files its links lead to.
  * - `GET /api/notes/file?path=…`: Sends a file of my modules, like an image of a note.
@@ -236,6 +240,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
     } else if (request.method === "POST" && url.pathname === "/api/day/gifts") {
         giftWrite(await json(request) as Gift);
         responseSend(response, 200, null);
+
+    } else if (request.method === "POST" && url.pathname === "/api/day/places") {
+        responseSend(response, 200, placeAdd(await json(request) as Place));
 
     } else if (request.method === "GET" && url.pathname === "/api/notes/modules") {
         responseSend(response, 200, modulesRead());

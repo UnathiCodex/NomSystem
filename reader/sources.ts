@@ -141,6 +141,8 @@ const googleEnd: string = "2026-08-01";
  * - `system`: Calendar of birthdays and holidays, shown above the boxes of their day.
  * - `gifts`: My gift ideas for the birthdays and holidays, `Gifts.md` in the folder of the new system,
  *   one Markdown table with one row per gift idea, which the reader writes as I add them, see `gifts.ts`.
+ * - `places`: My places, `Places.md` in the folder of the new system, beside `Foods.md`, one Markdown table
+ *   with one row per place, its name and its address, which the reader writes as I add places, see `places.ts`.
  * - `notes`: Diary of the archive, daily notes as `FrequenzEreignis<JJJJ>/<JJJJMM>/<JJJJMMTT>.md`;
  *   a daily note of the new system comes first.
  * - `noteTemplate`: Template of a new daily note.
@@ -150,6 +152,7 @@ export type DaySources = {
     log: CalendarSource[];
     system: CalendarSource[];
     gifts: string;
+    places: string;
     notes: string;
     noteTemplate: string;
 };
@@ -184,6 +187,7 @@ export const day: DaySources = {
         { folder: google, ending: "FrequenzSystemNom.ics" },
     ],
     gifts: join(writeRoot, "Gifts.md"),
+    places: join(writeRoot, "Places.md"),
     notes: join(archive, "NomFrequenzEreignis"),
     noteTemplate: join(archive, "NomFrequenzEreignis", "FrequenzEreignis2026", "202600", "Template_Daily.md"),
 };

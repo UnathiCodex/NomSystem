@@ -3,10 +3,12 @@
  *
  * Entry by category, for plan and log alike: a fixed list of categories, each with its fields,
  * like `Way` with `By`, `From` and `To`.
- * Each field offers its values from the log itself, the most used first, equal ones alphabetical:
+ * Each field of a what offers its values from the log itself, the most used first, equal ones alphabetical:
  * from the entries of the new system by their fields, and from the old log titles since 2024,
- * `Verb Objekt Ort` giving the object, and routes `<From>-<To>` giving both places.
- * Places are one list for every category.
+ * `Verb Objekt Ort` giving the object.
+ * Places are one list for every field of a place, the place of an entry and where a way starts: only my places
+ * of `Places.md`, each with its address, see `places.ts`, the most used by the entries of the new system first;
+ * nothing comes from the old calendar.
  * A value offered in the code may come with steps, which the dialog shows while it is picked:
  * `Body` offers my neck routine, `Neck short` and `Neck long`, each with its exercises, see {@link neckRoutines},
  * and below them the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
@@ -19,13 +21,16 @@
  * and `Game`, which happen anyway, see {@link unplannedNames}; `Watch` stays, since a cinema or a match has its time.
  *
  * - `./calendar.ts`: Reads `.ics` files into entries.
+ * - `./places.ts`: Reads my places from `Places.md`.
  * - `./sources.ts`: Names every folder and file the reader reads.
  */
 
 import { entriesRead } from "./calendar.ts";
+import { placesRead } from "./places.ts";
 import { day } from "./sources.ts";
 
 import type { Entry, EntryTexts } from "./calendar.ts";
+import type { Place } from "./places.ts";
 
 
 /**
@@ -171,11 +176,6 @@ const categories: Category[] = [
  */
 const vocabularyStart: string = "2024-01-01T00:00:00Z";
 
-/**
- * Old route titles, `<From>-<To>` like `HomeMunich-TumGarching`.
- */
-const route: RegExp = /^([^\s-]+)-([^\s-]+)$/;
-
 
 /**
  * Reads the timed log entries from 2024 up to an instant.
@@ -205,14 +205,23 @@ function objectOf(title: string, name: string): string {
 }
 
 /**
- * Lists the places of log entries: places and starts of new entries, both ends of old routes.
+ * Lists the places of log entries of the new system, those with a category: their places and where their ways start;
+ * an old entry gives none.
  *
  * @param logs - Log entries
  * @returns Every use of a place, a place as often as it was used
  */
 function placeUsesOf(logs: Entry[]): string[] {
-    return logs.flatMap((log: Entry): string[] =>
-        log.category !== "" ? [log.location, log.from] : (log.title.match(route)?.slice(1) ?? []));
+    return logs.flatMap((log: Entry): string[] => log.category !== "" ? [log.location, log.from] : []);
+}
+
+/**
+ * Gives the names of my places, see `places.ts`.
+ *
+ * @returns Names like `HomeMunich`, in the order of `Places.md`
+ */
+function placeNamesRead(): string[] {
+    return placesRead().map((place: Place): string => place.name);
 }
 
 /**
@@ -277,14 +286,17 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * each telling whether a box of the plan may have it; a value with steps gets the note of its last entry,
  * see {@link stepsWithNoteOf}.
  * - `logs`: Log entries up to now.
- * - `places`: One list of places for every field of a place.
+ * - `names`: Names of my places.
+ * - `places`: One list of places for every field of a place: my places, the most used first, see {@link placeUsesOf}.
  *
  * @param now - Present as ISO instant, as the page knows it
  * @returns {@link CategoryShown}s in their order
  */
 export function categoriesRead(now: string): CategoryShown[] {
     const logs: Entry[] = logsRead(now);
-    const places: string[] = valuesOrder(placeUsesOf(logs), []);
+    const names: string[] = placeNamesRead();
+    const places: string[] =
+        valuesOrder(placeUsesOf(logs).filter((use: string): boolean => names.includes(use)), names);
     return categories.map((category: Category): CategoryShown => ({
         name: category.name,
         fields: category.fields.map((field: Field): Field => ({
@@ -314,22 +326,18 @@ export function usualLengthRead(name: string, now: string): number {
 }
 
 /**
- * Finds where the last way before an instant ended: the place of the last new `Way`, or the end of the last old route.
- * - `last`: Last way that started before the instant.
+ * Finds where the last way before an instant ended: the place of the last `Way` of the new system,
+ * when it is one of my places; an old route of the old calendar names none.
+ * - `last`: Last way of the new system that started before the instant.
  *
  * @param before - Start of the new entry as ISO instant
- * @returns Place, empty when there was no way before
+ * @returns Place, empty when there was no way before or it ended at no place of mine
  */
 export function wayEndRead(before: string): string {
     const last: Entry | undefined = logsRead(before)
-        .filter((log: Entry): boolean =>
-            log.category === "Way" || (log.category === "" && route.test(log.title)))
+        .filter((log: Entry): boolean => log.category === "Way")
         .sort((first: Entry, second: Entry): number => second.start.localeCompare(first.start))[0];
-    if (last === undefined)
-        return "";
-    if (last.category === "Way")
-        return last.location;
-    return last.title.match(route)?.[2] ?? "";
+    return last !== undefined && placeNamesRead().includes(last.location) ? last.location : "";
 }
 
 /**

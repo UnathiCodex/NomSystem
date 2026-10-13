@@ -5,7 +5,8 @@
  * places, whats, ways to travel, modules, types, chapters, documents, tasks and efforts. A search field at its top filters the values
  * as I type, ignoring case and accents: a value matches when each typed word stands somewhere in its name,
  * so `mensa garch` finds `Mensa-Garching`; Enter picks the first match,
- * and where a list takes new values, `+` adds the typed text. A few short values show as chips, more or longer ones
+ * and where a list takes new values, `+` adds the typed text, or first asks for what a new value needs,
+ * like the address of a new place. A few short values show as chips, more or longer ones
  * as a list with one whole name per row, three rows and a half high, then scrolling.
  * Values keep their order, like the most used first; a group, like `Due today`, stands above its first value.
  * Picked values are a lighter grey; a click picks a value, a click on a picked one takes it back.
@@ -34,6 +35,8 @@ export type Choice = {
  * - `picked`: Values picked at first.
  * - `many`: Whether more than one value may be picked.
  * - `adding`: Whether `+` adds the typed text as a new value.
+ * - `add`: Takes the typed text as a new value before it is picked, like a new place through its dialog,
+ *   and gives the value to pick, `null` to pick none; left out, `+` picks the typed text itself.
  * - `pick`: Takes the values picked after each change, in the order they were picked.
  */
 export type ChoicesSetup = {
@@ -41,6 +44,7 @@ export type ChoicesSetup = {
     picked: string[];
     many: boolean;
     adding: boolean;
+    add?: (text: string) => Promise<string | null>;
     pick: (values: string[]) => void;
 };
 
@@ -142,7 +146,10 @@ function buttonOf(text: string, chosen: boolean, click: () => void): HTMLButtonE
  * - `toggle`: Picks a value or takes it back, and tells the dialog.
  * - `show`: Shows the values found for the text of the search field, unless a newer text came meanwhile.
  * - `typedPick`: Picks the value Enter or `+` gives, empties the search and shows all values again,
- *   the value picked scrolled into sight, like a new dish at the end of a long list.
+ *   the value picked scrolled into sight, like a new dish at the end of a long list; a value picked already,
+ *   like the place an entry kept, now added to my places, stays picked, and the dialog is told again.
+ * - `typedAdd`: Takes the typed text as a new value, by `+` or by Enter when nothing matches: picks it,
+ *   or, with `add`, what `add` gives for it, and nothing when it gives `null`, the text staying typed.
  *
  * @param setup - How the picker is built
  * @returns Picker
@@ -186,13 +193,26 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
             return [group, button];
         }));
         if (setup.adding && text !== "" && !found.some((choice: Choice): boolean => searchTextOf(choice.value) === searchTextOf(text)))
-            list.append(buttonOf(`+ ${text}`, false, (): void => typedPick(text)));
+            list.append(buttonOf(`+ ${text}`, false, (): void => typedAdd(text)));
     };
     const typedPick: (value: string) => void = (value: string): void => {
         input.value = "";
-        toggle(value);
+        if (chosen.includes(value))
+            setup.pick(chosen);
+        else
+            toggle(value);
         show().then((): void => {
             list.querySelector(`button[data-value="${CSS.escape(value)}"]`)?.scrollIntoView({ block: "nearest" });
+        }).catch((error: unknown): void => console.error(error));
+    };
+    const typedAdd: (text: string) => void = (text: string): void => {
+        if (setup.add === undefined) {
+            typedPick(text);
+            return;
+        }
+        setup.add(text).then((value: string | null): void => {
+            if (value !== null)
+                typedPick(value);
         }).catch((error: unknown): void => console.error(error));
     };
 
@@ -210,8 +230,10 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
         event.preventDefault();
         const text: string = input.value.trim();
         const first: Choice | undefined = found[0];
-        if (first !== undefined || (setup.adding && text !== ""))
-            typedPick(first?.value ?? text);
+        if (first !== undefined)
+            typedPick(first.value);
+        else if (setup.adding && text !== "")
+            typedAdd(text);
     });
 
     setup.search("").then((choices: Choice[]): void => {

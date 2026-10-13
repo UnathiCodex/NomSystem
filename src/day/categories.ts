@@ -15,6 +15,8 @@
  * a box of the plan offers all but those I don't plan, `Sleep`, `Food`, `Cook`, `Drink` and `Game`.
  * Each list comes from the log, the most used first, searched as I type, see `choices.ts`;
  * the typed text can be added as a new value, which is then picked.
+ * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first;
+ * a new place is added with its address through a small dialog before it is picked, see `places.ts`.
  * `From` starts where the last way before the entry ended.
  * An entry of the log has a day like `13.10.2026`, the calendar date of its start, typed to move it to any other day,
  * and a start and an end, plain times on that day, an end at or before the start on the next day, saved exactly
@@ -35,6 +37,7 @@
  * - `./choices.ts`: Pickers, in rows with their names.
  * - `./entries.ts`: Sends new, changed and removed entries to the reader.
  * - `./meal.ts`: The foods of a meal, the fields of `Food` below what and place.
+ * - `./places.ts`: The dialog of a new place, which adds it with its address to `Places.md`.
  * - `./skill.ts`: The fields of `Skill`: module and type, and in the log chapters, document and attempts.
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
  *   and gives the times a box is logged at.
@@ -47,6 +50,7 @@
 import { choiceOf, choicesOf, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealAfterCookAdd } from "./entries.ts";
 import { foodName, mealDishFill, mealFoods, mealOf, mealTitle } from "./meal.ts";
+import { placeOpen, placesStart } from "./places.ts";
 import { skillFieldsShow, skillModuleType, skillReady, skillSave } from "./skill.ts";
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
@@ -381,7 +385,8 @@ function stepsShow(steps: HTMLElement, field: Field): void {
 
 /**
  * Shows one picker per field of the category picked, see {@link choicesOf}: its values, the most used first,
- * searched as I type, the typed text taken as a new value with `+`, see {@link valueAdd};
+ * searched as I type, the typed text taken as a new value with `+`, see {@link valueAdd},
+ * a new place only once it is saved with its address in the dialog of a new place, see `placeOpen` in `places.ts`;
  * below the picker of a field whose values have steps, the steps of the value picked, see {@link stepsShow};
  * for a cooking below them the meal eaten right after it, see {@link eatenRowOf}, and for `Body` my neck pain,
  * shown while `Neck long` is picked, see {@link painRowOf}.
@@ -399,6 +404,7 @@ function fieldsShow(): void {
             picked: values[field.key] === "" ? [] : [values[field.key]],
             many: false,
             adding: true,
+            add: field.key === "title" ? undefined : placeOpen,
             pick: (picked: string[]): void => {
                 values[field.key] = picked[0] ?? "";
                 if (values[field.key] !== "")
@@ -912,12 +918,14 @@ export async function entryOpenEdit(entry: EventApi): Promise<void> {
  * Starts the entry by category after the router has put its HTML into the page:
  * `Edit plan` changes the box being logged, `Log it` logs the box being changed, as expected on the shown day,
  * which for a box with a deadline may lie before its own, in the dialog of the log, see `boxTimesOf` in `times.ts`;
- * typing a deadline turns the day and the expected time off, see {@link deadlineSee}.
+ * typing a deadline turns the day and the expected time off, see {@link deadlineSee};
+ * the dialog of a new place starts too, see `places.ts`.
  * - `start`, `end`: The times the box is logged at as expected.
  *
  * @param calendar - Calendar of the day
  */
 export function categoriesStart(calendar: Calendar): void {
+    placesStart();
     iconPut(document.getElementById("entry-cancel") as HTMLElement, X, "Cancel");
     document.getElementById("entry-cancel")?.addEventListener("click", (): void =>
         (document.getElementById("entry") as HTMLDialogElement).close());
