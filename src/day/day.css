@@ -1655,16 +1655,22 @@ svg.route-arrow {
         flex-wrap: wrap;
     }
 
-    /* The bar of the day keeps the arrows left and right of the date, which stands on two lines in the middle
-       of the screen, the weekday above the date */
+    /* The bar of the day on a phone: the arrows at the edges of the screen, plain, without frame, and the date
+       in the middle, the weekday small and grey above it, like `Tuesday` over `13.10.2026` */
     .day-nav {
         flex-wrap: nowrap;
-        justify-content: center;
+        justify-content: space-between;
+    }
+
+    .day-nav .day-arrow {
+        border-color: transparent;
+        background: none;
     }
 
     .day-nav .day-title {
         text-align: center;
-        line-height: 1.25;
+        font-size: 1.0625rem;
+        line-height: 1.2;
     }
 
     .day-weekday,
@@ -1672,8 +1678,45 @@ svg.route-arrow {
         display: block;
     }
 
+    .day-weekday {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
     .day-weekday::after {
         content: none;
+    }
+
+    /* Buttons of a panel in one row across, equally wide, Remove among them, each its word on one line,
+       a little smaller, so `Remove` keeps room inside its frame */
+    .panel-buttons {
+        display: grid;
+        grid-auto-columns: minmax(0, 1fr);
+        grid-auto-flow: column;
+    }
+
+    .panel-buttons .panel-remove {
+        margin-right: 0;
+    }
+
+    .panel-buttons button {
+        padding: 0 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    /* A box on a phone: its lines take the whole width beside the ring, and its buttons, which show without
+       a pointer, go into a row of their own below them, at the right */
+    .box {
+        flex-wrap: wrap;
+        row-gap: 0.5rem;
+    }
+
+    .box-body {
+        flex-basis: calc(100% - 1.125rem - 0.75rem);
+    }
+
+    .box-actions {
+        margin-left: auto;
     }
 
     body {
