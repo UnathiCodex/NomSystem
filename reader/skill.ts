@@ -68,8 +68,8 @@
 
 import { boxDone, boxOpenFind, skillBoxOf } from "./boxes.ts";
 import {
-    berlinDateOf, berlinInstantOf, berlinTimeOf, dayAdd, dayStartHour, entriesRead, entryAppend, entryChange, entryFind,
-    livedDayOf, propertiesPut,
+    berlinDateOf, berlinDayStartOf, berlinTimeOf, dayAdd, entriesRead, entryAppend, entryChange, entryFind,
+    propertiesPut,
 } from "./calendar.ts";
 import { skillName, skillTitleOf, skillTypes } from "./categories.ts";
 import { fileOf } from "./day.ts";
@@ -319,7 +319,7 @@ export type EffortNew = {
  * - `links`: Links of its skill entry, to the folder of its skill and to the document it uses, see `documents.ts`.
  * - `focusStart`: Start of the focused stretch running now, as ISO instant: the start of the session,
  *   or the end of my last break in it, an entry `Body` like `Neck short`, when that is later.
- * - `dayMinutes`: Minutes of learning today as I live it, every skill entry of the day up to now, lectures included.
+ * - `dayMinutes`: Minutes of learning today, from 00:00, every skill entry of the day up to now, lectures included.
  * - `focusMinutes`: Minutes of a focused stretch after which the timer suggests a short break away from the phone,
  *   from my settings, see `trackers.ts`.
  * - `sessionMinutes`: Minutes of a whole session, after which the timer says it is done.
@@ -1176,11 +1176,11 @@ export function tutorAdd(task: string): void {
  * the last one of the log that started before now and ended at most {@link sessionPause} ago, as the buttons of a task
  * write into it, see {@link attemptAdd}; only when it is of a type I pace myself, see {@link pacedTypes}.
  * Its focused stretch starts again after each break in it, an entry `Body` that started after the session did,
- * and my minutes of learning today count every skill entry of the day as I live it, from 05:00, up to now.
+ * and my minutes of learning today count every skill entry of the day, from 00:00 in Berlin time, up to now.
  * - `now`: The moment.
  * - `open`: The skill entry of the moment.
  * - `breaks`: Ends of my breaks in the session, as ISO instants.
- * - `dayStart`: Start of today as I live it, 05:00 in Berlin time, see `livedDayOf` in `calendar.ts`.
+ * - `dayStart`: Start of today, 00:00 in Berlin time.
  * - `learned`: Milliseconds of the skill entries of today up to now.
  *
  * @returns The session with the minutes of my settings for its timer, `null` while none runs
@@ -1195,7 +1195,7 @@ export function sessionRead(): Session | null {
     const breaks: string[] = entriesRead(skillLog, open.start, now.toISOString())
         .filter((entry: Entry): boolean => entry.category === breakName && !entry.allDay && entry.start >= open.start)
         .map((entry: Entry): string => new Date(entry.end).toISOString());
-    const dayStart: Date = berlinInstantOf(livedDayOf(now), dayStartHour);
+    const dayStart: Date = new Date(berlinDayStartOf(berlinDateOf(now)));
     const learned: number = skillEntriesRead(dayStart.toISOString(), now.toISOString())
         .filter((entry: Entry): boolean => !entry.allDay && Date.parse(entry.start) >= dayStart.getTime())
         .reduce((sum: number, entry: Entry): number =>

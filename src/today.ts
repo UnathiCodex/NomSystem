@@ -1,9 +1,9 @@
 /**
  * ## Today
  *
- * The day the views open on: today's calendar date, which turns at 00:00, not at 05:00 as the day I live does,
- * see `livedDayOf` in `skill/attempts.ts`, so at 00:20 on 14.10.2026 the day, the week and the food open
- * on 14 October; the trackers, the skill days and the done boxes still count the day I live.
+ * Today, the one day of the whole page: today's calendar date, which turns at 00:00, so at 00:20 on 14.10.2026
+ * the day, the week and the food open on 14 October, and the trackers, the skill days, the done boxes
+ * and the due lists count 14 October, as the reader does.
  * A view that shows today moves on to the new day by itself at 00:00, and when the page becomes visible again
  * on a later day, like a tab left open overnight, whose timer the browser may have held back; a day I went to myself
  * stays, and only marks today anew, like the `Today` button of the day and the row of today in the week.
@@ -17,8 +17,7 @@ import { dayOf } from "./skill/attempts.ts";
 
 
 /**
- * Gives today's calendar date, which turns at 00:00, unlike today as I live it, see `todayOf` in `skill/attempts.ts`:
- * at 00:20 on 14 October today is 14 October.
+ * Gives today's calendar date, which turns at 00:00: at 00:20 on 14 October today is 14 October.
  *
  * @returns Day like `2026-10-14`
  */

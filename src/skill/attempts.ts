@@ -9,12 +9,6 @@
 
 
 /**
- * Hour my day starts: the hours before it belong to the evening before, since I am often awake after midnight,
- * as the reader counts them too, see `livedDayOf` in `reader/calendar.ts`.
- */
-export const dayStartHour: number = 5;
-
-/**
  * Result of an attempt: solved right, solved right with my tutor's help, solved wrong, stuck on the way,
  * or the task skipped; the reader writes a right attempt after a copy for my tutor as guided.
  */
@@ -365,26 +359,6 @@ export function dayOf(date: Date): string {
     const month: string = String(date.getMonth() + 1).padStart(2, "0");
     const day: string = String(date.getDate()).padStart(2, "0");
     return `${date.getFullYear()}-${month}-${day}`;
-}
-
-/**
- * Gives the day an instant belongs to as I live it: its day, the day before for the hours before {@link dayStartHour},
- * so 01:10 on 13 October belongs to 12 October.
- *
- * @param instant - The instant, like the start of a log entry
- * @returns Day like `2026-10-12`
- */
-export function livedDayOf(instant: Date): string {
-    return dayOf(new Date(instant.getTime() - dayStartHour * 60 * 60 * 1000));
-}
-
-/**
- * Gives today as I live it, see {@link livedDayOf}: at 01:10 on 13 October today is still 12 October.
- *
- * @returns Day like `2026-10-12`
- */
-export function todayOf(): string {
-    return livedDayOf(new Date());
 }
 
 /**

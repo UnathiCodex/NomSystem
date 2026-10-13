@@ -10,8 +10,8 @@
  * that morning, so a nap never becomes the night, and a sleep `Day` never, whatever its length; an old entry
  * without what counts like a `Night`. The week holds the nights of the day and the six days before it,
  * those logged: how long I slept on average, and how regular I was, how much my bedtime varied.
- * Glasses, meals and neck sessions count for the day I lived, the hours after midnight until 05:00 for the evening
- * before, see `livedDayOf` in `calendar.ts`.
+ * Glasses, meals and neck sessions count for the calendar day of their start in Berlin time, from 00:00 to 00:00,
+ * like a glass of water at 01:00 on 14.10.2026 for 14.10.2026.
  * A glass of water is an entry of the category `Drink` with the what `Water`, which the counter of the day writes,
  * one per glass at the moment of the tap, five minutes long; such an entry from the entry by category counts too.
  * Every other drink, like `Kaffee`, counts as one glass as well, since the reference of 2.5 litres a day counts
@@ -28,13 +28,13 @@
  * from its `DTSTAMP`, and on how many of the seven days up to it I logged at all, without streaks, since a broken one
  * makes people quit (Silverman 2023). Glasses of water stay out, since the counter writes them at the tap.
  *
- * - `./calendar.ts`: Reads the log, writes instants in Berlin time and gives the day I lived an instant in.
+ * - `./calendar.ts`: Reads the log and writes instants and their days in Berlin time.
  * - `./categories.ts`: Names the neck routines and the category of skill entries.
  * - `./food.ts`: Reads the meals of a day with what they give.
  * - `./sources.ts`: Names the log of the trackers.
  */
 
-import { berlinDateOf, berlinTimeOf, entriesRead, livedDayOf } from "./calendar.ts";
+import { berlinDateOf, berlinTimeOf, entriesRead } from "./calendar.ts";
 import { neckRoutines, skillName } from "./categories.ts";
 import { foodDayRead } from "./food.ts";
 import { trackerLog } from "./sources.ts";
@@ -134,7 +134,7 @@ export type NeckWeek = {
 /**
  * My log on a day.
  *
- * - `entries`: Entries of the day as I live it, glasses of water left out.
+ * - `entries`: Entries of the day, glasses of water left out.
  * - `late`: Median minutes between the end of an entry and the moment I wrote it, `null` for a day without entries.
  * - `days`: Days of the seven up to the day with at least one entry.
  */
@@ -346,7 +346,7 @@ export function glassIs(entry: Entry): boolean {
 }
 
 /**
- * Reads my glasses on a day, of water and of every other drink: the entries `Drink` that start on it as I live it,
+ * Reads my glasses on a day, of water and of every other drink: the entries `Drink` that start on it,
  * read from noon the day before to noon the day after, which holds the whole day and its night.
  * - `noon`: Noon of the day in UTC, in milliseconds.
  *
@@ -357,19 +357,19 @@ function glassesRead(date: string): Glass[] {
     const noon: number = new Date(`${date}T12:00:00Z`).getTime();
     return entriesRead(trackerLog, new Date(noon - dayLength).toISOString(), new Date(noon + dayLength).toISOString())
         .filter((entry: Entry): boolean => entry.category === drinkName && !entry.allDay
-            && livedDayOf(new Date(entry.start)) === date)
+            && berlinDateOf(new Date(entry.start)) === date)
         .sort((first: Entry, second: Entry): number => first.start.localeCompare(second.start))
         .map((entry: Entry): Glass => ({ id: entry.id, start: entry.start, water: glassIs(entry), editable: entry.editable }));
 }
 
 /**
  * Reads my neck routine in the seven days up to a day, see {@link NeckWeek}: from the entries that start on the day
- * or on one of the six days before it as I live them, read from noon eight days before to noon the day after,
+ * or on one of the six days before it, read from noon eight days before to noon the day after,
  * which holds all seven days, my neck sessions, the entries `Body` with a neck routine as their what,
  * and my study days, the days with an entry `Skill`.
  * - `noon`: Noon of the day in UTC, in milliseconds.
  * - `first`: The first of the seven days, like `2026-10-04`.
- * - `dayOf`: Day I lived an entry's start in.
+ * - `dayOf`: Day of an entry's start in Berlin time.
  * - `entries`: Entries of the seven days.
  * - `necks`: My neck sessions.
  * - `neckDays`: Days with a neck session.
@@ -381,7 +381,7 @@ function glassesRead(date: string): Glass[] {
 function neckRead(date: string): NeckWeek {
     const noon: number = new Date(`${date}T12:00:00Z`).getTime();
     const first: string = new Date(noon - (weekDays - 1) * dayLength).toISOString().slice(0, 10);
-    const dayOf: (entry: Entry) => string = (entry: Entry): string => livedDayOf(new Date(entry.start));
+    const dayOf: (entry: Entry) => string = (entry: Entry): string => berlinDateOf(new Date(entry.start));
     const entries: Entry[] = entriesRead(trackerLog, new Date(noon - (weekDays + 1) * dayLength).toISOString(),
         new Date(noon + dayLength).toISOString())
         .filter((entry: Entry): boolean => dayOf(entry) >= first && dayOf(entry) <= date);
@@ -417,7 +417,7 @@ function meanOf(numbers: number[]): number | null {
  * the mean of the first four weeks from my first rating, and of the last four weeks up to the day,
  * once the day lies beyond the first four.
  * - `noon`: Noon of the day in UTC, in milliseconds.
- * - `rated`: Long sessions up to the day with a pain, each as the day I lived it and its pain.
+ * - `rated`: Long sessions up to the day with a pain, each as its day and its pain.
  * - `first`: Day of the first rating.
  * - `firstEnd`: First day after the first four weeks.
  * - `lastStart`: First day of the last four weeks up to the day.
@@ -430,8 +430,8 @@ function painRead(date: string): [number | null, number | null] {
     const noon: number = new Date(`${date}T12:00:00Z`).getTime();
     const rated: [string, number][] = entriesRead(trackerLog, newSystemStart, new Date(noon + dayLength).toISOString())
         .filter((entry: Entry): boolean => entry.category === bodyName && entry.title === neckLongName
-            && entry.pain !== "" && livedDayOf(new Date(entry.start)) <= date)
-        .map((entry: Entry): [string, number] => [livedDayOf(new Date(entry.start)), Number(entry.pain)]);
+            && entry.pain !== "" && berlinDateOf(new Date(entry.start)) <= date)
+        .map((entry: Entry): [string, number] => [berlinDateOf(new Date(entry.start)), Number(entry.pain)]);
     if (rated.length === 0)
         return [null, null];
     const first: string = rated.map(([day]: [string, number]): string => day).sort()[0];
@@ -446,7 +446,7 @@ function painRead(date: string): [number | null, number | null] {
 /**
  * Reads my log on a day, see {@link LogDay}: the entries of the log of the new system with times, glasses of water
  * left out, read from noon eight days before to noon the day after, which holds the seven days up to the day;
- * each by the day I lived its start in.
+ * each by the day of its start in Berlin time.
  * - `noon`: Noon of the day in UTC, in milliseconds.
  * - `first`: The first of the seven days, like `2026-10-04`.
  * - `entries`: Entries of the seven days.
@@ -462,15 +462,15 @@ function logRead(date: string): LogDay {
     const entries: Entry[] = entriesRead(trackerLog, new Date(noon - (weekDays + 1) * dayLength).toISOString(),
         new Date(noon + dayLength).toISOString())
         .filter((entry: Entry): boolean => !entry.allDay && !entry.todo && !glassIs(entry)
-            && livedDayOf(new Date(entry.start)) >= first && livedDayOf(new Date(entry.start)) <= date);
-    const own: Entry[] = entries.filter((entry: Entry): boolean => livedDayOf(new Date(entry.start)) === date);
+            && berlinDateOf(new Date(entry.start)) >= first && berlinDateOf(new Date(entry.start)) <= date);
+    const own: Entry[] = entries.filter((entry: Entry): boolean => berlinDateOf(new Date(entry.start)) === date);
     const lates: number[] = own.filter((entry: Entry): boolean => entry.written !== "")
         .map((entry: Entry): number => Math.max(0, Math.round((Date.parse(entry.written) - Date.parse(entry.end)) / 60000)))
         .sort((one: number, other: number): number => one - other);
     return {
         entries: own.length,
         late: lates.length === 0 ? null : lates[Math.floor(lates.length / 2)],
-        days: new Set(entries.map((entry: Entry): string => livedDayOf(new Date(entry.start)))).size,
+        days: new Set(entries.map((entry: Entry): string => berlinDateOf(new Date(entry.start)))).size,
     };
 }
 

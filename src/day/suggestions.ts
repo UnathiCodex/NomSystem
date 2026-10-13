@@ -12,12 +12,14 @@
  *
  * - `./entries.ts`: Sends the accepted session to the reader.
  * - `./categories.ts`: Opens the entry by category of a new box from a suggestion.
- * - `../skill/attempts.ts`: Names the category of skill entries, writes a date as a day and gives today as I live it.
+ * - `../skill/attempts.ts`: Names the category of skill entries and writes a date as a day.
+ * - `../today.ts`: Gives today's calendar date.
  */
 
 import { boxAdd } from "./entries.ts";
 import { boxOpenSuggestion } from "./categories.ts";
-import { dayOf, skillName, todayOf } from "../skill/attempts.ts";
+import { dayOf, skillName } from "../skill/attempts.ts";
+import { calendarTodayOf } from "../today.ts";
 
 
 /**
@@ -52,14 +54,14 @@ const dismissed: Set<string> = new Set();
 
 
 /**
- * Gives tomorrow, the one day with suggestions: the day after today as I live it, so planning at 00:40
- * still plans the day I wake into.
+ * Gives tomorrow, the one day with suggestions: the day after today's calendar date, so at 00:40 on 14 October
+ * tomorrow is 15 October.
  * - `tomorrow`: Today at noon, one day later.
  *
  * @returns Day like `2026-10-12`
  */
 function tomorrowOf(): string {
-    const tomorrow: Date = new Date(`${todayOf()}T12:00:00`);
+    const tomorrow: Date = new Date(`${calendarTodayOf()}T12:00:00`);
     tomorrow.setDate(tomorrow.getDate() + 1);
     return dayOf(tomorrow);
 }

@@ -18,9 +18,10 @@
  * The day opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today
  * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the week, opens on that day,
  * which the address then keeps no more, see `today.ts`.
- * The grid runs from 00:00 to 05:00 of the next day and opens at 06:00, so the hours after midnight show on both days,
- * like a sleep from 01:00 at the bottom of 12 October and at the top of 13 October; the trackers count them once,
- * for the day I lived, 12 October, see {@link dayStart}.
+ * The grid runs from 00:00 to 05:00 of the next day and opens at 06:00, so an entry can be pulled past midnight
+ * at its bottom and the hours after midnight show on both days, like a sleep from 01:00 at the bottom of 12 October
+ * and at the top of 13 October; the trackers count it once, for the calendar day of its start, 13 October,
+ * see {@link dayStart}.
  *
  * - `fullcalendar`: Draws the calendar.
  * - `fullcalendar/timegrid`: Draws the time grid of the day.
@@ -358,10 +359,10 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `selectAllow`: Allows selecting a time range, but not in the row of the whole day.
  * - `nowIndicatorLineClass`, `nowIndicatorDotClass`: Add the classes `now-line` and `now-dot` to the line of now
  *   and its dot, so `day.css` draws them calm grey behind the entries, never through their text.
- * - `slotMinTime`, `slotMaxTime`: Run the grid from 00:00 to 05:00 of the next day, so the night before 05:00
- *   stands at its top and an entry after midnight still runs on below the evening it belongs to;
- *   an entry from 01:00 to 02:00 on 13 October shows at the bottom of 12 October and at the top of 13 October.
- *   Only the grid shows it twice: the trackers and the done boxes ask the reader for the day I lived, 05:00 to 05:00,
+ * - `slotMinTime`, `slotMaxTime`: Run the grid from 00:00 to 05:00 of the next day, so an entry can still be pulled
+ *   past midnight at the bottom, below the evening before it; an entry from 01:00 to 02:00 on 13 October shows
+ *   at the bottom of 12 October and at the top of 13 October. Only the grid shows it twice: the trackers
+ *   and the done boxes ask the reader for the calendar day, 00:00 to 00:00, which counts it for 13 October,
  *   while FullCalendar fetches the log for the whole grid, 00:00 to 05:00 of the next day.
  * - `scrollTime`: Scrolls the grid to 06:00 at the start, for a day that does not hold now; today centres on now instead, see {@link nowCenter}.
  *

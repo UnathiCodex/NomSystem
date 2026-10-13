@@ -17,13 +17,13 @@
  *
  * - `node:fs`: Reads and writes `Foods.md`.
  * - `node:path`: Gives the folder of `Foods.md`.
- * - `./calendar.ts`: Reads the log and gives the day I lived an instant in.
+ * - `./calendar.ts`: Reads the log and gives the day of an instant in Berlin time.
  * - `./sources.ts`: Names `Foods.md`, the log and the addresses of Open Food Facts, and tells which files the reader may write.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { entriesRead, livedDayOf } from "./calendar.ts";
+import { berlinDateOf, entriesRead } from "./calendar.ts";
 import { food, writeAllowed } from "./sources.ts";
 
 import type { Entry } from "./calendar.ts";
@@ -552,8 +552,7 @@ function mealOf(entry: Entry, mine: Map<string, Food>): Meal {
 
 /**
  * Reads the meals of a day with what they give: the log entries of the category `Food` that start on the day
- * as I live it, a meal after midnight until 05:00 on the evening before, see `livedDayOf` in `calendar.ts`,
- * read from noon the day before to noon the day after, which holds the whole day and its night.
+ * in Berlin time, from 00:00 to 00:00, read from noon the day before to noon the day after, which holds the whole day.
  * A food counts its grams, or its usual portion when the meal lists none; a food not in `Foods.md` counts nothing.
  * - `noon`: Noon of the day in UTC, in milliseconds.
  * - `mine`: My foods by their names in small letters.
@@ -570,7 +569,7 @@ export function foodDayRead(date: string): FoodDay {
     const noon: number = new Date(`${date}T12:00:00Z`).getTime();
     const mine: Map<string, Food> = foodsByNameRead();
     const meals: Meal[] = mealsRead(new Date(noon - dayLength).toISOString(), new Date(noon + dayLength).toISOString())
-        .filter((entry: Entry): boolean => livedDayOf(new Date(entry.start)) === date)
+        .filter((entry: Entry): boolean => berlinDateOf(new Date(entry.start)) === date)
         .sort((first: Entry, second: Entry): number => first.start.localeCompare(second.start))
         .map((entry: Entry): Meal => mealOf(entry, mine));
     return { ...sumOf(meals), meals: meals, estimate: meals.some((meal: Meal): boolean => meal.estimate) };

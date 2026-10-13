@@ -22,13 +22,15 @@
  *
  * - `./choices.ts`: Pickers, in rows with their names.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due and what a module offers, groups the tasks,
- *   writes days out, gives today as I live it and sends skill entries.
+ *   writes days out and sends skill entries.
+ * - `../today.ts`: Gives today's calendar date, for the tasks due.
  * - `../skill/links.ts`: Shows a link of a skill entry by its name.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
 import { choiceOf, choicesOf, groupedSearchOf, rowOf, searchOf } from "./choices.ts";
-import { dayTextOf, groupsOf, moduleLoad, skillEntrySend, skillingLoad, todayOf } from "../skill/attempts.ts";
+import { dayTextOf, groupsOf, moduleLoad, skillEntrySend, skillingLoad } from "../skill/attempts.ts";
+import { calendarTodayOf } from "../today.ts";
 import { linkElementOf } from "../skill/links.ts";
 
 import type { Calendar } from "fullcalendar";
@@ -228,7 +230,7 @@ function documentChoicesOf(): Choice[] {
  * @returns Choices of the tasks
  */
 function taskChoicesOf(tasks: SkillTask[]): Choice[] {
-    return groupsOf(tasks, todayOf()).flatMap((group: Group): Choice[] =>
+    return groupsOf(tasks, calendarTodayOf()).flatMap((group: Group): Choice[] =>
         group.tasks.map((task: SkillTask): Choice => ({
             value: task.id,
             text: group.name === "Later" && task.due !== "" ? `${task.name} · ${dayTextOf(task.due, true)}` : task.name,

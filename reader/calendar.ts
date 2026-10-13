@@ -719,26 +719,6 @@ export function berlinDateOf(instant: Date): string {
 }
 
 /**
- * Hour my day starts in Berlin time: the hours before it belong to the evening before, since I am often awake
- * after midnight, like a glass of water at 01:10 that counts for the day I lived, not for the next.
- */
-export const dayStartHour: number = 5;
-
-/**
- * Writes the day an instant belongs to as I live it: its date in Berlin time, the day before for the hours
- * before {@link dayStartHour}.
- * - `time`: The instant in Berlin time, moved back by the hours before the start of my day.
- *
- * @param instant - Start of an entry, like a glass of water at 01:10 on 13 October
- * @returns Day like `2026-10-12`
- */
-export function livedDayOf(instant: Date): string {
-    const time: ICAL.Time = berlinOf(instant);
-    time.adjust(0, -dayStartHour, 0, 0);
-    return time.toString().slice(0, 10);
-}
-
-/**
  * Writes the time of day of an instant in Berlin time.
  *
  * @param instant - An instant, like the start of a sleep

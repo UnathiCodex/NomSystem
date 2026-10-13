@@ -36,7 +36,7 @@ import type { Link } from "./skill/attempts.ts";
  * - `start`: Start of its skill entry, as ISO instant.
  * - `links`: Links of its skill entry, to the folder of its skill and to the document it uses.
  * - `focusStart`: Start of the focused stretch running now, the start or the end of my last break, as ISO instant.
- * - `dayMinutes`: Minutes of learning today as I live it, lectures included.
+ * - `dayMinutes`: Minutes of learning today, from 00:00, lectures included.
  * - `focusMinutes`: Minutes of a focused stretch after which the timer suggests a short break away from the phone.
  * - `sessionMinutes`: Minutes of a whole session.
  * - `studyMinutes`: Minutes of learning a day at most.

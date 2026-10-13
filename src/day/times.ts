@@ -11,11 +11,13 @@
  * A date field, like the day of a deadline, takes a date in my standard way with its year, `23.10.2026`,
  * and marks itself invalid the same way.
  *
- * - `../skill/attempts.ts`: Writes a date as a day, gives today as I live it and the hour my day starts.
+ * - `../skill/attempts.ts`: Writes a date as a day.
+ * - `../today.ts`: Gives today's calendar date.
  * - `./boxes.ts`: The type of a box, for the type checker only.
  */
 
-import { dayOf, dayStartHour, todayOf } from "../skill/attempts.ts";
+import { dayOf } from "../skill/attempts.ts";
+import { calendarTodayOf } from "../today.ts";
 
 import type { Box } from "./boxes.ts";
 
@@ -51,11 +53,9 @@ export function dateOf(day: Date, time: string): Date {
 }
 
 /**
- * Gives now on a shown day, to the minute: now itself while the day is today as I live it, since after midnight
- * now lies on the next calendar day, like 01:10 of 13 October on 12 October; on any other day the time of now
- * on that day as I live it, a time before 05:00 in the night after it, like a glass of water added to a past day.
+ * Gives now on a shown day, to the minute: now itself while the day is today, else the time of now on that day,
+ * like a glass of water added to a past day at 01:10 of that day.
  * - `now`: Now, without its seconds.
- * - `then`: The time of now on the shown day.
  *
  * @param day - The shown day, like the start of the calendar's day
  * @returns The instant
@@ -63,12 +63,7 @@ export function dateOf(day: Date, time: string): Date {
 export function nowOn(day: Date): Date {
     const now: Date = new Date();
     now.setSeconds(0, 0);
-    if (dayOf(day) === todayOf())
-        return now;
-    const then: Date = dateOf(day, timeOf(now));
-    if (then.getHours() < dayStartHour)
-        then.setDate(then.getDate() + 1);
-    return then;
+    return dayOf(day) === calendarTodayOf() ? now : dateOf(day, timeOf(now));
 }
 
 /**

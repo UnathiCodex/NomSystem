@@ -22,7 +22,8 @@
  *
  * - `./markdown.ts`: Turns the Markdown of a note into HTML, with Obsidian's syntax.
  * - `./math.ts`: Renders the formulas, as Obsidian does.
- * - `../skill/attempts.ts`: Loads the tasks with when they are due and gives today as I live it.
+ * - `../skill/attempts.ts`: Loads the tasks with when they are due.
+ * - `../today.ts`: Gives today's calendar date, for when a task is due.
  * - `../skill/task.ts`: Builds the row of a task with its buttons, the label of a cold task, and the copy icon.
  * - `./tutor.ts`: Writes the text for my tutor about a task or a theory block, which its copy icon puts
  *   on the clipboard.
@@ -33,7 +34,8 @@
 
 import { htmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
-import { skillingLoad, todayOf } from "../skill/attempts.ts";
+import { skillingLoad } from "../skill/attempts.ts";
+import { calendarTodayOf } from "../today.ts";
 import { coldLabelOf, taskRowOf, tutorCopyOf } from "../skill/task.ts";
 import { theoryTextOf, tutorTextOf } from "./tutor.ts";
 import { Pencil } from "lucide";
@@ -445,7 +447,7 @@ async function tasksShow(path: string, note: string): Promise<void> {
 
     const tasks: SkillTask[] = skilling.modules.flatMap((module: SkillModule): SkillTask[] => module.tasks)
         .filter((task: SkillTask): boolean => task.note === path);
-    const today: string = todayOf();
+    const today: string = calendarTodayOf();
     const text: HTMLElement = document.getElementById("notes-text") as HTMLElement;
     text.querySelectorAll(".task-row, .theory-row").forEach((row: Element): void => row.remove());
     text.querySelectorAll<HTMLElement>(":scope > .fold > summary > h2").forEach((heading: HTMLElement): void => {

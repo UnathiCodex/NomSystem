@@ -29,7 +29,8 @@
  * - `./entries.ts`: Sends new and removed entries to the reader.
  * - `./times.ts`: Gives now on the shown day.
  * - `../food/foods.ts`: Writes amounts and makes elements.
- * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader and gives today as I live it.
+ * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
+ * - `../today.ts`: Gives today's calendar date.
  * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
  * - `lucide`: The icons glass, minus and check.
  * - `fullcalendar`: Calendar that shows the day.
@@ -38,7 +39,8 @@
 import { entryAdd, entryDelete } from "./entries.ts";
 import { nowOn } from "./times.ts";
 import { amountOf, elementOf } from "../food/foods.ts";
-import { dayOf, todayOf } from "../skill/attempts.ts";
+import { dayOf } from "../skill/attempts.ts";
+import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut, iconWordsOf } from "../icons.ts";
 import { Check, GlassWater, Minus } from "lucide";
 
@@ -302,7 +304,7 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
     const count: number = trackers.glasses.length;
     const goal: number = Math.round(trackers.settings.waterMl / trackers.settings.glassMl);
     const last: Glass | undefined = trackers.glasses.filter((glass: Glass): boolean => glass.water && glass.editable).at(-1);
-    const coming: boolean = day > todayOf();
+    const coming: boolean = day > calendarTodayOf();
     const send: (change: () => Promise<void>) => void = (change: () => Promise<void>): void => {
         row.inert = true;
         change().catch((error: unknown): void => {

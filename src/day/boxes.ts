@@ -43,7 +43,7 @@
  * - `./gifts.ts`: Opens the dialog of the gift idea for a birthday or holiday.
  * - `./times.ts`: Gives the times a box is logged at with one tap, and writes times of day.
  * - `../skill/attempts.ts`: Names the category of skill entries, writes a date as a day,
- *   and gives the day an instant belongs to as I live it.
+ *   and gives the day of a date.
  * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
  * - `lucide`: The icons plus, check, arrow, cross, undo and gift.
  * - `fullcalendar`: Calendar of the log the boxes are dropped into.
@@ -55,7 +55,7 @@ import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
 import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } from "./suggestions.ts";
 import { giftOpen } from "./gifts.ts";
 import { boxMinutes, boxTimesOf, dateTextOf, timeOf } from "./times.ts";
-import { dayOf, livedDayOf, skillName } from "../skill/attempts.ts";
+import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconOf, iconPut } from "../icons.ts";
 import { ArrowRight, Check, Gift, Plus, Undo2, X } from "lucide";
 
@@ -270,7 +270,7 @@ const pushesAsking: number = 3;
  * and how often it was pushed, as one part, like `in 3 days · 120 min` or `75 min · pushed once`,
  * and from {@link pushesAsking} pushes on, while it is open, the question `smaller or drop?` after them;
  * the week leaves out how near a deadline is, since it shows a deadline only on its own day, which its row names.
- * - `lived`: Day its log entry belongs to as I live it, empty for none.
+ * - `lived`: Day of the start of its log entry, empty for none.
  * - `expected`: What was expected.
  * - `pushes`: How often it was pushed, empty for never, with the question when it asks.
  * - `near`: How near its deadline is, empty for a box without, one not open, or in the week.
@@ -287,7 +287,7 @@ const pushesAsking: number = 3;
 function metaPartsOf(box: Box, day: string, nearShown: boolean): string[] {
     if (box.state === "done" && box.deadline !== "")
         return [];
-    const lived: string = box.log === null ? "" : livedDayOf(new Date(box.log.start));
+    const lived: string = box.log === null ? "" : dayOf(new Date(box.log.start));
     const expected: string = expectedOf(box);
     let pushes: string = "";
     if (box.pushed.length === 1)

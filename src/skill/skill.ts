@@ -20,13 +20,15 @@
  * like `13.10.2026 IN2028 VO: VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`.
  * Formulas `$…$` in names are rendered as in the notes.
  *
- * - `./attempts.ts`: Loads the tasks with when they are due, writes days out and gives today as I live it.
+ * - `./attempts.ts`: Loads the tasks with when they are due and writes days out.
+ * - `../today.ts`: Gives today's calendar date, for when a task is due.
  * - `./task.ts`: Tells when a task is due.
  * - `../notes/math.ts`: Renders the formulas as the notes view does, loaded only when there is one.
  * - `./skill.css`: Look of the skill view.
  */
 
-import { dayTextOf, skillingLoad, todayOf } from "./attempts.ts";
+import { dayTextOf, skillingLoad } from "./attempts.ts";
+import { calendarTodayOf } from "../today.ts";
 import { stateTextOf } from "./task.ts";
 import "./skill.css";
 
@@ -280,7 +282,7 @@ function lostOf(lost: LinkLost[]): HTMLElement[] {
  */
 async function skillShow(): Promise<void> {
     const skilling: Skilling = await skillingLoad();
-    const today: string = todayOf();
+    const today: string = calendarTodayOf();
     const modules: HTMLElement = document.getElementById("skill-modules") as HTMLElement;
     modules.replaceChildren(...lostOf(skilling.lost),
         ...skilling.modules.map((module: SkillModule): HTMLElement => moduleElementOf(module, today)));

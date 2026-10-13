@@ -50,7 +50,7 @@
  */
 
 import {
-    berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryLookup, entryRemove, livedDayOf,
+    berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryLookup, entryRemove,
     occurrenceLookup, propertiesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, skillName } from "./categories.ts";
@@ -287,14 +287,14 @@ function boxCompare(first: Box, second: Box): number {
 /**
  * Tells whether a box with a deadline shows on a day: on the day of its deadline always, so I see there that it is
  * done, and before it from {@link deadlineDays} days before that day, once done only until the day of its log entry.
- * - `last`: Day of its log entry as I live it, the day of its deadline while it has none.
+ * - `last`: Day of its log entry, the day of its deadline while it has none.
  *
  * @param box - Box with a deadline
  * @param date - Day like `2026-10-20`
  * @returns Whether it shows on the day
  */
 function deadlineShows(box: Box, date: string): boolean {
-    const last: string = box.log === null ? box.day : livedDayOf(new Date(box.log.start));
+    const last: string = box.log === null ? box.day : berlinDateOf(new Date(box.log.start));
     return date === box.day || (dayAdd(box.day, -deadlineDays) <= date && date < box.day && date <= last);
 }
 
