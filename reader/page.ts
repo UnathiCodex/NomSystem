@@ -18,6 +18,7 @@ import type { ViteDevServer } from "vite";
 /**
  * Starts Vite inside the server of the reader, so page and data share one address.
  * - `root`: Folder of `index.html`, one up from this file.
+ * - `publicDir`: Folder of the files given out as they are, like the logo `icon.svg`, named `assets` as in WokFlow.
  * - `middlewareMode`: Answers only the requests the reader hands over, without a server of its own.
  * - `hmr.server`: Sends its reload messages through the server of the reader.
  * - `allowedHosts`: Answers my devices too, which reach skriptum through Tailscale by a name ending in `.ts.net`,
@@ -32,6 +33,7 @@ import type { ViteDevServer } from "vite";
 export function pageCreate(server: Server): Promise<ViteDevServer> {
     return createServer({
         root: join(import.meta.dirname, ".."),
+        publicDir: "assets",
         server: {
             middlewareMode: true,
             hmr: { server: server },
