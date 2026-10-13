@@ -59,7 +59,7 @@ import { foodName } from "./meal.ts";
 import { boxesSee, boxesStart, boxReceive, entryPartOf, whatOf } from "./boxes.ts";
 import { monthStart } from "./month.ts";
 import { giftsStart } from "./gifts.ts";
-import { labelOf } from "./places.ts";
+import { wayName, whereOf } from "./places.ts";
 import { trackersSee } from "./trackers.ts";
 import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
@@ -195,11 +195,13 @@ function dishOf(event: EventApi): string[] {
  * - `foods`: Foods of a dish, none for any other entry.
  * - `what`: What the entry was, its foods for a dish, empty when it is its category, like an old `Sleep`
  *   written before it had its what.
- * - `place`: Place of the entry, its `LOCATION`, like `HomeMunich`, empty when it has none.
+ * - `place`: Place of the entry by its label, its `LOCATION`, like `HomeMunich`, for a way its route from its `X-FROM`,
+ *   like `HomeMunich → TumGarching`, see `whereOf` in `places.ts`; empty when it has none.
  * - `note`: Note of the entry, its `DESCRIPTION`, empty when it has none.
  * - `start`, `end`: Start and end of the entry.
  * - `time`: Start of a short entry, start and end of a taller one.
- * - `line`: The first line, what, with the time after a comma when the entry has room for only this line.
+ * - `line`: The first line, what, with the time after a comma when the entry has room for only this line,
+ *   and for a way its route after a dot, like `Way: UBahn, 08:00 – 08:40 · HomeMunich → TumGarching`.
  * - `day`: Midnight of the shown day, where the grid starts.
  * - `top`, `bottom`: Start and end of the entry cut to the grid, from 00:00 of the shown day to 05:00 of the next,
  *   like 23:00 to 05:00 for a Sleep from 23:00 to 07:00 on 12 October.
@@ -222,7 +224,8 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
         what = foods.join(", ");
     else if (what === category)
         what = "";
-    const place: string = labelOf(info.event.extendedProps.location ?? "");
+    const place: string =
+        whereOf(category, info.event.extendedProps.from ?? "", info.event.extendedProps.location ?? "");
     const note: string = (info.event.extendedProps.note ?? "").trim();
     const start: Date = info.event.start as Date;
     const end: Date = info.event.end ?? start;
@@ -239,6 +242,8 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     const lines: number = Math.floor(((bottom - top) / (60 * 1000) - 11.25) / lineMinutes);
     if (info.isShort || lines < 2) {
         line.append(entryPartOf("span", "entry-time", [`, ${time}`]));
+        if (category === wayName && place !== "")
+            line.append(entryPartOf("span", "entry-place entry-route", [`· ${place}`]));
         return { domNodes: [line] };
     }
 

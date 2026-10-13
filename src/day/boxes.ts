@@ -62,7 +62,7 @@ import { boxDrop, boxLog, boxPush, boxUndo } from "./entries.ts";
 import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
 import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } from "./suggestions.ts";
 import { giftOpen } from "./gifts.ts";
-import { labelOf } from "./places.ts";
+import { whereOf } from "./places.ts";
 import { boxMinutes, boxTimesOf, dateTextOf, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
@@ -357,10 +357,10 @@ function timeLineOf(box: Box, day: string, nearShown: boolean): string {
  * Makes the lines of a box, in the day and in the week alike, the same three whether it is open or done, see the top
  * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf}, like **`Skill: IN0004 VO`**,
  * its time and length in the light grey of a time, see {@link timeLineOf}, like `16:00 · 90 min`, and its place
- * on a line of its own in the darker grey, by its label alone, like `Audimax im Galileo`, see `labelOf`
- * in `places.ts`; a line without anything to say is left out.
+ * on a line of its own in the darker grey, by its label alone, like `Audimax im Galileo`, a way its route,
+ * like `HomeMunich → TumGarching`, see `whereOf` in `places.ts`; a line without anything to say is left out.
  * - `time`: The line of its time and length.
- * - `place`: The label of its place, empty for none.
+ * - `place`: The label of its place or the route of a way, empty for none.
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
@@ -369,7 +369,7 @@ function timeLineOf(box: Box, day: string, nearShown: boolean): string {
  */
 export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] {
     const time: string = timeLineOf(box, day, nearShown);
-    const place: string = labelOf(box.location);
+    const place: string = whereOf(box.category, box.from, box.location);
     return [
         entryPartOf("div", "box-what", whatOf(box.category, box.title === box.category ? "" : box.title)),
         ...(time === "" ? [] : [entryPartOf("div", "box-meta box-time", [entryPartOf("span", "box-part", [time])])]),

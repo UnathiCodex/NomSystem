@@ -13,6 +13,7 @@
  * `TumMain, Arcisstraße 21, 80333 München, Deutschland`, see {@link lineOf}; it shows by its name, the part
  * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens the link
  * of the place, written with it as its `ALTREP`, or else Google Maps, see {@link mapsAddressOf}.
+ * A way shows its route by labels, see {@link whereOf}.
  *
  * - `../icons.ts`: Puts the icons into the buttons of the dialog.
  * - `lucide`: The icons check and cross.
@@ -66,6 +67,31 @@ export function lineOf(place: Place): string {
  */
 export function labelOf(line: string): string {
     return line.split(",")[0].trim();
+}
+
+/**
+ * Category of ways, whose place shows as the route, see {@link whereOf}.
+ */
+export const wayName: string = "Way";
+
+/**
+ * Writes where an entry or a box was, by labels alone, see {@link labelOf}: the route of a way, from where it starts,
+ * its `X-FROM`, to its goal, its `LOCATION`, like `HomeMunich → TumGarching`, a missing end left out beside its arrow,
+ * like `→ TumGarching`; the place of any other entry, like `HomeMunich`.
+ * - `start`: Label of where a way starts, empty for none.
+ * - `goal`: Label of the place or the goal, empty for none.
+ *
+ * @param category - Category of the entry, like `Way`
+ * @param from - Where a way starts, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`, empty for none
+ * @param location - Place or goal, like `TumGarching, Boltzmannstraße 3, 85748 Garching, Deutschland`
+ * @returns Where it was, like `HomeMunich → TumGarching`, empty for no place at all
+ */
+export function whereOf(category: string, from: string, location: string): string {
+    const start: string = labelOf(from);
+    const goal: string = labelOf(location);
+    if (category !== wayName || (start === "" && goal === ""))
+        return goal;
+    return `${start} → ${goal}`.trim();
 }
 
 /**

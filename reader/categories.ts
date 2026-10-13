@@ -13,7 +13,8 @@
  * and below them the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
  * A dish, the what of `Food` and `Cook`, names its foods parted by `, `, like `Reis, Bohnen, Eier`.
  * `Sleep` takes only two whats, `Night` and `Day`, a nap, see {@link sleepWhats}, and no new ones,
- * so the sleep tracker tells a nap from a night, see `trackers.ts`.
+ * so the sleep tracker tells a nap from a night, see `trackers.ts`; `Way` takes only my means of transport,
+ * see {@link transports}.
  * `Skill` has only the field `Place`, like the room of a lecture: in plan and log a skill, a module by its code
  * or a project by its name, and a type or none, which the dialog picks itself, written as the folder of its skill
  * with the type in brackets, like `IN2028_BusinessAnalyticsMachineLearning (VO)` or `WokFlow`,
@@ -168,6 +169,12 @@ const semesterForm: RegExp = /^\d{4}[WS]$/;
 const sleepWhats: string[] = ["Night", "Day"];
 
 /**
+ * The only whats of `Way`, my means of transport, each written one way, without hyphen, like my other names:
+ * `Walk`, `Bike`, `Bus`, `Tram`, `UBahn`, `SBahn`, `Train` and `Car`.
+ */
+const transports: string[] = ["Walk", "Bike", "Bus", "Tram", "UBahn", "SBahn", "Train", "Car"];
+
+/**
  * Categories no box of the plan has, since they happen anyway: my sleep, my meals and their cooking, my drinks
  * and what I play.
  */
@@ -193,8 +200,7 @@ const categories: Category[] = [
         name: "Way",
         fields: [
             {
-                name: "By", key: "title", values: ["Walk", "Bike", "U-Bahn", "S-Bahn", "Tram", "Bus", "Train", "Car"],
-                steps: {}, fixed: false,
+                name: "By", key: "title", values: transports, steps: {}, fixed: true,
             },
             { name: "From", key: "from", values: [], steps: {}, fixed: false },
             { name: "To", key: "location", values: [], steps: {}, fixed: false },

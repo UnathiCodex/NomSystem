@@ -415,6 +415,23 @@ function stepsShow(steps: HTMLElement, field: Field): void {
 }
 
 /**
+ * Gives the value of a field that takes only its values, like my means of transport, for a value an older entry
+ * wrote another way, like `UBahn` for `U-Bahn`: the value that reads the same without hyphens and spaces,
+ * ignoring case; any other value as it is, also one no value reads like.
+ * - `simple`: Writes a value without hyphens and spaces, in small letters.
+ *
+ * @param field - Field of the value, like `By` of `Way`
+ * @param value - Value as written, like `U-Bahn`
+ * @returns Value of the field, like `UBahn`
+ */
+function fixedValueOf(field: Field, value: string): string {
+    const simple: (text: string) => string = (text: string): string => text.replace(/[-\s]/g, "").toLowerCase();
+    if (!field.fixed || field.values.includes(value))
+        return value;
+    return field.values.find((candidate: string): boolean => simple(candidate) === simple(value)) ?? value;
+}
+
+/**
  * Makes the choice of a value of a field: a place by its name, see `labelOf` in `places.ts`,
  * any other value as it is.
  *
@@ -645,7 +662,8 @@ async function wayEndLoad(): Promise<string> {
 }
 
 /**
- * Picks a category: shows its fields, keeping the places picked under the category before.
+ * Picks a category: shows its fields, keeping the places picked under the category before, and an older value
+ * of a field that takes only its values as that field writes it, see {@link fixedValueOf}.
  * A new entry of a category with the field `from` starts where the last way ended.
  * `Food` in the log shows its foods after the times, those of the meal being changed, see `meal.ts`;
  * `Skill` shows its skill and type before the times, and its place, topics, semester and attempts after them,
@@ -658,6 +676,9 @@ async function wayEndLoad(): Promise<string> {
 async function categoryPick(category: Category | null): Promise<void> {
     values = chosen === null ? { ...opened.values } : { ...valuesRead(), title: "" };
     chosen = category;
+    (category?.fields ?? []).forEach((field: Field): void => {
+        values[field.key] = fixedValueOf(field, values[field.key]);
+    });
     document.getElementById("entry-more")?.replaceChildren();
     if (category?.name === skillName) {
         await skillFieldsShow(document.getElementById("entry-fields") as HTMLElement,

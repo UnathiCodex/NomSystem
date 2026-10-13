@@ -1411,6 +1411,15 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
+/* Route of a way on its one line after the time, like `· HomeMunich → TumGarching`, a space before it,
+   which a line in parts would drop at the start of a part; it takes only the room left beside what the way was
+   and its time, cut with an ellipsis, so a narrow entry cuts the route, never what the way was */
+.entry-route {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-left: 0.3em;
+}
+
 /* Time field as wide as a time like 14:00, and minutes field as wide as four digits,
    with the space beside them and their border */
 .time-field,
