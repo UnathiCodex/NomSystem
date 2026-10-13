@@ -66,8 +66,9 @@ import type { CalendarSource } from "./sources.ts";
  *   none when it has none.
  * - `written`: When the entry was written, its `DTSTAMP`, as ISO instant, which the reader sets once as it adds an entry;
  *   empty when the event has none.
- * - `editable`: Whether the dashboard may change and remove the entry: it lies in the new system, happens once,
- *   and has times or is a to-do. FullCalendar lets only these events be dragged.
+ * - `editable`: Whether the dashboard may change the entry: it lies in the new system and has times or is a to-do;
+ *   also one occurrence of a series, which becomes a component of its own once it is changed alone,
+ *   see {@link occurrenceOwn}. FullCalendar lets only these events be dragged.
  * - `start`: Start as ISO instant like `2026-07-03T09:15:00.000Z`,
  *   or as date like `2026-07-03` when all-day; a to-do starts at its `DTSTART`, a day or a time,
  *   and a to-do with a deadline but no `DTSTART` on the day of its deadline, as a whole day.
@@ -371,7 +372,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         pushed: event.component.getAllProperties("x-pushed")
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
         written: stamp instanceof ICAL.Time ? stamp.toJSDate().toISOString() : "",
-        editable: writable && !event.isRecurring() && !event.isRecurrenceException() && (todo || !start.isDate),
+        editable: writable && (todo || !start.isDate),
         start: textOf(start),
         end: textOf(end),
         allDay: start.isDate,
@@ -477,9 +478,10 @@ function boundsOf(allDay: boolean, range: Range): [string, string] {
  *
  * @param series - Recurring event
  * @param range - Range whose end stops the walk
- * @returns {@link Entry} of each occurrence that is not replaced, none of them editable
+ * @param writable - Whether the file of the series may be written, so an occurrence may be changed alone
+ * @returns {@link Entry} of each occurrence that is not replaced
  */
-function occurrencesOf(series: ICAL.Event, range: Range): Entry[] {
+function occurrencesOf(series: ICAL.Event, range: Range, writable: boolean): Entry[] {
     const occurrences: Entry[] = [];
     const walk: ICAL.RecurExpansion = series.iterator();
 
@@ -488,7 +490,7 @@ function occurrencesOf(series: ICAL.Event, range: Range): Entry[] {
         const details: { item: ICAL.Event; startDate: ICAL.Time; endDate: ICAL.Time } =
             series.getOccurrenceDetails(start);
         if (details.item === series)
-            occurrences.push(entryOf(series, details.startDate, details.endDate, false));
+            occurrences.push(entryOf(series, details.startDate, details.endDate, writable));
         start = walk.next();
     }
     return occurrences;
@@ -512,10 +514,10 @@ export function entriesRead(sources: CalendarSource[], start: string, end: strin
     };
 
     return filesOf(sources)
-        .map((file: string): Calendar => calendarOf(file))
-        .flatMap((calendar: Calendar): Entry[] => [
-            ...calendar.entries,
-            ...calendar.series.flatMap((series: ICAL.Event): Entry[] => occurrencesOf(series, range)),
+        .flatMap((file: string): Entry[] => [
+            ...calendarOf(file).entries,
+            ...calendarOf(file).series.flatMap((series: ICAL.Event): Entry[] =>
+                occurrencesOf(series, range, writeAllowed(file))),
         ])
         .filter((entry: Entry): boolean => {
             const [from, to]: [string, string] = boundsOf(entry.allDay, range);
@@ -591,7 +593,8 @@ export function occurrenceLookup(sources: CalendarSource[], id: string,
             instants: [recurrence, new Date(Date.parse(recurrence) + 1).toISOString()],
         };
         const occurrence: Entry | undefined = series === undefined ? undefined
-            : occurrencesOf(series, range).find((candidate: Entry): boolean => candidate.recurrence === recurrence);
+            : occurrencesOf(series, range, writeAllowed(file))
+                .find((candidate: Entry): boolean => candidate.recurrence === recurrence);
         if (occurrence !== undefined)
             return [file, occurrence];
     }
@@ -714,15 +717,50 @@ function propertyFind(event: string[], name: string): [number, number] | null {
 }
 
 /**
- * Finds the lines of the one event or to-do with an identifier.
- * - `uid`: Lines of the property `UID` of an event, unfolded into its value.
+ * Gives the identifier of an entry: its `UID`, for one occurrence of a series the `UID` of its series and its start
+ * in the series after `#`, see {@link Entry}, since each occurrence is a box of its own in the plan,
+ * like `weekly-lecture@nomsystem#2026-10-26T09:00:00.000Z`.
+ *
+ * @param entry - Entry of the plan or the log
+ * @returns Identifier, like `study-13@nomsystem`
+ */
+export function entryIdOf(entry: Entry): string {
+    return entry.recurrence === "" ? entry.id : `${entry.id}#${entry.recurrence}`;
+}
+
+/**
+ * Gives a property of an event or a to-do as one line, unfolded.
+ * - `place`: Index of its first line and of the line after its last, `null` for none.
+ *
+ * @param event - Lines from `BEGIN:VEVENT` to `END:VEVENT`, or of a to-do
+ * @param name - Name of the property, like `UID`
+ * @returns Line like `UID:weekly-lecture@nomsystem`, empty when the event has none
+ */
+function unfoldedOf(event: string[], name: string): string {
+    const place: [number, number] | null = propertyFind(event, name);
+    return place === null ? ""
+        : event.slice(...place).map((part: string): string => part.replace(/^[ \t]/, "")).join("");
+}
+
+/**
+ * Finds the lines of every event or to-do with an identifier, see {@link entryIdOf}: with its `UID`
+ * and without `RECURRENCE-ID`, or, for an identifier with `#`, with the `UID` before it and the `RECURRENCE-ID`
+ * after it, compared as instants, like `RECURRENCE-ID;TZID=Europe/Berlin:20261026T100000`
+ * for `weekly-lecture@nomsystem#2026-10-26T09:00:00.000Z`.
+ * - {@link ICAL.Property.fromString}: Reads one line of a property, its time in the time zone it names.
+ * - `at`: Place of the last `#`, -1 for none.
+ * - `uid`, `recurrence`: `UID` and `RECURRENCE-ID` looked for, the latter empty for none.
+ * - `changed`: Line of the `RECURRENCE-ID` of an event, empty for none.
+ * - `start`: Its `RECURRENCE-ID` as instant or day, see {@link textOf}, empty for none.
  *
  * @param lines - Lines of an `.ics` file
  * @param id - Identifier of the event or to-do
- * @returns Index of its line `BEGIN:VEVENT` or `BEGIN:VTODO` and of the line after its `END:VEVENT` or `END:VTODO`
- * @throws {Error} - When no event or to-do, or more than one, has the identifier
+ * @returns Index of each line `BEGIN:VEVENT` or `BEGIN:VTODO` and of the line after its `END:VEVENT` or `END:VTODO`
  */
-function componentFind(lines: string[], id: string): [number, number] {
+function componentsOf(lines: string[], id: string): [number, number][] {
+    const at: number = id.lastIndexOf("#");
+    const uid: string = at === -1 ? id : id.slice(0, at);
+    const recurrence: string = at === -1 ? "" : id.slice(at + 1);
     const found: [number, number][] = [];
     let begin: number = -1;
     lines.forEach((line: string, index: number): void => {
@@ -730,16 +768,101 @@ function componentFind(lines: string[], id: string): [number, number] {
             begin = index;
         else if ((line === "END:VEVENT" || line === "END:VTODO") && begin !== -1) {
             const event: string[] = lines.slice(begin, index + 1);
-            const uid: [number, number] | null = propertyFind(event, "UID");
-            const value: string = uid === null ? "" : event.slice(...uid)
-                .map((part: string): string => part.replace(/^[ \t]/, "")).join("").replace(/^UID:/i, "");
-            if (value === id)
+            const changed: string = unfoldedOf(event, "RECURRENCE-ID");
+            const start: string =
+                changed === "" ? "" : textOf(ICAL.Property.fromString(changed).getFirstValue() as ICAL.Time);
+            if (unfoldedOf(event, "UID").replace(/^UID:/i, "") === uid && start === recurrence)
                 found.push([begin, index + 1]);
         }
     });
+    return found;
+}
+
+/**
+ * Finds the lines of the one event or to-do with an identifier, see {@link componentsOf}.
+ * - `found`: Lines of each event or to-do with the identifier.
+ *
+ * @param lines - Lines of an `.ics` file
+ * @param id - Identifier of the event or to-do
+ * @returns Index of its line `BEGIN:VEVENT` or `BEGIN:VTODO` and of the line after its `END:VEVENT` or `END:VTODO`
+ * @throws {Error} - When no event or to-do, or more than one, has the identifier
+ */
+function componentFind(lines: string[], id: string): [number, number] {
+    const found: [number, number][] = componentsOf(lines, id);
     if (found.length !== 1)
         throw new Error(`${found.length} events ${id}`);
     return found[0];
+}
+
+/**
+ * Builds a property of a time of an occurrence in the form of the `DTSTART` of its series:
+ * with the same `TZID`, like `TZID=Europe/Berlin`, in UTC with `Z`, or a day with `VALUE=DATE`,
+ * so calendar apps and `ical.js` match the `RECURRENCE-ID` with the occurrence.
+ * - `property`: The property.
+ * - `zoneId`: `TZID` of the `DTSTART` of the series, empty for none.
+ *
+ * @param series - The series
+ * @param name - Name of the property, like `recurrence-id`
+ * @param time - The time, in the time zone of the series
+ * @returns Property to write
+ */
+function seriesTimeOf(series: ICAL.Event, name: string, time: ICAL.Time): ICAL.Property {
+    const property: ICAL.Property = new ICAL.Property(name);
+    const zoneId: string = String(series.component.getFirstProperty("dtstart")?.getParameter("tzid") ?? "");
+    property.setValue(time);
+    if (zoneId !== "" && !time.isDate)
+        property.setParameter("tzid", zoneId);
+    return property;
+}
+
+/**
+ * Makes one occurrence of a series a component of its own, so it can be dropped, pushed or changed alone,
+ * the way the standard changes one occurrence: a copy of its series with the same `UID` right after it,
+ * without `RRULE`, `RDATE` and `EXDATE`, its `DTSTAMP` now, its `DTSTART` and its `DTEND` those of the occurrence,
+ * and as `RECURRENCE-ID` the start it has in the series, like `RECURRENCE-ID;TZID=Europe/Berlin:20261026T100000`;
+ * the series stays as it is, every other line of the file too. From then on the occurrence is that component,
+ * found by its identifier with `#`, see {@link entryIdOf}. An occurrence that is a component of its own already stays.
+ * - `text`: Lines of the file.
+ * - `series`: The series, `undefined` when the file holds none of the identifier.
+ * - `walk`, `start`: Walk through the starts of the series, up to the start of the occurrence.
+ * - `details`: Start and end of the occurrence.
+ * - `place`: Index of the first line of the series and of the line after its last.
+ * - `own`: Lines of the component of the occurrence.
+ *
+ * @param file - Path of the `.ics` file of the series
+ * @param entry - The occurrence, see {@link Entry}
+ * @throws {Error} - When the file lies outside the new system, or holds no such series or occurrence
+ */
+export function occurrenceOwn(file: string, entry: Entry): void {
+    writeCheck(file);
+    const text: FileLines = linesRead(file);
+    if (componentsOf(text.lines, entryIdOf(entry)).length > 0)
+        return;
+
+    const series: ICAL.Event | undefined =
+        calendarOf(file).series.find((candidate: ICAL.Event): boolean => candidate.uid === entry.id);
+    if (series === undefined)
+        throw new Error(`No series ${entry.id} in ${file}`);
+    const walk: ICAL.RecurExpansion = series.iterator();
+    let start: ICAL.Time | undefined = walk.next();
+    while (start !== undefined && textOf(start) < entry.recurrence)
+        start = walk.next();
+    if (start === undefined || textOf(start) !== entry.recurrence)
+        throw new Error(`No occurrence ${entryIdOf(entry)}`);
+
+    const details: { startDate: ICAL.Time; endDate: ICAL.Time } = series.getOccurrenceDetails(start);
+    const place: [number, number] = componentFind(text.lines, entry.id);
+    const own: string[] = text.lines.slice(...place);
+    propertyPut(own, "rrule", []);
+    propertyPut(own, "rdate", []);
+    propertyPut(own, "exdate", []);
+    propertyPut(own, "dtstamp", [ICAL.Time.fromJSDate(new Date(), true)]);
+    propertyPut(own, "dtstart", [seriesTimeOf(series, "dtstart", details.startDate)]);
+    if (propertyFind(own, "dtend") !== null)
+        propertyPut(own, "dtend", [seriesTimeOf(series, "dtend", details.endDate)]);
+    propertyPut(own, "recurrence-id", [seriesTimeOf(series, "recurrence-id", start)]);
+    text.lines.splice(place[1], 0, ...own);
+    linesWrite(file, text);
 }
 
 /**
@@ -1077,7 +1200,7 @@ export function entryChange(file: string, entry: Entry, fields: EntryFields, tar
     writeCheck(file);
     writeCheck(target);
     const text: FileLines = linesRead(file);
-    const place: [number, number] = componentFind(text.lines, entry.id);
+    const place: [number, number] = componentFind(text.lines, entryIdOf(entry));
     const event: string[] = text.lines.slice(...place);
 
     textsPut(event, entry, fields);
@@ -1107,7 +1230,7 @@ export function todoChange(file: string, entry: Entry, fields: TodoFields, targe
     writeCheck(file);
     writeCheck(target);
     const text: FileLines = linesRead(file);
-    const place: [number, number] = componentFind(text.lines, entry.id);
+    const place: [number, number] = componentFind(text.lines, entryIdOf(entry));
     const todo: string[] = text.lines.slice(...place);
 
     textsPut(todo, entry, fields);

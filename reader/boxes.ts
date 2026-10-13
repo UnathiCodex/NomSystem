@@ -34,8 +34,13 @@
  * a box is done once a log entry points to it, or once it is `COMPLETED`, like a box ticked in another app.
  * An occurrence of a series in the plan, like a weekly lecture, is a box of its own: its identifier is the `UID`
  * of its series and its start as the series has it, after `#`,
- * like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`, see {@link boxIdOf}, so its log entry points to it alone and it is done by that log entry alone;
- * it is logged like any box, but cannot be changed, pushed, dropped or removed, since it lies in its series.
+ * like `weekly-lecture@nomsystem#2026-10-26T09:00:00.000Z`, see `entryIdOf` in `calendar.ts`, so its log entry
+ * points to it alone and it is done by that log entry alone.
+ * It is logged like any box, and dropped, pushed and changed alone, the series staying as it is: the first time,
+ * it becomes a component of its own in the file of its series, with the same `UID` and its start in the series
+ * as `RECURRENCE-ID`, see `occurrenceOwn` in `calendar.ts`, the way the standard changes one occurrence,
+ * which a drop then marks `STATUS:CANCELLED`, as any dropped box, so it shows greyed and crossed and is counted;
+ * it stays in that file, whatever its new day. It cannot be removed, since it belongs to its series.
  *
  * The plan files also hold events, `VEVENT`s, like the lectures imported from TUMonline.
  * Each is read as a box: its time is its start, its duration its length, and one of the whole day
@@ -56,8 +61,8 @@
 
 import { basename } from "node:path";
 import {
-    berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryLookup, entryRemove,
-    occurrenceLookup, propertiesPut, statusPut, todoAppend, todoChange,
+    berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryIdOf, entryLookup, entryRemove,
+    occurrenceLookup, occurrenceOwn, propertiesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, skillName } from "./categories.ts";
 import { placeLinkOf } from "./places.ts";
@@ -75,7 +80,7 @@ export type BoxState = "open" | "done" | "dropped";
  * A box, as the page shows it.
  *
  * - `id`: Identifier of its to-do or event, its `UID`, for an occurrence of a series with its start,
- *   see {@link boxIdOf}.
+ *   see `entryIdOf` in `calendar.ts`.
  * - `category`, `title`, `location`, `locationLink`, `from`, `module`, `type`, `note`: As those of an entry,
  *   see `calendar.ts`, like the room of a lecture of my plan in `Skilling/` with its link as `ALTREP`.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
@@ -85,8 +90,9 @@ export type BoxState = "open" | "done" | "dropped";
  * - `state`: Whether it is open, done or dropped.
  * - `pushed`: Days it was pushed from to the next day, in order, like `2026-10-12`.
  * - `log`: Start and end of the log entry written from it, as ISO instants, `null` for none.
- * - `editable`: Whether it can be changed, pushed, dropped and removed: a to-do or an event with times
- *   that happens once, see `calendar.ts`; an occurrence of a series cannot.
+ * - `editable`: Whether it can be changed, pushed and dropped: a to-do or an event with times, see `calendar.ts`,
+ *   also one occurrence of a series.
+ * - `series`: Whether it is one occurrence of a series, like a weekly lecture, which cannot be removed.
  * - `todo`: Whether it is a to-do; an event keeps its time and duration, see the top of this file.
  */
 export type Box = EntryTexts & {
@@ -99,6 +105,7 @@ export type Box = EntryTexts & {
     pushed: string[];
     log: { start: string; end: string } | null;
     editable: boolean;
+    series: boolean;
     todo: boolean;
 };
 
@@ -181,14 +188,29 @@ function planFileOf(date: string): string {
 /**
  * Gives the plan file a box is written into once its day changes, see the top of this file: the plan file
  * of the month of its new day when it lies in the plan file of a month, like `2026_10_Plan.ics`,
- * else the file it lies in, like the plan of a module, `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`.
+ * else the file it lies in, like the plan of a module, `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`,
+ * and always the file of its series for one occurrence of a series.
  *
  * @param file - Path of the plan file the box lies in
+ * @param entry - Entry of the box
  * @param date - New day of the box, like `2026-11-02`
  * @returns Path like `2026/2026_11/2026_11_Plan.ics` or the path of its file
  */
-function planFileAfter(file: string, date: string): string {
-    return /^\d{4}_\d{2}_Plan\.ics$/.test(basename(file)) ? planFileOf(date) : file;
+function planFileAfter(file: string, entry: Entry, date: string): string {
+    return entry.recurrence === "" && /^\d{4}_\d{2}_Plan\.ics$/.test(basename(file)) ? planFileOf(date) : file;
+}
+
+/**
+ * Makes a box that is one occurrence of a series a component of its own before it is dropped, pushed or changed alone,
+ * see `occurrenceOwn` in `calendar.ts`; any other box stays as it is.
+ *
+ * @param file - Path of the plan file the box lies in
+ * @param entry - Entry of the box
+ * @throws {Error} - When the file holds no such series or occurrence
+ */
+function boxOwn(file: string, entry: Entry): void {
+    if (entry.recurrence !== "")
+        occurrenceOwn(file, entry);
 }
 
 /**
@@ -227,20 +249,9 @@ function logsOf(to: string): Map<string, Entry> {
 }
 
 /**
- * Gives the identifier of the box of an entry of the plan: its `UID`, for an occurrence of a series
- * the `UID` of its series and its start after `#`, like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`,
- * since each occurrence is a box of its own, see the top of this file.
- *
- * @param entry - Entry of the plan
- * @returns Identifier, like `study-13@nomsystem`
- */
-function boxIdOf(entry: Entry): string {
-    return entry.recurrence === "" ? entry.id : `${entry.id}#${entry.recurrence}`;
-}
-
-/**
- * Finds the entry of the plan of a box by its identifier, see {@link boxIdOf}: the to-do or event that happens once
- * with that `UID`, else the occurrence of a series named by the `UID` and the start after the last `#`.
+ * Finds the entry of the plan of a box by its identifier, see `entryIdOf` in `calendar.ts`: the to-do or event
+ * that happens once with that `UID`, else the occurrence of a series named by the `UID` and the start after
+ * the last `#`, a component of its own or not.
  * - `found`: Its `.ics` file and its entry, `undefined` while none is found.
  * - `at`: Place of the last `#`, -1 for none.
  *
@@ -267,7 +278,7 @@ function planEntryFind(id: string): [string, Entry] {
  * @returns The box
  */
 function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
-    const log: Entry | undefined = logs.get(boxIdOf(entry));
+    const log: Entry | undefined = logs.get(entryIdOf(entry));
     let minutes: number | null = entry.minutes;
     if (!entry.todo)
         minutes = entry.allDay ? null : (Date.parse(entry.end) - Date.parse(entry.start)) / minuteLength;
@@ -277,7 +288,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
     else if (log !== undefined || entry.status === "COMPLETED")
         state = "done";
     return {
-        id: boxIdOf(entry), category: entry.category, title: entry.title, location: entry.location,
+        id: entryIdOf(entry), category: entry.category, title: entry.title, location: entry.location,
         locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type, note: entry.note,
         day: dayOf(entry),
         time: entry.allDay ? "" : entry.start,
@@ -287,6 +298,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         pushed: entry.pushed,
         log: log === undefined ? null : { start: log.start, end: log.end },
         editable: entry.editable,
+        series: entry.recurrence !== "",
         todo: entry.todo,
     };
 }
@@ -448,8 +460,8 @@ export function boxAdd(box: BoxNew): string {
 }
 
 /**
- * Changes a box of the new system, see {@link boxCheck}; a box of a month moves into the plan file of its new day
- * when that is another, see {@link planFileAfter}.
+ * Changes a box of the new system, see {@link boxCheck}, one occurrence of a series alone, see {@link boxOwn};
+ * a box of a month moves into the plan file of its new day when that is another, see {@link planFileAfter}.
  * A to-do changes as it is sent; an event, like a lecture imported from TUMonline, keeps a time and a duration,
  * its start and its end.
  * - `start`: New start of an event.
@@ -464,8 +476,9 @@ export function boxEdit(change: BoxChange): void {
     if (!entry.editable)
         throw new Error(`${entry.title} may not be changed`);
     boxCheck(change);
+    boxOwn(file, entry);
     if (entry.todo) {
-        todoChange(file, entry, todoFieldsOf(change, entry), planFileAfter(file, change.day));
+        todoChange(file, entry, todoFieldsOf(change, entry), planFileAfter(file, entry, change.day));
         return;
     }
 
@@ -478,20 +491,20 @@ export function boxEdit(change: BoxChange): void {
         module: change.module, type: change.type, note: change.note,
         start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
     };
-    entryChange(file, entry, fields, planFileAfter(file, change.day));
+    entryChange(file, entry, fields, planFileAfter(file, entry, change.day));
 }
 
 /**
  * Removes a box of the new system that is not done, like one planned by mistake;
  * a box I decided against is dropped instead, see {@link boxDrop}, so it can be counted.
- * A done box stays, since its log entry points to it.
+ * A done box stays, since its log entry points to it, and so does one occurrence of a series, which belongs to it.
  *
  * @param id - Identifier of the box
- * @throws {Error} - When there is no such box in the new system, or it is done
+ * @throws {Error} - When there is no such box in the new system, it is done, or it is one occurrence of a series
  */
 export function boxDelete(id: string): void {
     const [file, entry, box]: [string, Entry, Box] = boxFind(id);
-    if (!entry.editable || box.state === "done")
+    if (!entry.editable || box.state === "done" || box.series)
         throw new Error(`${entry.title} may not be removed`);
     entryRemove(file, id);
 }
@@ -499,7 +512,7 @@ export function boxDelete(id: string): void {
 /**
  * Pushes an open box of the new system to the next day, with one tap: notes the day it leaves in one more `X-PUSHED`,
  * then moves its day and its time by one day, its time of day kept, a box of a month into the plan file
- * of the next day, see {@link planFileAfter}.
+ * of the next day, see {@link planFileAfter}; one occurrence of a series alone, see {@link boxOwn}.
  * A box with a deadline stays, since its day is the day of its deadline.
  * - `next`: The next day.
  * - `texts`: Its text fields, as they are.
@@ -517,22 +530,24 @@ export function boxPush(id: string): void {
         category: entry.category, title: entry.title, location: entry.location, locationLink: entry.locationLink,
         from: entry.from, module: entry.module, type: entry.type, note: entry.note,
     };
+    boxOwn(file, entry);
     propertiesPut(file, id, [["x-pushed", [...entry.pushed, box.day]]]);
     if (entry.todo)
         todoChange(file, entry, {
             ...texts, day: next, time: box.time === "" ? null : berlinLater(new Date(box.time), 1), minutes: entry.minutes,
             deadline: "",
-        }, planFileAfter(file, next));
+        }, planFileAfter(file, entry, next));
     else
         entryChange(file, entry, {
             ...texts, start: berlinLater(new Date(entry.start), 1), end: berlinLater(new Date(entry.end), 1),
-        }, planFileAfter(file, next));
+        }, planFileAfter(file, entry, next));
 }
 
 /**
  * Drops a box of the new system that is not done, with one tap, or takes it back: a dropped box stays in its file
  * as `STATUS:CANCELLED`, so it can be counted; taken back, a to-do is `NEEDS-ACTION` again,
- * an event without status, as it was imported.
+ * an event without status, as it was imported. One occurrence of a series drops alone, see {@link boxOwn},
+ * like the lecture `IN2028 VO` on 26.10.2026, the series staying.
  *
  * @param id - Identifier of the box
  * @param dropped - Whether to drop it, else to take it back
@@ -547,6 +562,7 @@ export function boxDrop(id: string, dropped: boolean): void {
         status = "CANCELLED";
     else if (entry.todo)
         status = "NEEDS-ACTION";
+    boxOwn(file, entry);
     statusPut(file, id, status, null);
 }
 
@@ -559,7 +575,7 @@ export function boxDrop(id: string, dropped: boolean): void {
  */
 export function boxDone(id: string): void {
     const [file, entry]: [string, Entry] = planEntryFind(id);
-    if (entry.todo && entry.editable)
+    if (entry.todo && entry.editable && entry.recurrence === "")
         statusPut(file, id, "COMPLETED", new Date());
 }
 
@@ -579,7 +595,8 @@ export function boxReopen(id: string): void {
 /**
  * Finds the open skill box of a module for a moment, which the attempts of that moment log, see `skill.ts`:
  * one of the new system whose expected time and duration hold the moment, like a tutorial, else one without time
- * of that day, like a study session; never one with a deadline, like a homework sheet, which I log myself.
+ * of that day, like a study session; never one with a deadline, like a homework sheet, which I log myself,
+ * nor one occurrence of a series, like a weekly lecture.
  * - `boxes`: Open skill boxes of the module of the day without deadline, in the new system.
  *
  * @param module - Module code, like `IN2028`
@@ -590,7 +607,7 @@ export function skillBoxOf(module: string, now: Date): Box | undefined {
     const date: string = berlinDateOf(now);
     const boxes: Box[] = boxesRead(date, dayAdd(date, 1))[0].boxes.filter((box: Box): boolean =>
         box.category === skillName && box.module === module && box.state === "open" && box.editable
-        && box.deadline === "");
+        && !box.series && box.deadline === "");
     return boxes.find((box: Box): boolean => box.time !== "" && box.minutes !== null
             && Date.parse(box.time) <= now.getTime() && now.getTime() < Date.parse(box.time) + box.minutes * minuteLength)
         ?? boxes.find((box: Box): boolean => box.time === "");

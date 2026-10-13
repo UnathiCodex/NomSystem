@@ -913,7 +913,7 @@ async function entryShow(opening: EntryOpening): Promise<void> {
         opening.entry === null && opening.box === null ? "Save" : "Save changes");
     iconPut(document.getElementById("entry-remove") as HTMLElement, Trash2, "Remove");
     document.getElementById("entry-remove")?.toggleAttribute("hidden",
-        opening.entry === null && (opening.box === null || opening.box.state === "done"));
+        opening.entry === null && (opening.box === null || opening.box.state === "done" || opening.box.series));
     document.getElementById("entry-error")?.setAttribute("hidden", "");
     namesShow();
     await categoryPick(categories.find((category: Category): boolean => category.name === opening.category) ?? null);

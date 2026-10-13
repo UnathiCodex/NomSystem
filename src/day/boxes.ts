@@ -91,8 +91,9 @@ export type BoxState = "open" | "done" | "dropped";
  * - `state`: Whether it is open, done or dropped.
  * - `pushed`: Days it was pushed from to the next day, in order.
  * - `log`: Start and end of the log entry written from it, as ISO instants, `null` for none.
- * - `editable`: Whether it can be changed, pushed, dropped and removed: a to-do or an event with times
- *   that happens once; an occurrence of a series cannot.
+ * - `editable`: Whether it can be changed, pushed and dropped: a to-do or an event with times,
+ *   also one occurrence of a series, alone, like the lecture `IN2028 VO` on 26.10.2026.
+ * - `series`: Whether it is one occurrence of a series, which cannot be removed.
  * - `todo`: Whether it is a to-do; an event, like a lecture imported from TUMonline, keeps its time and duration.
  */
 export type Box = {
@@ -113,6 +114,7 @@ export type Box = {
     pushed: string[];
     log: { start: string; end: string } | null;
     editable: boolean;
+    series: boolean;
     todo: boolean;
 };
 
@@ -386,9 +388,9 @@ async function boxTap(calendar: Calendar, box: Box): Promise<void> {
 }
 
 /**
- * Acts on a click on what a box is: a box that can be changed opens the entry by category to change it,
- * an open one that cannot, like an occurrence of a series, the entry by category of the log at the times of a tap,
- * see {@link boxTap}.
+ * Acts on a click on what a box is: a box that can be changed, also one occurrence of a series, opens the entry
+ * by category to change it, an open one that cannot, like a lecture of a file outside the new system, the entry
+ * by category of the log at the times of a tap, see {@link boxTap}.
  * - `start`, `end`: The times of a tap.
  *
  * @param calendar - Calendar of the day
@@ -465,7 +467,7 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
  * Makes the buttons at the right of a box that can be changed: for an open box the arrow, which pushes it
  * to the next day, but for a box with a deadline, which stays on the day of its deadline, and the cross,
  * which drops it; for a dropped box the arrow back, which takes it back; none for a done box and for a box
- * that cannot be changed, like an occurrence of a series.
+ * that cannot be changed. One occurrence of a series has them too and changes alone, the series staying.
  *
  * @param calendar - Calendar of the day
  * @param box - The box
