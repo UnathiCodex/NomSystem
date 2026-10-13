@@ -146,7 +146,8 @@ function fileNodeOf(node: FileNode): HTMLElement {
 
 /**
  * Makes a module of the semester: a folder by its name to read, like `IN2028 Business Analytics Machine Learning`,
- * its chapters in it, each folding its notes, which link to the notes view, named without `.md` as in Obsidian;
+ * the name of its folder as data, so it can be opened, see {@link treeShow}, its chapters in it, each folding
+ * its notes, which link to the notes view, named without `.md` as in Obsidian;
  * a module without chapter notes holds a calm `No chapters yet`, as the skill view says it.
  * - `folder`: Folder of the module.
  * - `chapter`: Folder of a chapter.
@@ -158,6 +159,7 @@ function fileNodeOf(node: FileNode): HTMLElement {
  */
 function moduleNodeOf(module: NotesModule): HTMLDetailsElement {
     const folder: HTMLDetailsElement = folderOf(module.title);
+    folder.dataset.module = module.name;
     folder.lastElementChild?.append(...module.chapters.map((chapter: Chapter): HTMLDetailsElement => {
         const chapterFolder: HTMLDetailsElement = folderOf(chapter.title);
         chapterFolder.lastElementChild?.append(...chapter.notes.map((note: NoteEntry): HTMLAnchorElement => {
@@ -210,16 +212,20 @@ export function treeMark(tree: HTMLElement, shown: string): HTMLElement | null {
 
 /**
  * Loads both roots of the tree from the reader and shows them, see the top of this file, the file or note shown
- * marked, see {@link treeMark}; while none is shown, the first module stands open.
+ * marked, see {@link treeMark}; while none is shown, the module asked for stands open, scrolled into sight,
+ * like the module of a skill entry clicked in the day, see `../skill/links.ts`, else the first module.
  * - `files`: Folders and files of `NomManageplannings`.
  * - `modules`: Modules of the semester.
  * - `manage`, `skilling`: The two roots.
+ * - `asked`: The folder of the module asked for, `null` for none.
  *
  * @param tree - Place of the tree
  * @param shown - Path of the file or note shown, empty for none
+ * @param module - Name of the folder of the module to open while none is shown,
+ *   like `IN2028_BusinessAnalyticsMachineLearning`, empty for the first
  * @throws {Error} - When the reader cannot answer
  */
-export async function treeShow(tree: HTMLElement, shown: string): Promise<void> {
+export async function treeShow(tree: HTMLElement, shown: string, module: string): Promise<void> {
     const [files, modules]: [FileNode[], NotesModule[]] = await Promise.all([
         readerAsk<FileNode[]>("/api/edit/tree"),
         readerAsk<NotesModule[]>("/api/notes/modules"),
@@ -231,6 +237,10 @@ export async function treeShow(tree: HTMLElement, shown: string): Promise<void> 
     manage.lastElementChild?.append(...files.map(fileNodeOf));
     skilling.lastElementChild?.append(...modules.map(moduleNodeOf));
     tree.replaceChildren(manage, skilling);
-    if (treeMark(tree, shown) === null)
-        skilling.querySelector<HTMLDetailsElement>(".tree-children > details")?.setAttribute("open", "");
+    if (treeMark(tree, shown) !== null)
+        return;
+    const asked: HTMLDetailsElement | null = module === "" ? null
+        : skilling.querySelector<HTMLDetailsElement>(`details[data-module="${CSS.escape(module)}"]`);
+    (asked ?? skilling.querySelector<HTMLDetailsElement>(".tree-children > details"))?.setAttribute("open", "");
+    asked?.scrollIntoView({ block: "nearest" });
 }

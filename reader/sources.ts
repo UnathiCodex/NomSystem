@@ -164,7 +164,7 @@ export const systemFiles: SystemFilesSources = {
  * The Skill picker offers them first, in this order, a module by its code, the part of its folder name before `_`,
  * like `IN2028`, a project by its folder name, like `WokFlow`; the menu of the notes view and the skill area show
  * the modules, see {@link activeModules}, since a project has no chapters and no tasks.
- * Each skill entry links the folder of its skill by this path, see `documents.ts`.
+ * Each skill entry names the folder of its skill in its `SUMMARY` and links it by this path, see `documents.ts`.
  * A link in a note still opens a note of any module. Changed on request, when the semester's skills change.
  */
 export const activeSkills: string[] = [

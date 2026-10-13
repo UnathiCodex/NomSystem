@@ -1,16 +1,21 @@
 /**
  * ## Documents
  *
- * Links a skill entry of the log to the folder of its skill and to the document it used, like the slides of a lecture
- * or a sheet, each with one `ATTACH`, its path from `NomWorkspace`, see `Link` in `calendar.ts`:
- * every skill entry gets the folder of its skill by itself,
- * like `ATTACH:NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, and the document I pick keeps
- * the fingerprint of its content, the SHA-256 of its bytes, as parameter, so the link survives a rename, like
- * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_UniversityLectureLessons/TUM_2025W/04_Logistic….pdf`.
+ * Names a skill entry and links it to the folder of its skill and to the document it used, like the slides of a lecture
+ * or a sheet, its paths from `NomWorkspace`. Its `SUMMARY` is the name of the folder of its skill, with its type
+ * in round brackets at the end when it has one, and links that folder as its `ALTREP`, see {@link skillTitleOf},
+ * like `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
+ * my own learning without brackets, a project like
+ * `SUMMARY;ALTREP="NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow":WokFlow`.
+ * An `ATTACH` holds only a file, see `Link` in `calendar.ts`: the document I pick, which keeps the fingerprint
+ * of its content, the SHA-256 of its bytes, as parameter, so the link survives a rename, like
+ * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_UniversityLectureLessons/TUM_2025W/04_Logistic….pdf`;
+ * a folder in an `ATTACH` of an older entry counts no more and goes once the entry changes.
  * The reader checks every link of the whole log when it starts and every night at 04:00, see {@link linksCheckStart}:
  * a module folder that is gone, like after a rename, is found again by the code of the entry's module,
- * see `moduleFolderOf` in `notes.ts`; a document whose path no longer leads to a file, like after a rename or a move
- * into another folder of the module, is looked for by its fingerprint among the module's documents.
+ * see `moduleFolderOf` in `notes.ts`, and its `SUMMARY` names the folder found; a document whose path no longer leads
+ * to a file, like after a rename or a move into another folder of the module, is looked for by its fingerprint
+ * among the module's documents.
  * Each repair goes into the entry, every other line of the file as it is, and into the reader's console, with the old
  * and the new path. A link it cannot repair stays as written, like a document deleted or the folder of a project,
  * which has no code to find it by, and the skill view lists it, see {@link linksLostRead}.
@@ -21,9 +26,8 @@
  * - `node:fs`: Reads files and their sizes and times of change.
  * - `node:path`: Builds file paths for the operating system.
  * - `node:crypto`: Computes the SHA-256 of a file.
- * - `./calendar.ts`: Reads the log, finds an entry's event, puts new values into it, and writes its start
- *   and the days in Berlin time.
- * - `./categories.ts`: Names the category of skill entries.
+ * - `./calendar.ts`: Reads the log, finds an entry's event, puts new values into it or changes its fields,
+ *   writes its start and the days in Berlin time, and names the category of skill entries.
  * - `./notes.ts`: Finds the folder of a module by its code, lists its documents, and gives the content type of a file.
  * - `./sources.ts`: Names `NomWorkspace`, the folder of my modules, the skills of the semester and the log
  *   of the skill area.
@@ -33,14 +37,13 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { createHash } from "node:crypto";
 import {
-    berlinDateOf, berlinInstantOf, berlinTimeOf, dayAdd, entriesRead, entryFind, propertiesPut,
+    berlinDateOf, berlinInstantOf, berlinTimeOf, dayAdd, entriesRead, entryChange, entryFind, propertiesPut, skillName,
 } from "./calendar.ts";
-import { skillName } from "./categories.ts";
 import { codeOf, contentTypeOf, moduleContentsRead, moduleFolderOf } from "./notes.ts";
 import { activeModules, moduleIs, modulesFolder, projectOf, skillLog, vault } from "./sources.ts";
 
 import type { Stats } from "node:fs";
-import type { Entry, Link } from "./calendar.ts";
+import type { Entry, EntryFields, Link } from "./calendar.ts";
 import type { NotesFile } from "./notes.ts";
 
 
@@ -61,7 +64,7 @@ type Fingerprint = {
  * A link of a skill entry the reader could not repair, as the skill view lists it.
  *
  * - `day`: Day its entry started in Berlin time, like `2026-10-13`.
- * - `skill`: What its entry was, like `IN2028 VO`.
+ * - `skill`: What its entry was, like `IN2028_BusinessAnalyticsMachineLearning (VO)`.
  * - `path`: Path of the link from the folder of the entry's skill when it lies in it,
  *   like `VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`, else from `NomWorkspace`.
  */
@@ -148,9 +151,41 @@ export function skillFolderOf(code: string): string | undefined {
 }
 
 /**
- * Builds the links of a skill entry, see the top of this file: the folder of its skill, then the document it used,
+ * Names a skill entry as its `SUMMARY` says it, see the top of this file: the name of the folder of its skill,
+ * with its type in round brackets when it has one; a skill without folder by its name alone.
+ * - `folder`: Folder of the skill from `NomWorkspace`, see {@link skillFolderOf}, `undefined` for none.
+ * - `name`: Name of that folder, the last part of its path.
+ *
+ * @param code - Name of the skill, like `IN2028` or `WokFlow`
+ * @param type - Its type, like `VO`, empty for none, like my own learning
+ * @returns What it is, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, `IN2028_BusinessAnalyticsMachineLearning`
+ *   or `WokFlow`
+ */
+export function skillTitleOf(code: string, type: string): string {
+    const folder: string | undefined = skillFolderOf(code);
+    const name: string = folder?.split("/").at(-1) ?? code;
+    return type === "" ? name : `${name} (${type})`;
+}
+
+/**
+ * Gives what an entry or a box was as it is written, its `SUMMARY` and the `ALTREP` of it: for a skill entry
+ * its skill and type, see {@link skillTitleOf}, linking the folder of its skill, see {@link skillFolderOf};
+ * for any other its what as sent, without link.
+ *
+ * @param fields - Category, what, skill and type of the entry or the box, as sent
+ * @returns `SUMMARY` and `ALTREP`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`
+ *   and `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, or `Planungen` and an empty link
+ */
+export function titleOf(fields: { category: string; title: string; module: string; type: string }): [string, string] {
+    if (fields.category !== skillName)
+        return [fields.title, ""];
+    return [skillTitleOf(fields.module, fields.type), skillFolderOf(fields.module) ?? ""];
+}
+
+/**
+ * Builds the links of a skill entry to files, its `ATTACH`es, see the top of this file: the document it used,
  * a file of its module with its fingerprint; a document the entry links already keeps its link as it is,
- * also when the reader could not find it any more.
+ * also when the reader could not find it any more. The folder of its skill is the `ALTREP` of its `SUMMARY`.
  * - `folder`: Folder of the skill from `NomWorkspace`, see {@link skillFolderOf}.
  * - `path`: Path of the document from `NomWorkspace`.
  * - `kept`: The entry's link to that document, `undefined` for none.
@@ -159,28 +194,26 @@ export function skillFolderOf(code: string): string | undefined {
  * @param document - Path of the document from the folder of the skill, like `VO_…/04_LogisticPoissonRegression.pdf`,
  *   as the reader offered it, empty for none
  * @param links - Links the entry has, none for a new entry
- * @returns Links, the folder first; none for a skill without folder
+ * @returns The link of its document, none without document
  * @throws {Error} - When the document is none of the module's
  */
 export function linksOf(code: string, document: string, links: Link[]): Link[] {
     const folder: string | undefined = skillFolderOf(code);
-    if (folder === undefined)
+    if (folder === undefined || document === "")
         return [];
-    if (document === "")
-        return [{ path: folder, fingerprint: "" }];
 
     const path: string = `${folder}/${document}`;
     const kept: Link | undefined = links.find((link: Link): boolean => link.fingerprint !== "" && link.path === path);
     if (kept !== undefined)
-        return [{ path: folder, fingerprint: "" }, kept];
+        return [kept];
     if (!moduleIs(folder) || !moduleContentsRead(folder.slice(modulesFolder.length + 1)).documents.includes(document))
         throw new Error(`No document ${document} in ${code}`);
-    return [{ path: folder, fingerprint: "" }, { path: path, fingerprint: fingerprintOf(diskOf(path)) }];
+    return [{ path: path, fingerprint: fingerprintOf(diskOf(path)) }];
 }
 
 /**
- * Repairs the links of a skill entry that lead nowhere, see the top of this file: first its folder, a module folder
- * found again by the code of its module, then each document, by its fingerprint among the documents of that module.
+ * Repairs the links of a skill entry to files that lead nowhere, see the top of this file: each document,
+ * by its fingerprint among the documents of the module of the entry; a folder in an older `ATTACH` stays as it is.
  * - `folder`: Name of the folder of the entry's module, as found now, `undefined` for none, like for a project.
  * - `repaired`: The links as repaired so far, in their order.
  * - `missing`: The links that stay as written.
@@ -193,11 +226,9 @@ function linksRepairOf(entry: Entry): [Link[], Link[]] {
     const folder: string | undefined = moduleFolderOf(entry.module);
     const missing: Link[] = [];
     const repaired: Link[] = entry.links.map((link: Link): Link => {
-        if (existsSync(diskOf(link.path)))
+        if (link.fingerprint === "" || existsSync(diskOf(link.path)))
             return link;
-        if (link.fingerprint === "" && moduleIs(link.path) && folder !== undefined)
-            return { path: `${modulesFolder}/${folder}`, fingerprint: "" };
-        const found: string | undefined = link.fingerprint === "" || folder === undefined ? undefined
+        const found: string | undefined = folder === undefined ? undefined
             : moduleContentsRead(folder).documents.find((document: string): boolean =>
                 fingerprintOf(join(diskOf(`${modulesFolder}/${folder}`), ...document.split("/"))) === link.fingerprint);
         if (found !== undefined)
@@ -213,52 +244,94 @@ function linksRepairOf(entry: Entry): [Link[], Link[]] {
  * folder, whatever that folder is called now, a file of a project by its path in the project's folder,
  * a folder by its path from `NomWorkspace`.
  * - `parts`: The parts of its path.
- * - `folder`: The link of the entry to the folder of its project the link lies in, `undefined` for none.
  *
  * @param entry - Skill entry of the log
- * @param link - Its link that leads nowhere
- * @returns The lost link with its entry's day and skill, like `2026-10-13`, `IN2028 VO`, `VO_…/04_Old.pdf`
+ * @param path - Path of its link that leads nowhere, from `NomWorkspace`
+ * @returns The lost link with its entry's day and skill, like `2026-10-13`,
+ *   `IN2028_BusinessAnalyticsMachineLearning (VO)`, `VO_…/04_Old.pdf`
  */
-function lostOf(entry: Entry, link: Link): LinkLost {
-    const parts: string[] = link.path.split("/");
-    const folder: Link | undefined = entry.links.find((own: Link): boolean =>
-        own.fingerprint === "" && link.path.startsWith(`${own.path}/`));
-    let path: string = link.path;
-    if (link.fingerprint !== "" && moduleIs(link.path) && parts.length > 2)
-        path = parts.slice(2).join("/");
-    else if (folder !== undefined)
-        path = link.path.slice(folder.path.length + 1);
-    return { day: berlinDateOf(new Date(entry.start)), skill: entry.title, path: path };
+function lostOf(entry: Entry, path: string): LinkLost {
+    const parts: string[] = path.split("/");
+    let shown: string = path;
+    if (path !== entry.titleLink && moduleIs(path) && parts.length > 2)
+        shown = parts.slice(2).join("/");
+    else if (entry.titleLink !== "" && path.startsWith(`${entry.titleLink}/`))
+        shown = path.slice(entry.titleLink.length + 1);
+    return { day: berlinDateOf(new Date(entry.start)), skill: entry.title, path: shown };
+}
+
+/**
+ * Prints a repair of a link of a skill entry into the reader's console, like `Repaired a link
+ * of IN2028_BusinessAnalyticsMachineLearning (VO) on 2026-10-13 at 14:00: NomSkillingmodules/IN2028_…/04_Old.pdf
+ * is now NomSkillingmodules/IN2028_…/04_New.pdf`.
+ *
+ * @param entry - Skill entry of the log, as it was
+ * @param old - Path of the link as it was
+ * @param path - Path of the link now
+ */
+function repairPrint(entry: Entry, old: string, path: string): void {
+    console.log(new Date().toISOString(), `Repaired a link of ${entry.title}`
+        + ` on ${berlinDateOf(new Date(entry.start))} at ${berlinTimeOf(new Date(entry.start))}:`
+        + ` ${old} is now ${path}`);
+}
+
+/**
+ * Repairs the folder of a skill entry, the `ALTREP` of its `SUMMARY`, when it leads nowhere: a module folder found
+ * again by the code of the entry's module, see `moduleFolderOf` in `notes.ts`, its `SUMMARY` then naming the folder
+ * found, see {@link skillTitleOf}; the folder of a project stays as written.
+ * - `folder`: Name of the folder of the entry's module, as found now, `undefined` for none.
+ * - `fields`: Fields and times of the entry, its `SUMMARY` and its `ALTREP` repaired.
+ *
+ * @param file - `.ics` file of the entry
+ * @param entry - Skill entry of the log
+ * @returns Whether its folder leads somewhere now
+ */
+function folderRepair(file: string, entry: Entry): boolean {
+    if (entry.titleLink === "" || existsSync(diskOf(entry.titleLink)))
+        return true;
+    const folder: string | undefined = moduleIs(entry.titleLink) ? moduleFolderOf(entry.module) : undefined;
+    if (folder === undefined)
+        return false;
+
+    const fields: EntryFields = {
+        ...entry, title: skillTitleOf(entry.module, entry.type), titleLink: `${modulesFolder}/${folder}`,
+        start: new Date(entry.start), end: new Date(entry.end),
+    };
+    entryChange(file, entry, fields, file);
+    repairPrint(entry, entry.titleLink, fields.titleLink);
+    return true;
 }
 
 /**
  * Checks every link of the skill entries of the whole log, up to a year after now, see the top of this file:
- * writes the repaired links into their entries, prints each repair, like `Repaired a link of IN2028 VO
- * on 2026-10-13 at 14:00: NomSkillingmodules/IN2028_…/04_Old.pdf is now NomSkillingmodules/IN2028_…/04_New.pdf`,
+ * the folder of each, the `ALTREP` of its `SUMMARY`, see {@link folderRepair}, then its documents, see
+ * {@link linksRepairOf}; writes the repaired links into their entries, prints each repair, see {@link repairPrint},
  * and keeps the links it could not repair for the skill view. Entries that cannot be changed stay as they are.
  * - `entries`: Skill entries of the log with links.
- * - `links`, `missing`: The links of an entry as repaired, and those that stay lost.
- * - `file`: `.ics` file of an entry with a repair.
+ * - `file`: `.ics` file of an entry.
+ * - `folderFound`: Whether the folder of an entry leads somewhere now.
+ * - `links`, `missing`: The links of an entry to files as repaired, and those that stay lost.
  *
  * @throws {Error} - When a module folder or file cannot be read, or the log cannot be written
  */
 export function linksCheck(): void {
     const entries: Entry[] = logRead()
-        .filter((entry: Entry): boolean => entry.category === skillName && entry.editable && entry.links.length > 0)
+        .filter((entry: Entry): boolean => entry.category === skillName && entry.editable
+            && (entry.titleLink !== "" || entry.links.length > 0))
         .sort((first: Entry, second: Entry): number => first.start.localeCompare(second.start));
     lost = entries.flatMap((entry: Entry): LinkLost[] => {
+        const [file]: [string, Entry] = entryFind(skillLog, entry.id);
+        const folderFound: boolean = folderRepair(file, entry);
         const [links, missing]: [Link[], Link[]] = linksRepairOf(entry);
         if (links.some((link: Link, index: number): boolean => link.path !== entry.links[index].path)) {
-            const [file]: [string, Entry] = entryFind(skillLog, entry.id);
             propertiesPut(file, entry.id, [["attach", links]]);
             links.forEach((link: Link, index: number): void => {
                 if (link.path !== entry.links[index].path)
-                    console.log(new Date().toISOString(), `Repaired a link of ${entry.title}`
-                        + ` on ${berlinDateOf(new Date(entry.start))} at ${berlinTimeOf(new Date(entry.start))}:`
-                        + ` ${entry.links[index].path} is now ${link.path}`);
+                    repairPrint(entry, entry.links[index].path, link.path);
             });
         }
-        return missing.map((link: Link): LinkLost => lostOf(entry, link));
+        return [...(folderFound ? [] : [entry.titleLink]), ...missing.map((link: Link): string => link.path)]
+            .map((path: string): LinkLost => lostOf(entry, path));
     });
 }
 
@@ -288,7 +361,8 @@ export function linksCheckStart(): void {
 /**
  * Gives the links the last check could not repair, see {@link linksCheck}.
  *
- * @returns Lost links in the order of their entries, like `2026-10-13`, `IN2028 VO`, `VO_…/04_Old.pdf`
+ * @returns Lost links in the order of their entries, like `2026-10-13`, `IN2028_BusinessAnalyticsMachineLearning (VO)`,
+ *   `VO_…/04_Old.pdf`
  */
 export function linksLostRead(): LinkLost[] {
     return lost;

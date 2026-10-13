@@ -12,14 +12,15 @@
  * - `node:path`: Builds file paths for the operating system.
  * - `node:crypto`: Creates random identifiers.
  * - `ical.js`: Reads and writes the iCalendar format of `.ics` files.
- * - `./sources.ts`: Names the files of a calendar and tells which files the reader may write.
+ * - `./sources.ts`: Names the files of a calendar and the folder of my modules, and tells which files the reader
+ *   may write.
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import ICAL from "ical.js";
-import { writeAllowed } from "./sources.ts";
+import { modulesFolder, writeAllowed } from "./sources.ts";
 
 import type { CalendarSource } from "./sources.ts";
 
@@ -30,16 +31,20 @@ import type { CalendarSource } from "./sources.ts";
  * - `id`: Identifier of the event, its `UID`, like `b8f1e81f-15b4-460e-910d-ef6b1b3d09b3@nomsystem`;
  *   all occurrences of a series share it, like those of a birthday.
  * - `category`: Category of the entry, its `CATEGORIES`, like `Way`; empty for an entry without one, like a birthday.
- * - `title`: Summary of the entry, what it was, like `U-Bahn`.
+ * - `title`: Summary of the entry, what it was, like `U-Bahn`, for a skill entry the name of the folder of its skill
+ *   with its type in round brackets, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see {@link skillPartsOf}.
+ * - `titleLink`: Link of what it was, the standard parameter `ALTREP` of its `SUMMARY`: for a skill entry the folder
+ *   of its skill from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
+ *   see `documents.ts`; empty when it has none.
  * - `location`: Place of the entry, its `LOCATION`, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
  *   or `HomeMunich` in an older entry, empty when the event has none.
  * - `locationLink`: Link of its place, the standard parameter `ALTREP` of its `LOCATION`,
  *   like `https://nav.tum.de/room/0509.EG.980`, empty when it has none.
  * - `from`: Where a way starts, its `X-FROM`, empty when the event has none.
- * - `module`: Skill of a skill entry, a module like `IN2028` or a project like `WokFlow`, the part of its `SUMMARY`
- *   before the first space, see {@link skillPartsOf}; empty for any other entry.
- * - `type`: Type of a skill entry, like `VO`, the part of its `SUMMARY` after the first space, empty for none,
- *   like a project without type, and for any other entry.
+ * - `module`: Skill of a skill entry from its `SUMMARY`, the code of a module, like `IN2028`, or a project,
+ *   like `WokFlow`, see {@link skillPartsOf}; empty for any other entry.
+ * - `type`: Type of a skill entry from its `SUMMARY`, like `VO`, empty for none, like my own learning or a project,
+ *   and for any other entry.
  * - `chapters`: Chapters of a skill entry of the log, its `X-CHAPTER`s in order, each by its name to read,
  *   like `01 Regression Analysis`, none when the event has none.
  * - `links`: Links of a skill entry of the log to the folder of its skill and the document it used, its `ATTACH`es
@@ -83,6 +88,7 @@ export type Entry = {
     id: string;
     category: string;
     title: string;
+    titleLink: string;
     location: string;
     locationLink: string;
     from: string;
@@ -131,6 +137,8 @@ export type Link = {
  *
  * - `category`: Category of the entry, `CATEGORIES`.
  * - `title`: What, `SUMMARY`.
+ * - `titleLink`: Link of what it was, the parameter `ALTREP` of `SUMMARY`, like the folder of the skill
+ *   of a skill entry, written only with its `SUMMARY`, empty for none.
  * - `location`: Place, `LOCATION`.
  * - `locationLink`: Link of the place, the parameter `ALTREP` of `LOCATION`, written only with its place,
  *   empty for none.
@@ -142,6 +150,7 @@ export type Link = {
 export type EntryTexts = {
     category: string;
     title: string;
+    titleLink: string;
     location: string;
     locationLink: string;
     from: string;
@@ -243,6 +252,14 @@ const zoneComponent: ICAL.Component = new ICAL.Component(ICAL.parse([
 const zone: ICAL.Timezone = new ICAL.Timezone(zoneComponent);
 
 /**
+ * The parameter `ALTREP` in double quotes, as the standard writes a link there, also one without `:`, like
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":…`: `ical.js` quotes on its own only a value with `,`, `:` or `;`,
+ * and every value of a parameter of several values that asks for it, so `ALTREP` is described as one, of one value
+ * here, see {@link textPropertyOf}; one value still reads as its text.
+ */
+ICAL.design.icalendar.param.altrep = { multiValue: ",", multiValueSeparateDQuote: true };
+
+/**
  * Category of skill entries, `CATEGORIES:Skill`, whose `SUMMARY` names their skill and type, see {@link skillPartsOf};
  * the categories of `categories.ts` name it too.
  */
@@ -250,17 +267,30 @@ export const skillName: string = "Skill";
 
 
 /**
- * Splits the `SUMMARY` of a skill entry at its first space into its skill and its type, like `IN2028 VO`,
- * or a project alone without type, like `WokFlow`; it carries no `X-MODULE` and no `X-TYPE`, and those lines
- * of an older entry count no more.
+ * Reads the skill and the type of a skill entry from its `SUMMARY`, the name of the folder of its skill with its type
+ * in round brackets at the end when it has one, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, my own learning
+ * without brackets, like `IN2028_BusinessAnalyticsMachineLearning`: its skill is the code of a module, the part
+ * of the name before the first `_`, like `IN2028`, or all of it for a project, a skill whose folder, the `ALTREP`
+ * of the `SUMMARY`, lies outside `NomSkillingmodules`, like `WokFlow`. An older `SUMMARY` without brackets
+ * but with a space, like `IN2028 VO`, has its skill and type parted at the first space. A skill entry carries
+ * no `X-MODULE` and no `X-TYPE`; those lines of an older entry count no more and go once its `SUMMARY` changes,
+ * see {@link textsPut}.
+ * - `bracketed`: Name and type of a `SUMMARY` with a type in brackets, `null` for none.
  * - `space`: Place of the first space, -1 for none.
+ * - `name`: Name of the folder of the skill.
  *
- * @param summary - `SUMMARY` of a skill entry, like `IN2028 VO`
+ * @param summary - `SUMMARY` of a skill entry, like `IN2028_BusinessAnalyticsMachineLearning (VO)`
+ * @param link - Its `ALTREP`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, empty for none
  * @returns Skill and type, like `IN2028` and `VO`, or `WokFlow` and an empty type
  */
-function skillPartsOf(summary: string): [string, string] {
+function skillPartsOf(summary: string, link: string): [string, string] {
+    const bracketed: RegExpExecArray | null = /^(.+) \((\w+)\)$/.exec(summary);
     const space: number = summary.indexOf(" ");
-    return space === -1 ? [summary, ""] : [summary.slice(0, space), summary.slice(space + 1)];
+    if (bracketed === null && space !== -1)
+        return [summary.slice(0, space), summary.slice(space + 1)];
+    const name: string = bracketed?.[1] ?? summary;
+    const project: boolean = link !== "" && !link.startsWith(`${modulesFolder}/`);
+    return [project ? name : name.split("_")[0], bracketed?.[2] ?? ""];
 }
 
 /**
@@ -334,7 +364,9 @@ function deadlineDayOf(component: ICAL.Component): [ICAL.Time, ICAL.Time] {
 function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: boolean): Entry {
     const todo: boolean = event.component.name === "vtodo";
     const category: string = String(event.component.getFirstPropertyValue("categories") ?? "");
-    const [module, type]: [string, string] = category === skillName ? skillPartsOf(event.summary ?? "") : ["", ""];
+    const titleLink: string = String(event.component.getFirstProperty("summary")?.getParameter("altrep") ?? "");
+    const [module, type]: [string, string] =
+        category === skillName ? skillPartsOf(event.summary ?? "", titleLink) : ["", ""];
     const stamp: unknown = event.component.getFirstPropertyValue("dtstamp");
     let recurrence: string = "";
     if (event.isRecurrenceException())
@@ -345,6 +377,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         id: event.uid,
         category: category,
         title: event.summary,
+        titleLink: titleLink,
         location: event.location ?? "",
         locationLink: String(event.component.getFirstProperty("location")?.getParameter("altrep") ?? ""),
         from: String(event.component.getFirstPropertyValue("x-from") ?? ""),
@@ -984,6 +1017,8 @@ function propertyOf(name: string, value: string | ICAL.Time | Link): ICAL.Proper
  * Builds the property of a text field of an entry, see {@link textsOf}: its `LOCATION` with the link of its place
  * as the standard parameter `ALTREP`, when it has one, like
  * `LOCATION;ALTREP="https://nav.tum.de/room/0509.EG.980":Audimax 0509.EG.980\, Arcisstraße 21\, 80333 München…`,
+ * and its `SUMMARY` with its link the same way, like the folder of a skill,
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`;
  * every other one as its text.
  *
  * @param name - Name of the property, like `location`
@@ -994,7 +1029,9 @@ function propertyOf(name: string, value: string | ICAL.Time | Link): ICAL.Proper
 function textPropertyOf(name: string, value: string, fields: EntryTexts): ICAL.Property {
     const property: ICAL.Property = propertyOf(name, value);
     if (name === "location" && fields.locationLink !== "")
-        property.setParameter("altrep", fields.locationLink);
+        property.setParameter("altrep", [fields.locationLink]);
+    if (name === "summary" && fields.titleLink !== "")
+        property.setParameter("altrep", [fields.titleLink]);
     return property;
 }
 
@@ -1147,6 +1184,8 @@ export function todoAppend(file: string, fields: TodoFields): string {
 /**
  * Puts the text fields that changed into the lines of an event or a to-do, a new place with its link,
  * see {@link textPropertyOf}; a place that stays keeps its line as it is, with its `ALTREP`.
+ * A skill entry whose `SUMMARY` is written anew loses the lines `X-MODULE` and `X-TYPE` of an older entry,
+ * since its `SUMMARY` names both now, see {@link skillPartsOf}.
  * - `textsOld`: Its text fields as read, with the names of their properties.
  *
  * @param component - Lines of the event or the to-do, changed in place
@@ -1159,6 +1198,10 @@ function textsPut(component: string[], entry: Entry, fields: EntryTexts): void {
         if (value !== textsOld[index][1])
             propertyPut(component, name, value === "" ? [] : [textPropertyOf(name, value, fields)]);
     });
+    if (fields.category === skillName && fields.title !== entry.title) {
+        propertyPut(component, "x-module", []);
+        propertyPut(component, "x-type", []);
+    }
 }
 
 /**

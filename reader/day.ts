@@ -5,10 +5,11 @@
  * the plan of the day is a list of boxes beside it, see `boxes.ts`.
  * Writes into the month files of the log of the new system, like `2026/2026_10/2026_10_Log.ics`,
  * by the month in Berlin time; an entry whose start moves into another month moves into the file of that month.
- * A skill entry names its module and type in its `SUMMARY` alone, like the lectures imported from TUMonline:
- * `CATEGORIES:Skill`, `SUMMARY:IN2028 VO`, without `X-TYPE` and `X-MODULE`;
- * its chapters, document and attempts the skill area writes, see `skill.ts`; every skill entry links the folder
- * of its skill, also one logged from a box, see `documents.ts`.
+ * A skill entry names the folder of its skill and its type in its `SUMMARY` alone, linking the folder:
+ * `CATEGORIES:Skill`,
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
+ * without `X-TYPE` and `X-MODULE`, also one logged from a box, see `titleOf` in `documents.ts`;
+ * its chapters, document and attempts the skill area writes, see `skill.ts`.
  *
  * A box of the plan goes into the log at its real time, dragged there or logged as expected with one tap,
  * see {@link boxLog}: the log entry points to it with `X-PLANNED:<UID of the box>`, written once when the log entry
@@ -26,7 +27,7 @@
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
  * - `./categories.ts`: Tells whether the fields of an entry fit its category, how long a meal usually lasts,
  *   and names the category of skill entries.
- * - `./documents.ts`: Builds the link of a skill entry to the folder of its skill.
+ * - `./documents.ts`: Writes what a skill entry was, linking the folder of its skill.
  * - `./food.ts`: Tells what meals give, whether a line `X-FOOD` is well formed, what a dish held the last time,
  *   and how a meal is named by its foods.
  * - `./sources.ts`: Names every folder and file the reader reads, and builds the path of a month file.
@@ -36,7 +37,7 @@
 import { boxDone, boxOpenFind, boxReopen } from "./boxes.ts";
 import { berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryRemove, propertiesPut } from "./calendar.ts";
 import { categoryAllows, skillName, usualLengthRead } from "./categories.ts";
-import { linksOf } from "./documents.ts";
+import { titleOf } from "./documents.ts";
 import { dishFoodsRead, foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, logEnding, monthFileOf } from "./sources.ts";
@@ -145,16 +146,18 @@ export function fileOf(start: Date): string {
 }
 
 /**
- * Turns an entry as the page sends it into the fields to write, its place with its link, see `placeLinkOf`
- * in `places.ts`.
+ * Turns an entry as the page sends it into the fields to write: its place with its link, see `placeLinkOf`
+ * in `places.ts`, and what a skill entry was as the reader writes it, see `titleOf` in `documents.ts`.
+ * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
  *
  * @param entry - New or changed entry, with ISO instants
  * @param from - The box it is logged from or the entry being changed, `null` for none
  * @returns Fields and times
  */
 function fieldsOf(entry: EntryNew, from: { location: string; locationLink: string } | null): EntryFields {
+    const [title, titleLink]: [string, string] = titleOf(entry);
     return {
-        category: entry.category, title: entry.title, location: entry.location,
+        category: entry.category, title: title, titleLink: titleLink, location: entry.location,
         locationLink: placeLinkOf(entry.location, from), from: entry.from,
         module: entry.module, type: entry.type, note: entry.note,
         start: new Date(entry.start), end: new Date(entry.end),
@@ -163,20 +166,22 @@ function fieldsOf(entry: EntryNew, from: { location: string; locationLink: strin
 
 /**
  * Checks fields, foods and times of an entry of the log before they are written.
- * An entry has to fit its category, see {@link categoryAllows}, or keep the category and title it had,
- * or those of the box it is logged from, like an entry written before its category got its rules, dragged
- * to another time, or an older skill box `IN2028 DEV` of a type no longer offered.
+ * An entry has to fit its category, see {@link categoryAllows}, or keep what it was, or what the box it is logged
+ * from was: the same category and title, for a skill entry the same skill and type, like an entry written before
+ * its category got its rules, dragged to another time, or an older skill box `IN2028 DEV` of a type
+ * no longer offered.
  * Only a meal lists foods, each line well formed, see {@link foodLineAllows}.
- * - `kept`: Whether the entry keeps the category and title of the entry being changed or of its box.
+ * - `kept`: Whether the entry keeps what the entry being changed or its box was.
  *
  * @param fields - Fields and times to write
  * @param foods - Lines `X-FOOD` to write, none for an entry that is no meal
  * @param old - Entry being changed, or the box a new entry is logged from, `null` for none
  * @throws {Error} - When the fields or foods are not allowed or the end is not after the start
  */
-function fieldsCheck(fields: EntryFields, foods: string[], old: { category: string; title: string } | null): void {
-    const kept: boolean = old !== null && old.title !== ""
-        && fields.title === old.title && fields.category === old.category;
+function fieldsCheck(fields: EntryFields, foods: string[], old: Entry | Box | null): void {
+    const kept: boolean = old !== null && old.title !== "" && fields.category === old.category
+        && (fields.category === skillName ? fields.module === old.module && fields.type === old.type
+            : fields.title === old.title);
     if (!(kept || categoryAllows(fields)))
         throw new Error(`No log entry ${fields.category} ${fields.title}`);
     if (foods.length > 0 && !(fields.category === foodName && foods.every(foodLineAllows)))
@@ -246,26 +251,11 @@ export function realMinutesRead(category: string, title: string, module: string,
 }
 
 /**
- * Gives the link of a skill entry to the folder of its skill, which every skill entry gets by itself,
- * see `documents.ts`.
- *
- * @param fields - Fields of an entry to write
- * @returns `ATTACH` of the folder, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`;
- *   none for an entry of another category and for a skill without folder
- */
-function skillLinksOf(fields: EntryFields): [string, Link][] {
-    if (fields.category !== skillName)
-        return [];
-    return linksOf(fields.module, "", []).map((link: Link): [string, Link] => ["attach", link]);
-}
-
-/**
  * Adds an entry to the log, into the month file of its start, a meal with one line `X-FOOD` per food,
  * see {@link fieldsCheck}; an entry logged from a box with its `X-PLANNED`, after which the box is done;
- * a long neck session with my pain as `X-PAIN`, see {@link painCheck}; a skill entry with the link to the folder
- * of its skill, see {@link skillLinksOf}.
+ * a long neck session with my pain as `X-PAIN`, see {@link painCheck}.
  * - `pain`: My pain, empty for none.
- * - `own`: Properties of my own beyond the fields: the foods, the box, the pain and the link of a skill entry.
+ * - `own`: Properties of my own beyond the fields: the foods, the box and the pain.
  * - `id`: Identifier of the new entry.
  *
  * @param entry - Entry as the entry by category or the counter of glasses sends it
@@ -285,7 +275,6 @@ export function entryAdd(entry: EntryNew): string {
         own.push(["x-planned", entry.planned]);
     if (pain !== "")
         own.push(["x-pain", pain]);
-    own.push(...skillLinksOf(fields));
     const id: string = entryAppend(fileOf(fields.start), fields, own);
     if (entry.planned !== "")
         boxDone(entry.planned);
@@ -294,10 +283,12 @@ export function entryAdd(entry: EntryNew): string {
 
 /**
  * Logs a box at its real time, with one drop or one tap: a log entry of its category, what, place, and a skill entry
- * with its skill and type and the link to the folder of its skill, from the start to the end the day sends,
+ * with its skill and type, written as the reader writes them, see `titleOf` in `documents.ts`, linking the folder
+ * of its skill, from the start to the end the day sends,
  * pointing to the box with `X-PLANNED`, after which the box is done. Its note stays empty, since the note
  * of a log entry is my diary note about what happened; chapters and a document a skill entry gets later in the dialog.
  * - `box`: The box.
+ * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
  * - `fields`: Fields and times of the log entry.
  * - `id`: Identifier of the new log entry.
  *
@@ -310,13 +301,14 @@ export function boxLog(logged: BoxLogged): string {
     if (box.category === "")
         throw new Error(`${box.title} has no category; the dialog logs it`);
 
+    const [title, titleLink]: [string, string] = titleOf(box);
     const fields: EntryFields = {
-        category: box.category, title: box.title, location: box.location, locationLink: box.locationLink,
-        from: box.from, module: box.module, type: box.type, note: "",
+        category: box.category, title: title, titleLink: titleLink, location: box.location,
+        locationLink: box.locationLink, from: box.from, module: box.module, type: box.type, note: "",
         start: new Date(logged.start), end: new Date(logged.end),
     };
     fieldsCheck(fields, [], box);
-    const id: string = entryAppend(fileOf(fields.start), fields, [["x-planned", box.id], ...skillLinksOf(fields)]);
+    const id: string = entryAppend(fileOf(fields.start), fields, [["x-planned", box.id]]);
     boxDone(box.id);
     return id;
 }
@@ -345,8 +337,8 @@ export function mealAfterCookAdd(id: string): string {
     const start: Date = new Date(cook.end);
     const foods: string[] = dishFoodsRead(cook.title);
     const fields: EntryFields = {
-        category: foodName, title: foods.length > 0 ? mealTitleOf(foods) : cook.title, location: cook.location,
-        locationLink: cook.locationLink, from: "", module: "", type: "", note: "",
+        category: foodName, title: foods.length > 0 ? mealTitleOf(foods) : cook.title, titleLink: "",
+        location: cook.location, locationLink: cook.locationLink, from: "", module: "", type: "", note: "",
         start: start, end: new Date(start.getTime() + usualLengthRead(foodName, start.toISOString()) * 60 * 1000),
     };
     fieldsCheck(fields, foods, null);

@@ -10,7 +10,9 @@
  * a meal with foods named by them, like `Haferflocken, Milch`, so its what only picks an earlier meal to fill them in,
  * and `Cook` below them one tap for the meal eaten right after it, which the reader adds with the cooking,
  * pointing to it.
- * `Skill` is a skill and a type or none, like `IN2028 VO` or the project `WokFlow`, in plan and log; in the log also
+ * `Skill` is a skill and a type or none, like `IN2028` and `VO` or the project `WokFlow`, in plan and log,
+ * written by the reader as the folder of its skill with the type in brackets, like
+ * `IN2028_BusinessAnalyticsMachineLearning (VO)`; in the log also
  * the chapters it covered, the document it used and attempts at tasks, each with its result and my effort,
  * see `skill.ts`.
  * Every entry can carry a free note, typed like start and end.
@@ -164,7 +166,9 @@ const neckLong: [string, string] = ["Body", "Neck long"];
 /**
  * Values of a skill entry that has none yet, for an entry of another category or a new one.
  */
-const skillNone: SkillValues = { module: "", type: "", chapters: [], links: [], attempts: [] };
+const skillNone: SkillValues = {
+    module: "", type: "", title: "", titleLink: "", chapters: [], links: [], attempts: [],
+};
 
 /**
  * Categories with the values of their fields, as the reader gave them when the dialog opened.
@@ -590,8 +594,8 @@ function namesShow(): void {
 }
 
 /**
- * Reads what the entry was, its `SUMMARY`: a skill entry its skill and type joined by a space, like `IN2028 VO`,
- * its skill alone without type, like `WokFlow`,
+ * Reads what the entry was, its `SUMMARY`: nothing for a skill entry, which the reader names itself
+ * from its skill and type, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `reader/documents.ts`,
  * a meal of the log with foods their names, see {@link mealTitle};
  * else what is picked, like `Night` of `Sleep`, or the name of a category without the field `title`.
  *
@@ -600,8 +604,7 @@ function namesShow(): void {
  */
 function titleRead(picked: string): string {
     if (chosen?.name === skillName)
-        return skillModuleType().type === "" ? skillModuleType().module
-            : `${skillModuleType().module} ${skillModuleType().type}`;
+        return "";
     if (foodsListed())
         return mealTitle();
     return chosen?.fields.some((field: Field): boolean => field.key === "title") ? picked : chosen?.name ?? "";
@@ -1046,8 +1049,9 @@ export async function entryOpenEdit(entry: EventApi): Promise<void> {
         values: { title: entry.title, from: props.from ?? "", location: props.location ?? "" },
         note: props.note ?? "", foods: entry.extendedProps.foods ?? [],
         skill: {
-            module: props.module ?? "", type: props.type ?? "", chapters: entry.extendedProps.chapters ?? [],
-            links: entry.extendedProps.links ?? [], attempts: entry.extendedProps.attempts ?? [],
+            module: props.module ?? "", type: props.type ?? "", title: entry.title, titleLink: props.titleLink ?? "",
+            chapters: entry.extendedProps.chapters ?? [], links: entry.extendedProps.links ?? [],
+            attempts: entry.extendedProps.attempts ?? [],
         },
         plan: null, entry: entry, box: null,
     });

@@ -1,10 +1,12 @@
 /**
  * ## Skill in the entry by category
  *
- * A skill entry in the dialog, for a box of the plan and the log alike: its skill and its type, like `IN2028 VO`,
- * each picked from its list, the type optional, like for a project, `WokFlow`; in the log below them the chapters
- * it covered, the document it used, like the slides of a lecture or a sheet, and attempts at the tasks of my notes,
- * all optional, so a lecture logged from its box gets its chapters and document later.
+ * A skill entry in the dialog, for a box of the plan and the log alike: its skill and its type, like `IN2028` and `VO`,
+ * each picked from its list, the type optional, like for my own learning or a project, `WokFlow`; the reader writes
+ * what it is from both, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `reader/documents.ts`;
+ * in the log below them the chapters it covered, the document it used, like the slides of a lecture or a sheet,
+ * and attempts at the tasks of my notes, all optional, so a lecture logged from its box gets its chapters
+ * and document later.
  * The one Skill picker shows the skills of the semester, a module by its code, like `IN2028`, a project by its folder
  * name, like `WokFlow`, and its search every module folder, since I sometimes attend another module.
  * A module picked offers its chapter folders, `No chapters yet` when it has none,
@@ -14,8 +16,8 @@
  * Right, Wrong, Stuck with where I got stuck, or Skip with a reason, and after Right, Wrong or Stuck
  * one tap for my effort, low, medium or high. Any type may hold attempts, like the tasks I solved in a tutorial.
  * Chapters show their names to read, like `01 Regression Analysis`.
- * A skill entry of the log already logged shows its links, the folder of its skill and the document it used,
- * each by its name, a document opening in a new tab, see `../skill/links.ts`, and its attempts, which stay;
+ * A skill entry of the log already logged shows what it is as written, a module opening in the notes view,
+ * and the document it used by its name, opening in a new tab, see `../skill/links.ts`, and its attempts, which stay;
  * new ones are added after them, and its skill stays while it has attempts, since they are attempts at its tasks.
  * Saving sends a skill entry of the log to the reader's one writer of skill entries, with the times and the note
  * of the dialog; a skill box of the plan is a plain box, which the dialog writes itself.
@@ -24,14 +26,14 @@
  * - `../skill/attempts.ts`: Loads the tasks with when they are due and what a module offers, groups the tasks,
  *   writes days out and sends skill entries.
  * - `../today.ts`: Gives today's calendar date, for the tasks due.
- * - `../skill/links.ts`: Shows a link of a skill entry by its name.
+ * - `../skill/links.ts`: Shows what a skill entry is and a link of it by its name.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
 import { choiceOf, choicesOf, groupedSearchOf, rowOf, searchOf } from "./choices.ts";
 import { dayTextOf, groupsOf, moduleLoad, skillEntrySend, skillingLoad } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { linkElementOf } from "../skill/links.ts";
+import { linkElementOf, skillTitleElementOf } from "../skill/links.ts";
 
 import type { Calendar } from "fullcalendar";
 import type { Choice } from "./choices.ts";
@@ -89,13 +91,17 @@ export type ModuleType = {
  *
  * - `module`: Name of the skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, like `VO`, empty for none.
+ * - `title`: What it is as written, its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, in the log.
+ * - `titleLink`: The folder of its skill, the `ALTREP` of its `SUMMARY`, in the log, empty for none.
  * - `chapters`: Names to read of its chapters, in the log.
- * - `links`: Its links as the reader gave them, to the folder of its skill and to its document, in the log.
+ * - `links`: Its links as the reader gave them, to its document, in the log.
  * - `attempts`: Its `X-ATTEMPT`s as the reader gave them, in the log, like `IN2028/Airline Revenue Interval;right;low`.
  */
 export type SkillValues = {
     module: string;
     type: string;
+    title: string;
+    titleLink: string;
     chapters: string[];
     links: Link[];
     attempts: string[];
@@ -132,9 +138,9 @@ let contents: ModuleContents = { chapters: [], documents: [] };
 let logged: string[] = [];
 
 /**
- * Links of the skill entry of the log being changed, as the reader gave them, none for any other.
+ * What the skill entry of the log being changed is and its links, as the reader gave them, empty for any other.
  */
-let linked: Link[] = [];
+let linked: { title: string; titleLink: string; links: Link[] } = { title: "", titleLink: "", links: [] };
 
 /**
  * Whether the dialog writes a box of the plan, which takes only module and type.
@@ -143,33 +149,35 @@ let inPlan: boolean = false;
 
 
 /**
- * Gives the path of the document of a skill entry from its links: its file in the folder of its skill,
- * from that folder, as the document picker offers it.
- * - `folder`: The link to the folder of its skill, `undefined` for none.
- * - `file`: The link to a file in that folder, `undefined` for none.
+ * Gives the path of the document of a skill entry from its links: its file in the folder of its module,
+ * from that folder, as the document picker offers it, the path of the file without `NomSkillingmodules`
+ * and the folder of the module.
+ * - `file`: The link to a file of a module, `undefined` for none.
  *
- * @param links - Links of the entry, the folder first, like `NomSkillingmodules/IN2028_…`
- *   and `NomSkillingmodules/IN2028_…/VO_…/04_….pdf`
+ * @param links - Links of the entry, like `NomSkillingmodules/IN2028_…/VO_…/04_….pdf`
  * @returns Path like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`, empty for none
  */
 function documentPathOf(links: Link[]): string {
-    const folder: Link | undefined = links.find((link: Link): boolean => link.fingerprint === "");
     const file: Link | undefined = links.find((link: Link): boolean =>
-        folder !== undefined && link.fingerprint !== "" && link.path.startsWith(`${folder.path}/`));
-    return folder === undefined || file === undefined ? "" : file.path.slice(folder.path.length + 1);
+        link.fingerprint !== "" && link.path.startsWith("NomSkillingmodules/"));
+    return file === undefined ? "" : file.path.split("/").slice(2).join("/");
 }
 
 /**
- * Builds the links of the entry being changed, one after the other, each by its name, see `../skill/links.ts`.
+ * Builds the links of the entry being changed, one after the other: what it is as written, a module opening
+ * in the notes view, then its files, each by its name, see `../skill/links.ts`; a folder in an older `ATTACH`
+ * stays out, since what it is links its folder.
+ * - `files`: Its links to files.
  *
- * @returns Row of the links, none for an entry without links and for a new one
+ * @returns Row of the links, none for a new entry
  */
 function linkedOf(): HTMLElement[] {
-    if (linked.length === 0)
+    const files: Link[] = linked.links.filter((link: Link): boolean => link.fingerprint !== "");
+    if (linked.title === "")
         return [];
     const list: HTMLDivElement = document.createElement("div");
     list.className = "entry-links";
-    list.append(...linked.map(linkElementOf));
+    list.append(skillTitleElementOf(linked.title, linked.titleLink), ...files.map(linkElementOf));
     return [rowOf("Links", list)];
 }
 
@@ -454,7 +462,8 @@ export async function skillFieldsShow(fields: HTMLElement, plan: boolean, values
     skilling = await skillingLoad();
     inPlan = plan;
     logged = plan ? [] : values.attempts;
-    linked = plan ? [] : values.links;
+    linked = plan ? { title: "", titleLink: "", links: [] }
+        : { title: values.title, titleLink: values.titleLink, links: values.links };
     picks = {
         module: values.module, type: values.type, chapters: values.chapters, document: documentPathOf(values.links),
         attempts: [],

@@ -15,7 +15,9 @@
  * `Sleep` takes only two whats, `Night` and `Day`, a nap, see {@link sleepWhats}, and no new ones,
  * so the sleep tracker tells a nap from a night, see `trackers.ts`.
  * `Skill` is a category without such fields: in plan and log a skill, a module by its code or a project by its name,
- * and a type or none, like `IN2028 VO` or `WokFlow`, see `activeSkills` in `sources.ts` and {@link skillTypes};
+ * and a type or none, written as the folder of its skill with the type in brackets,
+ * like `IN2028_BusinessAnalyticsMachineLearning (VO)` or `WokFlow`, see `activeSkills` in `sources.ts`
+ * and {@link skillTypes};
  * in the log also its chapters, its document and its attempts, which only the skill area writes, see `skill.ts`.
  * A box of the plan takes only what I intend and would otherwise forget, so not `Sleep`, `Food`, `Cook`, `Drink`
  * and `Game`, which happen anyway, see {@link unplannedNames}; `Watch` stays, since a cinema or a match has its time.
@@ -138,16 +140,18 @@ function categoryOf(name: string, routines: { [what: string]: string[] }): Categ
 
 /**
  * Category of skill entries, written as `CATEGORIES:Skill`: in plan and log a skill and a type or none,
- * both in its `SUMMARY`, like `IN2028 VO`, see `skillPartsOf` in `calendar.ts`, which names the category,
+ * both in its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `skillPartsOf` in `calendar.ts`,
+ * which names the category,
  * in the log also its chapters, its document and its attempts, which only the skill area writes.
  */
 export { skillName };
 
 /**
- * Types of a skill entry, each written after its skill in its `SUMMARY`, like `IN2028 VO`; a type names only
- * a fixed form I take part in: `VO` a lecture, `UE` an exercise, `TU` a tutorial, `HU` a homework sheet,
- * `FA` an exam and `PR` a practical course. My own learning, theory and tasks together, has no type,
- * like `Skill: IN2028`, as a project, `Skill: WokFlow`.
+ * Types of a skill entry, each written in round brackets after its skill in its `SUMMARY`,
+ * like `IN2028_BusinessAnalyticsMachineLearning (VO)`; a type names only a fixed form I take part in: `VO` a lecture,
+ * `UE` an exercise, `TU` a tutorial, `HU` a homework sheet, `FA` an exam and `PR` a practical course.
+ * My own learning, theory and tasks together, has no type, like `Skill: IN2028_BusinessAnalyticsMachineLearning`,
+ * as a project, `Skill: WokFlow`.
  */
 export const skillTypes: string[] = ["VO", "UE", "TU", "HU", "FA", "PR"];
 
@@ -347,25 +351,13 @@ export function wayEndRead(before: string): string {
 }
 
 /**
- * Writes what a skill entry was, its `SUMMARY`, from its skill and type joined by a space,
- * as the lectures imported into the plan have it, or its skill alone without type, like a project.
- *
- * @param module - Name of the skill, a module code like `IN2028` or a project like `WokFlow`
- * @param type - One of the {@link skillTypes}, like `VO`, empty for none
- * @returns What, like `IN2028 VO` or `WokFlow`
- */
-export function skillTitleOf(module: string, type: string): string {
-    return type === "" ? module : `${module} ${type}`;
-}
-
-/**
  * Tells whether the fields of an entry fit its category, in plan and log alike:
  * the category is in the list, what is picked, one of its values for a field that takes no new ones,
  * like `Night` or `Day` of `Sleep`, or, without a field `title`, the name of the category,
  * `from` is only set when the category has the field, and module and type stay empty.
- * `Skill` is a skill, a module code like `IN2028` or a project like `WokFlow`, one of the {@link skillTypes} or none,
- * and what written from both, see {@link skillTitleOf}; its chapters, document and attempts in the log only the skill
- * area writes.
+ * `Skill` is a skill, a module code like `IN2028` or a project like `WokFlow`, and one of the {@link skillTypes}
+ * or none; what it was the reader writes from both, see `skillTitleOf` in `documents.ts`, and its chapters, document
+ * and attempts in the log only the skill area writes.
  * - `keys`: Fields of the category.
  * - `what`: Its field `title`, `undefined` for none.
  * - `whatAllowed`: Whether what the entry was fits that field.
@@ -373,14 +365,14 @@ export function skillTitleOf(module: string, type: string): string {
  * @param fields - Text fields of an entry or a box to write
  * @returns Whether the entry may be written
  */
-export function categoryAllows(fields: Omit<EntryTexts, "locationLink">): boolean {
+export function categoryAllows(fields: Omit<EntryTexts, "locationLink" | "titleLink">): boolean {
     const category: Category | undefined = categories.find((candidate: Category): boolean =>
         candidate.name === fields.category);
     if (category === undefined)
         return false;
     if (category.name === skillName)
         return /^\w+$/.test(fields.module) && (fields.type === "" || skillTypes.includes(fields.type))
-            && fields.title === skillTitleOf(fields.module, fields.type) && fields.from === "";
+            && fields.from === "";
 
     const keys: FieldKey[] = category.fields.map((field: Field): FieldKey => field.key);
     const what: Field | undefined = category.fields.find((field: Field): boolean => field.key === "title");
@@ -396,6 +388,6 @@ export function categoryAllows(fields: Omit<EntryTexts, "locationLink">): boolea
  * @param fields - Text fields of a box to write
  * @returns Whether the box may be written
  */
-export function planAllows(fields: Omit<EntryTexts, "locationLink">): boolean {
+export function planAllows(fields: Omit<EntryTexts, "locationLink" | "titleLink">): boolean {
     return categoryAllows(fields) && !unplannedNames.includes(fields.category);
 }

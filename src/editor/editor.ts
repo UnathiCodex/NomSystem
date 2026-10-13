@@ -263,7 +263,7 @@ export async function editorStart(): Promise<void> {
     const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
     path = file !== "" ? file : address.get("path") ?? "";
     saveAddress = file !== "" ? "/api/edit/file" : "/api/edit/note";
-    treeShow(document.getElementById("notes-tree") as HTMLElement, path)
+    treeShow(document.getElementById("notes-tree") as HTMLElement, path, "")
         .catch((error: unknown): void => console.error(error));
     (document.getElementById("editor-title") as HTMLElement).textContent =
         path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";

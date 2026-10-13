@@ -534,14 +534,18 @@ function linkClick(event: MouseEvent): void {
 
 /**
  * Starts the notes view after the router has put its HTML into the page:
- * puts the pencil into its link, shows the tree with its two roots, see `tree.ts`, then the note of the address.
+ * puts the pencil into its link, shows the tree with its two roots, see `tree.ts`, then the note of the address;
+ * an address naming a module, like `/notes?module=IN2028_BusinessAnalyticsMachineLearning` from a skill entry,
+ * opens that module in the tree.
+ * - `address`: The parameters of the address.
  * - `popstate`: Comes when the back or forward button of the browser changes the address.
  *
  * @throws {Error} - When the reader cannot read the tree
  */
 export async function notesStart(): Promise<void> {
-    await treeShow(document.getElementById("notes-tree") as HTMLElement,
-        new URLSearchParams(location.search).get("path") ?? "");
+    const address: URLSearchParams = new URLSearchParams(location.search);
+    await treeShow(document.getElementById("notes-tree") as HTMLElement, address.get("path") ?? "",
+        address.get("module") ?? "");
     iconPut(document.getElementById("notes-edit") as HTMLElement, Pencil, "Edit");
     (document.querySelector(".notes") as HTMLElement).addEventListener("click", linkClick);
     window.addEventListener("popstate", addressShow);

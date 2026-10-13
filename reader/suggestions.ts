@@ -3,7 +3,8 @@
  *
  * Suggests study sessions for the plan of a day, from the tasks of my notes: computed every time, never written,
  * until I accept one in the day view, which writes it as a box of the plan with its duration and without time,
- * of my own learning, without type, like `SUMMARY:IN2028` with `ESTIMATED-DURATION:PT1H15M`, see `boxes.ts`.
+ * of my own learning, without type, like `SUMMARY:IN2028_BusinessAnalyticsMachineLearning`
+ * with `ESTIMATED-DURATION:PT1H15M`, see `boxes.ts`.
  * A session gets no time, since study planned as an appointment never held for me: I drag its box into the log
  * when I study. The day view asks for tomorrow only and shows them as dashed boxes below the boxes of the day,
  * see `src/day/boxes.ts`.
@@ -20,14 +21,16 @@
  *
  * - `./boxes.ts`: Reads the boxes of the day.
  * - `./calendar.ts`: Adds a day to a day.
- * - `./categories.ts`: Names the category of skill entries and writes what a skill entry is.
+ * - `./categories.ts`: Names the category of skill entries.
+ * - `./documents.ts`: Writes what a skill entry is, by the folder of its skill.
  * - `./skill.ts`: Reads my tasks with when each is due.
  * - `./trackers.ts`: Holds my settings.
  */
 
 import { boxesRead } from "./boxes.ts";
 import { dayAdd } from "./calendar.ts";
-import { skillName, skillTitleOf } from "./categories.ts";
+import { skillName } from "./categories.ts";
+import { skillTitleOf } from "./documents.ts";
 import { skillingRead } from "./skill.ts";
 import { settings } from "./trackers.ts";
 
@@ -39,7 +42,7 @@ import type { Attempt, SkillModule, SkillTask } from "./skill.ts";
  * A suggested study session, as the day view shows it.
  *
  * - `module`: Code of its module, like `IN2028`.
- * - `title`: What it is, its module alone, like `IN2028`.
+ * - `title`: What it is, its module alone, like `IN2028_BusinessAnalyticsMachineLearning`.
  * - `minutes`: How long it is expected to last.
  */
 export type Suggestion = {

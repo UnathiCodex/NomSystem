@@ -15,15 +15,16 @@
  *
  * A skill entry of the log is one block of learning of a type, as in the plan: a lecture or a tutorial I attended,
  * a homework sheet I worked on, or study, solving the tasks of my notes, of any module of `NomSkillingmodules`,
- * also one of another semester I attend: `CATEGORIES:Skill`, `SUMMARY:IN2028 VO`, its module and type split
- * at the first space, without `X-MODULE` and `X-TYPE`; or a block of work on a project of the semester,
- * see `activeSkills` in `sources.ts`, which behaves like a module without chapters and tasks, named by its folder,
- * like `SUMMARY:WokFlow`; the type may stay empty for any skill. Below them, each only when there is one:
+ * also one of another semester I attend: `CATEGORIES:Skill`, its `SUMMARY` the name of the folder of its module
+ * with its type in round brackets, linking the folder as `ALTREP`, without `X-MODULE` and `X-TYPE`,
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
+ * see `documents.ts`; or a block of work on a project of the semester, see `activeSkills` in `sources.ts`,
+ * which behaves like a module without chapters and tasks, named by its folder, like `SUMMARY:WokFlow`;
+ * the type may stay empty for any skill, like my own learning. Below them, each only when there is one:
  * - one `X-CHAPTER` per chapter it covered, by its name to read, like `X-CHAPTER:02 Logistic Poisson Regression`,
  *   the chapters of the tasks of its attempts always among them;
- * - one `ATTACH` for the folder of its skill, which every skill entry gets by itself, and one for the document
- *   it used, like the slides of a lecture or a sheet, with the fingerprint of its content, so the link survives
- *   a rename, see `documents.ts`;
+ * - one `ATTACH` for the document it used, like the slides of a lecture or a sheet, with the fingerprint
+ *   of its content, so the link survives a rename, see `documents.ts`;
  * - one `X-ATTEMPT` per attempt at a task of my notes, of any type, like the tasks I solved in a tutorial:
  *   the time of the tap in Berlin time when a button wrote it, its task with the part of a cold task after `#`,
  *   its result, my effort, and where I got stuck or why I skipped, see {@link AttemptLine},
@@ -72,9 +73,9 @@ import {
     berlinDateOf, berlinDayStartOf, berlinTimeOf, dayAdd, entriesRead, entryAppend, entryChange, entryFind,
     propertiesPut,
 } from "./calendar.ts";
-import { skillName, skillTitleOf, skillTypes } from "./categories.ts";
+import { skillName, skillTypes } from "./categories.ts";
 import { fileOf } from "./day.ts";
-import { linksLostRead, linksOf } from "./documents.ts";
+import { linksLostRead, linksOf, titleOf } from "./documents.ts";
 import { codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
 import { activeModules, activeSkills, projectOf, skillLog, skillNameOf } from "./sources.ts";
@@ -317,8 +318,10 @@ export type EffortNew = {
  *
  * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, `HU`, empty for none, like my own learning or a project.
+ * - `title`: What its skill entry is, as written, like `IN2028_BusinessAnalyticsMachineLearning (HU)`.
+ * - `titleLink`: The folder of its skill from `NomWorkspace`, the `ALTREP` of its `SUMMARY`, empty for none.
  * - `start`: Start of its skill entry, as ISO instant.
- * - `links`: Links of its skill entry, to the folder of its skill and to the document it uses, see `documents.ts`.
+ * - `links`: Links of its skill entry to files, the document it uses, see `documents.ts`.
  * - `focusStart`: Start of the focused stretch running now, as ISO instant: the start of the session,
  *   or the end of my last break in it, an entry `Body` like `Neck short`, when that is later.
  * - `dayMinutes`: Minutes of learning today, from 00:00, every skill entry of the day up to now, lectures included.
@@ -330,6 +333,8 @@ export type EffortNew = {
 export type Session = {
     module: string;
     type: string;
+    title: string;
+    titleLink: string;
     start: string;
     links: Link[];
     focusStart: string;
@@ -986,10 +991,10 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
 
 /**
  * Writes a new skill entry into the log, into the month file of its start, from the entry by category:
- * `CATEGORIES` is `Skill`, `SUMMARY` its module and type, like `IN2028 VO`,
- * its place and note, one `X-CHAPTER` per chapter, see {@link chaptersWith}, the links to the folder of its skill
- * and to its document with its fingerprint, see `documents.ts`, one `X-ATTEMPT` per attempt, and the box it is logged
- * from, which is done then.
+ * `CATEGORIES` is `Skill`, `SUMMARY` its module and type with the folder of its skill as `ALTREP`,
+ * like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `titleOf` in `documents.ts`, its place and note,
+ * one `X-CHAPTER` per chapter, see {@link chaptersWith}, the link to its document with its fingerprint,
+ * one `X-ATTEMPT` per attempt, and the box it is logged from, which is done then.
  * - `tasks`: Tasks of the modules of the semester.
  * - `values`: `X-ATTEMPT`s of the entry.
  * - `plan`: The box it is logged from, `null` for none, whose place keeps its link, see `placeLinkOf` in `places.ts`.
@@ -1006,8 +1011,9 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
     const plan: Box | null = entry.planned === "" ? null : boxOpenFind(entry.planned);
     skillEntryCheck(entry, values, [], plan?.type ?? "");
 
+    const [title, titleLink]: [string, string] = titleOf({ ...entry, category: skillName, title: "" });
     const fields: EntryFields = {
-        category: skillName, title: skillTitleOf(entry.module, entry.type), location: entry.location,
+        category: skillName, title: title, titleLink: titleLink, location: entry.location,
         locationLink: placeLinkOf(entry.location, plan), from: "",
         module: entry.module, type: entry.type, note: entry.note.trim(), start: new Date(entry.start), end: new Date(entry.end),
     };
@@ -1050,8 +1056,9 @@ export function skillEntryEdit(change: SkillEntryChange): void {
         ["attach", linksOf(change.module, change.document, old.links)],
         ["x-attempt", values],
     ]);
+    const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" });
     entryChange(file, old, {
-        category: skillName, title: skillTitleOf(change.module, change.type), location: old.location,
+        category: skillName, title: title, titleLink: titleLink, location: old.location,
         locationLink: old.locationLink, from: "",
         module: change.module, type: change.type, note: change.note.trim(),
         start: new Date(change.start), end: new Date(change.end),
@@ -1096,8 +1103,10 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
         if (plan !== undefined)
             own.push(["x-planned", plan.id]);
         const start: Date = new Date(quarter.getTime() - quarterHour);
+        const [title, titleLink]: [string, string] =
+            titleOf({ category: skillName, title: "", module: module, type: type });
         entryAppend(fileOf(start), {
-            category: skillName, title: skillTitleOf(module, type), location: plan?.location ?? "",
+            category: skillName, title: title, titleLink: titleLink, location: plan?.location ?? "",
             locationLink: plan?.locationLink ?? "", from: "",
             module: module, type: type, note: "", start: start, end: quarter,
         }, own);
@@ -1203,7 +1212,8 @@ export function sessionRead(): Session | null {
         .reduce((sum: number, entry: Entry): number =>
             sum + Math.max(0, Math.min(Date.parse(entry.end), now.getTime()) - Date.parse(entry.start)), 0);
     return {
-        module: open.module, type: open.type, start: open.start, links: open.links,
+        module: open.module, type: open.type, title: open.title, titleLink: open.titleLink, start: open.start,
+        links: open.links.filter((link: Link): boolean => link.fingerprint !== ""),
         focusStart: [new Date(open.start).toISOString(), ...breaks].sort().at(-1) ?? open.start,
         dayMinutes: Math.round(learned / 60000),
         focusMinutes: settings.focusMinutes, sessionMinutes: settings.sessionMinutes, studyMinutes: settings.studyMinutes,

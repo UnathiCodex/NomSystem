@@ -55,6 +55,7 @@
  * - `node:path`: Gives the name of a plan file.
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
  * - `./categories.ts`: Tells whether a box fits its category, and names the category of skill entries.
+ * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill.
  * - `./places.ts`: Gives the link of the place of a box.
  * - `./sources.ts`: Names the plan, the log and the birthdays and holidays, and builds the path of a plan file.
  */
@@ -65,6 +66,7 @@ import {
     occurrenceLookup, occurrenceOwn, propertiesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, skillName } from "./categories.ts";
+import { titleOf } from "./documents.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, monthFileOf, planEnding } from "./sources.ts";
 
@@ -81,8 +83,8 @@ export type BoxState = "open" | "done" | "dropped";
  *
  * - `id`: Identifier of its to-do or event, its `UID`, for an occurrence of a series with its start,
  *   see `entryIdOf` in `calendar.ts`.
- * - `category`, `title`, `location`, `locationLink`, `from`, `module`, `type`, `note`: As those of an entry,
- *   see `calendar.ts`, like the room of a lecture of my plan in `Skilling/` with its link as `ALTREP`.
+ * - `category`, `title`, `titleLink`, `location`, `locationLink`, `from`, `module`, `type`, `note`: As those
+ *   of an entry, see `calendar.ts`, like the room of a lecture of my plan in `Skilling/` with its link as `ALTREP`.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time as ISO instant, empty for none.
  * - `minutes`: Expected duration in minutes, `null` for none.
@@ -141,13 +143,14 @@ export type PlanDay = {
  * A new box, as the entry by category and an accepted suggestion send it; an empty field is not written.
  *
  * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of an entry of the log;
- *   the link of its place the reader finds, see `placeLinkOf` in `places.ts`.
+ *   the link of its place the reader finds, see `placeLinkOf` in `places.ts`, and what a skill box is
+ *   it writes from its skill and type, see `titleOf` in `documents.ts`.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time as ISO instant, on its day, empty for none and for a box with a deadline.
  * - `minutes`: Expected duration in whole minutes, `null` for none.
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` without time, empty for none.
  */
-export type BoxNew = Omit<EntryTexts, "locationLink"> & {
+export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink"> & {
     day: string;
     time: string;
     minutes: number | null;
@@ -288,8 +291,9 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
     else if (log !== undefined || entry.status === "COMPLETED")
         state = "done";
     return {
-        id: entryIdOf(entry), category: entry.category, title: entry.title, location: entry.location,
-        locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type, note: entry.note,
+        id: entryIdOf(entry), category: entry.category, title: entry.title, titleLink: entry.titleLink,
+        location: entry.location, locationLink: entry.locationLink, from: entry.from, module: entry.module,
+        type: entry.type, note: entry.note,
         day: dayOf(entry),
         time: entry.allDay ? "" : entry.start,
         minutes: minutes,
@@ -410,10 +414,10 @@ export function boxOpenFind(id: string): Box {
 
 /**
  * Checks a new or changed box before it is written: its day, its fields, which fit its category, one I plan,
- * see {@link planAllows}, or keep the category and title the box had, like an older `IN2028 DEV` of a type
- * no longer offered, its time on its day, its duration, whole minutes of at most a day,
- * and its deadline, on its day and without expected time, see the top of this file.
- * - `kept`: Whether a changed box keeps its category and title.
+ * see {@link planAllows}, or keep what the box was, its category and title, for a skill box its skill and type,
+ * like an older `IN2028 DEV` of a type no longer offered, its time on its day, its duration, whole minutes
+ * of at most a day, and its deadline, on its day and without expected time, see the top of this file.
+ * - `kept`: Whether a changed box keeps what it was.
  * - `deadlineDay`: Day of its deadline, empty for none.
  *
  * @param box - The box as sent
@@ -421,7 +425,8 @@ export function boxOpenFind(id: string): Box {
  * @throws {Error} - When one of them is not right
  */
 function boxCheck(box: BoxNew, old: Entry | null): void {
-    const kept: boolean = old !== null && box.category === old.category && box.title === old.title;
+    const kept: boolean = old !== null && box.category === old.category && (box.category === skillName
+        ? box.module === old.module && box.type === old.type : box.title === old.title);
     dateCheck(box.day);
     if (!(kept || planAllows(box)))
         throw new Error(`No box ${box.category} ${box.title}`);
@@ -436,17 +441,20 @@ function boxCheck(box: BoxNew, old: Entry | null): void {
 }
 
 /**
- * Turns a box as the page sends it into the fields of its to-do, its place with its link, see `placeLinkOf`
- * in `places.ts`.
+ * Turns a box as the page sends it into the fields of its to-do: its place with its link, see `placeLinkOf`
+ * in `places.ts`, and what a skill box is as the reader writes it, see `titleOf` in `documents.ts`.
+ * - `title`, `titleLink`: What it is, its `SUMMARY`, and the link of it.
  *
  * @param box - New or changed box
  * @param old - The box as it was, `null` for a new one
  * @returns Fields of the to-do
  */
 function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
+    const [title, titleLink]: [string, string] = titleOf(box);
     return {
-        category: box.category, title: box.title, location: box.location, locationLink: placeLinkOf(box.location, old),
-        from: box.from, module: box.module, type: box.type, note: box.note,
+        category: box.category, title: title, titleLink: titleLink, location: box.location,
+        locationLink: placeLinkOf(box.location, old), from: box.from, module: box.module, type: box.type,
+        note: box.note,
         day: box.day, time: box.time === "" ? null : new Date(box.time), minutes: box.minutes, deadline: box.deadline,
     };
 }
@@ -489,8 +497,9 @@ export function boxEdit(change: BoxChange): void {
     if (change.time === "" || change.minutes === null)
         throw new Error(`${entry.title} is an event of the plan and keeps its time and its duration`);
     const start: Date = new Date(change.time);
+    const [title, titleLink]: [string, string] = titleOf(change);
     const fields: EntryFields = {
-        category: change.category, title: change.title, location: change.location,
+        category: change.category, title: title, titleLink: titleLink, location: change.location,
         locationLink: placeLinkOf(change.location, entry), from: change.from,
         module: change.module, type: change.type, note: change.note,
         start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
@@ -531,8 +540,8 @@ export function boxPush(id: string): void {
 
     const next: string = dayAdd(box.day, 1);
     const texts: EntryTexts = {
-        category: entry.category, title: entry.title, location: entry.location, locationLink: entry.locationLink,
-        from: entry.from, module: entry.module, type: entry.type, note: entry.note,
+        category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
+        locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type, note: entry.note,
     };
     boxOwn(file, entry);
     propertiesPut(file, id, [["x-pushed", [...entry.pushed, box.day]]]);

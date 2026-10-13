@@ -17,7 +17,7 @@
  * A module without tasks, since it has no chapter notes yet, shows only its name and `No chapters yet`.
  * Above the modules, only while there are some, the links of skill entries the reader could not repair at its last
  * check, see `reader/documents.ts`, one line each with the day and the skill of its entry,
- * like `13.10.2026 IN2028 VO: VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`.
+ * like `13.10.2026 IN2028_BusinessAnalyticsMachineLearning (VO): VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`.
  * Formulas `$…$` in names are rendered as in the notes.
  *
  * - `./attempts.ts`: Loads the tasks with when they are due and writes days out.
