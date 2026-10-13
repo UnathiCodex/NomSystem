@@ -1121,6 +1121,12 @@ fieldset.entry-times {
     cursor: pointer;
 }
 
+/* Line of a value that stays as planned, see `locked` in `choices.ts`: in the colour of any value, opening nothing */
+.picker-line:disabled {
+    color: var(--text-main);
+    cursor: default;
+}
+
 /* An empty line shows nothing, but still takes the width left and one line of height, so a click on it opens
    its list, like the type beside a skill; a space of no width in it gives it the baseline of a line of text,
    so the name of its row stands on the same line as in a row with a value, in the middle of its frame,

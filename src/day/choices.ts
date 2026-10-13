@@ -79,6 +79,8 @@ export type Choice = {
  *   and for `+ New place`; `value` when left out.
  * - `aside`: Elements beside the line, like the pencil of a place; none when left out.
  * - `below`: Elements below the line and above the list, like the address of a place; none when left out.
+ * - `locked`: Whether the value stays as picked, its line opening no list, `As planned` as its tooltip, like the summary
+ *   of an entry of the log logged from a box of the plan; open when left out.
  */
 export type ChoicesSetup = {
     search: (text: string) => Promise<Choice[]>;
@@ -91,6 +93,7 @@ export type ChoicesSetup = {
     noun?: string;
     aside?: HTMLElement[];
     below?: HTMLElement[];
+    locked?: boolean;
 };
 
 /**
@@ -333,7 +336,7 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     const lineShow: () => void = (): void => {
         const text: string = chosen.map((value: string): string => texts.get(value) ?? value).join(", ");
         line.textContent = text === "" ? setup.empty ?? "" : breakableOf(text);
-        line.title = text;
+        line.title = setup.locked ? "As planned" : text;
         line.classList.toggle("picker-empty", text === "");
     };
     const toggle: (value: string) => void = (value: string): void => {
@@ -406,6 +409,7 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     picker.className = "picker";
     head.className = "picker-head";
     line.className = "picker-line";
+    line.disabled = setup.locked ?? false;
     box.className = "picker-box";
     input.type = "search";
     input.className = "picker-search";

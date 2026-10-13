@@ -686,6 +686,7 @@ function fieldRowsOf(field: Field): HTMLElement[] {
         noun: field.key === "title" ? "summary" : "place",
         aside: place !== null ? [place[0]] : [],
         below: place !== null ? [place[1]] : [steps],
+        locked: field.key === "title" && asPlanned(),
         pick: (picked: string[]): void => {
             const line: string = picked[0] ?? "";
             values[field.key] = field.key !== "title" && line !== "" && labelOf(line) === labelOf(values[field.key])
@@ -709,6 +710,19 @@ function fieldRowsOf(field: Field): HTMLElement[] {
  */
 function placeRowsOf(): HTMLElement[] {
     return (chosen?.fields ?? []).flatMap(fieldRowsOf);
+}
+
+/**
+ * Tells whether the dialog logs a box of the plan that has a category, or changes an entry of the log logged from
+ * a box, which points to it with `RELATED-TO`: its category and summary stay the plan's, so the link shows how
+ * the plan was really done, while its times, place, semester and note change freely, like a lecture watched online
+ * at home. A box without category leaves both open, to be picked.
+ *
+ * @returns Whether it does
+ */
+function asPlanned(): boolean {
+    return opened.target === "log" && opened.category !== null
+        && (opened.plan !== null || (opened.entry?.extendedProps.planned ?? "") !== "");
 }
 
 /**
@@ -770,7 +784,7 @@ async function categoryPick(category: Category | null): Promise<void> {
     if (category?.name === skillName) {
         await skillFieldsShow(document.getElementById("entry-fields") as HTMLElement,
             document.getElementById("entry-more") as HTMLElement, placeRowsOf(), opened.target === "box",
-            opened.category === skillName ? opened.skill : skillNone, dayRead(), saveAllow);
+            opened.category === skillName ? opened.skill : skillNone, dayRead(), asPlanned(), saveAllow);
         saveAllow();
         return;
     }
@@ -805,6 +819,7 @@ function categoryShow(): void {
         many: false,
         adding: false,
         noun: "category",
+        locked: asPlanned(),
         pick: (picked: string[]): void => {
             categoryPick(offered.find((category: Category): boolean => category.name === picked[0]) ?? null)
                 .catch(errorShow);

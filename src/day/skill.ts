@@ -230,6 +230,12 @@ let linked: { title: string; titleLink: string; links: Link[] } = { title: "", t
  */
 let inPlan: boolean = false;
 
+/**
+ * Whether the dialog changes an entry of the log logged from a box of the plan, whose skill and type stay the plan's,
+ * see `asPlanned` in `categories.ts`.
+ */
+let asPlanned: boolean = false;
+
 
 /**
  * Gives the paths of the documents of a skill entry or a box from its links, as the Documents list offers them,
@@ -692,7 +698,7 @@ function picksShow(shown: SkillShown): void {
     shown.head.replaceChildren(rowOf("Summary", pairOf(
         choicesOf({
             search: moduleSearchOf(), picked: picks.module === "" ? [] : [picks.module], many: false, adding: false,
-            noun: "skill",
+            noun: "skill", locked: asPlanned,
             pick: (values: string[]): void => {
                 picks = { ...picks, module: values[0] ?? "", chapters: [], documents: [], attempts: [] };
                 contentsLoad().then(again).catch((error: unknown): void => console.error(error));
@@ -700,7 +706,7 @@ function picksShow(shown: SkillShown): void {
         }),
         choicesOf({
             search: searchOf(skilling.types.map(choiceOf)), picked: picks.type === "" ? [] : [picks.type],
-            many: false, adding: false, noun: "type",
+            many: false, adding: false, noun: "type", locked: asPlanned,
             pick: (values: string[]): void => {
                 picks.type = values[0] ?? "";
                 again();
@@ -733,14 +739,17 @@ function picksShow(shown: SkillShown): void {
  * @param plan - Whether it is a box of the plan, which takes no tasks and attempts
  * @param values - Values of the entry, empty for a new one
  * @param day - Day of the dialog, like `2026-10-13`, whose semester the entry has while it has none
+ * @param planned - Whether it is an entry of the log logged from a box of the plan, whose skill and type stay the plan's
  * @param changed - Tells the dialog that what is picked changed, so it allows saving or not
  * @throws {Error} - When the reader cannot answer
  */
 export async function skillFieldsShow(head: HTMLElement, more: HTMLElement, place: HTMLElement[], plan: boolean,
-                                      values: SkillValues, day: string, changed: () => void): Promise<void> {
+                                      values: SkillValues, day: string, planned: boolean,
+                                      changed: () => void): Promise<void> {
 
     skilling = await skillingLoad();
     inPlan = plan;
+    asPlanned = planned;
     semesterDay = day;
     logged = plan ? [] : values.attempts;
     linked = plan ? { title: "", titleLink: "", links: [] }
