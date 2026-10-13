@@ -79,6 +79,15 @@ body {
     background: var(--fill);
 }
 
+/* Icons of the areas, written in `index.html`, drawn as Lucide draws its icons */
+.areas svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .areas a[aria-current="page"] {
     border-color: var(--chosen-line);
     background: var(--chosen);

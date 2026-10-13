@@ -1,7 +1,8 @@
 /**
  * ## Router
  *
- * Opens one area of the life system beside the areas named in `index.html`, each shown by its icon, by the address:
+ * Opens one area of the life system beside the areas named in `index.html`, each shown by its icon there,
+ * by the address:
  * the week at `/week`, the scripts, my notes of my modules, at `/scripts`, the skill area at `/skill`, the food area
  * at `/food`, the editor of my drafts and of the files of my new system at `/edit`, the day everywhere else;
  * an older address of the scripts, `/notes`, opens them too and becomes `/scripts`.
@@ -19,8 +20,6 @@
  * - `@fontsource-variable/noto-sans`: Noto Sans, the font of the page, in every weight, served with the page,
  *   so it looks the same on every device; `wght-italic.css` adds its italic.
  * - `./timer.ts`: Shows the timer of a session running now.
- * - `./icons.ts`: Shows the icon of each area in its link, its name as tooltip.
- * - `lucide`: The icons of the areas.
  * - `./day/day.html?raw`, `./week/week.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`,
  *   `./food/food.html?raw`, `./editor/editor.html?raw`: Html of day, week, scripts, skill, food and editor as text,
  *   packed into the built code by Vite.
@@ -39,8 +38,6 @@
 import "@fontsource-variable/noto-sans";
 import "@fontsource-variable/noto-sans/wght-italic.css";
 import { timerStart } from "./timer.ts";
-import { iconPut } from "./icons.ts";
-import { BookOpenText, Calendar1, CalendarRange, GraduationCap, Utensils } from "lucide";
 import dayHtml from "./day/day.html?raw";
 import weekHtml from "./week/week.html?raw";
 import notesHtml from "./notes/notes.html?raw";
@@ -48,19 +45,7 @@ import skillHtml from "./skill/skill.html?raw";
 import foodHtml from "./food/food.html?raw";
 import editorHtml from "./editor/editor.html?raw";
 
-import type { IconNode } from "lucide";
-
-/**
- * Icon of each area by its address: a day, seven days, an open book for the scripts, a mortarboard for the skill
- * and a fork and knife for the food.
- */
-const areaIcons: { [address: string]: IconNode } = {
-    "/": Calendar1, "/week": CalendarRange, "/scripts": BookOpenText, "/skill": GraduationCap, "/food": Utensils,
-};
-
 const phone: boolean = matchMedia("(max-width: 900px)").matches;
-document.querySelectorAll(".areas a").forEach((link: Element): void =>
-    iconPut(link as HTMLElement, areaIcons[link.getAttribute("href") ?? ""], link.textContent ?? ""));
 if (location.pathname === "/notes")
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
 const areas: string[] = phone ? [] : ["/week", "/scripts", "/skill", "/food", "/edit"];
