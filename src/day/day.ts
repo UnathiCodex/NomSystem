@@ -58,6 +58,7 @@ import { entryChange } from "./entries.ts";
 import { categoriesStart, cookName, entryOpen, entryOpenEdit, entryOpenNow } from "./categories.ts";
 import { foodName } from "./meal.ts";
 import { boxesSee, boxesStart, boxReceive, entryPartOf, whatOf } from "./boxes.ts";
+import { breakableOf } from "./choices.ts";
 import { monthStart } from "./month.ts";
 import { giftsStart } from "./gifts.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
@@ -203,20 +204,6 @@ function linesOf(info: EventDisplayInfo): number {
     if (info.isShort)
         return 1;
     return Math.max(1, Math.floor(((bottom - top) / (60 * 1000) - 11.25) / lineMinutes));
-}
-
-/**
- * Marks where a long name in what an entry was may go on over a next line, where it is wider than the entry,
- * as on a phone: after each `_` and between a small and a capital letter, so
- * `IN0004_EinfuehrungRechnerarchitektur (VO)` breaks into `IN0004_Einfuehrung` and `Rechnerarchitektur (VO)`
- * instead of right after `Skill:` and within a word, see `.entry-whole` in `day.css`;
- * the mark is a space of no width, U+200B, which shows nothing.
- *
- * @param what - What the entry was, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
- * @returns The same text with the marks
- */
-function breakableOf(what: string): string {
-    return what.replace(/_/g, "_\u200b").replace(/([a-zäöüß])([A-ZÄÖÜ])/g, "$1\u200b$2");
 }
 
 /**

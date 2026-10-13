@@ -62,6 +62,7 @@
 import { Draggable } from "fullcalendar/interaction";
 import { boxDrop, boxLog, boxPush, boxUndo, boxUniversity } from "./entries.ts";
 import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
+import { breakableOf } from "./choices.ts";
 import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } from "./suggestions.ts";
 import { giftOpen } from "./gifts.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
@@ -347,7 +348,8 @@ const pushesAsking: number = 3;
  * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
  * - `start`: Its expected start, `null` for none.
  * - `when`: Its deadline, else its expected start and end, or its start alone without duration, empty for neither.
- * - `length`: Its expected duration, in brackets after `when`, empty for none.
+ * - `length`: Its expected duration, in brackets after `when`, empty for none; a space that never breaks
+ *   between its number and `min`, so a narrow box keeps `(90 min)` together on one line.
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
@@ -370,7 +372,7 @@ function timeLineOf(box: Box, day: string, nearShown: boolean): string {
         when = `${timeOf(start)} – ${timeOf(new Date(start.getTime() + box.minutes * 60 * 1000))}`;
     if (box.deadline !== "")
         when = deadlineTextOf(box);
-    let length: string = box.minutes === null ? "" : `${box.minutes} min`;
+    let length: string = box.minutes === null ? "" : `${box.minutes}\u00a0min`;
     if (when !== "" && length !== "")
         length = `(${length})`;
     return [over, [when, length].filter((part: string): boolean => part !== "").join(" "), near, pushes,
@@ -381,11 +383,12 @@ function timeLineOf(box: Box, day: string, nearShown: boolean): string {
 /**
  * Makes the lines of a box, in the day and in the week alike, the same three whether it is open or done, see the top
  * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf}, like **`Skill: IN0004 VO`**,
- * its time and length in the light grey of a time, see {@link timeLineOf}, like `16:00 – 17:30 (90 min)`,
- * and its place on a line of its own in the darker grey, by its label alone, its address hidden,
- * like `Audimax im Galileo`, a way its route, like `HomeMunich -> TumGarching`, see `whereOf` in `places.ts`,
- * a place with a link opening it on a click instead of the box, see `whereLinkedOf` in `places.ts`; a line without
- * anything to say is left out.
+ * its long names breakable, see `breakableOf` in `choices.ts`, its time and length in the light grey of a time,
+ * see {@link timeLineOf}, like `16:00 – 17:30 (90 min)`, and its place on a line of its own in the darker grey,
+ * by its label alone, its address hidden, like `Audimax im Galileo`, a way its route,
+ * like `HomeMunich → TumGarching`, see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click
+ * instead of the box; a line without anything to say is left out, a line wider than the box goes on below,
+ * see `.box-what` in `day.css`.
  * - `time`: The line of its time and length.
  * - `place`: The label of its place or the route of a way, empty for none.
  *
@@ -398,7 +401,7 @@ export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLEle
     const time: string = timeLineOf(box, day, nearShown);
     const place: string = whereOf(box.category, box.from, box.location);
     return [
-        entryPartOf("div", "box-what", whatOf(box.category, box.title === box.category ? "" : box.title)),
+        entryPartOf("div", "box-what", whatOf(box.category, box.title === box.category ? "" : breakableOf(box.title))),
         ...(time === "" ? [] : [entryPartOf("div", "box-meta box-time", [entryPartOf("span", "box-part", [time])])]),
         ...(place === "" ? [] : [entryPartOf("div", "box-meta", [
             entryPartOf("span", "box-part", whereLinkedOf(box.category, box.from, box.location, box.locationLink)),

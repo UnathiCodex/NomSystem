@@ -224,7 +224,9 @@
     cursor: grab;
 }
 
-/* Lines of a box: what it is, then grey its time and length and its place, each cut with an ellipsis, never wrapping;
+/* Lines of a box: what it is, then grey its time and length and its place, never cut: a line wider than the box
+   goes on below, broken where a word ends, where the parts of a long name meet, like `IN0004_Einfuehrung`
+   and `Rechnerarchitektur`, see `breakableOf` in `choices.ts`, or within a part still too long;
    a click on them changes the box */
 .box-body {
     flex: 1;
@@ -234,13 +236,11 @@
 
 .box-what,
 .box-part {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
 }
 
 /* Grey line of a box, its time and length or its place, in parts side by side, a part below the one before
-   where the line has no room for both; a part too long for the whole line is cut; the place in the darker grey
+   where the line has no room for both; a part too long for the whole line goes on below; the place in the darker grey
    of a place, the time in the light grey of a time, as in the log */
 .box-meta {
     display: flex;
@@ -904,12 +904,13 @@ button.box-ring.box-checked svg {
 }
 
 /* Two pickers side by side in one row, like the skill and the type of a skill entry in its summary: the first takes
-   the room, like the whole name `IN2028_BusinessAnalyticsMachineLearning`, the second only what its value needs,
-   at least 5rem to click, so the type stays on the line; the list of either opens below both, as wide as the row */
+   the room, like the whole name `IN2028_BusinessAnalyticsMachineLearning`, at least 12rem, the second only what
+   its value needs, at least 5rem to click; where the row has no room for both, as on a phone, the second goes below
+   the first, which then takes the whole row; the list of either opens below both, as wide as the row */
 .panel-pair {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(5rem, auto);
-    column-gap: var(--gap);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem var(--gap);
     align-items: baseline;
 }
 
@@ -918,12 +919,17 @@ button.box-ring.box-checked svg {
 }
 
 .panel-pair .picker-head {
-    grid-row: 1;
+    flex: 0 0 auto;
+    min-width: 5rem;
+}
+
+.panel-pair > .picker:first-child .picker-head {
+    flex: 1 1 12rem;
 }
 
 .panel-pair .picker-box {
-    grid-row: 2;
-    grid-column: 1 / -1;
+    flex: 1 1 100%;
+    order: 1;
 }
 
 /* Remove button apart from the others, at the left */
@@ -937,9 +943,11 @@ button.box-ring.box-checked svg {
     padding: 0 var(--row-padding);
 }
 
-/* Cancel and Save at the bottom right, with room above them */
+/* Cancel and Save at the bottom right, with room above them; where the row has no room for all buttons, as on a phone,
+   the first ones go onto a line above, each button on one line */
 .panel-buttons {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: var(--control-gap);
     margin-top: 0.75rem;
@@ -952,6 +960,7 @@ button.box-ring.box-checked svg {
     justify-content: center;
     min-height: var(--control-height);
     padding: 0 var(--control-padding);
+    white-space: nowrap;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--background);
@@ -1034,15 +1043,14 @@ fieldset.entry-times {
     display: none;
 }
 
-/* Address of the place picked below its name, small and grey, like `Burg-Eltz-Weg, 81375 München, Deutschland`;
-   a click opens its link, underlined under the pointer, when it has one */
+/* Address of the place picked below its name, small and grey, like `Burg-Eltz-Weg, 81375 München, Deutschland`,
+   going on below where it is wider than its row; a click opens its link, underlined under the pointer,
+   when it has one */
 .entry-address {
     display: block;
     margin-top: 0.125rem;
-    overflow: hidden;
     font-size: 0.8125rem;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
     color: var(--text-muted);
     text-decoration: none;
 }
@@ -1108,20 +1116,19 @@ fieldset.entry-times {
     min-width: 0;
 }
 
-/* Line of a field: its value as plain text, cut with an ellipsis, or grey what it is while nothing is picked,
-   like `No type`; the whole row opens its list, see `rowOf` in `choices.ts` */
+/* Line of a field: its value as plain text, going on below where it is wider than its row, never cut,
+   or grey what it is while nothing is picked, like `No type`; the whole row opens its list,
+   see `rowOf` in `choices.ts` */
 .picker-line {
     flex: 0 1 auto;
     min-width: 0;
     padding: 0;
-    overflow: hidden;
     border: 0;
     background: none;
     color: var(--text-main);
     font: inherit;
     text-align: left;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
     cursor: pointer;
 }
 
@@ -1200,8 +1207,8 @@ fieldset.entry-times {
 }
 
 /* A value picked of a field of several values in its own row below the field, like a chapter or the name of the file
-   of a document, see `addedRowsOf` in `choices.ts`: its text cut with an ellipsis, a small grey × at the right,
-   lighter under the pointer, which takes it back */
+   of a document, see `addedRowsOf` in `choices.ts`: its text going on below where it is wider than its row,
+   a small grey × at the right, lighter under the pointer, which takes it back */
 .picker-added {
     display: flex;
     align-items: baseline;
@@ -1212,9 +1219,7 @@ fieldset.entry-times {
 .picker-added-text {
     flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
 }
 
 .picker-added-remove {
@@ -1253,9 +1258,7 @@ fieldset.entry-times {
 }
 
 .skill-result-name {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
     color: var(--text-muted);
 }
 
@@ -1457,7 +1460,7 @@ fieldset.entry-times {
 
 /* What on its own line on top of an entry with room for two lines or more, never cut: where it is wider than the entry,
    it goes on over a line more, broken where a word ends, where the parts of a long name meet, like `IN0004_Einfuehrung`
-   and `Rechnerarchitektur`, see `breakableOf` in `day.ts`, or within a part still too long */
+   and `Rechnerarchitektur`, see `breakableOf` in `choices.ts`, or within a part still too long */
 .entry-whole {
     overflow-wrap: anywhere;
 }
@@ -1498,12 +1501,10 @@ fieldset.entry-times {
 }
 
 /* Place of an entry, lighter than the time, like `HomeMunich`: beside the time, see `.entry-beside`,
-   or with room for three lines on the third, below the time and above the note; cut with an ellipsis
-   where a narrow entry ends */
+   or with room for three lines on the third, below the time and above the note, going on over the lines below
+   where it is wider than the entry, like a long route, never cut there */
 .entry-place {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
     color: var(--text-muted);
 }
 
@@ -1514,13 +1515,15 @@ fieldset.entry-times {
     margin-inline: 0.5em;
 }
 
-/* Place beside the time on its line, like `· HomeMunich` or a route like `· HomeMunich → TumGarching`;
-   it takes only the room left beside what and the time, cut with an ellipsis, so a narrow entry cuts the place,
-   never what or the time; with less room than for about four letters it moves onto the next line, which
-   `.entry-lines` hides, so no dot stands alone at the end */
+/* Place beside the time on its line, like `· HomeMunich` or a route like `· HomeMunich → TumGarching`,
+   in an entry with room for only one or two lines: it takes only the room left beside what and the time,
+   cut with an ellipsis, so a short entry cuts the place, never what or the time; with less room than for about
+   four letters it moves onto the next line, which `.entry-lines` hides, so no dot stands alone at the end */
 .entry-beside {
     flex: 1 1 0;
     min-width: min(5em, 100%);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Arrow of a route between where a way starts and its goal, like `HomeMunich → TumGarching`: drawn as an icon

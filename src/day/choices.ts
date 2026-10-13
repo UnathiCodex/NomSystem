@@ -20,8 +20,24 @@
  * Picked values are a lighter grey; a click picks a value, a click on a picked one takes it back.
  * The values come from a search function, so a list can later come from the reader, like the foods.
  * A short list that takes no new values, like the types, needs no search field and has none.
+ * A value wider than its row goes on below, never cut, a long name broken where its parts meet,
+ * see {@link breakableOf}.
  */
 
+
+/**
+ * Marks where a long name may go on over a next line, where it is wider than its room, as on a phone, in the line
+ * of a field and in an entry or a box of the day: after each `_` and between a small and a capital letter, so
+ * `IN0004_EinfuehrungRechnerarchitektur (VO)` breaks into `IN0004_Einfuehrung` and `Rechnerarchitektur (VO)`
+ * instead of right after `Skill:` and within a word, see `.entry-whole`, `.box-what` and `.picker-line` in `day.css`;
+ * the mark is a space of no width, U+200B, which shows nothing.
+ *
+ * @param text - Text with a long name, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
+ * @returns The same text with the marks
+ */
+export function breakableOf(text: string): string {
+    return text.replace(/_/g, "_\u200b").replace(/([a-zäöüß])([A-ZÄÖÜ])/g, "$1\u200b$2");
+}
 
 /**
  * A value to pick.
@@ -309,7 +325,7 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
 
     const lineShow: () => void = (): void => {
         const text: string = chosen.map((value: string): string => texts.get(value) ?? value).join(", ");
-        line.textContent = text === "" ? setup.empty ?? "" : text;
+        line.textContent = text === "" ? setup.empty ?? "" : breakableOf(text);
         line.title = text;
         line.classList.toggle("picker-empty", text === "");
     };
@@ -431,7 +447,8 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
 
 /**
  * Puts two pickers side by side in one row, like the skill and the type of a skill entry in its summary,
- * the first wider; the list of either opens below both, as wide as the row.
+ * the first wider, the second below it where the row has no room for both, as on a phone; the list of either opens
+ * below both, as wide as the row, see `.panel-pair` in `day.css`.
  *
  * @param first - Picker at the left
  * @param second - Picker at the right
@@ -446,8 +463,8 @@ export function pairOf(first: HTMLElement, second: HTMLElement): HTMLDivElement 
 
 /**
  * Makes the row of a value picked of a field of several values, below the row of the field, see {@link addedRowsOf}:
- * its name, mostly none, its text, like `02 Logistic Poisson Regression`, cut with an ellipsis, and a small ×
- * that takes it back.
+ * its name, mostly none, its text, like `02 Logistic Poisson Regression`, going on below where it is wider than
+ * its row, see {@link breakableOf}, and a small × that takes it back.
  * - `text`: The text in its own element, its whole text in its tooltip.
  * - `remove`: The ×.
  *
@@ -462,7 +479,7 @@ export function addedRowOf(name: string, text: string, remove: () => void): HTML
     const button: HTMLButtonElement = document.createElement("button");
     value.className = "picker-added";
     shown.className = "picker-added-text";
-    shown.textContent = text;
+    shown.textContent = breakableOf(text);
     shown.title = text;
     button.type = "button";
     button.className = "picker-added-remove";
