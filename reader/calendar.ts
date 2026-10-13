@@ -16,7 +16,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import ICAL from "ical.js";
 import { writeAllowed } from "./sources.ts";
@@ -623,19 +623,17 @@ function linesWrite(file: string, text: FileLines): void {
 }
 
 /**
- * Creates an empty calendar with the header calendar apps read, its name among it, and the time zone {@link zoneName}.
+ * Creates an empty calendar with only the header the standard asks for, `PRODID` and `VERSION`,
+ * and the time zone {@link zoneName}, which every `DTSTART` names. No `X-WR-CALNAME`, since its name is the name
+ * of its file, like `2026_10_Log`, no `X-WR-TIMEZONE`, no `CALSCALE`, since `GREGORIAN` is the default,
+ * and no `METHOD`, which only invitations need.
  *
- * @param name - Name of the calendar, shown by calendar apps
  * @returns Calendar without events
  */
-function calendarCreate(name: string): ICAL.Component {
+function calendarCreate(): ICAL.Component {
     const root: ICAL.Component = new ICAL.Component("vcalendar");
     root.addPropertyWithValue("prodid", "-//NomSystem//Dashboard//DE");
     root.addPropertyWithValue("version", "2.0");
-    root.addPropertyWithValue("calscale", "GREGORIAN");
-    root.addPropertyWithValue("method", "PUBLISH");
-    root.addPropertyWithValue("x-wr-calname", name);
-    root.addPropertyWithValue("x-wr-timezone", zoneName);
     root.addSubcomponent(zoneComponent);
     return root;
 }
@@ -653,7 +651,7 @@ function calendarCreate(name: string): ICAL.Component {
 function componentInsert(file: string, event: string[]): void {
     const text: FileLines = existsSync(file)
         ? linesRead(file)
-        : { lines: `${calendarCreate(basename(file, ".ics")).toString()}\r\n`.split("\r\n"), newline: "\r\n" };
+        : { lines: `${calendarCreate().toString()}\r\n`.split("\r\n"), newline: "\r\n" };
     const calendarEnd: number = text.lines.lastIndexOf("END:VCALENDAR");
     if (calendarEnd === -1)
         throw new Error(`No END:VCALENDAR in ${file}`);
