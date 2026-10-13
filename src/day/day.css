@@ -469,9 +469,8 @@ button.box-ring.box-checked svg {
 }
 
 /* Date of the day as a button, which opens the month to pick a day from: no frame, a grey under the pointer,
-   its text where the heading's would be */
+   its padding keeping room to the arrows left and right of it */
 .day-title-button {
-    margin: 0 calc(-1 * var(--control-gap));
     padding: 0.25rem var(--control-gap);
     border: none;
     border-radius: var(--radius);
