@@ -15,13 +15,10 @@
     overflow-y: auto;
 }
 
-/* Page in my Obsidian's reading width with 40 px inside on each side, as the page of the scripts view,
-   so lines wrap at about the width of the scripts view's; its text 16 px in Obsidian's grey, grown with the page;
-   room below the last line, so it can scroll up to the middle */
+/* Page as wide as the room beside the tree, with little room left and right; its text 16 px in Obsidian's grey,
+   grown with the page; room below the last line, so it can scroll up to the middle */
 .editor-page {
-    max-width: var(--reading-width);
-    margin: 0 auto;
-    padding: 0 2.5rem 50dvh;
+    padding: 0 var(--gap) 50dvh calc(1.5 * var(--gap));
     font-size: 1rem;
     color: var(--reading-text);
 }
@@ -51,24 +48,22 @@
     text-overflow: ellipsis;
 }
 
-/* Notice beside the save button, like `Saved`, grey in the text of controls */
+/* Notice beside the save button when something went wrong, like `Not saved`, or for a file to read only, grey
+   in the text of controls */
 .editor-state {
     color: var(--text-muted);
     font-size: var(--control-text);
 }
 
-/* Save button one control high and square, outlined, its icon in the middle;
+/* Button `Save` one control high, outlined, as the buttons of the dialogs;
    in the calm grey of a main button while the note has unsaved changes */
 .editor-save {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--control-height);
-    height: var(--control-height);
-    padding: 0;
+    min-height: var(--control-height);
+    padding: 0 var(--control-padding);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--background);
+    font-size: var(--control-text);
     cursor: pointer;
 }
 
@@ -239,4 +234,26 @@
 .editor-plain .cm-editor .cm-content {
     font-family: ui-monospace, monospace;
     font-size: 0.875em;
+}
+
+/* Lines of an `.ics` file left-aligned at the depth of their block, two characters a step, and the room of an empty
+   line above each entry, drawn as padding, which CodeMirror measures, see `ics.ts` */
+.editor-text .cm-editor .cm-line.ics-depth-1 {
+    padding-left: 2ch;
+}
+
+.editor-text .cm-editor .cm-line.ics-depth-2 {
+    padding-left: 4ch;
+}
+
+.editor-text .cm-editor .cm-line.ics-depth-3 {
+    padding-left: 6ch;
+}
+
+.editor-text .cm-editor .cm-line.ics-depth-4 {
+    padding-left: 8ch;
+}
+
+.editor-text .cm-editor .cm-line.ics-entry {
+    padding-top: 1lh;
 }
