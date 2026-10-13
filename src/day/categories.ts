@@ -329,7 +329,7 @@ function valueAdd(field: Field, value: string): void {
 }
 
 /**
- * Builds the row that offers the meal of a cooking, eaten right after it: one chip, picked by one tap;
+ * Builds the row that offers the meal of a cooking, eaten right after it: one row to pick by one tap;
  * only for a cooking of the log no meal points to yet.
  *
  * @returns Row, none for any other entry
@@ -358,7 +358,7 @@ function neckLongPicked(): boolean {
 }
 
 /**
- * Builds the row of my neck pain for `Body` in the log: 0 to 10, one chip picked by one tap, the outcome
+ * Builds the row of my neck pain for `Body` in the log: 0 to 10 one below the other, one picked by one tap, the outcome
  * my neck routine is judged by, see `reader/trackers.ts`; shown only while `Neck long` is picked.
  *
  * @returns Row, none for any other category or the plan

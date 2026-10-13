@@ -6,8 +6,8 @@
  * as I type, ignoring case and accents: a value matches when each typed word stands somewhere in its name,
  * so `mensa garch` finds `Mensa-Garching`; Enter picks the first match,
  * and where a list takes new values, `+` adds the typed text, or first asks for what a new value needs,
- * like the address of a new place. A few short values show as chips, more or longer ones
- * as a list with one whole name per row, six rows and a half high, then scrolling, see `.picker-list` in `day.css`.
+ * like the address of a new place. The values show as a list with one whole name per row, also a few short ones,
+ * like `0` to `10`, six rows and a half high, then scrolling, see `.picker-list` in `day.css`.
  * Values keep their order, like the most used first; a group, like `Due today`, stands above its first value.
  * Picked values are a lighter grey; a click picks a value, a click on a picked one takes it back.
  * The values come from a search function, so a list can later come from the reader, like the foods.
@@ -49,10 +49,10 @@ export type ChoicesSetup = {
 };
 
 /**
- * Most characters the texts of a list may have together to show as chips, about two rows of them;
- * a list with more shows one value per row.
+ * Most characters the texts of a list may have together to show without a search field, like `Night` and `Day`;
+ * a list with more gets one above it.
  */
-const chipsLength: number = 60;
+const searchedLength: number = 60;
 
 
 /**
@@ -137,11 +137,12 @@ function buttonOf(text: string, chosen: boolean, click: () => void): HTMLButtonE
 
 /**
  * Builds a picker, see the top of this file: the search field, when the list is long or takes new values,
- * above the values found, and `+` at the end for the typed text, where new values are taken.
+ * above the list of the values found, and `+` at the end for the typed text, where new values are taken.
  * Values picked but not found, like a place an entry kept, come first while nothing is typed;
  * `+` is offered only for a text no value has already, case and accents ignored.
  * - `chosen`: Values picked so far, in the order they were picked.
- * - `long`: Whether the values show as a list instead of chips, fixed by all values at the start.
+ * - `long`: Whether the list is long enough for a search field, more than {@link searchedLength} characters
+ *   of all values together, fixed at the start.
  * - `found`: Values found for the typed text.
  * - `toggle`: Picks a value or takes it back, and tells the dialog.
  * - `show`: Shows the values found for the text of the search field, unless a newer text came meanwhile.
@@ -237,8 +238,9 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     });
 
     setup.search("").then((choices: Choice[]): void => {
-        long = choices.reduce((length: number, choice: Choice): number => length + choice.text.length, 0) > chipsLength;
-        list.className = long ? "picker-list" : "picker-choices";
+        long = choices.reduce((length: number, choice: Choice): number => length + choice.text.length, 0)
+            > searchedLength;
+        list.className = "picker-list";
         picker.replaceChildren(...(long || setup.adding ? [input] : []), list);
         show().then((): void => {
             requestAnimationFrame((): void => list.querySelector(".chosen")?.scrollIntoView({ block: "nearest" }));

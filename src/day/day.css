@@ -867,15 +867,11 @@ button.box-ring:hover svg {
     overflow-y: auto;
 }
 
-/* Categories one below the other, each chip as wide as the widest, its name at the left; on a phone side by side */
-.entry-categories {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-content: flex-start;
-}
-
-.entry-categories button {
-    text-align: left;
+/* Categories one below the other as a list like that of the places, as wide as the widest name, all of them shown,
+   only as high as they need; on a phone six rows and a half high, then scrolling, as any list */
+.entry-form .entry-categories {
+    align-self: start;
+    max-height: none;
 }
 
 .entry-form #entry-note {
@@ -955,35 +951,6 @@ button.box-ring:hover svg {
     cursor: pointer;
 }
 
-/* Few short choices, like earlier titles, categories or ways to travel, as wrapping chips */
-.picker-choices {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--control-gap);
-}
-
-/* One chip, one chip high */
-.picker-choices button {
-    min-height: var(--chip-height);
-    padding: 0 var(--control-padding);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--background);
-    cursor: pointer;
-}
-
-/* Picked chip in the calm grey of what is picked */
-.picker-choices button.chosen {
-    border-color: var(--chosen-line);
-    background: var(--chosen);
-}
-
-/* Category that cannot be picked faded, like Skill while another entry is changed */
-.picker-choices button:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-
 /* Picker: its search field above its values */
 .picker {
     display: flex;
@@ -997,9 +964,10 @@ button.box-ring:hover svg {
     padding: 0 0.75rem;
 }
 
-/* Many or long choices, like places or tasks, as a list with one whole name per row, each row `--picker-row` high,
-   a little higher than a chip, for my 4K monitor; six rows and a half high, about twice as high as a list
-   of three rows and a half one chip high, then scrolling, the half row showing there is more; a grey line around */
+/* Choices, many or few, like places, tasks or Night and Day, as a list with one whole name per row, never as chips,
+   each row `--picker-row` high, a little higher than a chip, for my 4K monitor; six rows and a half high,
+   about twice as high as a list of three rows and a half one chip high, then scrolling, the half row showing
+   there is more; a grey line around */
 .picker-list {
     --picker-row: 2.125rem;
     display: flex;
@@ -1028,6 +996,13 @@ button.box-ring:hover svg {
 
 .picker-list button.chosen {
     background: var(--chosen);
+}
+
+/* Category that cannot be picked faded, like Skill while another entry is changed, no grey under the pointer */
+.picker-list button:disabled {
+    opacity: 0.4;
+    background: none;
+    cursor: default;
 }
 
 /* Results of the tasks picked for a session, in line with the pickers after their names:
@@ -1175,7 +1150,7 @@ button.box-ring:hover svg {
     display: none;
 }
 
-/* Group of choices, like Due today, small and grey above its first one, a row of its own also among chips */
+/* Group of choices, like Due today, small and grey above its first one, a row of its own */
 .picker-group {
     width: 100%;
     margin: 0;
@@ -1361,9 +1336,8 @@ fieldset.picker-times {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .entry-categories {
-        flex-direction: row;
-        flex-wrap: wrap;
+    .entry-form .entry-categories {
+        max-height: calc(6.5 * var(--picker-row) + 2px);
     }
 
     .entry-form > .panel-form {
