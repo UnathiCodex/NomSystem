@@ -840,20 +840,20 @@ button.box-ring:hover svg {
     cursor: default;
 }
 
-/* Entry by category wider, for whole names: picking at the left, times, note and buttons at the right,
-   the note filling the height of its column. The dialog is at most as high as the screen with a gap around,
-   and each column at most as high as the dialog inside its padding and border; a taller picking scrolls alone,
-   so the times, the note and the buttons stay in sight, also below a long list of foods or tasks.
-   The picking has room around for the focus ring of its fields, which its scrolling would cut otherwise,
-   and reaches out by as much, so it stays in line */
+/* Entry by category wider, for whole names: the categories one below the other at the left, the picking of the fields
+   beside them, times, note and buttons at the right, the note filling the height of its column. The dialog is at most
+   as high as the screen with a gap around, and each column at most as high as the dialog inside its padding
+   and border; a taller picking scrolls alone, so the times, the note and the buttons stay in sight, also below
+   a long list of foods or tasks. The picking has room around for the focus ring of its fields, which its scrolling
+   would cut otherwise, and reaches out by as much, so it stays in line */
 .entry-panel {
-    width: min(52rem, calc(100vw - 2 * var(--gap)));
+    width: min(60rem, calc(100vw - 2 * var(--gap)));
     max-height: calc(100dvh - 2 * var(--gap));
 }
 
 .entry-form {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 17rem;
+    grid-template-columns: max-content minmax(0, 1fr) 17rem;
     gap: calc(1.5 * var(--gap));
 }
 
@@ -861,10 +861,21 @@ button.box-ring:hover svg {
     max-height: calc(100dvh - 4 * var(--gap) - 2px);
 }
 
-.entry-form > .panel-form:first-child {
+.entry-form > .panel-form:nth-child(2) {
     margin: -0.25rem;
     padding: 0.25rem;
     overflow-y: auto;
+}
+
+/* Categories one below the other, each chip as wide as the widest, its name at the left; on a phone side by side */
+.entry-categories {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-content: flex-start;
+}
+
+.entry-categories button {
+    text-align: left;
 }
 
 .entry-form #entry-note {
@@ -1321,6 +1332,11 @@ fieldset.picker-times {
 
     .entry-form {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .entry-categories {
+        flex-direction: row;
+        flex-wrap: wrap;
     }
 
     .entry-form > .panel-form {

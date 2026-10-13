@@ -63,10 +63,14 @@
     </aside>
 </div>
 
-<!-- Entry by category for the log and the boxes of the plan, shown over the page: at the left the category,
-     then each of its fields from its own list; at the right the times, the note and the buttons -->
-<dialog class="panel entry-panel" id="entry">
+<!-- Entry by category for the log and the boxes of the plan, shown over the page: at the left the categories
+     one below the other, then each field of the picked one from its own list; at the right the times, the note
+     and the buttons. Esc or a click beside it closes it without saving -->
+<dialog class="panel entry-panel" id="entry" closedby="any">
     <form class="entry-form" id="entry-form">
+        <!-- Categories, fixed in the reader, one below the other; the picked one light on grey -->
+        <div class="picker-choices entry-categories" id="entry-categories"></div>
+
         <div class="panel-form">
             <!-- Plan, small and grey: a box of the plan, which may be logged instead,
                  or the box the log entry comes from, which may be changed instead -->
@@ -75,9 +79,6 @@
                 <button id="entry-plan-log" type="button" hidden>Log it</button>
                 <button id="entry-plan-edit" type="button" hidden>Edit plan</button>
             </p>
-
-            <!-- Categories, fixed in the reader; the picked one light on grey -->
-            <div class="picker-choices" id="entry-categories"></div>
 
             <!-- One list per field of the picked category, each ending with + New for a new value -->
             <div class="panel-form" id="entry-fields"></div>

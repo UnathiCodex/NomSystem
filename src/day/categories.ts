@@ -1,9 +1,10 @@
 /**
  * ## Categories
  *
- * Writes plan and log the same way, by category: pick the category, then each of its fields from its own list,
- * then save. A `Way` is `By`, `From` and `To`, every other category `What` and `Place`, the what of `Sleep` only
- * `Night` or `Day`, a nap;
+ * Writes plan and log the same way, by category: pick the category from the list at the left of the dialog,
+ * then each of its fields from its own list, then save; Esc or a click beside the dialog closes it without saving.
+ * A `Way` is `By`, `From` and `To`, every other category `What` and `Place`, the what of `Sleep` only `Night` or `Day`,
+ * a nap;
  * a value with steps shows them below its list while it is picked, like the exercises of my neck routine in `Body`;
  * in the log, `Food` below them its foods, each with its grams, and what the meal gives, see `meal.ts`,
  * a meal with foods named by them, like `Haferflocken, Milch`, so its what only picks an earlier meal to fill them in,
@@ -477,7 +478,7 @@ async function categoryPick(category: Category | null): Promise<void> {
 }
 
 /**
- * Shows one button per category in the dialog; for a box only the categories I plan.
+ * Shows one button per category in the dialog, one below the other at its left; for a box only the categories I plan.
  * While a log entry is changed, `Skill` stays apart: a skill entry cannot become another category,
  * nor another entry a skill entry, because only the skill area writes the chapters, document and attempts
  * of a skill entry of the log; a skill box is a plain box, which may change its category.
