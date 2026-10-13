@@ -12,7 +12,7 @@
  * those logged: how long I slept on average, and how regular I was, how much my bedtime varied.
  * Glasses, meals and neck sessions count for the calendar day of their start in Berlin time, from 00:00 to 00:00,
  * like a glass of water at 01:00 on 14.10.2026 for 14.10.2026.
- * A glass of water is an entry of the category `Drink` with the what `Water`, which the water of the food view writes,
+ * A glass of water is an entry of the category `Drink` with the what `Water`, which the counter of the day writes,
  * one per glass at the moment of the tap, five minutes long; such an entry from the entry by category counts too.
  * Every other drink, like `Kaffee`, counts as one glass as well, since the reference of 2.5 litres a day counts
  * the water of all drinks (EFSA 2010); the counter takes back only glasses of water.

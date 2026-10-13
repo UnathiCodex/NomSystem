@@ -100,19 +100,19 @@ async function requestSend(method: string, address: string, body: object | null)
 }
 
 /**
- * Sends a request that changes the log, then loads the log of the shown day again, if a calendar shows it.
+ * Sends a request that changes the log, then loads the log of the shown day again.
  * - {@link EventSourceApi#refetch}: Loads the entries of a calendar of the reader again.
  *
- * @param calendar - Calendar of the day, `null` in the food view, which loads its water again itself
+ * @param calendar - Calendar of the day
  * @param method - HTTP method, like `POST`
  * @param address - Address of the request
  * @param body - Data to send, or `null`
  * @returns Answer of the reader, like the identifier of a new entry, `null` for none
  * @throws {Error} - When the reader does not take the request
  */
-async function logSend(calendar: Calendar | null, method: string, address: string, body: object | null): Promise<unknown> {
+async function logSend(calendar: Calendar, method: string, address: string, body: object | null): Promise<unknown> {
     const answer: unknown = await requestSend(method, address, body);
-    calendar?.getEventSourceById("log")?.refetch();
+    calendar.getEventSourceById("log")?.refetch();
     return answer;
 }
 
@@ -139,12 +139,12 @@ function boxBodyOf(fields: BoxFields): object {
 /**
  * Adds an entry to the log.
  *
- * @param calendar - Calendar of the day, `null` in the food view
+ * @param calendar - Calendar of the day
  * @param fields - Fields and times of the new entry
  * @returns Identifier of the new entry
  * @throws {Error} - When the reader does not take the entry
  */
-export async function entryAdd(calendar: Calendar | null, fields: EntryFields): Promise<string> {
+export async function entryAdd(calendar: Calendar, fields: EntryFields): Promise<string> {
     return await logSend(calendar, "POST", "/api/day/log", bodyOf(fields)) as string;
 }
 
@@ -175,11 +175,11 @@ export async function entryChange(calendar: Calendar, id: string, fields: EntryF
 /**
  * Removes an entry of the log; the reader opens the box it was logged from again.
  *
- * @param calendar - Calendar of the day, `null` in the food view
+ * @param calendar - Calendar of the day
  * @param id - Identifier of the entry
  * @throws {Error} - When the reader does not remove the entry
  */
-export async function entryDelete(calendar: Calendar | null, id: string): Promise<void> {
+export async function entryDelete(calendar: Calendar, id: string): Promise<void> {
     await logSend(calendar, "DELETE", `/api/day/log?id=${encodeURIComponent(id)}`, null);
 }
 

@@ -81,7 +81,7 @@ import {
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
-import { Check, Copy, Trash, X } from "lucide";
+import { Check, CircleQuestionMark, Copy, Trash, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -1037,10 +1037,8 @@ async function entrySave(calendar: Calendar): Promise<void> {
 
 /**
  * Removes the entry of the log or the box being changed on the second click, then closes the dialog;
- * the first click only asks, the bin turning into a plain question mark of the font, without a circle, the class
- * `remove-ask` in `day.css`, `Really remove?` as its tooltip. A box planned by mistake is removed;
+ * the first click only asks, the bin turning into a question mark, `Really remove?` as its tooltip. A box planned by mistake is removed;
  * a box I decided against is dropped instead, with its cross in the list, so it can be counted.
- * - `ask`: The question mark.
  *
  * @param calendar - Calendar of the day
  * @throws {Error} - When the reader does not remove the entry or the box
@@ -1048,14 +1046,8 @@ async function entrySave(calendar: Calendar): Promise<void> {
 async function entryRemove(calendar: Calendar): Promise<void> {
     const button: HTMLButtonElement = document.getElementById("entry-remove") as HTMLButtonElement;
     if (!removeAsked) {
-        const ask: HTMLElement = document.createElement("span");
         removeAsked = true;
-        ask.className = "remove-ask";
-        ask.textContent = "?";
-        ask.setAttribute("aria-hidden", "true");
-        button.replaceChildren(ask);
-        button.title = "Really remove?";
-        button.setAttribute("aria-label", "Really remove?");
+        iconPut(button, CircleQuestionMark, "Really remove?");
         return;
     }
 

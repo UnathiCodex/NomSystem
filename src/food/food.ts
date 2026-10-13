@@ -1,10 +1,9 @@
 /**
  * ## Food
  *
- * Shows what I ate on a day, what I drank, and my foods, in the scheme of the day view.
+ * Shows what I ate on a day, and my foods, in the scheme of the day view; my water I count in the trackers of the day.
  * The bar of the day, as the day has it: its weekday short and its date, like `Tue, 13.10.2026`, between the arrows
- * to the day before and after, a small icon beside it back to today, faded and off on today; my water at its right end,
- * see `water.ts`.
+ * to the day before and after, a small icon beside it back to today, faded and off on today.
  * The day: the number of its meals and its totals
  * of kcal, protein, carbs and fat, all alike, without goals, so the log stays a log, not calorie control;
  * then each meal of the log: its start, linking to the day in the day view,
@@ -18,7 +17,6 @@
  *
  * - `./foods.ts`: Loads the meals of a day, writes amounts and makes elements.
  * - `./search.ts`: Finds foods, mine first, then on Open Food Facts, and adds new ones.
- * - `./water.ts`: Shows the water of a day and logs glasses.
  * - `../day/places.ts`: Gives the name of the place of a meal.
  * - `../day/times.ts`: Writes a day as its date, like `13.10.2026`.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
@@ -31,7 +29,6 @@
 
 import { amountOf, elementOf, foodDayLoad } from "./foods.ts";
 import { foodSearchOf } from "./search.ts";
-import { waterOpen } from "./water.ts";
 import { labelOf } from "../day/places.ts";
 import { dateTextOf } from "../day/times.ts";
 import { dayOf } from "../skill/attempts.ts";
@@ -191,12 +188,11 @@ async function dayShow(day: string): Promise<void> {
 }
 
 /**
- * Shows a day with its water, or a hint when the reader cannot read its meals.
+ * Shows a day, or a hint when the reader cannot read its meals.
  *
  * @param day - Day like `2026-10-10`
  */
 function dayOpen(day: string): void {
-    waterOpen(day);
     dayShow(day).catch((error: unknown): void => {
         console.error(error);
         document.getElementById("food-totals")?.replaceChildren();

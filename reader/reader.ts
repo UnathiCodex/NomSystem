@@ -56,7 +56,7 @@ import {
 } from "./skill.ts";
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
-import { brandAdd, brandRemove, brandsRead, dishAdd, dishesRead, foodAdd, foodDayRead, foodsFind } from "./food.ts";
+import { brandAdd, brandRemove, brandsRead, dishAdd, dishesRead, dishFoodsRead, foodAdd, foodDayRead, foodsFind } from "./food.ts";
 import { trackersRead } from "./trackers.ts";
 import { pageCreate } from "./page.ts";
 
@@ -174,6 +174,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/food/brands`: Adds the brand `name` of the body to `Brands.md` and sends all brands.
  * - `DELETE /api/food/brands?name=…`: Removes the brand from `Brands.md` and sends all brands left.
  * - `GET /api/food/day?date=…`: Sends the meals of the date with what they give.
+ * - `GET /api/food/dish?title=…`: Sends the lines `X-FOOD` of the last meal of the dish.
  * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each with its foods and the kcal of one portion.
  * - `POST /api/food/meals`: Adds the meal of the body, its name and foods, to `Meals.md` and sends all my meals.
  * - Any other address: Hands request to the page.
@@ -365,6 +366,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "GET" && url.pathname === "/api/food/day") {
         responseSend(response, 200, foodDayRead(date));
+
+    } else if (request.method === "GET" && url.pathname === "/api/food/dish") {
+        responseSend(response, 200, dishFoodsRead(url.searchParams.get("title") ?? ""));
 
     } else if (request.method === "GET" && url.pathname === "/api/food/meals") {
         responseSend(response, 200, dishesRead());
