@@ -292,8 +292,8 @@ function skipShow(row: HTMLElement, task: SkillTask, skips: string[], written: (
  * Makes the quiet copy icon of a block, which puts the text for my tutor on the clipboard, and then does
  * what else the copy means, like telling the reader; a check stands in its place for a moment after copying,
  * so I see it worked.
- * - {@link Clipboard#writeText}: Puts a text on the clipboard; the page may, being served from `localhost`
- *   or over HTTPS.
+ * - {@link Clipboard#writeText}: Puts a text on the clipboard; the page may, being served from `127.0.0.1`,
+ *   `localhost` or over HTTPS.
  *
  * @param tutor - Text for my tutor, see `../notes/tutor.ts`
  * @param copied - What else to do once it is copied

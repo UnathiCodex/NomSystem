@@ -3,7 +3,8 @@
  *
  * Start with `npm start`.
  *
- * Reads the vault named in `sources.ts` and waits at `localhost:3000`
+ * Reads the vault named in `sources.ts` and waits at `127.0.0.1:3000`, IPv4 by its address, not `localhost`,
+ * which some servers turn into `::1` first while `tailscale serve` hands requests to `127.0.0.1:3000`,
  * to answer the browser page with data, and with the page itself.
  *
  * - Node may read from disk but browser cannot.
@@ -177,7 +178,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *
  * ```
  * GET /api/day/log?start=2026-07-03T00%3A00%3A00%2B02%3A00&end=2026-07-04T00%3A00%3A00%2B02%3A00 HTTP/1.1
- * Host: localhost:3000
+ * Host: 127.0.0.1:3000
  * ```
  *
  * @param page - Vite, answers requests for the page
@@ -367,5 +368,5 @@ server.on("request", (request: IncomingMessage, response: ServerResponse): void 
         responseSend(response, 500, { error: "The reader failed" });
     });
 });
-server.listen(3000, "localhost", (): void => console.log("http://localhost:3000"));
+server.listen(3000, "127.0.0.1", (): void => console.log("http://127.0.0.1:3000"));
 linksCheckStart();
