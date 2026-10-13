@@ -3,10 +3,11 @@
  *
  * Opens one area of the life system beside the areas named in `index.html`, each shown by its icon there,
  * by the address:
- * the scripts, my notes of my modules, at `/scripts`, the skill area at `/skill`, the food area
- * at `/food`, the editor of my drafts and of the files of my new system at `/edit`, the day everywhere else;
- * an older address of the scripts, `/notes`, opens them too and becomes `/scripts`.
- * Scripts and editor are one view with one tree and one link, `Scripts`, which stays marked in the editor.
+ * the scripts, my notes of my modules, at `/scripts`, my new system at `/plannings`, the skill area at `/skill`,
+ * the food area at `/food`, the editor of my drafts and of the files of my new system at `/edit`, the day everywhere
+ * else; an older address of the scripts, `/notes`, opens them too and becomes `/scripts`.
+ * The editor shows a file of my new system under the link of `/plannings`, which opens the editor without a file,
+ * and a draft under that of `/scripts`, see `editor/editor.ts`.
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the scripts no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
@@ -60,10 +61,11 @@ let deviceWait: number = 0;
 const phone: boolean = matchMedia("(max-width: 900px)").matches;
 if (location.pathname === "/notes")
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
-const areas: string[] = phone ? [] : ["/scripts", "/skill", "/food", "/edit"];
+const areas: string[] = phone ? [] : ["/scripts", "/plannings", "/skill", "/food", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
-document.querySelector(`.areas a[href="${area === "/edit" ? "/scripts" : area}"]`)
-    ?.setAttribute("aria-current", "page");
+const marked: string =
+    area !== "/edit" ? area : new URLSearchParams(location.search).has("file") ? "/plannings" : "/scripts";
+document.querySelector(`.areas a[href="${marked}"]`)?.setAttribute("aria-current", "page");
 deviceReport();
 addEventListener("resize", (): void => {
     clearTimeout(deviceWait);
@@ -82,7 +84,7 @@ if (area === "/scripts") {
     const food: { foodStart: () => void } = await import("./food/food.ts");
     document.body.insertAdjacentHTML("beforeend", foodHtml);
     food.foodStart();
-} else if (area === "/edit") {
+} else if (area === "/edit" || area === "/plannings") {
     const editor: { editorStart: () => Promise<void> } = await import("./editor/editor.ts");
     document.body.insertAdjacentHTML("beforeend", editorHtml);
     await editor.editorStart();

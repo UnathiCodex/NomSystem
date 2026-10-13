@@ -17,6 +17,16 @@
     line-height: var(--chip-height);
 }
 
+/* Name of the root of the tree on top, NomSkillingmodules or NomManageplannings, a heading that never folds,
+   in the light text and a little apart from its folders, in line with their names */
+.tree-root {
+    margin: 0 0 0.375rem;
+    padding: 0 0.5rem;
+    font-size: inherit;
+    font-weight: 600;
+    line-height: var(--chip-height);
+}
+
 /* Names in the tree on one line, cut with an ellipsis, rows a little apart, so their greys never touch */
 .tree-folder > summary,
 .tree-file {

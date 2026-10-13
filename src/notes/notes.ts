@@ -535,7 +535,7 @@ function linkClick(event: MouseEvent): void {
 
 /**
  * Starts the scripts view after the router has put its HTML into the page:
- * puts the pencil into its link, shows the tree with its two roots, see `tree.ts`, then the note of the address;
+ * puts the pencil into its link, shows the tree of the modules, see `tree.ts`, then the note of the address;
  * an address naming a module, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning` from a skill entry,
  * opens that module in the tree.
  * - `address`: The parameters of the address.
@@ -545,7 +545,7 @@ function linkClick(event: MouseEvent): void {
  */
 export async function notesStart(): Promise<void> {
     const address: URLSearchParams = new URLSearchParams(location.search);
-    await treeShow(document.getElementById("notes-tree") as HTMLElement, address.get("path") ?? "",
+    await treeShow(document.getElementById("notes-tree") as HTMLElement, "NomSkillingmodules", address.get("path") ?? "",
         address.get("module") ?? "");
     iconPut(document.getElementById("notes-edit") as HTMLElement, Pencil, "Edit");
     (document.querySelector(".notes") as HTMLElement).addEventListener("click", linkClick);
