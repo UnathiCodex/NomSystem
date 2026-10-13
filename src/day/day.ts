@@ -72,15 +72,16 @@ import type {
 
 
 /**
- * Minutes of the time grid one line of an entry fills: half an hour of the grid is 2rem high, twice the margin
- * and once the line of an hour label, see `.slot-label` in `day.css`, and a line of an entry 0.9rem,
- * its text of 0.75rem at a line height of 1.2, see `.entry-inner`; so a line fills 13.5 minutes,
- * and the padding of 0.25rem above and below a taller entry, 0.5rem, fills 7.5 minutes, see {@link entryContentOf}:
- * an entry of half an hour has room for one line, (30 - 7.5) / 13.5 = 1.67, one of an hour for three,
- * (60 - 7.5) / 13.5 = 3.89; a short one, lower than `eventShortHeight` in {@link dayStart}, has none above and below,
- * only 0.5rem left and right.
+ * Minutes of the time grid one line of a taller entry fills: half an hour of the grid is 2rem high, twice the margin
+ * and once the line of an hour label, see `.slot-label` in `day.css`, and a line of a taller entry 1.05rem,
+ * its text of 0.75rem at a line height of 1.4, see `.entry-inner`; so a line fills 15.75 minutes,
+ * and the space of 0.5rem above its first line and 0.25rem below its last, 0.75rem, fills 11.25 minutes,
+ * see {@link entryContentOf}: an entry of half an hour has room for one line, (30 - 11.25) / 15.75 = 1.19,
+ * one of an hour for three, (60 - 11.25) / 15.75 = 3.1; a short one, as low as `eventShortHeight` in {@link dayStart}
+ * or lower, has no space above and below its one line, 0.9rem high at a line height of 1.2,
+ * so a quarter hour, 1rem high, holds it.
  */
-const lineMinutes: number = 13.5;
+const lineMinutes: number = 15.75;
 
 /**
  * Shows the daily note of a day, like `2026-10-12`, with my gratitude and my paragraph about the day;
@@ -192,8 +193,9 @@ function dishOf(event: EventApi): string[] {
  * - `day`: Midnight of the shown day, where the grid starts.
  * - `top`, `bottom`: Start and end of the entry cut to the grid, from 00:00 of the shown day to 05:00 of the next,
  *   like 23:00 to 05:00 for a Sleep from 23:00 to 07:00 on 12 October.
- * - `lines`: Lines the shown part of a taller entry has room for, its height less its padding of 0.5rem,
- *   see {@link lineMinutes}: that Sleep has (360 - 7.5) / 13.5 = 26 lines, not 35 for its whole 8 hours.
+ * - `lines`: Lines the shown part of a taller entry has room for, its height less the space of 0.75rem above
+ *   and below its lines, see {@link lineMinutes}: that Sleep has (360 - 11.25) / 15.75 = 22 lines, not 29
+ *   for its whole 8 hours.
  * - `timeLine`: The second line, start and end, grey, cut with an ellipsis, see `.entry-time` in `day.css`.
  * - `shown`: The lines shown above the note: what, the time, and the place, grey, see `.entry-place` in `day.css`.
  * - `below`: The note below the lines shown, grey, its line clamp the lines left, see `.entry-note` in `day.css`.
@@ -223,7 +225,7 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     const top: number = Math.max(start.getTime(), day.getTime());
     const bottom: number =
         Math.min(end.getTime(), new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1, 5).getTime());
-    const lines: number = Math.floor(((bottom - top) / (60 * 1000) - 7.5) / lineMinutes);
+    const lines: number = Math.floor(((bottom - top) / (60 * 1000) - 11.25) / lineMinutes);
     if (info.isShort || lines < 2) {
         line.append(entryPartOf("span", "entry-time", [`, ${time}`]));
         return { domNodes: [line] };
@@ -314,9 +316,11 @@ async function noteStart(calendar: Calendar): Promise<void> {
  *   so `day.css` sets their size and with it the height of the slots.
  * - `slotHeaderFormat`: Writes the hours in 24-hour form, like `14:00`; the entries write their times themselves.
  * - `eventContent`: Shows what an entry was, then its time, see {@link entryContentOf}.
- * - `eventShortHeight`: Makes entries lower than two lines short, 36 px at the page's root size of 20 px,
- *   so they show one line with their start, like an entry of a quarter hour; one of half an hour is taller
- *   and shows its one line with start and end, see {@link entryContentOf}.
+ * - `eventShortHeight`: Makes entries short that have no room for one line with the space above and below it,
+ *   as high as 39 px in the grid or lower at the page's root size of 20 px: such a line needs 36 px, 0.5rem above,
+ *   a line of 1.05rem and 0.25rem below, see `.entry-inner` in `day.css`, and the inside of an entry is 3 px lower
+ *   than its place in the grid; so they show one line with their start, like an entry of a quarter hour;
+ *   one of half an hour, 41 px, is taller and shows its one line with start and end, see {@link entryContentOf}.
  * - `eventMinHeight`: Makes every entry at least as high as a quarter hour, 20 px, one line of an entry with its edge,
  *   so a shorter one, like ten minutes of my neck routine, still shows its line whole.
  * - `eventColor`: Edges the entries in the grey of the log from `variants.css`.
@@ -324,7 +328,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
  *   so `day.css` fills them in grey and only their edge keeps the grey of the log.
  * - `blockEventInnerClass`: Adds the class `entry-inner` to the inside of the entries,
  *   so `day.css` sets the size of their lines and cuts them at the edge of the entry instead of letting them stick out,
- *   and `entry-inner-short` to the inside of short ones, which takes away the space above and below their one line.
+ *   and `entry-inner-short` to the inside of short ones, which takes away the space above and below their one line
+ *   and keeps it 0.9rem high.
  * - `eventSources`: The log, see {@link logSourceOf}.
  * - `editable`: Lets entries be moved and resized, those that the reader marks `editable`.
  * - `snapDuration`: Moves, resizes and selects in steps of 15 minutes, while the grid keeps a line every 30 minutes.
@@ -363,7 +368,7 @@ export function dayStart(note: boolean): void {
         slotHeaderFormat: { hour: "2-digit", minute: "2-digit", hour12: false },
         slotHeaderInnerClass: "slot-label",
         eventContent: entryContentOf,
-        eventShortHeight: 36,
+        eventShortHeight: 39,
         eventMinHeight: 20,
         eventColor: "var(--log)",
         blockEventClass: "entry",

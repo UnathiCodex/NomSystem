@@ -1155,19 +1155,23 @@ button.box-ring:hover svg {
     color: var(--text-muted);
 }
 
-/* Inside of an entry: all its lines in one size, as in Google Calendar, a line 0.9rem high, 13.5 minutes
-   of the time grid, see `lineMinutes` in `day.ts`; its lines cut at the edge of the entry, so text never sticks out.
-   A taller entry keeps 0.25rem above and below its lines and 0.5rem left and right of them, like an hour of sleep;
-   a short one keeps only the 0.5rem left and right, no space above and below its one line, so a quarter hour holds it */
+/* Inside of an entry: all its lines in one size, as in Google Calendar, its text 0.75rem, 0.75rem left of its lines
+   and 0.5rem right of them; its lines cut at the edge of the entry, so text never sticks out.
+   A taller entry, like an hour of sleep, keeps 0.5rem above its first line and 0.25rem below its last,
+   and its lines stand apart, each 1.05rem high at a line height of 1.4, 15.75 minutes of the time grid,
+   see `lineMinutes` in `day.ts`; a short one keeps no space above and below its one line, 0.9rem high
+   at a line height of 1.2, so a quarter hour, 1rem high, holds it */
 .entry-inner {
     overflow: hidden;
-    padding: 0.25rem 0.5rem;
+    padding-block: 0.5rem 0.25rem;
+    padding-inline: 0.75rem 0.5rem;
     font-size: 0.75rem;
-    line-height: 1.2;
+    line-height: 1.4;
 }
 
 .entry-inner-short {
     padding-block: 0;
+    line-height: 1.2;
 }
 
 /* One line of an entry, alone in a short one, on top of a taller one: what, cut with an ellipsis where the line ends,
