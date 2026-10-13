@@ -2,7 +2,7 @@
  * ## Session timer
  *
  * A quiet timer at the right of the areas while a session of mine runs, in every area: what its skill entry is
- * as written, a module opening in the notes view, and the minutes since its skill entry started,
+ * as written, a module opening in the scripts view, and the minutes since its skill entry started,
  * like `IN2028_BusinessAnalyticsMachineLearning · 32 min` or `WokFlow · 32 min`, in grey, then the document it uses
  * by its name, opening in a new tab, see `skill/links.ts`.
  * A session is the skill entry of the moment, of a type I pace myself, homework, or none, my own learning

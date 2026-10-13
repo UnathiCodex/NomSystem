@@ -17,7 +17,7 @@
  * `Skill` is a skill and a type or none side by side, like `IN2028` and `VO` or the project `WokFlow`, in plan and log,
  * written by the reader as the folder of its skill with the type in brackets, like
  * `IN2028_BusinessAnalyticsMachineLearning (VO)`, its place and its semester; in the log also
- * its topics and attempts at tasks, each with its result and my effort, see `skill.ts`.
+ * its chapters, documents and attempts at tasks, each with its result and my effort, see `skill.ts`.
  * Every entry can carry a free note, typed like start and end.
  * The categories come in the order the reader gives them, by their importance for my life;
  * a box of the plan offers all but those I don't plan, `Sleep`, `Food`, `Cook`, `Drink` and `Game`.
@@ -57,7 +57,8 @@
  * - `./entries.ts`: Sends new, changed and removed entries to the reader.
  * - `./meal.ts`: The foods of a meal, the fields of `Food` below what and place.
  * - `./places.ts`: The dialog of a place, which adds a new one with its address to `Places.md` or changes mine.
- * - `./skill.ts`: The fields of `Skill`: skill and type, place, semester, and in the log topics and attempts.
+ * - `./skill.ts`: The fields of `Skill`: skill and type, place, semester, chapters, documents,
+ *   and in the log attempts.
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
  *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
@@ -789,7 +790,8 @@ async function wayEndLoad(): Promise<string> {
  * of a field that takes only its values as that field writes it, see {@link fixedValueOf}.
  * A new entry of a category with the field `from` starts where the last way ended.
  * `Food` in the log shows its foods after the times, those of the meal being changed, see `meal.ts`;
- * `Skill` shows its skill and type before the times, and its place, topics, semester and attempts after them,
+ * `Skill` shows its skill and type before the times, and its place, semester, chapters, documents and attempts
+ * after them,
  * see `skill.ts`.
  * - `meal`: Foods of a meal, put after the times unless another category was picked meanwhile.
  *
@@ -829,7 +831,7 @@ async function categoryPick(category: Category | null): Promise<void> {
  * Shows the category of the dialog as its first row, one line like every field, whose list offers the categories
  * in the order the reader gives them, for a box only those I plan. While a log entry is changed, `Skill` stays apart:
  * a skill entry cannot become another category, nor another entry a skill entry, because only the skill area writes
- * the topics and attempts of a skill entry of the log; a skill box is a plain box, which may change its category.
+ * the documents and attempts of a skill entry of the log; a skill box is a plain box, which may change its category.
  * - `offered`: The categories the list offers.
  */
 function categoryShow(): void {
@@ -872,7 +874,7 @@ function titleRead(picked: string): string {
  * like the room of a lecture imported into the plan, and its chapters and documents.
  * - `picked`: Values picked in the lists.
  * - `skill`: Skill and type of a skill entry, empty for any other entry.
- * - `links`: Chapters and documents of a skill entry with their topics, none for any other entry.
+ * - `links`: Chapters and documents of a skill entry, none for any other entry.
  *
  * @returns Category, what, place, where a way starts, module, type, semester, note, chapters and documents,
  *   as a box of the day the dialog opened with, without time, duration and deadline; the semester of a skill entry
@@ -882,7 +884,7 @@ function textsRead(): BoxFields {
     const picked: { [key in FieldKey]: string } = valuesRead();
     const skill: ModuleType = chosen?.name === skillName ? skillModuleType() : { module: "", type: "" };
     const links: SkillLinks =
-        chosen?.name === skillName ? skillLinksRead() : { chapters: [], documents: [], topics: {} };
+        chosen?.name === skillName ? skillLinksRead() : { chapters: [], documents: [] };
     return {
         category: chosen?.name ?? "",
         title: titleRead(picked.title),
@@ -1242,8 +1244,8 @@ export async function entryOpenNow(calendar: Calendar): Promise<void> {
 
 /**
  * Opens the dialog to log a box at a start and an end, like those of its drop into the log; a box with a category
- * comes with its category and fields picked as planned, a skill box with its skill, type, semester and documents
- * with their topics, see `skill.ts`, ready to save or to change, like a lecture with its chapters and slides;
+ * comes with its category and fields picked as planned, a skill box with its skill, type, semester, chapters
+ * and documents, see `skill.ts`, ready to save or to change, like a lecture with its chapters and slides;
  * a box without category, like a to-do another app wrote, without them.
  * - `planned`: Whether the box has a category.
  *

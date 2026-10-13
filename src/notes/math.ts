@@ -4,7 +4,7 @@
  * Renders formulas the way Obsidian 1.14 does, so they look the same:
  * MathJax 4.1 with the MathJax TeX font, output as HTML and CSS (CHTML), the same TeX packages and settings,
  * one call of `MathJax.tex2chtml` per formula and the stylesheet of the used characters after.
- * MathJax loads when the notes view opens and puts itself onto `window` as `MathJax`;
+ * MathJax loads when the scripts view opens and puts itself onto `window` as `MathJax`;
  * the TeX packages and the whole font come as files from `node_modules`, which Vite serves while it runs,
  * as it serves Noto Sans, so nothing comes from a CDN.
  *
@@ -13,7 +13,7 @@
 
 
 /**
- * The calls of MathJax the notes view uses, those Obsidian uses.
+ * The calls of MathJax the scripts view uses, those Obsidian uses.
  *
  * - `startup.promise`: Settles when MathJax and its packages are loaded.
  * - `startup.document.options`: Options of the page MathJax renders for.

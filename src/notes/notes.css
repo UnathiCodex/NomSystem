@@ -9,7 +9,7 @@
     border-top: 1px solid var(--line);
 }
 
-/* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the notes view
+/* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the scripts view
    and the editor, each row in the text of controls and one chip high to click */
 .notes-tree {
     overflow-y: auto;

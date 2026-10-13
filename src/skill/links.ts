@@ -3,8 +3,8 @@
  *
  * Shows what a skill entry is and its links, in the entry by category and in the timer of the session running now:
  * what it is as written, its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, which for a module
- * opens the module in the notes view in a new tab, its folder being the `ALTREP` of the `SUMMARY`, see
- * `reader/documents.ts`, and for a project, which the notes view has not, opens nothing, like `WokFlow`;
+ * opens the module in the scripts view in a new tab, its folder being the `ALTREP` of the `SUMMARY`, see
+ * `reader/documents.ts`, and for a project, which the scripts view has not, opens nothing, like `WokFlow`;
  * then each file it links, by its name, like `04_LogisticPoissonRegression.pdf`, which a click opens in a new tab
  * in the browser's own viewer, sent read only by the reader. A folder in an `ATTACH` of an older entry shows by its
  * name alone, like `IN2028_BusinessAnalyticsMachineLearning`, and opens nothing.
@@ -54,7 +54,7 @@ export function linkElementOf(link: Link): HTMLElement {
 
 /**
  * Makes what a skill entry is as the page shows it, see the top of this file: for a module a link that opens
- * the module in the notes view in a new tab, like `/notes?module=IN2028_BusinessAnalyticsMachineLearning`,
+ * the module in the scripts view in a new tab, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning`,
  * else its text alone; both of the class `skill-link`, the folder as tooltip.
  * - `name`: Name of the folder of a module, empty for any other skill.
  * - `element`: The link or the text.
@@ -70,7 +70,7 @@ export function skillTitleElementOf(title: string, folder: string): HTMLElement 
     element.textContent = title;
     element.title = folder;
     if (element instanceof HTMLAnchorElement) {
-        element.href = `/notes?module=${encodeURIComponent(name)}`;
+        element.href = `/scripts?module=${encodeURIComponent(name)}`;
         element.target = "_blank";
         element.rel = "noopener";
     }

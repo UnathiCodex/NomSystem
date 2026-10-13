@@ -15,8 +15,9 @@
  * - `|` inside `[[…]]` on a table row as part of the link, not as the end of a cell.
  * Beyond Obsidian, the block under each heading `##`, like a theory block or a task, folds by a click on its heading,
  * open at first, and the section under a heading `#### Solution…` comes folded, so I try a task before I see its solution.
- * Links, images and embeds keep their link as written in `data-link` and `data-heading`, for the notes view to resolve;
- * formulas keep their TeX as text in an element of the class `math`, as in Obsidian, for `math.ts` to render.
+ * Links, images and embeds keep their link as written in `data-link` and `data-heading`, for the scripts view
+ * to resolve; formulas keep their TeX as text in an element of the class `math`, as in Obsidian,
+ * for `math.ts` to render.
  * The HTML comes cleaned of scripts, as in Obsidian, because some notes in my modules come from the internet.
  *
  * - `marked`: Turns Markdown into HTML, with extensions for the syntax above.
@@ -293,7 +294,7 @@ const callout: TokenizerAndRendererExtension = {
  * Wiki link or embed, see {@link wikiLinkRule}; `\|` counts as `|`.
  * A link renders as `<a class="internal-link">` with its text, else its target and heading like `Note > Heading`.
  * An embedded image renders as `<img>`, with a width from `|300` or width and height from `|300x200`;
- * an embedded note as an empty `<div class="markdown-embed">` the notes view fills; any other file as a link.
+ * an embedded note as an empty `<div class="markdown-embed">` the scripts view fills; any other file as a link.
  */
 const wikiLink: TokenizerAndRendererExtension = {
     name: "wikiLink",

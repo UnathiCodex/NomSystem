@@ -2,10 +2,11 @@
  * ## Router
  *
  * Opens one area of the life system below the areas named in `index.html`, by the address:
- * the week at `/week`, the notes at `/notes`, the skill area at `/skill`, the food area at `/food`,
- * the editor of my drafts and of the files of my new system at `/edit`, the day everywhere else.
- * Notes and editor are one view with one tree and one link, `Notes`, which stays marked in the editor.
- * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the notes no calendar,
+ * the week at `/week`, the scripts, my notes of my modules, at `/scripts`, the skill area at `/skill`, the food area
+ * at `/food`, the editor of my drafts and of the files of my new system at `/edit`, the day everywhere else;
+ * an older address of the scripts, `/notes`, opens them too and becomes `/scripts`.
+ * Scripts and editor are one view with one tree and one link, `Scripts`, which stays marked in the editor.
+ * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the scripts no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
  * The timer of a session running now stands at the right of the areas in every area.
@@ -19,15 +20,17 @@
  *   so it looks the same on every device; `wght-italic.css` adds its italic.
  * - `./timer.ts`: Shows the timer of a session running now.
  * - `./day/day.html?raw`, `./week/week.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`,
- *   `./food/food.html?raw`, `./editor/editor.html?raw`: Html of day, week, notes, skill, food and editor as text,
+ *   `./food/food.html?raw`, `./editor/editor.html?raw`: Html of day, week, scripts, skill, food and editor as text,
  *   packed into the built code by Vite.
  * - `./day/day.ts`: Shows the log of a day, my one calendar, with the boxes of its plan beside it.
  * - `./week/week.ts`: Shows the boxes of the next seven days.
- * - `./notes/notes.ts`: Shows the modules of the semester and their notes, rendered like Obsidian.
+ * - `./notes/notes.ts`: Shows the scripts, the modules of the semester and their notes, rendered like Obsidian.
  * - `./skill/skill.ts`: Shows my tasks, due ones first, and records my attempts.
  * - `./food/food.ts`: Shows what I ate on a day with its totals, and my foods.
  * - `./editor/editor.ts`: Edits a draft note or a Markdown file of my new system as its text, its Markdown shown
- *   as in the notes, saved exactly as edited, with the tree of my new system on the left.
+ *   as in the scripts, saved exactly as edited, with the tree of my new system on the left.
+ * - {@link History#replaceState}: Turns an older address of the scripts into `/scripts`, without loading
+ *   the page again.
  */
 
 /// <reference types="vite/client" />
@@ -42,9 +45,12 @@ import foodHtml from "./food/food.html?raw";
 import editorHtml from "./editor/editor.html?raw";
 
 const phone: boolean = matchMedia("(max-width: 900px)").matches;
-const areas: string[] = phone ? ["/food"] : ["/week", "/notes", "/skill", "/food", "/edit"];
+if (location.pathname === "/notes")
+    history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
+const areas: string[] = phone ? ["/food"] : ["/week", "/scripts", "/skill", "/food", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
-document.querySelector(`.areas a[href="${area === "/edit" ? "/notes" : area}"]`)?.setAttribute("aria-current", "page");
+document.querySelector(`.areas a[href="${area === "/edit" ? "/scripts" : area}"]`)
+    ?.setAttribute("aria-current", "page");
 if (!phone)
     timerStart();
 
@@ -52,7 +58,7 @@ if (area === "/week") {
     const week: { weekStart: () => void } = await import("./week/week.ts");
     document.body.insertAdjacentHTML("beforeend", weekHtml);
     week.weekStart();
-} else if (area === "/notes") {
+} else if (area === "/scripts") {
     const notes: { notesStart: () => Promise<void> } = await import("./notes/notes.ts");
     document.body.insertAdjacentHTML("beforeend", notesHtml);
     await notes.notesStart();

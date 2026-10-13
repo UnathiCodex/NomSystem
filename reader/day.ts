@@ -297,7 +297,7 @@ export function entryAdd(entry: EntryNew): string {
  * of its skill, from the start to the end the day sends,
  * pointing to the box with `RELATED-TO`, after which the box is done. Its note stays empty, since the note
  * of a log entry is my diary note about what happened; a skill box hands on its links to documents, like the slides
- * of a lecture with their topics, see `documents.ts`, and its chapters as `X-CHAPTER`s, also those whose folders
+ * of a lecture, see `documents.ts`, and its chapters as `X-CHAPTER`s, also those whose folders
  * an older box links; more chapters and documents a skill entry gets later in the dialog.
  * - `box`: The box.
  * - `skill`: Whether it is a skill box, whose links go along.

@@ -99,7 +99,7 @@ export async function suggestionAccept(suggestion: Suggestion, day: string): Pro
     await boxAdd({
         category: skillName, title: suggestion.title, location: "", from: "",
         module: suggestion.module, type: "", semester: "", note: "", day: day, time: null, minutes: suggestion.minutes,
-        deadline: "", chapters: [], documents: [], topics: {},
+        deadline: "", chapters: [], documents: [],
     });
 }
 

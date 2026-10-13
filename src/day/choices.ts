@@ -2,13 +2,15 @@
  * ## Choices
  *
  * The dashboard's own picker, in place of the browser's drop-downs, for every field of a dialog that picks:
- * categories, places, summaries, ways to travel, skills, types, chapters, topics, semesters, tasks and efforts.
+ * categories, places, summaries, ways to travel, skills, types, chapters, documents, semesters, tasks and efforts.
  * A field is one row of its dialog: its name at the left, then one line showing its value, like
  * `IN2028_BusinessAnalyticsMachineLearning (VO)`, or grey what it is without one, like `No type`; a click anywhere
  * on the row opens its list right under the line, inside the dialog, pushing the rows below it down, never covering
  * its own row, see {@link listOf}; only one list is open at a time, and Esc or a click beside it closes it.
- * A list of one value to pick closes as I pick; one of several, like topics, stays open, its picks lighter rows,
- * never checkboxes, until I close it.
+ * A list of one value to pick closes as I pick; one of several, like tasks, stays open, its picks lighter rows,
+ * never checkboxes, until I close it. A field of several values may also add each value as a row of its own,
+ * like the chapters of a skill entry: each pick closes the list and adds a row with a small × to take it back,
+ * and opening the list again adds the next one, see {@link addedRowsOf}.
  * A search field at its top, like `Search or add a place`, filters the values as I type, ignoring case and accents:
  * a value matches when each typed word stands somewhere in its name, so `mensa garch` finds `Mensa-Garching`;
  * Enter picks the first match. Each value shows its whole name, its detail grey beside it, like the address
@@ -65,6 +67,28 @@ export type ChoicesSetup = {
     noun?: string;
     aside?: HTMLElement[];
     below?: HTMLElement[];
+};
+
+/**
+ * How the rows of a field of several values are built, each value picked a row of its own, see {@link addedRowsOf}.
+ *
+ * - `choices`: Values to offer, in their order; a value picked already stays out of the list.
+ * - `picked`: Values picked, in the order they were picked, also those the list does not offer, like a chapter
+ *   whose folder has another name now.
+ * - `textOf`: Text of a value picked in its row, like the name of the file of a document of its path.
+ * - `grouped`: Whether the search looks at the group of a value too, see {@link groupedSearchOf}.
+ * - `noun`: What a value is, like `chapter`, for the line of the list, `Add a chapter`.
+ * - `hint`: Shown in place of the line while there are no values to offer at all, like `No chapters yet`.
+ * - `change`: Takes the values picked after each pick and each value taken back, in their order.
+ */
+export type AddedSetup = {
+    choices: Choice[];
+    picked: string[];
+    textOf: (value: string) => string;
+    grouped: boolean;
+    noun: string;
+    hint: HTMLElement;
+    change: (values: string[]) => void;
 };
 
 /**
@@ -416,6 +440,63 @@ export function pairOf(first: HTMLElement, second: HTMLElement): HTMLDivElement 
     pair.className = "panel-pair";
     pair.append(first, second);
     return pair;
+}
+
+/**
+ * Makes the row of a value picked of a field of several values, below the row of the field, see {@link addedRowsOf}:
+ * no name, its text, like `02 Logistic Poisson Regression`, cut with an ellipsis, and a small × that takes it back.
+ * - `text`: The text in its own element, its whole text in its tooltip.
+ * - `remove`: The ×.
+ *
+ * @param text - Text of the value, like `04_LogisticRegression.pdf`
+ * @param remove - Takes the value back
+ * @returns Row
+ */
+function addedRowOf(text: string, remove: () => void): HTMLDivElement {
+    const value: HTMLDivElement = document.createElement("div");
+    const shown: HTMLSpanElement = document.createElement("span");
+    const button: HTMLButtonElement = document.createElement("button");
+    value.className = "picker-added";
+    shown.className = "picker-added-text";
+    shown.textContent = text;
+    shown.title = text;
+    button.type = "button";
+    button.className = "picker-added-remove";
+    button.textContent = "×";
+    button.title = `Remove ${text}`;
+    button.setAttribute("aria-label", button.title);
+    button.addEventListener("click", remove);
+    value.append(shown, button);
+    return rowOf("", value);
+}
+
+/**
+ * Builds the rows of a field of several values, like the chapters or the documents of a skill entry: its row
+ * with the line of its list, grey `Add a chapter`, see {@link choicesOf}, whose pick closes the list and adds
+ * the value as a row of its own below, see {@link addedRowOf}; opening the list again adds the next one.
+ * The list offers the values not picked yet; while there are none at all, a hint stands in place of its line.
+ * - `offered`: Values the list offers.
+ * - `head`: The row of the field, with the line of the list or the hint.
+ *
+ * @param name - Name of the field, like `Chapters`
+ * @param setup - How the rows are built
+ * @returns The row of the field, then one row per value picked
+ */
+export function addedRowsOf(name: string, setup: AddedSetup): HTMLDivElement[] {
+    const offered: Choice[] = setup.choices.filter((choice: Choice): boolean => !setup.picked.includes(choice.value));
+    const head: HTMLDivElement = setup.choices.length === 0 ? rowOf(name, setup.hint) : rowOf(name, choicesOf({
+        search: setup.grouped ? groupedSearchOf(offered) : searchOf(offered), picked: [], many: false,
+        adding: false, empty: `Add a ${setup.noun}`, noun: setup.noun,
+        pick: (values: string[]): void => {
+            if (values.length > 0)
+                setup.change([...setup.picked, values[0]]);
+        },
+    }));
+    return [
+        head,
+        ...setup.picked.map((value: string): HTMLDivElement => addedRowOf(setup.textOf(value), (): void =>
+            setup.change(setup.picked.filter((other: string): boolean => other !== value)))),
+    ];
 }
 
 /**

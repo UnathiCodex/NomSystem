@@ -1173,7 +1173,39 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Results of the tasks picked for a session, below their list, in the columns of the topics, see `.skill-topic`:
+/* A value picked of a field of several values in its own row below the field, like a chapter or the name of the file
+   of a document, see `addedRowsOf` in `choices.ts`: its text cut with an ellipsis, a small grey × at the right,
+   lighter under the pointer, which takes it back */
+.picker-added {
+    display: flex;
+    align-items: baseline;
+    gap: var(--control-gap);
+    min-width: 0;
+}
+
+.picker-added-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.picker-added-remove {
+    flex: none;
+    padding: 0 0.25rem;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    cursor: pointer;
+}
+
+.picker-added-remove:hover {
+    color: var(--text-main);
+}
+
+/* Results of the tasks picked for a session, below their list, in two columns:
    the name of a task grey, the line of its result, and below that line where I got stuck or why I skipped,
    and my effort */
 .skill-results {
@@ -1213,42 +1245,6 @@ fieldset.entry-times {
 }
 
 .skill-result-detail input {
-    width: 100%;
-}
-
-/* Topics of the documents picked, one line each below their list: the name grey at the left, cut with an ellipsis,
-   its topic beside it, as plain text to change; no room taken while nothing is picked */
-.skill-topics {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-    margin-top: 0.5rem;
-}
-
-.skill-topics:empty {
-    display: none;
-}
-
-/* Tasks of a skill entry and their results, rows of the panel like the others */
-.skill-tasks {
-    display: contents;
-}
-
-.skill-topic {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-    gap: var(--gap);
-    align-items: baseline;
-}
-
-.skill-topic-name {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    color: var(--text-muted);
-}
-
-.skill-topic input {
     width: 100%;
 }
 

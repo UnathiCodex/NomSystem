@@ -38,7 +38,7 @@
  *   like `X-PUSHED;VALUE=DATE:20261013`, since the standard has nothing for it;
  * - its category, what, place, module, type, semester and note as an entry of the log has them, a skill box its
  *   semester as `X-SEMESTER`, like `X-SEMESTER:2026W`, see `semesterFor` in `categories.ts`, its chapters
- *   as `X-CHAPTER`s and the documents it will use as `ATTACH`es with their topics, like the slides of a lecture,
+ *   as `X-CHAPTER`s and the documents it will use as `ATTACH`es, like the slides of a lecture,
  *   see `linksOf` in `documents.ts`, which a log entry from it gets too.
  * The log entry written from a box points to it the standard way, with `RELATED-TO:<UID of the box>`, which gives
  * its real time, an older one with `X-PLANNED:<UID of the box>`: a box is done once a log entry points to it,
@@ -88,7 +88,6 @@ import { placeLinkOf } from "./places.ts";
 import { day, monthFileOf, planEnding } from "./sources.ts";
 
 import type { Entry, EntryFields, EntryTexts, Link, TodoFields } from "./calendar.ts";
-import type { Topics } from "./documents.ts";
 
 
 /**
@@ -189,7 +188,6 @@ export type PlanDay = {
  *   none for none and for any other box.
  * - `documents`: Paths from the folder of its skill of the documents a skill box will use, like
  *   `VO_UniversityLectureLessons/TUM_2026W/01_Introduction.pdf`, none for none and for any other box.
- * - `topics`: Topic of each document as I changed or kept it, see `Topics` in `documents.ts`.
  */
 export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink"> & {
     day: string;
@@ -198,7 +196,6 @@ export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink"> & {
     deadline: string;
     chapters: string[];
     documents: string[];
-    topics: Topics;
 };
 
 /**
@@ -538,8 +535,8 @@ function boxCheck(box: BoxNew, old: Entry | null): void {
 }
 
 /**
- * Writes the chapters of a skill box as its `X-CHAPTER`s and the documents it will use as its `ATTACH`es with their
- * topics, see `linksOf` in `documents.ts`, a document it linked already kept, also one not there yet, like the slides
+ * Writes the chapters of a skill box as its `X-CHAPTER`s and the documents it will use as its `ATTACH`es,
+ * see `linksOf` in `documents.ts`, a document it linked already kept, also one not there yet, like the slides
  * of a lecture to come; for a box that is no skill box, or no more, takes them out, but leaves the links of a box
  * that never was one, like a to-do of another app, as they are.
  *
@@ -553,7 +550,7 @@ function boxLinksPut(file: string, id: string, box: BoxNew, old: Entry | null): 
     if (box.category === skillName)
         propertiesPut(file, id, [
             ["x-chapter", box.chapters],
-            ["attach", linksOf(box.module, box.documents, box.topics, old?.links ?? [])],
+            ["attach", linksOf(box.module, box.documents, old?.links ?? [])],
         ]);
     else if (old?.category === skillName)
         propertiesPut(file, id, [["x-chapter", []], ["attach", []]]);

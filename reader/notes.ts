@@ -1,7 +1,7 @@
 /**
  * ## Notes
  *
- * Reads my modules and the drafts for the notes view, read only: the modules of the semester with their chapters
+ * Reads my modules and the drafts for the scripts view, read only: the modules of the semester with their chapters
  * and notes for the menu, a note with the files its links lead to, the links of the notes that lead nowhere,
  * and single files, like the images of a note; for the skill entries of the day, every module folder
  * with its chapters and the university's documents in it.
@@ -16,7 +16,7 @@
  *
  * - `node:fs`: Reads files and folders on the disk.
  * - `node:path`: Builds file paths, `posix` with `/` for paths inside the modules.
- * - `./sources.ts`: Names the folders of the drafts and of my modules for the notes view, and the modules
+ * - `./sources.ts`: Names the folders of the drafts and of my modules for the scripts view, and the modules
  *   of the semester.
  */
 
@@ -132,7 +132,7 @@ const markdownLink: RegExp = /\]\(\s*(?:<([^>#]*)|([^\s)#]*))/g;
 const external: RegExp = /^[a-z][a-z\d+.-]*:/i;
 
 /**
- * Content types of the files the notes view shows or opens, and of the files skill entries link,
+ * Content types of the files the scripts view shows or opens, and of the files skill entries link,
  * by their ending; any other file comes as bytes.
  */
 const types: { [ending: string]: string } = {

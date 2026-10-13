@@ -2,7 +2,7 @@
  * ## Tutor
  *
  * The text for my tutor, the Claude app on my second screen while I learn: the quiet copy icon of a task
- * in the notes view puts it on the clipboard, see `../skill/task.ts`, and I paste it there.
+ * in the scripts view puts it on the clipboard, see `../skill/task.ts`, and I paste it there.
  * Plain text, its parts apart by an empty line:
  * - the instruction from my rules, CLAUDE.md §4 rule 5, by my last attempt at the task:
  *   before I failed it, never a solution before I say "tried", hints in steps, grading against the official
@@ -77,7 +77,7 @@ const theoryInstruction: string[] = [
 const blockHeading: RegExp = /^##[ \t]+(.+?)[ \t]*$/;
 
 /**
- * Heading of a solution, like `#### Solution` or `#### Solution (own, unchecked)`, as the notes view folds it.
+ * Heading of a solution, like `#### Solution` or `#### Solution (own, unchecked)`, as the scripts view folds it.
  */
 const solutionHeading: RegExp = /^#{3,6}[ \t]+Solution\b/;
 

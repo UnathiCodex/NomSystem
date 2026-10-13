@@ -80,7 +80,7 @@
     border-bottom: 1px solid var(--line);
 }
 
-/* Name of a task in the text of controls, linking to its heading in the notes view */
+/* Name of a task in the text of controls, linking to its heading in the scripts view */
 .skill-name {
     font-size: var(--control-text);
     color: var(--text-main);

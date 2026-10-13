@@ -135,21 +135,18 @@ export type Entry = {
 
 /**
  * A link of an entry to a file or a folder, one `ATTACH`: its value a path from `NomWorkspace`, never absolute,
- * since `NomWorkspace` lies elsewhere on each computer, its topic as parameter `X-TOPIC` in double quotes,
- * and for a file the fingerprint of its content as parameter, so the link survives a rename, see `documents.ts`, like
- * `ATTACH;X-TOPIC="Logistic Regression";X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_…/04_Logistic….pdf`
- * or `ATTACH;X-TOPIC="Logistic Poisson Regression":NomSkillingmodules/IN2028_…/02_LogisticPoissonRegression`
- * for the folder of a chapter. The value is no full URI, so other calendar apps may ignore it.
+ * since `NomWorkspace` lies elsewhere on each computer, and for a file the fingerprint of its content as parameter,
+ * so the link survives a rename, see `documents.ts`, like
+ * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_…/04_LogisticRegression.pdf`,
+ * or `ATTACH:NomSkillingmodules/IN2028_…/02_LogisticPoissonRegression` for the folder of a chapter in an older entry;
+ * nothing more, the name of the file says what it is. The value is no full URI, so other calendar apps may ignore it.
  *
  * - `path`: Path from `NomWorkspace`, parted by `/`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
  * - `fingerprint`: SHA-256 of the file's bytes, its parameter `X-SHA256`, as 64 hexadecimal digits; empty for a folder.
- * - `topic`: What the file or folder is about, its parameter `X-TOPIC`, like `Logistic Regression` or `Sheet 03`;
- *   empty for none, like in an older entry.
  */
 export type Link = {
     path: string;
     fingerprint: string;
-    topic: string;
 };
 
 /**
@@ -302,13 +299,6 @@ const lineEnding: string[] = ["X-SEMESTER", "X-CHAPTER", "X-ATTEMPT"];
  * here, see {@link textPropertyOf}; one value still reads as its text.
  */
 ICAL.design.icalendar.param.altrep = { multiValue: ",", multiValueSeparateDQuote: true };
-
-/**
- * The parameter `X-TOPIC` of an `ATTACH` in double quotes, like `ATTACH;X-TOPIC="Logistic Regression":…`, also
- * a topic without `,`, `:` or `;`, as {@link ICAL.design.icalendar.param.altrep}; a `"` in it goes as `^'`
- * (RFC 6868), which `ical.js` reads back.
- */
-ICAL.design.icalendar.param["x-topic"] = { multiValue: ",", multiValueSeparateDQuote: true };
 
 /**
  * Category of skill entries, `CATEGORIES:Skill`, whose `SUMMARY` names their skill and type, see {@link skillPartsOf};
@@ -500,7 +490,6 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
         links: event.component.getAllProperties("attach").map((property: ICAL.Property): Link => ({
             path: String(property.getFirstValue()), fingerprint: String(property.getParameter("x-sha256") ?? ""),
-            topic: String(property.getParameter("x-topic") ?? ""),
         })),
         attempts: event.component.getAllProperties("x-attempt")
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
@@ -1167,8 +1156,7 @@ export function berlinInstantOf(day: string, hour: number): Date {
 
 /**
  * Builds a property; a time in Berlin time gets the parameter `TZID`, like `DTSTART;TZID=Europe/Berlin:…`,
- * a link its path as value, its topic as parameter `X-TOPIC` and the fingerprint of a file as parameter `X-SHA256`,
- * see {@link Link}.
+ * a link its path as value and the fingerprint of a file as parameter `X-SHA256`, see {@link Link}.
  *
  * @param name - Name of the property, like `dtstart`, `attach` for a link
  * @param value - Value of the property
@@ -1180,8 +1168,6 @@ function propertyOf(name: string, value: string | ICAL.Time | Link): ICAL.Proper
         property.setValue(value);
     else {
         property.setValue(value.path);
-        if (value.topic !== "")
-            property.setParameter("x-topic", [value.topic]);
         if (value.fingerprint !== "")
             property.setParameter("x-sha256", value.fingerprint);
     }

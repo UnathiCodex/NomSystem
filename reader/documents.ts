@@ -2,7 +2,7 @@
  * ## Documents
  *
  * Names a skill entry and links it to the folder of its skill and to the documents it used, like the slides
- * of a lecture, a sheet or the notes of a chapter, its paths from `NomWorkspace`, each with its topic;
+ * of a lecture, a sheet or the notes of a chapter, its paths from `NomWorkspace`;
  * each link only points to more, the entry states its facts itself, see `calendar.ts`, like the chapters
  * of my system it belongs to, one `X-CHAPTER` each, like `X-CHAPTER:02 Logistic Poisson Regression`.
  * Its `SUMMARY` is the name of the folder of its skill, with its type
@@ -10,14 +10,15 @@
  * like `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
  * my own learning without brackets, a project like
  * `SUMMARY;ALTREP="NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow":WokFlow`.
- * Every real document a skill entry used is one `ATTACH` with its topic as parameter `X-TOPIC`, see `Link`
- * in `calendar.ts`, as many as it used, in the same form for every kind: a lecture its slides, like
- * `ATTACH;X-TOPIC="Logistic Regression";X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_…/04_….pdf`,
+ * Every real document a skill entry used is one `ATTACH` holding just its path, see `Link` in `calendar.ts`,
+ * as many as it used, in the same form for every kind: a lecture its slides, like
+ * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_…/TUM_2026W/04_LogisticRegression.pdf`,
  * an exercise or a tutorial its sheet in `TU_UniversityTutorExercises`, a homework its sheet
  * in `HU_UniversityHomeExercises`, and my own learning the notes of its chapters, like
- * `ATTACH;X-TOPIC="Sample Mean Standard Error";X-SHA256=…:NomSkillingmodules/IN2028_…/01_…/01_01_….md`.
- * Its topic is filled from the name of the file, see {@link topicOf}, until I change it; a file keeps
- * the fingerprint of its content, the SHA-256 of its bytes, as parameter, so the link survives a rename.
+ * `ATTACH;X-SHA256=…:NomSkillingmodules/IN2028_…/01_…/01_01_SampleMeanStandardError.md`.
+ * The name of the file says what it is and its `X-CHAPTER`s what the session was about, so a document has no name
+ * of my own; a file keeps the fingerprint of its content, the SHA-256 of its bytes, as parameter, so the link
+ * survives a rename. An older `X-TOPIC` beside the path is no more read, and goes once the entry changes.
  * The folder of a chapter is no `ATTACH`: an older entry that links one names that chapter, which is still read,
  * see {@link chaptersOf}, and becomes its `X-CHAPTER` once the entry changes; its `DESCRIPTION` is only my free note.
  * The folder of a module in an `ATTACH` of an older entry counts no more and goes once the entry changes too.
@@ -199,43 +200,6 @@ export function titleOf(fields: { category: string; title: string; module: strin
 }
 
 /**
- * Topics of the documents of a skill entry as I changed or kept them in the dialog, by the path of each document
- * from the folder of its skill, like `VO_UniversityLectureLessons/TUM_2026W/04_LogisticRegression.pdf`.
- */
-export type Topics = { [value: string]: string };
-
-/**
- * Writes the topic of a file as its `X-TOPIC` holds it until I change it: its name to read, without
- * its ending and the numbers in front of it, `_` as spaces, words and numbers apart, like `Logistic Regression`
- * of `04_LogisticRegression.pdf`, `Sample Mean Standard Error` of the note `01_01_SampleMeanStandardError.md`,
- * or `Sheet 03` of `Sheet03.pdf`.
- *
- * @param name - Name of the file or the folder, the last part of its path
- * @returns The topic
- */
-export function topicOf(name: string): string {
-    return name.replace(/\.[^.]*$/, "").replace(/^(?:\d+_)+/, "").replaceAll("_", " ")
-        .replace(/(?<=\p{Ll})(?=\p{Lu})|(?<=\p{L})(?=\d)/gu, " ").trim();
-}
-
-/**
- * Gives the topic of a link to write: the one sent, else the one the entry's link had, else the topic of its name,
- * see {@link topicOf}.
- *
- * @param sent - Topic sent from the dialog, `undefined` or empty for none
- * @param kept - The entry's link to the same file or chapter, `undefined` for none
- * @param name - Name of the file or the folder, like `04_LogisticRegression.pdf`
- * @returns The topic, like `Logistic Regression`
- */
-function topicFor(sent: string | undefined, kept: Link | undefined, name: string): string {
-    if (sent !== undefined && sent.trim() !== "")
-        return sent.trim();
-    if (kept !== undefined && kept.topic !== "")
-        return kept.topic;
-    return topicOf(name);
-}
-
-/**
  * Tells whether a link is one to the folder of a chapter, which an older entry has: a folder, without fingerprint,
  * named like a chapter, right in the folder of a module or of its drafts, unlike the folder of a module itself
  * in an `ATTACH` of an older entry, which counts no more.
@@ -256,7 +220,7 @@ function chapterLinkIs(link: Link): boolean {
 /**
  * Gives the chapters of my system a skill entry belongs to, by their names to read: those of its `X-CHAPTER`s,
  * then those whose folders an older entry links, see {@link chapterLinkIs}, by the names of their folders,
- * whatever topics they have, each once.
+ * each once; a chapter keeps the name the entry gave it, also once its folder has another name.
  *
  * @param entry - Skill entry of the log
  * @returns Names like `02 Logistic Poisson Regression`, in order
@@ -285,38 +249,35 @@ export function documentLinksOf(links: Link[]): Link[] {
 
 /**
  * Builds the links of a skill entry, its `ATTACH`es, one line each, see the top of this file: the documents it used,
- * each a file of its module with its fingerprint, each once, with its topic, see {@link topicFor}. A document
- * the entry links already keeps its link with its fingerprint, also when the reader could not find it any more,
- * and takes its new topic; one it links without fingerprint, like the slides a lecture of my plan links, gets
- * its fingerprint, or stays as written while its file is not there yet, like the slides of a lecture to come.
+ * each a file of its module with its fingerprint, each once. A document the entry links already keeps its link
+ * with its fingerprint, also when the reader could not find it any more; one it links without fingerprint,
+ * like the slides a lecture of my plan links, gets its fingerprint, or stays as written while its file
+ * is not there yet, like the slides of a lecture to come.
  * The folder of its skill is the `ALTREP` of its `SUMMARY`, its chapters its `X-CHAPTER`s.
  * - `folder`: Folder of the skill from `NomWorkspace`, see {@link skillFolderOf}, `undefined` for none.
  * - `path`: Path of a document from `NomWorkspace`.
  * - `kept`: The entry's link to that document, `undefined` for none.
- * - `topic`: Topic of the document.
  *
  * @param code - Name of the skill, like `IN2028` or `WokFlow`
  * @param documents - Paths of the documents from the folder of the skill,
  *   like `VO_…/04_LogisticRegression.pdf`, as the reader offered them, none for none
- * @param topics - Topics sent from the dialog, see {@link Topics}, none from anywhere else
  * @param links - Links the entry has, none for a new entry
  * @returns The links of its documents
  * @throws {Error} - When a document is none of the module's
  */
-export function linksOf(code: string, documents: string[], topics: Topics, links: Link[]): Link[] {
+export function linksOf(code: string, documents: string[], links: Link[]): Link[] {
     const folder: string | undefined = skillFolderOf(code);
     if (folder === undefined)
         return [];
     return [...new Set(documents)].map((document: string): Link => {
         const path: string = `${folder}/${document}`;
         const kept: Link | undefined = links.find((link: Link): boolean => link.path === path);
-        const topic: string = topicFor(topics[document], kept, document.split("/").at(-1) ?? "");
         if (kept !== undefined && (kept.fingerprint !== "" || !existsSync(diskOf(path))))
-            return { ...kept, topic: topic };
+            return kept;
         if (!moduleIs(folder)
             || !moduleContentsRead(folder.slice(modulesFolder.length + 1)).documents.includes(document))
             throw new Error(`No document ${document} in ${code}`);
-        return { path: path, fingerprint: fingerprintOf(diskOf(path)), topic: topic };
+        return { path: path, fingerprint: fingerprintOf(diskOf(path)) };
     });
 }
 
@@ -324,7 +285,7 @@ export function linksOf(code: string, documents: string[], topics: Topics, links
  * Repairs the links of a skill entry that lead nowhere, see the top of this file: each document by its fingerprint
  * among the documents of the module of the entry, each folder of a chapter an older entry links by its name
  * in the module folder found now, else in its drafts, like after the module folder was renamed or a draft
- * was checked; each keeps its topic. The folder of a module in an older `ATTACH` stays as it is.
+ * was checked. The folder of a module in an older `ATTACH` stays as it is.
  * - `folder`: Name of the folder of the entry's module, as found now, `undefined` for none, like for a project.
  * - `repaired`: The links as repaired so far, in their order.
  * - `missing`: The links that stay as written.

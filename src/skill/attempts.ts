@@ -47,7 +47,7 @@ export type Attempt = {
  * - `name`: Name in its heading, like `Airline Revenue Interval`.
  * - `heading`: Its heading as written, like `Task. Airline Revenue Interval`.
  * - `source`: Its source line without `> `, like `Original: [[…|exam 2024/25 endterm 1a]]`, empty without one.
- * - `note`: Path of its note, as the notes view takes it.
+ * - `note`: Path of its note, as the scripts view takes it.
  * - `chapter`: Name to read of its chapter, like `01 Regression Analysis`.
  * - `section`: Name to read of its section, its note, like `01_01 Sample Mean Standard Error`.
  * - `cold`: Whether it is a cold task of its section, its heading ending with `(cold)`.
@@ -193,12 +193,10 @@ export type Skilling = {
  *
  * - `path`: Path from `NomWorkspace`, parted by `/`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
  * - `fingerprint`: SHA-256 of a file, empty for a folder.
- * - `topic`: What the file or the folder is about, its `X-TOPIC`, like `Logistic Regression`, empty for none.
  */
 export type Link = {
     path: string;
     fingerprint: string;
-    topic: string;
 };
 
 /**
@@ -255,8 +253,6 @@ export type AttemptNew = {
  * - `chapters`: Names to read of the chapters it covered, none for none.
  * - `documents`: Paths from the folder of its skill of the documents it used, none for none; the reader links each
  *   with its fingerprint, see `reader/documents.ts`.
- * - `topics`: Topic of each chapter by its name and of each document by its path, as the dialog shows it,
- *   like `Logistic Regression`.
  * - `attempts`: Its attempts, none for none.
  * - `location`: Place, like the room of a lecture logged from the plan.
  * - `planned`: Identifier of the plan entry it is logged from, empty for none.
@@ -270,7 +266,6 @@ export type SkillEntryNew = {
     semester: string;
     chapters: string[];
     documents: string[];
-    topics: { [value: string]: string };
     attempts: AttemptNew[];
     location: string;
     planned: string;

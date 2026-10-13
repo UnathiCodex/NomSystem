@@ -2,8 +2,8 @@
  * ## Skill
  *
  * The overview of each module of the semester, kept simple: how far it is, what is due today,
- * and every section by chapter with its state, see `reader/skill.ts`; each task links to its heading in the notes view,
- * where I solve it, record the attempt and see its history and source.
+ * and every section by chapter with its state, see `reader/skill.ts`; each task links to its heading
+ * in the scripts view, where I solve it, record the attempt and see its history and source.
  * - At the top the name of the module and the ready number, its sections whose cold task has its three runs,
  *   like `Ready 0 / 36`, since the section is the unit, not the task; below it grey its exam,
  *   like `Exam ≈ Thursday, 25.02.2027`, `≈` while the day is estimated; then what needs a look:
@@ -31,7 +31,7 @@
  *   is still to come.
  * - `../day/times.ts`: Writes the time of an entry of the plan, as the day does.
  * - `./task.ts`: Tells when a task is due.
- * - `../notes/math.ts`: Renders the formulas as the notes view does, loaded only when there is one.
+ * - `../notes/math.ts`: Renders the formulas as the scripts view does, loaded only when there is one.
  * - `./skill.css`: Look of the skill view.
  */
 
@@ -101,33 +101,33 @@ function linkOf(className: string, text: string, address: string): HTMLAnchorEle
 }
 
 /**
- * Builds the address of a note in the notes view, at a heading.
+ * Builds the address of a note in the scripts view, at a heading.
  *
  * @param note - Path of the note
  * @param heading - Heading, empty for the top
- * @returns Address like `/notes?path=…#Task.%20Airline%20Revenue%20Interval`
+ * @returns Address like `/scripts?path=…#Task.%20Airline%20Revenue%20Interval`
  */
 function noteAddressOf(note: string, heading: string): string {
-    const address: string = `/notes?path=${encodeURIComponent(note)}`;
+    const address: string = `/scripts?path=${encodeURIComponent(note)}`;
     if (heading === "")
         return address;
     return `${address}#${encodeURIComponent(heading)}`;
 }
 
 /**
- * Builds the address of a task as a card in the notes view, its text alone, as a due task opens, see `cardSet`
+ * Builds the address of a task as a card in the scripts view, its text alone, as a due task opens, see `cardSet`
  * in `../notes/notes.ts`.
  *
  * @param task - Task
- * @returns Address like `/notes?path=…&card=1#Task.%20Kiosk%20Chain%20Review%20(cold)`
+ * @returns Address like `/scripts?path=…&card=1#Task.%20Kiosk%20Chain%20Review%20(cold)`
  */
 function cardAddressOf(task: SkillTask): string {
-    return `/notes?path=${encodeURIComponent(task.note)}&card=1#${encodeURIComponent(task.heading)}`;
+    return `/scripts?path=${encodeURIComponent(task.note)}&card=1#${encodeURIComponent(task.heading)}`;
 }
 
 /**
- * Builds the line of a task: its name linking to its heading in the notes view, or to its card, `cold` after a cold task
- * with its parts still open when only some are, and its state at the right, grey, when given.
+ * Builds the line of a task: its name linking to its heading in the scripts view, or to its card, `cold`
+ * after a cold task with its parts still open when only some are, and its state at the right, grey, when given.
  * - `name`: Link of the task.
  *
  * @param task - Task

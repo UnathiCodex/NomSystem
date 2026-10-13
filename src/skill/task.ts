@@ -3,7 +3,7 @@
  *
  * What the views show of one task: when it is due, and its history folded behind a small button
  * that opens all its attempts, each with its day and time, its part, its result, my effort, where I got stuck
- * or why I skipped, and a link to the day; in the notes view, under the heading of the task, its row with the buttons
+ * or why I skipped, and a link to the day; in the scripts view, under the heading of the task, its row with the buttons
  * for the next attempt.
  * The buttons write into the skill entry of the moment, through the reader's one writer of attempts:
  * Right and Wrong at once; Stuck opens one short field for where I got stuck, Enter writes it;
@@ -90,7 +90,7 @@ export function stateTextOf(task: SkillTask, today: string): string {
 }
 
 /**
- * Builds the label of a cold task, to stand grey beside its heading in the notes view in place of its `(cold)`:
+ * Builds the label of a cold task, to stand grey beside its heading in the scripts view in place of its `(cold)`:
  * that it is cold, how often I tried it and how often I got it right, skips left out.
  *
  * @param task - Cold task
@@ -365,7 +365,7 @@ function checkOf(): HTMLElement {
 }
 
 /**
- * Builds the row of a task under its heading in the notes view: when it is due at the left, the buttons at the right
+ * Builds the row of a task under its heading in the scripts view: when it is due at the left, the buttons at the right
  * with the copy icon for my tutor after them, for a cold task with parts one line of buttons per part below them,
  * then the tap for my effort on the attempt just made, its history and the place for the field of Stuck and Skip,
  * each across the row. Right and Wrong hide until the solution is open, and the row marks itself so meanwhile,

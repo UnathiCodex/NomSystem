@@ -1,8 +1,8 @@
 /**
  * ## Syntax
  *
- * Teaches CodeMirror's Markdown parser the Obsidian syntax of my notes, by the rules of the notes view
- * in `../notes/markdown.ts`, so the editor finds the same formulas, links and HTML blocks as the notes view:
+ * Teaches CodeMirror's Markdown parser the Obsidian syntax of my notes, by the rules of the scripts view
+ * in `../notes/markdown.ts`, so the editor finds the same formulas, links and HTML blocks as the scripts view:
  * - formulas `$…$` and `$$…$$` within a paragraph, also over several lines, as `InlineMath`;
  *   taken whole, so `_`, `*` and `\` inside stay TeX, while `$` inside code stays text;
  * - wiki links `[[Note#Heading|Text]]` as `WikiLink`, embeds `![[Image.svg|300]]` as `WikiEmbed`;
@@ -20,18 +20,19 @@ import type { BlockContext, InlineContext, Line, MarkdownConfig } from "@lezer/m
 
 
 /**
- * Formula `$$…$$` within a line, as the notes view reads it: up to the next `$$`. A backslash keeps the next character.
+ * Formula `$$…$$` within a line, as the scripts view reads it: up to the next `$$`.
+ * A backslash keeps the next character.
  */
 const mathDisplayRule: RegExp = /^\$\$(?:\\[\s\S]|[^\\])*?\$\$/;
 
 /**
- * Formula `$…$`, as the notes view reads it: no space or tab after the opening `$`, none before the closing `$`
+ * Formula `$…$`, as the scripts view reads it: no space or tab after the opening `$`, none before the closing `$`
  * and no digit after it, so `$5 and $6` stays text. A backslash keeps the next character, so `\$` ends no formula.
  */
 const mathInlineRule: RegExp = /^\$(?![ \t$])(?:\\[\s\S]|[^\\])+?(?<![ \t])\$(?!\d)/;
 
 /**
- * Wiki link `[[Note#Heading|Text]]` or embed `![[Image.svg|300]]`, as the notes view reads it.
+ * Wiki link `[[Note#Heading|Text]]` or embed `![[Image.svg|300]]`, as the scripts view reads it.
  */
 const wikiLinkRule: RegExp = /^!?\[\[[^\]]+\]\]/;
 

@@ -20,7 +20,7 @@
  * or a project by its name, and a type or none, which the dialog picks itself, written as the folder of its skill
  * with the type in brackets, like `IN2028_BusinessAnalyticsMachineLearning (VO)` or `WokFlow`,
  * see `activeSkills` in `sources.ts` and {@link skillTypes};
- * in the log also its topics and its attempts, which only the skill area writes, see `skill.ts`.
+ * in the log also its documents and its attempts, which only the skill area writes, see `skill.ts`.
  * A box of the plan takes only what I intend and would otherwise forget, so not `Sleep`, `Food`, `Cook`, `Drink`
  * and `Game`, which happen anyway, see {@link unplannedNames}; `Watch` stays, since a cinema or a match has its time.
  *
@@ -144,7 +144,7 @@ function categoryOf(name: string, routines: { [what: string]: string[] }): Categ
  * Category of skill entries, written as `CATEGORIES:Skill`: in plan and log a skill and a type or none,
  * both in its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `skillPartsOf` in `calendar.ts`,
  * which names the category, and its place,
- * in the log also its topics and its attempts, which only the skill area writes.
+ * in the log also its documents and its attempts, which only the skill area writes.
  */
 export { skillName };
 

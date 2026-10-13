@@ -1,5 +1,5 @@
 /**
- * ## Notes
+ * ## Scripts
  *
  * One view with the editor: the tree on the left, with its two roots, `NomManageplannings` and `NomSkillingmodules`,
  * see `tree.ts`, and on the right the chosen note of my modules, rendered like Obsidian, read only,
@@ -19,8 +19,9 @@
  * icon alone. A solution opens one step per click, see {@link stepsPut}.
  * A cold task, its heading ending with `(cold)`, shows a grey label beside its heading in place of `(cold)`,
  * like `cold · 2 done · 1 right`.
- * The address keeps the shown note and heading, like `/notes?path=MA0902_…/05_07_TrigonometrischeFunktionen.md#…`,
- * so a reload and the back button of the browser stay on it.
+ * The address keeps the shown note and heading,
+ * like `/scripts?path=MA0902_…/05_07_TrigonometrischeFunktionen.md#…`, so a reload and the back button
+ * of the browser stay on it.
  *
  * - `./markdown.ts`: Turns the Markdown of a note into HTML, with Obsidian's syntax.
  * - `./math.ts`: Renders the formulas, as Obsidian does.
@@ -456,14 +457,14 @@ async function noteShow(path: string, heading: string): Promise<void> {
 }
 
 /**
- * Shows a task as a card when the address asks for it with `card`, like `/notes?path=…&card=1#Task. …`,
+ * Shows a task as a card when the address asks for it with `card`, like `/scripts?path=…&card=1#Task. …`,
  * as the due tasks of the skill view open: only the task's text, without its heading, its source and the rest
  * of the note, since a heading or the theory around it gives the method away, while choosing the method
  * is what mixed practice trains (Rohrer 2020); below the text the question which type it is and why,
  * then its solution, folded, and its row with the buttons, and a link to the whole note.
  * Without `card` the note shows whole again.
  * - `card`: Whether the address asks for a card.
- * - `notes`: The notes view, marked as a card for `notes.css`.
+ * - `notes`: The scripts view, marked as a card for `notes.css`.
  * - `fold`: Fold of the task.
  * - `prompt`: The question with the link to the whole note.
  *
@@ -496,7 +497,7 @@ function cardSet(heading: string): void {
 }
 
 /**
- * Shows the note the address names, like `/notes?path=…#Heading`, or a hint when it cannot be read.
+ * Shows the note the address names, like `/scripts?path=…#Heading`, or a hint when it cannot be read.
  */
 function addressShow(): void {
     const path: string | null = new URLSearchParams(location.search).get("path");
@@ -515,7 +516,7 @@ function addressShow(): void {
  * and keeps it in the address and the history of the browser. Other links, and clicks with a key held, act as usual.
  * - {@link History#pushState}: Writes the address as a new step of the history, for the back button.
  *
- * @param event - Click inside the notes view
+ * @param event - Click inside the scripts view
  */
 function linkClick(event: MouseEvent): void {
     const link: HTMLAnchorElement | null = (event.target as Element).closest("a[href]");
@@ -523,7 +524,7 @@ function linkClick(event: MouseEvent): void {
         return;
 
     const address: URL = new URL(link.href);
-    if (address.origin !== location.origin || address.pathname !== "/notes")
+    if (address.origin !== location.origin || address.pathname !== "/scripts")
         return;
 
     event.preventDefault();
@@ -533,9 +534,9 @@ function linkClick(event: MouseEvent): void {
 
 
 /**
- * Starts the notes view after the router has put its HTML into the page:
+ * Starts the scripts view after the router has put its HTML into the page:
  * puts the pencil into its link, shows the tree with its two roots, see `tree.ts`, then the note of the address;
- * an address naming a module, like `/notes?module=IN2028_BusinessAnalyticsMachineLearning` from a skill entry,
+ * an address naming a module, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning` from a skill entry,
  * opens that module in the tree.
  * - `address`: The parameters of the address.
  * - `popstate`: Comes when the back or forward button of the browser changes the address.
