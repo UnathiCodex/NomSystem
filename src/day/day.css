@@ -33,8 +33,10 @@
 }
 
 /* Bar of the day: the date with the arrows left and right of it at its left end, above the plan, the icon back
-   to today beside the date; the trackers at its right end, above the log */
+   to today beside the date; the trackers at its right end, above the log; where the bar has no room for all,
+   as on a small laptop, the trackers go onto a line below, never over the edge */
 .day-nav {
+    flex-wrap: wrap;
     gap: var(--control-gap);
 }
 
@@ -230,19 +232,27 @@
     overflow-wrap: anywhere;
 }
 
-/* Grey line of a box, its time and its place, in parts side by side, apart by the middle dot alone, a part below the one before where the line
-   has no room for both; a part too long for the whole line goes on below; the place in the darker grey of a place,
-   the time in the light grey of a time, as in the log */
+/* Grey line of a box, its time and after it its place, apart by the middle dot, on one line as in the log: the time
+   whole, the place giving way with an ellipsis where the line is too narrow; the place in the darker grey of a place,
+   the time in the light grey of a time; on a phone the place on a line of its own, see the end of this file */
 .box-meta {
     display: flex;
-    flex-wrap: wrap;
     font-size: 0.8125rem;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
 }
 
 .box-part {
+    flex: none;
     max-width: 100%;
+}
+
+.box-part.entry-parted {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .box-time {
@@ -628,7 +638,8 @@ button.box-ring.box-checked svg {
 }
 
 /* Timer of a session running now, see `timer.ts`: all the room between the date and the trackers, a gap away
-   from both, in a soft frame like a tracker, at least one control high, on one line: what the session is at the left,
+   from both, at least 9rem, so its time always shows, in a soft frame like a tracker, at least one control high,
+   on one line: what the session is at the left,
    giving way with an ellipsis where the room is too small, how long it still runs at the right, in the grey of a time,
    every digit equally wide */
 .session-timer {
@@ -637,7 +648,8 @@ button.box-ring.box-checked svg {
     justify-content: space-between;
     align-items: center;
     gap: var(--gap);
-    min-width: 0;
+    min-width: 9rem;
+    overflow: hidden;
     min-height: var(--control-height);
     margin-inline: var(--gap);
     padding: 0.25rem 0.875rem;
@@ -1763,6 +1775,19 @@ svg.route-arrow {
 
     .box-actions {
         margin-left: auto;
+    }
+
+    /* The place of a box on a phone on a line of its own below its time, whole, without the dot */
+    .box-meta {
+        flex-direction: column;
+    }
+
+    .box-part.entry-parted {
+        white-space: normal;
+    }
+
+    .box-meta .entry-parted::before {
+        content: none;
     }
 
     body {
