@@ -762,7 +762,7 @@ button.box-ring.box-checked svg {
     resize: none;
 }
 
-/* Callouts of the note as grey cards */
+/* Quotes of the note as grey cards */
 .day-note blockquote {
     margin: var(--gap) 0;
     padding: calc(var(--gap) / 2) var(--gap);

@@ -8,7 +8,7 @@
  * a deadline, then those without either, then tomorrow's suggested study sessions, dashed, see `suggestions.ts`,
  * and the cancelled boxes without time last; on today below them the boxes carried along, see below.
  * Every box has the same lines, open or done: its category in bold with a colon and what,
- * like `Skill: IN0004_EinfuehrungRechnerarchitektur VO`, as an entry of the log does, then grey its expected time,
+ * like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`, as an entry of the log does, then grey its expected time,
  * its length only where no end shows it, and how often it was pushed, with its place after them, by its label alone,
  * like `11:30 – 13:00 · Audimax im Galileo` or `75 min · pushed once`, the place opening its link on a click when
  * it has one; then what it is about, each of its chapters and documents on a line of its own with a bullet,
@@ -221,9 +221,9 @@ export function entryPartOf(tag: string, className: string, parts: (string | Nod
 
 /**
  * Makes what an entry or a box is, the first line of each, in bold as a whole, so the list scans fast:
- * its category, a colon and its what, like **`Skill: WI1059 HU`** or **`Sleep: Night`**; only the what of an entry
- * without category, only the category without colon of an entry whose what it is, like an old **`Sleep`**,
- * written before it had its what.
+ * its category, a colon and its what, like **`Skill: WI1059_FinancialAccounting (HU)`** or **`Sleep: Night`**;
+ * only the what of an entry without category, only the category without colon of an entry whose what it is,
+ * like an old **`Sleep`**, written before it had its what.
  * - `text`: The line, category and what.
  *
  * @param category - Category, empty for an entry without one
@@ -238,25 +238,23 @@ export function whatOf(category: string, what: string): (string | Node)[] {
 }
 
 /**
- * Gives what an entry or a box shows as its what, see {@link whatOf}: a skill entry or box by its skill and its type,
- * the skill by the name of its folder, its code with its name, like `IN0004_EinfuehrungRechnerarchitektur VO`
- * of `IN0004_EinfuehrungRechnerarchitektur (VO)`, on a phone by its code alone, like `IN0004 VO`, so it stays short
- * there; a project by its name, like `WokFlow`; one without skill and type, like an older entry, and any other entry
- * or box by its what as written.
- * - `skill`: The skill as shown: the name of its folder, the part of the what before ` (`, when the what starts
- *   with its code and `_`, else its code.
+ * Gives what an entry or a box shows as its what, see {@link whatOf}: a skill entry or box by its what as its file
+ * writes it, the name of the folder of its skill and its type in brackets, like
+ * `IN0004_EinfuehrungRechnerarchitektur (VO)`, so it reads as the file and the folder in the file manager do;
+ * on a phone by its code alone with its type, like `IN0004 (VO)`, so it stays short there, and so does an older entry
+ * whose what does not start with the folder of its skill; a project by its name, like `WokFlow`; one without skill
+ * and type, like an older entry, and any other entry or box by its what as written.
  *
  * @param category - Its category, like `Skill`
  * @param title - Its what as written, its `SUMMARY`, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
  * @param module - Its skill, like `IN0004`, empty for none
  * @param type - Its type, like `VO`, empty for none
- * @returns What it shows, like `IN0004_EinfuehrungRechnerarchitektur VO`
+ * @returns What it shows, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
  */
 export function shownWhatOf(category: string, title: string, module: string, type: string): string {
-    if (category !== skillName || (module === "" && type === ""))
+    if (category !== skillName || (module === "" && type === "") || (!phone && title.startsWith(`${module}_`)))
         return title;
-    const skill: string = !phone && title.startsWith(`${module}_`) ? title.split(" (")[0] : module;
-    return [skill, type].filter((part: string): boolean => part !== "").join(" ");
+    return type === "" ? module : `${module} (${type})`;
 }
 
 /**
@@ -410,7 +408,7 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
 /**
  * Makes the lines of a box, the same whether it is open or done, see the top
  * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf},
- * like **`Skill: IN0004_EinfuehrungRechnerarchitektur VO`**, see {@link shownWhatOf}, its long names breakable,
+ * like **`Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`**, see {@link shownWhatOf}, its long names breakable,
  * see `breakableOf` in `choices.ts`; then its time in the light grey of a time, its parts apart by a middle dot
  * with room on both sides, see {@link timePartsOf}, and after it its place in the darker grey, by its label alone,
  * its address hidden, like `16:00 – 17:30 · Audimax im Galileo`, a way its route, like `HomeMunich → TumGarching`,

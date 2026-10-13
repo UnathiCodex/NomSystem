@@ -7,8 +7,8 @@
  * tabs, spacers `⠀` and soft hyphens, spaces at the ends of lines and the line breaks of the file as they were.
  * Of my modules the reader writes only the unchecked drafts and keeps each change as a diff, so the AI learns my style
  * from my corrections; any other note opens to read only.
- * One view with the scripts view: on the left the same tree with its two roots, see `../notes/tree.ts`;
- * in `NomManageplannings` a click on a Markdown file of the three folders of my new system, like `Foods.md`,
+ * On the left the tree of one root, see `../notes/tree.ts`: `NomManageplannings` for a file of my new system and
+ * at `/plannings`, `NomSkillingmodules` for a draft; in `NomManageplannings` a click on a Markdown file of the three folders of my new system, like `Foods.md`,
  * `Places.md` or a daily note, opens it here to edit, saved back into its file without a diff; an `.ics` file opens
  * as its plain text, to read only, each block of it drawn one step in and its entries apart, see `./ics.ts`;
  * any other file shows in the tree, faint, and opens not.
@@ -27,7 +27,7 @@
  * - `./ics.ts`: Shows an `.ics` file with its blocks one step in and its entries apart.
  * - `./syntax.ts`: Obsidian syntax for the Markdown parser.
  * - `./preview.ts`: Shows the Markdown as in the scripts view.
- * - `../notes/tree.ts`: Shows the tree with its two roots, the file shown marked.
+ * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked.
  * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images, and of the tree.
  * - `./editor.css`: Look of the editor.
  */

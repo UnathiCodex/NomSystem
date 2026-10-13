@@ -1,9 +1,8 @@
 /**
  * ## Scripts
  *
- * One view with the editor: the tree on the left, with its two roots, `NomManageplannings` and `NomSkillingmodules`,
- * see `tree.ts`, and on the right the chosen note of my modules, rendered like Obsidian, read only,
- * or a file of my new system in the editor, see `../editor/editor.ts`.
+ * The tree of `NomSkillingmodules` on the left, see `tree.ts`, and on the right the chosen note of my modules,
+ * rendered like Obsidian, read only; a draft opens in the editor by its pencil, see `../editor/editor.ts`.
  * Under the shown note in the tree stands its outline, as Obsidian's outline.
  * The reader gives the modules, each with the chapters of its folder and of its drafts together.
  * Paths are those of the reader: from `NomSkillingmodules`, or with `Drafts/` before for the drafts.
@@ -25,7 +24,7 @@
  *
  * - `./markdown.ts`: Turns the Markdown of a note into HTML, with Obsidian's syntax.
  * - `./math.ts`: Renders the formulas, as Obsidian does.
- * - `./tree.ts`: Shows the tree with its two roots, marks the note shown in it, makes the folders of the outline
+ * - `./tree.ts`: Shows the tree of the modules, marks the note shown in it, makes the folders of the outline
  *   and builds the address of a note.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due.
  * - `../today.ts`: Gives today's calendar date, for when a task is due.
