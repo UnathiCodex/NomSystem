@@ -175,7 +175,8 @@ function dishOf(event: EventApi): string[] {
 
 /**
  * Content of an entry of the log, as Google Calendar shows one: what first, then the time,
- * both in one size, the time a light grey, see {@link whatOf}; a dish lists its foods, see {@link dishOf}, parted by commas.
+ * both in one size, the time a light grey, see {@link whatOf}; a dish lists its foods, see {@link dishOf},
+ * parted by commas.
  * An entry of the whole day shows only what it was.
  * - A short entry, one line high, shows what, then its start after a comma, like `Talk: Planungen, 05:15`;
  *   what ends with an ellipsis where the line is cut, the time never, see `day.css`.
