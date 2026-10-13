@@ -200,9 +200,6 @@ const retiredWhats: { [category: string]: string[] } = { Body: Object.keys(neckR
 
 /**
  * Categories with their fields, in the order of their importance for my life, the one order of every list of them.
- * `Talk` has no what, only its place, so neither the people I talk with nor what we talk about are written,
- * since the people did not ask to be in my log; its `SUMMARY` is its category, like that of an older talk once
- * it changes.
  */
 const categories: Category[] = [
     { name: skillName, fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false }] },
@@ -233,7 +230,7 @@ const categories: Category[] = [
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
         ],
     },
-    { name: "Talk", fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false }] },
+    categoryOf("Talk"),
     categoryOf("Drink"),
     categoryOf("Watch"),
     categoryOf("Game"),

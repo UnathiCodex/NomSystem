@@ -33,8 +33,10 @@
 }
 
 /* Bar of the day: the date with the arrows left and right of it at its left end, above the plan, the icon back
-   to today beside the date; the trackers at its right end, above the log */
+   to today beside the date; the trackers at its right end, above the log; where the bar has no room for all,
+   as on a small laptop, the trackers go onto a line below, never over the edge */
 .day-nav {
+    flex-wrap: wrap;
     gap: var(--control-gap);
 }
 
@@ -43,8 +45,8 @@
     content: ",";
 }
 
-/* Icon back to today beside the date, on another day than today: small, without frame, grey, lighter
-   under the pointer */
+/* Icon back to today beside the date: small, without frame, grey, lighter under the pointer; on today faded
+   and off, so the bar looks the same on every day, see `day.ts` */
 .day-today {
     display: inline-flex;
     align-items: center;
@@ -55,8 +57,13 @@
     cursor: pointer;
 }
 
-.day-today:hover {
+.day-today:enabled:hover {
     color: var(--text-main);
+}
+
+.day-today:disabled {
+    opacity: 0.4;
+    cursor: default;
 }
 
 /* Buttons of the bar one control high with round corners, the arrows square, a grey lighter under the pointer,
@@ -225,24 +232,45 @@
     overflow-wrap: anywhere;
 }
 
-/* Grey line of a box, its time and length or its place, in parts side by side, a part below the one before
-   where the line has no room for both; a part too long for the whole line goes on below; the place in the darker grey
-   of a place, the time in the light grey of a time, as in the log */
+/* Grey line of a box, its time and after it its place, apart by the middle dot, on one line as in the log: the time
+   whole, the place giving way with an ellipsis where the line is too narrow; the place in the darker grey of a place,
+   the time in the light grey of a time; on a phone the place on a line of its own, see the end of this file */
 .box-meta {
     display: flex;
-    flex-wrap: wrap;
-    column-gap: 0.3em;
     font-size: 0.8125rem;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
 }
 
 .box-part {
+    flex: none;
     max-width: 100%;
+}
+
+.box-part.entry-parted {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .box-time {
     color: var(--text-time);
+}
+
+/* What a box is about, its chapters and documents, one per line with a grey bullet, in the size and grey
+   of the line above, close below it */
+.box-topics {
+    margin: 0.125rem 0 0;
+    padding-left: 1.1em;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    list-style: disc;
+}
+
+.box-topics li {
+    overflow-wrap: anywhere;
 }
 
 /* Ring of a box, as high as its first line: for an open box a button, an empty ring in the grey of the plan
@@ -382,7 +410,9 @@ button.box-ring.box-checked svg {
 
 /* Seven rows, one below the other, scrolling together when they are many; each a link to its day:
    its name grey at the left, today's light and its edge lighter, beside it its boxes in columns of the same width,
-   as many as the row has room for, wrapping into the next line, birthdays and holidays over the whole width */
+   each at least 30rem wide, so the whole name of a skill fits on its line, like
+   `Skill: IN2028_BusinessAnalyticsMachineLearning VO`, as many as the row has room for, wrapping into the next line,
+   birthdays and holidays over the whole width */
 .week-days {
     display: flex;
     flex-direction: column;
@@ -406,7 +436,7 @@ button.box-ring.box-checked svg {
 
 .week-boxes {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(30rem, 1fr));
     gap: 0.5rem;
 }
 
@@ -469,7 +499,8 @@ button.box-ring.box-checked svg {
 }
 
 /* Date of the day as a button, which opens the month to pick a day from: no frame, a grey under the pointer,
-   its padding keeping room to the arrows left and right of it */
+   its padding keeping room to the arrows left and right of it; in the day as wide as its widest date, like
+   `Mon, 19.10.2026`, every digit equally wide, so the arrow after it stays in place from day to day */
 .day-title-button {
     padding: 0.25rem var(--control-gap);
     border: none;
@@ -482,6 +513,11 @@ button.box-ring.box-checked svg {
 
 .day-title-button:hover {
     background: var(--fill);
+}
+
+#day-title {
+    min-width: 9.25em;
+    font-variant-numeric: tabular-nums;
 }
 
 /* Days of the month with their number in the middle in the size of the page, a grey under the pointer,
@@ -601,11 +637,43 @@ button.box-ring.box-checked svg {
     display: none;
 }
 
-/* Trackers: at the right end of the bar of the day, side by side in one line, below each other where the line
-   has no room for all */
+/* Timer of a session running now, see `timer.ts`: all the room between the date and the trackers, a gap away
+   from both, at least 9rem, so its time always shows, in a soft frame like a tracker, at least one control high,
+   on one line: what the session is at the left,
+   giving way with an ellipsis where the room is too small, how long it still runs at the right, in the grey of a time,
+   every digit equally wide */
+.session-timer {
+    display: inline-flex;
+    flex: 1 1 auto;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--gap);
+    min-width: 9rem;
+    overflow: hidden;
+    min-height: var(--control-height);
+    margin-inline: var(--gap);
+    padding: 0.25rem 0.875rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    white-space: nowrap;
+}
+
+.session-what {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.session-left {
+    flex: none;
+    color: var(--text-time);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Trackers: at the right end of the bar of the day, side by side in one line, never squeezed */
 .trackers {
     display: flex;
-    flex-wrap: wrap;
+    flex: none;
     align-items: center;
     justify-content: flex-end;
     gap: var(--control-gap);
@@ -792,12 +860,13 @@ button.box-ring.box-checked svg {
 
 /* Panel: card over the page, for the entry by category, the gift idea, a place and the month, as sketched:
    one column of rows, each its name grey at the left, `--name-width` wide, about 96 pixels, so every value starts
-   at the same place, `--value-start` from the edge of the card's content */
+   at the same place, `--value-start` from the edge of the card's content; 44rem wide, so whole names, addresses
+   and links fit, a place opened from the entry by category as wide as it; the month smaller, see `.month-panel` */
 .panel {
     --name-width: 4.8rem;
     --row-padding: 0.75rem;
     --value-start: calc(var(--row-padding) + 1px + var(--name-width) + var(--control-gap));
-    width: min(27.5rem, calc(100vw - 2 * var(--gap)));
+    width: min(44rem, calc(100vw - 2 * var(--gap)));
     padding: var(--gap);
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -884,7 +953,14 @@ button.box-ring.box-checked svg {
     order: 1;
 }
 
-/* The copy and Remove apart from the others, at the left, the copy alone there while Remove is hidden */
+/* Question mark of the remove asked: the plain one of the font, without a circle, about as high as the bin */
+.remove-ask {
+    font-size: 1.375rem;
+    font-weight: 500;
+    line-height: 1;
+}
+
+/* The copy and the bin apart from the others, at the left, the copy alone there while the bin is hidden */
 .panel-buttons .panel-remove,
 .panel-buttons .panel-duplicate:has(+ .panel-remove[hidden]) {
     margin-right: auto;
@@ -906,7 +982,7 @@ button.box-ring.box-checked svg {
     margin-top: 0.75rem;
 }
 
-/* Buttons of a panel, one control high, their word in the middle, like `Remove` */
+/* Buttons of a panel, one control high, their word in the middle, like `Edit plan` */
 .panel-buttons button {
     display: inline-flex;
     align-items: center;
@@ -920,7 +996,8 @@ button.box-ring.box-checked svg {
     cursor: pointer;
 }
 
-/* A button of a panel with an icon in place of its word, like the copy, Cancel and Save: square, one control high */
+/* A button of a panel with an icon in place of its word, like the copy, the bin, Cancel and Save: square,
+   one control high */
 .panel-buttons button:has(svg) {
     width: var(--control-height);
     padding: 0;
@@ -938,11 +1015,15 @@ button.box-ring.box-checked svg {
     cursor: default;
 }
 
-/* Entry by category: one column of rows, wide enough for whole names and long lists, 44rem, at most as high
-   as the screen with a gap around, then scrolling as a whole, the lists of its fields too, which open inside it,
-   see `.picker-box`; its top stays where it is as a list opens or closes, so the rows above never move */
+/* Month to pick a day from: as wide as a month needs, 27.5rem */
+.month-panel {
+    width: min(27.5rem, calc(100vw - 2 * var(--gap)));
+}
+
+/* Entry by category: one column of rows, at most as high as the screen with a gap around, then scrolling
+   as a whole, the lists of its fields too, which open inside it, see `.picker-box`; its top stays where it is
+   as a list opens or closes, so the rows above never move */
 .entry-panel {
-    width: min(44rem, calc(100vw - 2 * var(--gap)));
     max-height: calc(100dvh - 2 * var(--gap));
     margin-top: max(var(--gap), 6dvh);
     overflow-y: auto;
@@ -1763,18 +1844,13 @@ svg.route-arrow {
     }
 
     /* Buttons of a panel in one row across, the square ones beside those with words, which share the rest equally,
-       each its word on one line, a little smaller, so `Remove` keeps room inside its frame */
+       each its word on one line, a little smaller, so `Edit plan` keeps room inside its frame */
     .panel-buttons {
         flex-wrap: nowrap;
     }
 
     .panel-buttons button:not(:has(svg)) {
         flex: 1;
-    }
-
-    .panel-buttons .panel-remove,
-    .panel-buttons .panel-duplicate:has(+ .panel-remove[hidden]) {
-        margin-right: 0;
     }
 
     .panel-buttons button {
@@ -1795,6 +1871,19 @@ svg.route-arrow {
 
     .box-actions {
         margin-left: auto;
+    }
+
+    /* The place of a box on a phone on a line of its own below its time, whole, without the dot */
+    .box-meta {
+        flex-direction: column;
+    }
+
+    .box-part.entry-parted {
+        white-space: normal;
+    }
+
+    .box-meta .entry-parted::before {
+        content: none;
     }
 
     body {

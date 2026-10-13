@@ -20,9 +20,8 @@
  * The day opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today
  * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the week, opens on that day,
  * which the address then keeps no more, see `today.ts`.
- * The grid runs from 00:00 to 05:00 of the next day and opens at 06:00, so an entry can be pulled past midnight
- * at its bottom and the hours after midnight show on both days, like a sleep from 01:00 at the bottom of 12 October
- * and at the top of 13 October; the trackers count it once, for the calendar day of its start, 13 October,
+ * The grid runs over the calendar day, from 00:00 to 24:00, and opens at 06:00; an entry past midnight shows on both
+ * days, cut at midnight, like a sleep from 23:00 to 07:00 at the bottom of 12 October and at the top of 13 October,
  * see {@link dayStart}.
  *
  * - `fullcalendar`: Draws the calendar.
@@ -46,6 +45,7 @@
  * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the day on to the new day
  *   while it shows today.
  * - `../icons.ts`: Puts the icons of the arrows and of `+` into their buttons.
+ * - `../timer.ts`: Shows the timer of a session running now in the bar of the day.
  * - `lucide`: The icons of the arrows and plus.
  */
 
@@ -66,6 +66,7 @@ import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
 import { iconPut } from "../icons.ts";
+import { timerStart } from "../timer.ts";
 import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from "lucide";
 import "fullcalendar/skeleton.css";
 import "fullcalendar/themes/forma/theme.css";
@@ -96,9 +97,9 @@ const lineMinutes: number = 15.75;
 let dayNoteShow: (date: string) => void = (): void => {};
 
 /**
- * Hours of the time grid, from 00:00 of the shown day to 05:00 of the next, see `slotMinTime` and `slotMaxTime`.
+ * Hours of the time grid, from 00:00 to 24:00 of the shown day, see `slotMinTime` and `slotMaxTime`.
  */
-const gridHours: number = 29;
+const gridHours: number = 24;
 
 
 /**
@@ -166,13 +167,13 @@ function entryDrag(calendar: Calendar, info: EventChangeInfo): void {
  * Lines an entry of the time grid has room for, its shown part less the space of 0.75rem above and below its lines,
  * see {@link lineMinutes}: an entry of a quarter hour or half an hour has room for one line,
  * (30 - 11.25) / 15.75 = 1.19, one of 45 minutes for two, (45 - 11.25) / 15.75 = 2.14, one of an hour for three,
- * and a Sleep from 23:00 to 07:00 on 12 October, shown from 23:00 to 05:00, for (360 - 11.25) / 15.75 = 22,
+ * and a Sleep from 23:00 to 07:00 on 12 October, shown from 23:00 to 24:00, for (60 - 11.25) / 15.75 = 3,
  * not 29 for its whole 8 hours.
  * A short entry, see `eventShortHeight` in {@link dayStart}, has room for one line, its space above and below left out.
  * - `start`, `end`: Start and end of the entry.
  * - `day`: Midnight of the shown day, where the grid starts.
- * - `top`, `bottom`: Start and end of the entry cut to the grid, from 00:00 of the shown day to 05:00 of the next,
- *   like 23:00 to 05:00 for that Sleep.
+ * - `top`, `bottom`: Start and end of the entry cut to the grid, from 00:00 to 24:00 of the shown day,
+ *   like 23:00 to 24:00 for that Sleep.
  *
  * @param info - Entry of the time grid with its render details
  * @returns Lines, at least 1
@@ -183,7 +184,7 @@ function linesOf(info: EventDisplayInfo): number {
     const day: Date = info.view.currentStart;
     const top: number = Math.max(start.getTime(), day.getTime());
     const bottom: number =
-        Math.min(end.getTime(), new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1, 5).getTime());
+        Math.min(end.getTime(), new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).getTime());
     if (info.isShort)
         return 1;
     return Math.max(1, Math.floor(((bottom - top) / (60 * 1000) - 11.25) / lineMinutes));
@@ -288,18 +289,18 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
 }
 
 /**
- * Shows the date of the shown day above plan and log, its weekday and its date in my standard way,
- * like `Sunday, 11.10.2026`, always fully readable, with the icon back to today on any other day,
+ * Shows the date of the shown day above plan and log, its weekday short and its date in my standard way,
+ * like `Sun, 11.10.2026`, as the week writes it, always fully readable, with the icon back to today on any other day,
  * see {@link todayButtonShow}, and its daily note, gratitude and points about the day, see {@link dayNoteShow};
  * the boxes and the trackers follow the entries of the log, see `eventsSet` in {@link dayStart}.
  * The comma after the weekday is drawn by `day.css`, which on a phone puts the weekday above the date instead.
- * - `weekday`: Weekday of the shown day, like `Sunday`, from the day at noon.
+ * - `weekday`: Weekday of the shown day, like `Sun`, from the day at noon.
  *
  * @param info - Range of the shown day
  */
 function dayShow(info: DatesSetInfo): void {
     const date: string = info.startStr.slice(0, 10);
-    const weekday: string = new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" });
+    const weekday: string = new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short" });
     (document.getElementById("day-weekday") as HTMLElement).textContent = weekday;
     (document.getElementById("day-date") as HTMLElement).textContent = dateTextOf(date);
     todayButtonShow(date);
@@ -307,14 +308,14 @@ function dayShow(info: DatesSetInfo): void {
 }
 
 /**
- * Shows the small icon back to today beside the date while the shown day is another than today's calendar date,
- * none on today, like 13.10.2026 on that day, also once the day turned at 00:00 while the day stays,
- * see `todayFollow` in `today.ts`.
+ * Turns the small icon back to today beside the date on while the shown day is another than today's calendar date;
+ * on today, like 13.10.2026 on that day, it shows faded and off, so the bar looks the same on every day, see
+ * `.day-today` in `day.css`; also once the day turned at 00:00 while the day stays, see `todayFollow` in `today.ts`.
  *
  * @param date - Shown day, like `2026-10-13`
  */
 function todayButtonShow(date: string): void {
-    (document.getElementById("day-today") as HTMLButtonElement).hidden = date === calendarTodayOf();
+    (document.getElementById("day-today") as HTMLButtonElement).disabled = date === calendarTodayOf();
 }
 
 /**
@@ -337,11 +338,10 @@ function phoneShow(calendar: Calendar, shown: "plan" | "log"): void {
 /**
  * Scrolls the time grid so that now stands in its middle, at each load of the page and when the day moves on
  * to the new day by itself, like 14:00 in the middle of 13.10.2026; at 00:20 today's page is 14 October,
- * whose grid cannot scroll above 00:00, so now simply stands near its top, and on 13 October, shown by its address,
- * 00:20 stands in the middle of the night below its evening.
+ * whose grid cannot scroll above 00:00, so now simply stands near its top.
  * A day without now keeps `scrollTime`, 06:00 at the top. It hands the time for the top to `scrollToTime`,
  * which FullCalendar keeps and applies again once it has measured the grid, so nothing undoes it.
- * - `hours`: Hours from the top of the grid, 00:00 of the shown day, to now, like 24.3 for 00:20 of the next day.
+ * - `hours`: Hours from the top of the grid, 00:00 of the shown day, to now, like 14.5 for 14:30.
  * - `hourHeight`: Height of an hour of the grid in pixels, two half hours of 2rem, see {@link lineMinutes}.
  * - `visibleHours`: Hours the grid shows at once, from the height of its box, like 9.4.
  *
@@ -421,17 +421,15 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `selectAllow`: Allows selecting a time range, but not in the row of the whole day.
  * - `nowIndicatorLineClass`, `nowIndicatorDotClass`: Add the classes `now-line` and `now-dot` to the line of now
  *   and its dot, so `day.css` draws them calm grey behind the entries, never through their text.
- * - `slotMinTime`, `slotMaxTime`: Run the grid from 00:00 to 05:00 of the next day, so an entry can still be pulled
- *   past midnight at the bottom, below the evening before it; an entry from 01:00 to 02:00 on 13 October shows
- *   at the bottom of 12 October and at the top of 13 October. Only the grid shows it twice: the trackers
- *   and the done boxes ask the reader for the calendar day, 00:00 to 00:00, which counts it for 13 October,
- *   while FullCalendar fetches the log for the whole grid, 00:00 to 05:00 of the next day.
+ * - `slotMinTime`, `slotMaxTime`: Run the grid over the calendar day, 00:00 to 24:00, as the trackers and the done
+ *   boxes count it; an entry past midnight shows on both days, cut at midnight.
  * - `scrollTime`: Scrolls the grid to 06:00 at the start, for a day that does not hold now; today centres on now instead, see {@link nowCenter}.
  *
  * The theme keeps its own classes beside `slot-label`, `entry`, `entry-inner` and the others;
  * `day.css` wins because it comes after the theme's stylesheet.
  *
- * @param note - Whether the day shows its daily note, see {@link noteStart}; never on a phone
+ * @param note - Whether the day shows its daily note, see {@link noteStart}, and the timer of a session, see
+ *   `timer.ts`; never on a phone
  */
 export function dayStart(note: boolean): void {
     const calendar: Calendar = new Calendar(document.getElementById("day-calendar") as HTMLElement, {
@@ -477,7 +475,7 @@ export function dayStart(note: boolean): void {
         nowIndicatorLineClass: "now-line",
         nowIndicatorDotClass: "now-dot",
         slotMinTime: "00:00:00",
-        slotMaxTime: "29:00:00",
+        slotMaxTime: "24:00:00",
         scrollTime: "06:00:00",
         datesSet: dayShow,
     });
@@ -511,6 +509,8 @@ export function dayStart(note: boolean): void {
     }, (): void => todayButtonShow(dayOf(calendar.view.currentStart)));
     giftsStart();
     timesStart();
-    if (note)
+    if (note) {
         noteStart(calendar).catch((error: unknown): void => console.error(error));
+        timerStart();
+    }
 }

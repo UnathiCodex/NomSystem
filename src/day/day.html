@@ -4,16 +4,21 @@
     <!-- The shown day above its plan and its log, side by side, its daily note below them -->
     <div class="day-main" id="day-main" data-shown="plan">
         <!-- The date of the shown day at the left end of the bar, above the plan, always fully readable, the arrows
-             to the day before and after left and right of it; on another day than today a small icon beside the date
-             leads back to today, saving the room of a button Today. A click on the date opens the month to pick
+             to the day before and after left and right of it; a small icon beside the date leads back to today, saving
+             the room of a button Today, faded and off on today. A click on the date opens the month to pick
              a day from, see month.ts. On a phone the date stands in the middle, the weekday above it.
-             The trackers of the shown day at the right end, above the log -->
+             Between them the timer of a session running now; the trackers of the shown day at the right end,
+             above the log -->
         <div class="day-bar day-nav">
             <button class="day-arrow" id="day-back" type="button"></button>
             <h2 class="day-title"><button class="day-title-button" id="day-title" type="button" title="Pick a day"><span
                 class="day-weekday" id="day-weekday"></span> <span class="day-date" id="day-date"></span></button></h2>
-            <button class="day-today" id="day-today" type="button" hidden></button>
+            <button class="day-today" id="day-today" type="button" disabled></button>
             <button class="day-arrow" id="day-next" type="button"></button>
+
+            <!-- Timer of a session of mine running now, in the middle; filled by timer.ts, hidden while none runs,
+                 never on a phone -->
+            <span class="session-timer" id="session-timer" hidden></span>
 
             <!-- Trackers of the shown day: the night's sleep and food; filled by trackers.ts; my water is in the food view;
                  not on a phone -->
@@ -134,11 +139,11 @@
         <p class="panel-error" id="entry-error" hidden>Saving failed</p>
 
         <!-- The copy at the left duplicates the entry or the box being changed, a new one filled in alike;
-             Remove asks once more; for a box of the plan Log it logs it instead, for a log entry from a box Edit plan
+             the bin removes it, asking once more with a question mark; for a box of the plan Log it logs it instead, for a log entry from a box Edit plan
              changes that box; cancel closes the dialog, save sends the entry once its fields are picked -->
         <div class="panel-buttons">
             <button class="panel-duplicate" id="entry-duplicate" type="button" hidden></button>
-            <button class="panel-remove" id="entry-remove" type="button" hidden>Remove</button>
+            <button class="panel-remove" id="entry-remove" type="button" hidden></button>
             <button id="entry-plan-edit" type="button" hidden>Edit plan</button>
             <button id="entry-plan-log" type="button" hidden>Log it</button>
             <button id="entry-cancel" type="button"></button>
@@ -160,7 +165,7 @@
 
         <!-- Remove takes the idea out, cancel closes the dialog, save sends the idea -->
         <div class="panel-buttons">
-            <button class="panel-remove" id="gift-remove" type="button" hidden>Remove</button>
+            <button class="panel-remove" id="gift-remove" type="button" hidden></button>
             <button id="gift-cancel" type="button"></button>
             <button class="panel-main" id="gift-save" type="submit"></button>
         </div>

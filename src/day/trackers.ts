@@ -3,7 +3,7 @@
  *
  * The card of the trackers of the shown day, below the log above the daily note, as the reader counts them,
  * see `reader/trackers.ts`, calm and basic, side by side in one line, without descriptions under the pointer:
- * - Sleep: how long the night of the day lasted, the sleep I woke up from that morning, like `7 h 30 min`;
+ * - Sleep: how long the night of the day lasted, the sleep I woke up from that morning, like `07h 30m`;
  *   its goal, the spread of my bedtime and the average of the week left out for now, since other things come first.
  * - Food: the kcal of the day's meals, a total without goal, rounded and so never marked as an estimate,
  *   and in brackets after it the number of the meals, like `1,850 kcal (3 meals)`, so a meal missing shows,
@@ -20,6 +20,7 @@
  * for the glasses of its day; the time grid shows glasses only as small marks, see `day.ts`.
  * The card loads again whenever the log of the day changes.
  *
+ * - `./times.ts`: Writes how long a night lasted.
  * - `../food/foods.ts`: Writes amounts and makes elements.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../icons.ts`: Makes the icon of the check.
@@ -27,6 +28,7 @@
  * - `fullcalendar`: Calendar that shows the day.
  */
 
+import { lengthOf } from "./times.ts";
 import { amountOf, elementOf } from "../food/foods.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { iconOf } from "../icons.ts";
@@ -201,10 +203,9 @@ function foodOf(trackers: Trackers, day: string): HTMLElement {
 
 /**
  * Builds the sleep: how long the night of the day lasted, the sleep I woke up from that morning, in hours
- * and minutes, like `7 h 30 min`, or `7 h` on the hour; a dash while no night is logged.
+ * and minutes, each two digits, like `07h 30m`, or `08h 00m` on the hour; a dash while no night is logged.
  * - `night`: The night of the day, `null` for none.
- * - `length`: How long it lasted as shown.
- * - `hours`, `minutes`: Its length in whole hours and the minutes left.
+ * - `length`: How long it lasted as shown, see `lengthOf` in `times.ts`.
  *
  * @param trackers - Trackers of the day
  * @returns Row of the sleep
@@ -212,12 +213,7 @@ function foodOf(trackers: Trackers, day: string): HTMLElement {
 function sleepOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const night: Night | null = trackers.sleep.night;
-    let length: string = "–";
-    if (night !== null) {
-        const hours: number = Math.floor(night.minutes / 60);
-        const minutes: number = night.minutes % 60;
-        length = minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
-    }
+    const length: string = night === null ? "–" : lengthOf(night.minutes);
     row.append(elementOf("span", "tracker-name", "Sleep"), elementOf("span", "tracker-value", length));
     return row;
 }
