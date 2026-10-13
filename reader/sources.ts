@@ -115,8 +115,8 @@ export const activeSkills: string[] = [
     "NomSkillingmodules/WI0219_InvestitionFinanzmanagement",
     "NomSkillingmodules/WI1057_CostAccounting",
     "NomSkillingmodules/MGT1373_AppliedEconometrics",
-    "NomSkillingmodules/WI0969_EntrepreneurshipInformation",
     "NomSkillingmodules/IN0004_EinfuehrungRechnerarchitektur",
+    "NomSkillingmodules/MGT1372_EntrepreneurialBusiness",
     "NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow",
     "NomSystemdashboard",
 ];
