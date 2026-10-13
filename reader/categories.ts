@@ -6,7 +6,8 @@
  * Each field of a what offers its values from the log itself, the what of its entries of the category,
  * the most used first, equal ones alphabetical.
  * Places are one list for every field of a place, the place of an entry and where a way starts: only my places
- * of `Places.md`, each with its address, see `places.ts`, the most used by the entries of the log first.
+ * of `Places.md`, each as a line with its address, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
+ * see `places.ts`, the most used by the entries of the log first, counted by their names.
  * A value offered in the code may come with steps, which the dialog shows while it is picked:
  * `Body` offers my neck routine, `Neck short` and `Neck long`, each with its exercises, see {@link neckRoutines},
  * and below them the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
@@ -25,7 +26,7 @@
  */
 
 import { entriesRead } from "./calendar.ts";
-import { placesRead } from "./places.ts";
+import { labelOf, lineOf, placesRead } from "./places.ts";
 import { day } from "./sources.ts";
 
 import type { Entry, EntryTexts } from "./calendar.ts";
@@ -192,13 +193,14 @@ function logsRead(now: string): Entry[] {
 }
 
 /**
- * Lists the places of log entries: their places and where their ways start.
+ * Lists the places of log entries by their names: their places and where their ways start, see `labelOf`
+ * in `places.ts`, so `TumMain, Arcisstraße 21, 80333 München, Deutschland` and an older `TumMain` count alike.
  *
  * @param logs - Log entries
- * @returns Every use of a place, a place as often as it was used
+ * @returns Every use of a place by its name, like `TumMain`, a place as often as it was used
  */
 function placeUsesOf(logs: Entry[]): string[] {
-    return logs.flatMap((log: Entry): string[] => [log.location, log.from]);
+    return logs.flatMap((log: Entry): string[] => [labelOf(log.location), labelOf(log.from)]);
 }
 
 /**
@@ -266,17 +268,20 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * each telling whether a box of the plan may have it; a value with steps gets the note of its last entry,
  * see {@link stepsWithNoteOf}.
  * - `logs`: Log entries up to now.
- * - `names`: Names of my places.
- * - `places`: One list of places for every field of a place: my places, the most used first, see {@link placeUsesOf}.
+ * - `mine`: My places.
+ * - `names`: Their names.
+ * - `places`: One list of places for every field of a place: my places, the most used first, see {@link placeUsesOf},
+ *   each as the line an entry writes, see `lineOf` in `places.ts`.
  *
  * @param now - Present as ISO instant, as the page knows it
  * @returns {@link CategoryShown}s in their order
  */
 export function categoriesRead(now: string): CategoryShown[] {
     const logs: Entry[] = logsRead(now);
-    const names: string[] = placeNamesRead();
-    const places: string[] =
-        valuesOrder(placeUsesOf(logs).filter((use: string): boolean => names.includes(use)), names);
+    const mine: Place[] = placesRead();
+    const names: string[] = mine.map((place: Place): string => place.name);
+    const places: string[] = valuesOrder(placeUsesOf(logs).filter((use: string): boolean => names.includes(use)), names)
+        .map((name: string): string => lineOf(mine[names.indexOf(name)]));
     return categories.map((category: Category): CategoryShown => ({
         name: category.name,
         fields: category.fields.map((field: Field): Field => ({
@@ -307,7 +312,8 @@ export function usualLengthRead(name: string, now: string): number {
 }
 
 /**
- * Finds where the last way before an instant ended: the place of the last `Way`, when it is one of my places.
+ * Finds where the last way before an instant ended: the place of the last `Way` as it wrote it, with the address
+ * it had then, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, when its name is one of my places.
  * - `last`: Last way that started before the instant.
  *
  * @param before - Start of the new entry as ISO instant
@@ -317,7 +323,7 @@ export function wayEndRead(before: string): string {
     const last: Entry | undefined = logsRead(before)
         .filter((log: Entry): boolean => log.category === "Way")
         .sort((first: Entry, second: Entry): number => second.start.localeCompare(first.start))[0];
-    return last !== undefined && placeNamesRead().includes(last.location) ? last.location : "";
+    return last !== undefined && placeNamesRead().includes(labelOf(last.location)) ? last.location : "";
 }
 
 /**

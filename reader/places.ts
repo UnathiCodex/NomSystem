@@ -2,9 +2,14 @@
  * ## Places
  *
  * Reads and writes my places in `Places.md`, as `food.ts` does my foods in `Foods.md`: one Markdown table
- * with one row per place, its name, like `TumMain`, and its address, like `Arcisstraße 21, 80333 München`.
+ * with one row per place, its name, like `TumMain`, and its address with its country,
+ * like `Arcisstraße 21, 80333 München, Deutschland`.
  * Every field of a place, the place of an entry and where a way starts, offers only these, see `categories.ts`,
- * and an entry writes the name of its place as its `LOCATION`, like `HomeMunich`.
+ * and an entry writes its place as Google Calendar does, its name and its address in one line, see {@link lineOf},
+ * like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, as its `LOCATION`, and where its way starts
+ * as its `X-FROM`, so it keeps the address it had then, also once the address in `Places.md` changes;
+ * its name is the part before the first comma, see {@link labelOf}. An older entry keeps the name alone,
+ * like `HomeMunich`.
  * The file starts without places: I add each place with its address from the dialog of the day the first time
  * I need it, and the reader creates the file with that first place.
  *
@@ -21,8 +26,8 @@ import { day, writeAllowed } from "./sources.ts";
 /**
  * A place, one row of `Places.md`.
  *
- * - `name`: Name, written as the `LOCATION` of an entry, like `TumMain`; unique, ignoring case, without `|`.
- * - `address`: Its address, like `Arcisstraße 21, 80333 München`, without `|`.
+ * - `name`: Name, like `TumMain`; unique, ignoring case, without `|` and without a comma, which ends it in a line.
+ * - `address`: Its address with its country, like `Arcisstraße 21, 80333 München, Deutschland`, without `|`.
  */
 export type Place = {
     name: string;
@@ -48,6 +53,27 @@ const tableHead: number = 2;
  */
 function cellOf(text: string): string {
     return text.replace(/\|/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Writes a place as an entry writes it, its name and its address in one line, as Google Calendar does.
+ *
+ * @param place - A place of `Places.md`
+ * @returns Line like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, the name alone without address
+ */
+export function lineOf(place: Place): string {
+    return place.address === "" ? place.name : `${place.name}, ${place.address}`;
+}
+
+/**
+ * Gives the name of the place of a line, the part before its first comma.
+ *
+ * @param line - Place as an entry writes it, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
+ *   or only its name, like `HomeMunich`
+ * @returns Name like `TumMain`
+ */
+export function labelOf(line: string): string {
+    return line.split(",")[0].trim();
 }
 
 /**
@@ -79,12 +105,12 @@ export function placesRead(): Place[] {
  *
  * @param sent - Place as the page sends it, its name and its address as typed
  * @returns The place as written
- * @throws {Error} - When the name or the address is empty, another place has the name, ignoring case,
- *   or `Places.md` lies outside the new system or holds no table
+ * @throws {Error} - When the name or the address is empty, the name holds a comma, another place has the name,
+ *   ignoring case, or `Places.md` lies outside the new system or holds no table
  */
 export function placeAdd(sent: Place): Place {
     const added: Place = { name: cellOf(String(sent.name ?? "")), address: cellOf(String(sent.address ?? "")) };
-    if (added.name === ""
+    if (added.name === "" || added.name.includes(",")
         || placesRead().some((mine: Place): boolean => mine.name.toLowerCase() === added.name.toLowerCase()))
         throw new Error(`No new name of a place: ${added.name}`);
     if (added.address === "")

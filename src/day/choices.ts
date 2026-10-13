@@ -139,7 +139,8 @@ function buttonOf(text: string, chosen: boolean, click: () => void): HTMLButtonE
  * Builds a picker, see the top of this file: the search field, when the list is long or takes new values,
  * above the list of the values found, and `+` at the end for the typed text, where new values are taken.
  * Values picked but not found, like a place an entry kept, come first while nothing is typed;
- * `+` is offered only for a text no value has already, case and accents ignored.
+ * `+` is offered only for a text no value has already, nor shows already, like `TumMain` of a place written
+ * with its address, case and accents ignored.
  * - `chosen`: Values picked so far, in the order they were picked.
  * - `long`: Whether the list is long enough for a search field, more than {@link searchedLength} characters
  *   of all values together, fixed at the start.
@@ -193,7 +194,8 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
             group.textContent = choice.group;
             return [group, button];
         }));
-        if (setup.adding && text !== "" && !found.some((choice: Choice): boolean => searchTextOf(choice.value) === searchTextOf(text)))
+        if (setup.adding && text !== "" && !found.some((choice: Choice): boolean =>
+            searchTextOf(choice.value) === searchTextOf(text) || searchTextOf(choice.text) === searchTextOf(text)))
             list.append(buttonOf(`+ ${text}`, false, (): void => typedAdd(text)));
     };
     const typedPick: (value: string) => void = (value: string): void => {

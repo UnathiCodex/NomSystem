@@ -162,16 +162,17 @@
 </dialog>
 
 <!-- New place, opened over the entry by category by + of a list of places, see places.ts:
-     the place, filled with what I typed, and its address, both required -->
+     the place, filled with what I typed, and its address with its country, both required -->
 <dialog class="panel" id="place" closedby="any">
     <form class="panel-form" id="place-form">
         <label class="panel-field"><span class="entry-name">Place</span>
             <input id="place-name" type="text" autocomplete="off" required></label>
         <label class="panel-field"><span class="entry-name">Address</span>
-            <input id="place-address" type="text" autocomplete="off" required></label>
+            <input id="place-address" type="text" autocomplete="off" required
+                   placeholder="Arcisstraße 21, 80333 München, Deutschland"></label>
 
         <!-- Hint when the reader does not take the place -->
-        <p class="panel-error" id="place-error" hidden>Not saved: it needs a new name and an address</p>
+        <p class="panel-error" id="place-error" hidden>Not saved: it needs a new name without comma and an address</p>
 
         <!-- Cancel closes the dialog and picks nothing, save adds the place to Places.md and picks it -->
         <div class="panel-buttons">

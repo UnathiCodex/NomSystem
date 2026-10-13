@@ -915,6 +915,19 @@ button.box-ring:hover svg {
     color: var(--text-muted);
 }
 
+/* Whole line of the place picked, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, grey, below its list
+   and in line with it, as the steps; a click opens it in Google Maps, underlined under the pointer */
+.entry-address {
+    margin-left: calc(3.5rem + var(--control-gap));
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.entry-address:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
 /* Links of a skill entry being changed, one after the other: the folder of its skill by its grey name,
    its document underlined thin in the white of the text, which a click opens in a new tab, see `skill/links.ts` */
 .entry-links {

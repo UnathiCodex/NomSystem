@@ -38,6 +38,7 @@
  *   loaded like `./note.ts`.
  * - `./month.ts`: Picks the day to show from a month.
  * - `./gifts.ts`: Writes my gift ideas for the birthdays and holidays of the plan.
+ * - `./places.ts`: Gives the name of the place of an entry, the part of its line before the first comma.
  * - `./trackers.ts`: Shows my sleep, my glasses of water, my food and my neck sessions of the day.
  * - `./times.ts`: Reads the typed times of the panels, writes the times of entries and the date of the day.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
@@ -58,6 +59,7 @@ import { foodName } from "./meal.ts";
 import { boxesSee, boxesStart, boxReceive, entryPartOf, whatOf } from "./boxes.ts";
 import { monthStart } from "./month.ts";
 import { giftsStart } from "./gifts.ts";
+import { labelOf } from "./places.ts";
 import { trackersSee } from "./trackers.ts";
 import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
@@ -203,7 +205,8 @@ function dishOf(event: EventApi): string[] {
  *   and below its lines, see {@link lineMinutes}: that Sleep has (360 - 11.25) / 15.75 = 22 lines, not 29
  *   for its whole 8 hours.
  * - `timeLine`: The second line, start and end, light grey, cut with an ellipsis, see `.entry-time` in `day.css`.
- * - `shown`: The lines shown above the note: what, the time, and the place, grey, see `.entry-place` in `day.css`.
+ * - `shown`: The lines shown above the note: what, the time, and the place by its name, like `TumMain`, grey,
+ *   see `.entry-place` in `day.css`.
  * - `below`: The note below the lines shown, grey, its line clamp the lines left, see `.entry-note` in `day.css`.
  *
  * @param info - Entry with its render details
@@ -217,7 +220,7 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
         what = foods.join(", ");
     else if (what === category)
         what = "";
-    const place: string = info.event.extendedProps.location ?? "";
+    const place: string = labelOf(info.event.extendedProps.location ?? "");
     const note: string = (info.event.extendedProps.note ?? "").trim();
     const start: Date = info.event.start as Date;
     const end: Date = info.event.end ?? start;

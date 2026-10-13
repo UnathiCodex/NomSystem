@@ -4,8 +4,12 @@
  * A new place for a field of a place, the place of an entry or where a way starts, see `categories.ts`,
  * since the fields offer only my places of `Places.md`, each with its address, see `reader/places.ts`:
  * a place typed that is none of mine yet, then `+` or Enter, opens a small dialog over the entry by category
- * with two fields, the place, filled with what I typed, and its address, both required.
+ * with two fields, the place, filled with what I typed, and its address with its country, both required.
  * Save adds the place to `Places.md` and picks it; Cancel, `Esc` or a click beside the dialog pick nothing.
+ * An entry writes a place as one line, its name and its address, like
+ * `TumMain, Arcisstraße 21, 80333 München, Deutschland`, see {@link lineOf}; it shows by its name, the part
+ * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens in Google Maps,
+ * see {@link mapsAddressOf}.
  *
  * - `../icons.ts`: Puts the icons into the buttons of the dialog.
  * - `lucide`: The icons check and cross.
@@ -18,8 +22,8 @@ import { Check, X } from "lucide";
 /**
  * A place, as the reader writes it into `Places.md`.
  *
- * - `name`: Name, like `TumMain`, written as the `LOCATION` of an entry.
- * - `address`: Its address, like `Arcisstraße 21, 80333 München`.
+ * - `name`: Name, like `TumMain`, without a comma.
+ * - `address`: Its address with its country, like `Arcisstraße 21, 80333 München, Deutschland`.
  */
 type Place = {
     name: string;
@@ -27,10 +31,46 @@ type Place = {
 };
 
 /**
- * Takes the name of the place the open dialog saved, or `null` when it closed without saving, so the picker
- * that opened it picks the place or nothing; `null` while no dialog waits for an answer.
+ * Takes the place the open dialog saved, as an entry writes it, see {@link lineOf}, or `null` when it closed
+ * without saving, so the picker that opened it picks the place or nothing; `null` while no dialog waits for an answer.
  */
-let answer: ((name: string | null) => void) | null = null;
+let answer: ((line: string | null) => void) | null = null;
+
+
+/**
+ * Writes a place as an entry writes it into `LOCATION`, as Google Calendar does, its name and its address in one line.
+ *
+ * @param place - A place of `Places.md`
+ * @returns Line like `TumMain, Arcisstraße 21, 80333 München, Deutschland`
+ */
+function lineOf(place: Place): string {
+    return place.address === "" ? place.name : `${place.name}, ${place.address}`;
+}
+
+/**
+ * Gives the name of the place of a line, the part before its first comma, as the grid and the plan show it.
+ *
+ * @param line - Place as an entry writes it, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
+ *   or an older one, only its name, like `HomeMunich`
+ * @returns Name like `TumMain`
+ */
+export function labelOf(line: string): string {
+    return line.split(",")[0].trim();
+}
+
+/**
+ * Gives the address in Google Maps of a place as an entry writes it: a search of the whole line,
+ * or, when its address is a link, like one pasted from Google Maps, that link.
+ * - `address`: The line after its name.
+ *
+ * @param line - Place like `TumMain, Arcisstraße 21, 80333 München, Deutschland`
+ * @returns Address like `https://www.google.com/maps/search/?api=1&query=TumMain%2C%20Arcisstra%C3%9Fe%2021…`
+ */
+export function mapsAddressOf(line: string): string {
+    const address: string = line.slice(line.indexOf(",") + 1).trim();
+    return /^https?:\/\/\S+$/.test(address) ? address
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(line)}`;
+}
 
 
 /**
@@ -52,19 +92,19 @@ async function placeSend(place: Place): Promise<Place> {
 }
 
 /**
- * Sends the place of the fields, then closes the dialog and gives the name as written to the picker that opened it;
- * shows a hint and stays open when the reader does not take it.
- * - `take`: Takes the name, kept apart before the dialog closes, so its closing answers nothing more.
+ * Sends the place of the fields, then closes the dialog and gives the place as written to the picker that opened it,
+ * as an entry writes it, see {@link lineOf}; shows a hint and stays open when the reader does not take it.
+ * - `take`: Takes the place, kept apart before the dialog closes, so its closing answers nothing more.
  */
 function placeSave(): void {
     placeSend({
         name: (document.getElementById("place-name") as HTMLInputElement).value,
         address: (document.getElementById("place-address") as HTMLInputElement).value,
     }).then((place: Place): void => {
-        const take: ((name: string | null) => void) | null = answer;
+        const take: ((line: string | null) => void) | null = answer;
         answer = null;
         (document.getElementById("place") as HTMLDialogElement).close();
-        take?.(place.name);
+        take?.(lineOf(place));
     }).catch((error: unknown): void => {
         console.error(error);
         document.getElementById("place-error")?.removeAttribute("hidden");
@@ -77,7 +117,8 @@ function placeSave(): void {
  * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page and the entry by category, `Esc` closes it.
  *
  * @param name - Typed name of the place, like `HomeMunich`
- * @returns The name of the place as written once it is saved, `null` when the dialog closes without saving
+ * @returns The place as an entry writes it once it is saved, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`,
+ *   `null` when the dialog closes without saving
  */
 export function placeOpen(name: string): Promise<string | null> {
     (document.getElementById("place-name") as HTMLInputElement).value = name;
@@ -85,7 +126,7 @@ export function placeOpen(name: string): Promise<string | null> {
     document.getElementById("place-error")?.setAttribute("hidden", "");
     (document.getElementById("place") as HTMLDialogElement).showModal();
     document.getElementById("place-address")?.focus();
-    return new Promise((resolve: (name: string | null) => void): void => {
+    return new Promise((resolve: (line: string | null) => void): void => {
         answer = resolve;
     });
 }

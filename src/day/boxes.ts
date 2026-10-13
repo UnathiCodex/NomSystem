@@ -41,6 +41,7 @@
  * - `./categories.ts`: Opens the entry by category for a new box, a box to change, and a box to log through it.
  * - `./suggestions.ts`: Loads the study sessions suggested for tomorrow, accepts and dismisses them.
  * - `./gifts.ts`: Opens the dialog of the gift idea for a birthday or holiday.
+ * - `./places.ts`: Gives the name of the place of a box.
  * - `./times.ts`: Gives the times a box is logged at with one tap, and writes times of day.
  * - `../skill/attempts.ts`: Names the category of skill entries, writes a date as a day,
  *   and gives the day of a date.
@@ -54,6 +55,7 @@ import { boxDrop, boxLog, boxPush } from "./entries.ts";
 import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
 import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } from "./suggestions.ts";
 import { giftOpen } from "./gifts.ts";
+import { labelOf } from "./places.ts";
 import { boxMinutes, boxTimesOf, dateTextOf, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconOf, iconPut } from "../icons.ts";
@@ -269,7 +271,8 @@ const pushesAsking: number = 3;
  * day anyway and its check says it is done, like `Skill: WI1059 HU` with its deadline alone, not `done 05:15 · 15 min`;
  * for a box done on the day shown what was expected and what was real, like `expected 12:00 · 90 min`
  * and `→ 12:15 · 85 min`, or `done 14:00 · 30 min` without expectation;
- * for any other box how near its deadline is, see {@link nearOf}, what is expected, its place, or for a done one
+ * for any other box how near its deadline is, see {@link nearOf}, what is expected, its place by its name,
+ * like `TumMain`, see `labelOf` in `places.ts`, or for a done one
  * `done` and the day it was done, like `done Fri, 09.10.2026` for a box done a day early,
  * and how often it was pushed, as one part, like `in 3 days · 120 min` or `75 min · pushed once`,
  * and from {@link pushesAsking} pushes on, while it is open, the question `smaller or drop?` after them;
@@ -303,7 +306,7 @@ function metaPartsOf(box: Box, day: string, nearShown: boolean): string[] {
     if (box.log === null || lived !== day) {
         const near: string = !nearShown || box.deadline === "" || box.state !== "open" ? "" : nearOf(box, day);
         const done: string = lived === "" ? "done" : `done ${weekdayTextOf(lived)}`;
-        const open: string = [near, expected, box.state === "done" ? done : box.location, pushes]
+        const open: string = [near, expected, box.state === "done" ? done : labelOf(box.location), pushes]
             .filter((part: string): boolean => part !== "").join(" · ");
         return open === "" ? [] : [open];
     }

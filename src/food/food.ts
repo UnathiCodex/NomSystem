@@ -16,6 +16,7 @@
  * - `./foods.ts`: Loads the meals of a day, writes amounts and makes elements.
  * - `./search.ts`: Finds foods, mine first, then on Open Food Facts, and adds new ones.
  * - `../day/trackers.ts`: Loads the trackers of a day, for its water.
+ * - `../day/places.ts`: Gives the name of the place of a meal.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader and a day out with its weekday.
  * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the food view on to the new day
  *   while it shows today.
@@ -27,6 +28,7 @@
 import { amountOf, elementOf, foodDayLoad } from "./foods.ts";
 import { foodSearchOf } from "./search.ts";
 import { trackersFetch } from "../day/trackers.ts";
+import { labelOf } from "../day/places.ts";
 import { dayOf, dayTextOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
 import { iconPut } from "../icons.ts";
@@ -154,7 +156,7 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
     start.href = `/?date=${shown}`;
     start.textContent = new Date(meal.start).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     if (meal.location !== "")
-        what.append(elementOf("span", "food-place", ` · ${meal.location}`));
+        what.append(elementOf("span", "food-place", ` · ${labelOf(meal.location)}`));
     head.append(start, what, elementOf("span", "", ""),
         elementOf("span", "food-kcal", meal.foods.length > 0 ? amountTextOf(meal.kcal, "kcal", meal.estimate) : ""));
 

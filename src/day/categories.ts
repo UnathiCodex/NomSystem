@@ -18,7 +18,9 @@
  * a box of the plan offers all but those I don't plan, `Sleep`, `Food`, `Cook`, `Drink` and `Game`.
  * Each list comes from the log, the most used first, searched as I type, see `choices.ts`;
  * the typed text can be added as a new value, which is then picked, but to the what of `Sleep`, which takes no new one.
- * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first;
+ * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first,
+ * each by its name, like `TumMain`; a picked one is written with its address, as one line,
+ * like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, which shows below its list, opening it in Google Maps;
  * a new place is added with its address through a small dialog before it is picked, see `places.ts`.
  * `From` starts where the last way before the entry ended.
  * An entry of the log has a day like `13.10.2026`, the calendar date of its start, typed to move it to any other day,
@@ -55,7 +57,7 @@
 import { choiceOf, choicesOf, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealAfterCookAdd } from "./entries.ts";
 import { foodName, mealDishFill, mealFoods, mealOf, mealTitle } from "./meal.ts";
-import { placeOpen, placesStart } from "./places.ts";
+import { labelOf, mapsAddressOf, placeOpen, placesStart } from "./places.ts";
 import { skillFieldsShow, skillModuleType, skillReady, skillSave } from "./skill.ts";
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
@@ -398,24 +400,60 @@ function stepsShow(steps: HTMLElement, field: Field): void {
 }
 
 /**
+ * Makes the choice of a value of a field: a place by its name, see `labelOf` in `places.ts`,
+ * any other value as it is.
+ *
+ * @param field - Field of the value, like `To`
+ * @param value - Value, like `TumMain, Arcisstraße 21, 80333 München, Deutschland` or `Bahn`
+ * @returns Choice, like one showing `TumMain`
+ */
+function fieldChoiceOf(field: Field, value: string): Choice {
+    return field.key === "title" ? choiceOf(value) : { value: value, text: labelOf(value), group: "" };
+}
+
+/**
+ * Shows the whole line of the place picked in a field below its list, as a link that opens it in Google Maps
+ * in a new tab, see `mapsAddressOf` in `places.ts`; hides it while no place is picked, for a field that is no place,
+ * and for an older place written by its name alone, like `HomeMunich`, which has no address to show.
+ *
+ * @param address - Place of the line below the picker of the field
+ * @param field - Field, like `To`
+ */
+function addressShow(address: HTMLAnchorElement, field: Field): void {
+    const line: string = values[field.key];
+    address.textContent = line;
+    address.href = mapsAddressOf(line);
+    address.hidden = field.key === "title" || line === labelOf(line);
+}
+
+/**
  * Shows one picker per field of the category picked, see {@link choicesOf}: its values, the most used first,
  * searched as I type, the typed text taken as a new value with `+`, see {@link valueAdd}, but in a field
  * that takes no new values, like the what of `Sleep`,
  * a new place only once it is saved with its address in the dialog of a new place, see `placeOpen` in `places.ts`;
+ * a place by its name, its whole line below its picker, see {@link addressShow};
  * below the picker of a field whose values have steps, the steps of the value picked, see {@link stepsShow};
  * for a cooking below them the meal eaten right after it, see {@link eatenRowOf}, and for `Body` my neck pain,
  * shown while `Neck long` is picked, see {@link painRowOf}.
  * The what of a meal fills in the foods its dish held the last time, while the meal lists none, see `meal.ts`.
- * - `rows`: Row of each field, and below it the place of its steps when its values have steps.
+ * - `rows`: Row of each field, and below it the line of its place when it is a place, and the place of its steps
+ *   when its values have steps.
+ * - `address`: Line of the place picked in a field.
  * - `steps`: Place of the steps of a field.
  */
 function fieldsShow(): void {
     const rows: HTMLElement[] = (chosen?.fields ?? []).flatMap((field: Field): HTMLElement[] => {
+        const address: HTMLAnchorElement = document.createElement("a");
         const steps: HTMLElement = document.createElement("ul");
+        address.className = "entry-address";
+        address.target = "_blank";
+        address.rel = "noopener";
+        addressShow(address, field);
         steps.className = "entry-steps";
         stepsShow(steps, field);
         const row: HTMLElement = rowOf(field.name, choicesOf({
-            search: (text: string): Promise<Choice[]> => searchOf(field.values.map(choiceOf))(text),
+            search: (text: string): Promise<Choice[]> =>
+                searchOf(field.values.map((value: string): Choice => fieldChoiceOf(field, value)))(text),
             picked: values[field.key] === "" ? [] : [values[field.key]],
             many: false,
             adding: !field.fixed,
@@ -427,11 +465,14 @@ function fieldsShow(): void {
                 if (chosen?.name === foodName && opened.target === "log" && field.key === "title"
                     && values.title !== "")
                     mealDishFill(values.title, saveAllow).catch((error: unknown): void => console.error(error));
+                addressShow(address, field);
                 stepsShow(steps, field);
                 document.getElementById("entry-pain")?.toggleAttribute("hidden", !neckLongPicked());
                 saveAllow();
             },
         }));
+        if (field.key !== "title")
+            return [row, address];
         return Object.keys(field.steps).length > 0 ? [row, steps] : [row];
     });
     document.getElementById("entry-fields")?.replaceChildren(...rows, ...eatenRowOf(), ...painRowOf());
