@@ -13,7 +13,9 @@
  * A third column, `Link`, may hold a link of a place, like `https://nav.tum.de/room/0509.EG.980`, which an entry
  * writes with it as the standard parameter `ALTREP` of its `LOCATION`, see {@link placeLinkOf}.
  * The file starts without places: I add each place with its address from the dialog of the day the first time
- * I need it, and the reader creates the file with that first place.
+ * I need it, and the reader creates the file with that first place; the pencil below a place picked in the dialog
+ * changes its row, its name, its address and its link, see {@link placeChange}, while every entry written before
+ * keeps the line and the link it had.
  *
  * - `node:fs`: Reads and writes `Places.md`.
  * - `node:path`: Gives the folder of `Places.md`.
@@ -33,6 +35,21 @@ import { day, writeAllowed } from "./sources.ts";
  * - `link`: Its link, like `https://nav.tum.de/room/0509.EG.980`, a web address without spaces; empty for none.
  */
 export type Place = {
+    name: string;
+    address: string;
+    link: string;
+};
+
+/**
+ * A changed place, as the page sends it.
+ *
+ * - `old`: Name of the place as it was, like `TumMain`.
+ * - `name`: Its name as typed, maybe new, like `TumStammgelände`.
+ * - `address`: Its address as typed.
+ * - `link`: Its link as typed, empty for none.
+ */
+export type PlaceChanged = {
+    old: string;
     name: string;
     address: string;
     link: string;
@@ -122,13 +139,70 @@ export function placesRead(): Place[] {
 }
 
 /**
- * Adds a place to `Places.md` as the last row of its table, with its link or an empty cell, every other line
- * staying as it is, but a head of only two columns, which gets the column `Link`;
- * creates `Places.md` with the head of its table, see {@link fileHead}, when it does not exist yet.
- * Cleans name, address and link, see {@link cellOf}.
- * - `added`: The place as written.
+ * Cleans a place as the page sends it, see {@link cellOf}, and checks it against my other places.
+ * - `clean`: The place cleaned.
+ *
+ * @param sent - Place as the page sends it, its name, its address and its link as typed
+ * @param others - My other places, whose names it may not have
+ * @returns The place cleaned
+ * @throws {Error} - When the name or the address is empty, the name holds a comma, another place has the name,
+ *   ignoring case, or the link is no web address
+ */
+function placeCleanOf(sent: Place, others: Place[]): Place {
+    const clean: Place = {
+        name: cellOf(String(sent.name ?? "")), address: cellOf(String(sent.address ?? "")),
+        link: cellOf(String(sent.link ?? "")),
+    };
+    if (clean.name === "" || clean.name.includes(",")
+        || others.some((mine: Place): boolean => mine.name.toLowerCase() === clean.name.toLowerCase()))
+        throw new Error(`No new name of a place: ${clean.name}`);
+    if (clean.address === "")
+        throw new Error(`No address of ${clean.name}`);
+    if (clean.link !== "" && !linkForm.test(clean.link))
+        throw new Error(`No link of ${clean.name}: ${clean.link}`);
+    return clean;
+}
+
+/**
+ * Reads the lines of `Places.md` to write a place into, a head of only two columns given the column `Link`;
+ * those of a new file, the head of its table, see {@link fileHead}, when it does not exist yet.
  * - `lines`: Lines of `Places.md`.
  * - `first`, `last`: Index of the first line of its table, its header, and of its last.
+ *
+ * @returns Lines of `Places.md`
+ * @throws {Error} - When `Places.md` lies outside the new system or holds no table
+ */
+function placeLinesRead(): string[] {
+    if (!writeAllowed(day.places))
+        throw new Error(`No writing outside the new system: ${day.places}`);
+    const lines: string[] = existsSync(day.places) ? readFileSync(day.places, "utf8").split("\n") : [...fileHead, ""];
+    const first: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
+    const last: number = lines.findLastIndex((line: string): boolean => line.startsWith("|"));
+    if (first === -1 || last === first)
+        throw new Error(`No table in ${day.places}`);
+    if (lines[first].split("|").length - 2 < 3) {
+        lines[first] = `${lines[first].trimEnd()} Link |`;
+        lines[first + 1] = `${lines[first + 1].trimEnd()}---|`;
+    }
+    return lines;
+}
+
+/**
+ * Writes a place as a row of the table of `Places.md`.
+ *
+ * @param place - Place cleaned
+ * @returns Row like `| TumMain | Arcisstraße 21, 80333 München, Deutschland | https://nav.tum.de |`
+ */
+function rowOf(place: Place): string {
+    return `| ${place.name} | ${place.address} | ${place.link} |`;
+}
+
+/**
+ * Adds a place to `Places.md` as the last row of its table, with its link or an empty cell, every other line
+ * staying as it is, see {@link placeLinesRead}; creates `Places.md` when it does not exist yet.
+ * - `added`: The place as written, cleaned, see {@link placeCleanOf}.
+ * - `lines`: Lines of `Places.md`.
+ * - `last`: Index of the last line of its table.
  *
  * @param sent - Place as the page sends it, its name, its address and its link as typed
  * @returns The place as written
@@ -136,32 +210,41 @@ export function placesRead(): Place[] {
  *   ignoring case, the link is no web address, or `Places.md` lies outside the new system or holds no table
  */
 export function placeAdd(sent: Place): Place {
-    const added: Place = {
-        name: cellOf(String(sent.name ?? "")), address: cellOf(String(sent.address ?? "")),
-        link: cellOf(String(sent.link ?? "")),
-    };
-    if (added.name === "" || added.name.includes(",")
-        || placesRead().some((mine: Place): boolean => mine.name.toLowerCase() === added.name.toLowerCase()))
-        throw new Error(`No new name of a place: ${added.name}`);
-    if (added.address === "")
-        throw new Error(`No address of ${added.name}`);
-    if (added.link !== "" && !linkForm.test(added.link))
-        throw new Error(`No link of ${added.name}: ${added.link}`);
-    if (!writeAllowed(day.places))
-        throw new Error(`No writing outside the new system: ${day.places}`);
-
-    const lines: string[] = existsSync(day.places) ? readFileSync(day.places, "utf8").split("\n") : [...fileHead, ""];
-    const first: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
+    const added: Place = placeCleanOf(sent, placesRead());
+    const lines: string[] = placeLinesRead();
     const last: number = lines.findLastIndex((line: string): boolean => line.startsWith("|"));
-    if (first === -1 || last === first)
-        throw new Error(`No table in ${day.places}`);
-
-    if (lines[first].split("|").length - 2 < 3) {
-        lines[first] = `${lines[first].trimEnd()} Link |`;
-        lines[first + 1] = `${lines[first + 1].trimEnd()}---|`;
-    }
-    lines.splice(last + 1, 0, `| ${added.name} | ${added.address} | ${added.link} |`);
+    lines.splice(last + 1, 0, rowOf(added));
     mkdirSync(dirname(day.places), { recursive: true });
     writeFileSync(day.places, lines.join("\n"));
     return added;
+}
+
+/**
+ * Changes my place of a name in `Places.md`, its name, its address and its link, in its own row, every other line
+ * staying as it is, see {@link placeLinesRead}; every entry written before keeps the line and the link it had,
+ * since each writes its place itself.
+ * - `old`: The old name in small letters, as names compare, ignoring case.
+ * - `changed`: The place as written, cleaned, see {@link placeCleanOf}.
+ * - `lines`: Lines of `Places.md`.
+ * - `first`: Index of the first line of its table, its header.
+ * - `row`: Index of the row of the place, -1 for none.
+ *
+ * @param sent - The place as the page sends it, its old name and its name, address and link as typed
+ * @returns The place as written
+ * @throws {Error} - When no place has the old name, the name or the address is empty, the name holds a comma,
+ *   another place has the name, ignoring case, the link is no web address, or `Places.md` lies outside the new system
+ */
+export function placeChange(sent: PlaceChanged): Place {
+    const old: string = String(sent.old ?? "").toLowerCase();
+    const changed: Place = placeCleanOf(sent, placesRead().filter((mine: Place): boolean =>
+        mine.name.toLowerCase() !== old));
+    const lines: string[] = placeLinesRead();
+    const first: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
+    const row: number = lines.findIndex((line: string, index: number): boolean => index >= first + tableHead
+        && line.startsWith("|") && (line.split("|")[1] ?? "").trim().toLowerCase() === old);
+    if (old === "" || row === -1)
+        throw new Error(`No place of the name: ${sent.old}`);
+    lines[row] = rowOf(changed);
+    writeFileSync(day.places, lines.join("\n"));
+    return changed;
 }

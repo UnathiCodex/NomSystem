@@ -339,7 +339,7 @@ export type SkillEntryNew = {
 /**
  * A changed skill entry of the log, as the entry by category sends it: a {@link SkillEntryNew}
  * with the identifier `id` of the entry, whose `attempts` are only the new ones, added after those it has;
- * its place and its box stay as they are.
+ * its box stays as it is, and its place keeps its link while it stays the same place.
  */
 export type SkillEntryChange = SkillEntryNew & { id: string };
 
@@ -1057,12 +1057,13 @@ function tasksOf(values: string[]): string[] {
 /**
  * Checks a skill entry before it is written: one of the types, the type it had, like an older `DEV` no longer
  * offered, or none, a module with a folder or a project, chapters among the module's or among those the entry had,
- * attempts at tasks of its module only, and an end after the start.
+ * new attempts at tasks of its module only, and an end after the start; the attempts a changed entry has keep
+ * their task, also once I changed its skill.
  * - `offered`: Chapters of the module, see `notes.ts`.
  * - `unknown`: First chapter that is neither offered nor kept.
  *
  * @param entry - Skill entry as the page sends it
- * @param values - `X-ATTEMPT`s it will hold
+ * @param values - Its new `X-ATTEMPT`s
  * @param kept - Chapters the entry had, none for a new entry
  * @param keptType - Type the entry or the box it is logged from had, like `DEV`, empty for none
  * @throws {Error} - When one of these does not hold
@@ -1126,15 +1127,19 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
 }
 
 /**
- * Changes a skill entry of the log from the entry by category: its type, module, chapters, documents, note and times,
- * and adds the new attempts after those it has, every other line as it is; the entry moves into the month file
- * of its new start when that is another file. Its links follow its skill, chapters, documents and topics, see `linksOf`
- * in `documents.ts`: a document it had keeps its link with its fingerprint, a new one gets its own; the `X-CHAPTER`s
- * of an older entry go, but for a chapter whose folder is gone.
+ * Changes a skill entry of the log from the entry by category: its type, module, place, semester, chapters,
+ * documents, note and times, and adds the new attempts after those it has, every other line as it is; the entry moves
+ * into the month file of its new start when that is another file. What it is, its `SUMMARY`, follows its skill
+ * and type, see `titleOf` in `documents.ts`, and its links its skill, chapters, documents and topics, see `linksOf`
+ * there: a document it had keeps its link with its fingerprint, a new one gets its own; the `X-CHAPTER`s
+ * of an older entry go, but for a chapter whose folder is gone. Its place keeps its link while it stays the same,
+ * see `placeLinkOf` in `places.ts`.
  * - `file`: `.ics` file of the entry.
  * - `old`: The entry as it is.
  * - `tasks`: Tasks of the modules of the semester.
+ * - `added`: `X-ATTEMPT`s of the new attempts.
  * - `values`: `X-ATTEMPT`s it has, then the new ones.
+ * - `worked`: Identities of the tasks of its attempts and tutors at tasks of its skill, whose chapters it covered.
  *
  * @param change - Changed skill entry as the page sends it
  * @throws {Error} - When there is no such skill entry in the log of the new system, a new attempt is not right,
@@ -1146,11 +1151,13 @@ export function skillEntryEdit(change: SkillEntryChange): void {
     if (!old.editable || old.category !== skillName)
         throw new Error(`${old.title} is no skill entry of the new system`);
     const tasks: Task[] = tasksRead();
-    const values: string[] = [...old.attempts,
-        ...change.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks, ""))];
-    skillEntryCheck(change, values, chaptersOf(old), old.type);
+    const added: string[] = change.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks, ""));
+    const values: string[] = [...old.attempts, ...added];
+    skillEntryCheck(change, added, chaptersOf(old), old.type);
 
-    const chapters: string[] = chaptersWith(change.chapters, [...tasksOf(values), ...old.tutors], tasks);
+    const worked: string[] = [...tasksOf(values), ...old.tutors]
+        .filter((task: string): boolean => task.split("/")[0] === change.module);
+    const chapters: string[] = chaptersWith(change.chapters, worked, tasks);
     propertiesPut(file, old.id, [
         ["x-chapter", chaptersUnlinkedOf(change.module, chapters)],
         ["attach", linksOf(change.module, change.documents, chapters, change.topics, old.links)],
@@ -1158,8 +1165,8 @@ export function skillEntryEdit(change: SkillEntryChange): void {
     ]);
     const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" });
     entryChange(file, old, {
-        category: skillName, title: title, titleLink: titleLink, location: old.location,
-        locationLink: old.locationLink, from: "",
+        category: skillName, title: title, titleLink: titleLink, location: change.location,
+        locationLink: placeLinkOf(change.location, old), from: "",
         module: change.module, type: change.type,
         semester: semesterFor(skillName, change.semester, berlinDateOf(new Date(change.start))),
         note: change.note.trim(),

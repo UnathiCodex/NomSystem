@@ -14,11 +14,11 @@
  * A dish, the what of `Food` and `Cook`, names its foods parted by `, `, like `Reis, Bohnen, Eier`.
  * `Sleep` takes only two whats, `Night` and `Day`, a nap, see {@link sleepWhats}, and no new ones,
  * so the sleep tracker tells a nap from a night, see `trackers.ts`.
- * `Skill` is a category without such fields: in plan and log a skill, a module by its code or a project by its name,
- * and a type or none, written as the folder of its skill with the type in brackets,
- * like `IN2028_BusinessAnalyticsMachineLearning (VO)` or `WokFlow`, see `activeSkills` in `sources.ts`
- * and {@link skillTypes};
- * in the log also its chapters, its document and its attempts, which only the skill area writes, see `skill.ts`.
+ * `Skill` has only the field `Place`, like the room of a lecture: in plan and log a skill, a module by its code
+ * or a project by its name, and a type or none, which the dialog picks itself, written as the folder of its skill
+ * with the type in brackets, like `IN2028_BusinessAnalyticsMachineLearning (VO)` or `WokFlow`,
+ * see `activeSkills` in `sources.ts` and {@link skillTypes};
+ * in the log also its topics and its attempts, which only the skill area writes, see `skill.ts`.
  * A box of the plan takes only what I intend and would otherwise forget, so not `Sleep`, `Food`, `Cook`, `Drink`
  * and `Game`, which happen anyway, see {@link unplannedNames}; `Watch` stays, since a cinema or a match has its time.
  *
@@ -141,8 +141,8 @@ function categoryOf(name: string, routines: { [what: string]: string[] }): Categ
 /**
  * Category of skill entries, written as `CATEGORIES:Skill`: in plan and log a skill and a type or none,
  * both in its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `skillPartsOf` in `calendar.ts`,
- * which names the category,
- * in the log also its chapters, its document and its attempts, which only the skill area writes.
+ * which names the category, and its place,
+ * in the log also its topics and its attempts, which only the skill area writes.
  */
 export { skillName };
 
@@ -177,7 +177,7 @@ const unplannedNames: string[] = ["Sleep", "Food", "Cook", "Drink", "Game"];
  * Categories with their fields, in the order of their importance for my life, the one order of every list of them.
  */
 const categories: Category[] = [
-    { name: skillName, fields: [] },
+    { name: skillName, fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false }] },
     {
         name: "Sleep",
         fields: [

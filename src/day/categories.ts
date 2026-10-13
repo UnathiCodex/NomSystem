@@ -1,8 +1,11 @@
 /**
  * ## Categories
  *
- * Writes plan and log the same way, by category: pick the category from the list at the left of the dialog,
- * then each of its fields from its own list, then save; Esc or a click beside the dialog closes it without saving.
+ * Writes plan and log the same way, by category, in one column of rows, each its name at the left, all names
+ * equally wide, and one line showing its value, like `Skill  IN2028`, see `choices.ts`: the category first,
+ * then each of its fields, a click on a line opening its one list on top, then save; Esc closes an open list,
+ * else the dialog, and a click beside the dialog closes it without saving. A new entry opens with the list
+ * of the categories open.
  * A `Way` is `By`, `From` and `To`, every other category `What` and `Place`, the what of `Sleep` only `Night` or `Day`,
  * a nap;
  * a value with steps shows them below its list while it is picked, like the exercises of my neck routine in `Body`;
@@ -10,11 +13,10 @@
  * a meal with foods named by them, like `Haferflocken, Milch`, so its what only picks an earlier meal to fill them in,
  * and `Cook` below them one tap for the meal eaten right after it, which the reader adds with the cooking,
  * pointing to it.
- * `Skill` is a skill and a type or none, like `IN2028` and `VO` or the project `WokFlow`, in plan and log,
+ * `Skill` is a skill and a type or none side by side, like `IN2028` and `VO` or the project `WokFlow`, in plan and log,
  * written by the reader as the folder of its skill with the type in brackets, like
- * `IN2028_BusinessAnalyticsMachineLearning (VO)`; in the log also
- * the chapters it covered, the document it used and attempts at tasks, each with its result and my effort,
- * see `skill.ts`.
+ * `IN2028_BusinessAnalyticsMachineLearning (VO)`, its place and its semester; in the log also
+ * its topics and attempts at tasks, each with its result and my effort, see `skill.ts`.
  * Every entry can carry a free note, typed like start and end.
  * The categories come in the order the reader gives them, by their importance for my life;
  * a box of the plan offers all but those I don't plan, `Sleep`, `Food`, `Cook`, `Drink` and `Game`.
@@ -22,9 +24,11 @@
  * the typed text can be added as a new value, which is then picked, but to the what of `Sleep`, which takes no new one.
  * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first,
  * each by its name, like `TumMain`; a picked one is written with its address, as one line,
- * like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, which shows below its list, opening the link
- * of the place, its `ALTREP`, or else Google Maps; a new place is added with its address and maybe its link
- * through a small dialog before it is picked, see `places.ts`.
+ * like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, which shows below its line, opening the link
+ * of the place, its `ALTREP`, or else Google Maps, with a pencil beside it that changes my place in `Places.md`,
+ * its name, its address and its link, while entries written before keep the address they had;
+ * a new place is added with its address and maybe its link through a small dialog before it is picked,
+ * see `places.ts`.
  * `From` starts where the last way before the entry ended.
  * An entry of the log has a start and an end, each a day like `13.10.2026` and a plain time, as calendar apps
  * write them: the day of the start, its calendar date, typed to move it to any other day, and the day of the end,
@@ -44,28 +48,30 @@
  * a box logged at its real time by dragging it into the log, or as expected by a tap, needs no dialog,
  * see `boxes.ts`.
  *
- * - `./choices.ts`: Pickers, in rows with their names.
+ * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top.
  * - `./entries.ts`: Sends new, changed and removed entries to the reader.
  * - `./meal.ts`: The foods of a meal, the fields of `Food` below what and place.
- * - `./places.ts`: The dialog of a new place, which adds it with its address to `Places.md`.
- * - `./skill.ts`: The fields of `Skill`: skill and type, and in the log chapters, document and attempts.
+ * - `./places.ts`: The dialog of a place, which adds a new one with its address to `Places.md` or changes mine.
+ * - `./skill.ts`: The fields of `Skill`: skill and type, place, semester, and in the log topics and attempts.
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
  *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
  * - `../icons.ts`: Shows icons in the buttons of the dialog, its words as tooltip.
- * - `lucide`: The icons save, cancel and remove.
+ * - `lucide`: The icons save, cancel, remove and the pencil of a place.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
 import { choiceOf, choicesOf, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealAfterCookAdd } from "./entries.ts";
 import { foodName, mealDishFill, mealFoods, mealOf, mealTitle } from "./meal.ts";
-import { labelOf, lineOf, mapsAddressOf, placeOpen, placesStart } from "./places.ts";
-import { skillDaySet, skillFieldsShow, skillModuleType, skillReady, skillSave, skillSemesterOf } from "./skill.ts";
+import { labelOf, lineOf, mapsAddressOf, placeEdit, placeOpen, placesStart } from "./places.ts";
+import {
+    skillDaySet, skillFieldsShow, skillModuleType, skillPlaceShow, skillReady, skillSave, skillSemesterOf,
+} from "./skill.ts";
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
-import { Check, CircleQuestionMark, Trash2, X } from "lucide";
+import { Check, CircleQuestionMark, Pencil, Trash2, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -430,25 +436,115 @@ function openedLinkOf(): string {
 }
 
 /**
- * Shows the whole line of the place picked in a field below its list, as a link that opens in a new tab
- * the link of the place: the one the place of the entry kept, its `ALTREP`, while it stays picked, else the link
- * of my place in `Places.md`, else Google Maps, see `mapsAddressOf` in `places.ts`; hides it while no place
- * is picked, for a field that is no place, and for an older place written by its name alone, like `HomeMunich`,
- * which has no address to show, unless it has a link.
+ * Gives my place of `Places.md` that the place picked in a field is, by its name, as its field offers it.
+ *
+ * @param field - Field of a place, like `To`
+ * @returns The line of my place, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, `undefined` while
+ *   the place picked is none of mine, like an older place by its name alone, or nothing is picked
+ */
+function mineOf(field: Field): string | undefined {
+    const line: string = values[field.key];
+    return line === "" ? undefined : field.values.find((value: string): boolean => labelOf(value) === labelOf(line));
+}
+
+/**
+ * Shows the line of the place picked in a field below its field: its whole line, as a link that opens in a new tab
+ * the link of the place, the one the place of the entry kept, its `ALTREP`, while it stays picked, else the link
+ * of my place in `Places.md`, else Google Maps, see `mapsAddressOf` in `places.ts`, and the pencil that changes
+ * my place, while it is one of mine, see {@link placeChange}; hides the line while no place is picked,
+ * for a field that is no place, and for an older place written by its name alone, like `HomeMunich`,
+ * which has no address to show, unless it has a link or is one of mine.
+ * - `address`: The link of the line.
+ * - `pencil`: The pencil.
  * - `line`: The place picked.
  * - `kept`: The link of the place the entry kept, empty for none.
  * - `link`: The link to open, empty for Google Maps.
  *
- * @param address - Place of the line below the picker of the field
+ * @param place - Line below the field, see {@link placeLineOf}
  * @param field - Field, like `To`
  */
-function addressShow(address: HTMLAnchorElement, field: Field): void {
+function placeLineShow(place: HTMLElement, field: Field): void {
+    const address: HTMLAnchorElement = place.querySelector(".entry-address") as HTMLAnchorElement;
+    const pencil: HTMLButtonElement = place.querySelector(".entry-place-edit") as HTMLButtonElement;
     const line: string = values[field.key];
     const kept: string = field.key === "location" && line === opened.values.location ? openedLinkOf() : "";
     const link: string = kept !== "" ? kept : field.links[line] ?? "";
     address.textContent = line;
     address.href = link !== "" ? link : mapsAddressOf(line);
-    address.hidden = field.key === "title" || line === "" || (line === labelOf(line) && link === "");
+    pencil.hidden = mineOf(field) === undefined;
+    place.hidden = field.key === "title" || line === ""
+        || (line === labelOf(line) && link === "" && pencil.hidden);
+}
+
+/**
+ * Makes the line of the place picked in a field, below its field, see {@link placeLineShow}: its whole line
+ * and the pencil, which changes my place, see {@link placeChange}.
+ * - `place`: The line.
+ * - `address`: Its link.
+ * - `pencil`: Its pencil.
+ *
+ * @param field - Field of a place, like `To`
+ * @returns The line
+ */
+function placeLineOf(field: Field): HTMLElement {
+    const place: HTMLDivElement = document.createElement("div");
+    const address: HTMLAnchorElement = document.createElement("a");
+    const pencil: HTMLButtonElement = document.createElement("button");
+    place.className = "entry-place-line";
+    address.className = "entry-address";
+    address.target = "_blank";
+    address.rel = "noopener";
+    pencil.type = "button";
+    pencil.className = "entry-place-edit";
+    iconPut(pencil, Pencil, "Change the place in Places.md");
+    pencil.addEventListener("click", (): void => {
+        placeChange(field).catch(errorShow);
+    });
+    place.append(address, pencil);
+    placeLineShow(place, field);
+    return place;
+}
+
+/**
+ * Changes my place picked in a field in `Places.md`, its name, its address and its link, through the dialog
+ * of a place, see `placeEdit` in `places.ts`: every field of a place then offers it as changed, with its link,
+ * and every field of the dialog that picked it picks it as changed, so the entry saves its new line;
+ * entries written before keep the address they had. Then the fields show again.
+ * - `old`: The line of my place as it was.
+ * - `changed`: The place as written, `null` when the dialog closed without saving.
+ * - `line`: Its new line.
+ *
+ * @param field - Field of the place, like `Place`
+ * @throws {Error} - When the reader does not answer
+ */
+async function placeChange(field: Field): Promise<void> {
+    const old: string | undefined = mineOf(field);
+    if (old === undefined)
+        return;
+    const changed: Place | null = await placeEdit({
+        name: labelOf(old), address: old.includes(",") ? old.slice(old.indexOf(",") + 1).trim() : "",
+        link: field.links[old] ?? "",
+    });
+    if (changed === null)
+        return;
+    const line: string = lineOf(changed);
+    categories.flatMap((category: Category): Field[] => category.fields)
+        .filter((other: Field): boolean => other.key !== "title")
+        .forEach((other: Field): void => {
+            other.values = other.values.map((value: string): string => value === old ? line : value);
+            delete other.links[old];
+            if (changed.link !== "")
+                other.links[line] = changed.link;
+        });
+    (Object.keys(values) as FieldKey[])
+        .filter((key: FieldKey): boolean => key !== "title" && labelOf(values[key]) === labelOf(old))
+        .forEach((key: FieldKey): void => {
+            values[key] = line;
+        });
+    if (chosen?.name === skillName)
+        skillPlaceShow(placeRowsOf());
+    else
+        fieldsShow();
 }
 
 /**
@@ -473,55 +569,67 @@ async function placeAdd(name: string): Promise<string | null> {
 }
 
 /**
- * Shows one picker per field of the category picked, see {@link choicesOf}: its values, the most used first,
- * searched as I type, the typed text taken as a new value with `+`, see {@link valueAdd}, but in a field
- * that takes no new values, like the what of `Sleep`,
+ * Builds the rows of a field of the category picked: its name and one line showing its value, see {@link choicesOf},
+ * whose list offers its values, the most used first, searched as I type, the typed text taken as a new value
+ * with `+`, see {@link valueAdd}, but in a field that takes no new values, like the what of `Sleep`,
  * a new place only once it is saved with its address in the dialog of a new place, see `placeOpen` in `places.ts`;
- * a place by its name, its whole line below its picker, see {@link addressShow};
- * below the picker of a field whose values have steps, the steps of the value picked, see {@link stepsShow};
- * for a cooking below them the meal eaten right after it, see {@link eatenRowOf}, and for `Body` my neck pain,
- * shown while `Neck long` is picked, see {@link painRowOf}.
+ * a place by its name, its whole line and its pencil below its field, see {@link placeLineOf};
+ * below the field of values that have steps, the steps of the value picked, see {@link stepsShow}.
  * The what of a meal fills in the foods its dish held the last time, while the meal lists none, see `meal.ts`.
- * - `rows`: Row of each field, and below it the line of its place when it is a place, and the place of its steps
- *   when its values have steps.
- * - `address`: Line of the place picked in a field.
- * - `steps`: Place of the steps of a field.
+ * - `place`: Line of the place picked in the field.
+ * - `steps`: Place of the steps of the field.
+ * - `row`: Its name and its line.
+ *
+ * @param field - Field of the category picked, like `Place`
+ * @returns Its row, and below it the line of its place when it is a place, the steps when its values have steps
+ */
+function fieldRowsOf(field: Field): HTMLElement[] {
+    const place: HTMLElement = placeLineOf(field);
+    const steps: HTMLElement = document.createElement("ul");
+    steps.className = "entry-steps";
+    stepsShow(steps, field);
+    const row: HTMLElement = rowOf(field.name, choicesOf({
+        search: (text: string): Promise<Choice[]> =>
+            searchOf(field.values.map((value: string): Choice => fieldChoiceOf(field, value)))(text),
+        picked: values[field.key] === "" ? [] : [values[field.key]],
+        many: false,
+        adding: !field.fixed,
+        add: field.key === "title" ? undefined : placeAdd,
+        pick: (picked: string[]): void => {
+            values[field.key] = picked[0] ?? "";
+            if (values[field.key] !== "")
+                valueAdd(field, values[field.key]);
+            if (chosen?.name === foodName && opened.target === "log" && field.key === "title" && values.title !== "")
+                mealDishFill(values.title, saveAllow).catch((error: unknown): void => console.error(error));
+            placeLineShow(place, field);
+            stepsShow(steps, field);
+            document.getElementById("entry-pain")?.toggleAttribute("hidden", !neckLongPicked());
+            saveAllow();
+        },
+    }));
+    if (field.key !== "title")
+        return [row, place];
+    return Object.keys(field.steps).length > 0 ? [row, steps] : [row];
+}
+
+/**
+ * Builds the rows of the place of a skill entry, the one field of `Skill` from the reader, see {@link fieldRowsOf},
+ * which `skill.ts` shows after the times.
+ *
+ * @returns The row of the place and the line below it, none before `Skill` is picked
+ */
+function placeRowsOf(): HTMLElement[] {
+    return (chosen?.fields ?? []).flatMap(fieldRowsOf);
+}
+
+/**
+ * Shows the fields of the category picked, each its rows, see {@link fieldRowsOf}, one below the other before
+ * the times; for a cooking below them the meal eaten right after it, see {@link eatenRowOf}, and for `Body`
+ * my neck pain, shown while `Neck long` is picked, see {@link painRowOf}.
  */
 function fieldsShow(): void {
-    const rows: HTMLElement[] = (chosen?.fields ?? []).flatMap((field: Field): HTMLElement[] => {
-        const address: HTMLAnchorElement = document.createElement("a");
-        const steps: HTMLElement = document.createElement("ul");
-        address.className = "entry-address";
-        address.target = "_blank";
-        address.rel = "noopener";
-        addressShow(address, field);
-        steps.className = "entry-steps";
-        stepsShow(steps, field);
-        const row: HTMLElement = rowOf(field.name, choicesOf({
-            search: (text: string): Promise<Choice[]> =>
-                searchOf(field.values.map((value: string): Choice => fieldChoiceOf(field, value)))(text),
-            picked: values[field.key] === "" ? [] : [values[field.key]],
-            many: false,
-            adding: !field.fixed,
-            add: field.key === "title" ? undefined : placeAdd,
-            pick: (picked: string[]): void => {
-                values[field.key] = picked[0] ?? "";
-                if (values[field.key] !== "")
-                    valueAdd(field, values[field.key]);
-                if (chosen?.name === foodName && opened.target === "log" && field.key === "title"
-                    && values.title !== "")
-                    mealDishFill(values.title, saveAllow).catch((error: unknown): void => console.error(error));
-                addressShow(address, field);
-                stepsShow(steps, field);
-                document.getElementById("entry-pain")?.toggleAttribute("hidden", !neckLongPicked());
-                saveAllow();
-            },
-        }));
-        if (field.key !== "title")
-            return [row, address];
-        return Object.keys(field.steps).length > 0 ? [row, steps] : [row];
-    });
-    document.getElementById("entry-fields")?.replaceChildren(...rows, ...eatenRowOf(), ...painRowOf());
+    document.getElementById("entry-fields")?.replaceChildren(...(chosen?.fields ?? []).flatMap(fieldRowsOf),
+        ...eatenRowOf(), ...painRowOf());
     saveAllow();
 }
 
@@ -537,12 +645,12 @@ async function wayEndLoad(): Promise<string> {
 }
 
 /**
- * Picks a category: shows its button picked and its fields, keeping the places picked under the category before.
+ * Picks a category: shows its fields, keeping the places picked under the category before.
  * A new entry of a category with the field `from` starts where the last way ended.
- * `Food` in the log shows its foods below its fields, those of the meal being changed,
- * see `meal.ts`; `Skill` shows its skill and type, and in the log its chapters, document and attempts, see `skill.ts`.
- * - `fields`: Place of the fields in the dialog.
- * - `meal`: Foods of a meal, put below the fields unless another category was picked meanwhile.
+ * `Food` in the log shows its foods after the times, those of the meal being changed, see `meal.ts`;
+ * `Skill` shows its skill and type before the times, and its place, topics, semester and attempts after them,
+ * see `skill.ts`.
+ * - `meal`: Foods of a meal, put after the times unless another category was picked meanwhile.
  *
  * @param category - Category to pick, or `null` for none yet
  * @throws {Error} - When the reader gives no valid answer
@@ -550,11 +658,10 @@ async function wayEndLoad(): Promise<string> {
 async function categoryPick(category: Category | null): Promise<void> {
     values = chosen === null ? { ...opened.values } : { ...valuesRead(), title: "" };
     chosen = category;
-    document.querySelectorAll<HTMLButtonElement>("#entry-categories button").forEach((button: HTMLButtonElement): void => {
-        button.classList.toggle("chosen", button.textContent === category?.name);
-    });
+    document.getElementById("entry-more")?.replaceChildren();
     if (category?.name === skillName) {
-        await skillFieldsShow(document.getElementById("entry-fields") as HTMLElement, opened.target === "box",
+        await skillFieldsShow(document.getElementById("entry-fields") as HTMLElement,
+            document.getElementById("entry-more") as HTMLElement, placeRowsOf(), opened.target === "box",
             opened.category === skillName ? opened.skill : skillNone, dayRead(), saveAllow);
         saveAllow();
         return;
@@ -566,31 +673,33 @@ async function categoryPick(category: Category | null): Promise<void> {
     if (category?.name === foodName && opened.target === "log") {
         const meal: HTMLElement = await mealOf(opened.category === foodName ? opened.foods : [], saveAllow);
         if (chosen === category)
-            document.getElementById("entry-fields")?.append(rowOf("Foods", meal));
+            document.getElementById("entry-more")?.append(rowOf("Foods", meal));
         saveAllow();
     }
 }
 
 /**
- * Shows one button per category in the dialog, one below the other at its left; for a box only the categories I plan.
- * While a log entry is changed, `Skill` stays apart: a skill entry cannot become another category,
- * nor another entry a skill entry, because only the skill area writes the chapters, document and attempts
- * of a skill entry of the log; a skill box is a plain box, which may change its category.
+ * Shows the category of the dialog as its first row, one line like every field, whose list offers the categories
+ * in the order the reader gives them, for a box only those I plan. While a log entry is changed, `Skill` stays apart:
+ * a skill entry cannot become another category, nor another entry a skill entry, because only the skill area writes
+ * the topics and attempts of a skill entry of the log; a skill box is a plain box, which may change its category.
+ * - `offered`: The categories the list offers.
  */
-function namesShow(): void {
-    const buttons: HTMLButtonElement[] = categories.filter((category: Category): boolean =>
-        opened.target === "log" || category.plan).map((category: Category): HTMLButtonElement => {
-        const button: HTMLButtonElement = document.createElement("button");
-        button.type = "button";
-        button.textContent = category.name;
-        button.disabled = opened.target === "log" && opened.entry !== null
-            && (category.name === skillName) !== (opened.category === skillName);
-        button.addEventListener("click", (): void => {
-            categoryPick(category).catch(errorShow);
-        });
-        return button;
-    });
-    document.getElementById("entry-categories")?.replaceChildren(...buttons);
+function categoryShow(): void {
+    const offered: Category[] = categories.filter((category: Category): boolean =>
+        (opened.target === "log" || category.plan) && !(opened.target === "log" && opened.entry !== null
+            && (category.name === skillName) !== (opened.category === skillName)));
+    document.getElementById("entry-category")?.replaceChildren(rowOf("Category", choicesOf({
+        search: searchOf(offered.map((category: Category): Choice => choiceOf(category.name))),
+        picked: chosen === null ? [] : [chosen.name],
+        many: false,
+        adding: false,
+        empty: "Pick one",
+        pick: (picked: string[]): void => {
+            categoryPick(offered.find((category: Category): boolean => category.name === picked[0]) ?? null)
+                .catch(errorShow);
+        },
+    })));
 }
 
 /**
@@ -611,8 +720,7 @@ function titleRead(picked: string): string {
 }
 
 /**
- * Reads the text fields of the dialog, as an entry of the log and a box have them.
- * A skill entry keeps the place it had, since `Skill` has no field of a place,
+ * Reads the text fields of the dialog, as an entry of the log and a box have them, a skill entry its place too,
  * like the room of a lecture imported into the plan.
  * - `picked`: Values picked in the lists.
  * - `skill`: Skill and type of a skill entry, empty for any other entry.
@@ -626,8 +734,7 @@ function textsRead(): BoxFields {
     return {
         category: chosen?.name ?? "",
         title: titleRead(picked.title),
-        location: chosen?.name === skillName && opened.category === skillName
-            ? opened.values.location : picked.location,
+        location: picked.location,
         from: picked.from,
         module: skill.module,
         type: skill.type,
@@ -900,9 +1007,8 @@ function timesShow(opening: EntryOpening): void {
 }
 
 /**
- * Shows the dialog as an opening says, each value picked in a long list scrolled into sight once the dialog shows,
- * like the dish of a meal being changed.
- * Above the categories, small and grey: `Plan` for a box, with `Log it` to log an open box being changed,
+ * Shows the dialog as an opening says, a new one without category with the list of the categories open.
+ * Above the category, small and grey: `Plan` for a box, with `Log it` to log an open box being changed,
  * or the box a log entry comes from, with `Edit plan` to change it instead, when it can be changed.
  * The first button, which the dialog focuses as it opens, loses the focus again, so its ring never looks like a pick.
  * - `dialog`: The dialog, open already when one of those two buttons opens it anew.
@@ -939,13 +1045,13 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     document.getElementById("entry-remove")?.toggleAttribute("hidden",
         opening.entry === null && (opening.box === null || opening.box.state === "done" || opening.box.series));
     document.getElementById("entry-error")?.setAttribute("hidden", "");
-    namesShow();
     await categoryPick(categories.find((category: Category): boolean => category.name === opening.category) ?? null);
+    categoryShow();
     if (!dialog.open)
         dialog.showModal();
     (document.activeElement as HTMLElement | null)?.blur();
-    document.querySelectorAll("#entry-fields .picker-list .chosen").forEach((chosen: Element): void =>
-        chosen.scrollIntoView({ block: "nearest" }));
+    if (chosen === null)
+        document.querySelector<HTMLButtonElement>("#entry-category .picker-line")?.click();
 }
 
 /**

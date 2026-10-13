@@ -20,7 +20,7 @@
  *   or `Holidays.ics`
  * - `./note.ts`: Reads the daily notes, and writes my gratitude and my paragraph about the day into them
  * - `./categories.ts`: Offers the categories with the values of their fields, and my places
- * - `./places.ts`: Adds a place with its address to `Places.md`
+ * - `./places.ts`: Adds a place with its address to `Places.md`, and changes one
  * - `./notes.ts`: Reads the modules of the semester, the notes and files of my modules and the links that lead nowhere,
  *   read only
  * - `./edit.ts`: Writes a draft note as I edited it, and keeps the change as a diff
@@ -46,7 +46,7 @@ import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush }
 import { giftWrite } from "./gifts.ts";
 import { calloutsRead, calloutWrite, noteRead } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
-import { placeAdd } from "./places.ts";
+import { placeAdd, placeChange } from "./places.ts";
 import { brokenLinksRead, fileRead, linkedNoteRead, modulesRead } from "./notes.ts";
 import { noteWrite } from "./edit.ts";
 import { systemFileRead, systemFileWrite, treeRead } from "./files.ts";
@@ -65,7 +65,7 @@ import type { BoxLogged, EntryChange, EntryNew } from "./day.ts";
 import type { BoxChange, BoxNew } from "./boxes.ts";
 import type { Gift } from "./gifts.ts";
 import type { CalloutNew } from "./note.ts";
-import type { Place } from "./places.ts";
+import type { Place, PlaceChanged } from "./places.ts";
 import type { NotesFile } from "./notes.ts";
 import type { NoteChange } from "./edit.ts";
 import type { AttemptNew, EffortNew, SkillEntryChange, SkillEntryNew } from "./skill.ts";
@@ -142,6 +142,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/day/gifts`: Writes the gift idea of the body for its birthday or holiday into its file,
  *   `Birthdays.ics` or `Holidays.ics`, or takes it out when it is empty.
  * - `POST /api/day/places`: Adds the place of the body with its address to `Places.md` and sends it as written.
+ * - `PATCH /api/day/places`: Changes the place of the old name of the body in `Places.md` and sends it as written.
  * - `GET /api/notes/modules`: Sends the modules of the semester with their chapters and notes.
  * - `GET /api/notes/note?path=…`: Sends a note with the files its links lead to.
  * - `GET /api/notes/file?path=…`: Sends a file of my modules, like an image of a note.
@@ -271,6 +272,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "POST" && url.pathname === "/api/day/places") {
         responseSend(response, 200, placeAdd(await json(request) as Place));
+
+    } else if (request.method === "PATCH" && url.pathname === "/api/day/places") {
+        responseSend(response, 200, placeChange(await json(request) as PlaceChanged));
 
     } else if (request.method === "GET" && url.pathname === "/api/notes/modules") {
         responseSend(response, 200, modulesRead());

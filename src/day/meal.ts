@@ -1,25 +1,29 @@
 /**
  * ## Meal in the entry by category
  *
- * The foods of a meal, below the what and the place of `Food`: the foods picked, each a row with its name,
- * its grams, its kcal and a button to remove it, the kcal of the whole meal below them, and the food search,
- * see `../food/search.ts`, which finds my foods first, then those of Open Food Facts.
- * A click on one of my foods picks it, and so does adding a product, which goes into `Foods.md` first.
+ * The foods of a meal, after the times of `Food`: one line like every field, the names of the foods picked,
+ * which opens the food search as its list on top, see `popOf` in `choices.ts` and `../food/search.ts`,
+ * which finds my foods first, then those of Open Food Facts; below the line the foods picked, each a row
+ * with its name, its grams, its kcal and a button to remove it, and the kcal of the whole meal below them.
+ * A click on one of my foods picks it and closes the list, and so does adding a product, which goes into
+ * `Foods.md` first.
  * Grams are optional: a food without them counts its usual portion, shown grey in its empty field,
  * so its kcal are an estimate, marked `≈`, and so is the sum that holds one, counted as the reader counts them.
- * Enter in a field of grams goes on to the search, for the next food.
+ * Enter in a field of grams opens the list again, for the next food.
  * Picking the what of a meal without foods yet fills in the foods the dish held the last time, to change as I ate it.
  * The dialog writes each food as a line `X-FOOD`, like `Reis;150`, `Döner;~400` with grams guessed,
  * or `Eier` without grams, and names a meal with foods by them, like `Reis, Eier`, see {@link mealTitle}.
  * A meal eaten out, where nothing can be weighed, I log by photo through Claude, who writes its entry through the reader;
  * the dialog itself takes no photo.
  *
+ * - `./choices.ts`: Opens the food search as a list on top of the dialog.
  * - `../food/foods.ts`: Finds my foods, writes amounts and makes elements.
  * - `../food/search.ts`: The food search.
  * - `../icons.ts`: Puts the icon of remove into the button of a row, its words as tooltip.
  * - `lucide`: The icon remove.
  */
 
+import { popOf } from "./choices.ts";
 import { amountOf, elementOf, foodsFind } from "../food/foods.ts";
 import { foodSearchOf } from "../food/search.ts";
 import { iconPut } from "../icons.ts";
@@ -60,9 +64,19 @@ let picks: FoodPick[] = [];
 let rows: HTMLElement = document.createElement("div");
 
 /**
- * Field of the food search, where Enter in a field of grams goes on.
+ * Field of the food search, focused as its list opens.
  */
 let search: HTMLInputElement | null = null;
+
+/**
+ * Line of the foods, the names of the foods picked, which opens the food search.
+ */
+let line: HTMLButtonElement = document.createElement("button");
+
+/**
+ * List on top with the food search, which the line opens.
+ */
+let pop: HTMLElement = document.createElement("div");
 
 
 /**
@@ -160,7 +174,8 @@ function foodRowOf(pick: FoodPick, changed: () => void): HTMLElement {
         if (event.key !== "Enter")
             return;
         event.preventDefault();
-        search?.focus();
+        if (!pop.matches(":popover-open"))
+            pop.showPopover();
     });
     grams.append(input, " g");
     remove.type = "button";
@@ -169,6 +184,7 @@ function foodRowOf(pick: FoodPick, changed: () => void): HTMLElement {
         picks = picks.filter((other: FoodPick): boolean => other !== pick);
         row.remove();
         sumShow();
+        lineShow();
         changed();
     });
     row.append(name, grams, kcal, remove);
@@ -192,17 +208,28 @@ function sumShow(): void {
 }
 
 /**
- * Shows the rows of the foods picked, then their sum.
+ * Shows the names of the foods picked in the line of the foods, like `Haferflocken, Milch`, or grey `None`.
+ */
+function lineShow(): void {
+    line.textContent = picks.length === 0 ? "None" : mealTitle();
+    line.title = mealTitle();
+    line.classList.toggle("picker-empty", picks.length === 0);
+}
+
+/**
+ * Shows the rows of the foods picked, then their sum, and their names in the line.
  *
  * @param changed - Tells the dialog that the foods changed
  */
 function rowsShow(changed: () => void): void {
     rows.replaceChildren(...picks.map((pick: FoodPick): HTMLElement => foodRowOf(pick, changed)));
     sumShow();
+    lineShow();
 }
 
 /**
- * Picks a food from the search, unless it is picked already, and puts the cursor into the field of its grams.
+ * Picks a food from the search, unless it is picked already, closes the list and puts the cursor into the field
+ * of its grams.
  *
  * @param food - Food picked or just added to `Foods.md`
  * @param changed - Tells the dialog that the foods changed
@@ -216,18 +243,21 @@ function foodPick(food: Food, changed: () => void): void {
         rowsShow(changed);
         changed();
     }
+    if (pop.matches(":popover-open"))
+        pop.hidePopover();
     rows.querySelectorAll<HTMLInputElement>(".meal-grams input")[index]?.focus();
 }
 
 /**
- * Builds the foods of a meal, see the top of this file, with the foods it lists already, after loading my foods.
+ * Builds the foods of a meal, see the top of this file, with the foods it lists already, after loading my foods:
+ * the line, its list on top with the food search, which focuses its field as it opens, and the foods picked.
  * - `found`: All my foods, as the search finds them for an empty text.
- * - `foods`: The foods picked above the search.
+ * - `foods`: The line, its list and the foods picked.
  * - `searchElement`: The food search.
  *
  * @param lines - Lines `X-FOOD` of the meal, like `Reis;150`; none for a new meal
  * @param changed - Tells the dialog that the foods changed
- * @returns The foods and the search, to put into a row of the dialog
+ * @returns The foods, to put into a row of the dialog
  * @throws {Error} - When the reader cannot answer
  */
 export async function mealOf(lines: string[], changed: () => void): Promise<HTMLElement> {
@@ -238,8 +268,13 @@ export async function mealOf(lines: string[], changed: () => void): Promise<HTML
     mine = new Map(found.foods.map((food: Food): [string, Food] => [food.name.toLowerCase(), food]));
     rows = elementOf("div", "meal-rows", "");
     search = searchElement.querySelector("input");
+    line = document.createElement("button");
+    pop = elementOf("div", "picker-pop meal-pop", "");
+    line.className = "picker-line";
+    pop.append(searchElement);
+    popOf(line, pop, (): void => search?.focus(), (): void => {});
     rowsShow(changed);
-    foods.append(rows, searchElement);
+    foods.append(line, pop, rows);
     return foods;
 }
 

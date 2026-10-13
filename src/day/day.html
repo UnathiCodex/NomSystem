@@ -63,81 +63,90 @@
     </aside>
 </div>
 
-<!-- Entry by category for the log and the boxes of the plan, shown over the page: at the left the categories
-     one below the other, then each field of the picked one from its own list; at the right the times, the note
-     and the buttons. Esc or a click beside it closes it without saving -->
+<!-- Entry by category for the log and the boxes of the plan, shown over the page, one column of rows, each its name
+     at the left, all names equally wide, and one line showing its value: the category first, then the fields
+     of the category, the times, more fields, the note and the buttons. A click on a line of a field opens its list
+     on top, see choices.ts. Esc or a click beside it closes it without saving -->
 <dialog class="panel entry-panel" id="entry" closedby="any">
-    <form class="entry-form" id="entry-form">
-        <!-- Categories, fixed in the reader, one below the other; the picked one light on grey -->
-        <div class="picker-list entry-categories" id="entry-categories"></div>
+    <form class="panel-form entry-form" id="entry-form">
+        <!-- Plan, small and grey: a box of the plan, which may be logged instead,
+             or the box the log entry comes from, which may be changed instead -->
+        <p class="entry-from-plan" id="entry-plan" hidden>
+            <span id="entry-plan-title"></span>
+            <button id="entry-plan-log" type="button" hidden>Log it</button>
+            <button id="entry-plan-edit" type="button" hidden>Edit plan</button>
+        </p>
 
-        <div class="panel-form">
-            <!-- Plan, small and grey: a box of the plan, which may be logged instead,
-                 or the box the log entry comes from, which may be changed instead -->
-            <p class="entry-from-plan" id="entry-plan" hidden>
-                <span id="entry-plan-title"></span>
-                <button id="entry-plan-log" type="button" hidden>Log it</button>
-                <button id="entry-plan-edit" type="button" hidden>Edit plan</button>
-            </p>
+        <!-- The category, one line; for a box only the categories I plan -->
+        <div id="entry-category"></div>
 
-            <!-- One list per field of the picked category, each ending with + New for a new value -->
-            <div class="panel-form" id="entry-fields"></div>
-        </div>
+        <!-- Fields before the times: what, place and where a way starts, or the skill and its type side by side -->
+        <div class="panel-form" id="entry-fields"></div>
 
-        <div class="panel-form">
-            <!-- Start and end of a log entry, one below the other, each its day and its time, as calendar apps
-                 write them: the day of the start like 13.10.2026, filled with the date of the entry, of the selected
-                 slot, or of the half hour before now for +; the times plain, like 14:00, 1415 or 14; the day of the end
-                 fills itself with the day of the start, or the day after while the end time lies at or before
-                 the start time, like 12.10.2026 23:30 to 13.10.2026 07:30, until I type over it;
-                 what the fields show is exactly what is saved -->
-            <fieldset class="picker-times picker-moments" id="entry-log-times">
-                <label class="picker-moment"><span class="picker-name">Start</span>
+        <!-- Start and end of a log entry, one row each, its day and its time, as calendar apps write them:
+             the day of the start like 13.10.2026, filled with the date of the entry, of the selected slot,
+             or of the half hour before now for +; the times plain, like 14:00, 1415 or 14; the day of the end
+             fills itself with the day of the start, or the day after while the end time lies at or before
+             the start time, like 12.10.2026 23:30 to 13.10.2026 07:30, until I type over it;
+             what the fields show is exactly what is saved -->
+        <fieldset class="panel-form entry-times" id="entry-log-times">
+            <label class="panel-field"><span class="entry-name">Start</span>
+                <span class="entry-moment">
                     <input class="date-field" id="entry-log-day" type="text" inputmode="decimal" autocomplete="off"
                            required aria-label="Day of the start">
                     <input class="time-field" id="entry-start" type="text" inputmode="numeric" autocomplete="off"
-                           required aria-label="Time of the start"></label>
-                <label class="picker-moment"><span class="picker-name">End</span>
+                           required aria-label="Time of the start"></span></label>
+            <label class="panel-field"><span class="entry-name">End</span>
+                <span class="entry-moment">
                     <input class="date-field" id="entry-end-day" type="text" inputmode="decimal" autocomplete="off"
                            required aria-label="Day of the end">
                     <input class="time-field" id="entry-end" type="text" inputmode="numeric" autocomplete="off"
-                           required aria-label="Time of the end"></label>
-            </fieldset>
+                           required aria-label="Time of the end"></span></label>
+        </fieldset>
 
-            <!-- Shown instead of start and end while the dialog writes a box: its day like 19.10.2026
-                 (the shown day for a new one), expected time and minutes like 90 (may stay empty, but an
-                 imported lecture keeps both), and a to-do's deadline day and time; a deadline day turns
-                 the day and the expected time off, since the box then lies on its deadline -->
-            <fieldset class="picker-times" id="entry-box-times" hidden disabled>
-                <label>Day <input class="date-field" id="entry-box-day" type="text"
-                                  inputmode="decimal" autocomplete="off" required></label>
-                <label>Time <input class="time-field" id="entry-time" type="text"
-                                   inputmode="numeric" autocomplete="off"></label>
-                <label>Minutes <input class="minutes-field" id="entry-minutes" type="text"
-                                      inputmode="numeric" autocomplete="off" pattern="[0-9]{1,4}"
-                                      title="Whole minutes, like 90"></label>
-                <label class="entry-deadline">Deadline <input class="date-field" id="entry-deadline-day" type="text"
-                                                              inputmode="decimal" autocomplete="off"></label>
-                <label class="entry-deadline">by <input class="time-field" id="entry-deadline-time" type="text"
-                                                        inputmode="numeric" autocomplete="off"></label>
-            </fieldset>
+        <!-- Shown instead of start and end while the dialog writes a box, one row each like them: its day like
+             19.10.2026 (the shown day for a new one) with its expected time beside it, its minutes like 90 (both may
+             stay empty, but an imported lecture keeps both), and a to-do's deadline, its day and its time;
+             a deadline day turns the day and the expected time off, since the box then lies on its deadline -->
+        <fieldset class="panel-form entry-times" id="entry-box-times" hidden disabled>
+            <label class="panel-field"><span class="entry-name">Day</span>
+                <span class="entry-moment">
+                    <input class="date-field" id="entry-box-day" type="text" inputmode="decimal" autocomplete="off"
+                           required aria-label="Day">
+                    <input class="time-field" id="entry-time" type="text" inputmode="numeric" autocomplete="off"
+                           placeholder="Time" aria-label="Expected time"></span></label>
+            <label class="panel-field"><span class="entry-name">Minutes</span>
+                <span class="entry-moment">
+                    <input class="minutes-field" id="entry-minutes" type="text" inputmode="numeric" autocomplete="off"
+                           pattern="[0-9]{1,4}" title="Whole minutes, like 90"
+                           aria-label="Expected minutes"></span></label>
+            <label class="panel-field entry-deadline"><span class="entry-name">Deadline</span>
+                <span class="entry-moment">
+                    <input class="date-field" id="entry-deadline-day" type="text" inputmode="decimal"
+                           autocomplete="off" aria-label="Day of the deadline">
+                    <input class="time-field" id="entry-deadline-time" type="text" inputmode="numeric"
+                           autocomplete="off" placeholder="Time" aria-label="Time of the deadline"></span></label>
+        </fieldset>
 
-            <!-- How long the last entries like the box really lasted, small and grey under its minutes,
-                 like Real, last 3: 150 · 165 · 140 min; hidden while none is logged -->
-            <p class="entry-real" id="entry-real" hidden></p>
+        <!-- How long the last entries like the box really lasted, small and grey under its minutes,
+             like Real, last 3: 150 · 165 · 140 min; hidden while none is logged -->
+        <p class="entry-real" id="entry-real" hidden></p>
 
-            <!-- Free note, typed like the times: my diary note about the entry, growing with its text -->
-            <textarea id="entry-note" rows="4" placeholder="Note"></textarea>
+        <!-- Fields after the times: for Skill its place, topics, semester and attempts, for Food its foods -->
+        <div class="panel-form" id="entry-more"></div>
 
-            <!-- Hint when the reader does not take the entry -->
-            <p class="panel-error" id="entry-error" hidden>Saving failed</p>
+        <!-- Free note, my diary note about the entry, growing with its text -->
+        <label class="panel-field"><span class="entry-name">Note</span>
+            <textarea id="entry-note" rows="3"></textarea></label>
 
-            <!-- Remove asks once more, cancel closes the dialog, save sends the entry once its fields are picked -->
-            <div class="panel-buttons">
-                <button class="panel-remove" id="entry-remove" type="button" hidden>Remove</button>
-                <button id="entry-cancel" type="button">Cancel</button>
-                <button class="panel-main" id="entry-save" type="submit" disabled>Save</button>
-            </div>
+        <!-- Hint when the reader does not take the entry -->
+        <p class="panel-error" id="entry-error" hidden>Saving failed</p>
+
+        <!-- Remove asks once more, cancel closes the dialog, save sends the entry once its fields are picked -->
+        <div class="panel-buttons">
+            <button class="panel-remove" id="entry-remove" type="button" hidden>Remove</button>
+            <button id="entry-cancel" type="button">Cancel</button>
+            <button class="panel-main" id="entry-save" type="submit" disabled>Save</button>
         </div>
     </form>
 </dialog>

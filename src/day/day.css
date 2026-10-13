@@ -768,8 +768,10 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-/* Panel: card over the page, for the entry by category, the gift idea and the month */
+/* Panel: card over the page, for the entry by category, the gift idea, a place and the month; the names of its rows
+   all `--name-width` wide, so every field starts at the same place */
 .panel {
+    --name-width: 4.5rem;
     width: min(27.5rem, calc(100vw - 2 * var(--gap)));
     padding: var(--gap);
     border: 1px solid var(--line);
@@ -783,11 +785,16 @@ button.box-ring.box-checked svg {
     background: rgb(0 0 0 / 0.6);
 }
 
-/* Parts of a panel from top to bottom */
+/* Parts of a panel from top to bottom; a part without rows, like the fields of a category not yet picked,
+   takes no room, so the gap between two rows stays the same everywhere */
 .panel-form {
     display: flex;
     flex-direction: column;
     gap: var(--gap);
+}
+
+.panel-form > div:empty {
+    display: none;
 }
 
 /* Fields of a panel one control high, a text area as high as its lines, with half the space beside above and below */
@@ -803,17 +810,26 @@ button.box-ring.box-checked svg {
     height: var(--control-height);
 }
 
-/* Field with its name before its list, like the place, the name on the line of the list's first value;
-   the list as wide as the panel beside the name */
+/* Row of a panel, the same for every field: its name at the left, then its field, one line showing its value,
+   like the place, or its day and time, or the note, as wide as the panel beside the name,
+   the name on the line of the field's first text */
 .panel-field {
     display: flex;
     align-items: baseline;
     gap: var(--control-gap);
+    margin: 0;
 }
 
 .panel-field > :last-child {
     flex: 1;
     min-width: 0;
+}
+
+/* Two rows side by side, like the skill and the type of a skill entry, the first wider */
+.panel-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: var(--gap);
 }
 
 /* Remove button apart from the others, at the left */
@@ -859,42 +875,25 @@ button.box-ring.box-checked svg {
     cursor: default;
 }
 
-/* Entry by category wider, for whole names: the categories one below the other at the left, the picking of the fields
-   beside them, times, note and buttons at the right, the note filling the height of its column. The dialog is at most
-   as high as the screen with a gap around, and each column at most as high as the dialog inside its padding
-   and border; a taller picking scrolls alone, so the times, the note and the buttons stay in sight, also below
-   a long list of foods or tasks. The picking has room around for the focus ring of its fields, which its scrolling
-   would cut otherwise, and reaches out by as much, so it stays in line */
+/* Entry by category: one column of rows, wide enough for whole names, at most as high as the screen with a gap
+   around, then scrolling as a whole; the lists of its fields open on top of it, see `.picker-pop` */
 .entry-panel {
-    width: min(60rem, calc(100vw - 2 * var(--gap)));
+    width: min(36rem, calc(100vw - 2 * var(--gap)));
     max-height: calc(100dvh - 2 * var(--gap));
 }
 
-.entry-form {
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr) 17rem;
-    gap: calc(1.5 * var(--gap));
+/* Start and end, or day, minutes and deadline, without the frame a group of fields has in the browser */
+fieldset.entry-times {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
 }
 
-.entry-form > .panel-form {
-    max-height: calc(100dvh - 4 * var(--gap) - 2px);
-}
-
-.entry-form > .panel-form:nth-child(2) {
-    margin: -0.25rem;
-    padding: 0.25rem;
-    overflow-y: auto;
-}
-
-/* Categories one below the other as a list like that of the places, as wide as the widest name, all of them shown,
-   only as high as they need; on a phone six rows and a half high, then scrolling, as any list */
-.entry-form .entry-categories {
-    align-self: start;
-    max-height: none;
-}
-
-.entry-form #entry-note {
-    flex: 1;
+/* Day and time of a row side by side, like `13.10.2026` and `14:00` */
+.entry-moment {
+    display: flex;
+    gap: var(--control-gap);
 }
 
 /* Plan, small and grey above the categories: an entry of the plan, or the plan entry the entry by category logs,
@@ -909,37 +908,80 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-/* Real minutes of the last entries like a box, small and grey under its minutes */
+/* Real minutes of the last entries like a box, small and grey under its minutes, in line with them */
 .entry-real {
-    margin: 0;
+    margin: 0 0 0 calc(var(--name-width) + var(--control-gap));
     font-size: 0.75rem;
     color: var(--text-muted);
 }
 
-/* Hint in place of a picker, calm and grey, like No chapters yet for a module without chapter notes */
+/* Hint in place of a picker, calm and grey, like No chapters yet for a module without chapter notes,
+   as high as the line of a field, so the rows keep their rhythm */
 .entry-none {
+    display: flex;
+    align-items: center;
+    min-height: var(--control-height);
     margin: 0;
     color: var(--text-muted);
 }
 
-/* Steps of a value picked, like the exercises of my neck routine: one per line, grey, below its list
+/* Steps of a value picked, like the exercises of my neck routine: one per line, grey, below its field
    and in line with it, after the name of the field and the gap beside it */
 .entry-steps {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    margin: 0 0 0 calc(3.5rem + var(--control-gap));
+    margin: 0 0 0 calc(var(--name-width) + var(--control-gap));
     padding: 0;
     list-style: none;
     color: var(--text-muted);
 }
 
-/* Whole line of the place picked, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, grey, below its list
-   and in line with it, as the steps; a click opens it in Google Maps, underlined under the pointer */
+/* Whole line of the place picked, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, grey, below its field
+   and in line with it, as the steps, with the pencil that changes the place beside it; a click on the line opens
+   its link, or Google Maps, underlined under the pointer */
+.entry-place-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: calc(var(--name-width) + var(--control-gap));
+}
+
+.entry-place-line[hidden] {
+    display: none;
+}
+
 .entry-address {
-    margin-left: calc(3.5rem + var(--control-gap));
+    min-width: 0;
     color: var(--text-muted);
     text-decoration: none;
+}
+
+/* Pencil of a place, small and round like the buttons of a box, grey, lighter under the pointer */
+.entry-place-edit {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.625rem;
+    height: 1.625rem;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.entry-place-edit:hover {
+    border-color: var(--chosen-line);
+    background: var(--chosen);
+    color: var(--text-main);
+}
+
+.entry-place-edit svg {
+    width: 0.875rem;
+    height: 0.875rem;
 }
 
 .entry-address:hover {
@@ -983,31 +1025,77 @@ button.box-ring.box-checked svg {
     cursor: pointer;
 }
 
-/* Picker: its search field above its values */
+/* Picker: the line of its field, which opens its list */
 .picker {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    min-width: 0;
 }
 
-/* Search field of a picker, one chip high */
+/* Line of a field, as every field of a panel: one control high, outlined in grey with round corners, its value
+   cut with an ellipsis, or grey what it is while nothing is picked, like `None`; its outline lighter under the pointer
+   and while its list is open */
+.picker-line {
+    display: block;
+    width: 100%;
+    height: var(--control-height);
+    padding: 0 var(--control-padding);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--text-main);
+    text-align: left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.picker-line:hover,
+.picker:has(.picker-pop:popover-open) .picker-line {
+    border-color: var(--chosen-line);
+}
+
+.picker-line.picker-empty {
+    color: var(--text-muted);
+}
+
+/* List of a field on top of the dialog, a popover of the browser: as wide as the line, at least wide enough
+   for whole names, at most 24rem high or most of the screen, its search field above its values, which scroll alone;
+   outlined in the grey of what is picked, a shadow below it. Its place `choices.ts` sets */
+.picker-pop {
+    position: fixed;
+    inset: auto;
+    min-width: 14rem;
+    max-height: min(24rem, 70dvh);
+    margin: 0;
+    padding: 0.375rem;
+    border: 1px solid var(--chosen-line);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--text-main);
+    box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.5);
+}
+
+.picker-pop:popover-open {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+/* Search field of a list, one chip high */
 .panel .picker-search {
+    flex: none;
     height: var(--chip-height);
     padding: 0 0.75rem;
 }
 
-/* Choices, many or few, like places, tasks or Night and Day, as a list with one whole name per row, never as chips,
-   each row `--picker-row` high, a little higher than a chip, for my 4K monitor; six rows and a half high,
-   about twice as high as a list of three rows and a half one chip high, then scrolling, the half row showing
-   there is more; a grey line around */
+/* Values of a list, many or few, like places, tasks or Night and Day, one whole name per row, never as chips,
+   each row `--picker-row` high, a little higher than a chip, for my 4K monitor; scrolling alone in its list */
 .picker-list {
     --picker-row: 2.125rem;
     display: flex;
     flex-direction: column;
-    max-height: calc(6.5 * var(--picker-row) + 2px);
+    min-height: 0;
     overflow-y: auto;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
 }
 
 .picker-list button {
@@ -1030,25 +1118,20 @@ button.box-ring.box-checked svg {
     background: var(--chosen);
 }
 
-/* Category that cannot be picked faded, like Skill while another entry is changed, no grey under the pointer */
-.picker-list button:disabled {
-    opacity: 0.4;
-    background: none;
-    cursor: default;
-}
 
-/* Results of the tasks picked for a session, in line with the pickers after their names:
-   the name of a task, its results to pick, and below them where I got stuck or why I skipped */
+/* Results of the tasks picked for a session, in line with the pickers after their names, in the columns
+   of the topics, see `.skill-topic`: the name of a task grey, the line of its result, and below that line
+   where I got stuck or why I skipped, and my effort */
 .skill-results {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    margin-left: 4rem;
+    margin-left: calc(var(--name-width) + var(--control-gap));
 }
 
 .skill-result {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
     gap: 0.375rem var(--gap);
     align-items: center;
 }
@@ -1057,13 +1140,14 @@ button.box-ring.box-checked svg {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    color: var(--text-muted);
 }
 
 .skill-result-detail {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-    grid-column: 1 / -1;
+    grid-column: 2;
 }
 
 .skill-result-detail:empty {
@@ -1072,16 +1156,25 @@ button.box-ring.box-checked svg {
 
 .skill-result-detail input {
     width: 100%;
-    height: var(--chip-height);
-    padding: 0 0.75rem;
 }
 
-/* Topics of the chapters and documents picked, one line each: the name grey at the left, cut with an ellipsis,
-   its topic in a field beside it */
+/* Topics of the chapters and documents picked, one line each below the line of the topics, in line with it:
+   the name grey at the left, cut with an ellipsis, its topic in a field beside it, as high as every field;
+   no room taken while nothing is picked */
 .skill-topics {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
+    margin-left: calc(var(--name-width) + var(--control-gap));
+}
+
+.skill-topics:empty {
+    display: none;
+}
+
+/* Tasks of a skill entry and their results, rows of the panel like the others */
+.skill-tasks {
+    display: contents;
 }
 
 .skill-topic {
@@ -1100,12 +1193,10 @@ button.box-ring.box-checked svg {
 
 .skill-topic input {
     width: 100%;
-    height: var(--chip-height);
-    padding: 0 0.75rem;
 }
 
-/* Foods of a meal in the entry by category: a row per food, its name, its grams, its kcal and remove,
-   the kcal of the meal below them, then the food search, its results a few rows high, then scrolling */
+/* Foods of a meal in the entry by category: its line, then a row per food, its name, its grams, its kcal and remove,
+   and the kcal of the meal below them; no room taken while no food is picked */
 .meal {
     display: flex;
     flex-direction: column;
@@ -1116,6 +1207,10 @@ button.box-ring.box-checked svg {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
+}
+
+.meal-rows:not(:has(.meal-row)) {
+    display: none;
 }
 
 .meal-row {
@@ -1189,24 +1284,32 @@ button.box-ring.box-checked svg {
     background: var(--fill);
 }
 
-/* Food search in the dialog: its field one chip high; its results only name, kcal and portion,
-   four rows and a half high with their head, then scrolling */
-.meal .food-search > input {
+/* Food search of a meal in its list on top, see `.picker-pop`: its field one chip high, as the search of every list;
+   its results only name, kcal and portion, scrolling alone below it */
+.meal-pop .food-search {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-height: 0;
+}
+
+.meal-pop .food-search > input {
+    flex: none;
     height: var(--chip-height);
     margin-top: 0;
     padding: 0 0.75rem;
 }
 
-.meal .food-results {
-    max-height: calc(4.5 * var(--chip-height) + 3rem);
+.meal-pop .food-results {
+    min-height: 0;
     overflow-y: auto;
 }
 
-.meal .food-row {
+.meal-pop .food-row {
     grid-template-columns: minmax(0, 1fr) 4.25rem 4.75rem;
 }
 
-.meal .food-macro {
+.meal-pop .food-macro {
     display: none;
 }
 
@@ -1219,10 +1322,10 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-/* Name of a field of a panel, small and grey, all names equally wide */
+/* Name of a field of a panel, small and grey, all names `--name-width` wide, see `.panel` */
 .entry-name {
     flex: none;
-    width: 3.5rem;
+    width: var(--name-width);
     font-size: 0.75rem;
     color: var(--text-muted);
 }
@@ -1302,39 +1405,6 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-/* Start and end side by side */
-.picker-times {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--gap);
-}
-
-/* Start and end of a log entry one below the other, each its name, its day and its time on one line,
-   as calendar apps write them; the names equally wide, so the days and the times stand in line */
-.picker-moments {
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.picker-moment {
-    display: flex;
-    align-items: center;
-    gap: var(--control-gap);
-}
-
-.picker-name {
-    flex: none;
-    width: 2.5rem;
-}
-
-/* Start and end, or expected time and minutes, without the frame a group of fields has in the browser */
-fieldset.picker-times {
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-}
-
 /* Time field as wide as a time like 14:00, and minutes field as wide as four digits,
    with the space beside them and their border */
 .time-field,
@@ -1353,16 +1423,16 @@ fieldset.picker-times {
     opacity: 0.4;
 }
 
-/* Note of an entry: diary-sized, four lines with the space above and below them and the border,
-   full width, growing with its text */
+/* Note of an entry: diary-sized, three lines with the space above and below them and the border,
+   full width beside its name, growing with its text */
 #entry-note {
-    min-height: calc(4lh + var(--control-padding) + 2px);
+    min-height: calc(3lh + var(--control-padding) + 2px);
     field-sizing: content;
     resize: vertical;
 }
 
 /* Phone: the boxes above the calendar, both one screen high, the trackers below, panels from below,
-   the entry by category in one column, which scrolls as a whole; in the week the name of a day above its boxes */
+   the entry by category scrolling as a whole; in the week the name of a day above its boxes */
 @media (max-width: 900px) {
     .day {
         grid-template-columns: minmax(0, 1fr);
@@ -1403,15 +1473,4 @@ fieldset.picker-times {
         border-radius: var(--radius) var(--radius) 0 0;
     }
 
-    .entry-form {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .entry-form .entry-categories {
-        max-height: calc(6.5 * var(--picker-row) + 2px);
-    }
-
-    .entry-form > .panel-form {
-        max-height: none;
-    }
 }

@@ -7,6 +7,8 @@
  * with three fields, the place, filled with what I typed, and its address with its country, both required,
  * and its link, like `https://nav.tum.de/room/0509.EG.980`, which may stay empty.
  * Save adds the place to `Places.md` and picks it; Cancel, `Esc` or a click beside the dialog pick nothing.
+ * The pencil below a place picked opens the same dialog filled with my place, see {@link placeEdit}, and Save
+ * changes its row in `Places.md`, its name, its address and its link; entries written before keep their address.
  * An entry writes a place as one line, its name and its address, like
  * `TumMain, Arcisstraße 21, 80333 München, Deutschland`, see {@link lineOf}; it shows by its name, the part
  * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens the link
@@ -38,6 +40,11 @@ export type Place = {
  * picks the place or nothing; `null` while no dialog waits for an answer.
  */
 let answer: ((place: Place | null) => void) | null = null;
+
+/**
+ * Name of my place the open dialog changes, like `TumMain`, empty while it adds a new place.
+ */
+let editing: string = "";
 
 
 /**
@@ -77,7 +84,8 @@ export function mapsAddressOf(line: string): string {
 
 
 /**
- * Sends a new place to the reader, which adds it to `Places.md`.
+ * Sends a new place to the reader, which adds it to `Places.md`, or my place being changed, with its old name,
+ * see {@link editing}, which the reader changes in its row.
  *
  * @param place - Name, address and link as typed
  * @returns The place as written, its name, address and link cleaned
@@ -85,9 +93,9 @@ export function mapsAddressOf(line: string): string {
  */
 async function placeSend(place: Place): Promise<Place> {
     const response: Response = await fetch("/api/day/places", {
-        method: "POST",
+        method: editing === "" ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(place),
+        body: JSON.stringify(editing === "" ? place : { ...place, old: editing }),
     });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
@@ -118,18 +126,42 @@ function placeSave(): void {
 /**
  * Opens the dialog of a new place over the entry by category: the place filled with the typed text,
  * like `HomeMunich`, the address empty and focused, since the place is typed already, the link empty.
- * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page and the entry by category, `Esc` closes it.
  *
  * @param name - Typed name of the place, like `HomeMunich`
  * @returns The place as written once it is saved, `null` when the dialog closes without saving
  */
 export function placeOpen(name: string): Promise<Place | null> {
-    (document.getElementById("place-name") as HTMLInputElement).value = name;
-    (document.getElementById("place-address") as HTMLInputElement).value = "";
-    (document.getElementById("place-link") as HTMLInputElement).value = "";
+    editing = "";
+    return placeShow({ name: name, address: "", link: "" }, "place-address");
+}
+
+/**
+ * Opens the dialog of a place over the entry by category to change my place: its name, its address and its link
+ * filled in, the name focused.
+ *
+ * @param place - My place as it is, like `TumMain` with its address and link
+ * @returns The place as written once it is saved, `null` when the dialog closes without saving
+ */
+export function placeEdit(place: Place): Promise<Place | null> {
+    editing = place.name;
+    return placeShow(place, "place-name");
+}
+
+/**
+ * Shows the dialog of a place with its fields filled, focusing one, and waits for its answer.
+ * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page and the entry by category, `Esc` closes it.
+ *
+ * @param place - Name, address and link to fill in
+ * @param focused - Identifier of the field to focus, like `place-address`
+ * @returns The place as written once it is saved, `null` when the dialog closes without saving
+ */
+function placeShow(place: Place, focused: string): Promise<Place | null> {
+    (document.getElementById("place-name") as HTMLInputElement).value = place.name;
+    (document.getElementById("place-address") as HTMLInputElement).value = place.address;
+    (document.getElementById("place-link") as HTMLInputElement).value = place.link;
     document.getElementById("place-error")?.setAttribute("hidden", "");
     (document.getElementById("place") as HTMLDialogElement).showModal();
-    document.getElementById("place-address")?.focus();
+    document.getElementById(focused)?.focus();
     return new Promise((resolve: (place: Place | null) => void): void => {
         answer = resolve;
     });
