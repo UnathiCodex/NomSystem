@@ -85,6 +85,11 @@ const lineMinutes: number = 13.5;
  */
 let dayNoteShow: (date: string) => void = (): void => {};
 
+/**
+ * Hours of the time grid, from 00:00 of the shown day to 05:00 of the next, see `slotMinTime` and `slotMaxTime`.
+ */
+const gridHours: number = 29;
+
 
 /**
  * Event source of the log of the reader. FullCalendar adds `start` and `end` of the shown day to the address,
@@ -245,6 +250,26 @@ function dayShow(info: DatesSetInfo): void {
 }
 
 /**
+ * Scrolls the time grid so that now stands in its middle, once at each load of the page,
+ * like 00:20 in the middle of the evening of 12.10.2026, which the day as I live it still holds;
+ * a day without now keeps `scrollTime`, 06:00 at the top. It hands the time for the top to `scrollToTime`,
+ * which FullCalendar keeps and applies again once it has measured the grid, so nothing undoes it.
+ * - `hours`: Hours from the top of the grid, 00:00 of the shown day, to now, like 24.3 for 00:20 of the next day.
+ * - `hourHeight`: Height of an hour of the grid in pixels, two half hours of 2rem, see {@link lineMinutes}.
+ * - `visibleHours`: Hours the grid shows at once, from the height of its box, like 9.4.
+ *
+ * @param calendar - Calendar of the day
+ */
+function nowCenter(calendar: Calendar): void {
+    const hours: number = (Date.now() - calendar.view.currentStart.getTime()) / (60 * 60 * 1000);
+    if (hours < 0 || hours > gridHours)
+        return;
+    const hourHeight: number = 4 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const visibleHours: number = (document.getElementById("day-calendar") as HTMLElement).clientHeight / hourHeight;
+    calendar.scrollToTime({ hours: hours - visibleHours / 2 });
+}
+
+/**
  * Loads the daily note with `import()`, its Markdown renderer with it, starts my gratitude and my paragraph
  * about the day, and shows them for the shown day and from then on for every day shown, see {@link dayShow}.
  * `evening.ts` comes first, since it loads `note.ts` too, which is then at hand at once.
@@ -305,7 +330,7 @@ async function noteStart(calendar: Calendar): Promise<void> {
  *   an entry from 01:00 to 02:00 on 13 October shows at the bottom of 12 October and at the top of 13 October.
  *   Only the grid shows it twice: the trackers and the done boxes ask the reader for the day I lived, 05:00 to 05:00,
  *   while FullCalendar fetches the log for the whole grid, 00:00 to 05:00 of the next day.
- * - `scrollTime`: Scrolls the grid to 06:00 at the start.
+ * - `scrollTime`: Scrolls the grid to 06:00 at the start, for a day that does not hold now; today centres on now instead, see {@link nowCenter}.
  *
  * The theme keeps its own classes beside `slot-label`, `entry`, `entry-inner` and the others;
  * `day.css` wins because it comes after the theme's stylesheet.
@@ -359,6 +384,7 @@ export function dayStart(note: boolean): void {
     });
 
     calendar.render();
+    nowCenter(calendar);
     iconPut(document.getElementById("day-back") as HTMLElement, ChevronLeft, "Day before");
     iconPut(document.getElementById("day-next") as HTMLElement, ChevronRight, "Day after");
     iconPut(document.getElementById("log-new") as HTMLElement, Plus, "New entry");
