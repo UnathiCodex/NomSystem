@@ -16,8 +16,6 @@
  * `base.css` hides the areas, so the whole screen stays free.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
- * - `@fontsource-variable/noto-sans`: Noto Sans, the font of the page, in every weight, served with the page,
- *   so it looks the same on every device; `wght-italic.css` adds its italic.
  * - `./day/day.html?raw`, `./week/week.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`,
  *   `./food/food.html?raw`, `./editor/editor.html?raw`: Html of day, week, scripts, skill, food and editor as text,
  *   packed into the built code by Vite.
@@ -33,8 +31,6 @@
  */
 
 /// <reference types="vite/client" />
-import "@fontsource-variable/noto-sans";
-import "@fontsource-variable/noto-sans/wght-italic.css";
 import dayHtml from "./day/day.html?raw";
 import weekHtml from "./week/week.html?raw";
 import notesHtml from "./notes/notes.html?raw";
