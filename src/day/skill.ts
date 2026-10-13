@@ -16,7 +16,7 @@
  * since I sometimes attend another module.
  * Chapters come one after another once a skill is picked, see {@link chapterRowsOf}: the list of an empty row
  * `Chapter` offers the chapters of my system of the module, by the names of their folders, for every type, like
- * a lecture of `02 Logistic Poisson Regression` or exam training over several; a pick closes the list and makes
+ * a lecture of `02_LogisticPoissonRegression` or exam training over several; a pick closes the list and makes
  * the row the chapter's, with a small × that takes it back, see `addedRowOf` in `choices.ts`, and unlocks its
  * documents; below them the next empty row `Chapter` adds the next. The reader writes one `X-CHAPTER` each,
  * and an entry keeps the name a chapter had, also once its folder has another name.
@@ -87,7 +87,7 @@ type AttemptPick = {
  * - `type`: Its type, like `VO`, empty before it is picked and for none.
  * - `semester`: Its semester, like `2025W`, empty while it is the semester of the day of the dialog,
  *   see {@link semesterDay}.
- * - `chapters`: Names to read of the chapters, like `01 Regression Analysis`.
+ * - `chapters`: Names of the chapters, like `01_RegressionAnalysis`.
  * - `documents`: Paths of the documents from the module folder, in the order they were picked.
  * - `attempts`: Tasks picked, in the order they were picked, each with its result.
  */
@@ -119,7 +119,7 @@ export type ModuleType = {
  * - `semester`: Its semester, its `X-SEMESTER`, like `2026W`, empty for a new one and an older one without.
  * - `title`: What it is as written, its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, in the log.
  * - `titleLink`: The folder of its skill, the `ALTREP` of its `SUMMARY`, in the log, empty for none.
- * - `chapters`: Names to read of its chapters, in the log.
+ * - `chapters`: Names of its chapters, in the log.
  * - `links`: Its links as the reader gave them, to its document, in the log.
  * - `attempts`: Its `X-ATTEMPT`s as the reader gave them, in the log, like `IN2028/Airline Revenue Interval;right;low`,
  *   or `140500;IN2028/Airline Revenue Interval;right` with the time of the tap when a button wrote it.
@@ -356,27 +356,15 @@ function documentSemesterOf(path: string): string {
 }
 
 /**
- * Writes the name of the folder of a chapter to read, as the reader names it, see `titleOf` in `reader/notes.ts`:
- * its number, a space, then its words apart, like `01 Regression Analysis` of `01_RegressionAnalysis`.
- *
- * @param folder - Name of the folder of a chapter
- * @returns Its name to read
- */
-function chapterNameOf(folder: string): string {
-    return folder.replace("_", " ").replace(/(?<=\p{Ll})(?=\p{Lu})/gu, " ");
-}
-
-/**
- * Gives the chapter a document belongs to, by the name to read of the folder of a note of a chapter,
- * like `01 Regression Analysis` of `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`,
+ * Gives the chapter a document belongs to, by the name of the folder of a note of a chapter,
+ * like `01_RegressionAnalysis` of `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`,
  * or of `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`, see {@link chapterNote}.
  *
  * @param path - Path of a document from the module folder
  * @returns Name of its chapter, empty for a document of no chapter, like the slides of a lecture
  */
 function chapterOfDocument(path: string): string {
-    const folder: string = path.match(chapterNote)?.[1] ?? "";
-    return folder === "" ? "" : chapterNameOf(folder);
+    return path.match(chapterNote)?.[1] ?? "";
 }
 
 /**
@@ -388,7 +376,7 @@ function chapterOfDocument(path: string): string {
  * - `folder`: Beginning of the name of the folder of the material of the type, empty for my own learning.
  * - `semester`: Semester of the entry, like `2026W`.
  *
- * @param chapter - Chapter whose notes my own learning offers, like `01 Regression Analysis`
+ * @param chapter - Chapter whose notes my own learning offers, like `01_RegressionAnalysis`
  * @returns Paths like `VO_UniversityLectureLessons/TUM_2026W/04_LogisticPoissonRegression.pdf`
  */
 function documentsOfferedOf(chapter: string): string[] {
@@ -406,7 +394,7 @@ function documentsOfferedOf(chapter: string): string[] {
  * `04_LogisticPoissonRegression.pdf` under `TUM_2026W`, for a note of the drafts `Unchecked draft`.
  * - `parts`: Parts of the path of a document.
  *
- * @param chapter - Chapter whose notes my own learning offers, like `01 Regression Analysis`
+ * @param chapter - Chapter whose notes my own learning offers, like `01_RegressionAnalysis`
  * @returns Choices of the documents
  */
 function documentChoicesOf(chapter: string): Choice[] {
@@ -769,7 +757,7 @@ export async function skillFieldsShow(head: HTMLElement, more: HTMLElement, plac
 /**
  * Links of a skill entry or box as picked, which the reader writes, see `linksOf` in `reader/documents.ts`.
  *
- * - `chapters`: Names to read of its chapters, its `X-CHAPTER`s, like `01 Regression Analysis`.
+ * - `chapters`: Names of its chapters, its `X-CHAPTER`s, like `01_RegressionAnalysis`.
  * - `documents`: Paths of its documents from the folder of its skill, its `ATTACH`es.
  */
 export type SkillLinks = {

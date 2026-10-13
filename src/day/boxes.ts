@@ -123,7 +123,7 @@ const phone: boolean = matchMedia("(max-width: 900px)").matches;
  * - `series`: Whether it is one occurrence of a series, which cannot be removed.
  * - `todo`: Whether it is a to-do; an event, like a lecture imported from TUMonline, keeps its time and duration.
  * - `links`: Its links, like the slides a lecture of my plan links, which a log entry from it gets too.
- * - `chapters`: Chapters of my system a skill box belongs to, like `02 Logistic Poisson Regression`, which a log entry
+ * - `chapters`: Chapters of my system a skill box belongs to, like `02_LogisticPoissonRegression`, which a log entry
  *   from it gets too; none for none.
  * - `number`: Its number in its series, like `3`, `NONE` for one the university cancelled, empty for none.
  */
@@ -449,8 +449,7 @@ function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] 
 
 /**
  * Gives what a box is about, as I planned it: each of its chapters by the name of its folder, like
- * `02_LogisticPoissonRegression` of `02 Logistic Poisson Regression`, undoing `titleOf` in `reader/notes.ts`,
- * then each document it links by its name, the last part of its path, like `04_LogisticPoissonRegression.pdf`;
+ * `02_LogisticPoissonRegression`, then each document it links by its name, the last part of its path, like `04_LogisticPoissonRegression.pdf`;
  * a folder it links, which an older box may, shows as its chapter or not at all, see `chaptersOf`
  * in `reader/documents.ts`.
  *
@@ -459,7 +458,7 @@ function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] 
  */
 function topicsOf(box: Box): string[] {
     return [
-        ...box.chapters.map((chapter: string): string => chapter.replace(" ", "_").replace(/ /g, "")),
+        ...box.chapters,
         ...box.links.filter((link: Link): boolean => link.fingerprint !== "").map(linkNameOf),
     ];
 }

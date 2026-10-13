@@ -46,7 +46,7 @@ type NoteEntry = {
 /**
  * A chapter with its notes, as the reader sends it.
  *
- * - `title`: Its name to read, like `01 Regression Analysis`.
+ * - `title`: Its name, like `01_RegressionAnalysis`.
  * - `notes`: Its notes in order.
  */
 type Chapter = {
@@ -58,7 +58,7 @@ type Chapter = {
  * A module of the semester with its chapters, as the reader sends it.
  *
  * - `name`: Name of its folder, like `IN2028_BusinessAnalyticsMachineLearning`.
- * - `title`: Its name to read, like `IN2028 Business Analytics Machine Learning`.
+ * - `title`: Its name, like `IN2028_BusinessAnalyticsMachineLearning`.
  * - `chapters`: Its chapters that hold notes, in order.
  */
 type NotesModule = {
@@ -71,7 +71,7 @@ type NotesModule = {
 /**
  * Makes a folder of the tree that folds, like a chapter: its name, and below it the place of its entries.
  *
- * @param name - Name shown, like `01 Regression Analysis`
+ * @param name - Name shown, like `01_RegressionAnalysis`
  * @returns Folder, its entries to go into its last child
  */
 export function folderOf(name: string): HTMLDetailsElement {
@@ -145,7 +145,7 @@ function fileNodeOf(node: FileNode): HTMLElement {
 }
 
 /**
- * Makes a module of the semester: a folder by its name to read, like `IN2028 Business Analytics Machine Learning`,
+ * Makes a module of the semester: a folder by its name, like `IN2028_BusinessAnalyticsMachineLearning`,
  * the name of its folder as data, so it can be opened, see {@link treeShow}, its chapters in it, each folding
  * its notes, which link to the scripts view, named without `.md` as in Obsidian;
  * a module without chapter notes holds a calm `No chapters yet`, as the skill view says it.

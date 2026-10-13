@@ -122,7 +122,7 @@ const numberedTypes: string[] = ["VO", "UE", "TU", "HU"];
  * - `links`: Its links, its `ATTACH`es, like the slides a lecture of my plan links, see `documents.ts`;
  *   none for none.
  * - `chapters`: Chapters of my system a skill box belongs to, its `X-CHAPTER`s, or those whose folders an older box
- *   links, see `chaptersOf` in `documents.ts`, like `02 Logistic Poisson Regression`; none for none.
+ *   links, see `chaptersOf` in `documents.ts`, like `02_LogisticPoissonRegression`; none for none.
  * - `number`: Its number in its series, its `X-NUMBER`, like `3`, `NONE` for one the university cancelled;
  *   empty for none.
  */
@@ -183,7 +183,7 @@ export type PlanDay = {
  * - `time`: Expected time as ISO instant, on its day, empty for none and for a box with a deadline.
  * - `minutes`: Expected duration in whole minutes, `null` for none.
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` without time, empty for none.
- * - `chapters`: Names to read of the chapters of my system a skill box belongs to, like `01 Regression Analysis`,
+ * - `chapters`: Names of the chapters of my system a skill box belongs to, like `01_RegressionAnalysis`,
  *   none for none and for any other box.
  * - `documents`: Paths from the folder of its skill of the documents a skill box will use, like
  *   `VO_UniversityLectureLessons/TUM_2026W/01_Introduction.pdf`, none for none and for any other box.

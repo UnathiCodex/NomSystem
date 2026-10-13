@@ -55,8 +55,8 @@ import type { CalendarSource } from "./sources.ts";
  * - `semester`: Semester of a skill entry, its `X-SEMESTER`, like `2026W`: from which semester the lecture
  *   or the material is, not when I did it, see `semesterOf` in `categories.ts`; empty when the event has none,
  *   like an older skill entry, and for any other entry.
- * - `chapters`: Chapters of an older skill entry of the log, its `X-CHAPTER`s in order, each by its name to read,
- *   like `01 Regression Analysis`, none when the event has none; a skill entry now links the folders of its chapters,
+ * - `chapters`: Chapters of an older skill entry of the log, its `X-CHAPTER`s in order, each by its name,
+ *   like `01_RegressionAnalysis`, none when the event has none; a skill entry now links the folders of its chapters,
  *   see `chaptersOf` in `documents.ts`.
  * - `links`: Links of a skill entry of the log to the folder of its skill and the document it used, its `ATTACH`es
  *   in order, see {@link Link} and `documents.ts`; none when the event has none.

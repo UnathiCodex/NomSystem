@@ -41,7 +41,7 @@ export type NoteEntry = {
 /**
  * A chapter of a module with its notes, from the module and its drafts together.
  *
- * - `title`: Its name to read, like `01 Regression Analysis` of the folder `01_RegressionAnalysis`, see {@link titleOf}.
+ * - `title`: Its name, the name of its folder as it is, like `01_RegressionAnalysis`.
  * - `notes`: Its notes, sorted as Obsidian's file explorer does.
  */
 export type Chapter = {
@@ -53,7 +53,7 @@ export type Chapter = {
  * A module of the semester with its chapters.
  *
  * - `name`: Name of its folder, like `IN2028_BusinessAnalyticsMachineLearning`.
- * - `title`: Its name to read, like `IN2028 Business Analytics Machine Learning`, see {@link titleOf}.
+ * - `title`: Its name, the name of its folder as it is, like `IN2028_BusinessAnalyticsMachineLearning`.
  * - `chapters`: Its chapters that hold notes, in the order of their folders.
  */
 export type NotesModule = {
@@ -107,8 +107,8 @@ export type BrokenLink = {
  *   empty for a project.
  * - `drafts`: The folder of its drafts from `NomWorkspace`, like
  *   `NomSystemdashboard/.claude/modules/drafts/IN2028_BusinessAnalyticsMachineLearning`, empty for a project.
- * - `chapters`: Names to read of its chapter folders and of those of its drafts, also of the empty ones,
- *   like `05 Decision Trees Ensembles`, in order.
+ * - `chapters`: Names of its chapter folders and of those of its drafts, also of the empty ones,
+ *   like `05_DecisionTreesEnsembles`, in order.
  * - `documents`: Its files outside the chapter folders, the university's material, and the notes of its chapters,
  *   by their paths from the module folder, like `VO_UniversityLectureLessons/TUM_2025W/04_….pdf`
  *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, the notes of a chapter without notes there
@@ -367,18 +367,6 @@ function linkDecode(link: string): string {
 }
 
 /**
- * Gives the name to read of a module or chapter folder: its first `_` a space and its words apart,
- * like `IN2028 Business Analytics Machine Learning` of `IN2028_BusinessAnalyticsMachineLearning`
- * or `01 Regression Analysis` of `01_RegressionAnalysis`.
- *
- * @param folder - Name of the folder
- * @returns Name to read
- */
-export function titleOf(folder: string): string {
-    return folder.replace("_", " ").replace(/(?<=\p{Ll})(?=\p{Lu})/gu, " ");
-}
-
-/**
  * Reads the modules of the semester, see {@link activeModules}, each with its chapters and their notes, for the menu:
  * the chapter folders, like `01_RegressionAnalysis`, of the module and of its drafts together, a chapter in both once,
  * each with its notes, the `.md` files right in it. Chapters without notes stay out, and so do the other folders,
@@ -404,11 +392,11 @@ export function modulesRead(): NotesModule[] {
 
         return {
             name: module,
-            title: titleOf(module),
+            title: module,
             chapters: [...chapters.keys()]
                 .sort(collator.compare)
                 .map((chapter: string): Chapter => ({
-                    title: titleOf(chapter),
+                    title: chapter,
                     notes: (chapters.get(chapter) ?? []).sort((first: NoteEntry, second: NoteEntry): number =>
                         collator.compare(first.name, second.name)),
                 }))
@@ -474,19 +462,19 @@ export function moduleContentsRead(module: string): ModuleContents {
         .map((file: string): string => file.slice(module.length + 1));
     return {
         folder: `${modulesFolder}/${module}`, drafts: `${draftsFolder}/${module}`,
-        chapters: chapters.map(titleOf), documents: [...material, ...notes].sort(collator.compare),
+        chapters: chapters, documents: [...material, ...notes].sort(collator.compare),
     };
 }
 
 /**
- * Gives the name to read of the chapter whose folder a path leads to, like the folder an older skill entry links.
+ * Gives the name of the chapter whose folder a path leads to, like the folder an older skill entry links.
  *
  * @param path - Path of the folder of a chapter from `NomWorkspace`,
  *   like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning/02_LogisticPoissonRegression`
- * @returns Name like `02 Logistic Poisson Regression`
+ * @returns Name like `02_LogisticPoissonRegression`
  */
 export function chapterNameOf(path: string): string {
-    return titleOf(path.split("/").at(-1) ?? "");
+    return path.split("/").at(-1) ?? "";
 }
 
 /**

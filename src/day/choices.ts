@@ -463,7 +463,7 @@ export function pairOf(first: HTMLElement, second: HTMLElement): HTMLDivElement 
 
 /**
  * Makes the row of a value picked of a field of several values, below the row of the field, see {@link addedRowsOf}:
- * its name, mostly none, its text, like `02 Logistic Poisson Regression`, going on below where it is wider than
+ * its name, mostly none, its text, like `02_LogisticPoissonRegression`, going on below where it is wider than
  * its row, see {@link breakableOf}, and a small × that takes it back.
  * - `text`: The text in its own element, its whole text in its tooltip.
  * - `remove`: The ×.

@@ -26,7 +26,7 @@
  *   see `documents.ts`; its `DESCRIPTION` is only my free note;
  * - its semester, `X-SEMESTER`, see `semesterFor` in `categories.ts`;
  * - one `X-CHAPTER` per chapter of my system it belongs to, of any type,
- *   like `X-CHAPTER:02 Logistic Poisson Regression`, several for a session over several chapters, like exam training,
+ *   like `X-CHAPTER:02_LogisticPoissonRegression`, several for a session over several chapters, like exam training,
  *   the chapters of the tasks of its attempts always among them; an older entry that links the folder of a chapter
  *   instead gets its `X-CHAPTER` once it changes, see `chaptersOf` in `documents.ts`;
  * - one `X-ATTEMPT` per attempt at a task of my notes, of any type, like the tasks I solved in a tutorial:
@@ -118,8 +118,8 @@ export type Effort = "low" | "medium" | "high";
  *   like `Original: [[…/Endterm_Assignments.pdf#page=4|exam 2024/25 endterm 1a]]`, empty without one.
  * - `note`: Path of its note, as the scripts view takes it, like
  *   `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
- * - `chapter`: Name to read of its chapter, like `01 Regression Analysis`.
- * - `section`: Name to read of its section, its note, like `01_01 Sample Mean Standard Error`.
+ * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
+ * - `section`: Name of its section, its note, like `01_01_SampleMeanStandardError`.
  * - `cold`: Whether it is a cold task of its section, its heading ending with `(cold)`.
  * - `parts`: Letters of the parts of a cold task, like `a`, `b` and `c`, none for one without parts and any other task.
  */
@@ -182,9 +182,9 @@ export type SkillTask = Task & {
 /**
  * A section of a module, a note of a chapter, with the state of its cold task, the unit of the ready number.
  *
- * - `title`: Its name to read, like `01_01 Sample Mean Standard Error`.
+ * - `title`: Its name, like `01_01_SampleMeanStandardError`.
  * - `note`: Path of its note, as the scripts view takes it.
- * - `chapter`: Name to read of its chapter, like `01 Regression Analysis`.
+ * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
  * - `cold`: Identity of its cold task, empty when it has none yet.
  * - `tasks`: Number of its tasks, the cold one included.
  * - `tried`: Number of its tasks I tried, skips not counted.
@@ -241,7 +241,7 @@ export type PlannedType = {
  * A module of the semester with its tasks.
  *
  * - `code`: Module code, like `IN2028`, the part of its folder name before `_`.
- * - `title`: Its name to read, like `IN2028 Business Analytics Machine Learning`.
+ * - `title`: Its name, like `IN2028_BusinessAnalyticsMachineLearning`.
  * - `exam`: Its exam, see {@link exams}.
  * - `tasks`: Its tasks, by chapters, notes and headings in order, each name once.
  * - `sections`: Its sections in the same order, each with its cold task.
@@ -314,7 +314,7 @@ export type AttemptNew = {
  *   like `WokFlow`.
  * - `semester`: Its semester, `X-SEMESTER`, like `2026W`, the semester of its day when empty,
  *   see `semesterFor` in `categories.ts`.
- * - `chapters`: Names to read of the chapters of my system it belongs to, like `01 Regression Analysis`,
+ * - `chapters`: Names of the chapters of my system it belongs to, like `01_RegressionAnalysis`,
  *   none for none.
  * - `documents`: Paths from the folder of its skill of the documents it used, files of its module, like
  *   `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf` or the notes of a chapter,
@@ -378,7 +378,7 @@ export type Session = {
  * A module of the semester with the tasks of its chapter notes.
  *
  * - `code`: Module code, like `IN2028`.
- * - `title`: Its name to read, like `IN2028 Business Analytics Machine Learning`.
+ * - `title`: Its name, like `IN2028_BusinessAnalyticsMachineLearning`.
  * - `tasks`: Its tasks, by chapters, notes and headings in order.
  */
 type ModuleTasks = {
@@ -516,19 +516,14 @@ const sourceLine: RegExp = /^>[ \t]*((?:Original|Generated):.*?)[ \t]*$/;
 
 
 /**
- * Writes the name to read of a section from the path of its note: its numbers, then its words parted,
- * like `01_01 Sample Mean Standard Error` of `…/01_01_SampleMeanStandardError.md`.
- * - `name`: Name of the note without `.md`.
- * - `numbered`: Its numbers and its words, `null` for a name without numbers.
+ * Gives the name of a section from the path of its note, the name of the note as it is, without `.md`,
+ * like `01_01_SampleMeanStandardError` of `…/01_01_SampleMeanStandardError.md`.
  *
  * @param note - Path of the note
- * @returns Name to read
+ * @returns Name
  */
 function sectionTitleOf(note: string): string {
-    const name: string = (note.split("/").at(-1) ?? note).replace(/\.md$/, "");
-    const numbered: RegExpExecArray | null = /^(\d+_\d+)_(.+)$/.exec(name);
-    const words: (text: string) => string = (text: string): string => text.replace(/(?<=\p{Ll})(?=\p{Lu})/gu, " ");
-    return numbered === null ? words(name) : `${numbered[1]} ${words(numbered[2])}`;
+    return (note.split("/").at(-1) ?? note).replace(/\.md$/, "");
 }
 
 /**
@@ -550,10 +545,10 @@ function partsOf(lines: string[], index: number): string[] {
  * Reads the tasks of a note in their order: each heading `## Task. <name>` with the source line below it,
  * and for a cold task its parts.
  * - `lines`: Lines of the note.
- * - `section`: Name to read of the note's section.
+ * - `section`: Name of the note's section.
  *
  * @param code - Module code of the note
- * @param chapter - Name to read of the chapter of the note
+ * @param chapter - Name of the chapter of the note
  * @param note - Path of the note, as the scripts view takes it
  * @returns Tasks of the note
  * @throws {Error} - When the note cannot be read
@@ -1017,7 +1012,7 @@ function attemptValueOf(attempt: AttemptNew, tasks: Task[], time: string): strin
  * each once, since an entry covers the chapters of the tasks I worked on in it.
  * - `solved`: Chapter of each task, as its note lies now; none for a task no note holds any more.
  *
- * @param chapters - Chapters picked, by their names to read
+ * @param chapters - Chapters picked, by their names
  * @param worked - Identities of the tasks of its `X-ATTEMPT`s and `X-TUTOR`s
  * @param tasks - Tasks of the modules of the semester
  * @returns Chapters, each once, in this order
