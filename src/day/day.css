@@ -31,9 +31,10 @@
     gap: var(--control-gap);
 }
 
-/* Bar of the day: the date in the middle, the arrows left and right of it, the icon back to today beside the date */
+/* Bar of the day: the date with the arrows left and right of it at the right end of the bar, above the log,
+   the icon back to today beside the date */
 .day-nav {
-    justify-content: center;
+    justify-content: flex-end;
     gap: var(--control-gap);
 }
 
@@ -1631,10 +1632,11 @@ svg.route-arrow {
         flex-wrap: wrap;
     }
 
-    /* The bar of the day keeps the arrows left and right of the date, which stands on two lines in the middle,
-       the weekday above the date */
+    /* The bar of the day keeps the arrows left and right of the date, which stands on two lines in the middle
+       of the screen, the weekday above the date */
     .day-nav {
         flex-wrap: nowrap;
+        justify-content: center;
     }
 
     .day-nav .day-title {
