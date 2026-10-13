@@ -9,9 +9,10 @@
  * Places are one list for every field of a place, the place of an entry and where a way starts: only my places
  * of `Places.md`, each as a line with its address, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
  * see `places.ts`, the most used by the entries of the log first, counted by their names.
- * A value offered in the code may come with steps, which the dialog shows while it is picked:
- * `Body` offers my neck routine, `Neck short` and `Neck long`, each with its exercises, see {@link neckRoutines},
- * and below them the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
+ * A value offered in the code may come with steps, which the dialog shows while it is picked, and below them
+ * the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
+ * `Body` is my body care, showering and any care, offering `Shower` before any use; my neck routine,
+ * `Neck short` and `Neck long`, is no what of it any more, also where the log holds it, see {@link retiredWhats}.
  * A dish, the what of `Food` and `Cook`, names its foods parted by `, `, like `Reis, Bohnen, Eier`.
  * `Sleep` takes only two whats, `Night` and `Day`, a nap, see {@link sleepWhats}, and no new ones,
  * so the sleep tracker tells a nap from a night, see `trackers.ts`; `Way` takes only my means of transport,
@@ -23,6 +24,8 @@
  * in the log also its documents and its attempts, which only the skill area writes, see `skill.ts`.
  * A box of the plan takes only what I intend and would otherwise forget, so not `Sleep`, `Food`, `Cook`, `Drink`
  * and `Game`, which happen anyway, see {@link unplannedNames}; `Watch` stays, since a cinema or a match has its time.
+ * `Drink` is no category I pick: water has its own tracker, whose counter writes each glass as an entry `Drink`
+ * of five minutes, see `trackers.ts`, and takes no time of mine, so the dialog leaves it out, see {@link hiddenNames}.
  *
  * - `./calendar.ts`: Reads `.ics` files into entries, and names the category of skill entries.
  * - `./places.ts`: Reads my places from `Places.md`.
@@ -100,7 +103,8 @@ export type CategoryShown = Category & {
 };
 
 /**
- * My neck routine, offered as the what of `Body`, each with its steps, which the dialog shows while it is picked:
+ * My neck routine, once offered as the what of `Body`, each with its steps, which the trackers still count, their neck
+ * hidden, see `trackers.ts`, but no longer offered, see {@link retiredWhats}:
  * strengthening of the neck, shoulders and shoulder blades, chosen by research
  * (`.claude/studies/science.md`, point 16).
  * `Neck short` every study day, about 5 minutes: lateral raises with an elastic band eased neck pain
@@ -126,18 +130,16 @@ export const neckRoutines: { [what: string]: string[] } = {
 };
 
 /**
- * Builds a category with the fields `Summary` and `Place`.
+ * Builds a category with the fields `Summary` and `Place`, whose summary offers only what the log holds.
  *
  * @param name - Name of the category, like `Food`
- * @param routines - Values offered as its what before any use, each with its steps, like {@link neckRoutines};
- *   none for most categories
  * @returns Category to pick what and where
  */
-function categoryOf(name: string, routines: { [what: string]: string[] }): Category {
+function categoryOf(name: string): Category {
     return {
         name: name,
         fields: [
-            { name: "Summary", key: "title", values: Object.keys(routines), steps: routines, fixed: false },
+            { name: "Summary", key: "title", values: [], steps: {}, fixed: false },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
         ],
     };
@@ -185,6 +187,18 @@ const transports: string[] = ["Walk", "Bike", "Bus", "Tram", "UBahn", "SBahn", "
 const unplannedNames: string[] = ["Sleep", "Food", "Cook", "Drink", "Game"];
 
 /**
+ * Categories the dialog leaves out, though the reader takes them: `Drink`, whose glasses of water only the counter
+ * of the trackers writes, see the top of this file.
+ */
+const hiddenNames: string[] = ["Drink"];
+
+/**
+ * Whats a category no longer offers, by category, also where the log holds them: the neck routine of `Body`,
+ * which is my body care now, see {@link neckRoutines}.
+ */
+const retiredWhats: { [category: string]: string[] } = { Body: Object.keys(neckRoutines) };
+
+/**
  * Categories with their fields, in the order of their importance for my life, the one order of every list of them.
  */
 const categories: Category[] = [
@@ -196,10 +210,16 @@ const categories: Category[] = [
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
         ],
     },
-    categoryOf("Food", {}),
-    categoryOf("Cook", {}),
-    categoryOf("Body", neckRoutines),
-    categoryOf("Meditate", {}),
+    categoryOf("Food"),
+    categoryOf("Cook"),
+    {
+        name: "Body",
+        fields: [
+            { name: "Summary", key: "title", values: ["Shower"], steps: {}, fixed: false },
+            { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+        ],
+    },
+    categoryOf("Meditate"),
     {
         name: "Way",
         fields: [
@@ -210,10 +230,10 @@ const categories: Category[] = [
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
         ],
     },
-    categoryOf("Talk", {}),
-    categoryOf("Drink", {}),
-    categoryOf("Watch", {}),
-    categoryOf("Game", {}),
+    categoryOf("Talk"),
+    categoryOf("Drink"),
+    categoryOf("Watch"),
+    categoryOf("Game"),
 ];
 
 
@@ -336,7 +356,8 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * Reads the categories with the values of their fields, see {@link valuesOrder}, a field that takes no new values
  * only those of the code in their order, like `Night` and `Day` of `Sleep`,
  * each telling whether a box of the plan may have it; a value with steps gets the note of its last entry,
- * see {@link stepsWithNoteOf}.
+ * see {@link stepsWithNoteOf}; but the categories the dialog leaves out, see {@link hiddenNames}, and the whats
+ * a category no longer offers, see {@link retiredWhats}.
  * - `logs`: Log entries up to now.
  * - `mine`: My places.
  * - `names`: Their names.
@@ -359,18 +380,21 @@ export function categoriesRead(now: string): CategoryShown[] {
     const links: { [value: string]: string } = Object.fromEntries([...mine, ...rooms]
         .filter((place: Place): boolean => place.link !== "")
         .map((place: Place): [string, string] => [lineOf(place), place.link]));
-    return categories.map((category: Category): CategoryShown => ({
-        name: category.name,
-        fields: category.fields.map((field: Field): FieldShown => ({
-            ...field,
-            values: field.key !== "title" ? places
-                : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values),
-            steps: stepsWithNoteOf(logs, category.name, field.steps),
-            rooms: field.key === "title" ? [] : rooms.map(lineOf),
-            links: field.key === "title" ? {} : links,
-        })),
-        plan: !unplannedNames.includes(category.name),
-    }));
+    return categories
+        .filter((category: Category): boolean => !hiddenNames.includes(category.name))
+        .map((category: Category): CategoryShown => ({
+            name: category.name,
+            fields: category.fields.map((field: Field): FieldShown => ({
+                ...field,
+                values: field.key !== "title" ? places
+                    : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values)
+                        .filter((value: string): boolean => !(retiredWhats[category.name] ?? []).includes(value)),
+                steps: stepsWithNoteOf(logs, category.name, field.steps),
+                rooms: field.key === "title" ? [] : rooms.map(lineOf),
+                links: field.key === "title" ? {} : links,
+            })),
+            plan: !unplannedNames.includes(category.name),
+        }));
 }
 
 /**

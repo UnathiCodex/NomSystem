@@ -10,7 +10,8 @@
  * of the categories open.
  * Every category has its `Summary`, the `SUMMARY` of its file, and its `Place`, a way also `From` before its place;
  * the summary of `Sleep` only `Night` or `Day`, a nap, that of `Way` my means of transport;
- * a value with steps shows them below its line while it is picked, like the exercises of my neck routine in `Body`;
+ * a value with steps shows them below its line while it is picked, with the note of its last entry;
+ * `Body` is my body care, like `Shower`;
  * in the log, `Food` below them its foods, each with its grams, and what the meal gives, see `meal.ts`,
  * a meal with foods named by them, like `Haferflocken, Milch`, so its summary only picks an earlier meal to fill
  * them in,
@@ -21,8 +22,9 @@
  * `IN2028_BusinessAnalyticsMachineLearning (VO)`, its place and its semester; in the log also
  * its chapters, documents and attempts at tasks, each with its result and my effort, see `skill.ts`.
  * Every entry can carry a free note, typed like start and end.
- * The categories come in the order the reader gives them, by their importance for my life;
- * a box of the plan offers all but those I don't plan, `Sleep`, `Food`, `Cook`, `Drink` and `Game`.
+ * The categories come in the order the reader gives them, by their importance for my life, without `Drink`, since
+ * water has its own tracker; a box of the plan offers all but those I don't plan, `Sleep`, `Food`, `Cook`
+ * and `Game`.
  * Each list comes from the log, the most used first, searched as I type, see `choices.ts`;
  * the typed text can be added as a new value with `+ New summary` at the end of the list, which is then picked,
  * the one way to write a new summary or another one in place of the one picked, but to the summary of `Sleep`
