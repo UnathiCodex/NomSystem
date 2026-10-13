@@ -37,7 +37,7 @@
  * - `./meal.ts`: The foods of a meal, the fields of `Food` below what and place.
  * - `./skill.ts`: The fields of `Skill`: module and type, and in the log chapters, document and attempts.
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
- *   gives the times a box is logged at, and now on the shown day.
+ *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
  * - `../icons.ts`: Shows icons in the buttons of the dialog, its words as tooltip.
  * - `lucide`: The icons save, cancel and remove.
@@ -48,7 +48,7 @@ import { choiceOf, choicesOf, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealAfterCookAdd } from "./entries.ts";
 import { foodName, mealDishFill, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import { skillFieldsShow, skillModuleType, skillReady, skillSave } from "./skill.ts";
-import { boxTimesOf, dateOf, dateParse, dateTextOf, nowOn, timeFieldRead, timeFieldShow } from "./times.ts";
+import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
 import { Check, CircleQuestionMark, Trash2, X } from "lucide";
@@ -797,14 +797,17 @@ export async function entryOpen(start: Date, end: Date): Promise<void> {
 }
 
 /**
- * Opens the dialog for a new log entry of the last half hour before now on the shown day, in quarter hours,
- * see `nowOn` in `times.ts`.
+ * Opens the dialog for a new log entry of the last half hour before the time of now on the shown day, in quarter hours,
+ * so on today's page the half hour before now: at 14:10 on 13.10.2026 from 13:30 to 14:00, its day the shown day;
+ * only before 00:30 the half hour starts the evening before, so its day is the day before, like `13.10.2026`,
+ * `23:45` to `00:15` at 00:20 on 14 October.
+ * - `end`: The time of now on the shown day, in quarter hours.
  *
  * @param calendar - Calendar of the day
  * @throws {Error} - When the reader gives no valid answer
  */
 export async function entryOpenNow(calendar: Calendar): Promise<void> {
-    const end: Date = nowOn(calendar.view.currentStart);
+    const end: Date = dateOf(calendar.view.currentStart, timeOf(new Date()));
     end.setMinutes(end.getMinutes() - end.getMinutes() % 15, 0, 0);
     await entryOpen(new Date(end.getTime() - 30 * 60 * 1000), end);
 }

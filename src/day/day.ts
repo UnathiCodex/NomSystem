@@ -15,7 +15,8 @@
  * a dish, a meal or a cooking, lists its foods. The kcal of a meal stay hidden for a try; the dialog and the trackers
  * show them. A glass of water is no block but a small mark at the edge of the log,
  * since the counter of the trackers counts it.
- * The address keeps the shown day, like `?date=2026-07-03`, so a reload stays on it.
+ * The address keeps the shown day, like `?date=2026-07-03`, so a reload stays on it; without one the day opens
+ * on today's calendar date, which turns at 00:00, and while it shows today it moves on with it, see `today.ts`.
  * The grid runs from 00:00 to 05:00 of the next day and opens at 06:00, so the hours after midnight show on both days,
  * like a sleep from 01:00 at the bottom of 12 October and at the top of 13 October; the trackers count them once,
  * for the day I lived, 12 October, see {@link dayStart}.
@@ -37,7 +38,8 @@
  * - `./gifts.ts`: Writes my gift ideas for the birthdays and holidays of the plan.
  * - `./trackers.ts`: Shows my sleep, my glasses of water, my food and my neck sessions of the day.
  * - `./times.ts`: Reads the typed times of the panels, writes the times of entries and the date of the day.
- * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader and gives today as I live it.
+ * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
+ * - `../today.ts`: Gives today's calendar date and moves the day on to the new day while it shows today.
  * - `../icons.ts`: Puts the icons of the arrows and of `+` into their buttons.
  * - `lucide`: The icons of the arrows and plus.
  */
@@ -55,7 +57,8 @@ import { monthStart } from "./month.ts";
 import { giftsStart } from "./gifts.ts";
 import { trackersSee } from "./trackers.ts";
 import { dateTextOf, timeOf, timesStart } from "./times.ts";
-import { dayOf, todayOf } from "../skill/attempts.ts";
+import { dayOf } from "../skill/attempts.ts";
+import { calendarTodayOf, todayFollow } from "../today.ts";
 import { iconPut } from "../icons.ts";
 import { ChevronLeft, ChevronRight, Plus } from "lucide";
 import "fullcalendar/skeleton.css";
@@ -232,7 +235,7 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
 
 /**
  * Shows the date of the shown day above plan and log, its weekday and its date in my standard way,
- * like `Sunday, 11.10.2026`, `Today` faded when it is today,
+ * like `Sunday, 11.10.2026`, `Today` faded when it is today's calendar date,
  * daily note, gratitude and paragraph of the day, see {@link dayNoteShow}, and writes the day into the address;
  * the boxes and the trackers follow the entries of the log, see `eventsSet` in {@link dayStart}.
  * - `weekday`: Weekday of the shown day, like `Sunday`, from the day at noon.
@@ -244,15 +247,17 @@ function dayShow(info: DatesSetInfo): void {
     const date: string = info.startStr.slice(0, 10);
     const weekday: string = new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" });
     (document.getElementById("day-title") as HTMLElement).textContent = `${weekday}, ${dateTextOf(date)}`;
-    (document.getElementById("day-today") as HTMLButtonElement).disabled = date === todayOf();
+    (document.getElementById("day-today") as HTMLButtonElement).disabled = date === calendarTodayOf();
     history.replaceState(null, "", `?date=${date}`);
     dayNoteShow(date);
 }
 
 /**
- * Scrolls the time grid so that now stands in its middle, once at each load of the page,
- * like 00:20 in the middle of the evening of 12.10.2026, which the day as I live it still holds;
- * a day without now keeps `scrollTime`, 06:00 at the top. It hands the time for the top to `scrollToTime`,
+ * Scrolls the time grid so that now stands in its middle, at each load of the page and when the day moves on
+ * to the new day by itself, like 14:00 in the middle of 13.10.2026; at 00:20 today's page is 14 October,
+ * whose grid cannot scroll above 00:00, so now simply stands near its top, and on 13 October, shown by its address,
+ * 00:20 stands in the middle of the night below its evening.
+ * A day without now keeps `scrollTime`, 06:00 at the top. It hands the time for the top to `scrollToTime`,
  * which FullCalendar keeps and applies again once it has measured the grid, so nothing undoes it.
  * - `hours`: Hours from the top of the grid, 00:00 of the shown day, to now, like 24.3 for 00:20 of the next day.
  * - `hourHeight`: Height of an hour of the grid in pixels, two half hours of 2rem, see {@link lineMinutes}.
@@ -291,9 +296,10 @@ async function noteStart(calendar: Calendar): Promise<void> {
 }
 
 /**
- * Starts the day after the router has put its HTML into the page: the arrows and `Today` above plan and log
- * move the calendar by a day or back to today, the date opens the month to pick a day from,
- * `+` above the time grid opens the entry by category of the log for the last half hour.
+ * Starts the day after the router has put its HTML into the page, on the day of the address or today's calendar date:
+ * the arrows and `Today` above plan and log move the calendar by a day or back to today, the date opens the month
+ * to pick a day from, `+` above the time grid opens the entry by category of the log for the last half hour;
+ * while it shows today, the day moves on to the new day by itself, now centred again, see `todayFollow` in `today.ts`.
  * - `initialView`: A time grid of the shown day, one column, the log.
  * - `headerToolbar`: None, since the date and its buttons stand above plan and log together, see {@link dayShow}.
  * - `dayHeaders`: Leaves out the name of the day above the column, which the date above says already.
@@ -342,7 +348,7 @@ export function dayStart(note: boolean): void {
         plugins: [timeGridPlugin, interactionPlugin, themePlugin],
         locale: englishLocale,
         initialView: "timeGridDay",
-        initialDate: new URLSearchParams(location.search).get("date") ?? todayOf(),
+        initialDate: new URLSearchParams(location.search).get("date") ?? calendarTodayOf(),
         height: "100%",
         headerToolbar: false,
         dayHeaders: false,
@@ -389,7 +395,7 @@ export function dayStart(note: boolean): void {
     iconPut(document.getElementById("day-next") as HTMLElement, ChevronRight, "Day after");
     iconPut(document.getElementById("log-new") as HTMLElement, Plus, "New entry");
     document.getElementById("day-back")?.addEventListener("click", (): void => calendar.prev());
-    document.getElementById("day-today")?.addEventListener("click", (): void => calendar.gotoDate(todayOf()));
+    document.getElementById("day-today")?.addEventListener("click", (): void => calendar.gotoDate(calendarTodayOf()));
     document.getElementById("day-next")?.addEventListener("click", (): void => calendar.next());
     document.getElementById("log-new")?.addEventListener("click", (): void => {
         entryOpenNow(calendar).catch((error: unknown): void => console.error(error));
@@ -398,6 +404,10 @@ export function dayStart(note: boolean): void {
     boxesStart(calendar);
     monthStart(document.getElementById("day-title") as HTMLElement, (): string[] => [dayOf(calendar.view.currentStart)],
         (day: string): void => calendar.gotoDate(day));
+    todayFollow((): string => dayOf(calendar.view.currentStart), (day: string): void => {
+        calendar.gotoDate(day);
+        nowCenter(calendar);
+    });
     giftsStart();
     timesStart();
     if (note)

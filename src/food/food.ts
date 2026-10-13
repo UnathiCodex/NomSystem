@@ -10,13 +10,14 @@
  * and so is every sum that holds one; a food not in `Foods.md` and a meal that lists no foods count nothing,
  * and a line below the totals says so.
  * My foods: the food search, which finds mine first, then those of Open Food Facts, and adds new ones, see `search.ts`.
- * The address keeps the shown day, like `/food?date=2026-10-10`, so a reload stays on it; without one it shows today.
+ * The address keeps the shown day, like `/food?date=2026-10-10`, so a reload stays on it; without one it shows
+ * today's calendar date, which turns at 00:00, and while it shows today it moves on with it, see `today.ts`.
  *
  * - `./foods.ts`: Loads the meals of a day, writes amounts and makes elements.
  * - `./search.ts`: Finds foods, mine first, then on Open Food Facts, and adds new ones.
  * - `../day/trackers.ts`: Loads the trackers of a day, for its water.
- * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader, a day out with its weekday,
- *   and gives today as I live it.
+ * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader and a day out with its weekday.
+ * - `../today.ts`: Gives today's calendar date and moves the food view on to the new day while it shows today.
  * - `../icons.ts`: Puts the arrows into the buttons to the day before and after, their words as tooltip.
  * - `lucide`: The icons of the arrows.
  * - `./food.css`: Look of the food view.
@@ -25,7 +26,8 @@
 import { amountOf, elementOf, foodDayLoad } from "./foods.ts";
 import { foodSearchOf } from "./search.ts";
 import { trackersFetch } from "../day/trackers.ts";
-import { dayOf, dayTextOf, todayOf } from "../skill/attempts.ts";
+import { dayOf, dayTextOf } from "../skill/attempts.ts";
+import { calendarTodayOf, todayFollow } from "../today.ts";
 import { iconPut } from "../icons.ts";
 import { ChevronLeft, ChevronRight } from "lucide";
 import "./food.css";
@@ -217,7 +219,8 @@ function dayMove(days: number): void {
 
 /**
  * Starts the food view after the router has put its HTML into the page:
- * the arrows as icons, the buttons of the day, the day of the address or today, and the food search.
+ * the arrows as icons, the buttons of the day, the day of the address or today's calendar date, which moves on
+ * to the new day by itself while it is shown, see `todayFollow` in `today.ts`, and the food search.
  * - `before`, `after`: Buttons to the day before and after.
  * - `asked`: Day of the address, like `2026-10-10`, empty without one.
  */
@@ -229,7 +232,8 @@ export function foodStart(): void {
     iconPut(after, ChevronRight, "Day after");
     before.addEventListener("click", (): void => dayMove(-1));
     after.addEventListener("click", (): void => dayMove(1));
-    document.getElementById("food-today")?.addEventListener("click", (): void => dayOpen(todayOf()));
+    document.getElementById("food-today")?.addEventListener("click", (): void => dayOpen(calendarTodayOf()));
     document.getElementById("food-search")?.append(foodSearchOf(null));
-    dayOpen(/^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : todayOf());
+    dayOpen(/^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : calendarTodayOf());
+    todayFollow((): string => shown, dayOpen);
 }
