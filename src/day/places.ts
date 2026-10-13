@@ -21,12 +21,12 @@
  * only a link stored with the place opens on a click.
  * A way shows its route by labels, with an arrow drawn between them, see {@link whereLinkedOf}.
  *
- * - `lucide`: The arrow of a route.
- * - `../icons.ts`: Makes the element of an icon.
+ * - `lucide`: The arrow of a route, and the icons of Cancel and Save.
+ * - `../icons.ts`: Makes the element of an icon, and shows an icon in a button.
  */
 
-import { ArrowRight } from "lucide";
-import { iconOf } from "../icons.ts";
+import { ArrowRight, Check, X } from "lucide";
+import { iconOf, iconPut } from "../icons.ts";
 
 
 /**
@@ -286,6 +286,8 @@ export function placesStart(): void {
     link.addEventListener("input", (): void => {
         linkFollows = false;
     });
+    iconPut(document.getElementById("place-cancel") as HTMLElement, X, "Cancel");
+    iconPut(document.getElementById("place-save") as HTMLElement, Check, "Save");
     document.getElementById("place-cancel")?.addEventListener("click", (): void => dialog.close());
     dialog.addEventListener("close", (): void => {
         answer?.(null);

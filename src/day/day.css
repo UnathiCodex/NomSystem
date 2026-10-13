@@ -947,7 +947,7 @@ button.box-ring.box-checked svg {
     margin-top: 0.75rem;
 }
 
-/* Buttons of a panel, one control high, their word in the middle, like `Cancel` */
+/* Buttons of a panel, one control high, their word in the middle, like `Remove` */
 .panel-buttons button {
     display: inline-flex;
     align-items: center;
@@ -959,6 +959,12 @@ button.box-ring.box-checked svg {
     border-radius: var(--radius);
     background: var(--background);
     cursor: pointer;
+}
+
+/* A button of a panel with an icon in place of its word, like the copy, Cancel and Save: square, one control high */
+.panel-buttons button:has(svg) {
+    width: var(--control-height);
+    padding: 0;
 }
 
 /* Main button, `Save`, slightly lighter, in the calm grey of what is picked */
@@ -1667,12 +1673,14 @@ svg.route-arrow {
         content: none;
     }
 
-    /* Buttons of a panel in one row across, equally wide, Remove among them, each its word on one line,
-       a little smaller, so `Remove` keeps room inside its frame */
+    /* Buttons of a panel in one row across, the square ones beside those with words, which share the rest equally,
+       each its word on one line, a little smaller, so `Remove` keeps room inside its frame */
     .panel-buttons {
-        display: grid;
-        grid-auto-columns: minmax(0, 1fr);
-        grid-auto-flow: column;
+        flex-wrap: nowrap;
+    }
+
+    .panel-buttons button:not(:has(svg)) {
+        flex: 1;
     }
 
     .panel-buttons .panel-remove,

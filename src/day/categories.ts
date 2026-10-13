@@ -67,8 +67,8 @@
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
  *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
- * - `../icons.ts`: Shows the icon of the copy in its button.
- * - `lucide`: The icon of the copy.
+ * - `../icons.ts`: Shows the icons of the copy, Cancel and Save in their buttons.
+ * - `lucide`: The icons of the copy, Cancel and Save.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
@@ -82,7 +82,7 @@ import {
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
-import { Copy } from "lucide";
+import { Check, Copy, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -1369,6 +1369,8 @@ function timesCheck(): boolean {
 export function categoriesStart(calendar: Calendar): void {
     listsStart();
     placesStart();
+    iconPut(document.getElementById("entry-cancel") as HTMLElement, X, "Cancel");
+    iconPut(document.getElementById("entry-save") as HTMLElement, Check, "Save");
     document.getElementById("entry-cancel")?.addEventListener("click", (): void =>
         (document.getElementById("entry") as HTMLDialogElement).close());
     document.getElementById("entry-remove")?.addEventListener("click", (): void => {
