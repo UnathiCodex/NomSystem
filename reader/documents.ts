@@ -288,7 +288,8 @@ export function documentLinksOf(links: Link[]): Link[] {
  * each a file of its module with its fingerprint, each once, with its topic, see {@link topicFor}. A document
  * the entry links already keeps its link with its fingerprint, also when the reader could not find it any more,
  * and takes its new topic; one it links without fingerprint, like the slides a lecture of my plan links, gets
- * its fingerprint. The folder of its skill is the `ALTREP` of its `SUMMARY`, its chapters its `X-CHAPTER`s.
+ * its fingerprint, or stays as written while its file is not there yet, like the slides of a lecture to come.
+ * The folder of its skill is the `ALTREP` of its `SUMMARY`, its chapters its `X-CHAPTER`s.
  * - `folder`: Folder of the skill from `NomWorkspace`, see {@link skillFolderOf}, `undefined` for none.
  * - `path`: Path of a document from `NomWorkspace`.
  * - `kept`: The entry's link to that document, `undefined` for none.
@@ -310,7 +311,7 @@ export function linksOf(code: string, documents: string[], topics: Topics, links
         const path: string = `${folder}/${document}`;
         const kept: Link | undefined = links.find((link: Link): boolean => link.path === path);
         const topic: string = topicFor(topics[document], kept, document.split("/").at(-1) ?? "");
-        if (kept !== undefined && kept.fingerprint !== "")
+        if (kept !== undefined && (kept.fingerprint !== "" || !existsSync(diskOf(path))))
             return { ...kept, topic: topic };
         if (!moduleIs(folder)
             || !moduleContentsRead(folder.slice(modulesFolder.length + 1)).documents.includes(document))
