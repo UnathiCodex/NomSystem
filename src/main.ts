@@ -11,9 +11,9 @@
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
  * The timer of a session running now stands at the right of the areas in every area.
  * A phone, a screen as narrow as the phone layout of the stylesheets, which {@link matchMedia} tells,
- * is only for looking at the day and its food, nothing for learning: it opens the day and the food area,
- * the day everywhere else, shows the day without its daily note, so it loads no Markdown renderer,
- * and runs no timer; `base.css` hides the links to the other areas.
+ * is only for the day, its plan and its log, as simple as can be, nothing for learning and no food for now:
+ * it opens the day everywhere, without its daily note, so it loads no Markdown renderer, and runs no timer;
+ * `base.css` hides the areas, so the top stays free.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
  * - `@fontsource-variable/noto-sans`: Noto Sans, the font of the page, in every weight, served with the page,
@@ -47,7 +47,7 @@ import editorHtml from "./editor/editor.html?raw";
 const phone: boolean = matchMedia("(max-width: 900px)").matches;
 if (location.pathname === "/notes")
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
-const areas: string[] = phone ? ["/food"] : ["/week", "/scripts", "/skill", "/food", "/edit"];
+const areas: string[] = phone ? [] : ["/week", "/scripts", "/skill", "/food", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
 document.querySelector(`.areas a[href="${area === "/edit" ? "/scripts" : area}"]`)
     ?.setAttribute("aria-current", "page");

@@ -2,7 +2,8 @@
  * ## Day
  *
  * Shows the log of a day as my one calendar, a time grid of one column, and beside it the plan of the day,
- * not as a calendar but as a calm list of boxes, see `boxes.ts`; above both the arrows, `Today` and the date of the day;
+ * not as a calendar but as a calm list of boxes, see `boxes.ts`; above both the date of the day between its arrows,
+ * with a small icon back to today on any other day;
  * at the right the trackers of the day, my sleep, my glasses of water and my food, and below them the daily note
  * with my gratitude and my points about the day at its top, which a phone leaves out, see `main.ts`.
  * A click on the date opens a month to pick any day from, see `month.ts`.
@@ -65,7 +66,7 @@ import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
 import { iconPut } from "../icons.ts";
-import { ChevronLeft, ChevronRight, Plus } from "lucide";
+import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from "lucide";
 import "fullcalendar/skeleton.css";
 import "fullcalendar/themes/forma/theme.css";
 import "./day.css";
@@ -320,9 +321,10 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
 
 /**
  * Shows the date of the shown day above plan and log, its weekday and its date in my standard way,
- * like `Sunday, 11.10.2026`, `Today` faded when it is today's calendar date,
- * daily note, gratitude and points about the day, see {@link dayNoteShow};
+ * like `Sunday, 11.10.2026`, always fully readable, with the icon back to today on any other day,
+ * see {@link todayButtonShow}, and its daily note, gratitude and points about the day, see {@link dayNoteShow};
  * the boxes and the trackers follow the entries of the log, see `eventsSet` in {@link dayStart}.
+ * The comma after the weekday is drawn by `day.css`, which on a phone puts the weekday above the date instead.
  * - `weekday`: Weekday of the shown day, like `Sunday`, from the day at noon.
  *
  * @param info - Range of the shown day
@@ -330,19 +332,38 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
 function dayShow(info: DatesSetInfo): void {
     const date: string = info.startStr.slice(0, 10);
     const weekday: string = new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" });
-    (document.getElementById("day-title") as HTMLElement).textContent = `${weekday}, ${dateTextOf(date)}`;
+    (document.getElementById("day-weekday") as HTMLElement).textContent = weekday;
+    (document.getElementById("day-date") as HTMLElement).textContent = dateTextOf(date);
     todayButtonShow(date);
     dayNoteShow(date);
 }
 
 /**
- * Fades `Today` above plan and log while the shown day is today's calendar date, like 13.10.2026 on that day,
- * also once the day turned at 00:00 while the day stays, see `todayFollow` in `today.ts`.
+ * Shows the small icon back to today beside the date while the shown day is another than today's calendar date,
+ * none on today, like 13.10.2026 on that day, also once the day turned at 00:00 while the day stays,
+ * see `todayFollow` in `today.ts`.
  *
  * @param date - Shown day, like `2026-10-13`
  */
 function todayButtonShow(date: string): void {
-    (document.getElementById("day-today") as HTMLButtonElement).disabled = date === calendarTodayOf();
+    (document.getElementById("day-today") as HTMLButtonElement).hidden = date === calendarTodayOf();
+}
+
+/**
+ * Shows plan or log on a phone, one at a time, see `.day-switch` in `day.css`, the button of the shown one picked;
+ * the time grid, which measures itself again once it shows, scrolls to now then, see {@link nowCenter}.
+ * - `main`: Plan and log with their bar, which `day.css` shows one of by its `data-shown`.
+ *
+ * @param calendar - Calendar of the day
+ * @param shown - `plan` or `log`
+ */
+function phoneShow(calendar: Calendar, shown: "plan" | "log"): void {
+    const main: HTMLElement = document.getElementById("day-main") as HTMLElement;
+    main.dataset.shown = shown;
+    document.getElementById("day-show-plan")?.setAttribute("aria-pressed", String(shown === "plan"));
+    document.getElementById("day-show-log")?.setAttribute("aria-pressed", String(shown === "log"));
+    if (shown === "log")
+        nowCenter(calendar);
 }
 
 /**
@@ -391,10 +412,12 @@ async function noteStart(calendar: Calendar): Promise<void> {
 /**
  * Starts the day after the router has put its HTML into the page, on the day a link asks for or today's calendar date,
  * see `askedDayOf` in `today.ts`:
- * the arrows and `Today` above plan and log move the calendar by a day or back to today, the date opens the month
- * to pick a day from, `+` below the time grid opens the entry by category of the log for the last half hour;
- * while it shows today, the day moves on to the new day by itself, now centred again, see `todayFollow` in `today.ts`,
- * and while it shows another day, `Today` follows the new day.
+ * the arrows beside the date above plan and log move the calendar by a day, the icon beside it back to today,
+ * the date opens the month to pick a day from, `+` below the time grid opens the entry by category of the log
+ * for the last half hour; on a phone the buttons at the bottom switch between plan and log, see {@link phoneShow},
+ * and their `+` starts a box or an entry of the shown one; while it shows today, the day moves on to the new day
+ * by itself, now centred again, see `todayFollow` in `today.ts`, and while it shows another day, the icon back
+ * to today follows the new day.
  * - `initialView`: A time grid of the shown day, one column, the log.
  * - `headerToolbar`: None, since the date and its buttons stand above plan and log together, see {@link dayShow}.
  * - `dayHeaders`: Leaves out the name of the day above the column, which the date above says already.
@@ -496,6 +519,14 @@ export function dayStart(note: boolean): void {
     iconPut(document.getElementById("day-back") as HTMLElement, ChevronLeft, "Day before");
     iconPut(document.getElementById("day-next") as HTMLElement, ChevronRight, "Day after");
     iconPut(document.getElementById("log-new") as HTMLElement, Plus, "New entry");
+    iconPut(document.getElementById("day-today") as HTMLElement, CalendarCheck, "Back to today");
+    iconPut(document.getElementById("day-new") as HTMLElement, Plus, "New box or entry");
+    document.getElementById("day-show-plan")?.addEventListener("click", (): void => phoneShow(calendar, "plan"));
+    document.getElementById("day-show-log")?.addEventListener("click", (): void => phoneShow(calendar, "log"));
+    document.getElementById("day-new")?.addEventListener("click", (): void => {
+        const shown: string = (document.getElementById("day-main") as HTMLElement).dataset.shown ?? "plan";
+        document.getElementById(shown === "log" ? "log-new" : "plan-new")?.click();
+    });
     document.getElementById("day-back")?.addEventListener("click", (): void => calendar.prev());
     document.getElementById("day-today")?.addEventListener("click", (): void => calendar.gotoDate(calendarTodayOf()));
     document.getElementById("day-next")?.addEventListener("click", (): void => calendar.next());

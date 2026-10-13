@@ -31,9 +31,37 @@
     gap: var(--control-gap);
 }
 
+/* Bar of the day: the date in the middle, the arrows left and right of it, the icon back to today beside the date */
+.day-nav {
+    justify-content: center;
+    gap: var(--control-gap);
+}
+
+/* Weekday and date of the day on one line, a comma between them, see `dayShow` in `day.ts` */
+.day-weekday::after {
+    content: ",";
+}
+
+/* Icon back to today beside the date, on another day than today: small, without frame, grey, lighter
+   under the pointer */
+.day-today {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.day-today:hover {
+    color: var(--text-main);
+}
+
 /* Buttons of the bar one control high with round corners, the arrows square, a grey lighter under the pointer,
    Today faded while today is shown */
-.day-buttons button {
+.day-buttons button,
+.day-arrow {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -46,11 +74,13 @@
     cursor: pointer;
 }
 
-.day-buttons button:has(svg) {
+.day-buttons button:has(svg),
+.day-arrow {
     padding: 0;
 }
 
-.day-buttons button:hover {
+.day-buttons button:hover,
+.day-arrow:hover {
     background: var(--fill);
 }
 
@@ -85,6 +115,11 @@
 .column-foot {
     display: flex;
     justify-content: flex-end;
+}
+
+/* Buttons that switch between plan and log, with their +, only on a phone, see the end of this file */
+.day-switch {
+    display: none;
 }
 
 /* + of plan and log, the ways to start a box and an entry: square, one chip high,
@@ -1523,35 +1558,87 @@ fieldset.entry-times {
     resize: none;
 }
 
-/* Phone: the boxes above the calendar, both one screen high, the trackers below, panels from below,
+/* Phone: plan or log, one at a time, one screen high, switched at the bottom, panels from below,
    the entry by category scrolling as a whole; in the week the name of a day above its boxes */
 @media (max-width: 900px) {
+    /* As simple as can be: the day one screen high, plan or log, one at a time, filling it, the switch between
+       them with its + at the bottom; no trackers and no daily note, see `main.ts` */
     .day {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: calc(100dvh - 2 * var(--gap)) auto;
+        grid-template-rows: calc(100dvh - 2 * var(--gap));
     }
 
     .day-main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto minmax(0, auto) minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
     }
 
-    .plan-boxes {
-        max-height: 40dvh;
-    }
-
-    /* No daily note on a phone, which only looks at the day, see `main.ts` */
-    .day-note {
+    .day-side,
+    .column-head,
+    .column-foot {
         display: none;
+    }
+
+    .day-main[data-shown="plan"] #day-log,
+    .day-main[data-shown="log"] #day-plan {
+        display: none;
+    }
+
+    /* Switch between plan and log at the bottom, its buttons side by side in the middle, the one shown in the calm
+       grey of what is picked, and the + of the shown one at the right */
+    .day-switch {
+        display: flex;
+        align-items: center;
+        gap: var(--control-gap);
+    }
+
+    .day-switch button[aria-pressed] {
+        flex: 1;
+        min-height: var(--control-height);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--background);
+        font-size: var(--control-text);
+        cursor: pointer;
+    }
+
+    .day-switch button[aria-pressed="true"] {
+        border-color: var(--chosen-line);
+        background: var(--chosen);
+    }
+
+    .day-switch .column-new {
+        width: var(--control-height);
+        height: var(--control-height);
     }
 
     .week-day {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    /* On a phone the date goes below the buttons, so it never runs off the screen */
+    /* On a phone the date goes below the buttons of the week, so it never runs off the screen */
     .day-bar {
         flex-wrap: wrap;
+    }
+
+    /* The bar of the day keeps the arrows left and right of the date, which stands on two lines in the middle,
+       the weekday above the date */
+    .day-nav {
+        flex-wrap: nowrap;
+    }
+
+    .day-nav .day-title {
+        text-align: center;
+        line-height: 1.25;
+    }
+
+    .day-weekday,
+    .day-date {
+        display: block;
+    }
+
+    .day-weekday::after {
+        content: none;
     }
 
     body {

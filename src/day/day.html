@@ -1,21 +1,22 @@
 <!-- Day: the plan as a list of boxes beside the log, my one calendar; at the right the trackers and the daily note -->
 <div class="day">
     <!-- Left side: the shown day above its plan and its log, side by side -->
-    <div class="day-main">
-        <!-- Arrows and Today, then the date of the shown day, for plan and log together;
-             a click on the date opens the month to pick a day from, see month.ts -->
-        <div class="day-bar">
-            <div class="day-buttons">
-                <button id="day-back" type="button"></button>
-                <button id="day-today" type="button">Today</button>
-                <button id="day-next" type="button"></button>
-            </div>
-            <h2 class="day-title"><button class="day-title-button" id="day-title" type="button" title="Pick a day"></button></h2>
+    <div class="day-main" id="day-main" data-shown="plan">
+        <!-- The date of the shown day in the middle, for plan and log together, always fully readable, the arrows
+             to the day before and after left and right of it; on another day than today a small icon beside the date
+             leads back to today, saving the room of a button Today. A click on the date opens the month to pick
+             a day from, see month.ts. On a phone the weekday stands above the date -->
+        <div class="day-bar day-nav">
+            <button class="day-arrow" id="day-back" type="button"></button>
+            <h2 class="day-title"><button class="day-title-button" id="day-title" type="button" title="Pick a day"><span
+                class="day-weekday" id="day-weekday"></span> <span class="day-date" id="day-date"></span></button></h2>
+            <button class="day-today" id="day-today" type="button" hidden></button>
+            <button class="day-arrow" id="day-next" type="button"></button>
         </div>
 
         <!-- Plan: the boxes of the day, dragged into the log at the real time or logged as expected with their ring,
              filled by boxes.ts; its + at the bottom, out of the way, opens the entry by category for a new box -->
-        <section class="day-column">
+        <section class="day-column" id="day-plan">
             <div class="column-head">
                 <h2>Plan</h2>
             </div>
@@ -29,7 +30,7 @@
 
         <!-- Log: the time grid of what happened, drawn by FullCalendar; its + at the bottom opens the entry
              by category -->
-        <section class="day-column">
+        <section class="day-column" id="day-log">
             <div class="column-head">
                 <h2>Log</h2>
             </div>
@@ -38,6 +39,14 @@
                 <button class="column-new" id="log-new" type="button"></button>
             </div>
         </section>
+
+        <!-- Only on a phone, which shows plan or log, one at a time, filling the screen: at the bottom the buttons
+             that switch between them, the shown one picked, and + for a new box or entry of the shown one -->
+        <div class="day-switch" id="day-switch">
+            <button id="day-show-plan" type="button" aria-pressed="true">Plan</button>
+            <button id="day-show-log" type="button" aria-pressed="false">Log</button>
+            <button class="column-new" id="day-new" type="button"></button>
+        </div>
     </div>
 
     <!-- Right side: the trackers above the daily note -->
