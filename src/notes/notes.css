@@ -1,12 +1,10 @@
-/* Notes: menu on the left, the note on the right, filling the screen below the areas, a grey line between */
+/* Notes: menu on the left, the note on the right, filling the screen beside the areas */
 .notes {
     display: grid;
     grid-template-columns: var(--tree-width) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
-    margin-top: 0.5rem;
-    border-top: 1px solid var(--line);
 }
 
 /* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the scripts view

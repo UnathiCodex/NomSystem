@@ -1,12 +1,10 @@
-/* Skill: the modules one below the other in a calm reading width, filling the screen below the areas
-   with a grey line between, as the notes do, and scrolling alone */
+/* Skill: the modules one below the other in a calm reading width, filling the screen beside the areas,
+   as the notes do, and scrolling alone */
 .skill {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    margin-top: 0.5rem;
     padding: calc(1.5 * var(--gap)) calc(2 * var(--gap)) calc(4 * var(--gap));
-    border-top: 1px solid var(--line);
 }
 
 #skill-modules {
