@@ -20,8 +20,9 @@
  * the typed text can be added as a new value, which is then picked, but to the what of `Sleep`, which takes no new one.
  * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first,
  * each by its name, like `TumMain`; a picked one is written with its address, as one line,
- * like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, which shows below its list, opening it in Google Maps;
- * a new place is added with its address through a small dialog before it is picked, see `places.ts`.
+ * like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, which shows below its list, opening the link
+ * of the place, its `ALTREP`, or else Google Maps; a new place is added with its address and maybe its link
+ * through a small dialog before it is picked, see `places.ts`.
  * `From` starts where the last way before the entry ended.
  * An entry of the log has a day like `13.10.2026`, the calendar date of its start, typed to move it to any other day,
  * a start, a plain time on that day, and an end, a plain time with its own day beside it, which fills itself
@@ -57,7 +58,7 @@
 import { choiceOf, choicesOf, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealAfterCookAdd } from "./entries.ts";
 import { foodName, mealDishFill, mealFoods, mealOf, mealTitle } from "./meal.ts";
-import { labelOf, mapsAddressOf, placeOpen, placesStart } from "./places.ts";
+import { labelOf, lineOf, mapsAddressOf, placeOpen, placesStart } from "./places.ts";
 import { skillFieldsShow, skillModuleType, skillReady, skillSave } from "./skill.ts";
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
@@ -67,6 +68,7 @@ import { Check, CircleQuestionMark, Trash2, X } from "lucide";
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
 import type { Choice } from "./choices.ts";
+import type { Place } from "./places.ts";
 import type { BoxFields, EntryFields } from "./entries.ts";
 import type { ModuleType, SkillValues } from "./skill.ts";
 
@@ -84,6 +86,8 @@ type FieldKey = "title" | "from" | "location";
  * - `values`: Values to pick, the most used first.
  * - `steps`: Steps of a value offered in the code, by the value, like the exercises of `Neck short`.
  * - `fixed`: Whether it takes only its values, like `Night` and `Day` of `Sleep`, and no new ones.
+ * - `links`: For a field of a place, the link of each of my places that has one, by its line,
+ *   like `https://nav.tum.de/room/0509.EG.980`; none for any other field.
  */
 type Field = {
     name: string;
@@ -91,6 +95,7 @@ type Field = {
     values: string[];
     steps: { [value: string]: string[] };
     fixed: boolean;
+    links: { [value: string]: string };
 };
 
 /**
@@ -412,18 +417,55 @@ function fieldChoiceOf(field: Field, value: string): Choice {
 }
 
 /**
- * Shows the whole line of the place picked in a field below its list, as a link that opens it in Google Maps
- * in a new tab, see `mapsAddressOf` in `places.ts`; hides it while no place is picked, for a field that is no place,
- * and for an older place written by its name alone, like `HomeMunich`, which has no address to show.
+ * Gives the link of the place of the entry, the box or the box to log the dialog opened with, its `ALTREP`.
+ *
+ * @returns Link like `https://nav.tum.de/room/0509.EG.980`, empty for none
+ */
+function openedLinkOf(): string {
+    return opened.entry?.extendedProps.locationLink ?? opened.box?.locationLink ?? opened.plan?.locationLink ?? "";
+}
+
+/**
+ * Shows the whole line of the place picked in a field below its list, as a link that opens in a new tab
+ * the link of the place: the one the place of the entry kept, its `ALTREP`, while it stays picked, else the link
+ * of my place in `Places.md`, else Google Maps, see `mapsAddressOf` in `places.ts`; hides it while no place
+ * is picked, for a field that is no place, and for an older place written by its name alone, like `HomeMunich`,
+ * which has no address to show, unless it has a link.
+ * - `line`: The place picked.
+ * - `kept`: The link of the place the entry kept, empty for none.
+ * - `link`: The link to open, empty for Google Maps.
  *
  * @param address - Place of the line below the picker of the field
  * @param field - Field, like `To`
  */
 function addressShow(address: HTMLAnchorElement, field: Field): void {
     const line: string = values[field.key];
+    const kept: string = field.key === "location" && line === opened.values.location ? openedLinkOf() : "";
+    const link: string = kept !== "" ? kept : field.links[line] ?? "";
     address.textContent = line;
-    address.href = mapsAddressOf(line);
-    address.hidden = field.key === "title" || line === labelOf(line);
+    address.href = link !== "" ? link : mapsAddressOf(line);
+    address.hidden = field.key === "title" || line === "" || (line === labelOf(line) && link === "");
+}
+
+/**
+ * Opens the dialog of a new place for a field, see `placeOpen` in `places.ts`, and takes its link,
+ * when it has one, into the links of every field of a place, since places are one list.
+ * - `place`: The place saved, `null` when the dialog closed without saving.
+ *
+ * @param name - Typed name of the place, like `Audimax`
+ * @returns The place as an entry writes it, like `Audimax, Arcisstraße 21, 80333 München, Deutschland`,
+ *   `null` when none is saved
+ */
+async function placeAdd(name: string): Promise<string | null> {
+    const place: Place | null = await placeOpen(name);
+    if (place === null)
+        return null;
+    categories.flatMap((category: Category): Field[] => category.fields)
+        .filter((field: Field): boolean => field.key !== "title" && place.link !== "")
+        .forEach((field: Field): void => {
+            field.links[lineOf(place)] = place.link;
+        });
+    return lineOf(place);
 }
 
 /**
@@ -457,7 +499,7 @@ function fieldsShow(): void {
             picked: values[field.key] === "" ? [] : [values[field.key]],
             many: false,
             adding: !field.fixed,
-            add: field.key === "title" ? undefined : placeOpen,
+            add: field.key === "title" ? undefined : placeAdd,
             pick: (picked: string[]): void => {
                 values[field.key] = picked[0] ?? "";
                 if (values[field.key] !== "")

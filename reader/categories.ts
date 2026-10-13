@@ -71,11 +71,24 @@ export type Category = {
 };
 
 /**
- * A {@link Category} as the page gets it, which also tells whether a box of the plan may have it.
+ * A {@link Field} as the page gets it, with the links of its places.
  *
+ * - `links`: For a field of a place, the link of each of my places that has one, by its line,
+ *   like `https://nav.tum.de/room/0509.EG.980`, see `places.ts`; none for any other field.
+ */
+export type FieldShown = Field & {
+    links: { [value: string]: string };
+};
+
+/**
+ * A {@link Category} as the page gets it, its fields with the links of their places, which also tells whether a box
+ * of the plan may have it.
+ *
+ * - `fields`: Its fields as the page gets them.
  * - `plan`: Whether a box of the plan may have the category, all but {@link unplannedNames}.
  */
 export type CategoryShown = Category & {
+    fields: FieldShown[];
     plan: boolean;
 };
 
@@ -272,6 +285,7 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * - `names`: Their names.
  * - `places`: One list of places for every field of a place: my places, the most used first, see {@link placeUsesOf},
  *   each as the line an entry writes, see `lineOf` in `places.ts`.
+ * - `links`: The links of my places that have one, by their lines.
  *
  * @param now - Present as ISO instant, as the page knows it
  * @returns {@link CategoryShown}s in their order
@@ -282,13 +296,17 @@ export function categoriesRead(now: string): CategoryShown[] {
     const names: string[] = mine.map((place: Place): string => place.name);
     const places: string[] = valuesOrder(placeUsesOf(logs).filter((use: string): boolean => names.includes(use)), names)
         .map((name: string): string => lineOf(mine[names.indexOf(name)]));
+    const links: { [value: string]: string } = Object.fromEntries(mine
+        .filter((place: Place): boolean => place.link !== "")
+        .map((place: Place): [string, string] => [lineOf(place), place.link]));
     return categories.map((category: Category): CategoryShown => ({
         name: category.name,
-        fields: category.fields.map((field: Field): Field => ({
+        fields: category.fields.map((field: Field): FieldShown => ({
             ...field,
             values: field.key !== "title" ? places
                 : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values),
             steps: stepsWithNoteOf(logs, category.name, field.steps),
+            links: field.key === "title" ? {} : links,
         })),
         plan: !unplannedNames.includes(category.name),
     }));
@@ -353,7 +371,7 @@ export function skillTitleOf(module: string, type: string): string {
  * @param fields - Text fields of an entry or a box to write
  * @returns Whether the entry may be written
  */
-export function categoryAllows(fields: EntryTexts): boolean {
+export function categoryAllows(fields: Omit<EntryTexts, "locationLink">): boolean {
     const category: Category | undefined = categories.find((candidate: Category): boolean =>
         candidate.name === fields.category);
     if (category === undefined)
@@ -376,6 +394,6 @@ export function categoryAllows(fields: EntryTexts): boolean {
  * @param fields - Text fields of a box to write
  * @returns Whether the box may be written
  */
-export function planAllows(fields: EntryTexts): boolean {
+export function planAllows(fields: Omit<EntryTexts, "locationLink">): boolean {
     return categoryAllows(fields) && !unplannedNames.includes(fields.category);
 }

@@ -4,12 +4,13 @@
  * A new place for a field of a place, the place of an entry or where a way starts, see `categories.ts`,
  * since the fields offer only my places of `Places.md`, each with its address, see `reader/places.ts`:
  * a place typed that is none of mine yet, then `+` or Enter, opens a small dialog over the entry by category
- * with two fields, the place, filled with what I typed, and its address with its country, both required.
+ * with three fields, the place, filled with what I typed, and its address with its country, both required,
+ * and its link, like `https://nav.tum.de/room/0509.EG.980`, which may stay empty.
  * Save adds the place to `Places.md` and picks it; Cancel, `Esc` or a click beside the dialog pick nothing.
  * An entry writes a place as one line, its name and its address, like
  * `TumMain, Arcisstraße 21, 80333 München, Deutschland`, see {@link lineOf}; it shows by its name, the part
- * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens in Google Maps,
- * see {@link mapsAddressOf}.
+ * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens the link
+ * of the place, written with it as its `ALTREP`, or else Google Maps, see {@link mapsAddressOf}.
  *
  * - `../icons.ts`: Puts the icons into the buttons of the dialog.
  * - `lucide`: The icons check and cross.
@@ -24,17 +25,19 @@ import { Check, X } from "lucide";
  *
  * - `name`: Name, like `TumMain`, without a comma.
  * - `address`: Its address with its country, like `Arcisstraße 21, 80333 München, Deutschland`.
+ * - `link`: Its link, like `https://nav.tum.de/room/0509.EG.980`, empty for none.
  */
-type Place = {
+export type Place = {
     name: string;
     address: string;
+    link: string;
 };
 
 /**
- * Takes the place the open dialog saved, as an entry writes it, see {@link lineOf}, or `null` when it closed
- * without saving, so the picker that opened it picks the place or nothing; `null` while no dialog waits for an answer.
+ * Takes the place the open dialog saved, or `null` when it closed without saving, so the picker that opened it
+ * picks the place or nothing; `null` while no dialog waits for an answer.
  */
-let answer: ((line: string | null) => void) | null = null;
+let answer: ((place: Place | null) => void) | null = null;
 
 
 /**
@@ -43,7 +46,7 @@ let answer: ((line: string | null) => void) | null = null;
  * @param place - A place of `Places.md`
  * @returns Line like `TumMain, Arcisstraße 21, 80333 München, Deutschland`
  */
-function lineOf(place: Place): string {
+export function lineOf(place: Place): string {
     return place.address === "" ? place.name : `${place.name}, ${place.address}`;
 }
 
@@ -76,8 +79,8 @@ export function mapsAddressOf(line: string): string {
 /**
  * Sends a new place to the reader, which adds it to `Places.md`.
  *
- * @param place - Name and address as typed
- * @returns The place as written, its name and address cleaned
+ * @param place - Name, address and link as typed
+ * @returns The place as written, its name, address and link cleaned
  * @throws {Error} - When the reader does not take it, like for a name another place has
  */
 async function placeSend(place: Place): Promise<Place> {
@@ -92,19 +95,20 @@ async function placeSend(place: Place): Promise<Place> {
 }
 
 /**
- * Sends the place of the fields, then closes the dialog and gives the place as written to the picker that opened it,
- * as an entry writes it, see {@link lineOf}; shows a hint and stays open when the reader does not take it.
+ * Sends the place of the fields, then closes the dialog and gives the place as written to the picker that opened it;
+ * shows a hint and stays open when the reader does not take it.
  * - `take`: Takes the place, kept apart before the dialog closes, so its closing answers nothing more.
  */
 function placeSave(): void {
     placeSend({
         name: (document.getElementById("place-name") as HTMLInputElement).value,
         address: (document.getElementById("place-address") as HTMLInputElement).value,
+        link: (document.getElementById("place-link") as HTMLInputElement).value,
     }).then((place: Place): void => {
-        const take: ((line: string | null) => void) | null = answer;
+        const take: ((place: Place | null) => void) | null = answer;
         answer = null;
         (document.getElementById("place") as HTMLDialogElement).close();
-        take?.(lineOf(place));
+        take?.(place);
     }).catch((error: unknown): void => {
         console.error(error);
         document.getElementById("place-error")?.removeAttribute("hidden");
@@ -113,20 +117,20 @@ function placeSave(): void {
 
 /**
  * Opens the dialog of a new place over the entry by category: the place filled with the typed text,
- * like `HomeMunich`, the address empty and focused, since the place is typed already.
+ * like `HomeMunich`, the address empty and focused, since the place is typed already, the link empty.
  * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page and the entry by category, `Esc` closes it.
  *
  * @param name - Typed name of the place, like `HomeMunich`
- * @returns The place as an entry writes it once it is saved, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`,
- *   `null` when the dialog closes without saving
+ * @returns The place as written once it is saved, `null` when the dialog closes without saving
  */
-export function placeOpen(name: string): Promise<string | null> {
+export function placeOpen(name: string): Promise<Place | null> {
     (document.getElementById("place-name") as HTMLInputElement).value = name;
     (document.getElementById("place-address") as HTMLInputElement).value = "";
+    (document.getElementById("place-link") as HTMLInputElement).value = "";
     document.getElementById("place-error")?.setAttribute("hidden", "");
     (document.getElementById("place") as HTMLDialogElement).showModal();
     document.getElementById("place-address")?.focus();
-    return new Promise((resolve: (line: string | null) => void): void => {
+    return new Promise((resolve: (place: Place | null) => void): void => {
         answer = resolve;
     });
 }

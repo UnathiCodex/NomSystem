@@ -38,6 +38,7 @@ import { berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryRe
 import { categoryAllows, skillName, usualLengthRead } from "./categories.ts";
 import { linksOf } from "./documents.ts";
 import { dishFoodsRead, foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
+import { placeLinkOf } from "./places.ts";
 import { day, logEnding, monthFileOf } from "./sources.ts";
 import { glassIs } from "./trackers.ts";
 
@@ -144,14 +145,17 @@ export function fileOf(start: Date): string {
 }
 
 /**
- * Turns an entry as the page sends it into the fields to write.
+ * Turns an entry as the page sends it into the fields to write, its place with its link, see `placeLinkOf`
+ * in `places.ts`.
  *
  * @param entry - New or changed entry, with ISO instants
+ * @param from - The box it is logged from or the entry being changed, `null` for none
  * @returns Fields and times
  */
-function fieldsOf(entry: EntryNew): EntryFields {
+function fieldsOf(entry: EntryNew, from: { location: string; locationLink: string } | null): EntryFields {
     return {
-        category: entry.category, title: entry.title, location: entry.location, from: entry.from,
+        category: entry.category, title: entry.title, location: entry.location,
+        locationLink: placeLinkOf(entry.location, from), from: entry.from,
         module: entry.module, type: entry.type, note: entry.note,
         start: new Date(entry.start), end: new Date(entry.end),
     };
@@ -269,10 +273,9 @@ function skillLinksOf(fields: EntryFields): [string, Link][] {
  *   or the box it is logged from is not open
  */
 export function entryAdd(entry: EntryNew): string {
-    const fields: EntryFields = fieldsOf(entry);
+    const plan: Box | null = entry.planned === "" ? null : boxOpenFind(entry.planned);
+    const fields: EntryFields = fieldsOf(entry, plan);
     fieldsCheck(fields, entry.foods, null);
-    if (entry.planned !== "")
-        boxOpenFind(entry.planned);
 
     const pain: string = entry.pain ?? "";
     painCheck(pain);
@@ -307,8 +310,8 @@ export function boxLog(logged: BoxLogged): string {
         throw new Error(`${box.title} has no category; the dialog logs it`);
 
     const fields: EntryFields = {
-        category: box.category, title: box.title, location: box.location, from: box.from,
-        module: box.module, type: box.type, note: "",
+        category: box.category, title: box.title, location: box.location, locationLink: box.locationLink,
+        from: box.from, module: box.module, type: box.type, note: "",
         start: new Date(logged.start), end: new Date(logged.end),
     };
     fieldsCheck(fields, [], null);
@@ -342,7 +345,7 @@ export function mealAfterCookAdd(id: string): string {
     const foods: string[] = dishFoodsRead(cook.title);
     const fields: EntryFields = {
         category: foodName, title: foods.length > 0 ? mealTitleOf(foods) : cook.title, location: cook.location,
-        from: "", module: "", type: "", note: "",
+        locationLink: cook.locationLink, from: "", module: "", type: "", note: "",
         start: start, end: new Date(start.getTime() + usualLengthRead(foodName, start.toISOString()) * 60 * 1000),
     };
     fieldsCheck(fields, foods, null);
@@ -365,7 +368,7 @@ export function entryEdit(change: EntryChange): void {
     if (!entry.editable)
         throw new Error(`${entry.title} may not be changed`);
 
-    const fields: EntryFields = fieldsOf(change);
+    const fields: EntryFields = fieldsOf(change, entry);
     fieldsCheck(fields, change.foods, entry);
     painCheck(change.pain ?? "");
     if (change.foods.join("\n") !== entry.foods.join("\n"))

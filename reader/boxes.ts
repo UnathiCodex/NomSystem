@@ -50,6 +50,7 @@
  * - `node:path`: Gives the name of a plan file.
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
  * - `./categories.ts`: Tells whether a box fits its category, and names the category of skill entries.
+ * - `./places.ts`: Gives the link of the place of a box.
  * - `./sources.ts`: Names the plan, the log and the birthdays and holidays, and builds the path of a plan file.
  */
 
@@ -59,6 +60,7 @@ import {
     occurrenceLookup, propertiesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, skillName } from "./categories.ts";
+import { placeLinkOf } from "./places.ts";
 import { day, monthFileOf, planEnding } from "./sources.ts";
 
 import type { Entry, EntryFields, EntryTexts, TodoFields } from "./calendar.ts";
@@ -74,7 +76,8 @@ export type BoxState = "open" | "done" | "dropped";
  *
  * - `id`: Identifier of its to-do or event, its `UID`, for an occurrence of a series with its start,
  *   see {@link boxIdOf}.
- * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of an entry, see `calendar.ts`.
+ * - `category`, `title`, `location`, `locationLink`, `from`, `module`, `type`, `note`: As those of an entry,
+ *   see `calendar.ts`, like the room of a lecture of my plan in `Skilling/` with its link as `ALTREP`.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time as ISO instant, empty for none.
  * - `minutes`: Expected duration in minutes, `null` for none.
@@ -130,13 +133,14 @@ export type PlanDay = {
 /**
  * A new box, as the entry by category and an accepted suggestion send it; an empty field is not written.
  *
- * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of an entry of the log.
+ * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of an entry of the log;
+ *   the link of its place the reader finds, see `placeLinkOf` in `places.ts`.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time as ISO instant, on its day, empty for none and for a box with a deadline.
  * - `minutes`: Expected duration in whole minutes, `null` for none.
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` without time, empty for none.
  */
-export type BoxNew = EntryTexts & {
+export type BoxNew = Omit<EntryTexts, "locationLink"> & {
     day: string;
     time: string;
     minutes: number | null;
@@ -273,8 +277,8 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
     else if (log !== undefined || entry.status === "COMPLETED")
         state = "done";
     return {
-        id: boxIdOf(entry), category: entry.category, title: entry.title, location: entry.location, from: entry.from,
-        module: entry.module, type: entry.type, note: entry.note,
+        id: boxIdOf(entry), category: entry.category, title: entry.title, location: entry.location,
+        locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type, note: entry.note,
         day: dayOf(entry),
         time: entry.allDay ? "" : entry.start,
         minutes: minutes,
@@ -416,15 +420,17 @@ function boxCheck(box: BoxNew): void {
 }
 
 /**
- * Turns a box as the page sends it into the fields of its to-do.
+ * Turns a box as the page sends it into the fields of its to-do, its place with its link, see `placeLinkOf`
+ * in `places.ts`.
  *
  * @param box - New or changed box
+ * @param old - The box as it was, `null` for a new one
  * @returns Fields of the to-do
  */
-function todoFieldsOf(box: BoxNew): TodoFields {
+function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
     return {
-        category: box.category, title: box.title, location: box.location, from: box.from,
-        module: box.module, type: box.type, note: box.note,
+        category: box.category, title: box.title, location: box.location, locationLink: placeLinkOf(box.location, old),
+        from: box.from, module: box.module, type: box.type, note: box.note,
         day: box.day, time: box.time === "" ? null : new Date(box.time), minutes: box.minutes, deadline: box.deadline,
     };
 }
@@ -438,7 +444,7 @@ function todoFieldsOf(box: BoxNew): TodoFields {
  */
 export function boxAdd(box: BoxNew): string {
     boxCheck(box);
-    return todoAppend(planFileOf(box.day), todoFieldsOf(box));
+    return todoAppend(planFileOf(box.day), todoFieldsOf(box, null));
 }
 
 /**
@@ -459,7 +465,7 @@ export function boxEdit(change: BoxChange): void {
         throw new Error(`${entry.title} may not be changed`);
     boxCheck(change);
     if (entry.todo) {
-        todoChange(file, entry, todoFieldsOf(change), planFileAfter(file, change.day));
+        todoChange(file, entry, todoFieldsOf(change, entry), planFileAfter(file, change.day));
         return;
     }
 
@@ -467,7 +473,8 @@ export function boxEdit(change: BoxChange): void {
         throw new Error(`${entry.title} is an event of the plan and keeps its time and its duration`);
     const start: Date = new Date(change.time);
     const fields: EntryFields = {
-        category: change.category, title: change.title, location: change.location, from: change.from,
+        category: change.category, title: change.title, location: change.location,
+        locationLink: placeLinkOf(change.location, entry), from: change.from,
         module: change.module, type: change.type, note: change.note,
         start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
     };
@@ -507,8 +514,8 @@ export function boxPush(id: string): void {
 
     const next: string = dayAdd(box.day, 1);
     const texts: EntryTexts = {
-        category: entry.category, title: entry.title, location: entry.location, from: entry.from,
-        module: entry.module, type: entry.type, note: entry.note,
+        category: entry.category, title: entry.title, location: entry.location, locationLink: entry.locationLink,
+        from: entry.from, module: entry.module, type: entry.type, note: entry.note,
     };
     propertiesPut(file, id, [["x-pushed", [...entry.pushed, box.day]]]);
     if (entry.todo)

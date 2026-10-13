@@ -31,7 +31,10 @@ import type { CalendarSource } from "./sources.ts";
  *   all occurrences of a series share it, like those of a birthday.
  * - `category`: Category of the entry, its `CATEGORIES`, like `Way`; empty for an entry without one, like a birthday.
  * - `title`: Summary of the entry, what it was, like `U-Bahn`.
- * - `location`: Place of the entry, like `HomeMunich`, empty when the event has none.
+ * - `location`: Place of the entry, its `LOCATION`, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
+ *   or `HomeMunich` in an older entry, empty when the event has none.
+ * - `locationLink`: Link of its place, the standard parameter `ALTREP` of its `LOCATION`,
+ *   like `https://nav.tum.de/room/0509.EG.980`, empty when it has none.
  * - `from`: Where a way starts, its `X-FROM`, empty when the event has none.
  * - `module`: Module of a skill entry, its `X-MODULE`, like `IN2028`, empty when the event has none.
  * - `type`: Type of a skill entry, its `X-TYPE`, like `VO`, empty when the event has none.
@@ -78,6 +81,7 @@ export type Entry = {
     category: string;
     title: string;
     location: string;
+    locationLink: string;
     from: string;
     module: string;
     type: string;
@@ -125,6 +129,8 @@ export type Link = {
  * - `category`: Category of the entry, `CATEGORIES`.
  * - `title`: What, `SUMMARY`.
  * - `location`: Place, `LOCATION`.
+ * - `locationLink`: Link of the place, the parameter `ALTREP` of `LOCATION`, written only with its place,
+ *   empty for none.
  * - `from`: Where a way starts, `X-FROM`.
  * - `module`: Module of a skill entry, `X-MODULE`.
  * - `type`: Type of a skill entry, `X-TYPE`.
@@ -134,6 +140,7 @@ export type EntryTexts = {
     category: string;
     title: string;
     location: string;
+    locationLink: string;
     from: string;
     module: string;
     type: string;
@@ -312,6 +319,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         category: String(event.component.getFirstPropertyValue("categories") ?? ""),
         title: event.summary,
         location: event.location ?? "",
+        locationLink: String(event.component.getFirstProperty("location")?.getParameter("altrep") ?? ""),
         from: String(event.component.getFirstPropertyValue("x-from") ?? ""),
         module: String(event.component.getFirstPropertyValue("x-module") ?? ""),
         type: String(event.component.getFirstPropertyValue("x-type") ?? ""),
@@ -826,6 +834,24 @@ function propertyOf(name: string, value: string | ICAL.Time | Link): ICAL.Proper
 }
 
 /**
+ * Builds the property of a text field of an entry, see {@link textsOf}: its `LOCATION` with the link of its place
+ * as the standard parameter `ALTREP`, when it has one, like
+ * `LOCATION;ALTREP="https://nav.tum.de/room/0509.EG.980":Audimax 0509.EG.980\, Arcisstraße 21\, 80333 München…`,
+ * every other one as its text.
+ *
+ * @param name - Name of the property, like `location`
+ * @param value - Its text, like `Audimax 0509.EG.980, Arcisstraße 21, 80333 München, Deutschland`
+ * @param fields - Text fields of the entry, with the link of its place
+ * @returns Property to write
+ */
+function textPropertyOf(name: string, value: string, fields: EntryTexts): ICAL.Property {
+    const property: ICAL.Property = propertyOf(name, value);
+    if (name === "location" && fields.locationLink !== "")
+        property.setParameter("altrep", fields.locationLink);
+    return property;
+}
+
+/**
  * Puts a property into the lines of an event, one line per value: takes out all its old lines
  * and puts the new ones where the first old one stood, or before the end of the event when there was none;
  * no value removes the property. Most properties have one value, the `X-ATTEMPT`s of a skill entry one per attempt,
@@ -836,16 +862,18 @@ function propertyOf(name: string, value: string | ICAL.Time | Link): ICAL.Proper
  *
  * @param event - Lines from `BEGIN:VEVENT` to `END:VEVENT`, changed in place
  * @param name - Name of the property, like `dtstart`
- * @param values - New values, none to remove the property
+ * @param values - New values, none to remove the property; a property built already, like a `LOCATION`
+ *   with its `ALTREP`, see {@link textPropertyOf}, goes in as it is
  */
-function propertyPut(event: string[], name: string, values: (string | ICAL.Time | Link)[]): void {
+function propertyPut(event: string[], name: string, values: (string | ICAL.Time | Link | ICAL.Property)[]): void {
     let at: number = event.length - 1;
     for (let old: [number, number] | null = propertyFind(event, name); old !== null; old = propertyFind(event, name)) {
         at = Math.min(at, old[0]);
         event.splice(old[0], old[1] - old[0]);
     }
-    event.splice(at, 0, ...values.flatMap((value: string | ICAL.Time | Link): string[] =>
-        ICAL.helpers.foldline(propertyOf(name, value).toICALString()).split("\r\n")));
+    event.splice(at, 0, ...values.flatMap((value: string | ICAL.Time | Link | ICAL.Property): string[] =>
+        ICAL.helpers.foldline((value instanceof ICAL.Property ? value : propertyOf(name, value)).toICALString())
+            .split("\r\n")));
 }
 
 /**
@@ -869,7 +897,8 @@ function textsOf(fields: EntryTexts): [string, string][] {
 
 /**
  * Appends an entry to an `.ics` file, creating file and folders when missing.
- * Writes start and end in Berlin time, and only the text fields and properties of my own that are not empty.
+ * Writes start and end in Berlin time, and only the text fields and properties of my own that are not empty,
+ * its place with its link, see {@link textPropertyOf}.
  * - `id`: Identifier of the new event, its `UID`.
  *
  * @param file - Path of the `.ics` file
@@ -888,8 +917,12 @@ export function entryAppend(file: string, fields: EntryFields, own: [string, str
     event.addProperty(propertyOf("dtend", berlinOf(fields.end)));
     event.addPropertyWithValue("dtstamp", ICAL.Time.fromJSDate(new Date(), true));
     event.addPropertyWithValue("uid", id);
-    [...textsOf(fields), ...own]
-        .filter(([, value]: [string, string | Link]): boolean => value !== "")
+    textsOf(fields)
+        .filter(([, value]: [string, string]): boolean => value !== "")
+        .forEach(([name, value]: [string, string]): void => {
+            event.addProperty(textPropertyOf(name, value, fields));
+        });
+    own.filter(([, value]: [string, string | Link]): boolean => value !== "")
         .forEach(([name, value]: [string, string | Link]): void => {
             event.addProperty(propertyOf(name, value));
         });
@@ -960,14 +993,15 @@ export function todoAppend(file: string, fields: TodoFields): string {
     textsOf(fields)
         .filter(([, value]: [string, string]): boolean => value !== "")
         .forEach(([name, value]: [string, string]): void => {
-            todo.addProperty(propertyOf(name, value));
+            todo.addProperty(textPropertyOf(name, value, fields));
         });
     componentInsert(file, todo.toString().split("\r\n"));
     return id;
 }
 
 /**
- * Puts the text fields that changed into the lines of an event or a to-do.
+ * Puts the text fields that changed into the lines of an event or a to-do, a new place with its link,
+ * see {@link textPropertyOf}; a place that stays keeps its line as it is, with its `ALTREP`.
  * - `textsOld`: Its text fields as read, with the names of their properties.
  *
  * @param component - Lines of the event or the to-do, changed in place
@@ -978,7 +1012,7 @@ function textsPut(component: string[], entry: Entry, fields: EntryTexts): void {
     const textsOld: [string, string][] = textsOf(entry);
     textsOf(fields).forEach(([name, value]: [string, string], index: number): void => {
         if (value !== textsOld[index][1])
-            propertyPut(component, name, value === "" ? [] : [value]);
+            propertyPut(component, name, value === "" ? [] : [textPropertyOf(name, value, fields)]);
     });
 }
 

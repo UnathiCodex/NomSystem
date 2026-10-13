@@ -62,6 +62,7 @@
  * - `./documents.ts`: Builds the links of a skill entry, to the folder of its skill and to its document
  *   with its fingerprint, and gives the links it could not repair.
  * - `./notes.ts`: Reads the modules of the semester with their chapters and notes, and every module folder.
+ * - `./places.ts`: Gives the link of the place of a skill entry.
  * - `./sources.ts`: Names the log of the skill area and the skills of the semester, its modules and its projects.
  * - `./trackers.ts`: Holds my settings, like the minutes after which the timer of a session suggests a break.
  */
@@ -75,6 +76,7 @@ import { skillName, skillTitleOf, skillTypes } from "./categories.ts";
 import { fileOf } from "./day.ts";
 import { linksLostRead, linksOf } from "./documents.ts";
 import { codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead } from "./notes.ts";
+import { placeLinkOf } from "./places.ts";
 import { activeModules, activeSkills, projectOf, skillLog, skillNameOf } from "./sources.ts";
 import { settings } from "./trackers.ts";
 
@@ -993,6 +995,7 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[])
  * from, which is done then.
  * - `tasks`: Tasks of the modules of the semester.
  * - `values`: `X-ATTEMPT`s of the entry.
+ * - `plan`: The box it is logged from, `null` for none, whose place keeps its link, see `placeLinkOf` in `places.ts`.
  * - `fields`: Fields and times of the entry.
  * - `own`: Its chapters, links, attempts and box, as properties of my own.
  *
@@ -1004,11 +1007,11 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
     const tasks: Task[] = tasksRead();
     const values: string[] = entry.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks, ""));
     skillEntryCheck(entry, values, []);
-    if (entry.planned !== "")
-        boxOpenFind(entry.planned);
+    const plan: Box | null = entry.planned === "" ? null : boxOpenFind(entry.planned);
 
     const fields: EntryFields = {
-        category: skillName, title: skillTitleOf(entry.module, entry.type), location: entry.location, from: "",
+        category: skillName, title: skillTitleOf(entry.module, entry.type), location: entry.location,
+        locationLink: placeLinkOf(entry.location, plan), from: "",
         module: entry.module, type: entry.type, note: entry.note.trim(), start: new Date(entry.start), end: new Date(entry.end),
     };
     const own: [string, string | Link][] = chaptersWith(entry.chapters, tasksOf(values), tasks)
@@ -1051,7 +1054,8 @@ export function skillEntryEdit(change: SkillEntryChange): void {
         ["x-attempt", values],
     ]);
     entryChange(file, old, {
-        category: skillName, title: skillTitleOf(change.module, change.type), location: old.location, from: "",
+        category: skillName, title: skillTitleOf(change.module, change.type), location: old.location,
+        locationLink: old.locationLink, from: "",
         module: change.module, type: change.type, note: change.note.trim(),
         start: new Date(change.start), end: new Date(change.end),
     }, fileOf(new Date(change.start)));
@@ -1096,7 +1100,8 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
             own.push(["x-planned", plan.id]);
         const start: Date = new Date(quarter.getTime() - quarterHour);
         entryAppend(fileOf(start), {
-            category: skillName, title: skillTitleOf(module, type), location: plan?.location ?? "", from: "",
+            category: skillName, title: skillTitleOf(module, type), location: plan?.location ?? "",
+            locationLink: plan?.locationLink ?? "", from: "",
             module: module, type: type, note: "", start: start, end: quarter,
         }, own);
         if (plan !== undefined)

@@ -78,7 +78,8 @@ export type BoxState = "open" | "done" | "dropped";
  *   like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`.
  * - `category`: Category, like `Skill`, empty for a box without one, like a to-do another app wrote.
  * - `title`: What, like `WI1059 HU`.
- * - `location`: Place, empty for none.
+ * - `location`: Place, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, empty for none.
+ * - `locationLink`: Link of its place, its `ALTREP`, like `https://nav.tum.de/room/0509.EG.980`, empty for none.
  * - `from`: Where a way starts, empty for none.
  * - `module`: Module of a skill box, like `WI1059`, empty for any other box.
  * - `type`: Type of a skill box, like `HU`, empty for any other box.
@@ -99,6 +100,7 @@ export type Box = {
     category: string;
     title: string;
     location: string;
+    locationLink: string;
     from: string;
     module: string;
     type: string;
