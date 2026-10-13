@@ -95,7 +95,8 @@ export type ModuleType = {
  * - `titleLink`: The folder of its skill, the `ALTREP` of its `SUMMARY`, in the log, empty for none.
  * - `chapters`: Names to read of its chapters, in the log.
  * - `links`: Its links as the reader gave them, to its document, in the log.
- * - `attempts`: Its `X-ATTEMPT`s as the reader gave them, in the log, like `IN2028/Airline Revenue Interval;right;low`.
+ * - `attempts`: Its `X-ATTEMPT`s as the reader gave them, in the log, like `IN2028/Airline Revenue Interval;right;low`,
+ *   or `140500;IN2028/Airline Revenue Interval;right` with the time of the tap when a button wrote it.
  */
 export type SkillValues = {
     module: string;
@@ -131,6 +132,12 @@ let picks: SkillPicks = { module: "", type: "", chapters: [], document: "", atte
  * Chapters and documents of the skill picked, as the reader gave them, none before a skill is picked and for a project.
  */
 let contents: ModuleContents = { chapters: [], documents: [] };
+
+/**
+ * Time of the tap at the start of an `X-ATTEMPT` a button wrote, like `140500` for 14:05, or `14:05` in an older one,
+ * see `reader/skill.ts`.
+ */
+const tapTime: RegExp = /^\d{2}:?\d{2}(?:\d{2})?$/;
 
 /**
  * `X-ATTEMPT`s of the skill entry of the log being changed, which stay as they are, none for any other.
@@ -317,7 +324,8 @@ function resultElementOf(pick: AttemptPick, name: string, changed: () => void): 
 /**
  * Builds the attempts of the entry being changed, which stay: one line per attempt, its task and result,
  * with my effort and where I got stuck or why I skipped.
- * - `parts`: An `X-ATTEMPT` cut at each `;`: task, result, effort, and where I got stuck or why I skipped.
+ * - `parts`: An `X-ATTEMPT` cut at each `;`: task, result, effort, and where I got stuck or why I skipped,
+ *   without the time of the tap a button wrote at its start, see {@link tapTime}.
  *
  * @returns Attempts, none for an entry without attempts
  */
@@ -329,6 +337,8 @@ function loggedOf(): HTMLElement[] {
     list.className = "entry-skill";
     list.append(...logged.map((value: string): HTMLLIElement => {
         const parts: string[] = value.split(";");
+        if (tapTime.test(parts[0]))
+            parts.shift();
         const effort: string = parts[2] ?? "";
         const item: HTMLLIElement = document.createElement("li");
         item.textContent = [parts[0].slice(parts[0].indexOf("/") + 1), parts[1], effort === "" ? "" : `${effort} effort`,

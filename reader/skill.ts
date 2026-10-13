@@ -26,15 +26,16 @@
  * - one `ATTACH` for the document it used, like the slides of a lecture or a sheet, with the fingerprint
  *   of its content, so the link survives a rename, see `documents.ts`;
  * - one `X-ATTEMPT` per attempt at a task of my notes, of any type, like the tasks I solved in a tutorial:
- *   the time of the tap in Berlin time when a button wrote it, its task with the part of a cold task after `#`,
- *   its result, my effort, and where I got stuck or why I skipped, see {@link AttemptLine},
- *   like `X-ATTEMPT:14:05;IN2028/Kiosk Chain Review#b;stuck;high;step 2`; an attempt from the dialog has no time,
+ *   the time of the tap in Berlin time when a button wrote it, in the form of the iCalendar format, like `140500`
+ *   for 14:05, its task with the part of a cold task after `#`, its result, my effort, and where I got stuck or why
+ *   I skipped, see {@link AttemptLine}, like `X-ATTEMPT:140500;IN2028/Kiosk Chain Review#b;stuck;high;step 2`,
+ *   an older one with its time like `14:05`; an attempt from the dialog has no time,
  *   like `X-ATTEMPT:IN2028/Kiosk Sales Standard Error;right`;
  * - one `X-TUTOR` per task I copied for my tutor in it, like `X-TUTOR:IN2028/Kiosk Sales Standard Error`,
  *   so a right attempt at it after that is guided, see {@link tutorAdd}, and the copies per chapter show
  *   how often I needed help, which should fall from chapter to chapter.
  * One tap after an attempt rates my effort, low, medium or high; until then it is empty and left out at the end,
- * like `X-ATTEMPT:14:05;IN2028/Airline Revenue Interval;right`, and a skip has none.
+ * like `X-ATTEMPT:140500;IN2028/Airline Revenue Interval;right`, and a skip has none.
  * A button of a task writes into the skill entry of the moment: the last one of the task's module that started before now
  * and ended at most half an hour ago, like a tutorial logged from the plan; it grows to the end of the quarter hour
  * of the attempt, so the half hour of a pause counts from the attempt.
@@ -277,7 +278,7 @@ export type AttemptNew = {
  *   `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`, empty for none.
  * - `attempts`: Its attempts, in the order they were picked, none for none.
  * - `location`: Place, `LOCATION`, like the room of a lecture logged from its box.
- * - `planned`: Identifier of the box it is logged from, its `X-PLANNED`, empty for none.
+ * - `planned`: Identifier of the box it is logged from, written as its `RELATED-TO`, empty for none.
  * - `note`: Free note, `DESCRIPTION`.
  * - `start`: Start as ISO instant.
  * - `end`: End as ISO instant, after the start.
@@ -371,7 +372,7 @@ type LoggedAttempt = {
 /**
  * The parts of an `X-ATTEMPT`, see the top of this file and {@link attemptLineOf}.
  *
- * - `time`: Time of the tap, like `14:05`, empty for none.
+ * - `time`: Time of the tap, like `14:05`, written like `140500`, empty for none.
  * - `task`: Identity of the task, like `IN2028/Kiosk Chain Review`.
  * - `part`: Part of a cold task, like `b`, empty for the whole task.
  * - `result`: The result as written, like `stuck`.
@@ -445,9 +446,10 @@ const examDefault: ExamDate = { day: "2027-02-15", estimated: true };
 const partLine: RegExp = /^([a-z])\)\s/;
 
 /**
- * Time of the tap at the start of an `X-ATTEMPT`, like `14:05`.
+ * Time of the tap at the start of an `X-ATTEMPT` in the form of the iCalendar format, hours, minutes and seconds,
+ * like `140500` for 14:05, or of an older one like `14:05`; its hours and its minutes.
  */
-const tapTime: RegExp = /^\d{2}:\d{2}$/;
+const tapTime: RegExp = /^(\d{2}):?(\d{2})(?:\d{2})?$/;
 
 /**
  * A quarter hour in milliseconds, the step of the day view.
@@ -592,15 +594,18 @@ function skillEntriesRead(start: string, end: string): Entry[] {
  * after `#`, the result, my effort, and the rest where I got stuck or why I skipped, put together again,
  * since it may hold a `;`; a value without time, like one of the dialog, starts with its task.
  * - `fields`: The value cut at each `;`, without the time.
- * - `time`: The time, empty for none.
+ * - `tap`: Hours and minutes of the time, `null` for none.
+ * - `time`: The time, like `14:05`, empty for none.
  * - `task`, `part`: The task and its part, the part `undefined` for none.
  *
- * @param value - `X-ATTEMPT`, like `14:05;IN2028/Kiosk Chain Review#b;stuck;high;step 2`
+ * @param value - `X-ATTEMPT`, like `140500;IN2028/Kiosk Chain Review#b;stuck;high;step 2`,
+ *   or `14:05;…` of an older one
  * @returns Its parts
  */
 function attemptLineOf(value: string): AttemptLine {
     const fields: string[] = value.split(";");
-    const time: string = tapTime.test(fields[0]) ? fields[0] : "";
+    const tap: RegExpExecArray | null = tapTime.exec(fields[0]);
+    const time: string = tap === null ? "" : `${tap[1]}:${tap[2]}`;
     if (time !== "")
         fields.shift();
     const [task, part]: (string | undefined)[] = (fields[0] ?? "").split("#");
@@ -611,13 +616,14 @@ function attemptLineOf(value: string): AttemptLine {
 }
 
 /**
- * Writes the parts of an `X-ATTEMPT` back into one value, see {@link attemptLineOf}, leaving out the time
- * when there is none and the empty parts at the end, like an effort not rated yet.
+ * Writes the parts of an `X-ATTEMPT` back into one value, see {@link attemptLineOf}: its time in the form
+ * of the iCalendar format, like `140500` for 14:05, also the time of an older one written like `14:05`,
+ * leaving out the time when there is none and the empty parts at the end, like an effort not rated yet.
  * - `fields`: Task with its part, result, effort and detail.
  * - `end`: Number of them written, at least task and result.
  *
  * @param line - Parts of the attempt
- * @returns Value like `14:05;IN2028/Kiosk Chain Review#b;stuck;;step 2` or `IN2028/Airline Revenue Interval;right`
+ * @returns Value like `140500;IN2028/Kiosk Chain Review#b;stuck;;step 2` or `IN2028/Airline Revenue Interval;right`
  */
 function lineValueOf(line: AttemptLine): string {
     const fields: string[] = [line.part === "" ? line.task : `${line.task}#${line.part}`, line.result, line.effort, line.detail];
@@ -626,7 +632,7 @@ function lineValueOf(line: AttemptLine): string {
         end--;
     const kept: string[] = fields.slice(0, end);
     if (line.time !== "")
-        kept.unshift(line.time);
+        kept.unshift(`${line.time.replace(":", "")}00`);
     return kept.join(";");
 }
 
@@ -635,7 +641,7 @@ function lineValueOf(line: AttemptLine): string {
  * - `line`: Its parts.
  * - `result`: Result of the attempt.
  *
- * @param value - `X-ATTEMPT`, like `14:05;IN2028/Kiosk Sales Standard Error;stuck;high;step 2`
+ * @param value - `X-ATTEMPT`, like `140500;IN2028/Kiosk Sales Standard Error;stuck;high;step 2`
  * @param day - Day its skill entry started in Berlin time
  * @returns The attempt with its task
  */
@@ -909,7 +915,7 @@ export function moduleRead(code: string): ModuleContents {
  * @param attempt - New attempt
  * @param tasks - Tasks of the modules of the semester
  * @param time - Time of the tap in Berlin time, like `14:05`, empty for an attempt from the dialog
- * @returns Value like `14:05;IN2028/Kiosk Chain Review#b;stuck;high;step 2`
+ * @returns Value like `140500;IN2028/Kiosk Chain Review#b;stuck;high;step 2`
  * @throws {Error} - When no note holds the task, the part is none of the task's, the result or effort is unknown,
  *   a skip comes with an effort, or a reason to skip or where I got stuck comes with another result
  */
@@ -1022,7 +1028,7 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
     own.push(...linksOf(entry.module, entry.document, []).map((link: Link): [string, Link] => ["attach", link]));
     own.push(...values.map((value: string): [string, string] => ["x-attempt", value]));
     if (entry.planned !== "")
-        own.push(["x-planned", entry.planned]);
+        own.push(["related-to", entry.planned]);
     entryAppend(fileOf(fields.start), fields, own);
     if (entry.planned !== "")
         boxDone(entry.planned);
@@ -1101,7 +1107,7 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
             ...attempts.map((value: string): [string, string] => ["x-attempt", value]),
             ...tutors.map((task: string): [string, string] => ["x-tutor", task]));
         if (plan !== undefined)
-            own.push(["x-planned", plan.id]);
+            own.push(["related-to", plan.id]);
         const start: Date = new Date(quarter.getTime() - quarterHour);
         const [title, titleLink]: [string, string] =
             titleOf({ category: skillName, title: "", module: module, type: type });

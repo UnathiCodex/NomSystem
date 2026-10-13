@@ -5,8 +5,9 @@
  * see `boxes.ts`; appends events and to-dos to them, changes and removes single ones,
  * and moves one from one file into another, like into the file of another month.
  * Keeps each read file until it changes on disk, so a file is read again only once it changed.
- * Writes only into the three folders of the new system, with times in Berlin time,
- * and leaves every line it does not change as it is, byte for byte.
+ * Writes only into the three folders of the new system, with times in Berlin time, every date and time in the form
+ * of the iCalendar format, also in a property or a parameter of my own, like `20261026T130000Z` or `20261026`,
+ * never like `2026-10-26T13:00:00.000Z`, and leaves every line it does not change as it is, byte for byte.
  *
  * - `node:fs`: Works with files and folders on the disk.
  * - `node:path`: Builds file paths for the operating system.
@@ -50,16 +51,18 @@ import type { CalendarSource } from "./sources.ts";
  * - `links`: Links of a skill entry of the log to the folder of its skill and the document it used, its `ATTACH`es
  *   in order, see {@link Link} and `documents.ts`; none when the event has none.
  * - `attempts`: Attempts of a skill entry of the log, its `X-ATTEMPT`s in order,
- *   like `14:05;IN2028/Kiosk Sales Standard Error;stuck;high;step 2`, none when the event has none.
+ *   like `140500;IN2028/Kiosk Sales Standard Error;stuck;high;step 2`, none when the event has none.
  * - `tutors`: Tasks I copied for my tutor in a skill entry of the log, its `X-TUTOR`s in order,
  *   like `IN2028/Kiosk Sales Standard Error`, none when the event has none.
  * - `foods`: Foods of a meal, its `X-FOOD`s in order, each a food of `Foods.md` with the grams eaten, like `Reis;150`,
  *   or without grams, like `Eier`, for its usual portion; none when the event has none.
  * - `cooked`: Identifier of the entry `Cook` a meal was cooked in, its `X-COOKED`, empty when the event has none.
  * - `pain`: My neck pain from 0 to 10 after a long neck session, its `X-PAIN`, like `5`, empty when the event has none.
- * - `planned`: Identifier of the box a log entry was logged from, its `X-PLANNED`, like `study-13@nomsystem`,
- *   or for an occurrence of a series its identifier and its start,
- *   like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`, see `boxes.ts`; empty when the event has none.
+ * - `planned`: Identifier of the box a log entry was logged from, see {@link plannedOf}: the `UID` of its
+ *   `RELATED-TO`, like `study-13@nomsystem`, for one date of a series with that date after `#`,
+ *   like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z` of
+ *   `RELATED-TO;X-RECURRENCE-ID=20261013T080000Z:weekly-lecture@nomsystem`, see {@link entryIdOf};
+ *   for an older entry its `X-PLANNED`, which holds the identifier so; empty when the event has neither.
  * - `note`: Free note, its `DESCRIPTION`, empty when the event has none.
  * - `todo`: Whether the entry is a to-do, a `VTODO`, a box of the plan; else it is an event, a `VEVENT`.
  * - `status`: Its `STATUS`, like `CANCELLED` for a dropped box or `COMPLETED` for a done one, empty when it has none.
@@ -67,8 +70,8 @@ import type { CalendarSource } from "./sources.ts";
  *   `null` for none and for an event, whose length lies between its start and its end.
  * - `deadline`: Deadline of a to-do, its `DUE`, as ISO instant, or as date like `2026-10-23` when it has no time;
  *   empty for none and for an event.
- * - `pushed`: Days a box was pushed from to the next day, its `X-PUSHED`s in order, like `2026-10-12`,
- *   none when it has none.
+ * - `pushed`: Days a box was pushed from to the next day, its `X-PUSHED`s in order, like `2026-10-12`
+ *   of `X-PUSHED;VALUE=DATE:20261012`, see {@link pushedDayOf}; none when it has none.
  * - `written`: When the entry was written, its `DTSTAMP`, as ISO instant, which the reader sets once as it adds an entry;
  *   empty when the event has none.
  * - `editable`: Whether the dashboard may change the entry: it lies in the new system and has times or is a to-do;
@@ -305,6 +308,67 @@ function textOf(time: ICAL.Time): string {
 }
 
 /**
+ * Reads a date or a time in the form of the iCalendar format, as a parameter of my own holds it.
+ * - {@link ICAL.design}: Turns a value of the iCalendar format into the form `ical.js` reads,
+ *   like `2026-10-26T13:00:00Z` of `20261026T130000Z`.
+ *
+ * @param value - Date like `20261026`, or time in UTC like `20261026T130000Z`
+ * @returns The date or the time
+ */
+function icsTimeRead(value: string): ICAL.Time {
+    return /^\d{8}$/.test(value) ? ICAL.Time.fromDateString(ICAL.design.icalendar.value.date.fromICAL(value))
+        : ICAL.Time.fromDateTimeString(ICAL.design.icalendar.value["date-time"].fromICAL(value));
+}
+
+/**
+ * Writes a date or an instant of the form of {@link Entry} in the form of the iCalendar format, an instant in UTC,
+ * as a parameter of my own holds it, see {@link relatedOf}.
+ * - `time`: The date or the instant in UTC.
+ * - {@link ICAL.Time#toICALString}: Writes a time in the iCalendar format.
+ *
+ * @param text - Date like `2026-10-26`, or ISO instant like `2026-10-26T13:00:00.000Z`
+ * @returns Date like `20261026`, or time like `20261026T130000Z`
+ */
+function icsTextOf(text: string): string {
+    const time: ICAL.Time = /^\d{4}-\d{2}-\d{2}$/.test(text) ? ICAL.Time.fromDateString(text)
+        : ICAL.Time.fromJSDate(new Date(text), true);
+    return time.toICALString();
+}
+
+/**
+ * Reads the identifier of the box a log entry was logged from, see {@link Entry}: the `UID` of its `RELATED-TO`,
+ * and for one date of a series that date, its parameter `X-RECURRENCE-ID`, after `#`, as {@link entryIdOf} writes it;
+ * else, for an older entry, its `X-PLANNED`, which holds the identifier so.
+ * - `related`: Its first `RELATED-TO`, `null` for none.
+ * - `recurrence`: Its date of a series, like `20261013T080000Z`, empty for none.
+ *
+ * @param component - The event
+ * @returns Identifier like `study-13@nomsystem` or `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`,
+ *   empty for none
+ */
+function plannedOf(component: ICAL.Component): string {
+    const related: ICAL.Property | null = component.getFirstProperty("related-to");
+    if (related === null)
+        return String(component.getFirstPropertyValue("x-planned") ?? "");
+    const recurrence: string = String(related.getParameter("x-recurrence-id") ?? "");
+    return recurrence === "" ? String(related.getFirstValue())
+        : `${related.getFirstValue()}#${textOf(icsTimeRead(recurrence))}`;
+}
+
+/**
+ * Reads the day of one `X-PUSHED`: a date of the iCalendar format, like `X-PUSHED;VALUE=DATE:20261012`,
+ * or of an older box written like `X-PUSHED:2026-10-12`.
+ *
+ * @param value - Its value, a date or a text
+ * @returns Day like `2026-10-12`
+ */
+function pushedDayOf(value: unknown): string {
+    if (value instanceof ICAL.Time)
+        return value.toString();
+    return /^\d{8}$/.test(String(value)) ? icsTimeRead(String(value)).toString() : String(value);
+}
+
+/**
  * Reads the expected duration of a to-do, its `ESTIMATED-DURATION`: the property of the task extensions of iCalendar,
  * which `ical.js` does not know yet, so it gives its value as text, like `PT1H15M`.
  * - {@link ICAL.Duration.fromString}: Reads a duration of the iCalendar format.
@@ -396,14 +460,14 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
         cooked: String(event.component.getFirstPropertyValue("x-cooked") ?? ""),
         pain: String(event.component.getFirstPropertyValue("x-pain") ?? ""),
-        planned: String(event.component.getFirstPropertyValue("x-planned") ?? ""),
+        planned: plannedOf(event.component),
         note: event.description ?? "",
         todo: todo,
         status: String(event.component.getFirstPropertyValue("status") ?? ""),
         minutes: todo ? minutesOf(event.component) : null,
         deadline: todo ? deadlineOf(event.component) : "",
         pushed: event.component.getAllProperties("x-pushed")
-            .map((property: ICAL.Property): string => String(property.getFirstValue())),
+            .map((property: ICAL.Property): string => pushedDayOf(property.getFirstValue())),
         written: stamp instanceof ICAL.Time ? stamp.toJSDate().toISOString() : "",
         editable: writable && (todo || !start.isDate),
         start: textOf(start),
@@ -1036,6 +1100,37 @@ function textPropertyOf(name: string, value: string, fields: EntryTexts): ICAL.P
 }
 
 /**
+ * Builds the `RELATED-TO` of a log entry, which points to the box it was logged from by its `UID`, the standard way,
+ * like `RELATED-TO:study-13@nomsystem`; for one date of a series that date goes along as parameter `X-RECURRENCE-ID`
+ * in the form of the iCalendar format, see {@link icsTextOf}, since the `UID` names the whole series,
+ * like `RELATED-TO;X-RECURRENCE-ID=20261026T130000Z:weekly-lecture@nomsystem`.
+ * - `at`: Place of the last `#` in the identifier, -1 for none.
+ * - `property`: The property.
+ *
+ * @param box - Identifier of the box, see {@link entryIdOf}, like `weekly-lecture@nomsystem#2026-10-26T13:00:00.000Z`
+ * @returns Property to write
+ */
+function relatedOf(box: string): ICAL.Property {
+    const at: number = box.lastIndexOf("#");
+    const property: ICAL.Property = propertyOf("related-to", at === -1 ? box : box.slice(0, at));
+    if (at !== -1)
+        property.setParameter("x-recurrence-id", icsTextOf(box.slice(at + 1)));
+    return property;
+}
+
+/**
+ * Builds a property of a new entry beyond its fields, see {@link entryAppend}: the box a log entry was logged from
+ * as its `RELATED-TO`, see {@link relatedOf}, every other one with its value as it is, see {@link propertyOf}.
+ *
+ * @param name - Name of the property, like `x-food`, `related-to` for the box
+ * @param value - Value of the property, the identifier of the box for `related-to`
+ * @returns Property to write
+ */
+function ownPropertyOf(name: string, value: string | Link): ICAL.Property {
+    return name === "related-to" && typeof value === "string" ? relatedOf(value) : propertyOf(name, value);
+}
+
+/**
  * Puts a property into the lines of an event, one line per value: takes out all its old lines
  * and puts the new ones where the first old one stood, or before the end of the event when there was none;
  * no value removes the property. Most properties have one value, the `X-ATTEMPT`s of a skill entry one per attempt,
@@ -1079,15 +1174,17 @@ function textsOf(fields: EntryTexts): [string, string][] {
 
 /**
  * Appends an entry to an `.ics` file, creating file and folders when missing.
- * Writes start and end in Berlin time, and only the text fields and properties of my own that are not empty,
- * its place with its link, see {@link textPropertyOf}.
+ * Writes start and end in Berlin time, and only the text fields and the properties beyond them that are not empty,
+ * its place with its link, see {@link textPropertyOf}, the box it was logged from as `RELATED-TO`,
+ * see {@link ownPropertyOf}.
  * - `id`: Identifier of the new event, its `UID`.
  *
  * @param file - Path of the `.ics` file
  * @param fields - Fields and times of the entry
- * @param own - Properties of my own beyond the fields, each its name with its value,
+ * @param own - Properties beyond the fields, each its name with its value,
  *   like `["x-attempt", "IN2028/Airline Revenue Interval;right"]` of a skill entry or `["x-food", "Reis;150"]`
- *   of a meal, or `["attach", link]` for a link, see {@link Link}
+ *   of a meal, `["attach", link]` for a link, see {@link Link}, or `["related-to", "study-13@nomsystem"]`
+ *   for the box it was logged from
  * @returns Identifier of the new entry, like `b8f1e81f-15b4-460e-910d-ef6b1b3d09b3@nomsystem`
  * @throws {Error} - When the file lies outside the new system or has no line `END:VCALENDAR`
  */
@@ -1106,7 +1203,7 @@ export function entryAppend(file: string, fields: EntryFields, own: [string, str
         });
     own.filter(([, value]: [string, string | Link]): boolean => value !== "")
         .forEach(([name, value]: [string, string | Link]): void => {
-            event.addProperty(propertyOf(name, value));
+            event.addProperty(ownPropertyOf(name, value));
         });
     componentInsert(file, event.toString().split("\r\n"));
     return id;
@@ -1332,6 +1429,26 @@ export function statusPut(file: string, id: string, status: string, completed: D
     const values: ICAL.Time[] = completed === null ? [] : [ICAL.Time.fromJSDate(completed, true)];
     propertyPut(component, "status", status === "" ? [] : [status]);
     propertyPut(component, "completed", values);
+    componentWrite(file, text, place, component, file);
+}
+
+/**
+ * Notes the days a box was pushed from to the next day, one `X-PUSHED` each, as dates of the iCalendar format,
+ * like `X-PUSHED;VALUE=DATE:20261012`, replacing all its old lines, also those of an older box written
+ * like `X-PUSHED:2026-10-12`. Every other line of the file stays as it is, byte for byte.
+ * - {@link ICAL.Time.fromDateString}: Reads a day like `2026-10-12` into a time without time of day.
+ *
+ * @param file - Path of the `.ics` file
+ * @param id - Identifier of the to-do or the event
+ * @param days - Days it was pushed from, in order, like `2026-10-12`
+ * @throws {Error} - When the file lies outside the new system or does not hold the to-do or the event once
+ */
+export function pushesPut(file: string, id: string, days: string[]): void {
+    writeCheck(file);
+    const text: FileLines = linesRead(file);
+    const place: [number, number] = componentFind(text.lines, id);
+    const component: string[] = text.lines.slice(...place);
+    propertyPut(component, "x-pushed", days.map((pushed: string): ICAL.Time => ICAL.Time.fromDateString(pushed)));
     componentWrite(file, text, place, component, file);
 }
 

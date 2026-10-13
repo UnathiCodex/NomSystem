@@ -25,7 +25,7 @@ import type { Calendar } from "fullcalendar";
  * - `type`: Type of a skill entry, like `VO`, written only in its `SUMMARY`.
  * - `note`: Free note, `DESCRIPTION`.
  * - `foods`: Foods of a meal, its lines `X-FOOD` like `Reis;150`, none for any other entry.
- * - `planned`: Identifier of the box a new log entry is logged from, `X-PLANNED`, empty for none;
+ * - `planned`: Identifier of the box a new log entry is logged from, written as `RELATED-TO`, empty for none;
  *   the reader writes it only for a new entry.
  * - `pain`: My neck pain from 0 to 10 after `Neck long`, `X-PAIN`, empty for none; left out, it stays as it is,
  *   like after a drag.

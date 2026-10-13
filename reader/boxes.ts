@@ -27,15 +27,18 @@
  *   and after a `DTSTART` without time it may only be whole days;
  * - its state in `STATUS`: `NEEDS-ACTION` while open, `COMPLETED` with `COMPLETED`, the moment in UTC it was logged,
  *   and `CANCELLED` once dropped;
- * - each push in one `X-PUSHED` with the day it was pushed from, like `X-PUSHED:2026-10-13`, since the standard
- *   has nothing for it;
+ * - each push in one `X-PUSHED` with the day it was pushed from, as a date of the iCalendar format,
+ *   like `X-PUSHED;VALUE=DATE:20261013`, since the standard has nothing for it;
  * - its category, what, place, module, type and note as an entry of the log has them.
- * The log entry written from a box points to it with `X-PLANNED:<UID of the box>`, which gives its real time:
- * a box is done once a log entry points to it, or once it is `COMPLETED`, like a box ticked in another app.
+ * The log entry written from a box points to it the standard way, with `RELATED-TO:<UID of the box>`, which gives
+ * its real time, an older one with `X-PLANNED:<UID of the box>`: a box is done once a log entry points to it,
+ * or once it is `COMPLETED`, like a box ticked in another app.
  * An occurrence of a series in the plan, like a weekly lecture, is a box of its own: its identifier is the `UID`
  * of its series and its start as the series has it, after `#`,
  * like `weekly-lecture@nomsystem#2026-10-26T09:00:00.000Z`, see `entryIdOf` in `calendar.ts`, so its log entry
- * points to it alone and it is done by that log entry alone.
+ * points to it alone, with that start as parameter, like
+ * `RELATED-TO;X-RECURRENCE-ID=20261026T090000Z:weekly-lecture@nomsystem`, see `relatedOf` in `calendar.ts`,
+ * and it is done by that log entry alone.
  * It is logged like any box, and dropped, pushed and changed alone, the series staying as it is: the first time,
  * it becomes a component of its own in the file of its series, with the same `UID` and its start in the series
  * as `RECURRENCE-ID`, see `occurrenceOwn` in `calendar.ts`, the way the standard changes one occurrence,
@@ -63,7 +66,7 @@
 import { basename } from "node:path";
 import {
     berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryIdOf, entryLookup, entryRemove,
-    occurrenceLookup, occurrenceOwn, propertiesPut, statusPut, todoAppend, todoChange,
+    occurrenceLookup, occurrenceOwn, pushesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, skillName } from "./categories.ts";
 import { titleOf } from "./documents.ts";
@@ -544,7 +547,7 @@ export function boxPush(id: string): void {
         locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type, note: entry.note,
     };
     boxOwn(file, entry);
-    propertiesPut(file, id, [["x-pushed", [...entry.pushed, box.day]]]);
+    pushesPut(file, id, [...entry.pushed, box.day]);
     if (entry.todo)
         todoChange(file, entry, {
             ...texts, day: next, time: box.time === "" ? null : berlinLater(new Date(box.time), 1), minutes: entry.minutes,

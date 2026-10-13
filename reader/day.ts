@@ -12,9 +12,11 @@
  * its chapters, document and attempts the skill area writes, see `skill.ts`.
  *
  * A box of the plan goes into the log at its real time, dragged there or logged as expected with one tap,
- * see {@link boxLog}: the log entry points to it with `X-PLANNED:<UID of the box>`, written once when the log entry
- * is added, also when a box is logged through the dialog, so the box shows as done, with expected and real time,
- * and offers no second log; removing the log entry opens the box again.
+ * see {@link boxLog}: the log entry points to it with the standard `RELATED-TO:<UID of the box>`, for one date
+ * of a series with that date, like `RELATED-TO;X-RECURRENCE-ID=20261026T130000Z:<UID>`, see `relatedOf`
+ * in `calendar.ts`, written once when the log entry is added, also when a box is logged through the dialog,
+ * so the box shows as done, with expected and real time, and offers no second log; removing the log entry opens
+ * the box again. An older log entry points to its box with `X-PLANNED:<UID of the box>`, which is still read.
  *
  * The dialog of a box shows how long the last entries like it really lasted, see {@link realMinutesRead}.
  *
@@ -59,8 +61,8 @@ import type { Meal } from "./food.ts";
  * - `type`: Type of a skill entry, like `VO`, empty for any other entry.
  * - `note`: Free note.
  * - `foods`: Foods of a meal, its lines `X-FOOD` like `Reis;150`, none for any other entry.
- * - `planned`: Identifier of the box a new log entry is logged from, its `X-PLANNED`, empty for none;
- *   written only when the entry is added.
+ * - `planned`: Identifier of the box a new log entry is logged from, see `entryIdOf` in `calendar.ts`,
+ *   written as its `RELATED-TO`, empty for none; written only when the entry is added.
  * - `pain`: My neck pain from 0 to 10 after `Neck long`, its `X-PAIN`, like `5`, empty for none;
  *   left out by a sender that does not know it, like the calendar after a drag, so it stays as it is.
  * - `start`: Start as ISO instant.
@@ -252,7 +254,7 @@ export function realMinutesRead(category: string, title: string, module: string,
 
 /**
  * Adds an entry to the log, into the month file of its start, a meal with one line `X-FOOD` per food,
- * see {@link fieldsCheck}; an entry logged from a box with its `X-PLANNED`, after which the box is done;
+ * see {@link fieldsCheck}; an entry logged from a box with its `RELATED-TO`, after which the box is done;
  * a long neck session with my pain as `X-PAIN`, see {@link painCheck}.
  * - `pain`: My pain, empty for none.
  * - `own`: Properties of my own beyond the fields: the foods, the box and the pain.
@@ -272,7 +274,7 @@ export function entryAdd(entry: EntryNew): string {
     painCheck(pain);
     const own: [string, string | Link][] = entry.foods.map((food: string): [string, string] => ["x-food", food]);
     if (entry.planned !== "")
-        own.push(["x-planned", entry.planned]);
+        own.push(["related-to", entry.planned]);
     if (pain !== "")
         own.push(["x-pain", pain]);
     const id: string = entryAppend(fileOf(fields.start), fields, own);
@@ -285,7 +287,7 @@ export function entryAdd(entry: EntryNew): string {
  * Logs a box at its real time, with one drop or one tap: a log entry of its category, what, place, and a skill entry
  * with its skill and type, written as the reader writes them, see `titleOf` in `documents.ts`, linking the folder
  * of its skill, from the start to the end the day sends,
- * pointing to the box with `X-PLANNED`, after which the box is done. Its note stays empty, since the note
+ * pointing to the box with `RELATED-TO`, after which the box is done. Its note stays empty, since the note
  * of a log entry is my diary note about what happened; chapters and a document a skill entry gets later in the dialog.
  * - `box`: The box.
  * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
@@ -308,7 +310,7 @@ export function boxLog(logged: BoxLogged): string {
         start: new Date(logged.start), end: new Date(logged.end),
     };
     fieldsCheck(fields, [], box);
-    const id: string = entryAppend(fileOf(fields.start), fields, [["x-planned", box.id]]);
+    const id: string = entryAppend(fileOf(fields.start), fields, [["related-to", box.id]]);
     boxDone(box.id);
     return id;
 }
