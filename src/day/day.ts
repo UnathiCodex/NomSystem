@@ -148,6 +148,7 @@ function entryDrag(calendar: Calendar, info: EventChangeInfo): void {
         from: entry.extendedProps.from ?? "",
         module: entry.extendedProps.module ?? "",
         type: entry.extendedProps.type ?? "",
+        semester: entry.extendedProps.semester ?? "",
         note: entry.extendedProps.note ?? "",
         foods: entry.extendedProps.foods ?? [],
         planned: "",

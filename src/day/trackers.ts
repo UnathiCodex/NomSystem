@@ -283,8 +283,8 @@ function sleepOf(trackers: Trackers): HTMLElement {
 async function glassAdd(calendar: Calendar): Promise<void> {
     const start: Date = nowOn(calendar.view.currentStart);
     await entryAdd(calendar, {
-        category: "Drink", title: "Water", location: "", from: "", module: "", type: "", note: "", foods: [], planned: "",
-        start: start, end: new Date(start.getTime() + glassMinutes * 60 * 1000),
+        category: "Drink", title: "Water", location: "", from: "", module: "", type: "", semester: "", note: "",
+        foods: [], planned: "", start: start, end: new Date(start.getTime() + glassMinutes * 60 * 1000),
     });
 }
 

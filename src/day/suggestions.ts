@@ -89,7 +89,7 @@ export async function suggestionsLoad(day: string): Promise<Suggestion[]> {
 
 /**
  * Accepts a suggestion: writes it as a box of its day, a skill box of its module without type, my own learning,
- * with its duration and without time.
+ * with its duration and without time, and the semester of its day, which the reader fills in.
  *
  * @param suggestion - Suggestion to accept
  * @param day - Its day, like `2026-10-14`
@@ -98,7 +98,7 @@ export async function suggestionsLoad(day: string): Promise<Suggestion[]> {
 export async function suggestionAccept(suggestion: Suggestion, day: string): Promise<void> {
     await boxAdd({
         category: skillName, title: suggestion.title, location: "", from: "",
-        module: suggestion.module, type: "", note: "", day: day, time: null, minutes: suggestion.minutes,
+        module: suggestion.module, type: "", semester: "", note: "", day: day, time: null, minutes: suggestion.minutes,
         deadline: "",
     });
 }

@@ -23,6 +23,8 @@ import type { Calendar } from "fullcalendar";
  * - `module`: Module of a skill entry, like `IN2028`, written by the reader only in its `SUMMARY`,
  *   like `IN2028_BusinessAnalyticsMachineLearning (VO)`.
  * - `type`: Type of a skill entry, like `VO`, written only in its `SUMMARY`.
+ * - `semester`: Semester of a skill entry, `X-SEMESTER`, like `2026W`, empty for any other entry; the reader fills
+ *   in the semester of its day for a skill entry sent without one.
  * - `note`: Free note, `DESCRIPTION`.
  * - `foods`: Foods of a meal, its lines `X-FOOD` like `Reis;150`, none for any other entry.
  * - `planned`: Identifier of the box a new log entry is logged from, written as `RELATED-TO`, empty for none;
@@ -39,6 +41,7 @@ export type EntryFields = {
     from: string;
     module: string;
     type: string;
+    semester: string;
     note: string;
     foods: string[];
     planned: string;
@@ -50,7 +53,7 @@ export type EntryFields = {
 /**
  * Fields of a box of the plan to send; an empty field is not written.
  *
- * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of {@link EntryFields}.
+ * - `category`, `title`, `location`, `from`, `module`, `type`, `semester`, `note`: As those of {@link EntryFields}.
  * - `day`: Day of the box, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time on its day, `null` for none and for a box with a deadline.
  * - `minutes`: Expected duration in minutes, `null` for none.
@@ -64,6 +67,7 @@ export type BoxFields = {
     from: string;
     module: string;
     type: string;
+    semester: string;
     note: string;
     day: string;
     time: Date | null;

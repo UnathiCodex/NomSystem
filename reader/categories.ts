@@ -156,6 +156,12 @@ export { skillName };
 export const skillTypes: string[] = ["VO", "UE", "TU", "HU", "FA", "PR"];
 
 /**
+ * Semester of a skill entry, its `X-SEMESTER`, like `2026W` or `2027S`: the year it begins in, then `W` for a winter,
+ * October to March, or `S` for a summer, April to September.
+ */
+const semesterForm: RegExp = /^\d{4}[WS]$/;
+
+/**
  * The only whats of `Sleep`, in this order: `Night`, the sleep of a night, and `Day`, a nap,
  * which the sleep tracker never counts as a night, see `trackers.ts`.
  */
@@ -200,6 +206,41 @@ const categories: Category[] = [
     categoryOf("Game", {}),
 ];
 
+
+/**
+ * Gives the semester of a day, which the dashboard fills in for a skill entry until I pick another: October to March
+ * a winter, April to September a summer; January to March belong to the winter that began the year before.
+ * - `year`, `month`: Year and month of the day.
+ *
+ * @param day - Day like `2027-02-15`
+ * @returns Semester like `2026W`, or `2027S` for `2027-05-04`
+ */
+export function semesterOf(day: string): string {
+    const [year, month]: number[] = day.split("-").map(Number);
+    if (month >= 10)
+        return `${year}W`;
+    if (month <= 3)
+        return `${year - 1}W`;
+    return `${year}S`;
+}
+
+/**
+ * Gives the semester an entry states in its `X-SEMESTER`: for a skill entry the one sent or kept, else the semester
+ * of its day, see {@link semesterOf}, so every skill entry the reader writes carries one; none for any other entry.
+ *
+ * @param category - Category of the entry, like `Skill`
+ * @param semester - Semester sent or kept, like `2025W`, empty for none
+ * @param day - Day of the entry, like `2026-10-13`
+ * @returns Semester like `2026W`, empty for an entry of another category
+ * @throws {Error} - When the semester of a skill entry is not written like `2026W`
+ */
+export function semesterFor(category: string, semester: string, day: string): string {
+    if (category !== skillName)
+        return "";
+    if (semester !== "" && !semesterForm.test(semester))
+        throw new Error(`No semester ${semester}`);
+    return semester === "" ? semesterOf(day) : semester;
+}
 
 /**
  * Reads the timed log entries up to an instant, from the first entry of the log on.

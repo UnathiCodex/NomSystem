@@ -4,6 +4,9 @@
  * A skill entry in the dialog, for a box of the plan and the log alike: its skill and its type, like `IN2028` and `VO`,
  * each picked from its list, the type optional, like for my own learning or a project, `WokFlow`; the reader writes
  * what it is from both, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `reader/documents.ts`;
+ * below them its semester, from which semester the lecture or the material is, not when I did it: the semester
+ * of the day of the dialog, which follows that day as I type it, until I pick another, offered with the two before it,
+ * like `2026W`, `2026S` and `2025W`, or typed with `+`, like `2024W`;
  * in the log below them the chapters it covered, the document it used, like the slides of a lecture or a sheet,
  * and attempts at the tasks of my notes, all optional, so a lecture logged from its box gets its chapters
  * and document later.
@@ -31,7 +34,9 @@
  */
 
 import { choiceOf, choicesOf, groupedSearchOf, rowOf, searchOf } from "./choices.ts";
-import { dayTextOf, groupsOf, moduleLoad, skillEntrySend, skillingLoad } from "../skill/attempts.ts";
+import {
+    dayTextOf, groupsOf, moduleLoad, semesterBefore, semesterOf, skillEntrySend, skillingLoad,
+} from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { linkElementOf, skillTitleElementOf } from "../skill/links.ts";
 
@@ -63,6 +68,8 @@ type AttemptPick = {
  *
  * - `module`: Name of the skill, a module code like `IN2028` or a project like `WokFlow`, empty before it is picked.
  * - `type`: Its type, like `VO`, empty before it is picked and for none.
+ * - `semester`: Its semester, like `2025W`, empty while it is the semester of the day of the dialog,
+ *   see {@link semesterDay}.
  * - `chapters`: Names to read of the chapters, like `01 Regression Analysis`.
  * - `document`: Path of the document from the module folder, empty for none.
  * - `attempts`: Tasks picked, in the order they were picked, each with its result.
@@ -70,6 +77,7 @@ type AttemptPick = {
 type SkillPicks = {
     module: string;
     type: string;
+    semester: string;
     chapters: string[];
     document: string;
     attempts: AttemptPick[];
@@ -91,6 +99,7 @@ export type ModuleType = {
  *
  * - `module`: Name of the skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, like `VO`, empty for none.
+ * - `semester`: Its semester, its `X-SEMESTER`, like `2026W`, empty for a new one and an older one without.
  * - `title`: What it is as written, its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, in the log.
  * - `titleLink`: The folder of its skill, the `ALTREP` of its `SUMMARY`, in the log, empty for none.
  * - `chapters`: Names to read of its chapters, in the log.
@@ -101,6 +110,7 @@ export type ModuleType = {
 export type SkillValues = {
     module: string;
     type: string;
+    semester: string;
     title: string;
     titleLink: string;
     chapters: string[];
@@ -126,7 +136,23 @@ let skilling: Skilling = { modules: [], skills: [], otherModules: [], skips: [],
 /**
  * What is picked so far.
  */
-let picks: SkillPicks = { module: "", type: "", chapters: [], document: "", attempts: [] };
+let picks: SkillPicks = { module: "", type: "", semester: "", chapters: [], document: "", attempts: [] };
+
+/**
+ * Day of the dialog, like `2026-10-13`, whose semester the entry has while I pick none, see {@link skillDaySet}.
+ */
+let semesterDay: string = "";
+
+/**
+ * Semester typed with `+`, like `2024W` or `2024w`: a year and `W` for a winter or `S` for a summer.
+ */
+const semesterForm: RegExp = /^\d{4}[WS]$/i;
+
+/**
+ * Place of the fields and the call that tells the dialog of a change, as last shown, so a changed day
+ * shows its semester, see {@link skillDaySet}; `null` before the fields of `Skill` show.
+ */
+let shownIn: { fields: HTMLElement; changed: () => void } | null = null;
 
 /**
  * Chapters and documents of the skill picked, as the reader gave them, none before a skill is picked and for a project.
@@ -150,7 +176,7 @@ let logged: string[] = [];
 let linked: { title: string; titleLink: string; links: Link[] } = { title: "", titleLink: "", links: [] };
 
 /**
- * Whether the dialog writes a box of the plan, which takes only module and type.
+ * Whether the dialog writes a box of the plan, which takes only skill, type and semester.
  */
 let inPlan: boolean = false;
 
@@ -220,6 +246,44 @@ function moduleSearchOf(): (text: string) => Promise<Choice[]> {
             choice.value === picks.module || skilling.skills.includes(choice.value));
         return await searchOf(shown)(text);
     };
+}
+
+/**
+ * Gives the semester of the entry as it stands: the one picked, else the semester of a day.
+ *
+ * @param day - Day like `2026-10-13`
+ * @returns Semester like `2026W`
+ */
+export function skillSemesterOf(day: string): string {
+    return picks.semester !== "" ? picks.semester : semesterOf(day);
+}
+
+/**
+ * Builds the choices of the semester, newest first: the semester of the day of the dialog and the two before it,
+ * and the one picked when it is none of them, like `2024W` typed with `+`, before or after them.
+ * - `near`: The semester of the day and the two before it.
+ * - `rankOf`: Ranks a semester by its year and season, a winter after the summer of its year.
+ *
+ * @returns Choices of the semester
+ */
+function semesterChoicesOf(): Choice[] {
+    const near: string[] = [semesterOf(semesterDay)];
+    near.push(semesterBefore(near[0]), semesterBefore(semesterBefore(near[0])));
+    const rankOf: (semester: string) => number = (semester: string): number =>
+        Number(semester.slice(0, 4)) * 2 + (semester.endsWith("W") ? 1 : 0);
+    return [...near, ...(picks.semester === "" || near.includes(picks.semester) ? [] : [picks.semester])]
+        .sort((first: string, second: string): number => rankOf(second) - rankOf(first))
+        .map(choiceOf);
+}
+
+/**
+ * Takes a semester typed with `+`, like `2024w`, in capitals, or none when it is no semester.
+ *
+ * @param text - Typed text
+ * @returns Semester like `2024W`, `null` for none
+ */
+async function semesterAdd(text: string): Promise<string | null> {
+    return semesterForm.test(text.trim()) ? text.trim().toUpperCase() : null;
 }
 
 /**
@@ -417,6 +481,14 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
                 changed();
             },
         })),
+        rowOf("Semester", choicesOf({
+            search: searchOf(semesterChoicesOf()), picked: [skillSemesterOf(semesterDay)], many: false, adding: true,
+            add: semesterAdd,
+            pick: (values: string[]): void => {
+                picks.semester = values[0] ?? "";
+                again();
+            },
+        })),
     ];
     if (!inPlan && picks.module !== "") {
         rows.push(rowOf("Chapters", contents.chapters.length === 0 && picks.chapters.length === 0
@@ -454,6 +526,7 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
         })));
     results.className = "skill-results";
     resultsShow();
+    shownIn = { fields: fields, changed: changed };
     fields.replaceChildren(...rows, ...(inPlan ? [] : linkedOf()), results, ...loggedOf());
 }
 
@@ -461,25 +534,41 @@ function picksShow(fields: HTMLElement, changed: () => void): void {
  * Shows the fields of `Skill` for a box of the plan or an entry of the log, as it has them, see {@link picksShow}.
  *
  * @param fields - Place of the fields in the dialog
- * @param plan - Whether it is a box of the plan, which takes only skill and type
+ * @param plan - Whether it is a box of the plan, which takes only skill, type and semester
  * @param values - Values of the entry, empty for a new one
+ * @param day - Day of the dialog, like `2026-10-13`, whose semester the entry has while it has none
  * @param changed - Tells the dialog that what is picked changed, so it allows saving or not
  * @throws {Error} - When the reader cannot answer
  */
-export async function skillFieldsShow(fields: HTMLElement, plan: boolean, values: SkillValues,
+export async function skillFieldsShow(fields: HTMLElement, plan: boolean, values: SkillValues, day: string,
                                       changed: () => void): Promise<void> {
 
     skilling = await skillingLoad();
     inPlan = plan;
+    semesterDay = day;
     logged = plan ? [] : values.attempts;
     linked = plan ? { title: "", titleLink: "", links: [] }
         : { title: values.title, titleLink: values.titleLink, links: values.links };
     picks = {
-        module: values.module, type: values.type, chapters: values.chapters, document: documentPathOf(values.links),
-        attempts: [],
+        module: values.module, type: values.type, semester: values.semester, chapters: values.chapters,
+        document: documentPathOf(values.links), attempts: [],
     };
     await contentsLoad();
     picksShow(fields, changed);
+}
+
+/**
+ * Takes a new day of the dialog, as I type it: while I picked no semester the entry has the semester of that day,
+ * so the fields show again when that semester is another.
+ * - `before`: Semester of the day before.
+ *
+ * @param day - Day like `2027-04-02`
+ */
+export function skillDaySet(day: string): void {
+    const before: string = semesterOf(semesterDay);
+    semesterDay = day;
+    if (picks.semester === "" && semesterOf(day) !== before && shownIn !== null)
+        picksShow(shownIn.fields, shownIn.changed);
 }
 
 /**
@@ -502,7 +591,7 @@ export function skillReady(): boolean {
 }
 
 /**
- * Sends the skill entry of the log as picked, with the times, place, note and box of the dialog,
+ * Sends the skill entry of the log as picked, with the times, place, semester, note and box of the dialog,
  * new or as the changes of the entry being changed, then loads the log of the shown day again.
  * - {@link EventSourceApi#refetch}: Loads the entries of a calendar of the reader again.
  * - `attempts`: The tasks picked with their results, as attempts to send.
@@ -525,7 +614,8 @@ export async function skillSave(calendar: Calendar, id: string, fields: EntryFie
     }));
 
     await skillEntrySend(id, {
-        type: picks.type, module: picks.module, chapters: picks.chapters, document: picks.document, attempts: attempts,
+        type: picks.type, module: picks.module, semester: fields.semester, chapters: picks.chapters,
+        document: picks.document, attempts: attempts,
         location: fields.location, planned: fields.planned, note: fields.note, start: fields.start, end: fields.end,
     });
     calendar.getEventSourceById("log")?.refetch();

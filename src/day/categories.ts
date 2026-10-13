@@ -61,7 +61,7 @@ import { choiceOf, choicesOf, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealAfterCookAdd } from "./entries.ts";
 import { foodName, mealDishFill, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import { labelOf, lineOf, mapsAddressOf, placeOpen, placesStart } from "./places.ts";
-import { skillFieldsShow, skillModuleType, skillReady, skillSave } from "./skill.ts";
+import { skillDaySet, skillFieldsShow, skillModuleType, skillReady, skillSave, skillSemesterOf } from "./skill.ts";
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
@@ -167,7 +167,7 @@ const neckLong: [string, string] = ["Body", "Neck long"];
  * Values of a skill entry that has none yet, for an entry of another category or a new one.
  */
 const skillNone: SkillValues = {
-    module: "", type: "", title: "", titleLink: "", chapters: [], links: [], attempts: [],
+    module: "", type: "", semester: "", title: "", titleLink: "", chapters: [], links: [], attempts: [],
 };
 
 /**
@@ -555,7 +555,7 @@ async function categoryPick(category: Category | null): Promise<void> {
     });
     if (category?.name === skillName) {
         await skillFieldsShow(document.getElementById("entry-fields") as HTMLElement, opened.target === "box",
-            opened.category === skillName ? opened.skill : skillNone, saveAllow);
+            opened.category === skillName ? opened.skill : skillNone, dayRead(), saveAllow);
         saveAllow();
         return;
     }
@@ -617,8 +617,8 @@ function titleRead(picked: string): string {
  * - `picked`: Values picked in the lists.
  * - `skill`: Skill and type of a skill entry, empty for any other entry.
  *
- * @returns Category, what, place, where a way starts, module, type and note, as a box of the day the dialog opened with,
- *   without time, duration and deadline
+ * @returns Category, what, place, where a way starts, module, type, semester and note, as a box of the day the dialog
+ *   opened with, without time, duration and deadline; the semester of a skill entry as picked, else of that day
  */
 function textsRead(): BoxFields {
     const picked: { [key in FieldKey]: string } = valuesRead();
@@ -631,12 +631,31 @@ function textsRead(): BoxFields {
         from: picked.from,
         module: skill.module,
         type: skill.type,
+        semester: chosen?.name === skillName ? skillSemesterOf(dayOf(opened.start)) : "",
         note: (document.getElementById("entry-note") as HTMLTextAreaElement).value.trim(),
         day: dayOf(opened.start),
         time: null,
         minutes: null,
         deadline: "",
     };
+}
+
+/**
+ * Gives the day of the entry as the fields of the dialog say: for an entry of the log the typed day of its start,
+ * for a box the typed day of its deadline, else its typed day; the day the dialog opened with while the typed day
+ * is no date.
+ * - `deadlineDay`: Typed day of the deadline of a box, `null` for none.
+ * - `typed`: The typed day, `null` when it is no date.
+ *
+ * @returns Day like `2026-10-13`
+ */
+function dayRead(): string {
+    const deadlineDay: string | null =
+        dateParse((document.getElementById("entry-deadline-day") as HTMLInputElement).value);
+    const typed: string | null = opened.target === "log"
+        ? dateParse((document.getElementById("entry-log-day") as HTMLInputElement).value)
+        : deadlineDay ?? dateParse((document.getElementById("entry-box-day") as HTMLInputElement).value);
+    return typed ?? dayOf(opened.start);
 }
 
 /**
@@ -690,7 +709,8 @@ function fieldsRead(): EntryFields {
     const texts: BoxFields = textsRead();
     return {
         category: texts.category, title: texts.title, location: texts.location, from: texts.from,
-        module: texts.module, type: texts.type, note: texts.note,
+        module: texts.module, type: texts.type,
+        semester: chosen?.name === skillName ? skillSemesterOf(dayOf(start)) : "", note: texts.note,
         foods: chosen?.name === foodName ? mealFoods() : [],
         planned: opened.entry === null ? opened.plan?.id ?? "" : "",
         pain: neckLongPicked() ? pain : "",
@@ -722,6 +742,7 @@ function boxFieldsRead(): BoxFields {
     const deadlineTime: string = timeFieldRead(document.getElementById("entry-deadline-time") as HTMLInputElement);
     return {
         ...textsRead(),
+        semester: chosen?.name === skillName ? skillSemesterOf(deadlineDay === "" ? day : deadlineDay) : "",
         day: deadlineDay === "" ? day : deadlineDay,
         time: deadlineDay !== "" || time === "" ? null : dateOf(new Date(`${day}T12:00:00`), time),
         minutes: minutes === "" ? null : Number(minutes),
@@ -978,7 +999,7 @@ export async function entryOpenFromBox(box: Box, start: Date, end: Date): Promis
         values: planned
             ? { title: box.title, from: box.from, location: box.location }
             : { title: "", from: "", location: "" },
-        note: "", foods: [], skill: { ...skillNone, module: box.module, type: box.type },
+        note: "", foods: [], skill: { ...skillNone, module: box.module, type: box.type, semester: box.semester },
         plan: box, entry: null, box: null,
     });
 }
@@ -1029,7 +1050,8 @@ export async function boxOpenEdit(box: Box): Promise<void> {
         target: "box", start: day, end: day, time: box.time === "" ? null : day, minutes: box.minutes,
         category: box.category === "" ? null : box.category,
         values: { title: box.title, from: box.from, location: box.location }, note: box.note, foods: [],
-        skill: { ...skillNone, module: box.module, type: box.type }, plan: null, entry: null, box: box,
+        skill: { ...skillNone, module: box.module, type: box.type, semester: box.semester },
+        plan: null, entry: null, box: box,
     });
 }
 
@@ -1049,7 +1071,8 @@ export async function entryOpenEdit(entry: EventApi): Promise<void> {
         values: { title: entry.title, from: props.from ?? "", location: props.location ?? "" },
         note: props.note ?? "", foods: entry.extendedProps.foods ?? [],
         skill: {
-            module: props.module ?? "", type: props.type ?? "", title: entry.title, titleLink: props.titleLink ?? "",
+            module: props.module ?? "", type: props.type ?? "", semester: props.semester ?? "", title: entry.title,
+            titleLink: props.titleLink ?? "",
             chapters: entry.extendedProps.chapters ?? [], links: entry.extendedProps.links ?? [],
             attempts: entry.extendedProps.attempts ?? [],
         },
@@ -1062,7 +1085,9 @@ export async function entryOpenEdit(entry: EventApi): Promise<void> {
  * `Edit plan` changes the box being logged, `Log it` logs the box being changed, as expected on the shown day,
  * which for a box with a deadline may lie before its own, in the dialog of the log, see `boxTimesOf` in `times.ts`;
  * typing a deadline turns the day and the expected time off, see {@link deadlineSee}; typing the day, start or end
- * of a log entry fills the day of its end, see {@link endDayFill}, until I type that day myself; a log entry whose end
+ * of a log entry fills the day of its end, see {@link endDayFill}, until I type that day myself; typing a day
+ * of a skill entry gives it the semester of that day while I picked none, see `skillDaySet` in `skill.ts`;
+ * a log entry whose end
  * does not lie after its start is not sent, the day of its end saying so; the dialog of a new place starts too,
  * see `places.ts`.
  * - `endDay`: Field of the day of the end of a log entry.
@@ -1092,6 +1117,11 @@ export function categoriesStart(calendar: Calendar): void {
         document.getElementById(id)?.addEventListener("input", deadlineSee));
     ["entry-log-day", "entry-start", "entry-end"].forEach((id: string): void =>
         document.getElementById(id)?.addEventListener("input", endDayFill));
+    ["entry-log-day", "entry-box-day", "entry-deadline-day"].forEach((id: string): void =>
+        document.getElementById(id)?.addEventListener("input", (): void => {
+            if (chosen?.name === skillName)
+                skillDaySet(dayRead());
+        }));
     const endDay: HTMLInputElement = document.getElementById("entry-end-day") as HTMLInputElement;
     endDay.addEventListener("input", (): void => {
         endDayTyped = true;

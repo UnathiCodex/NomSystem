@@ -31,7 +31,8 @@
  *   and `CANCELLED` once dropped;
  * - each push in one `X-PUSHED` with the day it was pushed from, as a date of the iCalendar format,
  *   like `X-PUSHED;VALUE=DATE:20261013`, since the standard has nothing for it;
- * - its category, what, place, module, type and note as an entry of the log has them.
+ * - its category, what, place, module, type, semester and note as an entry of the log has them, a skill box its
+ *   semester as `X-SEMESTER`, like `X-SEMESTER:2026W`, see `semesterFor` in `categories.ts`.
  * The log entry written from a box points to it the standard way, with `RELATED-TO:<UID of the box>`, which gives
  * its real time, an older one with `X-PLANNED:<UID of the box>`: a box is done once a log entry points to it,
  * or once it is `COMPLETED`, like a box ticked in another app.
@@ -59,7 +60,8 @@
  *
  * - `node:path`: Gives the name of a plan file.
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
- * - `./categories.ts`: Tells whether a box fits its category, and names the category of skill entries.
+ * - `./categories.ts`: Tells whether a box fits its category, names the category of skill entries,
+ *   and gives the semester of a skill box.
  * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill.
  * - `./places.ts`: Gives the link of the place of a box.
  * - `./sources.ts`: Names the plan, the log and the birthdays and holidays, and builds the path of a plan file.
@@ -70,7 +72,7 @@ import {
     berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryIdOf, entryLookup, entryRemove,
     occurrenceLookup, occurrenceOwn, pushesPut, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
-import { planAllows, skillName } from "./categories.ts";
+import { planAllows, semesterFor, skillName } from "./categories.ts";
 import { titleOf } from "./documents.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, monthFileOf, planEnding } from "./sources.ts";
@@ -88,8 +90,9 @@ export type BoxState = "open" | "done" | "dropped";
  *
  * - `id`: Identifier of its to-do or event, its `UID`, for an occurrence of a series with its start,
  *   see `entryIdOf` in `calendar.ts`.
- * - `category`, `title`, `titleLink`, `location`, `locationLink`, `from`, `module`, `type`, `note`: As those
- *   of an entry, see `calendar.ts`, like the room of a lecture of my plan in `Skilling/` with its link as `ALTREP`.
+ * - `category`, `title`, `titleLink`, `location`, `locationLink`, `from`, `module`, `type`, `semester`, `note`:
+ *   As those of an entry, see `calendar.ts`, like the room of a lecture of my plan in `Skilling/` with its link
+ *   as `ALTREP`.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time as ISO instant, empty for none.
  * - `minutes`: Expected duration in minutes, `null` for none.
@@ -150,6 +153,8 @@ export type PlanDay = {
  * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of an entry of the log;
  *   the link of its place the reader finds, see `placeLinkOf` in `places.ts`, and what a skill box is
  *   it writes from its skill and type, see `titleOf` in `documents.ts`.
+ * - `semester`: Semester of a skill box, like `2026W`, the semester of its day when empty, see `semesterFor`
+ *   in `categories.ts`; empty for any other box.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time as ISO instant, on its day, empty for none and for a box with a deadline.
  * - `minutes`: Expected duration in whole minutes, `null` for none.
@@ -298,7 +303,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
     return {
         id: entryIdOf(entry), category: entry.category, title: entry.title, titleLink: entry.titleLink,
         location: entry.location, locationLink: entry.locationLink, from: entry.from, module: entry.module,
-        type: entry.type, note: entry.note,
+        type: entry.type, semester: entry.semester, note: entry.note,
         day: dayOf(entry),
         time: entry.allDay ? "" : entry.start,
         minutes: minutes,
@@ -497,7 +502,7 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
     return {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
         locationLink: placeLinkOf(box.location, old), from: box.from, module: box.module, type: box.type,
-        note: box.note,
+        semester: semesterFor(box.category, box.semester, box.day), note: box.note,
         day: box.day, time: box.time === "" ? null : new Date(box.time), minutes: box.minutes, deadline: box.deadline,
     };
 }
@@ -544,7 +549,8 @@ export function boxEdit(change: BoxChange): void {
     const fields: EntryFields = {
         category: change.category, title: title, titleLink: titleLink, location: change.location,
         locationLink: placeLinkOf(change.location, entry), from: change.from,
-        module: change.module, type: change.type, note: change.note,
+        module: change.module, type: change.type, semester: semesterFor(change.category, change.semester, change.day),
+        note: change.note,
         start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
     };
     entryChange(file, entry, fields, planFileAfter(file, entry, change.day));
@@ -584,7 +590,8 @@ export function boxPush(id: string): void {
     const next: string = dayAdd(box.day, 1);
     const texts: EntryTexts = {
         category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
-        locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type, note: entry.note,
+        locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type,
+        semester: entry.semester, note: entry.note,
     };
     boxOwn(file, entry);
     pushesPut(file, id, [...entry.pushed, box.day]);

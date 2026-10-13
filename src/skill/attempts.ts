@@ -246,6 +246,7 @@ export type AttemptNew = {
  *
  * - `type`: Its type, like `VO`, empty for none.
  * - `module`: Name of its skill, a module code like `IN2028` or a project like `WokFlow`.
+ * - `semester`: Its semester, like `2026W`: from which semester the lecture or the material is, see {@link semesterOf}.
  * - `chapters`: Names to read of the chapters it covered, none for none.
  * - `document`: Path from the folder of its skill of the document it used, empty for none; the reader links it
  *   with its fingerprint, see `reader/documents.ts`.
@@ -259,6 +260,7 @@ export type AttemptNew = {
 export type SkillEntryNew = {
     type: string;
     module: string;
+    semester: string;
     chapters: string[];
     document: string;
     attempts: AttemptNew[];
@@ -402,6 +404,36 @@ export function dayTextOf(day: string, weekday: boolean): string {
         return text;
     const date: Date = new Date(year, month - 1, number);
     return `${date.toLocaleDateString("en-GB", { weekday: "long" })}, ${text}`;
+}
+
+/**
+ * Gives the semester of a day, which the dialog fills in for a skill entry until I pick another, as the reader does,
+ * see `semesterOf` in `reader/categories.ts`: October to March a winter, April to September a summer; January to March
+ * belong to the winter that began the year before.
+ * - `year`, `month`: Year and month of the day.
+ *
+ * @param day - Day like `2027-02-15`
+ * @returns Semester like `2026W`, or `2027S` for `2027-05-04`
+ */
+export function semesterOf(day: string): string {
+    const [year, month]: number[] = day.split("-").map(Number);
+    if (month >= 10)
+        return `${year}W`;
+    if (month <= 3)
+        return `${year - 1}W`;
+    return `${year}S`;
+}
+
+/**
+ * Gives the semester before a semester: the summer before a winter of the same year, the winter of the year before
+ * before a summer.
+ *
+ * @param semester - Semester like `2026W`
+ * @returns Semester like `2026S`, or `2025W` for `2026S`
+ */
+export function semesterBefore(semester: string): string {
+    const year: number = Number(semester.slice(0, 4));
+    return semester.endsWith("W") ? `${year}S` : `${year - 1}W`;
 }
 
 /**

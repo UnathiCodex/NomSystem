@@ -90,6 +90,7 @@ export type BoxState = "open" | "done" | "dropped";
  * - `from`: Where a way starts, empty for none.
  * - `module`: Module of a skill box, like `WI1059`, empty for any other box.
  * - `type`: Type of a skill box, like `HU`, empty for any other box.
+ * - `semester`: Semester of a skill box, like `2026W`, empty for none, like an older box, and for any other box.
  * - `note`: Free note.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time as ISO instant, empty for none.
@@ -112,6 +113,7 @@ export type Box = {
     from: string;
     module: string;
     type: string;
+    semester: string;
     note: string;
     day: string;
     time: string;

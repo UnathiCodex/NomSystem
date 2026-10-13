@@ -75,7 +75,7 @@ import {
     berlinDateOf, berlinDayStartOf, berlinTimeOf, dayAdd, entriesRead, entryAppend, entryChange, entryFind,
     propertiesPut,
 } from "./calendar.ts";
-import { skillName, skillTypes } from "./categories.ts";
+import { semesterFor, skillName, skillTypes } from "./categories.ts";
 import { fileOf } from "./day.ts";
 import { linksLostRead, linksOf, titleOf } from "./documents.ts";
 import { codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead } from "./notes.ts";
@@ -301,6 +301,8 @@ export type AttemptNew = {
  * - `type`: Its type, one of the types of `categories.ts`, like `VO`, empty for none.
  * - `module`: Name of its skill: the code of any module folder, like `IN2028`, or a project of the semester,
  *   like `WokFlow`.
+ * - `semester`: Its semester, `X-SEMESTER`, like `2026W`, the semester of its day when empty,
+ *   see `semesterFor` in `categories.ts`.
  * - `chapters`: Names to read of the chapters it covered, like `01 Regression Analysis`, none for none.
  * - `document`: Path from the folder of its skill of the document it used, a file of its module, like
  *   `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`, empty for none.
@@ -314,6 +316,7 @@ export type AttemptNew = {
 export type SkillEntryNew = {
     type: string;
     module: string;
+    semester: string;
     chapters: string[];
     document: string;
     attempts: AttemptNew[];
@@ -1095,7 +1098,9 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: entry.location,
         locationLink: placeLinkOf(entry.location, plan), from: "",
-        module: entry.module, type: entry.type, note: entry.note.trim(), start: new Date(entry.start), end: new Date(entry.end),
+        module: entry.module, type: entry.type,
+        semester: semesterFor(skillName, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note.trim(),
+        start: new Date(entry.start), end: new Date(entry.end),
     };
     const own: [string, string | Link][] = chaptersWith(entry.chapters, tasksOf(values), tasks)
         .map((chapter: string): [string, string] => ["x-chapter", chapter]);
@@ -1140,7 +1145,9 @@ export function skillEntryEdit(change: SkillEntryChange): void {
     entryChange(file, old, {
         category: skillName, title: title, titleLink: titleLink, location: old.location,
         locationLink: old.locationLink, from: "",
-        module: change.module, type: change.type, note: change.note.trim(),
+        module: change.module, type: change.type,
+        semester: semesterFor(skillName, change.semester, berlinDateOf(new Date(change.start))),
+        note: change.note.trim(),
         start: new Date(change.start), end: new Date(change.end),
     }, fileOf(new Date(change.start)));
 }
@@ -1188,7 +1195,8 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
         entryAppend(fileOf(start), {
             category: skillName, title: title, titleLink: titleLink, location: plan?.location ?? "",
             locationLink: plan?.locationLink ?? "", from: "",
-            module: module, type: type, note: "", start: start, end: quarter,
+            module: module, type: type, semester: semesterFor(skillName, plan?.semester ?? "", berlinDateOf(start)),
+            note: "", start: start, end: quarter,
         }, own);
         if (plan !== undefined)
             boxDone(plan.id);

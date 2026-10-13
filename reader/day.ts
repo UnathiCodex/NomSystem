@@ -38,7 +38,7 @@
 
 import { boxDone, boxOpenFind, boxReopen } from "./boxes.ts";
 import { berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryRemove, propertiesPut } from "./calendar.ts";
-import { categoryAllows, skillName, usualLengthRead } from "./categories.ts";
+import { categoryAllows, semesterFor, skillName, usualLengthRead } from "./categories.ts";
 import { titleOf } from "./documents.ts";
 import { dishFoodsRead, foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
 import { placeLinkOf } from "./places.ts";
@@ -59,6 +59,8 @@ import type { Meal } from "./food.ts";
  * - `from`: Where a way starts.
  * - `module`: Module of a skill entry, like `IN2028`, empty for any other entry.
  * - `type`: Type of a skill entry, like `VO`, empty for any other entry.
+ * - `semester`: Semester of a skill entry, like `2026W`, the semester of its day when empty, see `semesterFor`
+ *   in `categories.ts`; empty for any other entry.
  * - `note`: Free note.
  * - `foods`: Foods of a meal, its lines `X-FOOD` like `Reis;150`, none for any other entry.
  * - `planned`: Identifier of the box a new log entry is logged from, see `entryIdOf` in `calendar.ts`,
@@ -75,6 +77,7 @@ export type EntryNew = {
     from: string;
     module: string;
     type: string;
+    semester: string;
     note: string;
     foods: string[];
     planned: string;
@@ -161,7 +164,8 @@ function fieldsOf(entry: EntryNew, from: { location: string; locationLink: strin
     return {
         category: entry.category, title: title, titleLink: titleLink, location: entry.location,
         locationLink: placeLinkOf(entry.location, from), from: entry.from,
-        module: entry.module, type: entry.type, note: entry.note,
+        module: entry.module, type: entry.type,
+        semester: semesterFor(entry.category, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note,
         start: new Date(entry.start), end: new Date(entry.end),
     };
 }
@@ -306,7 +310,8 @@ export function boxLog(logged: BoxLogged): string {
     const [title, titleLink]: [string, string] = titleOf(box);
     const fields: EntryFields = {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
-        locationLink: box.locationLink, from: box.from, module: box.module, type: box.type, note: "",
+        locationLink: box.locationLink, from: box.from, module: box.module, type: box.type,
+        semester: semesterFor(box.category, box.semester, box.day), note: "",
         start: new Date(logged.start), end: new Date(logged.end),
     };
     fieldsCheck(fields, [], box);
@@ -340,7 +345,8 @@ export function mealAfterCookAdd(id: string): string {
     const foods: string[] = dishFoodsRead(cook.title);
     const fields: EntryFields = {
         category: foodName, title: foods.length > 0 ? mealTitleOf(foods) : cook.title, titleLink: "",
-        location: cook.location, locationLink: cook.locationLink, from: "", module: "", type: "", note: "",
+        location: cook.location, locationLink: cook.locationLink, from: "", module: "", type: "", semester: "",
+        note: "",
         start: start, end: new Date(start.getTime() + usualLengthRead(foodName, start.toISOString()) * 60 * 1000),
     };
     fieldsCheck(fields, foods, null);

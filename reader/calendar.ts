@@ -5,6 +5,10 @@
  * see `boxes.ts`; appends events and to-dos to them, changes and removes single ones,
  * and moves one from one file into another, like into the file of another month.
  * Keeps each read file until it changes on disk, so a file is read again only once it changed.
+ * Every entry states its facts in its own lines, for every field, now and later: a link, the `ALTREP` of a `SUMMARY`
+ * or a `LOCATION` or an `ATTACH`, only points to more and is never the only place of a fact, since a folder may be
+ * renamed or vanish; so a skill entry names its skill in its `SUMMARY` and its semester in its `X-SEMESTER`,
+ * a place its label and address in its `LOCATION`.
  * Writes only into the three folders of the new system, with times in Berlin time, every date and time in the form
  * of the iCalendar format, also in a property or a parameter of my own, like `20261026T130000Z` or `20261026`,
  * never like `2026-10-26T13:00:00.000Z`; puts the lines of every entry it writes, new or changed, into one fixed
@@ -47,6 +51,9 @@ import type { CalendarSource } from "./sources.ts";
  *   like `WokFlow`, see {@link skillPartsOf}; empty for any other entry.
  * - `type`: Type of a skill entry from its `SUMMARY`, like `VO`, empty for none, like my own learning or a project,
  *   and for any other entry.
+ * - `semester`: Semester of a skill entry, its `X-SEMESTER`, like `2026W`: from which semester the lecture
+ *   or the material is, not when I did it, see `semesterOf` in `categories.ts`; empty when the event has none,
+ *   like an older skill entry, and for any other entry.
  * - `chapters`: Chapters of a skill entry of the log, its `X-CHAPTER`s in order, each by its name to read,
  *   like `01 Regression Analysis`, none when the event has none.
  * - `links`: Links of a skill entry of the log to the folder of its skill and the document it used, its `ATTACH`es
@@ -98,6 +105,7 @@ export type Entry = {
     from: string;
     module: string;
     type: string;
+    semester: string;
     chapters: string[];
     links: Link[];
     attempts: string[];
@@ -149,6 +157,7 @@ export type Link = {
  * - `from`: Where a way starts, `X-FROM`.
  * - `module`: Skill of a skill entry, not written, since its `SUMMARY` names it, see {@link skillPartsOf}.
  * - `type`: Type of a skill entry, not written, since its `SUMMARY` names it.
+ * - `semester`: Semester of a skill entry, `X-SEMESTER`, like `2026W`; empty for any other entry.
  * - `note`: Free note, `DESCRIPTION`.
  */
 export type EntryTexts = {
@@ -160,6 +169,7 @@ export type EntryTexts = {
     from: string;
     module: string;
     type: string;
+    semester: string;
     note: string;
 };
 
@@ -464,6 +474,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         from: String(event.component.getFirstPropertyValue("x-from") ?? ""),
         module: module,
         type: type,
+        semester: String(event.component.getFirstPropertyValue("x-semester") ?? ""),
         chapters: event.component.getAllProperties("x-chapter")
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
         links: event.component.getAllProperties("attach").map((property: ICAL.Property): Link => ({
@@ -1242,6 +1253,7 @@ function textsOf(fields: EntryTexts): [string, string][] {
         ["location", fields.location],
         ["x-from", fields.from],
         ["description", fields.note],
+        ["x-semester", fields.semester],
     ];
 }
 
