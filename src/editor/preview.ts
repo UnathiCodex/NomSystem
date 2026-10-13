@@ -759,7 +759,9 @@ function quoteLook(look: Look, node: SyntaxNode): boolean {
 
 /**
  * Inline HTML: a line break `<br>` or break opportunity `<wbr>` drawn as in the scripts view while the cursor does
- * not touch it, see {@link BreakWidget}; any other tag stays as written.
+ * not touch it, see {@link BreakWidget}; any other tag stays as written, and so does every tag of a table shown as
+ * its text, whose rows a break would split.
+ * - `table`: Whether the tag stands in a table.
  *
  * @param look - Look being built
  * @param node - Tag, `HTMLTag`
@@ -767,7 +769,10 @@ function quoteLook(look: Look, node: SyntaxNode): boolean {
  */
 function htmlTagLook(look: Look, node: SyntaxNode): boolean {
     const tagName: string | undefined = breakRule.exec(look.state.sliceDoc(node.from, node.to))?.[1].toLowerCase();
-    if (tagName !== undefined && !touched(look, node.from, node.to))
+    let table: boolean = false;
+    for (let parent: SyntaxNode | null = node.parent; parent !== null; parent = parent.parent)
+        table ||= parent.name === "Table";
+    if (tagName !== undefined && !table && !touched(look, node.from, node.to))
         look.decorations.push(Decoration.replace({ widget: new BreakWidget(tagName) }).range(node.from, node.to));
     return false;
 }
