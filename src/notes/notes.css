@@ -18,13 +18,14 @@
 }
 
 /* Name of the root of the tree on top, NomSkillingmodules or NomManageplannings, a heading that never folds,
-   in the light text and a little apart from its folders, in line with their names */
+   in the light text and a little apart from its folders, in line with their names; one control high, so it stands
+   level with the first icon of the rail, as the date of the day does */
 .tree-root {
     margin: 0 0 0.375rem;
     padding: 0 0.5rem;
     font-size: inherit;
     font-weight: 600;
-    line-height: var(--chip-height);
+    line-height: var(--control-height);
 }
 
 /* Names in the tree on one line, cut with an ellipsis, rows a little apart, so their greys never touch */

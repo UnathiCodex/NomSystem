@@ -1,10 +1,11 @@
 /* Skill: the modules one below the other in a calm reading width, filling the screen beside the areas,
-   as the notes do, and scrolling alone */
+   as the notes do, and scrolling alone; on top as much room as the day leaves, so the first line, `Exams`,
+   stands level with the first icon of the rail, as the date of the day does */
 .skill {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: calc(1.5 * var(--gap)) calc(2 * var(--gap)) calc(4 * var(--gap));
+    padding: var(--gap) calc(2 * var(--gap)) calc(4 * var(--gap));
 }
 
 /* The modules in a width of 64rem, wider than a note, so the whole name of a module fits beside its exam,
@@ -28,8 +29,11 @@
     margin: 0 0 calc(4 * var(--gap));
 }
 
+/* Heading of the exams one control high, its text centred on the first icon of the rail, the first row right below */
 .skill-exams h3 {
     grid-column: 1 / -1;
+    margin: 0;
+    line-height: var(--control-height);
 }
 
 /* A row spans the four columns of the list, so its day, module, days and ready number line up with every other row */
@@ -47,7 +51,7 @@
 }
 
 .skill-exams h3 + .skill-exam-row {
-    margin-top: 0.75rem;
+    margin-top: 0;
 }
 
 .skill-exam-row:hover {
@@ -114,6 +118,11 @@
 .skill-part,
 .skill-chapter {
     margin-top: calc(2.5 * var(--gap));
+}
+
+/* The exams on top, with nothing above them to stand apart from */
+.skill-part.skill-exams {
+    margin-top: 0;
 }
 
 .skill-part h3,
