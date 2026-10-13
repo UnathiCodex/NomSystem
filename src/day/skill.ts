@@ -50,7 +50,7 @@
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
-import { addedRowOf, addedRowsOf, choiceOf, choicesOf, pairOf, rowOf, searchOf } from "./choices.ts";
+import { addedRowOf, addedRowsOf, choiceOf, choicesOf, pairOf, readableOf, rowOf, searchOf } from "./choices.ts";
 import {
     dayTextOf, groupsOf, moduleLoad, semesterOf, skillEntrySend, skillingLoad,
 } from "../skill/attempts.ts";
@@ -356,17 +356,6 @@ function documentSemesterOf(path: string): string {
 }
 
 /**
- * Writes the name of the folder of a chapter to read, as the reader names it, see `titleOf` in `reader/notes.ts`:
- * its number, a space, then its words apart, like `01 Regression Analysis` of `01_RegressionAnalysis`.
- *
- * @param folder - Name of the folder of a chapter
- * @returns Its name to read
- */
-function chapterNameOf(folder: string): string {
-    return folder.replace("_", " ").replace(/(?<=\p{Ll})(?=\p{Lu})/gu, " ");
-}
-
-/**
  * Gives the chapter a document belongs to, by the name to read of the folder of a note of a chapter,
  * like `01 Regression Analysis` of `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`,
  * or of `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`, see {@link chapterNote}.
@@ -376,7 +365,7 @@ function chapterNameOf(folder: string): string {
  */
 function chapterOfDocument(path: string): string {
     const folder: string = path.match(chapterNote)?.[1] ?? "";
-    return folder === "" ? "" : chapterNameOf(folder);
+    return folder === "" ? "" : readableOf(folder);
 }
 
 /**

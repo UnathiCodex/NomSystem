@@ -382,7 +382,9 @@ button.box-ring.box-checked svg {
 
 /* Seven rows, one below the other, scrolling together when they are many; each a link to its day:
    its name grey at the left, today's light and its edge lighter, beside it its boxes in columns of the same width,
-   as many as the row has room for, wrapping into the next line, birthdays and holidays over the whole width */
+   each at least 30rem wide, so the whole name of a skill fits on its line, like
+   `Skill: IN2028 Business Analytics Machine Learning VO`, as many as the row has room for, wrapping into the next line,
+   birthdays and holidays over the whole width */
 .week-days {
     display: flex;
     flex-direction: column;
@@ -406,7 +408,7 @@ button.box-ring.box-checked svg {
 
 .week-boxes {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(30rem, 1fr));
     gap: 0.5rem;
 }
 

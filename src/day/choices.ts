@@ -40,6 +40,18 @@ export function breakableOf(text: string): string {
 }
 
 /**
+ * Writes the name of a folder to read, as the scripts view names a module or a chapter, see `titleOf`
+ * in `reader/notes.ts`: its first `_` a space and its words apart, like `MGT1372 Entrepreneurial Business`
+ * of `MGT1372_EntrepreneurialBusiness` or `01 Regression Analysis` of `01_RegressionAnalysis`.
+ *
+ * @param folder - Name of the folder
+ * @returns Its name to read
+ */
+export function readableOf(folder: string): string {
+    return folder.replace("_", " ").replace(/(?<=\p{Ll})(?=\p{Lu})/gu, " ");
+}
+
+/**
  * A value to pick.
  *
  * - `value`: Value, like `IN2028/Airline Revenue Interval`.

@@ -231,7 +231,7 @@ function linesOf(info: EventDisplayInfo): number {
  * move down, and those the entry has no more room for stay hidden, see `.entry-lines` in `day.css`.
  * - `category`: Category of the entry, empty for an entry without one.
  * - `foods`: Foods of a dish, none for any other entry.
- * - `what`: What the entry was, a skill entry by its skill and type, like `IN0004_EinfuehrungRechnerarchitektur VO`,
+ * - `what`: What the entry was, a skill entry by its skill and type, like `IN0004 Einfuehrung Rechnerarchitektur VO`,
  *   see `shownWhatOf` in `boxes.ts`, its foods for a dish, empty when it is its category, like an old `Sleep`
  *   written before it had its what.
  * - `from`: Where a way starts, its `X-FROM`, empty for none.
