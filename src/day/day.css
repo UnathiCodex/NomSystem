@@ -1133,11 +1133,17 @@ fieldset.entry-times {
 }
 
 /* An empty line shows nothing, but still takes the width left and one line of height, so a click on it opens
-   its list, like the type beside a skill */
+   its list, like the type beside a skill; a space of no width in it gives it the baseline of a line of text,
+   so the name of its row stands on the same line as in a row with a value, in the middle of its frame,
+   not at the bottom of the empty line */
 .picker-line.picker-empty {
     flex: 1 1 auto;
     min-height: 1lh;
     color: var(--text-muted);
+}
+
+.picker-line.picker-empty::before {
+    content: "\200b";
 }
 
 /* List of a field right under its row, inside the dialog, pushing the rows below down: its search field,
