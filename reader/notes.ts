@@ -123,6 +123,30 @@ export type ModuleContents = {
 };
 
 /**
+ * An old exam of a module, its files in a folder of a semester in the folder of its examinations, see {@link papersRead}.
+ *
+ * - `semester`: Folder of its semester, like `TUM_2024W`.
+ * - `kind`: Its kind, the part of the names of its files before the first `_`, like `Endterm`, `Retake` or `Mock`.
+ * - `files`: Its files, each its name, the rest of the name of its file without its ending, like `Assignments`
+ *   or `Solutions`, and its path in `NomSkillingmodules`, which the scripts view opens, see {@link fileRead}.
+ */
+export type Paper = {
+    semester: string;
+    kind: string;
+    files: { name: string; path: string }[];
+};
+
+/**
+ * Folder of the examinations of a module, its old exams in a folder per semester.
+ */
+const examsFolder: string = "FA_UniversityModuleExaminations";
+
+/**
+ * Kinds of old exams in the order they show in, any other after them by its name.
+ */
+const paperKinds: string[] = ["Endterm", "Retake", "Mock"];
+
+/**
  * Wiki link or embed, like `[[05_06_EulerTrigonometrie#…|…]]` or `![[Tangens.svg|300]]`:
  * its target before `#`, `|` or the `\|` written in tables.
  */
@@ -464,6 +488,38 @@ export function moduleContentsRead(module: string): ModuleContents {
         folder: `${modulesFolder}/${module}`, drafts: `${draftsFolder}/${module}`,
         chapters: chapters, documents: [...material, ...notes].sort(collator.compare),
     };
+}
+
+/**
+ * Reads the old exams of a module from the folder of its examinations, see {@link Paper}: one per semester and kind,
+ * the newest semester first, its endterm before its retake and its mock, like `TUM_2024W` `Endterm` with
+ * `Assignments` and `Solutions`; none for a module without such a folder.
+ * - `papers`: The old exams by semester and kind, as found.
+ * - `parts`: Folder of the semester and name of a file.
+ * - `kind`, `name`: The part of the name of a file before its first `_`, and the rest without its ending.
+ *
+ * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
+ * @returns Its old exams in order
+ */
+export function papersRead(module: string): Paper[] {
+    const papers: Map<string, Paper> = new Map();
+    filesRead(posix.join(module, examsFolder)).forEach((path: string): void => {
+        const parts: string[] = path.slice(module.length + examsFolder.length + 2).split("/");
+        if (parts.length !== 2)
+            return;
+        const base: string = parts[1].replace(/\.[^.]+$/, "");
+        const kind: string = base.split("_")[0];
+        const name: string = base.slice(kind.length + 1) || base;
+        const key: string = `${parts[0]}/${kind}`;
+        const paper: Paper = papers.get(key) ?? { semester: parts[0], kind: kind, files: [] };
+        paper.files.push({ name: name, path: path });
+        papers.set(key, paper);
+    });
+    const rank: (kind: string) => number = (kind: string): number =>
+        paperKinds.includes(kind) ? paperKinds.indexOf(kind) : paperKinds.length;
+    return [...papers.values()].sort((first: Paper, second: Paper): number =>
+        second.semester.localeCompare(first.semester) || rank(first.kind) - rank(second.kind)
+        || first.kind.localeCompare(second.kind));
 }
 
 /**

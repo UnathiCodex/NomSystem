@@ -154,6 +154,7 @@ export type PlannedType = {
  * - `duplicates`: Tasks whose name an earlier task of the module has already.
  * - `removed`: Number of attempts on tasks no note holds any more.
  * - `planned`: Its entries of the plan by type, in the order of the types, a type without entries left out.
+ * - `papers`: Its old exams, the newest first.
  */
 export type SkillModule = {
     code: string;
@@ -164,6 +165,20 @@ export type SkillModule = {
     duplicates: Task[];
     removed: number;
     planned: PlannedType[];
+    papers: Paper[];
+};
+
+/**
+ * An old exam of a module, its files in the folder of its examinations, as the reader sends it.
+ *
+ * - `semester`: Folder of its semester, like `TUM_2024W`.
+ * - `kind`: Its kind, like `Endterm`, `Retake` or `Mock`.
+ * - `files`: Its files, each its name, like `Assignments` or `Solutions`, and its path in `NomSkillingmodules`.
+ */
+export type Paper = {
+    semester: string;
+    kind: string;
+    files: { name: string; path: string }[];
 };
 
 /**

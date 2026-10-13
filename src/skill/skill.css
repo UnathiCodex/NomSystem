@@ -145,6 +145,23 @@
     color: var(--text-muted);
 }
 
+/* Files of an old exam at the right of its row, grey links, going on below where they are many, like the reference
+   sheets of an endterm */
+.skill-files {
+    flex: 0 1 auto;
+    text-align: right;
+}
+
+.skill-files a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.skill-files a:hover {
+    color: var(--text-main);
+    text-decoration: underline;
+}
+
 @media (max-width: 900px) {
     .skill-task {
         flex-wrap: wrap;

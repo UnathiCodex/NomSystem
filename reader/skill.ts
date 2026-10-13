@@ -83,14 +83,16 @@ import { logFileOf } from "./day.ts";
 import {
     chaptersOf, documentLinksOf, linksLostRead, linksOf, skillTitleOf, titleOf,
 } from "./documents.ts";
-import { codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead } from "./notes.ts";
+import {
+    codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead, papersRead,
+} from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
 import { activeModules, activeSkills, projectOf, skillLog, skillNameOf } from "./sources.ts";
 
 import type { Box, BoxState } from "./boxes.ts";
 import type { Entry, EntryFields, Link } from "./calendar.ts";
 import type { LinkLost } from "./documents.ts";
-import type { Chapter, ModuleContents, NoteEntry, NotesModule } from "./notes.ts";
+import type { Chapter, ModuleContents, NoteEntry, NotesModule, Paper } from "./notes.ts";
 
 
 /**
@@ -248,6 +250,7 @@ export type PlannedType = {
  * - `duplicates`: Tasks whose name an earlier task of the module has already, left out of `tasks`.
  * - `removed`: Number of attempts on tasks no note holds any more.
  * - `planned`: Its entries of the plan by type, like all its lectures, see {@link plannedOf}.
+ * - `papers`: Its old exams, see `papersRead` in `notes.ts`.
  */
 export type SkillModule = {
     code: string;
@@ -258,6 +261,7 @@ export type SkillModule = {
     duplicates: Task[];
     removed: number;
     planned: PlannedType[];
+    papers: Paper[];
 };
 
 /**
@@ -951,6 +955,7 @@ export function skillingRead(): Skilling {
         return {
             code: module.code, title: module.title, exam: exam, tasks: tasks, sections: sectionsOf(tasks),
             duplicates: duplicates, removed: removed, planned: plannedOf(module.code, boxes),
+            papers: papersRead(module.title),
         };
     });
 

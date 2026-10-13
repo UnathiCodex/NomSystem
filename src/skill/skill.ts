@@ -10,6 +10,9 @@
  *   task headings found twice and attempts on removed tasks.
  * - Due today: the tasks due today or earlier, the earliest first, a cold task with its parts still open;
  *   each opens as a card, its text alone, so I choose the method myself, see `cardSet` in `../notes/notes.ts`.
+ * - Its old exams from the folder of its examinations, see `papersRead` in `reader/notes.ts`, in a fold closed
+ *   at first, `Old exams 15`, one row per exam, like `TUM_2024W Endterm`, its files at the right, like
+ *   `Assignments · Solutions`, each opening in a new tab; see {@link papersOf}.
  * - Its entries of the plan by type, like all its lectures `VO`, one list per type, each open at first and folding
  *   by a click on its line, which shows how many are done, like `VO 3 / 14 done`; in it each entry numbered by date,
  *   the cancelled ones counted too, with its day and time, like `1  Tuesday, 06.10.2026, 10:00`, and its state
@@ -46,7 +49,7 @@ import { stateTextOf } from "./task.ts";
 import "./skill.css";
 
 import type {
-    LinkLost, PlannedEntry, PlannedType, SkillModule, SkillSection, SkillTask, Skilling, Task,
+    LinkLost, Paper, PlannedEntry, PlannedType, SkillModule, SkillSection, SkillTask, Skilling, Task,
 } from "./attempts.ts";
 
 
@@ -305,6 +308,43 @@ function plannedOf(module: SkillModule, today: string): HTMLElement[] {
 }
 
 /**
+ * Builds the old exams of a module, see the top of this file: a fold closed at first, its line `Old exams` with how
+ * many, then one row per exam, its semester and kind at the left, like `TUM_2024W Endterm`, its files at the right,
+ * like `Assignments · Solutions`, each opening in a new tab in the browser's own viewer, read only, as the scripts view
+ * opens a file; none for a module without old exams.
+ * - `folder`: The fold.
+ * - `summary`: Its line.
+ * - `list`: Its exams.
+ * - `files`: The links of the files of an exam.
+ *
+ * @param module - Module with its old exams
+ * @returns The fold, none for a module without old exams
+ */
+function papersOf(module: SkillModule): HTMLElement[] {
+    if (module.papers.length === 0)
+        return [];
+    const folder: HTMLDetailsElement = document.createElement("details");
+    const summary: HTMLElement = elementOf("summary", "", "Old exams");
+    const list: HTMLElement = elementOf("ul", "skill-tasks", "");
+    folder.className = "skill-chapter skill-papers";
+    summary.append(elementOf("span", "skill-count", String(module.papers.length)));
+    list.append(...module.papers.map((paper: Paper): HTMLElement => {
+        const line: HTMLElement = elementOf("li", "skill-task", "");
+        const files: HTMLElement = elementOf("span", "skill-state skill-files", "");
+        paper.files.forEach((file: { name: string; path: string }, index: number): void => {
+            const link: HTMLAnchorElement = linkOf("", file.name, `/api/notes/file?path=${encodeURIComponent(file.path)}`);
+            link.target = "_blank";
+            link.rel = "noopener";
+            files.append(...index === 0 ? [] : [" · "], link);
+        });
+        line.append(elementOf("span", "skill-name", `${paper.semester} ${paper.kind}`), files);
+        return line;
+    }));
+    folder.append(summary, list);
+    return [folder];
+}
+
+/**
  * Builds the overview of a module, see the top of this file; a module without tasks shows `No chapters yet`.
  *
  * @param module - Module with its tasks
@@ -330,9 +370,10 @@ function moduleElementOf(module: SkillModule, today: string): HTMLElement {
         section.append(elementOf("p", "skill-notice",
             `${module.removed} ${module.removed === 1 ? "attempt" : "attempts"} on removed tasks`));
     if (module.tasks.length === 0)
-        section.append(elementOf("p", "skill-none", "No chapters yet"), ...plannedOf(module, today));
+        section.append(elementOf("p", "skill-none", "No chapters yet"), ...papersOf(module), ...plannedOf(module, today));
     else
-        section.append(dueTodayOf(module.tasks, today), ...plannedOf(module, today), ...chaptersOf(module, today));
+        section.append(dueTodayOf(module.tasks, today), ...papersOf(module), ...plannedOf(module, today),
+            ...chaptersOf(module, today));
     return section;
 }
 
