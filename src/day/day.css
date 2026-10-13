@@ -1049,9 +1049,43 @@ button.box-ring.box-checked svg {
     cursor: default;
 }
 
-/* Month to pick a day from: as wide as a month needs, 27.5rem */
+/* Month to pick a day from: 34rem wide, so its days are easy to hit */
 .month-panel {
-    width: min(27.5rem, calc(100vw - 2 * var(--gap)));
+    width: min(34rem, calc(100vw - 2 * var(--gap)));
+}
+
+/* Head of the month: its month and year at the left, its arrows at the right, a little apart from its days */
+.month-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap);
+    margin-bottom: 0.75rem;
+}
+
+.month-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* Arrows of the month: flat, without frame, one chip high, grey, a grey lighter under the pointer */
+.month-buttons button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--chip-height);
+    height: var(--chip-height);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.month-buttons button:hover {
+    background: var(--fill);
+    color: var(--text-main);
 }
 
 /* Entry by category: one column of rows, at most as high as the screen with a gap around, then scrolling
