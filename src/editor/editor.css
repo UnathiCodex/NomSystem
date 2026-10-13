@@ -215,6 +215,11 @@
     margin-top: var(--space-below);
 }
 
+/* Rendered right below a heading, which begins its section: no space above it, as in the scripts view */
+.editor-text .cm-rendered.cm-below-heading > :first-child {
+    margin-top: 0;
+}
+
 /* Spacers and invisible characters on the line of the cursor as faint dots in the grey of list markers,
    drawn over them, so nothing moves */
 .editor-text .cm-spacer {

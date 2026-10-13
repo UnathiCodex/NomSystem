@@ -14,11 +14,14 @@
  * - Empty lines as high as the space the scripts view leaves between the blocks around them, see {@link spaceLook}.
  * - Bold, italic, struck and code without `**`, `*`, `~~` and `` ` ``, Markdown links and wiki links
  *   `[[Note#Heading|Text]]` as their text; the markup of the piece the cursor touches shows.
+ * - Line breaks `<br>` and break opportunities `<wbr>` drawn as in the scripts view, so `<br><wbr>` at the end of a line
+ *   leaves an empty line below it; as their text while the cursor touches them.
  * - Task boxes `[ ]` and `[x]` as the boxes of the scripts view, as written on the line of the cursor.
  * - Formulas `$…$` and `$$…$$` rendered as in the scripts view, as their TeX while the cursor touches them;
  *   a formula `$$…$$` being edited shows rendered below its TeX, as in Obsidian.
- * - Images `![[Image.svg|300]]` shown, tables, code blocks and HTML blocks like `<table>` rendered as in the scripts
- *   view, those right below each other as one, as their text while the cursor is on one of their lines.
+ * - Images `![[Image.svg|300]]` shown; tables, callouts `> [!note] Title`, code blocks and HTML blocks like `<table>`
+ *   rendered as in the scripts view, those right below each other as one, as their text while the cursor is on one
+ *   of their lines, as Obsidian shows a callout.
  * - Spacers `⠀` (U+2800) and invisible characters like the soft hyphen blank, as in the scripts view;
  *   on the line of the cursor as faint dots, so I see where they stand.
  * A click on a rendered piece puts the cursor there, so it shows as text; while the editor is not focused,
@@ -31,7 +34,7 @@
  * - `@codemirror/language`: Gives the syntax tree of the note, read with `./syntax.ts`.
  * - `@lezer/highlight`: Gives pieces of the syntax the classes of their look, see `./editor.css`.
  * - `../notes/math.ts`: Renders formulas as the scripts view does.
- * - `../notes/markdown.ts`: Renders tables, code blocks and HTML blocks as the scripts view does.
+ * - `../notes/markdown.ts`: Renders tables, callouts, code blocks and HTML blocks as the scripts view does.
  */
 
 import { RangeSet, StateEffect, StateField } from "@codemirror/state";
@@ -99,6 +102,16 @@ const wrapped: string[] = ["BulletList", "OrderedList", "ListItem", "Blockquote"
  * Blocks rendered whole while the cursor is on none of their lines, see {@link blockLook}.
  */
 const renderedWhole: string[] = ["Table", "FencedCode", "HTMLBlock"];
+
+/**
+ * First line of a callout from its `>`, like `> [!note] Title`, as the scripts view reads it, see `../notes/markdown.ts`.
+ */
+const calloutRule: RegExp = /^>[ \t]?\[![^\]]+\]/;
+
+/**
+ * Line break `<br>` or break opportunity `<wbr>` within a line, written like `<br>`, `<br/>` or `<br />`.
+ */
+const breakRule: RegExp = /^<(br|wbr)\s*\/?>$/i;
 
 /**
  * Spacers `⠀` and invisible format characters, like the soft hyphen and the zero-width space.
@@ -328,8 +341,48 @@ class TaskBoxWidget extends WidgetType {
 }
 
 /**
- * Tables, code blocks or HTML blocks right below each other, rendered as the scripts view renders them,
- * with their images and formulas, and with the space the scripts view leaves below them.
+ * Line break `<br>` or break opportunity `<wbr>`, drawn as the element itself, as in the scripts view:
+ * `<br>` breaks the line, and a `<wbr>` after it at the end of a line holds the empty line below it.
+ */
+class BreakWidget extends WidgetType {
+    /**
+     * Element drawn, `br` or `wbr`.
+     */
+    readonly tagName: string;
+
+    constructor(tagName: string) {
+        super();
+        this.tagName = tagName;
+    }
+
+    /**
+     * Tells whether another break is the same element, so the drawn one stays.
+     */
+    override eq(other: BreakWidget): boolean {
+        return other.tagName === this.tagName;
+    }
+
+    /**
+     * Draws the element.
+     */
+    toDOM(): HTMLElement {
+        const box: HTMLSpanElement = document.createElement("span");
+        box.append(document.createElement(this.tagName));
+        return box;
+    }
+
+    /**
+     * Lets a click reach the editor, which puts the cursor at the break, so it shows as text.
+     */
+    override ignoreEvent(): boolean {
+        return false;
+    }
+}
+
+/**
+ * Tables, callouts, code blocks or HTML blocks right below each other, rendered as the scripts view renders them,
+ * with their images, formulas and links, a link that leads nowhere faded, and with the space the scripts view leaves
+ * above and below them.
  */
 class BlockWidget extends WidgetType {
     /**
@@ -343,15 +396,22 @@ class BlockWidget extends WidgetType {
     readonly links: Links;
 
     /**
+     * Whether they stand right below a heading, which begins their section, so no space stands above them,
+     * as in the scripts view, see `./editor.css`.
+     */
+    readonly belowHeading: boolean;
+
+    /**
      * Space the scripts view leaves above the block after them, in CSS, which takes in their own space below,
      * see `./editor.css`.
      */
     readonly below: string;
 
-    constructor(markdown: string, links: Links, below: string) {
+    constructor(markdown: string, links: Links, belowHeading: boolean, below: string) {
         super();
         this.markdown = markdown;
         this.links = links;
+        this.belowHeading = belowHeading;
         this.below = below;
     }
 
@@ -359,7 +419,7 @@ class BlockWidget extends WidgetType {
      * Tells whether other blocks look the same, so the rendered ones stay.
      */
     override eq(other: BlockWidget): boolean {
-        return other.markdown === this.markdown && other.below === this.below;
+        return other.markdown === this.markdown && other.belowHeading === this.belowHeading && other.below === this.below;
     }
 
     /**
@@ -367,7 +427,7 @@ class BlockWidget extends WidgetType {
      */
     toDOM(view: EditorView): HTMLElement {
         const block: HTMLDivElement = document.createElement("div");
-        block.className = "cm-rendered";
+        block.className = this.belowHeading ? "cm-rendered cm-below-heading" : "cm-rendered";
         block.style.setProperty("--space-below", this.below);
         block.innerHTML = htmlOf(this.markdown);
         block.querySelectorAll<HTMLImageElement>("img[data-link]").forEach((image: HTMLImageElement): void => {
@@ -375,6 +435,10 @@ class BlockWidget extends WidgetType {
             if (path !== null)
                 image.src = fileAddressOf(path);
             image.addEventListener("load", (): void => view.requestMeasure());
+        });
+        block.querySelectorAll<HTMLAnchorElement>("a[data-link]").forEach((link: HTMLAnchorElement): void => {
+            if (this.links[link.dataset.link ?? ""] === null)
+                link.classList.add("is-unresolved");
         });
         mathRender(block);
         return block;
@@ -422,6 +486,17 @@ function touched(look: Look, from: number, to: number): boolean {
  */
 function linesTouched(look: Look, from: number, to: number): boolean {
     return touched(look, look.state.doc.lineAt(from).from, look.state.doc.lineAt(to).to);
+}
+
+/**
+ * Tells whether a block is a callout, a quote whose first line is like `> [!note] Title`, see {@link calloutRule}.
+ *
+ * @param look - Look being built
+ * @param node - Block, like a `Blockquote`
+ * @returns Whether it is a callout
+ */
+function calloutIs(look: Look, node: SyntaxNode): boolean {
+    return node.name === "Blockquote" && calloutRule.test(look.state.sliceDoc(node.from, look.state.doc.lineAt(node.from).to));
 }
 
 /**
@@ -517,6 +592,7 @@ function markupLook(look: Look, node: SyntaxNode): boolean {
 
 /**
  * Markdown link `[Text](Address)`: only its text while the cursor does not touch it.
+ * Brackets without an address, like the `[!note]` of a callout, are no link, as in the scripts view, and stay as written.
  *
  * @param look - Look being built
  * @param node - Link
@@ -524,7 +600,7 @@ function markupLook(look: Look, node: SyntaxNode): boolean {
  */
 function linkLook(look: Look, node: SyntaxNode): boolean {
     const marks: SyntaxNode[] = node.getChildren("LinkMark");
-    if (marks.length >= 2 && !touched(look, node.from, node.to)) {
+    if (node.getChild("URL") !== null && marks.length >= 2 && !touched(look, node.from, node.to)) {
         hide(look, node.from, marks[0].to);
         hide(look, marks[1].from, node.to);
     }
@@ -667,14 +743,33 @@ function taskBoxLook(look: Look, node: SyntaxNode): boolean {
 
 /**
  * Quote: its lines in a `blockquote`, with the line of quotes beside them, as the scripts view draws it.
+ * A callout, a quote whose first line is like `> [!note] Title`, renders whole as in the scripts view while the cursor
+ * is on none of its lines, see {@link blockLook}, else shows as a quote.
  *
  * @param look - Look being built
  * @param node - Quote, `Blockquote`
- * @returns `true`, to look into its text
+ * @returns Whether to look into its text, as it shows as a quote
  */
 function quoteLook(look: Look, node: SyntaxNode): boolean {
+    if (calloutIs(look, node) && !blockLook(look, node))
+        return false;
     wrap(look, node, "blockquote");
     return true;
+}
+
+/**
+ * Inline HTML: a line break `<br>` or break opportunity `<wbr>` drawn as in the scripts view while the cursor does
+ * not touch it, see {@link BreakWidget}; any other tag stays as written.
+ *
+ * @param look - Look being built
+ * @param node - Tag, `HTMLTag`
+ * @returns `false`, as it has nothing inside to look into
+ */
+function htmlTagLook(look: Look, node: SyntaxNode): boolean {
+    const tagName: string | undefined = breakRule.exec(look.state.sliceDoc(node.from, node.to))?.[1].toLowerCase();
+    if (tagName !== undefined && !touched(look, node.from, node.to))
+        look.decorations.push(Decoration.replace({ widget: new BreakWidget(tagName) }).range(node.from, node.to));
+    return false;
 }
 
 /**
@@ -696,7 +791,8 @@ function quoteMarkLook(look: Look, node: SyntaxNode): boolean {
  * Gives the space the scripts view leaves above a block of the note, by the rules of `../notes/notes.css`:
  * none above the first block, above a list and right below a heading, whose section it begins;
  * 1.5em above a paragraph, 1em above a quote; above a heading 1rem below a heading or an HTML block that is no table,
- * else 2.5rem. The text is 1rem big, so its em are rem.
+ * and below a callout, unless the heading is a `##`, whose section folds apart from the one before; else 2.5rem.
+ * The text is 1rem big, so its em are rem.
  *
  * @param look - Look being built
  * @param block - Block, like a `Paragraph`
@@ -709,7 +805,7 @@ function spaceAboveOf(look: Look, block: SyntaxNode, before: SyntaxNode | null):
         return "0rem";
     if (heading.test(block.name))
         return heading.test(before.name) || (before.name === "HTMLBlock" && !/^\s*<table/i.test(look.state.sliceDoc(before.from, before.to)))
-            ? "1rem" : "2.5rem";
+            || (calloutIs(look, before) && block.name !== "ATXHeading2") ? "1rem" : "2.5rem";
     if (heading.test(before.name))
         return "0rem";
     if (block.name === "Paragraph")
@@ -720,12 +816,13 @@ function spaceAboveOf(look: Look, block: SyntaxNode, before: SyntaxNode | null):
 }
 
 /**
- * Table, code block or HTML block, with those right below it: their whole lines rendered as one while the cursor is
- * on none of them, so the space between them is that of the scripts view, and below them the space the scripts view
- * leaves above the next block of the note, see {@link spaceAboveOf}.
+ * Table, callout, code block or HTML block, with those right below it: their whole lines rendered as one while the
+ * cursor is on none of them, so the space between them is that of the scripts view, no space above them right below
+ * a heading, and below them the space the scripts view leaves above the next block of the note,
+ * see {@link spaceAboveOf}.
  *
  * @param look - Look being built
- * @param node - `Table`, `FencedCode` or `HTMLBlock`
+ * @param node - `Table`, `FencedCode`, `HTMLBlock`, or a callout, `Blockquote`
  * @returns Whether to look into it, as it shows as text
  */
 function blockLook(look: Look, node: SyntaxNode): boolean {
@@ -747,7 +844,8 @@ function blockLook(look: Look, node: SyntaxNode): boolean {
         ? "0rem" : spaceAboveOf(look, last.nextSibling, last);
     const markdown: string = look.state.sliceDoc(from, to);
     const indentation: RegExp = new RegExp(`^${/^[ \t]*/.exec(markdown)?.[0] ?? ""}`, "gm");
-    const block: BlockWidget = new BlockWidget(markdown.replace(indentation, ""), look.links, below);
+    const belowHeading: boolean = /Heading/.test(node.prevSibling?.name ?? "");
+    const block: BlockWidget = new BlockWidget(markdown.replace(indentation, ""), look.links, belowHeading, below);
     look.decorations.push(Decoration.replace({ widget: block, block: true }).range(from, to));
     return false;
 }
@@ -795,15 +893,19 @@ const looks: { [name: string]: (look: Look, node: SyntaxNode) => boolean } = {
     TaskMarker: taskBoxLook,
     Blockquote: quoteLook,
     QuoteMark: quoteMarkLook,
+    HTMLTag: htmlTagLook,
     FencedCode: codeLook,
     Table: blockLook,
     HTMLBlock: blockLook,
 };
 
 /**
- * Empty lines between the blocks of the note as high as the space the scripts view leaves between them,
+ * Empty lines between the blocks of the note together as high as the space the scripts view leaves between them,
  * the larger of the space below the block before, 1em below a quote, and the space above the block after,
- * see {@link spaceAboveOf}; without height next to a block rendered whole, which keeps its own space.
+ * see {@link spaceAboveOf}, shared evenly by several, since the scripts view leaves the same space for any number
+ * of them; without height next to a block rendered whole, which keeps its own space.
+ * - `first`: Number of the first empty line after the block before.
+ * - `count`: How many empty lines stand between the two blocks.
  *
  * @param look - Look being built
  */
@@ -813,9 +915,10 @@ function spaceLook(look: Look): void {
         const rendered: boolean = look.rendered.includes(block.from) || (before !== null && look.rendered.includes(before.from));
         const height: string = rendered ? "0rem"
             : `max(${before?.name === "Blockquote" ? "1rem" : "0rem"}, ${spaceAboveOf(look, block, before)})`;
-        const space: Decoration = Decoration.line({ attributes: { style: `height: ${height}` } });
-        for (let number: number = before === null ? 1 : look.state.doc.lineAt(before.to).number + 1;
-             number < look.state.doc.lineAt(block.from).number; number++)
+        const first: number = before === null ? 1 : look.state.doc.lineAt(before.to).number + 1;
+        const count: number = look.state.doc.lineAt(block.from).number - first;
+        const space: Decoration = Decoration.line({ attributes: { style: `height: calc(${height} / ${Math.max(count, 1)})` } });
+        for (let number: number = first; number < first + count; number++)
             look.decorations.push(space.range(look.state.doc.line(number).from));
         before = block;
     }
