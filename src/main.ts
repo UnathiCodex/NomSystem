@@ -43,17 +43,14 @@ import editorHtml from "./editor/editor.html?raw";
 /**
  * Tells the reader what this device shows of the page, its size and that of its screen in CSS pixels, its scale
  * and whether it runs as the installed app, so the dashboard can be shaped for each of my devices,
- * see `reader/devices.ts`; a failure only written to the console.
+ * see `reader/devices.ts`.
+ * - {@link Navigator#sendBeacon}: Sends a small report to the reader without waiting for its answer.
  */
 function deviceReport(): void {
-    fetch("/api/devices", {
-        method: "POST",
-        body: JSON.stringify({
-            width: innerWidth, height: innerHeight, scale: devicePixelRatio, screenWidth: screen.width,
-            screenHeight: screen.height, app: matchMedia("(display-mode: standalone)").matches,
-            agent: navigator.userAgent,
-        }),
-    }).catch((error: unknown): void => console.error(error));
+    navigator.sendBeacon("/api/devices", JSON.stringify({
+        width: innerWidth, height: innerHeight, scale: devicePixelRatio, screenWidth: screen.width,
+        screenHeight: screen.height, app: matchMedia("(display-mode: standalone)").matches, agent: navigator.userAgent,
+    }));
 }
 
 /**
