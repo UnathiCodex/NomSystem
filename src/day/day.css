@@ -650,6 +650,11 @@ button.box-ring.box-checked svg {
     white-space: nowrap;
 }
 
+/* A value not logged yet: its format in the grey of placeholders, like the sleep's `00h 00m` */
+.tracker-empty {
+    color: var(--text-muted);
+}
+
 /* What I drank between the `−` and `+` of the water, see `.chip-button` in `base.css`, as wide as `2.75 l`,
    so the buttons stay in place as it counts */
 .water-litres {
