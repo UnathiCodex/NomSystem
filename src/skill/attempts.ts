@@ -430,18 +430,6 @@ export function semesterOf(day: string): string {
 }
 
 /**
- * Gives the semester before a semester: the summer before a winter of the same year, the winter of the year before
- * before a summer.
- *
- * @param semester - Semester like `2026W`
- * @returns Semester like `2026S`, or `2025W` for `2026S`
- */
-export function semesterBefore(semester: string): string {
-    const year: number = Number(semester.slice(0, 4));
-    return semester.endsWith("W") ? `${year}S` : `${year - 1}W`;
-}
-
-/**
  * Orders tasks, like those of a module or of a chapter, into groups by when they are due, see `reader/skill.ts`:
  * due today, also those due earlier, the earliest first; new ones, never tried, in the order of the notes;
  * later ones by their day; done ones, the ladder behind me and the ready cold tasks; skipped ones last.

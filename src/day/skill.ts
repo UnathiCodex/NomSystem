@@ -8,8 +8,8 @@
  * either later. Below the times its place, its name with its pencil and its address below it, see `categories.ts`;
  * its chapters and its topics; then its semester, from which semester the lecture or the material is,
  * not when I did it:
- * the semester of the day of the dialog, which follows that day as I type it, until I pick another, offered with
- * the two before it, like `2026W`, `2026S` and `2025W`, or typed with `+`, like `2024W`.
+ * the semester of the day of the dialog, which follows that day as I type it, until I pick another from its list,
+ * never typed: that semester first, then every semester the module has material for, newest first.
  * The one Skill list shows the skills of the semester, a module by its code, like `IN2028`, a project by its folder
  * name, like `WokFlow`, and its search every module folder, since I sometimes attend another module.
  * The Chapters list, several to pick, names the chapters of my system the entry belongs to, of every type,
@@ -46,7 +46,7 @@
 
 import { choiceOf, choicesOf, groupedSearchOf, pairOf, rowOf, searchOf } from "./choices.ts";
 import {
-    dayTextOf, groupsOf, moduleLoad, semesterBefore, semesterOf, skillEntrySend, skillingLoad,
+    dayTextOf, groupsOf, moduleLoad, semesterOf, skillEntrySend, skillingLoad,
 } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { linkElementOf, skillTitleElementOf } from "../skill/links.ts";
@@ -174,11 +174,6 @@ const chapterFolder: RegExp = /^\d{2}_[^/]*\//;
  * Day of the dialog, like `2026-10-13`, whose semester the entry has while I pick none, see {@link skillDaySet}.
  */
 let semesterDay: string = "";
-
-/**
- * Semester typed with `+`, like `2024W` or `2024w`: a year and `W` for a winter or `S` for a summer.
- */
-const semesterForm: RegExp = /^\d{4}[WS]$/i;
 
 /**
  * Where the fields of `Skill` show and the call that tells the dialog of a change, as last shown, so a changed day
@@ -310,19 +305,21 @@ export function skillSemesterOf(day: string): string {
 }
 
 /**
- * Builds the choices of the semester, newest first: the semester of the day of the dialog and the two before it,
- * and the one picked when it is none of them, like `2024W` typed with `+`, before or after them.
- * - `near`: The semester of the day and the two before it.
- * - `rankOf`: Ranks a semester by its year and season, a winter after the summer of its year.
+ * Builds the choices of the semester, picked from them, never typed: the semester of the day of the dialog first,
+ * then every semester the module has material for, by the folders of its material, like `TUM_2026S`, `TUM_2024W`
+ * and `LMU_2024S` giving `2026S`, `2024W` and `2024S`, newest first, see {@link documentSemesterOf}; and the one
+ * picked when it is none of them, like that of an older entry, among them by its rank.
+ * - `current`: The semester of the day of the dialog.
+ * - `others`: The other semesters, each once.
  *
  * @returns Choices of the semester
  */
 function semesterChoicesOf(): Choice[] {
-    const near: string[] = [semesterOf(semesterDay)];
-    near.push(semesterBefore(near[0]), semesterBefore(semesterBefore(near[0])));
-    return [...near, ...(picks.semester === "" || near.includes(picks.semester) ? [] : [picks.semester])]
-        .sort((first: string, second: string): number => semesterRankOf(second) - semesterRankOf(first))
-        .map(choiceOf);
+    const current: string = semesterOf(semesterDay);
+    const others: string[] = [...new Set([...contents.documents.map(documentSemesterOf), picks.semester])]
+        .filter((semester: string): boolean => semester !== "" && semester !== current)
+        .sort((first: string, second: string): number => semesterRankOf(second) - semesterRankOf(first));
+    return [current, ...others].map(choiceOf);
 }
 
 /**
@@ -345,16 +342,6 @@ function semesterRankOf(semester: string): number {
 function documentSemesterOf(path: string): string {
     const semester: RegExpMatchArray | null = path.split("/").slice(0, -1).join("/").match(/\d{4}[WS]/);
     return semester === null ? "" : semester[0];
-}
-
-/**
- * Takes a semester typed with `+`, like `2024w`, in capitals, or none when it is no semester.
- *
- * @param text - Typed text
- * @returns Semester like `2024W`, `null` for none
- */
-async function semesterAdd(text: string): Promise<string | null> {
-    return semesterForm.test(text.trim()) ? text.trim().toUpperCase() : null;
 }
 
 /**
@@ -782,8 +769,8 @@ function picksShow(shown: SkillShown): void {
     if (picks.module !== "")
         rows.push(chapterRowOf(tasksShow, shown.changed), topicRowOf(topics, topicsShow, shown.changed));
     rows.push(rowOf("Semester", choicesOf({
-        search: searchOf(semesterChoicesOf()), picked: [skillSemesterOf(semesterDay)], many: false, adding: true,
-        add: semesterAdd,
+        search: searchOf(semesterChoicesOf()), picked: [skillSemesterOf(semesterDay)], many: false, adding: false,
+        noun: "semester",
         pick: (values: string[]): void => {
             picks.semester = values[0] ?? "";
             again();
