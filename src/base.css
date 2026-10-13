@@ -37,14 +37,15 @@
     display: none !important;
 }
 
-/* Whole page: one screen high, the area fills it, beside the areas at the left edge; in Noto Sans, the one served
+/* Whole page: one screen high, the area fills it, beside the areas at the left edge, a gap more apart from them
+   than the area's own padding, so its content never crowds the areas; in Noto Sans, the one served
    with the page first, else the one installed, as on my Kubuntu */
 body {
     display: flex;
     flex-direction: column;
     height: 100dvh;
     margin: 0;
-    padding-left: calc(var(--control-height) + var(--gap));
+    padding-left: calc(var(--control-height) + 2.5 * var(--gap));
     font-family: "Noto Sans Variable", "Noto Sans", sans-serif;
     font-size: var(--text-size);
     line-height: 1.5;
@@ -52,7 +53,8 @@ body {
     color: var(--text-main);
 }
 
-/* Areas at the left edge of the screen, one below the other from the top, so the area keeps the whole height:
+/* Areas at the left edge of the screen, half a gap more apart from the edge than from the top,
+   one below the other from the top, so the area keeps the whole height:
    each a square button one control high with its icon, its name as tooltip, see `main.ts`, grey, a grey lighter
    under the pointer, the shown one light on the calm grey of what is picked */
 .areas {
@@ -61,7 +63,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--control-gap);
-    padding: var(--gap) 0 var(--gap) var(--gap);
+    padding: var(--gap) 0 var(--gap) calc(1.5 * var(--gap));
 }
 
 .areas a {
