@@ -85,23 +85,23 @@
         </div>
 
         <div class="panel-form">
-            <!-- Day, start and end of a log entry: the day like 13.10.2026, the calendar date of the start,
-                 filled with the date of the entry, of the selected slot, or of the half hour before now for +;
-                 start and end plain times, like 14:00, 1415 or 14, the end with its own day beside it, which fills
-                 itself with the day, or the day after while the end time lies at or before the start time,
-                 like 12.10.2026, 23:30 to 07:30 ending on 13.10.2026, until I type over it;
+            <!-- Start and end of a log entry, one below the other, each its day and its time, as calendar apps
+                 write them: the day of the start like 13.10.2026, filled with the date of the entry, of the selected
+                 slot, or of the half hour before now for +; the times plain, like 14:00, 1415 or 14; the day of the end
+                 fills itself with the day of the start, or the day after while the end time lies at or before
+                 the start time, like 12.10.2026 23:30 to 13.10.2026 07:30, until I type over it;
                  what the fields show is exactly what is saved -->
-            <fieldset class="picker-times" id="entry-log-times">
-                <label>Day <input class="date-field" id="entry-log-day" type="text"
-                                  inputmode="decimal" autocomplete="off" required></label>
-                <label>Start <input class="time-field" id="entry-start" type="text"
-                                    inputmode="numeric" autocomplete="off" required></label>
-                <span class="picker-end">
-                    <label>End <input class="time-field" id="entry-end" type="text"
-                                      inputmode="numeric" autocomplete="off" required></label>
+            <fieldset class="picker-times picker-moments" id="entry-log-times">
+                <label class="picker-moment"><span class="picker-name">Start</span>
+                    <input class="date-field" id="entry-log-day" type="text" inputmode="decimal" autocomplete="off"
+                           required aria-label="Day of the start">
+                    <input class="time-field" id="entry-start" type="text" inputmode="numeric" autocomplete="off"
+                           required aria-label="Time of the start"></label>
+                <label class="picker-moment"><span class="picker-name">End</span>
                     <input class="date-field" id="entry-end-day" type="text" inputmode="decimal" autocomplete="off"
                            required aria-label="Day of the end">
-                </span>
+                    <input class="time-field" id="entry-end" type="text" inputmode="numeric" autocomplete="off"
+                           required aria-label="Time of the end"></label>
             </fieldset>
 
             <!-- Shown instead of start and end while the dialog writes a box: its day like 19.10.2026

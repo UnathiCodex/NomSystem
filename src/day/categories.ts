@@ -24,15 +24,15 @@
  * of the place, its `ALTREP`, or else Google Maps; a new place is added with its address and maybe its link
  * through a small dialog before it is picked, see `places.ts`.
  * `From` starts where the last way before the entry ended.
- * An entry of the log has a day like `13.10.2026`, the calendar date of its start, typed to move it to any other day,
- * a start, a plain time on that day, and an end, a plain time with its own day beside it, which fills itself
- * with the day, or the day after while the end time lies at or before the start time, until I type over it,
- * see {@link endDayFill}; all saved exactly as they show. A box of the plan has a day like `19.10.2026`,
- * typed to move it to any other day, an expected time and an expected duration
- * in minutes, each optional, but for a lecture imported from TUMonline, which keeps both, see `reader/boxes.ts`,
- * and optionally a deadline, a day like `23.10.2026` with a time or without; a box with a deadline lies
- * on the day of its deadline and has no expected time, so both their fields are off while the day of a deadline
- * is typed.
+ * An entry of the log has a start and an end, each a day like `13.10.2026` and a plain time, as calendar apps
+ * write them: the day of the start, its calendar date, typed to move it to any other day, and the day of the end,
+ * which fills itself with the day of the start, or the day after while the end time lies at or before
+ * the start time, until I type over it, see {@link endDayFill}; all saved exactly as they show.
+ * A box of the plan has a day like `19.10.2026`, typed to move it to any other day, an expected time
+ * and an expected duration in minutes, each optional, but for a lecture imported from TUMonline, which keeps both,
+ * see `reader/boxes.ts`, and optionally a deadline, a day like `23.10.2026` with a time or without; a box
+ * with a deadline lies on the day of its deadline and has no expected time, so both their fields are off while
+ * the day of a deadline is typed.
  * The dialog opens for the log from `+` above the time grid, from a range selected in the time grid,
  * and from a log entry that can be changed, to change it; for a box from `+` above the list of boxes,
  * from a suggested study session, filled in as suggested, see `suggestions.ts`,
@@ -651,10 +651,10 @@ function endRead(start: Date): Date {
 }
 
 /**
- * Fills the day of the end of a log entry as day, start and end are typed, until I type into it myself:
- * the day, or the day after while the end time lies at or before the start time, like a night of sleep,
- * `12.10.2026`, `23:30` to `07:30`, ending on `13.10.2026`; nothing while one of them is no day or no time.
- * - `day`: Typed day, like `2026-10-12`.
+ * Fills the day of the end of a log entry as the day of the start and the times are typed, until I type into it myself:
+ * the day of the start, or the day after while the end time lies at or before the start time, like a night of sleep,
+ * `12.10.2026 23:30` to `13.10.2026 07:30`; nothing while one of them is no day or no time.
+ * - `day`: Typed day of the start, like `2026-10-12`.
  * - `start`, `end`: Typed start and end time, like `23:30` and `07:30`.
  * - `next`: The day after the typed day.
  */
@@ -828,7 +828,7 @@ function deadlineSee(): void {
  * The expected time and duration of a box may stay empty, but for an event of the plan, which keeps both
  * and has no deadline, since only a to-do has one.
  * - `boxed`: Whether the dialog writes a box.
- * - `logDay`: Field of the day of an entry of the log.
+ * - `logDay`: Field of the day of the start of an entry of the log.
  * - `endDay`: Field of the day of its end.
  * - `day`: Field of the day of the box.
  * - `required`: Whether the box needs both, being an event of the plan.

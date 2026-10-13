@@ -1262,11 +1262,22 @@ button.box-ring:hover svg {
     gap: var(--gap);
 }
 
-/* End of a log entry with its day beside it, kept together on one line */
-.picker-end {
-    display: inline-flex;
-    align-items: baseline;
+/* Start and end of a log entry one below the other, each its name, its day and its time on one line,
+   as calendar apps write them; the names equally wide, so the days and the times stand in line */
+.picker-moments {
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.picker-moment {
+    display: flex;
+    align-items: center;
     gap: var(--control-gap);
+}
+
+.picker-name {
+    flex: none;
+    width: 2.5rem;
 }
 
 /* Start and end, or expected time and minutes, without the frame a group of fields has in the browser */
