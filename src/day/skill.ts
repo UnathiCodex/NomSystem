@@ -23,7 +23,8 @@
  * The note is only my free note.
  * The tasks of the chapters picked come after the semester, the due ones first, then a result for each task picked:
  * Right, Wrong, Stuck with where I got stuck, or Skip with a reason, and after Right, Wrong or Stuck
- * one tap for my effort, low, medium or high. Any type may hold attempts, like the tasks I solved in a tutorial.
+ * one tap for my effort, low, medium or high; a task left without result is no attempt and is not written.
+ * Any type may hold attempts, like the tasks I solved in a tutorial. Every field may stay empty, the skill too.
  * A skill entry of the log already logged shows what it is as written, a module opening in the notes view,
  * and the document it used by its name, opening in a new tab, see `../skill/links.ts`, and its attempts, which stay;
  * new ones are added after them. Everything stays editable, its skill too, whose older attempts keep their task.
@@ -823,37 +824,26 @@ export function skillModuleType(): ModuleType {
 }
 
 /**
- * Tells whether the skill entry can be saved: its skill picked, its type when one is wanted, and a result
- * for every task picked.
- *
- * @returns Whether it can be saved
- */
-export function skillReady(): boolean {
-    return picks.module !== "" && picks.attempts.every((pick: AttemptPick): boolean => pick.result !== "");
-}
-
-/**
  * Sends the skill entry of the log as picked, with the times, place, semester, note and box of the dialog,
  * new or as the changes of the entry being changed, then loads the log of the shown day again.
  * - {@link EventSourceApi#refetch}: Loads the entries of a calendar of the reader again.
- * - `attempts`: The tasks picked with their results, as attempts to send.
+ * - `attempts`: The tasks picked with their results, as attempts to send, a task without result left out.
  *
  * @param calendar - Calendar of the day
  * @param id - Identifier of the entry being changed, empty for a new one
  * @param fields - Fields, note, times and box of the dialog
- * @throws {Error} - When a result is missing, or the reader does not take the entry
+ * @throws {Error} - When the reader does not take the entry
  */
 export async function skillSave(calendar: Calendar, id: string, fields: EntryFields): Promise<void> {
-    if (!skillReady())
-        throw new Error("Pick the skill and the results of the tasks first");
-    const attempts: AttemptNew[] = picks.attempts.map((pick: AttemptPick): AttemptNew => ({
-        task: pick.task,
-        part: "",
-        result: pick.result as Result,
-        effort: pick.result === "skipped" ? "" : pick.effort,
-        stuck: pick.result === "stuck" ? pick.detail : "",
-        skip: pick.result === "skipped" ? pick.detail : "",
-    }));
+    const attempts: AttemptNew[] = picks.attempts.filter((pick: AttemptPick): boolean => pick.result !== "")
+        .map((pick: AttemptPick): AttemptNew => ({
+            task: pick.task,
+            part: "",
+            result: pick.result as Result,
+            effort: pick.result === "skipped" ? "" : pick.effort,
+            stuck: pick.result === "stuck" ? pick.detail : "",
+            skip: pick.result === "skipped" ? pick.detail : "",
+        }));
 
     await skillEntrySend(id, {
         type: picks.type, module: picks.module, semester: fields.semester, chapters: picks.chapters,

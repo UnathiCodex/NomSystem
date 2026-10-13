@@ -165,19 +165,22 @@ export function skillFolderOf(code: string): string | undefined {
 
 /**
  * Names a skill entry as its `SUMMARY` says it, see the top of this file: the name of the folder of its skill,
- * with its type in round brackets when it has one; a skill without folder by its name alone.
+ * with its type in round brackets when it has one; a skill without folder by its name alone; an entry without skill
+ * by its type in brackets alone, like `(VO)`, or not at all.
  * - `folder`: Folder of the skill from `NomWorkspace`, see {@link skillFolderOf}, `undefined` for none.
  * - `name`: Name of that folder, the last part of its path.
  *
  * @param code - Name of the skill, like `IN2028` or `WokFlow`
  * @param type - Its type, like `VO`, empty for none, like my own learning
  * @returns What it is, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, `IN2028_BusinessAnalyticsMachineLearning`
- *   or `WokFlow`
+ *   or `WokFlow`, empty for neither skill nor type
  */
 export function skillTitleOf(code: string, type: string): string {
     const folder: string | undefined = skillFolderOf(code);
     const name: string = folder?.split("/").at(-1) ?? code;
-    return type === "" ? name : `${name} (${type})`;
+    if (type === "")
+        return name;
+    return name === "" ? `(${type})` : `${name} (${type})`;
 }
 
 /**

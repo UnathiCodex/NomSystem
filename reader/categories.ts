@@ -399,12 +399,13 @@ export function wayEndRead(before: string): string {
 
 /**
  * Tells whether the fields of an entry fit its category, in plan and log alike:
- * the category is in the list, what is picked, one of its values for a field that takes no new ones,
+ * the category is in the list, what is empty or picked, one of its values for a field that takes no new ones,
  * like `Night` or `Day` of `Sleep`, or, without a field `title`, the name of the category,
- * `from` is only set when the category has the field, and module and type stay empty.
- * `Skill` is a skill, a module code like `IN2028` or a project like `WokFlow`, and one of the {@link skillTypes}
- * or none; what it was the reader writes from both, see `skillTitleOf` in `documents.ts`, and its chapters, document
- * and attempts in the log only the skill area writes.
+ * `from` is only set when the category has the field, and module and type stay empty; every field but the category
+ * and the times may stay empty.
+ * `Skill` is a skill or none, a module code like `IN2028` or a project like `WokFlow`, and one of the
+ * {@link skillTypes} or none; what it was the reader writes from both, see `skillTitleOf` in `documents.ts`,
+ * and its chapters, documents and attempts in the log only the skill area writes.
  * - `keys`: Fields of the category.
  * - `what`: Its field `title`, `undefined` for none.
  * - `whatAllowed`: Whether what the entry was fits that field.
@@ -418,13 +419,13 @@ export function categoryAllows(fields: Omit<EntryTexts, "locationLink" | "titleL
     if (category === undefined)
         return false;
     if (category.name === skillName)
-        return /^\w+$/.test(fields.module) && (fields.type === "" || skillTypes.includes(fields.type))
+        return /^\w*$/.test(fields.module) && (fields.type === "" || skillTypes.includes(fields.type))
             && fields.from === "";
 
     const keys: FieldKey[] = category.fields.map((field: Field): FieldKey => field.key);
     const what: Field | undefined = category.fields.find((field: Field): boolean => field.key === "title");
     const whatAllowed: boolean = what === undefined ? fields.title === category.name
-        : fields.title.trim() !== "" && (!what.fixed || what.values.includes(fields.title));
+        : fields.title.trim() === "" || !what.fixed || what.values.includes(fields.title);
     return whatAllowed && (keys.includes("from") || fields.from === "") && fields.module === "" && fields.type === "";
 }
 

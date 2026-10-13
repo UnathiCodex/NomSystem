@@ -25,7 +25,7 @@
  * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first,
  * each by its name, like `TumMain`; a picked one is written with its address, as one line,
  * like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, which shows below its line, opening the link
- * of the place, its `ALTREP`, or else Google Maps, with a pencil beside it that changes my place in `Places.md`,
+ * of the place, its `ALTREP`, when it has one, with a pencil beside it that changes my place in `Places.md`,
  * its name, its address and its link, while entries written before keep the address they had;
  * a new place is added with its address and maybe its link through a small dialog before it is picked,
  * see `places.ts`.
@@ -64,9 +64,9 @@
 import { choiceOf, choicesOf, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealAfterCookAdd } from "./entries.ts";
 import { foodName, mealDishFill, mealFoods, mealOf, mealTitle } from "./meal.ts";
-import { labelOf, lineOf, mapsAddressOf, placeEdit, placeOpen, placesStart } from "./places.ts";
+import { labelOf, lineOf, placeEdit, placeOpen, placesStart } from "./places.ts";
 import {
-    skillDaySet, skillFieldsShow, skillModuleType, skillPlaceShow, skillReady, skillSave, skillSemesterOf,
+    skillDaySet, skillFieldsShow, skillModuleType, skillPlaceShow, skillSave, skillSemesterOf,
 } from "./skill.ts";
 import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
@@ -276,16 +276,12 @@ function foodsListed(): boolean {
 }
 
 /**
- * Allows saving once a category is picked and, when it has the field `title`, its value too,
- * unless it is a meal of the log that lists foods, which name it;
- * a skill entry once its skill is picked, and a result for each task picked, see `skill.ts`.
- * - `titled`: Whether the category picked has the field `title`.
+ * Allows saving once a category is picked: every other field may stay empty, but the times, which the browser
+ * asks for before it sends the form; a skill entry may stay without skill, and a task picked without result
+ * is left out, see `skill.ts`.
  */
 function saveAllow(): void {
-    const titled: boolean = chosen?.fields.some((field: Field): boolean => field.key === "title") ?? false;
-    (document.getElementById("entry-save") as HTMLButtonElement).disabled = chosen === null
-        || (titled && valuesRead().title === "" && !foodsListed())
-        || (chosen.name === skillName && !skillReady());
+    (document.getElementById("entry-save") as HTMLButtonElement).disabled = chosen === null;
     realShow().catch((error: unknown): void => console.error(error));
 }
 
@@ -467,7 +463,7 @@ function mineOf(field: Field): string | undefined {
 /**
  * Shows the line of the place picked in a field below its field: its whole line, as a link that opens in a new tab
  * the link of the place, the one the place of the entry kept, its `ALTREP`, while it stays picked, else the link
- * of my place in `Places.md`, else Google Maps, see `mapsAddressOf` in `places.ts`, and the pencil that changes
+ * of my place in `Places.md`, plain text for a place without link, which opens nothing, and the pencil that changes
  * my place, while it is one of mine, see {@link placeChange}; hides the line while no place is picked,
  * for a field that is no place, and for an older place written by its name alone, like `HomeMunich`,
  * which has no address to show, unless it has a link or is one of mine.
@@ -475,7 +471,7 @@ function mineOf(field: Field): string | undefined {
  * - `pencil`: The pencil.
  * - `line`: The place picked.
  * - `kept`: The link of the place the entry kept, empty for none.
- * - `link`: The link to open, empty for Google Maps.
+ * - `link`: The link to open, empty for none.
  *
  * @param place - Line below the field, see {@link placeLineOf}
  * @param field - Field, like `To`
@@ -487,7 +483,10 @@ function placeLineShow(place: HTMLElement, field: Field): void {
     const kept: string = field.key === "location" && line === opened.values.location ? openedLinkOf() : "";
     const link: string = kept !== "" ? kept : field.links[line] ?? "";
     address.textContent = line;
-    address.href = link !== "" ? link : mapsAddressOf(line);
+    if (link !== "")
+        address.href = link;
+    else
+        address.removeAttribute("href");
     pencil.hidden = mineOf(field) === undefined;
     place.hidden = field.key === "title" || line === ""
         || (line === labelOf(line) && link === "" && pencil.hidden);

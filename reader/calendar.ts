@@ -315,7 +315,7 @@ export const skillName: string = "Skill";
  * of the `SUMMARY`, lies outside `NomSkillingmodules`, like `WokFlow`. An older `SUMMARY` without brackets
  * but with a space, like `IN2028 VO`, has its skill and type parted at the first space. A skill entry carries
  * no `X-MODULE` and no `X-TYPE`; those lines of an older entry count no more and go once its `SUMMARY` changes,
- * see {@link textsPut}.
+ * see {@link textsPut}. An entry without skill has only its type in brackets, like `(VO)`, or no `SUMMARY`.
  * - `bracketed`: Name and type of a `SUMMARY` with a type in brackets, `null` for none.
  * - `space`: Place of the first space, -1 for none.
  * - `name`: Name of the folder of the skill.
@@ -325,7 +325,7 @@ export const skillName: string = "Skill";
  * @returns Skill and type, like `IN2028` and `VO`, or `WokFlow` and an empty type
  */
 function skillPartsOf(summary: string, link: string): [string, string] {
-    const bracketed: RegExpExecArray | null = /^(.+) \((\w+)\)$/.exec(summary);
+    const bracketed: RegExpExecArray | null = /^(.*?) ?\((\w+)\)$/.exec(summary);
     const space: number = summary.indexOf(" ");
     if (bracketed === null && space !== -1)
         return [summary.slice(0, space), summary.slice(space + 1)];

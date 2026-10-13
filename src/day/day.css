@@ -944,7 +944,7 @@ fieldset.entry-times {
 
 /* Whole line of the place picked, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, grey, below its field
    and in line with it, as the steps, with the pencil that changes the place beside it; a click on the line opens
-   its link, or Google Maps, underlined under the pointer */
+   its link, underlined under the pointer, when it has one */
 .entry-place-line {
     display: flex;
     align-items: center;
@@ -989,7 +989,7 @@ fieldset.entry-times {
     height: 0.875rem;
 }
 
-.entry-address:hover {
+.entry-address[href]:hover {
     text-decoration: underline;
     text-underline-offset: 0.2em;
 }

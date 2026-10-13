@@ -1056,9 +1056,9 @@ function tasksOf(values: string[]): string[] {
 
 /**
  * Checks a skill entry before it is written: one of the types, the type it had, like an older `DEV` no longer
- * offered, or none, a module with a folder or a project, chapters among the module's or among those the entry had,
- * new attempts at tasks of its module only, and an end after the start; the attempts a changed entry has keep
- * their task, also once I changed its skill.
+ * offered, or none, a module with a folder, a project or no skill at all, chapters among the module's or among those
+ * the entry had, new attempts at tasks of its module only, and an end after the start; the attempts a changed entry
+ * has keep their task, also once I changed its skill.
  * - `offered`: Chapters of the module, see `notes.ts`.
  * - `unknown`: First chapter that is neither offered nor kept.
  *
@@ -1071,7 +1071,7 @@ function tasksOf(values: string[]): string[] {
 function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[], keptType: string): void {
     if (entry.type !== "" && entry.type !== keptType && !skillTypes.includes(entry.type))
         throw new Error(`No type ${entry.type}`);
-    const offered: string[] = moduleRead(entry.module).chapters;
+    const offered: string[] = entry.module === "" ? [] : moduleRead(entry.module).chapters;
     const unknown: string | undefined = entry.chapters.find((chapter: string): boolean =>
         !offered.includes(chapter) && !kept.includes(chapter));
     if (unknown !== undefined)

@@ -139,14 +139,16 @@ export function placesRead(): Place[] {
 }
 
 /**
- * Cleans a place as the page sends it, see {@link cellOf}, and checks it against my other places.
+ * Cleans a place as the page sends it, see {@link cellOf}, and checks it against my other places: its name
+ * is needed, its address and its link may stay empty, and an address needs no number of a house, like
+ * `Burg-Eltz-Weg, 81375 München, Deutschland`.
  * - `clean`: The place cleaned.
  *
  * @param sent - Place as the page sends it, its name, its address and its link as typed
  * @param others - My other places, whose names it may not have
  * @returns The place cleaned
- * @throws {Error} - When the name or the address is empty, the name holds a comma, another place has the name,
- *   ignoring case, or the link is no web address
+ * @throws {Error} - When the name is empty or holds a comma, another place has the name, ignoring case,
+ *   or the link is no web address
  */
 function placeCleanOf(sent: Place, others: Place[]): Place {
     const clean: Place = {
@@ -156,8 +158,6 @@ function placeCleanOf(sent: Place, others: Place[]): Place {
     if (clean.name === "" || clean.name.includes(",")
         || others.some((mine: Place): boolean => mine.name.toLowerCase() === clean.name.toLowerCase()))
         throw new Error(`No new name of a place: ${clean.name}`);
-    if (clean.address === "")
-        throw new Error(`No address of ${clean.name}`);
     if (clean.link !== "" && !linkForm.test(clean.link))
         throw new Error(`No link of ${clean.name}: ${clean.link}`);
     return clean;
@@ -206,8 +206,8 @@ function rowOf(place: Place): string {
  *
  * @param sent - Place as the page sends it, its name, its address and its link as typed
  * @returns The place as written
- * @throws {Error} - When the name or the address is empty, the name holds a comma, another place has the name,
- *   ignoring case, the link is no web address, or `Places.md` lies outside the new system or holds no table
+ * @throws {Error} - When the name is empty or holds a comma, another place has the name, ignoring case,
+ *   the link is no web address, or `Places.md` lies outside the new system or holds no table
  */
 export function placeAdd(sent: Place): Place {
     const added: Place = placeCleanOf(sent, placesRead());
@@ -231,8 +231,8 @@ export function placeAdd(sent: Place): Place {
  *
  * @param sent - The place as the page sends it, its old name and its name, address and link as typed
  * @returns The place as written
- * @throws {Error} - When no place has the old name, the name or the address is empty, the name holds a comma,
- *   another place has the name, ignoring case, the link is no web address, or `Places.md` lies outside the new system
+ * @throws {Error} - When no place has the old name, the name is empty or holds a comma, another place has the name,
+ *   ignoring case, the link is no web address, or `Places.md` lies outside the new system
  */
 export function placeChange(sent: PlaceChanged): Place {
     const old: string = String(sent.old ?? "").toLowerCase();

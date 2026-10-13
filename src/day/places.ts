@@ -4,15 +4,16 @@
  * A new place for a field of a place, the place of an entry or where a way starts, see `categories.ts`,
  * since the fields offer only my places of `Places.md`, each with its address, see `reader/places.ts`:
  * a place typed that is none of mine yet, then `+` or Enter, opens a small dialog over the entry by category
- * with three fields, the place, filled with what I typed, and its address with its country, both required,
- * and its link, like `https://nav.tum.de/room/0509.EG.980`, which may stay empty.
+ * with three fields, the place, filled with what I typed, its address with its country, like
+ * `Burg-Eltz-Weg, 81375 München, Deutschland`, the number of the house optional, and its link, like
+ * `https://nav.tum.de/room/0509.EG.980`; address and link may stay empty, each showing its form while empty.
  * Save adds the place to `Places.md` and picks it; Cancel, `Esc` or a click beside the dialog pick nothing.
  * The pencil below a place picked opens the same dialog filled with my place, see {@link placeEdit}, and Save
  * changes its row in `Places.md`, its name, its address and its link; entries written before keep their address.
  * An entry writes a place as one line, its name and its address, like
  * `TumMain, Arcisstraße 21, 80333 München, Deutschland`, see {@link lineOf}; it shows by its name, the part
  * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens the link
- * of the place, written with it as its `ALTREP`, or else Google Maps, see {@link mapsAddressOf}.
+ * of the place, written with it as its `ALTREP`, when it has one, and nothing else, no search of a map.
  * A way shows its route by labels, see {@link whereOf}.
  *
  * - `../icons.ts`: Puts the icons into the buttons of the dialog.
@@ -76,8 +77,8 @@ export const wayName: string = "Way";
 
 /**
  * Writes where an entry or a box was, by labels alone, see {@link labelOf}: the route of a way, from where it starts,
- * its `X-FROM`, to its goal, its `LOCATION`, like `HomeMunich → TumGarching`, a missing end left out beside its arrow,
- * like `→ TumGarching`; the place of any other entry, like `HomeMunich`.
+ * its `X-FROM`, to its goal, its `LOCATION`, like `HomeMunich → TumGarching`, a missing end left out beside
+ * its arrow, like `→ TumGarching`; the place of any other entry, like `HomeMunich`.
  * - `start`: Label of where a way starts, empty for none.
  * - `goal`: Label of the place or the goal, empty for none.
  *
@@ -92,20 +93,6 @@ export function whereOf(category: string, from: string, location: string): strin
     if (category !== wayName || (start === "" && goal === ""))
         return goal;
     return `${start} → ${goal}`.trim();
-}
-
-/**
- * Gives the address in Google Maps of a place as an entry writes it: a search of the whole line,
- * or, when its address is a link, like one pasted from Google Maps, that link.
- * - `address`: The line after its name.
- *
- * @param line - Place like `TumMain, Arcisstraße 21, 80333 München, Deutschland`
- * @returns Address like `https://www.google.com/maps/search/?api=1&query=TumMain%2C%20Arcisstra%C3%9Fe%2021…`
- */
-export function mapsAddressOf(line: string): string {
-    const address: string = line.slice(line.indexOf(",") + 1).trim();
-    return /^https?:\/\/\S+$/.test(address) ? address
-        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(line)}`;
 }
 
 
