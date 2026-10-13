@@ -18,6 +18,7 @@
  *   of my neck routine, written by the entry by category, and a study day a day with an entry `Skill`;
  *   then my neck pain, rated 0 to 10 with each long session, the mean of my first four weeks against the last four,
  *   like `5.2 → 4.0` over `pain`, the outcome the routine is judged by.
+ *   Hidden until I start my neck routine, see {@link neckShown}; its code stays.
  * - Log: my log itself, three tiles: the entries of the day, like `14` over `entries`; how long after its end
  *   I wrote an entry, the median, like `40 min` over `written after`, since entries written in the moment hold
  *   and those rebuilt from memory drift; and on how many of the seven days up to it I logged, like `6 / 7`
@@ -169,6 +170,12 @@ export type Trackers = {
  * Minutes a glass of water lasts in the log.
  */
 const glassMinutes: number = 5;
+
+/**
+ * Whether the card shows the tiles of my neck, see {@link neckOf}: not until I start my neck routine,
+ * then `true`.
+ */
+const neckShown: boolean = false;
 
 /**
  * What the card was loaded for last: the day and the log entries of it, so it loads again only when they change.
@@ -432,7 +439,8 @@ export async function trackersFetch(day: string): Promise<Trackers> {
 }
 
 /**
- * Loads the trackers of the shown day and shows them, unless another day is shown meanwhile.
+ * Loads the trackers of the shown day and shows them, unless another day is shown meanwhile;
+ * the neck only once {@link neckShown}.
  * - `day`: The shown day.
  * - `trackers`: Its trackers.
  *
@@ -445,7 +453,7 @@ async function trackersLoad(calendar: Calendar): Promise<void> {
     if (day !== dayOf(calendar.view.currentStart))
         return;
     document.getElementById("trackers")?.replaceChildren(sleepOf(trackers), waterOf(calendar, trackers, day),
-        foodOf(trackers, day), neckOf(trackers), logOf(trackers));
+        foodOf(trackers, day), ...(neckShown ? [neckOf(trackers)] : []), logOf(trackers));
 }
 
 /**
