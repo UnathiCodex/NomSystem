@@ -1,4 +1,5 @@
-/* Day: plan and log over the whole width, filling the screen; the trackers and the daily note below the log */
+/* Day: plan and log over the whole width, filling the screen; the date and the trackers in the bar above them,
+   my gratitude and my points about the day below them */
 .day {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -8,12 +9,12 @@
     padding: var(--gap);
 }
 
-/* The bar of the shown day above its plan and its log, side by side, equally wide, since the plan counts as much
-   as the log, both filling the height */
+/* The bar of the shown day above its plan and its log, side by side, equally wide and equally high, since the plan
+   counts as much as the log, both filling the height above the daily note */
 .day-main {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
     gap: var(--gap);
     min-height: 0;
 }
@@ -31,10 +32,9 @@
     gap: var(--control-gap);
 }
 
-/* Bar of the day: the date with the arrows left and right of it at the right end of the bar, above the log,
-   the icon back to today beside the date */
+/* Bar of the day: the date with the arrows left and right of it at its left end, above the plan, the icon back
+   to today beside the date; the trackers at its right end, above the log */
 .day-nav {
-    justify-content: flex-end;
     gap: var(--control-gap);
 }
 
@@ -90,8 +90,8 @@
     cursor: default;
 }
 
-/* Plan and log, each its name small and grey above it, the boxes and the time grid filling the height between it
-   and the + at the bottom, out of the way of what matters */
+/* Plan and log, each its name small and grey above it with its + at the right, the boxes and the time grid filling
+   the height below it */
 .day-column {
     display: flex;
     flex-direction: column;
@@ -110,12 +110,6 @@
     font-size: 0.875rem;
     font-weight: 400;
     color: var(--text-muted);
-}
-
-/* Row of the + at the bottom of plan and log, the + at its right */
-.column-foot {
-    display: flex;
-    justify-content: flex-end;
 }
 
 /* Buttons that switch between plan and log, with their +, only on a phone, see the end of this file */
@@ -140,17 +134,6 @@
 
 .column-new:hover {
     background: color-mix(in oklab, var(--chosen) 85%, var(--text-main));
-}
-
-/* Below the time grid of the log, splitting its column: the trackers in one line above the daily note, together
-   at most two fifths of the height, the grid taking the rest; the note scrolls alone when it is longer */
-.day-below {
-    display: flex;
-    flex: 0 1 auto;
-    flex-direction: column;
-    gap: var(--gap);
-    min-height: 0;
-    max-height: 40%;
 }
 
 /* Boxes of the plan one below the other, a little apart, so the plan looks airy, filling the height above its +
@@ -607,27 +590,27 @@ button.box-ring.box-checked svg {
     margin-inline-start: -12px;
 }
 
-/* Daily note: own card below the trackers, as high as its text, scrolls alone when it is longer than its room */
+/* Rest of the daily note below my gratitude and my points about the day, read only, over the whole width,
+   scrolling alone when it is longer than a fifth of the screen; nothing for a note that holds only them */
 .day-note {
-    flex: 0 1 auto;
-    min-height: 0;
+    grid-column: 1 / -1;
+    max-height: 20dvh;
     overflow-y: auto;
-    padding: var(--gap);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
 }
 
-/* Trackers: own card like the daily note, its trackers side by side in one line, below each other
-   where the line has no room for all */
+.day-note:empty {
+    display: none;
+}
+
+/* Trackers: at the right end of the bar of the day, side by side in one line, below each other where the line
+   has no room for all */
 .trackers {
     display: flex;
-    flex: none;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.625rem calc(2 * var(--gap));
-    padding: var(--gap);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
+    justify-content: flex-end;
+    gap: var(--control-gap);
+    margin-left: auto;
 }
 
 /* Sleep and neck as tiles side by side, each its value over its name, small and grey; a check small and grey after
@@ -664,11 +647,16 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-/* A tracker: its name small and grey, then its tiles or controls */
+/* A tracker: its name small and grey, then its tiles or controls, in a soft frame of its own, at least one control
+   high, so Sleep, Water and Food stand apart at a glance */
 .tracker-row {
     display: flex;
     align-items: center;
     gap: var(--control-gap);
+    min-height: var(--control-height);
+    padding: 0.25rem 0.875rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
 }
 
 .tracker-name {
@@ -741,37 +729,30 @@ button.box-ring.box-checked svg {
     text-decoration: underline;
 }
 
-/* My gratitude and my points about the day at the top of the daily note, side by side, each half of the note:
-   each its name small and grey above its list of points, see `.note-points` */
+/* My gratitude below the plan and my points about the day below the log, as wide as them, each its name small
+   and grey above its list of points like them, see `.note-points`; the rest of the note below both */
 .note-boxes {
     display: grid;
+    grid-column: 1 / -1;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: var(--gap) calc(2 * var(--gap));
-    margin: 0.75rem 0 0;
+    gap: var(--gap);
 }
 
 .note-boxes .panel-error {
     grid-column: 1 / -1;
 }
 
-.note-box {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-}
-
-.note-box-name {
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--text-muted);
-}
-
-/* A list of points of the note as Markdown shows a list, no field around it: a grey bullet before each point,
-   its text in a field of its own without frame, as wide as the note, wrapping and growing with its text,
-   see `points.ts` */
+/* A list of points of the note as Markdown shows a list, framed like a box of the plan: a grey bullet before each
+   point, its text in a field of its own without frame, as wide as the list, wrapping and growing with its text,
+   see `points.ts`; both lists equally high, scrolling alone when longer than a third of the screen */
 .note-points {
+    flex: 1;
+    max-height: 33dvh;
+    overflow-y: auto;
     margin: 0;
-    padding: 0 0 0 1.25em;
+    padding: 0.875rem 1rem 0.875rem calc(1rem + 1.25em);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
     list-style: disc;
     cursor: text;
 }
@@ -1605,12 +1586,11 @@ svg.route-arrow {
 
     .day-main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto minmax(0, 1fr) auto;
     }
 
-    .day-below,
-    .column-head,
-    .column-foot {
+    .trackers,
+    .note-boxes,
+    .column-head {
         display: none;
     }
 
