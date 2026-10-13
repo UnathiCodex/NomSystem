@@ -511,7 +511,9 @@ function mineOf(field: Field): string | undefined {
  * the link of the place, the one the place of the entry kept, its `ALTREP`, while it stays picked, else the link
  * of my place in `Places.md`, plain text for a place without link, which opens nothing, and beside the label
  * the pencil that changes my place, while it is one of mine, see {@link placeChange}; no address while no place
- * is picked and for an older place written by its name alone, like `HomeMunich`, which has none.
+ * is picked, the link itself for a place with a link but without address, like `https://nav.tum.de/room/5602.EG.001`,
+ * so every place with a link opens it here too, and nothing for an older place written by its name alone,
+ * like `HomeMunich`, which has neither.
  * - `line`: The place picked.
  * - `kept`: The link of the place the entry kept, empty for none.
  * - `link`: The link to open, empty for none.
@@ -524,12 +526,12 @@ function placePartsShow(pencil: HTMLButtonElement, address: HTMLAnchorElement, f
     const line: string = values[field.key];
     const kept: string = field.key === "location" && line === opened.values.location ? openedLinkOf() : "";
     const link: string = kept !== "" ? kept : field.links[line] ?? "";
-    address.textContent = addressOf(line);
+    address.textContent = addressOf(line) === "" ? link : addressOf(line);
     if (link !== "")
         address.href = link;
     else
         address.removeAttribute("href");
-    address.hidden = addressOf(line) === "";
+    address.hidden = address.textContent === "";
     pencil.hidden = mineOf(field) === undefined;
 }
 

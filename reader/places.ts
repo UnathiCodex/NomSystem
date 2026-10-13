@@ -8,8 +8,8 @@
  * and an entry writes its place as Google Calendar does, its name and its address in one line, see {@link lineOf},
  * like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, as its `LOCATION`, and where its way starts
  * as its `X-FROM`, so it keeps the address it had then, also once the address in `Places.md` changes;
- * its name is the part before the first comma, see {@link labelOf}. An older entry keeps the name alone,
- * like `HomeMunich`.
+ * its name is the part before the first comma, see {@link labelOf}, so a name never holds a comma: one typed
+ * or read with a comma loses it, see {@link nameOf}. An older entry keeps the name alone, like `HomeMunich`.
  * A third column, `Link`, may hold a link of a place, like `https://nav.tum.de/room/0509.EG.980`, which an entry
  * writes with it as the standard parameter `ALTREP` of its `LOCATION`, see {@link placeLinkOf}.
  * The file starts without places: I add each place with its address from the dialog of the day the first time
@@ -32,7 +32,8 @@ import { day, writeAllowed } from "./sources.ts";
 /**
  * A place, one row of `Places.md`.
  *
- * - `name`: Name, like `TumMain`; unique, ignoring case, without `|` and without a comma, which ends it in a line.
+ * - `name`: Name, like `TumMain`; unique, ignoring case, without `|` and without a comma, which ends it in a line,
+ *   see {@link nameOf}.
  * - `address`: Its address with its country, like `Arcisstraße 21, 80333 München, Deutschland`, without `|`.
  * - `link`: Its link, like `https://nav.tum.de/room/0509.EG.980`, a web address without spaces; empty for none.
  */
@@ -84,6 +85,19 @@ const tableHead: number = 2;
  */
 function cellOf(text: string): string {
     return text.replace(/\|/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Cleans the name of a place, its label, which never holds a comma, since an entry writes its place as one line
+ * whose first comma ends the label: as a cell, see {@link cellOf}, each comma dropped, leaving a space,
+ * as for a name of a room from NavigaTUM, `0509.EG.980 (Audimax, Werner-von-Siemens-Hörsaal)` becoming
+ * `0509.EG.980 (Audimax Werner-von-Siemens-Hörsaal)`, and for a name typed with a comma.
+ *
+ * @param text - Name as typed or read, like `0509.EG.980 (Audimax, Werner-von-Siemens-Hörsaal)`
+ * @returns Name without comma, like `0509.EG.980 (Audimax Werner-von-Siemens-Hörsaal)`
+ */
+function nameOf(text: string): string {
+    return cellOf(text.replace(/,/g, " "));
 }
 
 /**
@@ -140,27 +154,27 @@ export function placesRead(): Place[] {
         .slice(tableHead)
         .map((line: string): string[] => line.split("|").slice(1, -1).map((cell: string): string => cell.trim()))
         .filter((cells: string[]): boolean => (cells[0] ?? "") !== "")
-        .map((cells: string[]): Place => ({ name: cells[0], address: cells[1] ?? "", link: cells[2] ?? "" }));
+        .map((cells: string[]): Place => ({ name: nameOf(cells[0]), address: cells[1] ?? "", link: cells[2] ?? "" }));
 }
 
 /**
- * Cleans a place as the page sends it, see {@link cellOf}, and checks it against my other places: its name
- * is needed, its address and its link may stay empty, and an address needs no number of a house, like
- * `Burg-Eltz-Weg, 81375 München, Deutschland`.
+ * Cleans a place as the page sends it, see {@link cellOf}, a comma in its name dropped, see {@link nameOf},
+ * and checks it against my other places: its name is needed, its address and its link may stay empty,
+ * and an address needs no number of a house, like `Burg-Eltz-Weg, 81375 München, Deutschland`.
  * - `clean`: The place cleaned.
  *
  * @param sent - Place as the page sends it, its name, its address and its link as typed
  * @param others - My other places, whose names it may not have
  * @returns The place cleaned
- * @throws {Error} - When the name is empty or holds a comma, another place has the name, ignoring case,
+ * @throws {Error} - When the name is empty, another place has the name, ignoring case,
  *   or the link is no web address
  */
 function placeCleanOf(sent: Place, others: Place[]): Place {
     const clean: Place = {
-        name: cellOf(String(sent.name ?? "")), address: cellOf(String(sent.address ?? "")),
+        name: nameOf(String(sent.name ?? "")), address: cellOf(String(sent.address ?? "")),
         link: cellOf(String(sent.link ?? "")),
     };
-    if (clean.name === "" || clean.name.includes(",")
+    if (clean.name === ""
         || others.some((mine: Place): boolean => mine.name.toLowerCase() === clean.name.toLowerCase()))
         throw new Error(`No new name of a place: ${clean.name}`);
     if (clean.link !== "" && !linkForm.test(clean.link))
@@ -211,7 +225,7 @@ function rowOf(place: Place): string {
  *
  * @param sent - Place as the page sends it, its name, its address and its link as typed
  * @returns The place as written
- * @throws {Error} - When the name is empty or holds a comma, another place has the name, ignoring case,
+ * @throws {Error} - When the name is empty, another place has the name, ignoring case,
  *   the link is no web address, or `Places.md` lies outside the new system or holds no table
  */
 export function placeAdd(sent: Place): Place {
@@ -239,17 +253,17 @@ export function placeAdd(sent: Place): Place {
  *
  * @param sent - The place as the page sends it, its old name and its name, address and link as typed
  * @returns The place as written
- * @throws {Error} - When no place has the old name, the name is empty or holds a comma, another place has the name,
- *   ignoring case, the link is no web address, or `Places.md` lies outside the new system
+ * @throws {Error} - When no place has the old name, the name is empty, another place has the name, ignoring case,
+ *   the link is no web address, or `Places.md` lies outside the new system
  */
 export function placeChange(sent: PlaceChanged): Place {
-    const old: string = String(sent.old ?? "").toLowerCase();
+    const old: string = nameOf(String(sent.old ?? "")).toLowerCase();
     const changed: Place = placeCleanOf(sent, placesRead().filter((mine: Place): boolean =>
         mine.name.toLowerCase() !== old));
     const lines: string[] = placeLinesRead();
     const first: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
     const row: number = lines.findIndex((line: string, index: number): boolean => index >= first + tableHead
-        && line.startsWith("|") && (line.split("|")[1] ?? "").trim().toLowerCase() === old);
+        && line.startsWith("|") && nameOf(line.split("|")[1] ?? "").toLowerCase() === old);
     if (old === "" || row === -1)
         throw new Error(`No place of the name: ${sent.old}`);
     const before: Place | undefined = placesRead().find((mine: Place): boolean => mine.name.toLowerCase() === old);

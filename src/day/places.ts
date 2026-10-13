@@ -28,7 +28,7 @@ import type { Choice } from "./choices.ts";
 /**
  * A place, as the reader writes it into `Places.md`.
  *
- * - `name`: Name, like `TumMain`, without a comma.
+ * - `name`: Name, like `TumMain`, without a comma, which the reader drops, see `nameOf` in `reader/places.ts`.
  * - `address`: Its address with its country, like `Arcisstraße 21, 80333 München, Deutschland`.
  * - `link`: Its link, like `https://nav.tum.de/room/0509.EG.980`, empty for none.
  */
@@ -119,6 +119,37 @@ export function whereOf(category: string, from: string, location: string): strin
     if (category !== wayName || (start === "" && goal === ""))
         return goal;
     return `${start} → ${goal}`.trim();
+}
+
+/**
+ * Writes where an entry or a box was, as {@link whereOf} does, its place a link when it has one, its `ALTREP`,
+ * which opens in a new tab, like `8120.01.101 (Audimax im Galileo)` opening `https://nav.tum.de/room/8120.01.101`;
+ * of a way its goal, which its `LOCATION` names, like `TumGarching` of `HomeMunich → TumGarching`.
+ * A click on the link opens only the link, never the entry or the box it stands in, so it does not reach
+ * their own click; a place without link is plain text.
+ * - `where`: Where it was, like `HomeMunich → TumGarching`.
+ * - `goal`: Label of the place or the goal, like `TumGarching`.
+ * - `anchor`: The link.
+ *
+ * @param category - Category of the entry, like `Way`
+ * @param from - Where a way starts, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`, empty for none
+ * @param location - Place or goal, like `TumGarching, Boltzmannstraße 3, 85748 Garching, Deutschland`
+ * @param link - Link of the place or the goal, its `ALTREP`, empty for none
+ * @returns Where it was, its place or goal a link, none for no place at all
+ */
+export function whereLinkedOf(category: string, from: string, location: string, link: string): (string | Node)[] {
+    const where: string = whereOf(category, from, location);
+    const goal: string = labelOf(location);
+    if (link === "" || goal === "")
+        return where === "" ? [] : [where];
+    const anchor: HTMLAnchorElement = document.createElement("a");
+    anchor.className = "place-link";
+    anchor.href = link;
+    anchor.target = "_blank";
+    anchor.rel = "noopener";
+    anchor.textContent = goal;
+    anchor.addEventListener("click", (event: MouseEvent): void => event.stopPropagation());
+    return where === goal ? [anchor] : [where.slice(0, where.length - goal.length), anchor];
 }
 
 

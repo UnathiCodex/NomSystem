@@ -1415,8 +1415,8 @@ fieldset.entry-times {
     overflow: hidden;
 }
 
-/* One line in parts, alone in an entry of a quarter hour or half an hour: what, then the time after a comma,
-   then the place after a dot, like `Skill: WI1059 (HU), 05:15 – 05:45 · HomeMunich`; what and the time keep
+/* One line in parts, alone in an entry of a quarter hour or half an hour: what, then the time, then the place,
+   parted by a middle dot, like `Skill: WI1059 (HU) · 05:15 – 05:45 · HomeMunich`; what and the time keep
    their width and only the place gives way, cut with an ellipsis; where what and the time are wider than the entry,
    the time moves onto a next line, which `.entry-lines` hides, so what stays whole; also the line of the time
    and the place of an entry of 45 minutes, like `16:00 – 16:45 · HomeMunich` */
@@ -1464,7 +1464,7 @@ fieldset.entry-times {
 }
 
 /* Time in normal weight and the light grey of a time, see `--text-time`, so it stands out a little, never cut:
-   after what on one line, like `, 05:15 – 05:45`, or on a line of its own, like `20:00 – 23:45`, as wide
+   after what on one line, like `· 05:15 – 05:45`, or on a line of its own, like `20:00 – 23:45`, as wide
    as its text; only an entry narrower than the time alone, beside others in a narrow column, ends it
    with an ellipsis */
 .entry-time {
@@ -1485,13 +1485,30 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Place beside the time on its line, like `· HomeMunich` or a route like `· HomeMunich → TumGarching`, a space
-   before it, which a line in parts would drop at the start of a part; it takes only the room left beside what
-   and the time, cut with an ellipsis, so a narrow entry cuts the place, never what or the time */
+/* Part of a line after a middle dot, like `· 05:15 – 05:45` or `· HomeMunich`, a little space before it,
+   which a line in parts would drop at the start of a part */
+.entry-parted {
+    margin-left: 0.3em;
+}
+
+/* Place beside the time on its line, like `· HomeMunich` or a route like `· HomeMunich → TumGarching`;
+   it takes only the room left beside what and the time, cut with an ellipsis, so a narrow entry cuts the place,
+   never what or the time */
 .entry-beside {
     flex: 1 1 0;
     min-width: 0;
-    margin-left: 0.3em;
+}
+
+/* Place with a link, its `ALTREP`, in an entry or a box, like `8120.01.101 (Audimax im Galileo)`: in the grey
+   of its line, underlined under a pointer, so it shows that a click opens its link, see `whereLinkedOf`
+   in `places.ts` */
+.place-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.place-link:hover {
+    text-decoration: underline;
 }
 
 /* Time field as wide as a time like 14:00 */

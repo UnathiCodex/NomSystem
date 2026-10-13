@@ -9,7 +9,8 @@
  * Every box has the same three lines, open or done: its category in bold with a colon and what,
  * like `Skill: IN0004 VO`, as an entry of the log does, then grey its expected time and length and how often it was
  * pushed, like `16:00 · 90 min` or `75 min · pushed once`, then its place on a line of its own, by its label alone,
- * like `Audimax im Galileo`; a line without anything to say is left out.
+ * like `Audimax im Galileo`, which opens its link on a click when it has one; a line without anything to say
+ * is left out.
  * An open box pushed three times or more asks instead of counting on, `pushed 3 times · smaller or skip?`,
  * since a task I keep pushing is often too big or no longer wanted, and a click on it opens it to cut it.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
@@ -47,7 +48,7 @@
  * - `./categories.ts`: Opens the entry by category for a new box, a box to change, and a box to log through it.
  * - `./suggestions.ts`: Loads the study sessions suggested for tomorrow, accepts and dismisses them.
  * - `./gifts.ts`: Opens the dialog of the gift idea for a birthday or holiday.
- * - `./places.ts`: Gives the name of the place of a box.
+ * - `./places.ts`: Gives the name of the place of a box, a link when it has one.
  * - `./times.ts`: Gives the times a box is logged at with one tap, and writes times of day.
  * - `../skill/attempts.ts`: Names the category of skill entries, writes a date as a day,
  *   and gives the day of a date.
@@ -62,7 +63,7 @@ import { boxDrop, boxLog, boxPush, boxUndo, boxUniversity } from "./entries.ts";
 import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
 import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } from "./suggestions.ts";
 import { giftOpen } from "./gifts.ts";
-import { whereOf } from "./places.ts";
+import { whereLinkedOf, whereOf } from "./places.ts";
 import { boxMinutes, boxTimesOf, dateTextOf, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
@@ -371,8 +372,9 @@ function timeLineOf(box: Box, day: string, nearShown: boolean): string {
  * Makes the lines of a box, in the day and in the week alike, the same three whether it is open or done, see the top
  * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf}, like **`Skill: IN0004 VO`**,
  * its time and length in the light grey of a time, see {@link timeLineOf}, like `16:00 · 90 min`, and its place
- * on a line of its own in the darker grey, by its label alone, like `Audimax im Galileo`, a way its route,
- * like `HomeMunich → TumGarching`, see `whereOf` in `places.ts`; a line without anything to say is left out.
+ * on a line of its own in the darker grey, by its label alone, its address hidden, like `Audimax im Galileo`,
+ * a way its route, like `HomeMunich → TumGarching`, see `whereOf` in `places.ts`, a place with a link opening it
+ * on a click instead of the box, see `whereLinkedOf` in `places.ts`; a line without anything to say is left out.
  * - `time`: The line of its time and length.
  * - `place`: The label of its place or the route of a way, empty for none.
  *
@@ -387,7 +389,9 @@ export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLEle
     return [
         entryPartOf("div", "box-what", whatOf(box.category, box.title === box.category ? "" : box.title)),
         ...(time === "" ? [] : [entryPartOf("div", "box-meta box-time", [entryPartOf("span", "box-part", [time])])]),
-        ...(place === "" ? [] : [entryPartOf("div", "box-meta", [entryPartOf("span", "box-part", [place])])]),
+        ...(place === "" ? [] : [entryPartOf("div", "box-meta", [
+            entryPartOf("span", "box-part", whereLinkedOf(box.category, box.from, box.location, box.locationLink)),
+        ])]),
     ];
 }
 

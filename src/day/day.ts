@@ -59,7 +59,7 @@ import { foodName } from "./meal.ts";
 import { boxesSee, boxesStart, boxReceive, entryPartOf, whatOf } from "./boxes.ts";
 import { monthStart } from "./month.ts";
 import { giftsStart } from "./gifts.ts";
-import { whereOf } from "./places.ts";
+import { whereLinkedOf, whereOf } from "./places.ts";
 import { trackersSee } from "./trackers.ts";
 import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
@@ -221,13 +221,15 @@ function breakableOf(what: string): string {
 /**
  * Content of an entry of the log, as Google Calendar shows one: what first in bold, see {@link whatOf}, then its time
  * in normal weight and the light grey of a time, then its place lighter still; a dish lists its foods,
- * see {@link dishOf}, parted by commas. Every entry shows its place, a way its route, see `whereOf` in `places.ts`.
+ * see {@link dishOf}, parted by commas. Every entry shows its place by its label alone, its address hidden,
+ * a way its route, see `whereOf` in `places.ts`; a place with a link opens it on a click, see `whereLinkedOf`.
  * What is never cut and the time never cut; only the place gives way where a line is too narrow,
  * cut with an ellipsis, see `day.css`.
  * An entry of the whole day shows only what it was.
  * - An entry with room for one line, of a quarter hour or half an hour, see {@link linesOf}, shows what,
- *   then its start and end after a comma, then its place after a dot,
- *   like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO), 16:00 – 16:30 · 8120.01.101 (Audimax im Galileo)`;
+ *   then its start and end, then its place, parted by a middle dot with a little space, never by commas,
+ *   since names hold commas,
+ *   like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO) · 16:00 – 16:30 · 8120.01.101 (Audimax im Galileo)`;
  *   where an entry is narrower than what and its time, as on a phone, what stays whole and its time moves
  *   onto a next line, which the entry hides, and only what wider than the whole entry ends with an ellipsis.
  * - An entry with room for two lines, of 45 minutes, shows what on its first line and start and end on its second
@@ -243,8 +245,11 @@ function breakableOf(what: string): string {
  * - `foods`: Foods of a dish, none for any other entry.
  * - `what`: What the entry was, its foods for a dish, empty when it is its category, like an old `Sleep`
  *   written before it had its what.
- * - `place`: Place of the entry by its label, its `LOCATION`, like `HomeMunich`, for a way its route from its `X-FROM`,
+ * - `from`: Where a way starts, its `X-FROM`, empty for none.
+ * - `location`: Place of the entry, its `LOCATION`, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`.
+ * - `place`: Place of the entry by its label, like `HomeMunich`, for a way its route from its `X-FROM`,
  *   like `HomeMunich → TumGarching`, see `whereOf` in `places.ts`; empty when it has none.
+ * - `link`: Link of the place, its `ALTREP`, like `https://nav.tum.de/room/8120.01.101`, empty for none.
  * - `note`: Note of the entry, its `DESCRIPTION`, empty when it has none.
  * - `start`, `end`: Start and end of the entry.
  * - `time`: Start and end, like `16:00 – 16:30`.
@@ -269,8 +274,10 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
         what = foods.join(", ");
     else if (what === category)
         what = "";
-    const place: string =
-        whereOf(category, info.event.extendedProps.from ?? "", info.event.extendedProps.location ?? "");
+    const from: string = info.event.extendedProps.from ?? "";
+    const location: string = info.event.extendedProps.location ?? "";
+    const place: string = whereOf(category, from, location);
+    const link: string = info.event.extendedProps.locationLink ?? "";
     const note: string = (info.event.extendedProps.note ?? "").trim();
     const start: Date = info.event.start as Date;
     const end: Date = info.event.end ?? start;
@@ -284,20 +291,22 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     if (lines < 2) {
         const line: HTMLElement = entryPartOf("div", "entry-line", [
             entryPartOf("span", "entry-what", whatOf(category, what)),
-            entryPartOf("span", "entry-time", [`, ${time}`]),
+            entryPartOf("span", "entry-time entry-parted", [`· ${time}`]),
         ]);
         if (place !== "")
-            line.append(entryPartOf("span", "entry-place entry-beside", [`· ${place}`]));
+            line.append(entryPartOf("span", "entry-place entry-parted entry-beside",
+                ["· ", ...whereLinkedOf(category, from, location, link)]));
         shown = [line];
     } else if (lines === 2) {
         const timeLine: HTMLElement = entryPartOf("div", "entry-line", [entryPartOf("span", "entry-time", [time])]);
         if (place !== "")
-            timeLine.append(entryPartOf("span", "entry-place entry-beside", [`· ${place}`]));
+            timeLine.append(entryPartOf("span", "entry-place entry-parted entry-beside",
+                ["· ", ...whereLinkedOf(category, from, location, link)]));
         shown = [entryPartOf("div", "entry-whole", whole), timeLine];
     } else {
         shown = [entryPartOf("div", "entry-whole", whole), entryPartOf("div", "entry-time", [time])];
         if (place !== "")
-            shown.push(entryPartOf("div", "entry-place", [place]));
+            shown.push(entryPartOf("div", "entry-place", whereLinkedOf(category, from, location, link)));
         if (note !== "" && lines > shown.length) {
             const below: HTMLElement = entryPartOf("div", "entry-note", [note]);
             below.style.webkitLineClamp = String(lines - shown.length);
