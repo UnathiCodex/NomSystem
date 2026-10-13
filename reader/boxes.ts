@@ -408,6 +408,24 @@ export function boxesCarried(date: string): Box[] {
 }
 
 /**
+ * Reads the skill boxes of the plan, of every module and type, from the first entry of the plan to a day,
+ * done, cancelled and open alike, each with its state, for the list of each module by type, see `skill.ts`;
+ * a series without end stops at that day.
+ * - `logs`: Log entries written from boxes, up to the day after the day, see {@link logsOf}.
+ *
+ * @param until - Day after the last, like `2027-10-14`
+ * @returns The skill boxes, in the order they were read
+ * @throws {Error} - When the day is not written like `2026-10-13`
+ */
+export function skillBoxesRead(until: string): Box[] {
+    dateCheck(until);
+    const logs: Map<string, Entry> = logsOf(until);
+    return entriesRead(day.plan, "1970-01-01T00:00:00Z", berlinDayStartOf(until))
+        .map((entry: Entry): Box => boxOf(entry, logs))
+        .filter((box: Box): boolean => box.category === skillName);
+}
+
+/**
  * Finds a box of the plan by its identifier, with its state, also an occurrence of a series, see {@link planEntryFind}.
  * - `file`, `entry`: Its `.ics` file and its entry.
  * - `date`: Its day.

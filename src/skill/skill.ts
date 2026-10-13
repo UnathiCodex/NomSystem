@@ -10,18 +10,26 @@
  *   task headings found twice and attempts on removed tasks.
  * - Due today: the tasks due today or earlier, the earliest first, a cold task with its parts still open;
  *   each opens as a card, its text alone, so I choose the method myself, see `cardSet` in `../notes/notes.ts`.
+ * - Its entries of the plan by type, like all its lectures `VO`, one list per type, each open at first and folding
+ *   by a click on its line, which shows how many are done, like `VO 3 / 14 done`; in it each entry numbered by date,
+ *   the cancelled ones counted too, with its day and time, like `1  Tuesday, 06.10.2026, 10:00`, and its state
+ *   at the right: `Done` once a log entry relates to it, `Cancelled`, greyed and struck through, `Open` once its day
+ *   is over, as on the day, or `To come`.
  * - The chapters, each open at first and folding by a click on its line, which shows how many of its sections are ready;
  *   in each its sections, closed, each with how many of its tasks I tried and the state of its cold task at the right,
  *   like `4 / 12 tried · Due Sunday, 18.10.2026`; a section opens to its tasks, each with its state:
  *   `New`, `Due today`, `Due Monday, 12.10.2026`, `Done`, `Ready` or `Skipped`.
- * A module without tasks, since it has no chapter notes yet, shows only its name and `No chapters yet`.
+ * A module without tasks, since it has no chapter notes yet, shows only its name, `No chapters yet`
+ * and its entries of the plan.
  * Above the modules, only while there are some, the links of skill entries the reader could not repair at its last
  * check, see `reader/documents.ts`, one line each with the day and the skill of its entry,
  * like `13.10.2026 IN2028_BusinessAnalyticsMachineLearning (VO): VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`.
  * Formulas `$…$` in names are rendered as in the notes.
  *
  * - `./attempts.ts`: Loads the tasks with when they are due and writes days out.
- * - `../today.ts`: Gives today's calendar date, for when a task is due.
+ * - `../today.ts`: Gives today's calendar date, for when a task is due and whether an entry of the plan
+ *   is still to come.
+ * - `../day/times.ts`: Writes the time of an entry of the plan, as the day does.
  * - `./task.ts`: Tells when a task is due.
  * - `../notes/math.ts`: Renders the formulas as the notes view does, loaded only when there is one.
  * - `./skill.css`: Look of the skill view.
@@ -29,10 +37,13 @@
 
 import { dayTextOf, skillingLoad } from "./attempts.ts";
 import { calendarTodayOf } from "../today.ts";
+import { timeOf } from "../day/times.ts";
 import { stateTextOf } from "./task.ts";
 import "./skill.css";
 
-import type { LinkLost, SkillModule, SkillSection, SkillTask, Skilling, Task } from "./attempts.ts";
+import type {
+    LinkLost, PlannedEntry, PlannedType, SkillModule, SkillSection, SkillTask, Skilling, Task,
+} from "./attempts.ts";
 
 
 /**
@@ -227,6 +238,60 @@ function chaptersOf(module: SkillModule, today: string): HTMLElement[] {
 }
 
 /**
+ * Writes the state of an entry of the plan, see the top of this file: `Done`, `Cancelled`, `Open` once its day
+ * is over, else `To come`.
+ *
+ * @param entry - Entry of the plan
+ * @param today - Today like `2026-10-13`
+ * @returns The state
+ */
+function plannedStateOf(entry: PlannedEntry, today: string): string {
+    if (entry.state === "done")
+        return "Done";
+    if (entry.state === "dropped")
+        return "Cancelled";
+    return entry.day < today ? "Open" : "To come";
+}
+
+/**
+ * Builds the lists of the entries of the plan of a module, one per type, see the top of this file: each a fold,
+ * open at first like a chapter, whose line holds the type and how many of its entries are done; in it each entry,
+ * numbered by date, with its day and time and its state at the right, a cancelled one greyed and struck through.
+ * - `done`: Number of its entries done.
+ * - `folder`: The fold of a type.
+ * - `summary`: Its line.
+ * - `list`: Its entries.
+ * - `line`: The line of an entry.
+ * - `when`: Its day with its weekday and its time, when it has one.
+ *
+ * @param module - Module with its entries of the plan
+ * @param today - Today like `2026-10-13`
+ * @returns One fold per type, none for a module without entries of a type
+ */
+function plannedOf(module: SkillModule, today: string): HTMLElement[] {
+    return module.planned.map((planned: PlannedType): HTMLElement => {
+        const done: number = planned.entries.filter((entry: PlannedEntry): boolean => entry.state === "done").length;
+        const folder: HTMLDetailsElement = document.createElement("details");
+        const summary: HTMLElement = elementOf("summary", "", planned.type);
+        const list: HTMLElement = elementOf("ul", "skill-tasks", "");
+        folder.className = "skill-chapter skill-planned";
+        folder.open = true;
+        summary.append(elementOf("span", "skill-count", `${done} / ${planned.entries.length} done`));
+        list.append(...planned.entries.map((entry: PlannedEntry, index: number): HTMLElement => {
+            const line: HTMLElement = elementOf("li", `skill-task skill-planned-${entry.state}`, "");
+            const when: string = entry.time === "" ? dayTextOf(entry.day, true)
+                : `${dayTextOf(entry.day, true)}, ${timeOf(new Date(entry.time))}`;
+            const name: HTMLElement = elementOf("span", "skill-name", when);
+            name.prepend(elementOf("span", "skill-number", String(index + 1)));
+            line.append(name, elementOf("span", "skill-state", plannedStateOf(entry, today)));
+            return line;
+        }));
+        folder.append(summary, list);
+        return folder;
+    });
+}
+
+/**
  * Builds the overview of a module, see the top of this file; a module without tasks shows `No chapters yet`.
  *
  * @param module - Module with its tasks
@@ -251,9 +316,9 @@ function moduleElementOf(module: SkillModule, today: string): HTMLElement {
         section.append(elementOf("p", "skill-notice",
             `${module.removed} ${module.removed === 1 ? "attempt" : "attempts"} on removed tasks`));
     if (module.tasks.length === 0)
-        section.append(elementOf("p", "skill-none", "No chapters yet"));
+        section.append(elementOf("p", "skill-none", "No chapters yet"), ...plannedOf(module, today));
     else
-        section.append(dueTodayOf(module.tasks, today), ...chaptersOf(module, today));
+        section.append(dueTodayOf(module.tasks, today), ...plannedOf(module, today), ...chaptersOf(module, today));
     return section;
 }
 

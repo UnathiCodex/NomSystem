@@ -57,7 +57,8 @@
  * the task for my tutor, counts as none either, and the task is due 2 days later, cold.
  * A skipped task leaves the due list until its next attempt.
  *
- * - `./boxes.ts`: Finds the skill box of a module for now, and marks a box done once a skill entry is logged from it.
+ * - `./boxes.ts`: Finds the skill box of a module for now, marks a box done once a skill entry is logged from it,
+ *   and reads the skill boxes of the plan, for the lists of each module by type.
  * - `./calendar.ts`: Reads the log, appends entries to it, changes their events, and adds days to a day.
  * - `./categories.ts`: Names the category and the types of skill entries and writes what a skill entry was.
  * - `./day.ts`: Gives the month file of the log for the start of an entry.
@@ -69,7 +70,7 @@
  * - `./trackers.ts`: Holds my settings, like the minutes after which the timer of a session suggests a break.
  */
 
-import { boxDone, boxOpenFind, skillBoxOf } from "./boxes.ts";
+import { boxDone, boxOpenFind, skillBoxesRead, skillBoxOf } from "./boxes.ts";
 import {
     berlinDateOf, berlinDayStartOf, berlinTimeOf, dayAdd, entriesRead, entryAppend, entryChange, entryFind,
     propertiesPut,
@@ -82,7 +83,7 @@ import { placeLinkOf } from "./places.ts";
 import { activeModules, activeSkills, projectOf, skillLog, skillNameOf } from "./sources.ts";
 import { settings } from "./trackers.ts";
 
-import type { Box } from "./boxes.ts";
+import type { Box, BoxState } from "./boxes.ts";
 import type { Entry, EntryFields, Link } from "./calendar.ts";
 import type { LinkLost } from "./documents.ts";
 import type { Chapter, ModuleContents, NoteEntry, NotesModule } from "./notes.ts";
@@ -205,6 +206,31 @@ export type ExamDate = {
 };
 
 /**
+ * One entry of the plan of a module in the list of its type, see {@link plannedOf}.
+ *
+ * - `day`: Its day, like `2026-10-06`, for a homework sheet the day of its deadline.
+ * - `time`: Its time as ISO instant, for a homework sheet the time of its deadline, empty for none.
+ * - `state`: Whether it is open, done, since a log entry relates to it, or dropped, which is cancelled;
+ *   the page tells an open one whose day is over from one still to come.
+ */
+export type PlannedEntry = {
+    day: string;
+    time: string;
+    state: BoxState;
+};
+
+/**
+ * The entries of the plan of a module of one type, like all its lectures `VO`.
+ *
+ * - `type`: The type, like `VO`.
+ * - `entries`: Its entries by date, the cancelled ones among them, so each keeps its number.
+ */
+export type PlannedType = {
+    type: string;
+    entries: PlannedEntry[];
+};
+
+/**
  * A module of the semester with its tasks.
  *
  * - `code`: Module code, like `IN2028`, the part of its folder name before `_`.
@@ -214,6 +240,7 @@ export type ExamDate = {
  * - `sections`: Its sections in the same order, each with its cold task.
  * - `duplicates`: Tasks whose name an earlier task of the module has already, left out of `tasks`.
  * - `removed`: Number of attempts on tasks no note holds any more.
+ * - `planned`: Its entries of the plan by type, like all its lectures, see {@link plannedOf}.
  */
 export type SkillModule = {
     code: string;
@@ -223,6 +250,7 @@ export type SkillModule = {
     sections: SkillSection[];
     duplicates: Task[];
     removed: number;
+    planned: PlannedType[];
 };
 
 /**
@@ -439,6 +467,12 @@ export const exams: { [code: string]: ExamDate } = {
  * the earliest it could be, so the last runs come in time.
  */
 const examDefault: ExamDate = { day: "2027-02-15", estimated: true };
+
+/**
+ * Days after today up to which the lists of the plan of each module reach, see {@link plannedOf}: a year,
+ * so a series without end stops.
+ */
+const plannedDays: number = 366;
 
 /**
  * Part of a cold task, a line starting with its letter and `)`, like `b) Campus kiosk, seven days in July`.
@@ -818,13 +852,52 @@ function sectionsOf(tasks: SkillTask[]): SkillSection[] {
 }
 
 /**
+ * Gives the time of an entry of the plan in the list of its type, see {@link PlannedEntry}: its expected time,
+ * else the time of its deadline, like that of a homework sheet.
+ *
+ * @param box - Skill box of the plan
+ * @returns ISO instant, empty for a box without time and without a deadline with time
+ */
+function plannedTimeOf(box: Box): string {
+    if (box.time !== "")
+        return box.time;
+    return box.deadline === "" || /^\d{4}-\d{2}-\d{2}$/.test(box.deadline) ? "" : box.deadline;
+}
+
+/**
+ * Lists the entries of the plan of a module by type, in the order of the types, like all its lectures `VO`:
+ * each list by date, the cancelled entries among them, so each entry keeps its number; a type without entries
+ * is left out, and so are my own learning, which has no type, and an older type no longer offered, like `DEV`.
+ * - `own`: The boxes of the module.
+ *
+ * @param module - Module code, like `IN2028`
+ * @param boxes - Skill boxes of the plan, see `skillBoxesRead` in `boxes.ts`
+ * @returns The lists, one per type
+ */
+function plannedOf(module: string, boxes: Box[]): PlannedType[] {
+    const own: Box[] = boxes.filter((box: Box): boolean => box.module === module);
+    return skillTypes
+        .map((type: string): PlannedType => ({
+            type: type,
+            entries: own
+                .filter((box: Box): boolean => box.type === type)
+                .map((box: Box): PlannedEntry => ({ day: box.day, time: plannedTimeOf(box), state: box.state }))
+                .sort((first: PlannedEntry, second: PlannedEntry): number =>
+                    first.day.localeCompare(second.day) || first.time.localeCompare(second.time)),
+        }))
+        .filter((planned: PlannedType): boolean => planned.entries.length > 0);
+}
+
+/**
  * Reads everything the skill and notes views show: per module of the semester its exam, its tasks with when each
  * is due, see the top of this file, its sections, the tasks whose name the module has already, and the number
  * of attempts on tasks no note holds any more; a module without chapter notes yet has no tasks.
  * Attempts on other modules count nowhere.
- * Also the skills of the semester and every other module folder, the reasons to skip, the types of a skill entry
- * and the efforts, for the pickers, and the links the reader could not repair, see `documents.ts`.
+ * Also the entries of the plan of each module by type, see {@link plannedOf}, the skills of the semester and every
+ * other module folder, the reasons to skip, the types of a skill entry and the efforts, for the pickers,
+ * and the links the reader could not repair, see `documents.ts`.
  * - `attempts`: My attempts, in order.
+ * - `boxes`: Skill boxes of the plan up to {@link plannedDays} days after today.
  * - `byTask`: The same attempts by the identity of their task.
  * - `unique`: Tasks of a module, each name once.
  * - `duplicates`: Tasks of a module whose name an earlier task has.
@@ -840,6 +913,7 @@ function sectionsOf(tasks: SkillTask[]): SkillSection[] {
 export function skillingRead(): Skilling {
     const attempts: LoggedAttempt[] = attemptsRead();
     const byTask: Map<string, LoggedAttempt[]> = Map.groupBy(attempts, (logged: LoggedAttempt): string => logged.task);
+    const boxes: Box[] = skillBoxesRead(dayAdd(berlinDateOf(new Date()), plannedDays));
     const modules: SkillModule[] = moduleTasksRead().map((module: ModuleTasks): SkillModule => {
         const unique: Task[] = [];
         const duplicates: Task[] = [];
@@ -863,7 +937,7 @@ export function skillingRead(): Skilling {
             && !tasks.some((task: SkillTask): boolean => task.id === logged.task)).length;
         return {
             code: module.code, title: module.title, exam: exam, tasks: tasks, sections: sectionsOf(tasks),
-            duplicates: duplicates, removed: removed,
+            duplicates: duplicates, removed: removed, planned: plannedOf(module.code, boxes),
         };
     });
 

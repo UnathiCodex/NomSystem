@@ -117,6 +117,30 @@ export type ExamDate = {
 };
 
 /**
+ * One entry of the plan of a module in the list of its type, as the reader sends it.
+ *
+ * - `day`: Its day, like `2026-10-06`, for a homework sheet the day of its deadline.
+ * - `time`: Its time as ISO instant, for a homework sheet the time of its deadline, empty for none.
+ * - `state`: Whether it is open, done, since a log entry relates to it, or dropped, which is cancelled.
+ */
+export type PlannedEntry = {
+    day: string;
+    time: string;
+    state: "open" | "done" | "dropped";
+};
+
+/**
+ * The entries of the plan of a module of one type, like all its lectures `VO`, as the reader sends them.
+ *
+ * - `type`: The type, like `VO`.
+ * - `entries`: Its entries by date, the cancelled ones among them, so each keeps its number.
+ */
+export type PlannedType = {
+    type: string;
+    entries: PlannedEntry[];
+};
+
+/**
  * A module of the semester with its tasks, as the reader sends it.
  *
  * - `code`: Module code, like `IN2028`.
@@ -126,6 +150,7 @@ export type ExamDate = {
  * - `sections`: Its sections in the same order.
  * - `duplicates`: Tasks whose name an earlier task of the module has already.
  * - `removed`: Number of attempts on tasks no note holds any more.
+ * - `planned`: Its entries of the plan by type, in the order of the types, a type without entries left out.
  */
 export type SkillModule = {
     code: string;
@@ -135,6 +160,7 @@ export type SkillModule = {
     sections: SkillSection[];
     duplicates: Task[];
     removed: number;
+    planned: PlannedType[];
 };
 
 /**
