@@ -67,8 +67,8 @@ import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } 
 import { giftOpen } from "./gifts.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
 import { linkNameOf } from "../skill/links.ts";
-import { boxMinutes, boxTimesOf, dateTextOf, timeOf } from "./times.ts";
-import { dayOf, skillName } from "../skill/attempts.ts";
+import { boxMinutes, boxTimesOf, timeOf } from "./times.ts";
+import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut } from "../icons.ts";
 import { ArrowRight, Check, Gift, Landmark, Plus, Undo2, X } from "lucide";
@@ -312,19 +312,6 @@ function boxClassOf(box: Box, carriedShown: boolean): string {
 }
 
 /**
- * Writes a day with its short weekday, like `Fri, 23.10.2026`, a comma between weekday and date
- * as in the date of the day.
- * - `weekday`: Its weekday, like `Fri`, from the day at noon.
- *
- * @param day - Day like `2026-10-23`
- * @returns The day with its weekday
- */
-function weekdayTextOf(day: string): string {
-    const weekday: string = new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short" });
-    return `${weekday}, ${dateTextOf(day)}`;
-}
-
-/**
  * Writes the deadline of a box, like `Deadline Fri, 23.10.2026, 12:00`;
  * a deadline without time is its day, so it shows without time.
  * - `time`: Its time after a comma, empty for a deadline without time.
@@ -334,7 +321,7 @@ function weekdayTextOf(day: string): string {
  */
 function deadlineTextOf(box: Box): string {
     const time: string = box.deadline === box.day ? "" : `, ${timeOf(new Date(box.deadline))}`;
-    return `Deadline ${weekdayTextOf(box.day)}${time}`;
+    return `Deadline ${dayTextOf(box.day, true)}${time}`;
 }
 
 /**
@@ -392,7 +379,7 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
         pushes = `pushed ${box.pushed.length} times`;
     const asking: string = box.pushed.length >= pushesAsking && box.state === "open" ? "smaller or skip?" : "";
     const near: string = !nearShown || box.deadline === "" || box.state !== "open" ? "" : nearOf(box, day);
-    const over: string = box.state === "open" && box.deadline === "" && box.day < day ? weekdayTextOf(box.day) : "";
+    const over: string = box.state === "open" && box.deadline === "" && box.day < day ? dayTextOf(box.day, true) : "";
     const start: Date | null = box.time === "" ? null : new Date(box.time);
     let when: string = start === null ? "" : timeOf(start);
     if (start !== null && box.minutes !== null)

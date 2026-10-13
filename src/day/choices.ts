@@ -50,7 +50,7 @@ export function breakableOf(text: string): string {
  * A value to pick.
  *
  * - `value`: Value, like `IN2028/Airline Revenue Interval`.
- * - `text`: Text shown and searched, like `Airline Revenue Interval · due Monday, 12.10.2026`.
+ * - `text`: Text shown and searched, like `Airline Revenue Interval · due Mon, 12.10.2026`.
  * - `group`: Name of its group, like `Due today`, empty for none.
  * - `detail`: Grey detail beside the text in the list, like the address of a place; left out for none.
  */

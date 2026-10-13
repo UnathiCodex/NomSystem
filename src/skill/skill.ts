@@ -6,7 +6,7 @@
  * in the scripts view, where I solve it, record the attempt and see its history and source.
  * - At the top the name of the module and the ready number, its sections whose cold task has its three runs,
  *   like `Ready 0 / 36`, since the section is the unit, not the task; below it grey its exam,
- *   like `Exam ≈ Thursday, 25.02.2027`, `≈` while the day is estimated; then what needs a look:
+ *   like `Exam ≈ Thu, 25.02.2027`, `≈` while the day is estimated; then what needs a look:
  *   task headings found twice and attempts on removed tasks.
  * - Due today: the tasks due today or earlier, the earliest first, a cold task with its parts still open;
  *   each opens as a card, its text alone, so I choose the method myself, see `cardSet` in `../notes/notes.ts`.
@@ -15,19 +15,19 @@
  *   `Assignments · Solutions`, each opening in a new tab; see {@link papersOf}.
  * - Its entries of the plan by type, like all its lectures `VO`, one list per type, each open at first and folding
  *   by a click on its line, which shows how many are done, like `VO 3 / 14 done`; in it each entry numbered by date,
- *   the cancelled ones counted too, with its day and time, like `1  Tuesday, 06.10.2026, 10:00`, and its state
+ *   the cancelled ones counted too, with its day and time, like `1  Tue, 06.10.2026, 10:00`, and its state
  *   at the right: `Done` once a log entry relates to it, `Cancelled`, greyed and struck through, `Open` once its day
  *   is over, as on the day, or `To come`.
  * - The chapters, each open at first and folding by a click on its line, which shows how many of its sections are ready;
  *   in each its sections, closed, each with how many of its tasks I tried and the state of its cold task at the right,
- *   like `4 / 12 tried · Due Sunday, 18.10.2026`; a section opens to its tasks, each with its state:
- *   `New`, `Due today`, `Due Monday, 12.10.2026`, `Done`, `Ready` or `Skipped`.
+ *   like `4 / 12 tried · Due Sun, 18.10.2026`; a section opens to its tasks, each with its state:
+ *   `New`, `Due today`, `Due Mon, 12.10.2026`, `Done`, `Ready` or `Skipped`.
  * A module without tasks, since it has no chapter notes yet, shows only its name, `No chapters yet`
  * and its entries of the plan.
  * Above the modules their exams, one line each, the next first, so I see at once what comes when and how ready
  * I am: its day, `≈` while estimated, the module, how many days are left and its ready number, like
- * `Thursday, 18.02.2027  WI1057_CostAccounting  in 128 days`, each linking to its module below; a module's own
- * exam line says the same, like `Exam Thursday, 18.02.2027 · in 128 days`.
+ * `Thu, 18.02.2027  WI1057_CostAccounting  in 128 days`, each linking to its module below; a module's own
+ * exam line says the same, like `Exam Thu, 18.02.2027 · in 128 days`.
  * Above the modules, only while there are some, the links of skill entries the reader could not repair at its last
  * check, see `reader/documents.ts`, one line each with the day and the skill of its entry,
  * like `13.10.2026 IN2028_BusinessAnalyticsMachineLearning (VO): VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`.
@@ -400,6 +400,7 @@ function daysLeftOf(day: string, today: string): string {
  * - `part`: The list with its heading.
  * - `sorted`: The modules by the day of their exam.
  * - `row`: The line of a module.
+ * - `day`: Its exam day, after a place of its own for `≈`, so the days of all lines stand flush.
  *
  * @param modules - Modules of the semester
  * @param today - Today like `2026-10-13`
@@ -411,8 +412,10 @@ function examsOf(modules: SkillModule[], today: string): HTMLElement {
         first.exam.day.localeCompare(second.exam.day));
     part.append(elementOf("h3", "", "Exams"), ...sorted.map((module: SkillModule): HTMLElement => {
         const row: HTMLAnchorElement = linkOf("skill-exam-row", "", `#module-${module.code}`);
+        const day: HTMLElement = elementOf("span", "skill-exam-day", "");
+        day.append(elementOf("span", "skill-exam-estimated", module.exam.estimated ? "≈" : ""), dayTextOf(module.exam.day, true));
         row.append(
-            elementOf("span", "skill-exam-day", `${module.exam.estimated ? "≈ " : ""}${dayTextOf(module.exam.day, true)}`),
+            day,
             elementOf("span", "skill-exam-module", module.title),
             elementOf("span", "skill-exam-left", daysLeftOf(module.exam.day, today)),
             elementOf("span", "skill-exam-ready", module.tasks.length > 0

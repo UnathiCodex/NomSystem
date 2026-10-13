@@ -54,6 +54,12 @@
     background: var(--fill);
 }
 
+/* Place of the `≈` of an estimated day, as wide for every line, so the days stand flush */
+.skill-exam-estimated {
+    display: inline-block;
+    width: 1.25em;
+}
+
 .skill-exam-module {
     overflow: hidden;
     color: var(--text-main);
@@ -139,7 +145,7 @@
     text-decoration: underline;
 }
 
-/* State of a task, like New or Due Monday, 12.10.2026, grey on its line, below the name where the line is too narrow */
+/* State of a task, like New or Due Mon, 12.10.2026, grey on its line, below the name where the line is too narrow */
 .skill-state {
     flex: none;
     color: var(--text-muted);

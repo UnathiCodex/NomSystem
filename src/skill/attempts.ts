@@ -419,12 +419,12 @@ export function dayOf(date: Date): string {
 }
 
 /**
- * Writes a day out as the page shows it, in my standard way with its year, and its weekday in English before it
- * where that helps, like for the day a task is due.
+ * Writes a day out as the page shows it, in my standard way with its year, and its short weekday in English before it
+ * where that helps, like for the day a task is due, as the date of the day shows it.
  *
  * @param day - Day like `2026-10-17`
  * @param weekday - Whether to write the weekday
- * @returns Day like `17.10.2026`, or `Saturday, 17.10.2026`
+ * @returns Day like `17.10.2026`, or `Sat, 17.10.2026`
  */
 export function dayTextOf(day: string, weekday: boolean): string {
     const [year, month, number]: number[] = day.split("-").map(Number);
@@ -432,7 +432,7 @@ export function dayTextOf(day: string, weekday: boolean): string {
     if (!weekday)
         return text;
     const date: Date = new Date(year, month - 1, number);
-    return `${date.toLocaleDateString("en-GB", { weekday: "long" })}, ${text}`;
+    return `${date.toLocaleDateString("en-GB", { weekday: "short" })}, ${text}`;
 }
 
 /**
