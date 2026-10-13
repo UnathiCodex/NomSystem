@@ -2,11 +2,23 @@
  * ## Daily notes
  *
  * Reads the daily notes of the new system, one per day in `NomFrequencediary`, like `2026/2026_10/2026_10_12.md`,
- * and writes into them what I write in the dashboard, all a note holds, each as points, one `> - ` line each:
- * my gratitude into the callout `> [!tip] Dankbarkeiten`, and my points about the day overall into the callout
- * `> [!note] Tagesfazit`; an older Tagesfazit written as a paragraph reads as one point per line.
- * A day has no note until I first write one of them: each callout is added the first time I write into it,
- * my gratitude before my points about the day, and taken out again with its head when I empty it;
+ * and writes into them what I write in the dashboard, all a note holds, each a plain Markdown section of points,
+ * one `- ` line each, as the dashboard names them: my gratitude under `## Gratitude`, and my points about the day
+ * overall under `## About the day`:
+ *
+ * ```
+ * ## Gratitude
+ *
+ * - Viele Socials getroffen
+ *
+ * ## About the day
+ *
+ * - Univeranstaltungen so richtig begonnen
+ * ```
+ *
+ * A section holds every line below its heading up to the next heading; a further line of a point is indented.
+ * A day has no note until I first write one of them: each section is added the first time I write into it,
+ * my gratitude before my points about the day, and taken out again with its heading when I empty it;
  * every other line of a note stays as it is.
  *
  * - `node:fs`: Works with files and folders on the disk.
@@ -20,45 +32,37 @@ import { diaryRoot, writeAllowed } from "./sources.ts";
 
 
 /**
- * Titles of the callouts of a daily note: my gratitude and my points about the day.
+ * Titles of the sections of a daily note, the only ones the reader writes: my gratitude and my points about the day.
  */
-export type CalloutTitle = "Dankbarkeiten" | "Tagesfazit";
+export type SectionTitle = "Gratitude" | "About the day";
 
 /**
- * A callout text, as my gratitude and my points about the day send it.
+ * A section text, as my gratitude and my points about the day send it.
  *
  * - `date`: Date of the daily note, like `2026-07-03`.
- * - `title`: Title of the callout.
- * - `text`: Text of the callout, as {@link calloutsRead} gives it.
+ * - `title`: Title of the section.
+ * - `text`: Text of the section, as {@link sectionsRead} gives it.
  */
-export type CalloutNew = {
+export type SectionNew = {
     date: string;
-    title: CalloutTitle;
+    title: SectionTitle;
     text: string;
 };
 
 /**
- * The callouts of a daily note, the only ones the reader writes: my gratitude and my points about the day.
+ * The sections of a daily note, in their order: my gratitude, then my points about the day.
  */
-const titles: CalloutTitle[] = ["Dankbarkeiten", "Tagesfazit"];
+const titles: SectionTitle[] = ["Gratitude", "About the day"];
 
 /**
- * Head of each callout, the line above its lines.
+ * Start of a point line in a section.
  */
-const heads: { [title in CalloutTitle]: string } = {
-    Dankbarkeiten: "> [!tip] Dankbarkeiten",
-    Tagesfazit: "> [!note] Tagesfazit",
-};
+const pointStart: string = "- ";
 
 /**
- * The callout of my points about the day, which my gratitude goes before.
+ * A heading of a Markdown section, of any level, like `## Gratitude`, which ends the section before it.
  */
-const dayPoints: CalloutTitle = "Tagesfazit";
-
-/**
- * Start of a point line in a callout.
- */
-const pointStart: string = "> - ";
+const headingForm: RegExp = /^#{1,6} /;
 
 
 /**
@@ -77,37 +81,23 @@ function noteFileOf(date: string): string {
 }
 
 /**
- * Finds the lines of a callout in a note: after its head `> [!type] Title`,
- * every following line that starts with `>`.
+ * Finds a section in the lines of a note: its heading `## Title` and every line below it up to the next heading.
+ * - `heading`: Index of its heading.
+ * - `end`: Index of the next heading, or the end of the note.
  *
  * @param lines - Lines of a note
- * @param title - Title of the callout
- * @returns Index of the first line after the head and of the first line after the callout,
- *   or `null` when the note has no such callout
+ * @param title - Title of the section
+ * @returns Index of its heading and of the first line after the section, `null` when the note has no such section
  */
-function calloutFind(lines: string[], title: CalloutTitle): [number, number] | null {
-    const head: number = lines.findIndex((line: string): boolean =>
-        new RegExp(`^> \\[!\\w+\\][+-]? *${title}\\s*$`).test(line));
-    if (head === -1)
+function sectionFind(lines: string[], title: SectionTitle): [number, number] | null {
+    const heading: number = lines.findIndex((line: string): boolean => line.trim() === `## ${title}`);
+    if (heading === -1)
         return null;
 
-    let end: number = head + 1;
-    while (end < lines.length && lines[end].startsWith(">"))
+    let end: number = heading + 1;
+    while (end < lines.length && !headingForm.test(lines[end]))
         end++;
-    return [head + 1, end];
-}
-
-/**
- * Takes the lines of a callout out of a note.
- *
- * @param note - Text of a note
- * @param title - Title of the callout
- * @returns Lines of the callout, none when the note has no such callout
- */
-function calloutLinesOf(note: string, title: CalloutTitle): string[] {
-    const lines: string[] = note.split("\n");
-    const found: [number, number] | null = calloutFind(lines, title);
-    return found === null ? [] : lines.slice(...found);
+    return [heading, end];
 }
 
 /**
@@ -124,45 +114,46 @@ export function noteRead(date: string): string | null {
 }
 
 /**
- * Reads a callout of the daily note of a date as text to edit, each line without its `> `:
- * one point per line without `> - `, a further line of a point indented as in the note;
- * an older line without `- `, like a line of a paragraph about the day, as a point of its own.
+ * Reads a section of the daily note of a date as text to edit: one point per line without its `- `, a further line
+ * of a point indented as in the note, the empty lines left out.
+ * - `lines`: Lines of the note.
+ * - `found`: The section in the note, `null` for none.
  *
  * @param date - Date like `2026-07-03`
- * @param title - Title of the callout
- * @returns Text of the callout, empty for a day without note or a note without the callout
+ * @param title - Title of the section
+ * @returns Text of the section, empty for a day without note or a note without the section
  * @throws {Error} - When the date is not written like `2026-07-03`
  */
-function calloutTextRead(date: string, title: CalloutTitle): string {
-    return calloutLinesOf(noteRead(date) ?? "", title)
-        .map((line: string): string => line.startsWith(pointStart)
-            ? line.slice(pointStart.length)
-            : line.replace(/^> ?/, ""))
+function sectionTextRead(date: string, title: SectionTitle): string {
+    const lines: string[] = (noteRead(date) ?? "").split("\n");
+    const found: [number, number] | null = sectionFind(lines, title);
+    if (found === null)
+        return "";
+    return lines.slice(found[0] + 1, found[1])
+        .filter((line: string): boolean => line.trim() !== "")
+        .map((line: string): string => line.startsWith(pointStart) ? line.slice(pointStart.length) : line)
         .join("\n");
 }
 
 /**
  * Reads my gratitude and my points about the day of the daily note of a date as texts to edit,
- * see {@link calloutTextRead}.
+ * see {@link sectionTextRead}.
  *
  * @param date - Date like `2026-07-03`
- * @returns Text of each callout
+ * @returns Text of each section
  * @throws {Error} - When the date is not written like `2026-07-03`
  */
-export function calloutsRead(date: string): { [title in CalloutTitle]: string } {
-    return {
-        Dankbarkeiten: calloutTextRead(date, "Dankbarkeiten"),
-        Tagesfazit: calloutTextRead(date, "Tagesfazit"),
-    };
+export function sectionsRead(date: string): { [title in SectionTitle]: string } {
+    return { "Gratitude": sectionTextRead(date, "Gratitude"), "About the day": sectionTextRead(date, "About the day") };
 }
 
 /**
- * Turns the text of my gratitude or my points about the day into the lines of its callout:
+ * Turns the text of my gratitude or my points about the day into the lines of its section:
  * every line a point, an indented line a further line of the point before.
  * - `lines`: Lines made so far.
  *
  * @param text - Text as the page sends it, one point per line
- * @returns Lines like `> - Schön, dass alle da waren`, none for an empty text
+ * @returns Lines like `- Schön, dass alle da waren`, none for an empty text
  */
 function pointLinesOf(text: string): string[] {
     const lines: string[] = [];
@@ -171,7 +162,7 @@ function pointLinesOf(text: string): string[] {
         if (line === "")
             continue;
         if (/^\s/.test(line) && lines.length > 0)
-            lines.push(`> ${line}`);
+            lines.push(line);
         else
             lines.push(`${pointStart}${line.trim()}`);
     }
@@ -179,68 +170,68 @@ function pointLinesOf(text: string): string[] {
 }
 
 /**
- * Puts the new lines of a callout into the lines of a note, each callout parted from what stands before
- * and after it by an empty line: in place of its old lines; without new lines, the callout taken out with its head
- * and the empty line after it; while the note has no such callout, the callout added with its head, my gratitude
+ * Puts the new points of a section into the lines of a note, each section its heading, an empty line and its points,
+ * parted from what stands before and after it by an empty line: in place of its old lines; without points,
+ * the section taken out with its heading; while the note has no such section, the section added, my gratitude
  * before my points about the day when the note has them already, else at the end of the note.
- * - `found`: Lines of the callout in the note, see {@link calloutFind}, `null` when the note has none.
- * - `head`: Line of the head of the callout found.
- * - `after`: First line after the callout found and the empty line after it.
- * - `next`: Lines of my points about the day, which my gratitude goes before, `null` for none and when they
- *   are added.
- * - `at`: Line the new callout goes before: the head of my points about the day, or the end of the note.
+ * - `found`: The section in the note, see {@link sectionFind}, `null` when the note has none.
+ * - `block`: The section as written: its heading, an empty line and its points.
+ * - `next`: My points about the day, which my gratitude goes before, `null` for none and when they are added.
  *
  * @param lines - Lines of the note, changed in place
- * @param title - Title of the callout
- * @param calloutLines - Its new lines, none to take it out
+ * @param title - Title of the section
+ * @param points - Its new point lines, none to take it out
  */
-function calloutPut(lines: string[], title: CalloutTitle, calloutLines: string[]): void {
-    const found: [number, number] | null = calloutFind(lines, title);
-    if (found !== null && calloutLines.length > 0) {
-        lines.splice(found[0], found[1] - found[0], ...calloutLines);
-        return;
-    }
+function sectionPut(lines: string[], title: SectionTitle, points: string[]): void {
+    const found: [number, number] | null = sectionFind(lines, title);
+    const block: string[] = points.length === 0 ? [] : [`## ${title}`, "", ...points, ""];
     if (found !== null) {
-        const head: number = found[0] - 1;
-        const after: number = lines[found[1]] === "" ? found[1] + 1 : found[1];
-        lines.splice(head, after - head);
+        lines.splice(found[0], found[1] - found[0], ...block);
         return;
     }
+    if (points.length === 0)
+        return;
 
-    const next: [number, number] | null = title === dayPoints ? null : calloutFind(lines, dayPoints);
-    if (next === null && lines.length > 0 && lines[lines.length - 1] !== "")
+    const next: [number, number] | null = title === "Gratitude" ? sectionFind(lines, "About the day") : null;
+    if (next !== null) {
+        lines.splice(next[0], 0, ...block);
+        return;
+    }
+    while (lines.length > 0 && lines[lines.length - 1].trim() === "")
+        lines.pop();
+    if (lines.length > 0)
         lines.push("");
-    const at: number = next === null ? lines.length : next[0] - 1;
-    lines.splice(at, 0, heads[title], ...calloutLines, "");
+    lines.push(...block);
 }
 
 /**
- * Writes the text of a callout into the daily note of its date, see {@link calloutPut}: my gratitude as points,
- * both as points, see {@link pointLinesOf}; an empty text takes the callout out,
- * and leaves a day without note, or a note without the callout, as it is.
+ * Writes the text of a section into the daily note of its date, see {@link sectionPut}, both as points,
+ * see {@link pointLinesOf}; an empty text takes the section out, and leaves a day without note, or a note without
+ * the section, as it is. The note keeps no empty lines at its start and end, and ends with a line break; a note
+ * whose sections I emptied stays as an empty file.
  * - `file`: The note of the date in the new system.
- * - `note`: Text of the note, empty for a day without note.
- * - `lines`: Lines of the note, none for an empty one.
- * - `calloutLines`: New lines of the callout, none for an empty text.
+ * - `lines`: Lines of the note, none for a day without note.
+ * - `points`: New point lines of the section, none for an empty text.
+ * - `text`: The note as written.
  *
- * @param callout - Callout text as my gratitude or my points about the day send it
+ * @param section - Section text as my gratitude or my points about the day send it
  * @throws {Error} - When the date is not written like `2026-07-03`, the title is none of {@link titles},
  *   or the note would lie outside the new system
  */
-export function calloutWrite(callout: CalloutNew): void {
-    const { date, title, text }: CalloutNew = callout;
+export function sectionWrite(section: SectionNew): void {
+    const { date, title, text }: SectionNew = section;
     if (!titles.includes(title))
-        throw new Error(`No callout ${title}`);
+        throw new Error(`No section ${title}`);
     const file: string = noteFileOf(date);
     if (!writeAllowed(file))
         throw new Error(`No writing outside the new system: ${file}`);
 
-    const note: string = noteRead(date) ?? "";
-    const lines: string[] = note === "" ? [] : note.split("\n");
-    const calloutLines: string[] = pointLinesOf(text);
-    if (calloutLines.length === 0 && calloutFind(lines, title) === null)
+    const lines: string[] = (noteRead(date) ?? "").split("\n");
+    const points: string[] = pointLinesOf(text);
+    if (points.length === 0 && sectionFind(lines, title) === null)
         return;
-    calloutPut(lines, title, calloutLines);
+    sectionPut(lines, title, points);
+    const written: string = lines.join("\n").trim();
     mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, lines.join("\n"));
+    writeFileSync(file, written === "" ? "" : `${written}\n`);
 }

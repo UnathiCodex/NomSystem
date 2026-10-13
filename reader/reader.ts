@@ -19,7 +19,7 @@
  *   to a day, adds, changes and removes boxes, pushes them to the next day and drops them
  * - `./gifts.ts`: Writes my gift idea for a birthday or holiday as its `DESCRIPTION` into `Birthdays.ics`
  *   or `Holidays.ics`
- * - `./note.ts`: Reads the daily notes, and writes my gratitude and my paragraph about the day into them
+ * - `./note.ts`: Reads the daily notes, and writes my gratitude and my points about the day into them
  * - `./categories.ts`: Offers the categories with the values of their fields, and my places
  * - `./places.ts`: Adds a place with its address to `Places.md`, and changes one
  * - `./notes.ts`: Reads the modules of the semester, the notes and files of my modules and the links that lead nowhere,
@@ -46,7 +46,7 @@ import {
 } from "./day.ts";
 import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxUniversity } from "./boxes.ts";
 import { giftWrite } from "./gifts.ts";
-import { calloutsRead, calloutWrite, noteRead } from "./note.ts";
+import { noteRead, sectionsRead, sectionWrite } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
 import { placeAdd, placeChange } from "./places.ts";
 import { brokenLinksRead, fileRead, linkedNoteRead, modulesRead } from "./notes.ts";
@@ -67,7 +67,7 @@ import type { ViteDevServer } from "vite";
 import type { BoxLogged, EntryChange, EntryNew } from "./day.ts";
 import type { BoxChange, BoxNew } from "./boxes.ts";
 import type { Gift } from "./gifts.ts";
-import type { CalloutNew } from "./note.ts";
+import type { SectionNew } from "./note.ts";
 import type { Place, PlaceChanged } from "./places.ts";
 import type { DeviceReport } from "./devices.ts";
 import type { NotesFile } from "./notes.ts";
@@ -120,7 +120,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   like `start=2026-10-13&end=2026-10-14` for one day: its birthdays and holidays with my gift ideas, and its boxes.
  * - `GET /api/day/carried?date=…`: Sends the boxes of the days before the date that are neither done nor cancelled.
  * - `GET /api/day/note?date=…`: Sends the daily note of the date, or `null` for a day without note.
- * - `GET /api/day/callouts?date=…`: Sends my gratitude and my paragraph about the day of the daily note of the date
+ * - `GET /api/day/sections?date=…`: Sends my gratitude and my points about the day of the daily note of the date
  *   as texts, empty ones for a day without note.
  * - `GET /api/day/categories?now=…`: Sends the categories with the values of their fields.
  * - `GET /api/day/way-end?before=…`: Sends where the last way before the instant ended.
@@ -144,7 +144,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/day/dropped`: Drops the box named in the body, or takes it back when the body says `dropped: false`.
  * - `POST /api/day/university`: Marks the box named in the body cancelled by the university, renumbering its series,
  *   or takes it back when the body says `cancelled: false`.
- * - `POST /api/day/callouts`: Writes the callout of the body into its daily note, my gratitude or my paragraph about the day.
+ * - `POST /api/day/sections`: Writes the section of the body into its daily note, my gratitude or my points about the day.
  * - `POST /api/day/gifts`: Writes the gift idea of the body for its birthday or holiday into its file,
  *   `Birthdays.ics` or `Holidays.ics`, or takes it out when it is empty.
  * - `POST /api/day/places`: Adds the place of the body with its address to `Places.md`, a room to `Rooms.md`,
@@ -211,8 +211,8 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
     } else if (request.method === "GET" && url.pathname === "/api/day/note") {
         responseSend(response, 200, noteRead(date));
 
-    } else if (request.method === "GET" && url.pathname === "/api/day/callouts") {
-        responseSend(response, 200, calloutsRead(date));
+    } else if (request.method === "GET" && url.pathname === "/api/day/sections") {
+        responseSend(response, 200, sectionsRead(date));
 
     } else if (request.method === "GET" && url.pathname === "/api/day/categories") {
         responseSend(response, 200, categoriesRead(now));
@@ -276,8 +276,8 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         boxUniversity(marked.box, marked.cancelled);
         responseSend(response, 200, null);
 
-    } else if (request.method === "POST" && url.pathname === "/api/day/callouts") {
-        calloutWrite(await json(request) as CalloutNew);
+    } else if (request.method === "POST" && url.pathname === "/api/day/sections") {
+        sectionWrite(await json(request) as SectionNew);
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/gifts") {

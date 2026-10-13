@@ -2,40 +2,40 @@
  * ## Evening
  *
  * What I write into the daily note of the shown day, any time of the day, at the top of the note, each a list
- * of points with their bullets, see `points.ts`: my gratitude into the callout Dankbarkeiten, and my points
- * about the day overall into the callout Tagesfazit, both apart, though they go hand in hand.
+ * of points with their bullets, see `points.ts`: my gratitude into the section `## Gratitude`, and my points
+ * about the day overall into the section `## About the day`, both apart, though they go hand in hand.
  * Both are saved into the day's note a moment after I stop typing, and when I leave a list or the day;
- * the note below leaves both callouts out.
+ * the note below leaves both sections out.
  * It is all that is left of the evening panel: what happened is my log and the boxes for tomorrow are plan entries,
  * so neither is written any more, and the notes keep what they hold.
  *
- * - `./note.ts`: Loads and writes the callouts of a daily note and shows the note.
+ * - `./note.ts`: Loads and writes the sections of a daily note and shows the note.
  * - `./points.ts`: A list of points, each a bullet with its own field, like a Markdown list.
  */
 
-import { calloutsLoad, calloutSend, noteShow } from "./note.ts";
+import { noteShow, sectionsLoad, sectionSend } from "./note.ts";
 import { pointsRead, pointsShow, pointsStart } from "./points.ts";
 
-import type { CalloutTitle } from "./note.ts";
+import type { SectionTitle } from "./note.ts";
 
 
 /**
  * A list of points of the daily note I write.
  *
  * - `id`: Identifier of its list, like `gratitude`.
- * - `title`: Callout it writes into, like `Dankbarkeiten`.
+ * - `title`: Section it writes into, like `Gratitude`.
  */
 type Box = {
     id: string;
-    title: CalloutTitle;
+    title: SectionTitle;
 };
 
 /**
  * The lists of the daily note I write: my gratitude and my points about the day.
  */
 const boxes: Box[] = [
-    { id: "gratitude", title: "Dankbarkeiten" },
-    { id: "about-day", title: "Tagesfazit" },
+    { id: "gratitude", title: "Gratitude" },
+    { id: "about-day", title: "About the day" },
 ];
 
 /**
@@ -49,9 +49,9 @@ const pause: number = 1000;
 let shown: string = "";
 
 /**
- * Texts of the lists as last loaded or saved, as their callouts hold them, by the titles of the callouts.
+ * Texts of the lists as last loaded or saved, as their sections hold them, by the titles of the sections.
  */
-let saved: Map<CalloutTitle, string> = new Map();
+let saved: Map<SectionTitle, string> = new Map();
 
 /**
  * Timer of the save waiting for the pause, 0 for none.
@@ -70,7 +70,7 @@ function listOf(box: Box): HTMLElement {
 }
 
 /**
- * Reads the text of a box as its callout holds it, its points, see `points.ts`.
+ * Reads the text of a box as its section holds it, its points, see `points.ts`.
  *
  * @param box - Box
  * @returns Its text, one point per line, empty for none
@@ -106,7 +106,7 @@ async function boxesSave(): Promise<void> {
 
     for (const box of changed) {
         const text: string = textOf(box);
-        await calloutSend(day, box.title, text);
+        await sectionSend(day, box.title, text);
         saved.set(box.title, text);
     }
     document.getElementById("note-boxes-error")?.setAttribute("hidden", "");
@@ -116,7 +116,7 @@ async function boxesSave(): Promise<void> {
 
 /**
  * Shows my gratitude and my points about a day, after saving what was typed for the day shown before.
- * - `callouts`: Callouts of the day's note.
+ * - `sections`: Sections of the day's note.
  *
  * @param day - Day like `2026-10-10`
  * @throws {Error} - When the reader gives no valid answer
@@ -124,11 +124,11 @@ async function boxesSave(): Promise<void> {
 export async function eveningShow(day: string): Promise<void> {
     await boxesSave().catch(errorShow);
     shown = day;
-    const callouts: { [title in CalloutTitle]: string } = await calloutsLoad(day);
+    const sections: { [title in SectionTitle]: string } = await sectionsLoad(day);
     if (day !== shown)
         return;
-    saved = new Map(boxes.map((box: Box): [CalloutTitle, string] => [box.title, callouts[box.title]]));
-    boxes.forEach((box: Box): void => pointsShow(listOf(box), callouts[box.title]));
+    saved = new Map(boxes.map((box: Box): [SectionTitle, string] => [box.title, sections[box.title]]));
+    boxes.forEach((box: Box): void => pointsShow(listOf(box), sections[box.title]));
     document.getElementById("note-boxes-error")?.setAttribute("hidden", "");
 }
 
