@@ -179,7 +179,7 @@
     cursor: grab;
 }
 
-/* Lines of a box: what it is, then the grey line of what is expected, each cut with an ellipsis, never wrapping;
+/* Lines of a box: what it is, then grey its time and length and its place, each cut with an ellipsis, never wrapping;
    a click on them changes the box */
 .box-body {
     flex: 1;
@@ -194,8 +194,8 @@
     text-overflow: ellipsis;
 }
 
-/* Grey line of a box in parts side by side, a part below the one before where the line has no room for both,
-   like the real time of a done box below its expected time; a part too long for the whole line is cut */
+/* Grey line of a box, its time and length or its place, in parts side by side, a part below the one before
+   where the line has no room for both; a part too long for the whole line is cut */
 .box-meta {
     display: flex;
     flex-wrap: wrap;
@@ -261,7 +261,7 @@ button.box-ring.box-checked svg {
     height: 0.75rem;
 }
 
-/* Done box: quieter, its what grey */
+/* Done box: its lines as when it was open, only greyed, its what grey too */
 .box-done .box-what {
     color: var(--text-muted);
 }

@@ -6,15 +6,16 @@
  * and a line below them, then the boxes with a deadline, then those with an expected time,
  * by their time, like my lectures, then those without, then tomorrow's suggested study sessions, dashed,
  * see `suggestions.ts`, and the cancelled boxes last; on today below them the boxes carried along, see below.
- * A box shows its category in bold with a colon and what, like `Skill: WI1059 HU`, as an entry of the log does, and below them, grey,
- * its expected time and duration, its place and how often it was pushed, like `12:00 · 90 min · Hörsaal 2`;
- * an open box pushed three times or more asks instead of counting on, `pushed 3 times · smaller or skip?`,
+ * Every box has the same three lines, open or done: its category in bold with a colon and what,
+ * like `Skill: IN0004 VO`, as an entry of the log does, then grey its expected time and length and how often it was
+ * pushed, like `16:00 · 90 min` or `75 min · pushed once`, then its place on a line of its own, by its label alone,
+ * like `Audimax im Galileo`; a line without anything to say is left out.
+ * An open box pushed three times or more asks instead of counting on, `pushed 3 times · smaller or skip?`,
  * since a task I keep pushing is often too big or no longer wanted, and a click on it opens it to cut it.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
- * and on the day of its deadline always, done or not, and looks like every other box,
- * but for its deadline on a grey line of its own, like `Deadline Fri, 23.10.2026, 12:00`,
- * and how near it is starting the line below, like `in 3 days · 120 min`; it has no arrow,
- * since it stays on the day of its deadline.
+ * and on the day of its deadline always, done or not, and looks like every other box, its deadline in place
+ * of its time and how near it is after its length, like `Deadline Fri, 23.10.2026, 12:00 · 120 min · in 3 days`;
+ * it has no arrow, since it stays on the day of its deadline.
  * An open box is dragged into the log at the real time: the reader writes a log entry like it, pointing to it,
  * as long as its expected duration, else half an hour, and I resize the entry when it lasted otherwise.
  * Every box shows its two buttons, not only under the pointer: done, the ring at its left, which logs it
@@ -22,11 +23,8 @@
  * see below; when the reader does not log a box dropped or tapped, a hint says so above the list until it loads again.
  * Everything undoes with one click: the check of a done box takes it back to open, removing its log entry
  * unless that holds what I added since, see `boxUndo` in `entries.ts`, and the arrow back of a skipped box.
- * A done box shows a check in its ring and, faded, expected and real time,
- * like `expected 12:00 · 90 min → 12:15 · 85 min`, and `done` with the day it was done, without time,
- * when that is another day, like `done Fri, 09.10.2026` for a box done a day early;
- * a done box with a deadline shows its check alone, no done line, since it is gone the next day anyway,
- * like `Skill: WI1059 HU` with `Deadline Mon, 12.10.2026, 12:00`, not `done 05:15 · 15 min`.
+ * A done box keeps exactly the lines it had open, only greyed with the check in its ring; its real time and length
+ * the log shows.
  * An open box that can be changed is skipped, cancelled, with one tap on its cross, or pushed to the next day
  * with one tap on its arrow, which shows under the pointer; a skipped box stays in its file, see `reader/boxes.ts`,
  * and shows greyed and struck through at the end of the list, where one tap on its arrow back takes it back.
@@ -271,17 +269,6 @@ export function boxClassOf(box: Box, carriedShown: boolean): string {
 }
 
 /**
- * Writes what was expected of a box, as far as it has it: its expected time and duration, like `12:00 · 90 min`.
- *
- * @param box - The box
- * @returns Its expected time and duration, empty when it has neither
- */
-function expectedOf(box: Box): string {
-    return [box.time === "" ? "" : timeOf(new Date(box.time)), box.minutes === null ? "" : `${box.minutes} min`]
-        .filter((part: string): boolean => part !== "").join(" · ");
-}
-
-/**
  * Writes a day with its short weekday, like `Fri, 23.10.2026`, a comma between weekday and date
  * as in the date of the day.
  * - `weekday`: Its weekday, like `Fri`, from the day at noon.
@@ -331,37 +318,24 @@ function nearOf(box: Box, day: string): string {
 const pushesAsking: number = 3;
 
 /**
- * Writes the grey line below what a box is, in parts: none for a done box with a deadline, since it is gone the next
- * day anyway and its check says it is done, like `Skill: WI1059 HU` with its deadline alone, not `done 05:15 · 15 min`;
- * for a box done on the day shown what was expected and what was real, like `expected 12:00 · 90 min`
- * and `→ 12:15 · 85 min`, or `done 14:00 · 30 min` without expectation;
- * for any other box how near its deadline is, see {@link nearOf}, or its own day when it is carried along to a later
- * day, like `Mon, 12.10.2026`, what is expected, its place by its name, like `TumMain`, see `labelOf` in `places.ts`,
- * or for a done one
- * `done` and the day it was done, like `done Fri, 09.10.2026` for a box done a day early,
- * and how often it was pushed, as one part, like `in 3 days · 120 min` or `75 min · pushed once`,
- * and from {@link pushesAsking} pushes on, while it is open, the question `smaller or skip?` after them;
- * the week leaves out how near a deadline is, since it shows a deadline only on its own day, which its row names.
- * - `lived`: Day of the start of its log entry, empty for none.
- * - `expected`: What was expected.
+ * Writes the line of the time and length of a box, the second of its three lines, see {@link boxContentOf},
+ * the same whether it is open or done, since the log shows its real time: its own day when it is carried along
+ * to a later day, like `Mon, 12.10.2026`, its expected time, or its deadline, like `Deadline Fri, 23.10.2026, 12:00`,
+ * see {@link deadlineTextOf}, its expected duration, like `90 min`, how near its deadline is while it is open,
+ * see {@link nearOf}, and how often it was pushed, from {@link pushesAsking} pushes on, while it is open,
+ * with the question `smaller or skip?`, like `16:00 · 90 min` or `75 min · pushed once`; the week leaves out
+ * how near a deadline is, since it shows a deadline only on its own day, which its row names.
  * - `pushes`: How often it was pushed, empty for never, with the question when it asks.
  * - `near`: How near its deadline is, empty for a box without, one not open, or in the week.
  * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
- * - `done`: `done` and the day it was done, only `done` without log entry, like a box ticked in another app.
- * - `open`: The one part of a box without log entry on the day shown.
- * - `start`, `end`: Real start and end, of its log entry.
- * - `real`: Real start and minutes.
+ * - `when`: Its deadline, else its expected time, empty for neither.
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
  * @param nearShown - Whether to write how near its deadline is, as the day does, but not the week
- * @returns The parts of the line, none when there is nothing to write
+ * @returns The line, empty when there is nothing to write
  */
-function metaPartsOf(box: Box, day: string, nearShown: boolean): string[] {
-    if (box.state === "done" && box.deadline !== "")
-        return [];
-    const lived: string = box.log === null ? "" : dayOf(new Date(box.log.start));
-    const expected: string = expectedOf(box);
+function timeLineOf(box: Box, day: string, nearShown: boolean): string {
     let pushes: string = "";
     if (box.pushed.length === 1)
         pushes = "pushed once";
@@ -369,27 +343,22 @@ function metaPartsOf(box: Box, day: string, nearShown: boolean): string[] {
         pushes = `pushed ${box.pushed.length} times`;
     if (box.pushed.length >= pushesAsking && box.state === "open")
         pushes += " · smaller or skip?";
-    if (box.log === null || lived !== day) {
-        const near: string = !nearShown || box.deadline === "" || box.state !== "open" ? "" : nearOf(box, day);
-        const over: string = box.state === "open" && box.deadline === "" && box.day < day ? weekdayTextOf(box.day) : "";
-        const done: string = lived === "" ? "done" : `done ${weekdayTextOf(lived)}`;
-        const open: string = [near, over, expected, box.state === "done" ? done : labelOf(box.location), pushes]
-            .filter((part: string): boolean => part !== "").join(" · ");
-        return open === "" ? [] : [open];
-    }
-
-    const start: Date = new Date(box.log.start);
-    const end: Date = new Date(box.log.end);
-    const real: string = `${timeOf(start)} · ${Math.round((end.getTime() - start.getTime()) / 60000)} min`;
-    return expected === "" ? [`done ${real}`] : [`expected ${expected}`, `→ ${real}`];
+    const near: string = !nearShown || box.deadline === "" || box.state !== "open" ? "" : nearOf(box, day);
+    const over: string = box.state === "open" && box.deadline === "" && box.day < day ? weekdayTextOf(box.day) : "";
+    let when: string = box.time === "" ? "" : timeOf(new Date(box.time));
+    if (box.deadline !== "")
+        when = deadlineTextOf(box);
+    return [over, when, box.minutes === null ? "" : `${box.minutes} min`, near, pushes]
+        .filter((part: string): boolean => part !== "").join(" · ");
 }
 
 /**
- * Makes the lines of a box, in the day and in the week alike: what it is, see {@link whatOf},
- * its deadline on a grey line of its own when it has one, see {@link deadlineTextOf},
- * and below them the grey line of what is expected, see {@link metaPartsOf}, its parts side by side, the second below
- * the first where the line has no room for both, so expected and real time are never cut.
- * - `parts`: The parts of the grey line.
+ * Makes the lines of a box, in the day and in the week alike, the same three whether it is open or done, see the top
+ * of this file: what it is, see {@link whatOf}, like **`Skill:`**` IN0004 VO`, its time and length, see
+ * {@link timeLineOf}, like `16:00 · 90 min`, and its place on a line of its own, by its label alone,
+ * like `Audimax im Galileo`, see `labelOf` in `places.ts`; a line without anything to say is left out.
+ * - `time`: The line of its time and length.
+ * - `place`: The label of its place, empty for none.
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
@@ -397,13 +366,12 @@ function metaPartsOf(box: Box, day: string, nearShown: boolean): string[] {
  * @returns Its lines
  */
 export function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] {
-    const parts: string[] = metaPartsOf(box, day, nearShown);
+    const time: string = timeLineOf(box, day, nearShown);
+    const place: string = labelOf(box.location);
     return [
         entryPartOf("div", "box-what", whatOf(box.category, box.title === box.category ? "" : box.title)),
-        ...(box.deadline === "" ? [] : [entryPartOf("div", "box-meta", [
-            entryPartOf("span", "box-part", [deadlineTextOf(box)])])]),
-        ...(parts.length === 0 ? [] : [entryPartOf("div", "box-meta", parts.map((part: string): HTMLElement =>
-            entryPartOf("span", "box-part", [part])))]),
+        ...(time === "" ? [] : [entryPartOf("div", "box-meta", [entryPartOf("span", "box-part", [time])])]),
+        ...(place === "" ? [] : [entryPartOf("div", "box-meta", [entryPartOf("span", "box-part", [place])])]),
     ];
 }
 
