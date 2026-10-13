@@ -22,8 +22,9 @@
  *
  * - `@codemirror/state`, `@codemirror/view`: The editor, CodeMirror 6, the engine of Obsidian's editor.
  * - `@codemirror/commands`: Undo, redo and the usual keys, Tab indenting a line.
- * - `@codemirror/language`: Reads the note as Markdown, indents with tabs.
- * - `@lezer/markdown`: Markdown parser, with GitHub's tables and the Obsidian syntax of `./syntax.ts`.
+ * - `@codemirror/language`: Indents with tabs.
+ * - `@codemirror/lang-markdown`: Reads the note as Markdown and continues a list on Enter, as Obsidian does.
+ * - `@lezer/markdown`: GitHub's tables, task lists and strikethrough for the Markdown parser.
  * - `./ics.ts`: Shows an `.ics` file with its blocks one step in and its entries apart.
  * - `./syntax.ts`: Obsidian syntax for the Markdown parser.
  * - `./preview.ts`: Shows the Markdown as in the scripts view.
@@ -32,11 +33,12 @@
  * - `./editor.css`: Look of the editor.
  */
 
-import { EditorState } from "@codemirror/state";
+import { EditorState, Prec } from "@codemirror/state";
 import { EditorView, drawSelection, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { Language, defineLanguageFacet, indentUnit } from "@codemirror/language";
-import { GFM, parser } from "@lezer/markdown";
+import { indentUnit } from "@codemirror/language";
+import { deleteMarkupBackward, insertNewlineContinueMarkupCommand, markdown } from "@codemirror/lang-markdown";
+import { GFM } from "@lezer/markdown";
 import { icsLook } from "./ics.ts";
 import { obsidianSyntax } from "./syntax.ts";
 import { livePreview } from "./preview.ts";
@@ -46,6 +48,7 @@ import "./editor.css";
 
 import type { Extension } from "@codemirror/state";
 import type { ViewUpdate } from "@codemirror/view";
+import type { LanguageSupport } from "@codemirror/language";
 import type { Links } from "./preview.ts";
 
 
@@ -93,9 +96,21 @@ type Opened = {
 
 /**
  * Markdown as my notes are written: CommonMark with GitHub's tables, task lists, strikethrough and links,
- * and the Obsidian syntax of `./syntax.ts`.
+ * and the Obsidian syntax of `./syntax.ts`; a URL pasted over selected text makes it a link, as in Obsidian.
+ * Its keys are {@link markdownKeys}, and it completes no HTML tags.
  */
-const markdownLanguage: Language = new Language(defineLanguageFacet(), parser.configure([GFM, obsidianSyntax]), [], "markdown");
+const markdownSupport: LanguageSupport =
+    markdown({ extensions: [GFM, obsidianSyntax], addKeymap: false, completeHTMLTags: false });
+
+/**
+ * Keys of a Markdown file, as in Obsidian: Enter continues a list, a task list or a quote on the next line,
+ * and on an empty item ends the list; Backspace right after the `-` of an item or the `>` of a quote takes it away.
+ * They go before the usual keys.
+ */
+const markdownKeys: Extension = Prec.high(keymap.of([
+    { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
+    { key: "Backspace", run: deleteMarkupBackward },
+]));
 
 /**
  * Path of the file: of a note as the scripts view takes it, of a file of my new system as the tree names it.
@@ -187,7 +202,8 @@ function keyDown(event: KeyboardEvent): void {
  * - `lineSeparator`: Splits and joins the lines by the line break of the file, `\r\n` or `\n`,
  *   so saving writes the line breaks as they were, also a single other one, which stays inside its line.
  * - `readOnly`: Lets me read a note that is no draft, or an `.ics` file, never change it.
- * - `markdownLanguage`, `livePreview`: Read a Markdown file as Markdown and show it as in the scripts view;
+ * - `markdownSupport`, `markdownKeys`, `livePreview`: Read a Markdown file as Markdown, continue its lists on Enter
+ *   and show it as in the scripts view;
  *   any other file stays its plain text, an `.ics` file with its blocks one step in, see `./ics.ts`.
  * - `indentUnit`: Indents with a tab, as my notes do.
  * - `lineWrapping`: Wraps long lines at the reading width, as the scripts view does, so I see where a line overflows.
@@ -201,7 +217,7 @@ function extensionsOf(opened: Opened): Extension[] {
     return [
         EditorState.lineSeparator.of(opened.text.includes("\r\n") ? "\r\n" : "\n"),
         EditorState.readOnly.of(!opened.editable),
-        ...(opened.markdown ? [markdownLanguage] : []),
+        ...(opened.markdown ? [markdownSupport, markdownKeys] : []),
         indentUnit.of("\t"),
         history(),
         drawSelection(),
