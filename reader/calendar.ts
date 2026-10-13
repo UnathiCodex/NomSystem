@@ -1498,6 +1498,53 @@ export function todoChange(file: string, entry: Entry, fields: TodoFields, targe
 }
 
 /**
+ * Corrects a place everywhere it was written as it was, in every event and to-do of calendars, like a wrong address
+ * of my place that I typed: a `LOCATION` of the old line takes the new one, with the new link as `ALTREP`, or without
+ * when the place has none, and an `X-FROM` of the old line, where a way starts, the new line; a series and each of its
+ * changed occurrences alike. Every other line of each file stays as it is, byte for byte.
+ * - `location`: The new `LOCATION`.
+ * - `calendar`: A file as read.
+ * - `places`: Identifier, `LOCATION` and `X-FROM` of each of its events and to-dos, a series by its `UID`.
+ * - `text`, `place`, `event`: The file as read, the place of an event in it, and its lines.
+ *
+ * @param sources - Calendars to correct, like the plan and the log
+ * @param old - The place as it was written, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`
+ * @param line - The place as it is now, like `HomeMunich, Burg-Eltz-Weg, 81375 München, Deutschland`
+ * @param link - Its link now, empty for none
+ * @returns How many events and to-dos were corrected
+ * @throws {Error} - When a file holds an event twice
+ */
+export function placeCorrect(sources: CalendarSource[], old: string, line: string, link: string): number {
+    const location: ICAL.Property = propertyOf("location", line);
+    if (link !== "")
+        location.setParameter("altrep", [link]);
+    let count: number = 0;
+    filesOf(sources).filter(writeAllowed).forEach((file: string): void => {
+        const calendar: Calendar = calendarOf(file);
+        const places: [string, string, string][] = [
+            ...calendar.entries.map((entry: Entry): [string, string, string] =>
+                [entryIdOf(entry), entry.location, entry.from]),
+            ...calendar.series.map((event: ICAL.Event): [string, string, string] => [event.uid,
+                String(event.component.getFirstPropertyValue("location") ?? ""),
+                String(event.component.getFirstPropertyValue("x-from") ?? "")]),
+        ];
+        places.filter(([, at, from]: [string, string, string]): boolean => at === old || from === old)
+            .forEach(([id, at, from]: [string, string, string]): void => {
+                const text: FileLines = linesRead(file);
+                const place: [number, number] = componentFind(text.lines, id);
+                const event: string[] = text.lines.slice(...place);
+                if (at === old)
+                    propertyPut(event, "location", [location]);
+                if (from === old)
+                    propertyPut(event, "x-from", [line]);
+                componentWrite(file, text, place, event, file);
+                count += 1;
+            });
+    });
+    return count;
+}
+
+/**
  * Puts new values into properties of the event or to-do with an identifier, replacing all old lines of each,
  * like the end, the `X-CHAPTER`s and the `X-ATTEMPT`s of a skill entry that gets one more attempt;
  * a date goes in Berlin time, a link as `ATTACH`, see {@link Link}. Every other line of the file stays as it is,

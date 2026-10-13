@@ -77,7 +77,7 @@ import { Check, CircleQuestionMark, Pencil, Trash2, X } from "lucide";
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
 import type { Choice } from "./choices.ts";
-import type { Place } from "./places.ts";
+import type { Place, PlaceEdited } from "./places.ts";
 import type { BoxFields, EntryFields } from "./entries.ts";
 import type { ModuleType, SkillLinks, SkillValues } from "./skill.ts";
 
@@ -231,6 +231,18 @@ let realMiddle: number | null = null;
  * see {@link endDayFill}.
  */
 let endDayTyped: boolean = false;
+
+/**
+ * Row of the foods of a meal of the log below its place, see `meal.ts`, `null` for any other entry, kept apart
+ * so the fields can show again around it, see {@link fieldsShow}.
+ */
+let mealRow: HTMLElement | null = null;
+
+/**
+ * Calendar of the day, whose log loads again once a wrong address is corrected in the entries that carry it,
+ * see {@link placeChange}; `null` before the entry by category starts.
+ */
+let dayCalendar: Calendar | null = null;
 
 
 /**
@@ -546,11 +558,12 @@ function placeLineOf(field: Field): HTMLElement {
 
 /**
  * Changes my place picked in a field in `Places.md`, its name, its address and its link, through the dialog
- * of a place, see `placeEdit` in `places.ts`: every field of a place then offers it as changed, with its link,
- * and every field of the dialog that picked it picks it as changed, so the entry saves its new line;
- * entries written before keep the address they had. Then the fields show again.
+ * of a place, see `placeEdit` in `places.ts`: every field of a place then offers it as changed, with its link.
+ * Entries written before keep the address they carry, after a move, the entry of the dialog too while its place
+ * is the one it was written with; when I say the old address was wrong, the reader corrects every entry that carries
+ * it, and the log of the day loads again, and the fields of the dialog take the new line. Then they show again.
  * - `old`: The line of my place as it was.
- * - `changed`: The place as written, `null` when the dialog closed without saving.
+ * - `edited`: The place as written and whether its old address was wrong, `null` when the dialog closed without saving.
  * - `line`: Its new line.
  *
  * @param field - Field of the place, like `Place`
@@ -560,26 +573,29 @@ async function placeChange(field: Field): Promise<void> {
     const old: string | undefined = mineOf(field);
     if (old === undefined)
         return;
-    const changed: Place | null = await placeEdit({
+    const edited: PlaceEdited | null = await placeEdit({
         name: labelOf(old), address: old.includes(",") ? old.slice(old.indexOf(",") + 1).trim() : "",
         link: field.links[old] ?? "",
     });
-    if (changed === null)
+    if (edited === null)
         return;
-    const line: string = lineOf(changed);
+    const line: string = lineOf(edited.place);
     categories.flatMap((category: Category): Field[] => category.fields)
         .filter((other: Field): boolean => other.key !== "title")
         .forEach((other: Field): void => {
             other.values = other.values.map((value: string): string => value === old ? line : value);
             delete other.links[old];
-            if (changed.link !== "")
-                other.links[line] = changed.link;
+            if (edited.place.link !== "")
+                other.links[line] = edited.place.link;
         });
     (Object.keys(values) as FieldKey[])
-        .filter((key: FieldKey): boolean => key !== "title" && labelOf(values[key]) === labelOf(old))
+        .filter((key: FieldKey): boolean => key !== "title" && labelOf(values[key]) === labelOf(old)
+            && (edited.fix || values[key] !== opened.values[key]))
         .forEach((key: FieldKey): void => {
             values[key] = line;
         });
+    if (edited.fix)
+        dayCalendar?.getEventSourceById("log")?.refetch();
     if (chosen?.name === skillName)
         skillPlaceShow(placeRowsOf());
     else
@@ -612,7 +628,8 @@ async function placeAdd(name: string): Promise<string | null> {
  * whose list offers its values, the most used first, searched as I type, the typed text taken as a new value
  * with `+`, see {@link valueAdd}, but in a field that takes no new values, like the what of `Sleep`,
  * a new place only once it is saved with its address in the dialog of a new place, see `placeOpen` in `places.ts`;
- * a place by its name, its whole line and its pencil below its field, see {@link placeLineOf};
+ * a place by its name, once, however often it was used and whatever address an entry kept, which a place picked again
+ * keeps, its whole line and its pencil below its field, see {@link placeLineOf};
  * below the field of values that have steps, the steps of the value picked, see {@link stepsShow}.
  * The what of a meal fills in the foods its dish held the last time, while the meal lists none, see `meal.ts`.
  * - `place`: Line of the place picked in the field.
@@ -630,12 +647,14 @@ function fieldRowsOf(field: Field): HTMLElement[] {
     const row: HTMLElement = rowOf(field.name, choicesOf({
         search: (text: string): Promise<Choice[]> =>
             searchOf(field.values.map((value: string): Choice => fieldChoiceOf(field, value)))(text),
-        picked: values[field.key] === "" ? [] : [values[field.key]],
+        picked: values[field.key] === "" ? [] : [mineOf(field) ?? values[field.key]],
         many: false,
         adding: !field.fixed,
         add: field.key === "title" ? undefined : placeAdd,
         pick: (picked: string[]): void => {
-            values[field.key] = picked[0] ?? "";
+            const line: string = picked[0] ?? "";
+            values[field.key] = field.key !== "title" && line !== "" && labelOf(line) === labelOf(values[field.key])
+                ? values[field.key] : line;
             if (values[field.key] !== "")
                 valueAdd(field, values[field.key]);
             if (chosen?.name === foodName && opened.target === "log" && field.key === "title" && values.title !== "")
@@ -662,24 +681,34 @@ function placeRowsOf(): HTMLElement[] {
 }
 
 /**
- * Shows the fields of the category picked, each its rows, see {@link fieldRowsOf}, one below the other before
- * the times; for a cooking below them the meal eaten right after it, see {@link eatenRowOf}, and for `Body`
- * my neck pain, shown while `Neck long` is picked, see {@link painRowOf}.
+ * Shows the fields of the category picked, each its rows, see {@link fieldRowsOf}, in the order of the file,
+ * the same for every category: what before the times, its place after them, a way where it starts before its place;
+ * after the place for a cooking the meal eaten right after it, see {@link eatenRowOf}, for `Body` my neck pain,
+ * shown while `Neck long` is picked, see {@link painRowOf}, and for a meal of the log its foods, see {@link mealRow}.
+ * - `fields`: The fields of the category picked.
  */
 function fieldsShow(): void {
-    document.getElementById("entry-fields")?.replaceChildren(...(chosen?.fields ?? []).flatMap(fieldRowsOf),
-        ...eatenRowOf(), ...painRowOf());
+    const fields: Field[] = chosen?.fields ?? [];
+    document.getElementById("entry-fields")?.replaceChildren(...fields
+        .filter((field: Field): boolean => field.key === "title").flatMap(fieldRowsOf));
+    document.getElementById("entry-more")?.replaceChildren(...fields
+        .filter((field: Field): boolean => field.key !== "title").flatMap(fieldRowsOf),
+        ...eatenRowOf(), ...painRowOf(), ...(mealRow === null ? [] : [mealRow]));
     saveAllow();
 }
 
 /**
- * Loads where the last way before the start of the entry ended, from the reader.
+ * Loads where the last way before the start of the entry ended, from the reader; for a box without start time
+ * the last way before the end of its day, like where I will be that day.
+ * - `before`: The moment the way ended before.
  *
  * @returns Place, empty when there was no way before
  * @throws {Error} - When the reader gives no valid answer
  */
 async function wayEndLoad(): Promise<string> {
-    const response: Response = await fetch(`/api/day/way-end?before=${startRead().toISOString()}`);
+    const before: Date = timeFieldRead(document.getElementById("entry-start") as HTMLInputElement) === ""
+        ? dateOf(new Date(`${dayRead()}T12:00:00`), "23:59") : startRead();
+    const response: Response = await fetch(`/api/day/way-end?before=${before.toISOString()}`);
     return await response.json();
 }
 
@@ -701,6 +730,7 @@ async function categoryPick(category: Category | null): Promise<void> {
     (category?.fields ?? []).forEach((field: Field): void => {
         values[field.key] = fixedValueOf(field, values[field.key]);
     });
+    mealRow = null;
     document.getElementById("entry-more")?.replaceChildren();
     if (category?.name === skillName) {
         await skillFieldsShow(document.getElementById("entry-fields") as HTMLElement,
@@ -715,8 +745,10 @@ async function categoryPick(category: Category | null): Promise<void> {
     fieldsShow();
     if (category?.name === foodName && opened.target === "log") {
         const meal: HTMLElement = await mealOf(opened.category === foodName ? opened.foods : [], saveAllow);
-        if (chosen === category)
-            document.getElementById("entry-more")?.append(rowOf("Foods", meal));
+        if (chosen === category) {
+            mealRow = rowOf("Foods", meal);
+            document.getElementById("entry-more")?.append(mealRow);
+        }
         saveAllow();
     }
 }
@@ -1287,6 +1319,7 @@ function timesCheck(): boolean {
  * @param calendar - Calendar of the day
  */
 export function categoriesStart(calendar: Calendar): void {
+    dayCalendar = calendar;
     placesStart();
     iconPut(document.getElementById("entry-cancel") as HTMLElement, X, "Cancel");
     document.getElementById("entry-cancel")?.addEventListener("click", (): void =>

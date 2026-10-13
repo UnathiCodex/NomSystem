@@ -15,15 +15,17 @@
  * The file starts without places: I add each place with its address from the dialog of the day the first time
  * I need it, and the reader creates the file with that first place; the pencil below a place picked in the dialog
  * changes its row, its name, its address and its link, see {@link placeChange}, while every entry written before
- * keeps the line and the link it had.
+ * keeps the line and the link it had, after a move, or takes the new one, when the old address was wrong.
  *
  * - `node:fs`: Reads and writes `Places.md`.
  * - `node:path`: Gives the folder of `Places.md`.
- * - `./sources.ts`: Names `Places.md` and tells which files the reader may write.
+ * - `./calendar.ts`: Corrects a wrong address in the entries that carry it.
+ * - `./sources.ts`: Names `Places.md`, the plan and the log, and tells which files the reader may write.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { placeCorrect } from "./calendar.ts";
 import { day, writeAllowed } from "./sources.ts";
 
 
@@ -47,12 +49,15 @@ export type Place = {
  * - `name`: Its name as typed, maybe new, like `TumStammgelände`.
  * - `address`: Its address as typed.
  * - `link`: Its link as typed, empty for none.
+ * - `fix`: Whether the old address was wrong, so the entries that carry it take the new one too, rather than
+ *   my place moving, after which they keep it.
  */
 export type PlaceChanged = {
     old: string;
     name: string;
     address: string;
     link: string;
+    fix: boolean;
 };
 
 /**
@@ -222,12 +227,15 @@ export function placeAdd(sent: Place): Place {
 /**
  * Changes my place of a name in `Places.md`, its name, its address and its link, in its own row, every other line
  * staying as it is, see {@link placeLinesRead}; every entry written before keeps the line and the link it had,
- * since each writes its place itself.
+ * since each writes its place itself, after a move; when the old address was wrong, every entry and box of plan
+ * and log that carries its old line, as its place or where its way starts, takes the new one with its link,
+ * see `placeCorrect` in `calendar.ts`.
  * - `old`: The old name in small letters, as names compare, ignoring case.
  * - `changed`: The place as written, cleaned, see {@link placeCleanOf}.
  * - `lines`: Lines of `Places.md`.
  * - `first`: Index of the first line of its table, its header.
  * - `row`: Index of the row of the place, -1 for none.
+ * - `before`: My place as it was.
  *
  * @param sent - The place as the page sends it, its old name and its name, address and link as typed
  * @returns The place as written
@@ -244,7 +252,10 @@ export function placeChange(sent: PlaceChanged): Place {
         && line.startsWith("|") && (line.split("|")[1] ?? "").trim().toLowerCase() === old);
     if (old === "" || row === -1)
         throw new Error(`No place of the name: ${sent.old}`);
+    const before: Place | undefined = placesRead().find((mine: Place): boolean => mine.name.toLowerCase() === old);
     lines[row] = rowOf(changed);
     writeFileSync(day.places, lines.join("\n"));
+    if (sent.fix === true && before !== undefined)
+        placeCorrect([...day.plan, ...day.log], lineOf(before), lineOf(changed), changed.link);
     return changed;
 }
