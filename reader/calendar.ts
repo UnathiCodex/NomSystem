@@ -36,8 +36,10 @@ import type { CalendarSource } from "./sources.ts";
  * - `locationLink`: Link of its place, the standard parameter `ALTREP` of its `LOCATION`,
  *   like `https://nav.tum.de/room/0509.EG.980`, empty when it has none.
  * - `from`: Where a way starts, its `X-FROM`, empty when the event has none.
- * - `module`: Module of a skill entry, its `X-MODULE`, like `IN2028`, empty when the event has none.
- * - `type`: Type of a skill entry, its `X-TYPE`, like `VO`, empty when the event has none.
+ * - `module`: Skill of a skill entry, a module like `IN2028` or a project like `WokFlow`, the part of its `SUMMARY`
+ *   before the first space, see {@link skillPartsOf}; empty for any other entry.
+ * - `type`: Type of a skill entry, like `VO`, the part of its `SUMMARY` after the first space, empty for none,
+ *   like a project without type, and for any other entry.
  * - `chapters`: Chapters of a skill entry of the log, its `X-CHAPTER`s in order, each by its name to read,
  *   like `01 Regression Analysis`, none when the event has none.
  * - `links`: Links of a skill entry of the log to the folder of its skill and the document it used, its `ATTACH`es
@@ -132,8 +134,8 @@ export type Link = {
  * - `locationLink`: Link of the place, the parameter `ALTREP` of `LOCATION`, written only with its place,
  *   empty for none.
  * - `from`: Where a way starts, `X-FROM`.
- * - `module`: Module of a skill entry, `X-MODULE`.
- * - `type`: Type of a skill entry, `X-TYPE`.
+ * - `module`: Skill of a skill entry, not written, since its `SUMMARY` names it, see {@link skillPartsOf}.
+ * - `type`: Type of a skill entry, not written, since its `SUMMARY` names it.
  * - `note`: Free note, `DESCRIPTION`.
  */
 export type EntryTexts = {
@@ -239,6 +241,26 @@ const zoneComponent: ICAL.Component = new ICAL.Component(ICAL.parse([
  */
 const zone: ICAL.Timezone = new ICAL.Timezone(zoneComponent);
 
+/**
+ * Category of skill entries, `CATEGORIES:Skill`, whose `SUMMARY` names their skill and type, see {@link skillPartsOf};
+ * the categories of `categories.ts` name it too.
+ */
+export const skillName: string = "Skill";
+
+
+/**
+ * Splits the `SUMMARY` of a skill entry at its first space into its skill and its type, like `IN2028 VO`,
+ * or a project alone without type, like `WokFlow`; it carries no `X-MODULE` and no `X-TYPE`, and those lines
+ * of an older entry count no more.
+ * - `space`: Place of the first space, -1 for none.
+ *
+ * @param summary - `SUMMARY` of a skill entry, like `IN2028 VO`
+ * @returns Skill and type, like `IN2028` and `VO`, or `WokFlow` and an empty type
+ */
+function skillPartsOf(summary: string): [string, string] {
+    const space: number = summary.indexOf(" ");
+    return space === -1 ? [summary, ""] : [summary.slice(0, space), summary.slice(space + 1)];
+}
 
 /**
  * Turns an `ical.js` time into the form of {@link Entry}.
@@ -296,6 +318,8 @@ function deadlineDayOf(component: ICAL.Component): [ICAL.Time, ICAL.Time] {
  * `ical.js` reads a to-do as it reads an event: its start from `DTSTART`, its end the end of its day,
  * or its start when it has a time, see {@link Entry}.
  * - `todo`: Whether it is a to-do.
+ * - `category`: Its `CATEGORIES`, empty for none.
+ * - `module`, `type`: Skill and type of a skill entry from its `SUMMARY`, see {@link skillPartsOf}, else empty.
  * - `stamp`: Its `DTSTAMP`, an `ical.js` time when it has one.
  * - `recurrence`: For a changed occurrence its `RECURRENCE-ID`, for an occurrence of a series its start,
  *   empty for an event that happens once.
@@ -308,6 +332,8 @@ function deadlineDayOf(component: ICAL.Component): [ICAL.Time, ICAL.Time] {
  */
 function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: boolean): Entry {
     const todo: boolean = event.component.name === "vtodo";
+    const category: string = String(event.component.getFirstPropertyValue("categories") ?? "");
+    const [module, type]: [string, string] = category === skillName ? skillPartsOf(event.summary ?? "") : ["", ""];
     const stamp: unknown = event.component.getFirstPropertyValue("dtstamp");
     let recurrence: string = "";
     if (event.isRecurrenceException())
@@ -316,13 +342,13 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         recurrence = textOf(start);
     return {
         id: event.uid,
-        category: String(event.component.getFirstPropertyValue("categories") ?? ""),
+        category: category,
         title: event.summary,
         location: event.location ?? "",
         locationLink: String(event.component.getFirstProperty("location")?.getParameter("altrep") ?? ""),
         from: String(event.component.getFirstPropertyValue("x-from") ?? ""),
-        module: String(event.component.getFirstPropertyValue("x-module") ?? ""),
-        type: String(event.component.getFirstPropertyValue("x-type") ?? ""),
+        module: module,
+        type: type,
         chapters: event.component.getAllProperties("x-chapter")
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
         links: event.component.getAllProperties("attach").map((property: ICAL.Property): Link => ({
@@ -875,8 +901,8 @@ function propertyPut(event: string[], name: string, values: (string | ICAL.Time 
 }
 
 /**
- * Text fields of an entry with the names of their properties, in the order they are written,
- * type before module as the lectures imported into the plan have them.
+ * Text fields of an entry with the names of their properties, in the order they are written;
+ * the skill and type of a skill entry stand only in its `SUMMARY`, see {@link skillPartsOf}.
  *
  * @param fields - Text fields of an event or a to-do
  * @returns Name of each property with its value, empty when it is not written
@@ -886,8 +912,6 @@ function textsOf(fields: EntryTexts): [string, string][] {
         ["categories", fields.category],
         ["summary", fields.title],
         ["location", fields.location],
-        ["x-type", fields.type],
-        ["x-module", fields.module],
         ["x-from", fields.from],
         ["description", fields.note],
     ];

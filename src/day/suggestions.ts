@@ -43,7 +43,7 @@ type SuggestionSent = {
 export type Suggestion = SuggestionSent & { key: string };
 
 /**
- * Type of the suggested sessions, `X-TYPE:DEV`.
+ * Type of the suggested sessions, `DEV`, like `SUMMARY:IN2028 DEV`.
  */
 const studyType: string = "DEV";
 

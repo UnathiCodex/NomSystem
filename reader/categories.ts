@@ -20,12 +20,12 @@
  * A box of the plan takes only what I intend and would otherwise forget, so not `Sleep`, `Food`, `Cook`, `Drink`
  * and `Game`, which happen anyway, see {@link unplannedNames}; `Watch` stays, since a cinema or a match has its time.
  *
- * - `./calendar.ts`: Reads `.ics` files into entries.
+ * - `./calendar.ts`: Reads `.ics` files into entries, and names the category of skill entries.
  * - `./places.ts`: Reads my places from `Places.md`.
  * - `./sources.ts`: Names every folder and file the reader reads.
  */
 
-import { entriesRead } from "./calendar.ts";
+import { entriesRead, skillName } from "./calendar.ts";
 import { labelOf, lineOf, placesRead } from "./places.ts";
 import { day } from "./sources.ts";
 
@@ -138,12 +138,14 @@ function categoryOf(name: string, routines: { [what: string]: string[] }): Categ
 
 /**
  * Category of skill entries, written as `CATEGORIES:Skill`: in plan and log a skill and a type or none,
+ * both in its `SUMMARY`, like `IN2028 VO`, see `skillPartsOf` in `calendar.ts`, which names the category,
  * in the log also its chapters, its document and its attempts, which only the skill area writes.
  */
-export const skillName: string = "Skill";
+export { skillName };
 
 /**
- * Types of a skill entry, each written as its `X-TYPE`: `VO` a lecture and `TU` a tutorial I attend,
+ * Types of a skill entry, each written after its skill in its `SUMMARY`, like `IN2028 VO`: `VO` a lecture
+ * and `TU` a tutorial I attend,
  * `HU` a homework sheet I work on, `DEV` my own study, solving the tasks of my notes, `FA` an exam
  * and `PR` a practical course.
  */

@@ -20,8 +20,8 @@ import type { Calendar } from "fullcalendar";
  * - `title`: What picked, `SUMMARY`.
  * - `location`: Place picked, `LOCATION`.
  * - `from`: Where a way starts, `X-FROM`.
- * - `module`: Module of a skill entry, `X-MODULE`, like `IN2028`.
- * - `type`: Type of a skill entry, `X-TYPE`, like `VO`.
+ * - `module`: Module of a skill entry, like `IN2028`, written only in its `SUMMARY`, like `IN2028 VO`.
+ * - `type`: Type of a skill entry, like `VO`, written only in its `SUMMARY`.
  * - `note`: Free note, `DESCRIPTION`.
  * - `foods`: Foods of a meal, its lines `X-FOOD` like `Reis;150`, none for any other entry.
  * - `planned`: Identifier of the box a new log entry is logged from, `X-PLANNED`, empty for none;

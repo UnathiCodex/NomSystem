@@ -15,10 +15,10 @@
  *
  * A skill entry of the log is one block of learning of a type, as in the plan: a lecture or a tutorial I attended,
  * a homework sheet I worked on, or study, solving the tasks of my notes, of any module of `NomSkillingmodules`,
- * also one of another semester I attend: `CATEGORIES:Skill`, `SUMMARY:IN2028 VO`, `X-TYPE:VO`,
- * `X-MODULE:IN2028`; or a block of work on a project of the semester, see `activeSkills` in `sources.ts`,
- * which behaves like a module without chapters and tasks, named by its folder, like `SUMMARY:WokFlow`
- * and `X-MODULE:WokFlow`; the type may stay empty for any skill. Below them, each only when there is one:
+ * also one of another semester I attend: `CATEGORIES:Skill`, `SUMMARY:IN2028 VO`, its module and type split
+ * at the first space, without `X-MODULE` and `X-TYPE`; or a block of work on a project of the semester,
+ * see `activeSkills` in `sources.ts`, which behaves like a module without chapters and tasks, named by its folder,
+ * like `SUMMARY:WokFlow`; the type may stay empty for any skill. Below them, each only when there is one:
  * - one `X-CHAPTER` per chapter it covered, by its name to read, like `X-CHAPTER:02 Logistic Poisson Regression`,
  *   the chapters of the tasks of its attempts always among them;
  * - one `ATTACH` for the folder of its skill, which every skill entry gets by itself, and one for the document
@@ -989,7 +989,7 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[])
 
 /**
  * Writes a new skill entry into the log, into the month file of its start, from the entry by category:
- * `CATEGORIES` is `Skill`, `SUMMARY` its module and type, like `IN2028 VO`, then `X-TYPE` and `X-MODULE`,
+ * `CATEGORIES` is `Skill`, `SUMMARY` its module and type, like `IN2028 VO`,
  * its place and note, one `X-CHAPTER` per chapter, see {@link chaptersWith}, the links to the folder of its skill
  * and to its document with its fingerprint, see `documents.ts`, one `X-ATTEMPT` per attempt, and the box it is logged
  * from, which is done then.

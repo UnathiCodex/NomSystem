@@ -5,8 +5,8 @@
  * the plan of the day is a list of boxes beside it, see `boxes.ts`.
  * Writes into the month files of the log of the new system, like `2026/2026_10/2026_10_Log.ics`,
  * by the month in Berlin time; an entry whose start moves into another month moves into the file of that month.
- * A skill entry names its module and type, like the lectures imported from TUMonline:
- * `CATEGORIES:Skill`, `SUMMARY:IN2028 VO`, `X-TYPE:VO`, `X-MODULE:IN2028`;
+ * A skill entry names its module and type in its `SUMMARY` alone, like the lectures imported from TUMonline:
+ * `CATEGORIES:Skill`, `SUMMARY:IN2028 VO`, without `X-TYPE` and `X-MODULE`;
  * its chapters, document and attempts the skill area writes, see `skill.ts`; every skill entry links the folder
  * of its skill, also one logged from a box, see `documents.ts`.
  *
