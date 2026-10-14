@@ -85,7 +85,8 @@
      Esc or a click beside the dialog closes it without saving -->
 <dialog class="panel entry-panel" id="entry" closedby="any">
     <form class="panel-form entry-form" id="entry-form">
-        <!-- Start and end, one row each, its day and its time, as calendar apps write them, the same for the log
+        <!-- Start and end in one row Time, each its day and its time, the range dash of the boxes between them,
+             both days always shown, like 14.10.2026 10:15 – 14.10.2026 10:45, the same for the log
              and the plan: the day of the start like 13.10.2026, filled with the date of the entry or the box,
              of the selected slot, or of the half hour before now for +; the times plain, like 14:00, 1415 or 14;
              the day of the end fills itself with the day of the start, or the day after while the end time lies
@@ -94,18 +95,19 @@
              both; only a box of the plan has a deadline, its day and its time, which turns start and end off,
              since the box then lies on its deadline. What the fields show is exactly what is saved -->
         <fieldset class="panel-form entry-times" id="entry-times">
-            <label class="panel-field"><span class="entry-name">Start</span>
-                <span class="entry-moment">
-                    <input class="date-field" id="entry-start-day" type="text" inputmode="decimal" autocomplete="off"
-                           required aria-label="Day of the start">
-                    <input class="time-field" id="entry-start" type="text" inputmode="numeric" autocomplete="off"
-                           aria-label="Time of the start"></span></label>
-            <label class="panel-field"><span class="entry-name">End</span>
-                <span class="entry-moment">
-                    <input class="date-field" id="entry-end-day" type="text" inputmode="decimal" autocomplete="off"
-                           required aria-label="Day of the end">
-                    <input class="time-field" id="entry-end" type="text" inputmode="numeric" autocomplete="off"
-                           aria-label="Time of the end"></span></label>
+            <label class="panel-field"><span class="entry-name">Time</span>
+                <span class="entry-range">
+                    <span class="entry-moment">
+                        <input class="date-field" id="entry-start-day" type="text" inputmode="decimal"
+                               autocomplete="off" required aria-label="Day of the start">
+                        <input class="time-field" id="entry-start" type="text" inputmode="numeric" autocomplete="off"
+                               aria-label="Time of the start">
+                        <span aria-hidden="true">–</span></span>
+                    <span class="entry-moment">
+                        <input class="date-field" id="entry-end-day" type="text" inputmode="decimal"
+                               autocomplete="off" required aria-label="Day of the end">
+                        <input class="time-field" id="entry-end" type="text" inputmode="numeric" autocomplete="off"
+                               aria-label="Time of the end"></span></span></label>
             <label class="panel-field" id="entry-deadline"><span class="entry-name">Deadline</span>
                 <span class="entry-moment">
                     <input class="date-field" id="entry-deadline-day" type="text" inputmode="decimal"
