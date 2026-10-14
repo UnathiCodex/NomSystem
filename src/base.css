@@ -208,6 +208,19 @@ textarea {
     --fold-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
 }
 
+/* Hover is soft everywhere, as on the entries of the log: what turns lighter under the pointer fades in over 150 ms
+   after 100 ms, so passing over a list stays calm, and back over 150 ms as soon as the pointer leaves;
+   `:where` keeps this below every rule of its own, like that of the entries */
+@media (hover: hover) {
+    :where(a, button, summary) {
+        transition: background-color 150ms, color 150ms;
+    }
+
+    :where(a, button, summary):hover {
+        transition: background-color 150ms 100ms, color 150ms 100ms;
+    }
+}
+
 /* Focus of the keyboard as a calm grey line around, never the browser's glaring white */
 :focus-visible {
     outline: 2px solid var(--chosen-line);
