@@ -172,12 +172,15 @@ function itemLineOf(what: HTMLElement, kcal: number | null): HTMLElement {
 
 /**
  * Builds the lines of an entry: its start small and grey above it, linking to its day in the day view, so no column
- * of times takes room beside the names, and where; then each meal of mine it holds by its name and its kcal, its foods
+ * of times takes room beside the names, and where, and at the right what the whole entry gives, when it holds more
+ * than one meal or food, like `654 kcal` for ChiliConCarne with bread; then each meal of mine it holds by its name
+ * and its kcal, its foods
  * below it with their grams, see {@link partLineOf}, and each food eaten by itself in one line, its brand and store,
  * its grams and its kcal, like bread beside a meal or an apple alone, so a food never stands under a meal it does not
  * belong to, nor twice; an older entry whose summary names more than its foods, like `Bortzeit`, stands as one meal
  * of that name; an entry without foods stands by its summary with a hint.
- * - `entry`: Line of its start and place.
+ * - `entry`: Line of its start and place, and of its kcal.
+ * - `when`: Its start and place.
  * - `meals`: Foods of each meal of mine, by the name of the meal, in the order of the lines.
  * - `alone`: Foods eaten by themselves.
  * - `kcalOf`: kcal of foods together, `null` while none is known.
@@ -187,11 +190,13 @@ function itemLineOf(what: HTMLElement, kcal: number | null): HTMLElement {
  */
 function mealLinesOf(meal: Meal): HTMLElement[] {
     const entry: HTMLElement = elementOf("div", "food-entry", "");
+    const when: HTMLElement = elementOf("span", "", "");
     const start: HTMLAnchorElement = document.createElement("a");
     start.className = "food-time";
     start.href = `/?date=${shown}`;
     start.textContent = new Date(meal.start).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-    entry.append(start, ...meal.location === "" ? [] : [` · ${labelOf(meal.location)}`]);
+    when.append(start, ...meal.location === "" ? [] : [` · ${labelOf(meal.location)}`]);
+    entry.append(when);
     if (meal.foods.length === 0) {
         const none: HTMLElement = elementOf("div", "food-line", "");
         none.append(elementOf("span", "food-place", "No foods listed"));
@@ -213,6 +218,8 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
     const kcalOf: (foods: Eaten[]) => number | null = (foods: Eaten[]): number | null =>
         foods.some((eaten: Eaten): boolean => eaten.known)
             ? foods.reduce((sum: number, eaten: Eaten): number => sum + eaten.kcal, 0) : null;
+    if (meals.size + alone.length > 1)
+        entry.append(elementOf("span", "food-kcal", amountTextOf(meal.kcal, "kcal")));
     return [
         entry,
         ...[...meals].flatMap(([name, foods]: [string, Eaten[]]): HTMLElement[] =>
