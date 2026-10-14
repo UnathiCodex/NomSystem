@@ -178,13 +178,14 @@ button.food-row {
     font: inherit;
 }
 
-/* The cross and the check of a form, as a dialog ends: square, one control high like the buttons of a dialog,
-   outlined, an icon in the middle, the check in the calm grey of what is picked, a grey lighter under the pointer;
+/* The cross and the check of a form inside a list, like that of a new food or meal: small and flat, as modern
+   layouts keep the buttons of a form inside a page, while a dialog ends with its big ones: one chip high, no frame,
+   the cross grey and plain, the check on the calm grey of what is picked, both a grey lighter under the pointer;
    well apart from the last value above them */
 .food-buttons {
     display: inline-flex;
     flex: none;
-    gap: var(--control-gap);
+    gap: 0.375rem;
     margin-top: 0.75rem;
 }
 
@@ -192,23 +193,29 @@ button.food-row {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: var(--control-height);
-    height: var(--control-height);
+    width: var(--chip-height);
+    height: var(--chip-height);
     padding: 0;
-    border: 1px solid var(--line);
+    border: 0;
     border-radius: var(--radius);
-    background: var(--background);
-    color: var(--text-main);
+    background: none;
+    color: var(--text-muted);
     cursor: pointer;
+}
+
+.food-buttons button svg.lucide {
+    width: 0.9375rem;
+    height: 0.9375rem;
 }
 
 .food-buttons button:hover {
     background: var(--fill);
+    color: var(--text-main);
 }
 
 .food-buttons .food-save {
-    border-color: var(--chosen-line);
     background: var(--chosen);
+    color: var(--text-main);
 }
 
 /* Below the products how many of how many, small and grey, More at the right */
@@ -315,4 +322,10 @@ button.food-row:hover {
 
 .food-facts > .food-grams {
     cursor: text;
+}
+
+/* In the form of a new food a number has the room of five digits on its line to type on, its unit after it */
+.food-form .food-facts > .food-grams > .food-inline-grams {
+    width: 4rem;
+    field-sizing: fixed;
 }
