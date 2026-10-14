@@ -2,12 +2,13 @@
  * ## Food
  *
  * Reads my foods from `Foods.md`, finds foods by a name or a barcode, mine first, then on Open Food Facts,
- * page by page, adds new foods to `Foods.md`, keeps my meals in `Meals.md`, and reads the meals of a day from the log
- * with what they give.
+ * page by page, adds new foods to `Foods.md`, keeps my meals in `Meals.md`, finds the grams I logged each food with
+ * last, and reads the meals of a day from the log with what they give.
  * `Meals.md` holds my meals, each only its composition, one or more of my foods without grams, servings or variants,
  * since I prepare it a little differently every time: one Markdown table with one row per food of a meal, the meal,
- * the food, its brand and its store; an entry brings its foods without grams, which I type there; the lists of my meals
- * show each with what it gave the last time I ate it, see {@link dishesRead}.
+ * the food, its brand and its store; an entry brings each food at the grams I logged it with last in an entry of its
+ * category, see {@link gramsRead}, which I change there; the lists of my meals show each with what it gave the last
+ * time I ate it, see {@link dishesRead}.
  * A meal is named as all my names are, in one word without spaces, each word with a capital, like `ChiliConCarne`
  * of `Chili con Carne`.
  * `Foods.md` is one Markdown table with one row per food: its name, kcal, protein, carbs and fat per 100 g,
@@ -308,8 +309,8 @@ const tableHead: number = 2;
 const mealsHead: string[] = [
     "# Meals",
     "",
-    "My meals, each only its foods, by name, brand and store; an entry brings them without grams, which I type there,",
-    "so a meal changed here leaves past days as they were.",
+    "My meals, each only its foods, by name, brand and store; an entry brings each at the grams I logged it with last,",
+    "which I change there, so a meal changed here leaves past days as they were.",
     "",
     "| Meal | Food | Brand | Store |",
     "| --- | --- | --- | --- |",
@@ -693,6 +694,18 @@ function lastGramsOf(entries: Entry[]): Map<string, number> {
             last.set(keyOf(read), read.grams);
     });
     return last;
+}
+
+/**
+ * Finds the grams I logged each food with last in an entry of a category, at which a food picked into an entry of it
+ * starts, see `src/day/meal.ts`: the grams of its line in the newest entry of the category up to now that holds it
+ * with grams, see {@link lastGramsOf}.
+ *
+ * @param category - Category of the entries, `Food` or `Cook`
+ * @returns Grams by the key of each food, see {@link keyOf}
+ */
+export function gramsRead(category: string): Map<string, number> {
+    return lastGramsOf(foodEntriesRead().filter((entry: Entry): boolean => entry.category === category));
 }
 
 /**

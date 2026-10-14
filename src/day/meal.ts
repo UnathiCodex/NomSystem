@@ -16,9 +16,12 @@
  *   no form in between. When nothing is found, one grey line says where a food by hand goes in: under Foods
  *   in the food view. A food is a row with its name, its brand and store in brackets, its grams, its kcal and
  *   its `×`, which removes it, like a food I did not eat of a cooking.
- *   Its grams start empty, the cursor in them, the first of what was picked, and I type my amount, white like every
- *   fact. An empty field counts nothing and is saved without grams; every amount is rounded and an estimate
- *   anyway, so none is marked as one. Enter in its grams opens the list again.
+ *   Its grams start at those I logged it with last in an entry of the same category, `Food` or `Cook`, see
+ *   `gramsRead` in `reader/food.ts`, white like every fact, which I type over; the first time ever, they start empty,
+ *   and I type my amount, like that of my chili; the cursor goes into the grams of what was picked, the first empty
+ *   one first. An empty field counts nothing and is saved without grams; every amount is rounded and an estimate
+ *   anyway, so none is marked as one. Enter in its grams opens the list again. A meal drawing from a cooking starts
+ *   at the grams of the pot instead, see {@link drawnShow}.
  * A meal block has its own plus right after its name, which adds a food to it, from the same search without my meals.
  * The dialog writes each food as a line `X-FOOD`: its name, brand and store, then its grams, empty for none,
  * and for a food of one of my meals the meal after them, like `Hackfleisch;Gut & Günstig;Edeka;125;ChiliConCarne`
@@ -40,7 +43,8 @@
  * - `./choices.ts`: Rows of the dialog, the lists that open as menus over it, and the picker of a cooking.
  * - `./times.ts`: Writes the day and time of a cooking.
  * - `../skill/attempts.ts`: Gives the day of an instant.
- * - `../food/foods.ts`: Finds my foods, loads my meals, sends a meal, writes amounts and makes elements and buttons.
+ * - `../food/foods.ts`: Finds my foods, loads my meals and the grams I logged each food with last, sends a meal,
+ *   writes amounts and makes elements and buttons.
  * - `../food/meals.ts`: Finds my meals for a search, writes a name in one word as the reader does, and kcal as the
  *   page writes them.
  * - `../food/search.ts`: The food search, the lines of every list, and the field and buttons of a change in place.
@@ -50,7 +54,9 @@
 import { choicesOf, listOf, listOpen, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
-import { bracketsWatch, buttonOf, dishesLoad, dishSend, elementOf, foodNameOf, foodsFind } from "../food/foods.ts";
+import {
+    bracketsWatch, buttonOf, dishesLoad, dishSend, elementOf, foodNameOf, foodsFind, gramsLoad,
+} from "../food/foods.ts";
 import { dishesFound, kcalTextOf, oneWordOf } from "../food/meals.ts";
 import { editButtonsOf, editFieldOf, foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
 import { crossPut, plusPut } from "../icons.ts";
@@ -174,6 +180,12 @@ let mine: Map<string, Food> = new Map();
 let dishes: Dish[] = [];
 
 /**
+ * The grams I logged each food with last in an entry of the category of the dialog, by its key, see {@link keyOf};
+ * loaded when the meal was built.
+ */
+let lastGrams: Map<string, number> = new Map();
+
+/**
  * Meals picked, in the order they were picked.
  */
 let meals: MealPick[] = [];
@@ -254,13 +266,25 @@ function pickOf(read: Line, grams: string): FoodPick {
 }
 
 /**
- * Makes a food picked newly, its grams empty, which I type.
+ * Writes grams to one decimal at most, as `X-FOOD` and the fields take them, like `62.5` or `125`.
+ *
+ * @param grams - Grams
+ * @returns Text
+ */
+function gramsTextOf(grams: number): string {
+    return String(Math.round(grams * 10) / 10);
+}
+
+/**
+ * Makes a food picked newly, its grams those I logged it with last in an entry of the category of the dialog,
+ * see {@link lastGrams}, empty the first time ever.
  *
  * @param food - Food, of `Foods.md` or of a meal
  * @returns The food picked
  */
 function pickNewOf(food: { name: string; brand: string; store: string }): FoodPick {
-    return { name: food.name, brand: food.brand, store: food.store, grams: "" };
+    const grams: number | undefined = lastGrams.get(keyOf(food));
+    return { name: food.name, brand: food.brand, store: food.store, grams: grams === undefined ? "" : gramsTextOf(grams) };
 }
 
 /**
@@ -441,7 +465,7 @@ function gramsFocus(picked: FoodPick[]): void {
  * see {@link foodRowOf}. The plus, `Add a food to ChiliConCarne` as its tooltip, opens the search of my foods and
  * of Open Food Facts as a menu of its own right under the meal, like every list, see `listOf` in `choices.ts`, which
  * a click on the plus again, Escape or a click beside it closes; a food picked goes into this meal of this entry only,
- * its grams empty, see {@link pickNewOf}, never into `Meals.md`, and closes it.
+ * its grams as a food picked newly starts them, see {@link pickNewOf}, never into `Meals.md`, and closes it.
  * The meal goes with its last food.
  * - `row`: Its row.
  * - `kcal`: Cell of its kcal.
@@ -614,8 +638,8 @@ function rowsShow(changed: () => void): void {
 }
 
 /**
- * Picks a food from the search as one more food beside the meals, unless it is picked already, its grams empty,
- * see {@link pickNewOf}; then closes the list and puts the cursor into its grams.
+ * Picks a food from the search as one more food beside the meals, unless it is picked already, its grams as a food
+ * picked newly starts them, see {@link pickNewOf}; then closes the list and puts the cursor into its grams.
  * - `pick`: The food picked.
  *
  * @param food - Food picked, or a product just added to `Foods.md`
@@ -635,7 +659,8 @@ function foodPick(food: Food, changed: () => void): void {
 }
 
 /**
- * Picks one of my meals with its foods, each with its grams empty, see {@link pickNewOf}, unless it is picked already; then closes the list and puts the cursor into the grams of its foods, see
+ * Picks one of my meals with its foods, each with its grams as a food picked newly starts them, see {@link pickNewOf},
+ * unless it is picked already; then closes the list and puts the cursor into the grams of its foods, see
  * {@link gramsFocus}.
  * - `meal`: The meal picked.
  *
@@ -815,9 +840,11 @@ function foodsRowOf(line: HTMLButtonElement, rows: HTMLElement, box: HTMLElement
 }
 
 /**
- * Builds the meal, see the top of this file, with the foods it lists already, after loading my foods and my meals:
- * the rows of its summary and its foods. The lines `X-FOOD` of a meal go to its meal, by the meal they carry; a meal
- * whose summary names more than its foods, like `Bortzeit`, takes all its foods as that one meal.
+ * Builds the meal, see the top of this file, with the foods it lists already, after loading my foods, my meals and the
+ * grams I logged each food with last in an entry of its category: the rows of its summary and its foods. The lines
+ * `X-FOOD` of a meal go to its meal, by the meal they carry; a meal whose summary names more than its foods,
+ * like `Bortzeit`, takes all its foods as that one meal.
+ * - `category`: Category of the entry, `Cook` for a cooking, else `Food`.
  * - `found`: All my foods, as the search finds them for an empty text.
  * - `mealsMine`: My meals of `Meals.md`.
  * - `cooks`: My cookings of the days before a meal, none for a cooking.
@@ -838,10 +865,13 @@ function foodsRowOf(line: HTMLButtonElement, rows: HTMLElement, box: HTMLElement
  */
 export async function mealOf(lines: string[], title: string, changed: () => void, drawing: Drawing | null):
     Promise<HTMLElement[]> {
-    const [found, mealsMine, cooks]: [FoodsFound, Dish[], Cooking[]] = await Promise.all([foodsFind("", 1, false),
-        dishesLoad(), drawing === null ? Promise.resolve([]) : cookingsLoad(drawing.start)]);
+    const category: string = drawing === null ? cookName : foodName;
+    const [found, mealsMine, cooks, grams]: [FoodsFound, Dish[], Cooking[], Map<string, number>] = await Promise.all([
+        foodsFind("", 1, false), dishesLoad(), drawing === null ? Promise.resolve([]) : cookingsLoad(drawing.start),
+        gramsLoad(category)]);
     dishes = mealsMine;
     cookings = cooks;
+    lastGrams = grams;
     cooked = drawing?.cooked ?? "";
     mine = new Map();
     found.foods.forEach(mineAdd);

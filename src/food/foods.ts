@@ -2,8 +2,8 @@
  * ## Foods
  *
  * Finds foods through the reader, mine first, then on Open Food Facts, page by page, sends new foods to `Foods.md`,
- * loads my meals of `Meals.md`, sends new and changed ones and removes them, loads the meals of a day with what
- * they give, writes amounts as the page shows them,
+ * loads the grams I logged each food with last, loads my meals of `Meals.md`, sends new and changed ones and removes
+ * them, loads the meals of a day with what they give, writes amounts as the page shows them,
  * and makes the elements and buttons of both, the names of foods with their brackets kept alike in a list:
  * for the food view and the entry by category of the day alike.
  */
@@ -223,6 +223,22 @@ export async function foodSend(food: Food): Promise<Food> {
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
     return await response.json() as Food;
+}
+
+/**
+ * Loads from the reader the grams I logged each food with last in an entry of a category, at which a food picked
+ * into an entry of it starts.
+ *
+ * @param category - Category of the entry, `Food` or `Cook`
+ * @returns Grams by the key of each food, its name, brand and store parted by `;` in small letters, like
+ *   `sonnenmais zart;gut&günstig;edeka`; a food never logged there with grams is not among them
+ * @throws {Error} - When the reader cannot answer
+ */
+export async function gramsLoad(category: string): Promise<Map<string, number>> {
+    const response: Response = await fetch(`/api/food/grams?category=${encodeURIComponent(category)}`);
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return new Map(Object.entries(await response.json() as { [key: string]: number }));
 }
 
 /**
