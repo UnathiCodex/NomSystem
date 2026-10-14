@@ -1438,10 +1438,10 @@ fieldset.entry-times {
     color: var(--text-main);
 }
 
-/* Row of a meal or a food: its name, its portions or grams, its kcal, replace and remove, the last two one chip wide */
+/* Row of a meal or a food: its name, its portions or grams, its kcal and its small grey `×`, see `.picker-added-remove` */
 .meal-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 6.5rem 6rem var(--chip-height) var(--chip-height);
+    grid-template-columns: minmax(0, 1fr) 6.5rem 6rem auto;
     gap: var(--control-gap);
     align-items: center;
     font-size: 0.875rem;
@@ -1474,10 +1474,6 @@ fieldset.entry-times {
     color: var(--text-main);
     font: inherit;
     text-align: left;
-}
-
-.meal-row .meal-dish-toggle:hover {
-    background: none;
 }
 
 .meal-dish-toggle svg.lucide {
@@ -1518,24 +1514,6 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Replace and remove: small round buttons with their icons, a grey lighter under the pointer */
-.meal-row button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--chip-height);
-    height: var(--chip-height);
-    padding: 0;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--background);
-    cursor: pointer;
-}
-
-.meal-row button:hover {
-    background: var(--fill);
-}
-
 /* Food search in the list of the foods or in the form of a new meal, see `.picker-box`: its field one chip high,
    as the search of every list, the chips of the brands right below it; its results only name, kcal and portion;
    while a food is replaced, which one above them */
@@ -1565,11 +1543,6 @@ fieldset.entry-times {
 
 .meal-box .food-macro {
     display: none;
-}
-
-.meal-box .meal-replace {
-    margin-top: 0;
-    color: var(--text-main);
 }
 
 /* Group of choices, like Due today, small and grey above its first one, a row of its own */

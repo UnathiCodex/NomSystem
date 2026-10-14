@@ -14,7 +14,7 @@
  *   the list ends with `+ New meal`. Both turn the list into the form of a meal, see `mealFormOf` in
  *   `../food/meals.ts`; the variant saved goes into `Meals.md` and into this meal at once.
  * - Foods: foods eaten beside the meals, like `Weißbrot` beside `ChiliConCarne`, each a row with its name, its grams,
- *   its kcal, `⇄`, which opens the list to replace it in its place by another food, and `×`, which removes it.
+ *   its kcal and a small grey `×`, which removes it, like a food I did not eat of a cooking.
  *   Its list is the food search, see `../food/search.ts`: my foods first, then those of Open Food Facts;
  *   a click on one of my foods takes it, and so does adding a product, which goes into `Foods.md` first.
  *   Grams are optional: a food without them counts its usual portion, shown grey in its empty field;
@@ -43,7 +43,7 @@
  * - `../food/meals.ts`: The form of a new meal or variant, and the texts of variants.
  * - `../food/search.ts`: The food search.
  * - `../icons.ts`: Puts the icons into the buttons, their words as tooltip.
- * - `lucide`: The icons remove, replace, and those that show or hide the foods of a meal.
+ * - `lucide`: The icons remove and add, and those that show or hide the foods of a meal.
  */
 
 import { choicesOf, listOf, rowOf, searchOf } from "./choices.ts";
@@ -53,7 +53,7 @@ import { amountOf, dishesLoad, elementOf, foodsFind } from "../food/foods.ts";
 import { kcalTextOf, mealFormOf, variantTextOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf } from "../food/search.ts";
 import { iconOf, iconPut, iconWordsOf } from "../icons.ts";
-import { ArrowLeftRight, ChevronDown, ChevronRight, Plus, X } from "lucide";
+import { ChevronDown, ChevronRight, Plus, X } from "lucide";
 
 import type { Choice } from "./choices.ts";
 import type { Dish, Food, FoodsFound, Variant } from "../food/foods.ts";
@@ -183,11 +183,6 @@ let meals: MealPick[] = [];
  * Foods picked beside the meals, in the order they were picked.
  */
 let picks: FoodPick[] = [];
-
-/**
- * Food whose `⇄` opened the list of the foods, to be replaced by the food picked; `null` while the list adds foods.
- */
-let replacing: FoodPick | null = null;
 
 /**
  * Text of the summary, and grey beside it the kcal of the whole meal.
@@ -447,11 +442,11 @@ function foodsClosed(): boolean {
 /**
  * Builds the row of a food beside the meals: its name, its brand and store grey after it, like
  * `Skyr natur · K-Classic · Kaufland`, marked when `Foods.md` does not hold it, its grams,
- * its kcal, `⇄`, which opens the list of the foods to replace it, and `×`, which removes it.
+ * its kcal and a small grey `×`, which removes it, as a value picked in every list of the dialog.
  * - `food`: The food in `Foods.md`, `undefined` for one it does not hold.
  * - `place`: Its brand and store, those it has.
  * - `kcal`: Cell of its kcal.
- * - `replace`, `remove`: Its buttons `⇄` and `×`.
+ * - `remove`: Its `×`.
  *
  * @param pick - Food picked, changed as its grams are typed
  * @param changed - Tells the dialog that the meal changed
@@ -470,16 +465,7 @@ function foodRowOf(pick: FoodPick, changed: () => void): HTMLElement {
             summaryShow();
             changed();
         });
-    const replace: HTMLButtonElement = buttonOf("", "", (): void => {
-        replacing = pick;
-        if (foodsClosed())
-            foodsLine.click();
-        else {
-            foodSearchClear(foodsSearch);
-            foodsSearch.querySelector("input")?.focus();
-        }
-    });
-    const remove: HTMLButtonElement = buttonOf("", "", (): void => {
+    const remove: HTMLButtonElement = buttonOf("picker-added-remove", "", (): void => {
         picks = picks.filter((other: FoodPick): boolean => other !== pick);
         rowsShow(changed);
         changed();
@@ -497,9 +483,8 @@ function foodRowOf(pick: FoodPick, changed: () => void): HTMLElement {
         if (foodsClosed())
             foodsLine.click();
     });
-    iconPut(replace, ArrowLeftRight, `Replace ${pick.name}`);
     iconPut(remove, X, `Remove ${pick.name}`);
-    row.append(name, grams, kcal, replace, remove);
+    row.append(name, grams, kcal, remove);
     return row;
 }
 
@@ -530,7 +515,7 @@ function mealRowOf(meal: MealPick, changed: () => void): HTMLElement[] {
             summaryShow();
             changed();
         });
-    const remove: HTMLButtonElement = buttonOf("", "", (): void => {
+    const remove: HTMLButtonElement = buttonOf("picker-added-remove", "", (): void => {
         meals = meals.filter((other: MealPick): boolean => other !== meal);
         rowsShow(changed);
         changed();
@@ -544,7 +529,7 @@ function mealRowOf(meal: MealPick, changed: () => void): HTMLElement[] {
     toggle.setAttribute("aria-expanded", String(meal.open));
     toggle.title = meal.open ? "Hide its foods" : "Show its foods for a serving";
     iconPut(remove, X, `Remove ${meal.name}`);
-    row.append(toggle, portions, kcal, elementOf("span", "", ""), remove);
+    row.append(toggle, portions, kcal, remove);
     if (meal.open)
         rows.push(elementOf("p", "meal-dish-foods", foodsTextOf(meal.foods)));
     return rows;
@@ -592,13 +577,11 @@ function rowsShow(changed: () => void): void {
 }
 
 /**
- * Picks a food from the search of the foods: in place of the food being replaced, see {@link replacing}, which simply
- * goes when the food is picked already; else as one more food, unless it is picked already. Then closes the list
+ * Picks a food from the search of the foods as one more food, unless it is picked already; then closes the list
  * and puts the cursor into the field of its grams.
  * - `pick`: The food as picked, with its name, brand and store and no grams yet.
  * - `same`: Whether a food picked is this one, by name, brand and store, ignoring case.
  * - `index`: Place of the food among the foods picked.
- * - `at`: Place of the food being replaced, -1 for none.
  *
  * @param food - Food picked or just added to `Foods.md`
  * @param changed - Tells the dialog that the meal changed
@@ -608,16 +591,8 @@ function foodPick(food: Food, changed: () => void): void {
     mineAdd(food);
     const same: (other: FoodPick) => boolean = (other: FoodPick): boolean => keyOf(other) === keyOf(food);
     let index: number = picks.findIndex(same);
-    const at: number = replacing === null ? -1 : picks.indexOf(replacing);
-    if (at !== -1 && index === -1) {
-        picks[at] = pick;
-        index = at;
-    } else if (at !== -1 && index !== at) {
-        picks.splice(at, 1);
-        index = picks.findIndex(same);
-    } else if (index === -1)
+    if (index === -1)
         index = picks.push(pick) - 1;
-    replacing = null;
     rowsShow(changed);
     changed();
     foodsClose();
@@ -908,7 +883,6 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     found.foods.forEach(mineAdd);
     meals = [];
     picks = [];
-    replacing = null;
     lines.map(lineOf).forEach((read: Line): void => {
         if (read.meal === "") {
             picks.push(pickOf(read, read.grams));
@@ -941,8 +915,7 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     mealsRows = elementOf("div", "meal-rows", "");
     foodsRows = elementOf("div", "meal-rows", "");
     mealsBox = elementOf("div", "picker-box meal-box", "");
-    foodsSearch = foodSearchOf((food: Food): void => foodPick(food, changed), (): HTMLElement[] =>
-        replacing === null ? [] : [elementOf("p", "food-group meal-replace", `Replace ${replacing.name}`)]);
+    foodsSearch = foodSearchOf((food: Food): void => foodPick(food, changed), null);
     const foodsBox: HTMLElement = elementOf("div", "picker-box meal-box", "");
     foodsBox.append(foodsSearch);
     const [mealsRow, closeMeals]: [HTMLElement, () => void] = pickerRowOf("Meals", mealsLine, mealsRows, mealsBox,
@@ -951,9 +924,7 @@ export async function mealOf(lines: string[], title: string, changed: () => void
         (): void => {
             foodSearchClear(foodsSearch);
             foodsSearch.querySelector("input")?.focus();
-        }, (): void => {
-            replacing = null;
-        });
+        }, (): void => {});
     mealsClose = closeMeals;
     foodsClose = closeFoods;
     rowsShow(changed);
