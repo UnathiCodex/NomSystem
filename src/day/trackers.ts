@@ -41,7 +41,7 @@ import { iconOf } from "../icons.ts";
 import { Check, Minus, Plus } from "lucide";
 
 import type { Calendar } from "fullcalendar";
-import type { Nutrients } from "../food/foods.ts";
+import type { Totals } from "../food/foods.ts";
 
 
 /**
@@ -143,7 +143,7 @@ export type Trackers = {
     sleep: SleepDay;
     glasses: Glass[];
     neck: NeckWeek;
-    food: Nutrients & { estimate: boolean; meals: number };
+    food: Totals & { estimate: boolean; meals: number };
 };
 
 /**
@@ -262,7 +262,7 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
 function foodOf(trackers: Trackers, day: string): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const link: HTMLAnchorElement = document.createElement("a");
-    const food: Nutrients & { estimate: boolean; meals: number } = trackers.food;
+    const food: Totals & { estimate: boolean; meals: number } = trackers.food;
     link.className = "tracker-link";
     link.href = `/food?date=${day}`;
     link.textContent = `${amountOf(food.kcal, 0)} kcal (${food.meals} ${food.meals === 1 ? "meal" : "meals"})`;

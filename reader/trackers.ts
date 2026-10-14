@@ -35,7 +35,7 @@ import { foodDayRead } from "./food.ts";
 import { trackerLog } from "./sources.ts";
 
 import type { Entry } from "./calendar.ts";
-import type { FoodDay, Nutrients } from "./food.ts";
+import type { FoodDay, Totals } from "./food.ts";
 
 
 /**
@@ -141,7 +141,7 @@ export type Trackers = {
     sleep: SleepDay;
     glasses: Glass[];
     neck: NeckWeek;
-    food: Nutrients & { estimate: boolean; meals: number };
+    food: Totals & { estimate: boolean; meals: number };
 };
 
 /**

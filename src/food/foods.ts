@@ -10,14 +10,30 @@
 
 
 /**
- * Energy and nutrients, of 100 g of a food or of what I ate, as the reader sends them.
+ * Energy and nutrients of 100 g of a food, or of what one food of a meal gave, as the reader sends them, as far as
+ * they are known: kcal always, protein, carbs and fat `null` where unknown, never 0, see `reader/food.ts`.
+ *
+ * - `kcal`: Energy in kcal.
+ * - `protein`: Protein in grams, `null` when unknown.
+ * - `carbs`: Carbohydrates in grams, `null` when unknown.
+ * - `fat`: Fat in grams, `null` when unknown.
+ */
+export type Nutrients = {
+    kcal: number;
+    protein: number | null;
+    carbs: number | null;
+    fat: number | null;
+};
+
+/**
+ * What meals gave together, as the reader sends it, each the sum of what is known.
  *
  * - `kcal`: Energy in kcal.
  * - `protein`: Protein in grams.
  * - `carbs`: Carbohydrates in grams.
  * - `fat`: Fat in grams.
  */
-export type Nutrients = {
+export type Totals = {
     kcal: number;
     protein: number;
     carbs: number;
@@ -69,7 +85,7 @@ export type FoodsFound = {
 };
 
 /**
- * A food of a meal with what it gives, as the reader sends it.
+ * A food of a meal with what it gives, as the reader sends it, a nutrient its food does not know unknown too.
  *
  * - `name`: Name of the food, as the meal lists it, like `Skyr natur`.
  * - `brand`, `store`: Its brand and the store I bought it in, like `K-Classic` and `Kaufland`; empty where the line
@@ -97,7 +113,7 @@ export type Eaten = Nutrients & {
  * - `foods`: Its foods with what each gives, none when it lists none.
  * - `estimate`: Whether one of its foods counts its usual portion.
  */
-export type Meal = Nutrients & {
+export type Meal = Totals & {
     id: string;
     start: string;
     title: string;
@@ -125,7 +141,7 @@ export type Dish = {
  * - `meals`: Meals of the day, in the order of their starts.
  * - `estimate`: Whether a food of a meal counts its usual portion.
  */
-export type FoodDay = Nutrients & {
+export type FoodDay = Totals & {
     meals: Meal[];
     estimate: boolean;
 };
@@ -222,14 +238,16 @@ export async function foodDayLoad(day: string): Promise<FoodDay> {
 /**
  * Writes an amount as the page shows it, in English, with a comma between thousands and always as many decimals
  * as asked, so a number keeps its width as it changes, like the date of a day: `1.00` litres, never `1`,
- * and `0.0` g of a nutrient, never `0`.
+ * and `0.0` g of a nutrient, never `0`; an unknown amount, like the fat of a food nobody gives, as nothing,
+ * no dash and no `?`, so it never reads as 0.
  *
- * @param value - Amount
+ * @param value - Amount, `null` when unknown
  * @param digits - Decimals to show, like 0 for kcal, 1 for nutrients per 100 g and 2 for litres
- * @returns Amount like `1,284`, `7.4` or `1.00`
+ * @returns Amount like `1,284`, `7.4` or `1.00`, empty when unknown
  */
-export function amountOf(value: number, digits: number): string {
-    return value.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+export function amountOf(value: number | null, digits: number): string {
+    return value === null ? ""
+        : value.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 /**

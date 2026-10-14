@@ -13,6 +13,8 @@
  * its usual portion in grams, the Open Food Facts barcode it came from, and its brand and store, like `Milbona`
  * and `Lidl`, so the same name of two shops never mixes up; the barcode empty for a food added by hand, while every
  * food added has its brand and store, typed where Open Food Facts knows none, so all foods are written alike.
+ * A nutrient nobody gives is never 0: the one of protein, carbs and fat a food lacks is worked out from its kcal,
+ * two or three missing stay unknown, an empty cell, which counts nothing, see {@link nutrientsOf}.
  * A row written before brand and store were kept has neither, and the table gets their columns with the next food.
  * A meal is a log entry of the category `Food`: `SUMMARY` what I ate, its foods parted by `, `,
  * like `Reis, Bohnen, Eier`, `LOCATION` where, and one line `X-FOOD` per food: its name, brand and store in `Foods.md`,
@@ -49,14 +51,30 @@ import type { Entry } from "./calendar.ts";
 
 
 /**
- * Energy and nutrients, of 100 g of a food or of what I ate.
+ * Energy and nutrients of 100 g of a food, or of what one food of a meal gave, as far as they are known:
+ * kcal always, protein, carbs and fat `null` where unknown, never 0, since a 0 is a true 0, see {@link nutrientsOf}.
+ *
+ * - `kcal`: Energy in kcal.
+ * - `protein`: Protein in grams, `null` when unknown.
+ * - `carbs`: Carbohydrates in grams, `null` when unknown.
+ * - `fat`: Fat in grams, `null` when unknown.
+ */
+export type Nutrients = {
+    kcal: number;
+    protein: number | null;
+    carbs: number | null;
+    fat: number | null;
+};
+
+/**
+ * What meals gave together, each the sum of what is known, an unknown nutrient adding nothing, see {@link sumOf}.
  *
  * - `kcal`: Energy in kcal.
  * - `protein`: Protein in grams.
  * - `carbs`: Carbohydrates in grams.
  * - `fat`: Fat in grams.
  */
-export type Nutrients = {
+export type Totals = {
     kcal: number;
     protein: number;
     carbs: number;
@@ -125,7 +143,7 @@ type ProductsPage = {
 };
 
 /**
- * A food of a meal with what it gives, its {@link Nutrients}.
+ * A food of a meal with what it gives, its {@link Nutrients}, a nutrient its food does not know unknown too.
  *
  * - `name`: Name of the food, as the meal lists it, like `Skyr natur`.
  * - `brand`, `store`: Its brand and the store I bought it in, like `K-Classic` and `Kaufland`; empty where the line
@@ -172,7 +190,7 @@ type Line = {
  * - `foods`: Its foods in the order of its lines `X-FOOD`, none when it lists none.
  * - `estimate`: Whether one of its foods counts its usual portion.
  */
-export type Meal = Nutrients & {
+export type Meal = Totals & {
     id: string;
     start: string;
     title: string;
@@ -201,7 +219,7 @@ export type Dish = {
  * - `meals`: Meals that start on the day in Berlin time, in the order of their starts.
  * - `estimate`: Whether a food of a meal counts its usual portion.
  */
-export type FoodDay = Nutrients & {
+export type FoodDay = Totals & {
     meals: Meal[];
     estimate: boolean;
 };
@@ -350,6 +368,12 @@ const answerTime: number = 5000;
  */
 const dayLength: number = 24 * 60 * 60 * 1000;
 
+/**
+ * Energy of a gram of protein, of carbs and of fat in kcal, as food labels count it: 4, 4 and 9,
+ * by which the one of them a food lacks is worked out from its kcal, see {@link nutrientsOf}.
+ */
+const kcalPerGram: { protein: number; carbs: number; fat: number } = { protein: 4, carbs: 4, fat: 9 };
+
 
 /**
  * Turns the text of a number into the number, a decimal comma counting as a point.
@@ -362,6 +386,20 @@ function numberOf(text: string | undefined): number {
 }
 
 /**
+ * Reads a nutrient, a cell of `Foods.md` or a value of Open Food Facts, a decimal comma counting as a point.
+ * - `text`: The nutrient as text, without spaces at its ends.
+ * - `value`: Its number, not a number for an empty or unreadable text.
+ *
+ * @param sent - Nutrient as written or sent, like `7.4`, `7,4` or 7.4; missing for none
+ * @returns Grams, `null` for one empty, missing or unreadable, which is unknown, never 0
+ */
+function nutrientOf(sent: number | string | null | undefined): number | null {
+    const text: string = String(sent ?? "").trim().replace(",", ".");
+    const value: number = text === "" ? NaN : Number(text);
+    return Number.isFinite(value) ? value : null;
+}
+
+/**
  * Rounds a number as `Foods.md` writes it: kcal and portions whole, nutrients to one decimal.
  *
  * @param value - Number
@@ -370,6 +408,41 @@ function numberOf(text: string | undefined): number {
  */
 function roundOf(value: number, digits: number): number {
     return Math.round(value * 10 ** digits) / 10 ** digits;
+}
+
+/**
+ * Gives the nutrients of a food as `Foods.md` writes them: kcal whole, protein, carbs and fat to one decimal,
+ * see {@link roundOf}, each `null` while unknown, never 0, since a 0 given is a true 0 and stays.
+ * The one of protein, carbs and fat a food lacks is worked out from its kcal and the other two, by the energy of
+ * a gram of each, see {@link kcalPerGram}, never below 0: 190 kcal with 10 g protein and 15 g carbs give
+ * (190 − 4 × 10 − 4 × 15) / 9 = 10 g fat. With two or three missing the kcal cannot tell them apart,
+ * so they stay unknown.
+ * - `rounded`: The values rounded.
+ * - `missing`: How many of protein, carbs and fat are unknown.
+ * - `rest`: kcal left for the one missing, once those of the other two are taken off.
+ *
+ * @param values - kcal per 100 g, and protein, carbs and fat, `null` where unknown
+ * @returns The values as `Foods.md` writes them
+ */
+function nutrientsOf(values: Nutrients): Nutrients {
+    const rounded: Nutrients = {
+        kcal: roundOf(values.kcal, 0),
+        protein: values.protein === null ? null : roundOf(values.protein, 1),
+        carbs: values.carbs === null ? null : roundOf(values.carbs, 1),
+        fat: values.fat === null ? null : roundOf(values.fat, 1),
+    };
+    const missing: number = [rounded.protein, rounded.carbs, rounded.fat]
+        .filter((value: number | null): boolean => value === null).length;
+    if (missing !== 1)
+        return rounded;
+    const rest: number = rounded.kcal - kcalPerGram.protein * (rounded.protein ?? 0)
+        - kcalPerGram.carbs * (rounded.carbs ?? 0) - kcalPerGram.fat * (rounded.fat ?? 0);
+    return {
+        kcal: rounded.kcal,
+        protein: rounded.protein ?? roundOf(Math.max(0, rest / kcalPerGram.protein), 1),
+        carbs: rounded.carbs ?? roundOf(Math.max(0, rest / kcalPerGram.carbs), 1),
+        fat: rounded.fat ?? roundOf(Math.max(0, rest / kcalPerGram.fat), 1),
+    };
 }
 
 /**
@@ -419,7 +492,8 @@ function packOf(quantity: string | undefined): string {
 
 /**
  * Reads my foods, the rows of the table of `Foods.md`: its lines starting with `|`, after the head of the table.
- * A number that cannot be read counts as 0, a row without a name stays out.
+ * kcal or a portion that cannot be read counts as 0; a nutrient empty or unreadable is unknown, `null`, never 0,
+ * see {@link nutrientOf}; a row without a name stays out.
  * - `cells`: Cells of a row, without the empty texts before its first `|` and after its last.
  *
  * @returns Foods in the order of the table, none while `Foods.md` does not exist
@@ -434,8 +508,8 @@ function foodsRead(): Food[] {
         .map((line: string): string[] => line.split("|").slice(1, -1).map((cell: string): string => cell.trim()))
         .filter((cells: string[]): boolean => (cells[0] ?? "") !== "")
         .map((cells: string[]): Food => ({
-            name: cells[0], kcal: numberOf(cells[1]), protein: numberOf(cells[2]), carbs: numberOf(cells[3]),
-            fat: numberOf(cells[4]), portion: numberOf(cells[5]), barcode: cells[6] ?? "", brand: cells[7] ?? "",
+            name: cells[0], kcal: numberOf(cells[1]), protein: nutrientOf(cells[2]), carbs: nutrientOf(cells[3]),
+            fat: nutrientOf(cells[4]), portion: numberOf(cells[5]), barcode: cells[6] ?? "", brand: cells[7] ?? "",
             store: cells[8] ?? "",
         }));
 }
@@ -586,8 +660,9 @@ function addressOf(query: string, page: number): URL {
 }
 
 /**
- * Turns a product as Open Food Facts sends it into a {@link Product}, rounded as `Foods.md` writes it;
- * a missing nutrient counts as 0, a missing serving too, which then is asked for, see {@link servingsFill}.
+ * Turns a product as Open Food Facts sends it into a {@link Product}, its nutrients as `Foods.md` writes them,
+ * the one of protein, carbs and fat it lacks worked out from its kcal, more missing unknown, see {@link nutrientsOf};
+ * a missing serving counts as 0, which then is asked for, see {@link servingsFill}.
  * - `nutrients`: Its nutrients by their names.
  * - `kcal`: Its kcal per 100 g, not a number when missing.
  * - `name`: Its clean name, see {@link nameOf}.
@@ -604,10 +679,10 @@ function productOf(sent: ProductSent): Product | null {
 
     return {
         name: name,
-        kcal: roundOf(kcal, 0),
-        protein: roundOf(Number(nutrients.proteins_100g) || 0, 1),
-        carbs: roundOf(Number(nutrients.carbohydrates_100g) || 0, 1),
-        fat: roundOf(Number(nutrients.fat_100g) || 0, 1),
+        ...nutrientsOf({
+            kcal: kcal, protein: nutrientOf(nutrients.proteins_100g), carbs: nutrientOf(nutrients.carbohydrates_100g),
+            fat: nutrientOf(nutrients.fat_100g),
+        }),
         portion: roundOf(Number(sent.serving_quantity), 0) || 0,
         barcode: sent.code ?? "",
         brand: firstOf(sent.brands),
@@ -738,12 +813,26 @@ export async function foodsFind(text: string, page: number): Promise<FoodsFound>
 }
 
 /**
+ * Writes a food as a row of the table of `Foods.md`, an unknown nutrient an empty cell, never 0.
+ * - `cells`: Its values in the order of the columns, see {@link tableHeadOf}.
+ *
+ * @param food - Food as written
+ * @returns Row like `| Gouda | 356 | 25 |  |  | 30 | 4056489012345 | Milbona | Lidl |`
+ */
+function rowOf(food: Food): string {
+    const cells: (string | number | null)[] = [food.name, food.kcal, food.protein, food.carbs, food.fat, food.portion,
+        food.barcode, food.brand, food.store];
+    return `| ${cells.map((cell: string | number | null): string => String(cell ?? "")).join(" | ")} |`;
+}
+
+/**
  * Adds a food to `Foods.md` as the last row of its table, with its brand and store, every other line staying as it is,
  * but a head of the table without their columns, which gets them, see {@link tableHeadOf};
  * creates `Foods.md` with its head, see {@link fileHead}, when it does not exist yet.
- * Cleans the name, see {@link nameOf}, and rounds the numbers, see {@link roundOf}.
- * A value typed that is no number comes as `null`, since JSON has no `NaN`, and is refused like any other non-number.
- * - `values`: Values of the food as sent, each to be a number of 0 or more.
+ * Cleans the name, see {@link nameOf}, and writes the numbers as `Foods.md` does, see {@link nutrientsOf}:
+ * protein, carbs or fat sent as `null` is unknown, so the one of them a food typed by hand lacks is worked out
+ * from its kcal like that of a product, and two or three stay empty cells, never 0.
+ * - `amount`: Tells whether a value is a number of 0 or more, as kcal and portion are to be, and every nutrient known.
  * - `added`: The food as written.
  * - `lines`: Lines of `Foods.md`.
  * - `last`: Index of the last line of its table.
@@ -752,21 +841,19 @@ export async function foodsFind(text: string, page: number): Promise<FoodsFound>
  * @param sent - Food as the page sends it, picked from Open Food Facts with its brand and store, or typed by hand
  * @returns The food as written
  * @throws {Error} - When the name is empty or another food has its name, brand and store, ignoring case,
- *   the brand or the store is empty,
- *   a value is no number of 0 or more, the portion not more than 0, the barcode not only digits,
+ *   the brand or the store is empty, kcal or the portion is no number of 0 or more, a nutrient neither one
+ *   nor `null`, the portion not more than 0, the barcode not only digits,
  *   or `Foods.md` lies outside the new system or holds no table
  */
 export function foodAdd(sent: Food): Food {
-    const values: unknown[] = [sent.kcal, sent.protein, sent.carbs, sent.fat, sent.portion];
-    if (!values.every((value: unknown): boolean => typeof value === "number" && value >= 0))
+    const amount: (value: unknown) => boolean = (value: unknown): boolean => typeof value === "number" && value >= 0;
+    if (![sent.kcal, sent.portion].every(amount)
+        || ![sent.protein, sent.carbs, sent.fat].every((value: unknown): boolean => value === null || amount(value)))
         throw new Error(`No numbers of a food: ${JSON.stringify(sent)}`);
 
     const added: Food = {
         name: nameOf(String(sent.name ?? "")),
-        kcal: roundOf(sent.kcal, 0),
-        protein: roundOf(sent.protein, 1),
-        carbs: roundOf(sent.carbs, 1),
-        fat: roundOf(sent.fat, 1),
+        ...nutrientsOf({ kcal: sent.kcal, protein: sent.protein, carbs: sent.carbs, fat: sent.fat }),
         portion: roundOf(sent.portion, 0),
         barcode: String(sent.barcode ?? "").trim(),
         brand: brandOf(String(sent.brand ?? "")),
@@ -789,8 +876,7 @@ export function foodAdd(sent: Food): Food {
     if (last === -1)
         throw new Error(`No table in ${food.foods}`);
 
-    lines.splice(last + 1, 0, `| ${added.name} | ${added.kcal} | ${added.protein} | ${added.carbs} | ${added.fat} `
-        + `| ${added.portion} | ${added.barcode} | ${added.brand} | ${added.store} |`);
+    lines.splice(last + 1, 0, rowOf(added));
     if (!lines[header].includes("| Brand |"))
         lines.splice(header, tableHead, ...tableHeadOf());
     mkdirSync(dirname(food.foods), { recursive: true });
@@ -799,24 +885,28 @@ export function foodAdd(sent: Food): Food {
 }
 
 /**
- * Adds up what foods or meals give.
+ * Adds up what foods or meals give, what is known: an unknown nutrient adds nothing, so a day of 20 g fat known
+ * and a food whose fat is unknown has 20 g, and the food view names the food, see `src/food/food.ts`.
  *
  * @param parts - What each gives
  * @returns Their sum, 0 each for none
  */
-function sumOf(parts: Nutrients[]): Nutrients {
-    return parts.reduce((sum: Nutrients, part: Nutrients): Nutrients => ({
-        kcal: sum.kcal + part.kcal, protein: sum.protein + part.protein, carbs: sum.carbs + part.carbs, fat: sum.fat + part.fat,
+function sumOf(parts: Nutrients[]): Totals {
+    return parts.reduce((sum: Totals, part: Nutrients): Totals => ({
+        kcal: sum.kcal + part.kcal, protein: sum.protein + (part.protein ?? 0), carbs: sum.carbs + (part.carbs ?? 0),
+        fat: sum.fat + (part.fat ?? 0),
     }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
 }
 
 /**
  * Turns a line `X-FOOD` of a meal into what its food gives, see {@link Eaten}, with its name, brand and store
- * as the line writes them.
+ * as the line writes them; a nutrient its food does not know stays unknown, `null`, and so do all three of a food
+ * `Foods.md` does not hold.
  * - `read`: The line as read, see {@link lineOf}.
  * - `known`: The food in `Foods.md`, `undefined` when it holds none, see {@link foodOfLine}.
  * - `grams`: Grams that count.
  * - `share`: Share of 100 g eaten, 0 for an unknown food.
+ * - `part`: What the grams eaten give of a nutrient per 100 g, `null` for one unknown.
  *
  * @param line - Line like `Skyr natur;K-Classic;Kaufland;150` or `Reis;150`
  * @param mine - My foods by their keys and names, see {@link foodsByKeyRead}
@@ -827,11 +917,12 @@ function eatenOf(line: string, mine: Map<string, Food>): Eaten {
     const known: Food | undefined = foodOfLine(read, mine);
     const grams: number = read.grams ?? known?.portion ?? 0;
     const share: number = known === undefined ? 0 : grams / 100;
+    const part: (per: number | null | undefined) => number | null = (per: number | null | undefined): number | null =>
+        per === null || per === undefined ? null : share * per;
     return {
         name: read.name, brand: read.brand, store: read.store, grams: grams, estimate: read.grams === null || read.guessed,
         known: known !== undefined,
-        kcal: share * (known?.kcal ?? 0), protein: share * (known?.protein ?? 0),
-        carbs: share * (known?.carbs ?? 0), fat: share * (known?.fat ?? 0),
+        kcal: share * (known?.kcal ?? 0), protein: part(known?.protein), carbs: part(known?.carbs), fat: part(known?.fat),
     };
 }
 

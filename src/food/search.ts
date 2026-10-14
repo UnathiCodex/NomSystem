@@ -11,6 +11,7 @@
  * Each food shows kcal, protein, carbs and fat per 100 g and its usual portion, its brand and store in brackets
  * after its name, like `Gouda (Milbona, Lidl)`, so the same name of two shops never mixes up; a product also
  * its pack below it, like `Pack 450 g`, and as portion the serving its maker gives, `none` when it gives none.
+ * A nutrient nobody gives shows empty, never 0, see `amountOf` in `foods.ts`.
  * A click on a product opens a short form below it to add it to my foods, with a name of my own and its portion,
  * both prefilled, 100 g for a product without serving, its name with its brand after it when one of my foods has
  * its name already; it goes into `Foods.md` with its brand and store.
@@ -32,7 +33,7 @@ import { iconPut, plusTypedPut } from "../icons.ts";
 import { Check, X } from "lucide";
 import "./search.css";
 
-import type { Food, FoodsFound, Product } from "./foods.ts";
+import type { Food, FoodsFound, Nutrients, Product } from "./foods.ts";
 
 
 /**
@@ -100,8 +101,8 @@ const searches: WeakMap<HTMLElement, Search> = new WeakMap();
 /**
  * Builds the cells of the row of a food: its name with its brand and store in brackets after it, like
  * `Skyr natur (K-Classic, Kaufland)`, below it small the pack of a product, like `Pack 450 g`, then its values
- * per 100 g and its portion, `none` for a product without serving, the numbers in columns; protein, carbs and fat
- * with the class `food-macro`, so a narrow place, like a meal, can leave them out.
+ * per 100 g, one unknown empty, and its portion, `none` for a product without serving, the numbers in columns;
+ * protein, carbs and fat with the class `food-macro`, so a narrow place, like a meal, can leave them out.
  * - `title`: Name, and below it the pack.
  * - `name`: Name with its brand and store, whole, going on below where too long.
  * - `place`: Brand and store, those known.
@@ -146,24 +147,30 @@ function headOf(): HTMLElement {
  * Reads a number as typed, a decimal comma counting as a point.
  *
  * @param text - Number as typed, like `7,4`
- * @returns Number, 0 for an empty text, not a number for an unreadable one, which the reader refuses
+ * @returns Number, `null` for an empty field, which leaves a nutrient unknown, never 0; not a number
+ *   for an unreadable text, which the form refuses
  */
-function numberRead(text: string): number {
-    return Number(text.replace(",", "."));
+function numberRead(text: string): number | null {
+    return text.trim() === "" ? null : Number(text.trim().replace(",", "."));
 }
 
 /**
  * Opens the form to add a food below a row or below the + of an own food by hand, in place of any form open before:
- * name, brand, store and portion prefilled from the food given, empty where it has none, for a food by hand also
- * its values per 100 g, empty where 0, see {@link asked}.
+ * name, brand, store and portion prefilled from the food given, empty where it has none, see {@link asked};
+ * for a food by hand also its values per 100 g, empty at first: its kcal it needs, while protein, carbs or fat
+ * left empty is unknown, never 0, the one of them missing worked out by the reader from the kcal,
+ * see `nutrientsOf` in `reader/food.ts`.
  * Add, its check, or Enter in a field, sends the food with its brand and store; Cancel, its cross, or Escape in a field,
- * closes the form. When the reader does not take the food, like for a name another food has,
- * the form stays open and says so.
+ * closes the form. When the reader does not take the food, like for a name another food has, or a field holds
+ * no number, the form stays open and says so.
  * - `form`: The form, after the element.
  * - `inputs`: Text field of each value the form asks for.
- * - `error`: Hint that the reader did not take the food.
- * - `value`: Value as its field says, or as the food gives it when the form does not ask for it.
- * - `add`: Sends the food, the form taking no clicks meanwhile, so a double click adds it once.
+ * - `error`: Hint that the food is not taken.
+ * - `text`: Name, brand or store as its field says, or as the food gives it when the form does not ask for it.
+ * - `amount`: A number as its field says, `null` for an empty one, or as the food gives it when the form does not ask
+ *   for it.
+ * - `add`: Sends the food, the form taking no clicks meanwhile, so a double click adds it once; with kcal or portion
+ *   empty, or a field that holds no number, it says so instead.
  * - `save`, `cancel`: Buttons Add and Cancel.
  *
  * @param after - Row of the product, or the + of an own food by hand
@@ -176,15 +183,29 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
     const form: HTMLElement = elementOf("div", "food-form", "");
     const inputs: Map<keyof Food, HTMLInputElement> = new Map();
     const error: HTMLElement = elementOf("p", "food-error",
-        "Not saved: it needs a new name, a brand and a store, numbers, and a portion above 0");
-    const value: (key: keyof Food) => string = (key: keyof Food): string =>
-        inputs.get(key)?.value.trim() ?? String(food[key]);
+        "Not saved: it needs a new name, a brand and a store, kcal, numbers, and a portion above 0");
+    const text: (key: "name" | "brand" | "store") => string = (key: "name" | "brand" | "store"): string =>
+        inputs.get(key)?.value.trim() ?? food[key];
+    const amount: (key: keyof Nutrients | "portion") => number | null =
+        (key: keyof Nutrients | "portion"): number | null => {
+            const input: HTMLInputElement | undefined = inputs.get(key);
+            return input === undefined ? food[key] : numberRead(input.value);
+        };
     const add: () => void = (): void => {
+        const kcal: number | null = amount("kcal");
+        const protein: number | null = amount("protein");
+        const carbs: number | null = amount("carbs");
+        const fat: number | null = amount("fat");
+        const portion: number | null = amount("portion");
+        if (kcal === null || portion === null
+            || [kcal, protein, carbs, fat, portion].some((typed: number | null): boolean => Number.isNaN(typed))) {
+            error.hidden = false;
+            return;
+        }
         form.inert = true;
         foodSend({
-            name: value("name"), kcal: numberRead(value("kcal")), protein: numberRead(value("protein")),
-            carbs: numberRead(value("carbs")), fat: numberRead(value("fat")), portion: numberRead(value("portion")),
-            barcode: food.barcode, brand: value("brand"), store: value("store"),
+            name: text("name"), kcal: kcal, protein: protein, carbs: carbs, fat: fat, portion: portion,
+            barcode: food.barcode, brand: text("brand"), store: text("store"),
         }).then(added).catch((reason: unknown): void => {
             console.error(reason);
             error.hidden = false;
@@ -202,7 +223,7 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
             input.type = "text";
             input.autocomplete = "off";
             input.inputMode = word ? "text" : "decimal";
-            input.value = food[key] === 0 ? "" : String(food[key]);
+            input.value = asked.includes(key) ? String(food[key]) : "";
             input.addEventListener("keydown", (event: KeyboardEvent): void => {
                 if (event.key === "Enter") {
                     event.preventDefault();
@@ -286,7 +307,8 @@ function resultsShow(search: Search): void {
 
     if (query !== "" && !found.foods.some((food: Food): boolean => food.name.toLowerCase() === query.toLowerCase())) {
         const newFood: HTMLButtonElement = buttonOf("picker-new", "", (): void => formShow(newFood, {
-            name: query, kcal: 0, protein: 0, carbs: 0, fat: 0, portion: portionUsual, barcode: "", brand: "", store: "",
+            name: query, kcal: 0, protein: null, carbs: null, fat: null, portion: portionUsual, barcode: "", brand: "",
+            store: "",
         }, true, added));
         plusTypedPut(newFood, query);
         newFood.title = "Own food by hand, when nothing is found";

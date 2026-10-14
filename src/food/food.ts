@@ -10,7 +10,8 @@
  * what and where, and its kcal, below it each of its foods with its grams and kcal.
  * A food listed without grams counts its usual portion; every amount is rounded and an estimate anyway,
  * so none is marked as one. A food not in `Foods.md` and a meal that lists no foods count nothing,
- * and a line below the totals says so.
+ * and a line below the totals says so; so does a nutrient a food does not know, the totals adding what is known,
+ * like `Not counted, fat unknown: Gouda`.
  * My meals: each only its foods, and new meals, above my foods, see `meals.ts`.
  * My foods: the food search, which finds mine first, then those of Open Food Facts, and adds new ones, see `search.ts`.
  * It opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today it moves on
@@ -72,11 +73,30 @@ function dateOf(day: string): Date {
 }
 
 /**
- * Shows the totals of a day: the number of meals, kcal, protein, carbs and fat, each with its name small above;
- * below them a line for each kind of food or meal they leave out.
+ * Names the nutrients of protein, carbs and fat a food of a meal lacks, those its food in `Foods.md` does not know,
+ * as a line below the totals writes them, in their order there.
+ * - `lacks`: Names of the nutrients unknown.
+ *
+ * @param eaten - Food with what it gives
+ * @returns What it lacks, like `fat`, `protein and carbs` or `protein, carbs and fat`, empty for nothing
+ */
+function lacksOf(eaten: Eaten): string {
+    const lacks: string[] = [
+        eaten.protein === null ? "protein" : "", eaten.carbs === null ? "carbs" : "", eaten.fat === null ? "fat" : "",
+    ].filter((nutrient: string): boolean => nutrient !== "");
+    return lacks.length < 2 ? lacks.join("") : `${lacks.slice(0, -1).join(", ")} and ${lacks[lacks.length - 1]}`;
+}
+
+/**
+ * Shows the totals of a day: the number of meals, kcal, protein, carbs and fat, each with its name small above,
+ * each the sum of what is known; below them a line for each kind of food or meal they leave out, like
+ * `Not counted, not in my foods: Brot`, and per what my foods lack, like `Not counted, fat unknown: Gouda`.
  * - `totals`: The totals side by side.
  * - `tiles`: Name and amount of each total.
  * - `unknown`: Names of the foods not in `Foods.md`, each once.
+ * - `lacking`: Names of my foods eaten whose protein, carbs or fat is unknown, each once, by what they lack,
+ *   see {@link lacksOf}, like `fat`.
+ * - `lacks`: What a food lacks.
  * - `empty`: Number of meals that list no foods.
  * - `hints`: Lines below the totals, empty ones left out.
  *
@@ -98,13 +118,20 @@ function totalsShow(day: FoodDay): void {
     }
 
     const unknown: string[] = [];
+    const lacking: Map<string, string[]> = new Map();
     for (const meal of day.meals)
-        for (const eaten of meal.foods)
+        for (const eaten of meal.foods) {
+            const lacks: string = lacksOf(eaten);
             if (!eaten.known && !unknown.includes(eaten.name))
                 unknown.push(eaten.name);
+            if (eaten.known && lacks !== "" && !(lacking.get(lacks) ?? []).includes(eaten.name))
+                lacking.set(lacks, [...lacking.get(lacks) ?? [], eaten.name]);
+        }
     const empty: number = day.meals.filter((meal: Meal): boolean => meal.foods.length === 0).length;
     const hints: string[] = [
         unknown.length > 0 ? `Not counted, not in my foods: ${unknown.join(", ")}` : "",
+        ...[...lacking].map(([lacks, names]: [string, string[]]): string =>
+            `Not counted, ${lacks} unknown: ${names.join(", ")}`),
         empty > 0 ? `Not counted: ${empty} ${empty === 1 ? "meal lists" : "meals list"} no foods` : "",
     ];
     document.getElementById("food-totals")?.replaceChildren(totals, ...hints
