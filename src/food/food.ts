@@ -194,7 +194,8 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
 
 /**
  * Shows a day: writes its weekday short and its date in the bar, like `Tue, 13.10.2026`, turns the icon back to today
- * off on today, then loads its meals and shows them with their totals, unless another day was asked for meanwhile.
+ * off on today, then loads its meals and shows them with their totals, unless another day was asked for meanwhile;
+ * a day without meals shows no totals, only that it has none.
  * - `food`: Meals of the day with what they give.
  * - `lines`: Lines of all meals.
  *
@@ -212,9 +213,12 @@ async function dayShow(day: string): Promise<void> {
     if (day !== shown)
         return;
     const lines: HTMLElement[] = food.meals.flatMap(mealLinesOf);
-    totalsShow(food);
-    if (lines.length === 0)
+    if (food.meals.length > 0)
+        totalsShow(food);
+    else {
+        document.getElementById("food-totals")?.replaceChildren();
         lines.push(elementOf("p", "food-none", "No meals in the log on this day"));
+    }
     document.getElementById("food-meals")?.replaceChildren(...lines);
 }
 

@@ -13,9 +13,14 @@
     padding: var(--gap) var(--gap) calc(4 * var(--gap));
 }
 
+/* The day's totals and meals in line with the date above them, a clear step from the rail's buttons, not right
+   beside them, as the date bar's framed arrows may stand; kept so; the step comes on top of the day's 30rem,
+   so its columns keep their room */
 .food-day {
-    flex: 1 1 30rem;
+    --food-indent: calc(var(--control-height) + 2 * var(--control-gap));
+    flex: 1 1 calc(30rem + var(--food-indent));
     min-width: 0;
+    padding-left: var(--food-indent);
 }
 
 .food-foods {
