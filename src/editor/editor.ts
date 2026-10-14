@@ -294,8 +294,7 @@ async function openedRead(file: string): Promise<Opened | null> {
  * and so does the editor while it shows no file.
  * - `address`: The parameters of the address.
  * - `file`: Path of the file of my new system, empty for a note.
- * - `plannings`: Whether the editor shows my new system, for one of its files or at `/plannings`; else a draft,
- *   at my reading width, `editor-note`, see `./editor.css`.
+ * - `plannings`: Whether the editor shows my new system, for one of its files or at `/plannings`; else a draft.
  * - `opened`: The file read.
  * - `text`: Element of the text, with the look of the notes for Markdown, else of plain text.
  * - `beforeunload`: Comes before the page closes or loads again, also for another file of the tree;
@@ -306,7 +305,6 @@ export async function editorStart(): Promise<void> {
     const file: string = address.get("file") ?? "";
     const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
     const plannings: boolean = file !== "" || location.pathname === "/plannings";
-    document.querySelector(".editor")?.classList.toggle("editor-note", !plannings);
     path = file !== "" ? file : address.get("path") ?? "";
     saveAddress = file !== "" ? "/api/edit/file" : "/api/edit/note";
     treeShow(document.getElementById("notes-tree") as HTMLElement,

@@ -8,32 +8,24 @@
     min-height: 0;
 }
 
-/* The file: the page of it in the middle, scrolls alone */
+/* The file: the page of it in the middle, scrolls alone, with at least 2rem left and right of the page, as the scripts
+   view keeps around its note, so the text never touches the tree or the edge */
 .editor-file {
     overflow-y: auto;
-}
-
-/* Page as wide as the room beside the tree, with little room left and right; its text 16 px in Obsidian's grey,
-   grown with the page; room below the last line, so it can scroll up to the middle */
-.editor-page {
-    padding: 0 var(--gap) 50dvh calc(1.5 * var(--gap));
-    font-size: 1rem;
-    color: var(--reading-text);
-}
-
-/* A draft of my modules exactly as wide as its text in the scripts view, my reading width, in the middle, so its lines
-   break at the same words as there, on every screen, see `.notes-page` in `../notes/notes.css`; markup shown left
-   of its text, like `##`, stands in the room beside it; on a screen without room for my reading width at least
-   2rem left and right of it, as the scripts view keeps around its note, so the text never touches the tree or the edge */
-.editor-note .editor-file {
     padding-inline: 2rem;
 }
 
-.editor-note .editor-page {
+/* Page of every file exactly as wide as a note in the scripts view, my reading width, in the middle, where the screen
+   has room, so the lines of a draft break at the same words as there, on every screen, see `.notes-page`
+   in `../notes/notes.css`, and a file of my new system has the same room around it; markup shown left of its text,
+   like `##`, stands in the room beside it; what is too wide, like a table of `Foods.md`, scrolls sideways on its own;
+   its text 16 px in Obsidian's grey, grown with the page; room below the last line, so it can scroll up to the middle */
+.editor-page {
     width: min(var(--reading-width), 100%);
     margin: 0 auto;
-    padding-right: 0;
-    padding-left: 0;
+    padding-bottom: 50dvh;
+    font-size: 1rem;
+    color: var(--reading-text);
 }
 
 /* Head above the note: its name, the notice and the save button in a row, on top while the note scrolls below it */

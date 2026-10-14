@@ -258,7 +258,7 @@
 }
 
 /* Page of the note exactly my reading width wherever the screen has room, on the PC as on the laptop, so a line
-   breaks at the same word on both and in the editor, see `.editor-note` in `../editor/editor.css`; in the middle,
+   breaks at the same word on both and in the editor, see `.editor-page` in `../editor/editor.css`; in the middle,
    the room left and right of it what is left; its text 16 px in Obsidian's grey, as in my Obsidian, grown with
    the page */
 .notes-page {
