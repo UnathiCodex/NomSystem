@@ -2,7 +2,7 @@
  * ## Daily note
  *
  * Shows the daily note of a day, read only, below my gratitude and my points about the day, which the lists above
- * it show, so the note leaves their two sections out, `## Gratitude` and `## About the day`: what is left shows
+ * it show, so the note leaves their two sections out, `## Gratitude` and `## About`: what is left shows
  * as Markdown, nothing for a note that holds only them, as the dashboard writes it.
  * Loads and writes those two sections; the reader writes them into the note of the day, see `reader/note.ts`.
  *
@@ -16,7 +16,7 @@ import { Marked } from "marked";
  * Titles of the sections the page reads and writes, as the reader names them: my gratitude and my points
  * about the day.
  */
-export type SectionTitle = "Gratitude" | "About the day";
+export type SectionTitle = "Gratitude" | "About";
 
 
 /**
@@ -26,14 +26,14 @@ const markdown: Marked = new Marked();
 
 
 /**
- * Takes my gratitude and my points about the day out of a note, its sections `## Gratitude` and `## About the day`,
+ * Takes my gratitude and my points about the day out of a note, its sections `## Gratitude` and `## About`,
  * each its heading and every line below it up to the next heading, since the lists above the note show them.
  *
  * @param note - Text of the note file
  * @returns Markdown of the rest of the note, which `marked` reads
  */
 function markdownOf(note: string): string {
-    return note.replace(/^## (?:Gratitude|About the day)[ \t]*(?:\n(?!#{1,6} ).*)*\n?/gm, "");
+    return note.replace(/^## (?:Gratitude|About)[ \t]*(?=\n|$)(?:\n(?!#{1,6} ).*)*\n?/gm, "");
 }
 
 /**

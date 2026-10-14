@@ -3,7 +3,7 @@
  *
  * What I write into the daily note of the shown day, any time of the day, at the top of the note, each a list
  * of points with their bullets, see `points.ts`: my gratitude into the section `## Gratitude`, and my points
- * about the day overall into the section `## About the day`, both apart, though they go hand in hand.
+ * about the day overall into the section `## About`, both apart, though they go hand in hand.
  * Both are saved into the day's note a moment after I stop typing, and when I leave a list or the day;
  * the note below leaves both sections out.
  * It is all that is left of the evening panel: what happened is my log and the boxes for tomorrow are plan entries,
@@ -35,7 +35,7 @@ type Box = {
  */
 const boxes: Box[] = [
     { id: "gratitude", title: "Gratitude" },
-    { id: "about-day", title: "About the day" },
+    { id: "about", title: "About" },
 ];
 
 /**

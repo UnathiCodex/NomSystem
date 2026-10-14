@@ -4,14 +4,14 @@
  * Reads the daily notes of the new system, one per day in `NomFrequencediary`, like `2026/2026_10/2026_10_12.md`,
  * and writes into them what I write in the dashboard, all a note holds, each a plain Markdown section of points,
  * one `- ` line each, as the dashboard names them: my gratitude under `## Gratitude`, and my points about the day
- * overall under `## About the day`:
+ * overall under `## About`:
  *
  * ```
  * ## Gratitude
  *
  * - Viele Socials getroffen
  *
- * ## About the day
+ * ## About
  *
  * - Univeranstaltungen so richtig begonnen
  * ```
@@ -34,7 +34,7 @@ import { diaryRoot, writeAllowed } from "./sources.ts";
 /**
  * Titles of the sections of a daily note, the only ones the reader writes: my gratitude and my points about the day.
  */
-export type SectionTitle = "Gratitude" | "About the day";
+export type SectionTitle = "Gratitude" | "About";
 
 /**
  * A section text, as my gratitude and my points about the day send it.
@@ -52,7 +52,7 @@ export type SectionNew = {
 /**
  * The sections of a daily note, in their order: my gratitude, then my points about the day.
  */
-const titles: SectionTitle[] = ["Gratitude", "About the day"];
+const titles: SectionTitle[] = ["Gratitude", "About"];
 
 /**
  * Start of a point line in a section.
@@ -144,7 +144,7 @@ function sectionTextRead(date: string, title: SectionTitle): string {
  * @throws {Error} - When the date is not written like `2026-07-03`
  */
 export function sectionsRead(date: string): { [title in SectionTitle]: string } {
-    return { "Gratitude": sectionTextRead(date, "Gratitude"), "About the day": sectionTextRead(date, "About the day") };
+    return { "Gratitude": sectionTextRead(date, "Gratitude"), "About": sectionTextRead(date, "About") };
 }
 
 /**
@@ -192,7 +192,7 @@ function sectionPut(lines: string[], title: SectionTitle, points: string[]): voi
     if (points.length === 0)
         return;
 
-    const next: [number, number] | null = title === "Gratitude" ? sectionFind(lines, "About the day") : null;
+    const next: [number, number] | null = title === "Gratitude" ? sectionFind(lines, "About") : null;
     if (next !== null) {
         lines.splice(next[0], 0, ...block);
         return;
