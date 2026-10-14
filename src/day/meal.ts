@@ -12,8 +12,8 @@
  *   below it; a food of mine its row; a product goes into `Foods.md` as Open Food Facts gives it and into the meal,
  *   no form in between. While the text typed is no meal of mine, the first row of my meals is the one plus with it,
  *   `+ New meal “Chili con Carne”`, which puts an empty block of a new meal of that name into the entry and opens its
- *   own search at once, see {@link mealNew}; the entry saved, a new meal with a food goes into `Meals.md` as its
- *   composition, see {@link mealsNewSend}. When nothing is found, one grey line says where a food by hand goes in:
+ *   own search at once, see {@link mealNew}; its first food puts it into `Meals.md` as its composition, at once,
+ *   saved or not, and every food added or removed changes it there, see {@link freshSend}. When nothing is found, one grey line says where a food by hand goes in:
  *   under Foods in the food view. A food is a row with its name, its brand and store in brackets, its grams, its kcal
  *   and its `×`, which removes it, like a food I did not eat of a cooking.
  *   Its grams start at those I logged it with last in an entry of the same category, `Food` or `Cook`, see
@@ -59,7 +59,7 @@ import { choicesOf, listOf, listOpen, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import {
-    bracketsWatch, buttonOf, dishesLoad, dishSend, elementOf, foodNameOf, foodsFind, gramsLoad,
+    bracketsWatch, buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodNameOf, foodsFind, gramsLoad,
 } from "../food/foods.ts";
 import { dishesFound, dishNameOf, kcalTextOf, mealNameOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
@@ -135,8 +135,8 @@ export type Drawing = {
  * - `name`: Name of the meal, like `Chili con Carne`.
  * - `foods`: Its foods with their grams.
  * - `fromCooking`: Whether it came with the cooking the meal draws from, see {@link drawnShow}.
- * - `fresh`: Whether it is a new meal, named in this entry, which goes into `Meals.md` once the entry is saved,
- *   see {@link mealsNewSend}.
+ * - `fresh`: Whether it is a new meal, named in this entry, which `Meals.md` holds as its foods are, see
+ *   {@link freshSend}.
  */
 type MealPick = {
     name: string;
@@ -511,6 +511,7 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
             if (pick === undefined) {
                 pick = pickNewOf(food);
                 meal.foods.push(pick);
+                freshSend(meal);
             }
             close();
             rowsShow(changed);
@@ -538,6 +539,7 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
         changed();
     }, (): void => {
         meal.foods = meal.foods.filter((other: FoodPick): boolean => other !== pick);
+        freshSend(meal);
         meals = meals.filter((other: MealPick): boolean => other.foods.length > 0);
         rowsShow(changed);
         changed();
@@ -550,7 +552,8 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
 
 /**
  * Shows the summary, see {@link mealTitle}, and after it the kcal of the whole meal in brackets, as a type stands
- * after its skill, like `Chili con Carne, Weißbrot (660 kcal)`, white like the summary, nothing while nothing is picked.
+ * after its skill, like `Chili con Carne, Weißbrot (660 kcal)`, white like the summary; no kcal while no food has
+ * grams, as a food without grams shows none.
  * - `total`: kcal of the meals and the foods beside them.
  * - `text`: The summary with its kcal.
  */
@@ -558,7 +561,8 @@ function summaryShow(): void {
     const total: number = meals.reduce((sum: number, meal: MealPick): number => sum + mealKcalOf(meal), 0)
         + picks.reduce((sum: number, pick: FoodPick): number => sum + kcalOf(pick), 0);
     const text: HTMLElement = elementOf("span", "meal-summary", mealTitle());
-    if (meals.length > 0 || picks.length > 0)
+    if ([...meals.flatMap((meal: MealPick): FoodPick[] => meal.foods), ...picks]
+        .some((pick: FoodPick): boolean => numberOf(pick.grams) !== null))
         text.append(elementOf("span", "meal-total", ` (${kcalTextOf(total)})`));
     summaryLine.replaceChildren(text);
 }
@@ -645,15 +649,20 @@ function mealNew(name: string, changed: () => void): void {
 }
 
 /**
- * Sends each new meal of the entry that holds a food to `Meals.md`, as its composition, its foods by name, brand
- * and store without grams, see `dishAdd` in `reader/food.ts`; for the dialog to call as it saves the entry, before
- * the entry, so a meal the reader does not take keeps the entry unsaved.
+ * Keeps a new meal of the entry in `Meals.md` as its foods are now, so it is mine the moment it holds one, whether
+ * the entry is saved or not: its composition, its foods by name, brand and store without grams, see `dishAdd` in
+ * `reader/food.ts`; with its last food removed it leaves `Meals.md` again, which holds no meal without food.
+ * Its block removed by its `×`, it stays mine, only this entry dropping it. A meal I had before stays as it is.
  *
- * @throws {Error} - When the reader does not take a meal
+ * @param meal - Meal of the entry whose foods changed
  */
-export async function mealsNewSend(): Promise<void> {
-    for (const meal of meals.filter((one: MealPick): boolean => one.fresh === true && one.foods.length > 0))
-        await dishSend(meal.name, meal.foods.map((pick: FoodPick): string => `${pick.name};${pick.brand};${pick.store}`));
+function freshSend(meal: MealPick): void {
+    if (meal.fresh !== true)
+        return;
+    (meal.foods.length === 0 ? dishDelete(meal.name)
+        : dishSend(meal.name, meal.foods.map((pick: FoodPick): string => `${pick.name};${pick.brand};${pick.store}`)))
+        .then((all: Dish[]): void => { dishes = all; })
+        .catch((error: unknown): void => console.error(error));
 }
 
 /**

@@ -1,6 +1,8 @@
 /* Grey page, plan and log told apart by their grey, no colour; text in two tones only, white for what a thing is
    and its facts, like a name, its brand, its grams and its kcal, and one grey for times, places, the names of rows
-   and hints, a fact in the same tone wherever it stands;
+   and hints, a fact in the same tone wherever it stands, that grey a little stronger than Obsidian's, so it reads
+   easily; the line at the left of indented parts, like the foods of a meal, 2 px and a little lighter than other
+   lines, `--guide`, so it shows;
    notes in the greys of my Obsidian's dark theme with my accent #969696, and in its reading width;
    controls and lines sized for my 4K monitor: buttons and fields one control high,
    chips, small buttons and the rows of the menu one chip high, all with the text of controls and the space beside it,
@@ -13,8 +15,9 @@
     font-size: 125%;
     --background: #1e1e1e;
     --text-main: #ececec;
-    --text-muted: #999999;
+    --text-muted: #a8a8a8;
     --line: #323232;
+    --guide: #4a4a4a;
     --fill: #262626;
     --chosen: #3a3a3a;
     --chosen-line: #5c5c5c;

@@ -255,7 +255,6 @@ export type FoodDay = Totals & {
  * - `code`: Barcode.
  * - `product_name`: Name.
  * - `brands`: Brands, a list from the search, a text parted by commas from the products.
- * - `stores`: Stores that sell it, as the brands.
  * - `quantity`: Size of the pack as its maker writes it, like `450g`.
  * - `nutriments`: Nutrients by their names, like `energy-kcal_100g` or `proteins_100g`.
  */
@@ -263,7 +262,6 @@ type ProductSent = {
     code?: string;
     product_name?: string;
     brands?: string | string[];
-    stores?: string | string[];
     quantity?: string;
     nutriments?: { [nutrient: string]: number | string | undefined };
 };
@@ -363,7 +361,7 @@ const agent: string = "NomSystemDashboard/0.1";
 /**
  * Fields of a product the reader asks Open Food Facts for, see {@link ProductSent}.
  */
-const productFields: string = "code,product_name,brands,stores,quantity,nutriments";
+const productFields: string = "code,product_name,brands,quantity,nutriments";
 
 /**
  * Languages of the names a search looks in: German, since I shop in Germany, and English.
@@ -505,10 +503,10 @@ function brandOf(brand: string): string {
 }
 
 /**
- * Gives the first of the brands or stores of a product, as the search sends a list and a product a text
- * parted by commas, cleaned for `Foods.md`, see {@link nameOf}.
+ * Gives the first of the brands of a product, as the search sends a list and a product a text parted by commas,
+ * cleaned for `Foods.md`, see {@link nameOf}.
  *
- * @param sent - Brands or stores as sent, like `["Milbona", "Lidl"]` or `Milbona, Lidl`; missing for none
+ * @param sent - Brands as sent, like `["Milbona", "Lidl"]` or `Milbona, Lidl`; missing for none
  * @returns The first, like `Milbona`, empty for none
  */
 function firstOf(sent: string | string[] | undefined): string {
@@ -749,9 +747,10 @@ function addressOf(query: string, page: number): URL {
 
 /**
  * Turns a product as Open Food Facts sends it into a {@link Food} as it would go into `Foods.md`: its name cleaned,
- * see {@link foodTextOf}, the first of its brands and of its stores, cleaned too, its nutrients as `Foods.md` writes
- * them, the one of protein, carbs and fat it lacks worked out from its kcal, more missing unknown,
- * see {@link nutrientsOf}, and the size of its pack.
+ * see {@link foodTextOf}, the first of its brands, cleaned too, as its pack names it, its nutrients as `Foods.md`
+ * writes them, the one of protein, carbs and fat it lacks worked out from its kcal, more missing unknown,
+ * see {@link nutrientsOf}, and the size of its pack; no store, since the stores Open Food Facts lists are where
+ * someone saw it, not where I buy it, so only I type mine.
  * - `nutrients`: Its nutrients by their names.
  * - `kcal`: Its kcal per 100 g, not a number when missing.
  * - `name`: Its clean name.
@@ -774,7 +773,7 @@ function productOf(sent: ProductSent): Food | null {
         }),
         barcode: sent.code ?? "",
         brand: brandOf(firstOf(sent.brands)),
-        store: brandOf(firstOf(sent.stores)),
+        store: "",
         pack: packOf(sent.quantity),
     };
 }
@@ -1037,6 +1036,34 @@ export function foodChange(sent: FoodChanged): Food {
     tableHeadPut(lines, header);
     writeFileSync(food.foods, lines.join("\n"));
     return { ...found, ...renamed };
+}
+
+/**
+ * Removes a food of mine from `Foods.md`, its row only, every other line staying as it is; entries and meals that list
+ * it keep their lines, which then count nothing and are named below the day's totals as foods not in `Foods.md`.
+ * - `old`: Key of the food, see {@link keyOf}.
+ * - `lines`: Lines of `Foods.md`.
+ * - `header`: Index of the header of its table.
+ * - `row`: Index of the row of the food, -1 for none.
+ *
+ * @param sent - The food, its name, brand and store, as the page sends them
+ * @throws {Error} - When `Foods.md` holds no such food, or lies outside the new system
+ */
+export function foodRemove(sent: { name: string; brand: string; store: string }): void {
+    const old: string = keyOf({ name: sent.name, brand: sent.brand, store: sent.store });
+    if (!writeAllowed(food.foods))
+        throw new Error(`No writing outside the new system: ${food.foods}`);
+    const lines: string[] = existsSync(food.foods) ? readFileSync(food.foods, "utf8").split("\n") : [];
+    const header: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
+    const row: number = header === -1 ? -1 : lines.findIndex((line: string, index: number): boolean => {
+        const cells: string[] = cellsOf(line);
+        return index >= header + tableHead && line.startsWith("|")
+            && keyOf({ name: cells[0] ?? "", brand: cells[7] ?? "", store: cells[8] ?? "" }) === old;
+    });
+    if (row === -1)
+        throw new Error(`No food of mine: ${JSON.stringify(sent)}`);
+    lines.splice(row, 1);
+    writeFileSync(food.foods, lines.join("\n"));
 }
 
 /**

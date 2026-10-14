@@ -58,7 +58,7 @@ import {
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
 import {
-    dishAdd, dishesRead, dishRemove, foodAdd, foodChange, foodDayRead, foodsFind, gramsRead,
+    dishAdd, dishesRead, dishRemove, foodAdd, foodChange, foodDayRead, foodRemove, foodsFind, gramsRead,
 } from "./food.ts";
 import { trackersRead } from "./trackers.ts";
 import { deviceReport } from "./devices.ts";
@@ -177,6 +177,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   then a page of those of Open Food Facts, none for `products=0`.
  * - `POST /api/food/foods`: Adds food of the body to `Foods.md` and sends it as written.
  * - `PATCH /api/food/foods`: Renames food of the body wherever it stands and sends it as written.
+ * - `DELETE /api/food/foods?name=…&brand=…&store=…`: Removes the food from `Foods.md`.
  * - `GET /api/food/grams?category=…`: Sends the grams I logged each food with last in an entry of the category.
  * - `GET /api/food/day?date=…`: Sends the meals of the date with what they give.
  * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each with its foods and what it gave.
@@ -370,6 +371,11 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "PATCH" && url.pathname === "/api/food/foods") {
         responseSend(response, 200, foodChange(await json(request) as FoodChanged));
+
+    } else if (request.method === "DELETE" && url.pathname === "/api/food/foods") {
+        foodRemove({ name: url.searchParams.get("name") ?? "", brand: url.searchParams.get("brand") ?? "",
+            store: url.searchParams.get("store") ?? "" });
+        responseSend(response, 200, null);
 
     } else if (request.method === "GET" && url.pathname === "/api/food/grams") {
         responseSend(response, 200, Object.fromEntries(gramsRead(url.searchParams.get("category") ?? "")));

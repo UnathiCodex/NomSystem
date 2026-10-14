@@ -95,10 +95,11 @@ button.food-row {
 }
 
 /* Head of a list small and grey: what a number is per, and `kcal`, the unit of every number below; only as high
-   as its words */
+   as its words, as far from the first row below it as two rows are from each other, so it heads them and touches
+   none */
 .food-columns {
     min-height: 0;
-    margin-top: 0.75rem;
+    margin: 0.75rem 0 0.625rem;
     font-size: 0.75rem;
     color: var(--text-muted);
 }
@@ -111,7 +112,7 @@ button.food-row {
     gap: 0.625rem;
     margin: 0.5rem 0 1rem 1.125rem;
     padding-left: 1.375rem;
-    border-left: 1px solid var(--line);
+    border-left: 2px solid var(--guide);
     font-size: 0.875rem;
 }
 
@@ -238,7 +239,7 @@ button.food-row {
 /* Line between the sections of a search, my meals, my foods and the products of Open Food Facts, thin and in the grey
    of every line, so they stand apart at a glance */
 .food-divider {
-    margin: 0.5rem 0.75rem;
+    margin: 0.75rem 0.75rem 0.25rem;
     border: 0;
     border-top: 1px solid var(--line);
 }

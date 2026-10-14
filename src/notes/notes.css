@@ -179,7 +179,7 @@
 .tree-children {
     margin-left: 0.75rem;
     padding-left: 0.25rem;
-    border-left: 1px solid var(--line);
+    border-left: 2px solid var(--guide);
 }
 
 /* Note name in line with the folder names after their arrow */

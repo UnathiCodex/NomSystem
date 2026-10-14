@@ -12,7 +12,8 @@
  * is found it says in one grey line, only for the text as it stands, once its answer is in, never for a text typed
  * before, like a barcode typed digit by digit, whose first digits find nothing.
  * I search the food alone, like `räucherlachs`: Open Food Facts searches the names of its products, and a word of
- * a brand or a shop only ranks them, it filters nothing, so the brand and store of a product stand beside its name.
+ * a brand or a shop only ranks them, it filters nothing, so the brand of a product stands beside its name; a store
+ * only I type, see `productOf` in `reader/food.ts`.
  * Every list of meals or foods looks alike, wherever it stands: one flat line per meal or food, nothing in it
  * but its name, a food's brand and store in brackets after it, like `Gouda (Milbona, Lidl)`, so the same name of two
  * shops never mixes up, and its kcal as a bare number, a meal's whole, a food's per 100 g, the head of its section
@@ -32,9 +33,10 @@
  * - `./search.css`: Look of the search and of every list of meals or foods, the same wherever they stand.
  */
 
-import { amountOf, bracketsWatch, buttonOf, elementOf, foodChange, foodNameOf, foodSend, foodsFind } from "./foods.ts";
-import { iconPut } from "../icons.ts";
-import { Check, X } from "lucide";
+import { amountOf, bracketsWatch, buttonOf, elementOf, foodChange, foodDelete, foodNameOf, foodSend, foodsFind }
+    from "./foods.ts";
+import { crossPut, iconOf, iconPut, QuestionMark } from "../icons.ts";
+import { Check, Plus, X } from "lucide";
 import "./search.css";
 
 import type { Food, FoodsFound } from "./foods.ts";
@@ -70,6 +72,7 @@ export type SearchSetup = {
  * - `open`: Key of my food open below its line, see {@link keyOf}, empty for none.
  * - `shown`: The text the results shown were found for.
  * - `enter`: Whether Enter waits for the results of the text typed, to take the first, see {@link firstPick}.
+ * - `asking`: Key of my food whose `×` asked `Really remove?`, empty for none.
  */
 type Search = {
     input: HTMLInputElement;
@@ -81,6 +84,7 @@ type Search = {
     open: string;
     shown: string;
     enter: boolean;
+    asking: string;
 };
 
 /**
@@ -296,9 +300,12 @@ function detailOf(search: Search, food: Food): HTMLElement {
 
 /**
  * Builds the line of a food of mine: a click picks it where foods are picked, else opens it below its line or closes
- * it again, see {@link detailOf}.
+ * it again, see {@link detailOf}; in the food view its small grey `×` at its end, which removes it from `Foods.md`,
+ * its first click only asking, a plain question mark, `Really remove?`, as for a meal; entries and meals listing it
+ * keep their lines, which then count nothing.
  * - `key`: Its key.
  * - `open`: Whether it is open.
+ * - `remove`: Its `×`, `null` where foods are picked.
  * - `line`, `row`: Its line and row.
  *
  * @param search - The search
@@ -308,6 +315,20 @@ function detailOf(search: Search, food: Food): HTMLElement {
 function mineLinesOf(search: Search, food: Food): HTMLElement[] {
     const key: string = keyOf(food);
     const open: boolean = search.setup.pick === null && search.open === key;
+    const remove: HTMLButtonElement | null = search.setup.pick !== null ? null : buttonOf("", "", (): void => {
+        if (search.asking !== key) {
+            search.asking = key;
+            resultsShow(search);
+            return;
+        }
+        search.asking = "";
+        foodDelete(food).then((): void => resultsLoad(search, 1))
+            .catch((error: unknown): void => console.error(error));
+    });
+    if (remove !== null && search.asking === key)
+        iconPut(remove, QuestionMark, "Really remove?");
+    else if (remove !== null)
+        crossPut(remove, `Remove ${food.name}`);
     const [line, row]: [HTMLElement, HTMLElement] = listLineOf(foodNameOf("food-name", food.name, food.brand, food.store),
         food.kcal, (): void => {
         if (search.setup.pick !== null) {
@@ -316,14 +337,14 @@ function mineLinesOf(search: Search, food: Food): HTMLElement[] {
         }
         search.open = open ? "" : key;
         resultsShow(search);
-    }, null);
+    }, remove);
     if (search.setup.pick === null)
         row.setAttribute("aria-expanded", String(open));
     return open ? [line, detailOf(search, food)] : [line];
 }
 
 /**
- * Makes the name of a product of Open Food Facts in its line: its name with its brand and store in brackets, see
+ * Makes the name of a product of Open Food Facts in its line: its name with its brand in brackets, see
  * `foodNameOf` in `foods.ts`, and below it, small and grey, its pack, like `Pack 265 g`, where known.
  * - `title`: Name, and below it the pack.
  *
@@ -357,6 +378,7 @@ function productLineOf(search: Search, product: Food): HTMLElement {
             line.after(elementOf("p", "food-none food-nothing", `Not added: the reader did not take ${product.name}`));
         });
     }, null);
+    line.classList.add("food-product");
     return line;
 }
 
@@ -383,9 +405,10 @@ function resultsShow(search: Search): void {
 
     if (meals.length > 0)
         sections.push([listHeadOf("My meals", "kcal / meal"), ...meals]);
-    if (found.foods.length > 0)
+    const fresh: HTMLElement[] = newFoodOf(search, query, found.foods);
+    if (found.foods.length > 0 || fresh.length > 0)
         sections.push([listHeadOf("My foods", "kcal / 100 g"),
-            ...found.foods.flatMap((food: Food): HTMLElement[] => mineLinesOf(search, food))]);
+            ...found.foods.flatMap((food: Food): HTMLElement[] => mineLinesOf(search, food)), ...fresh]);
     if (products.length > 0)
         sections.push([listHeadOf("Open Food Facts", "kcal / 100 g"),
             ...products.map((product: Food): HTMLElement => productLineOf(search, product)),
@@ -405,18 +428,37 @@ function resultsShow(search: Search): void {
 }
 
 /**
- * Takes what Enter takes in a search that picks, like that of a dialog: the first meal, food or product it shows,
- * in the order of its sections, else `+ New meal` where it is offered; nothing in a search that only shows.
- * - `first`: The first row that takes a click.
+ * Takes what Enter takes in a search that picks, like that of a dialog: the first of my meals or foods it shows,
+ * never a product of Open Food Facts, which goes into my foods only by a click, nor a new meal or food; nothing
+ * in a search that only shows.
  *
  * @param search - The search
  */
 function firstPick(search: Search): void {
     if (search.setup.pick === null)
         return;
-    const first: HTMLElement | null = search.results.querySelector("button.food-row")
-        ?? search.results.querySelector(".picker-new");
-    first?.click();
+    search.results.querySelector<HTMLElement>(".food-item:not(.food-product) > button.food-row")?.click();
+}
+
+/**
+ * Makes the one plus of a new food in a search that picks, last among my foods, like `+ New food “Döner”`, while
+ * the text typed is no food of mine, nor a barcode: a click opens the form of a food by hand at the top of the
+ * results, named as typed, see {@link newFormShow}, the food saved there picked at once.
+ * - `plus`: The plus.
+ *
+ * @param search - The search
+ * @param query - The search as typed
+ * @param mine - My foods found
+ * @returns The plus, none where it is not offered
+ */
+function newFoodOf(search: Search, query: string, mine: Food[]): HTMLElement[] {
+    if (search.setup.pick === null || query === "" || /^\d{8,14}$/.test(query)
+        || mine.some((food: Food): boolean => food.name.toLowerCase() === query.toLowerCase()))
+        return [];
+    const plus: HTMLButtonElement = buttonOf("picker-new", "", (): void => newFormShow(search));
+    plus.replaceChildren(iconOf(Plus), `New food “${query}”`);
+    plus.title = "New food by hand, its kcal typed next";
+    return [plus];
 }
 
 /**
@@ -470,8 +512,24 @@ function numberRead(text: string): number | null {
  */
 export function foodNewShow(element: HTMLElement): void {
     const search: Search | undefined = searches.get(element);
-    if (search === undefined)
-        return;
+    if (search !== undefined)
+        newFormShow(search);
+}
+
+/**
+ * Opens the form of a food by hand in a search, see {@link foodNewShow}, named as typed in the search, the cursor in
+ * its kcal, or in its name while none is typed.
+ * - `form`: The form.
+ * - `facts`: Its values in two columns.
+ * - `inputs`: Text field of each value.
+ * - `error`: Hint that the food is not taken.
+ * - `text`: Name, brand or store as its field says.
+ * - `close`: Closes the form.
+ * - `add`: Sends the food, see {@link foodNewShow}.
+ *
+ * @param search - The search
+ */
+function newFormShow(search: Search): void {
     search.results.querySelector(".food-form")?.remove();
     const form: HTMLElement = elementOf("div", "food-form food-detail", "");
     const facts: HTMLElement = elementOf("div", "food-facts", "");
@@ -515,7 +573,7 @@ export function foodNewShow(element: HTMLElement): void {
     error.hidden = true;
     form.append(facts, editButtonsOf(close, add), error);
     search.results.prepend(form);
-    inputs.get("name")?.focus();
+    inputs.get(text("name") === "" ? "name" : "kcal")?.focus();
 }
 
 /**
@@ -611,6 +669,7 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
         open: "",
         shown: "",
         enter: false,
+        asking: "",
     };
     let waiting: number = 0;
 

@@ -226,6 +226,20 @@ export async function foodSend(food: Food): Promise<Food> {
 }
 
 /**
+ * Removes a food of mine from `Foods.md` through the reader; entries and meals listing it keep their lines.
+ * - `query`: Its name, brand and store as parameters of the address.
+ *
+ * @param food - The food
+ * @throws {Error} - When the reader does not remove it
+ */
+export async function foodDelete(food: Food): Promise<void> {
+    const query: URLSearchParams = new URLSearchParams({ name: food.name, brand: food.brand, store: food.store });
+    const response: Response = await fetch(`/api/food/foods?${query}`, { method: "DELETE" });
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+}
+
+/**
  * Renames a food of mine through the reader, in `Foods.md`, in my meals and in every entry of the log naming it.
  *
  * @param food - The food as `Foods.md` holds it
