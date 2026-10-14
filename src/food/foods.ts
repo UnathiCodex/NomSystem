@@ -59,11 +59,19 @@ export type Food = Nutrients & {
 };
 
 /**
+ * A product of Open Food Facts as a search sends it: a {@link Food}, its kcal `null` where Open Food Facts does not know
+ * them, like `Zwiebeln` of Edeka, so it still shows and I type its kcal from the pack, see `./search.ts`.
+ */
+export type Product = Omit<Food, "kcal"> & {
+    kcal: number | null;
+};
+
+/**
  * What a search finds, as the reader sends it.
  *
  * - `foods`: My foods found, the most eaten first; all of them for an empty search; of every brand.
  * - `products`: Products of Open Food Facts on the page asked for that are not among my foods, each as it would go
- *   into `Foods.md`, the best match first; none for a search of only a few letters or of my foods only;
+ *   into `Foods.md`, its kcal `null` where unknown, the best match first; none for a search of only a few letters or of my foods only;
  *   `null` when Open Food Facts cannot be reached.
  * - `total`: Number of products of Open Food Facts the search matches; a lower bound, like 10,000, when not `exact`.
  * - `exact`: Whether `total` is exact.
@@ -71,7 +79,7 @@ export type Food = Nutrients & {
  */
 export type FoodsFound = {
     foods: Food[];
-    products: Food[] | null;
+    products: Product[] | null;
     total: number;
     exact: boolean;
     more: boolean;

@@ -105,11 +105,19 @@ export type Food = Nutrients & {
 };
 
 /**
+ * A product of Open Food Facts as a search sends it: a {@link Food}, but its kcal `null` where Open Food Facts does not
+ * know them, like `Zwiebeln` of Edeka, so it still shows and I type its kcal from the pack, see `../src/food/search.ts`.
+ */
+export type Product = Omit<Food, "kcal"> & {
+    kcal: number | null;
+};
+
+/**
  * What a search finds.
  *
  * - `foods`: My foods whose name holds the search, ignoring case, or whose barcode it is, the most eaten first,
  *   equal ones alphabetical; all of them for an empty search.
- * - `products`: Products of Open Food Facts on the page asked for that are not among my foods, each a {@link Food}
+ * - `products`: Products of Open Food Facts on the page asked for that are not among my foods, each a {@link Product}
  *   as it would go into `Foods.md`, the best match first; none for a search shorter than {@link searchLength}
  *   or one of my foods only; `null` when Open Food Facts cannot be reached.
  * - `total`: Number of products of Open Food Facts the search matches, my foods among them;
@@ -119,7 +127,7 @@ export type Food = Nutrients & {
  */
 export type FoodsFound = {
     foods: Food[];
-    products: Food[] | null;
+    products: Product[] | null;
     total: number;
     exact: boolean;
     more: boolean;
@@ -128,11 +136,11 @@ export type FoodsFound = {
 /**
  * One page of the products of a search of Open Food Facts.
  *
- * - `products`: Products that can count, the best match first.
+ * - `products`: Products with a name, the best match first.
  * - `total`, `exact`, `more`: As those of {@link FoodsFound}.
  */
 type ProductsPage = {
-    products: Food[];
+    products: Product[];
     total: number;
     exact: boolean;
     more: boolean;
@@ -516,15 +524,17 @@ function firstOf(sent: string | string[] | undefined): string {
 }
 
 /**
- * Writes the size of a pack with a space between number and unit, like `450 g` of `450g`, spaces in a row one;
- * nothing for a size without a weight or volume, like `1 pcs`, which tells nothing of what it gives.
+ * Writes the size of a pack with a space between number and unit, like `450 g` of `450g`, a whole number without
+ * its zero decimals, like `500 g` of `500.0 g`, spaces in a row one; nothing for a size without a weight or volume,
+ * like `1 pcs`, which tells nothing of what it gives.
  * - `pack`: The size written.
  *
  * @param quantity - Size as its maker writes it, like `450g` or `140 g (7 x 20 g)`; missing when none is known
  * @returns Size, like `450 g`, empty for none
  */
 function packOf(quantity: string | undefined): string {
-    const pack: string = (quantity ?? "").replace(/(\d)(?=[a-zA-Z])/g, "$1 ").replace(/\s+/g, " ").trim();
+    const pack: string = (quantity ?? "").replace(/(\d)[.,]0+(?!\d)/g, "$1").replace(/(\d)(?=[a-zA-Z])/g, "$1 ")
+        .replace(/\s+/g, " ").trim();
     return /\d\s*(k?g|m?l|cl|dl)\b/i.test(pack) ? pack : "";
 }
 
@@ -753,25 +763,30 @@ function addressOf(query: string, page: number): URL {
  * them, the one of protein, carbs and fat it lacks worked out from its kcal, more missing unknown,
  * see {@link nutrientsOf}, and the size of its pack.
  * - `nutrients`: Its nutrients by their names.
- * - `kcal`: Its kcal per 100 g, not a number when missing.
+ * - `kcal`: Its kcal per 100 g, else its energy in kJ per 100 g turned into kcal, 4.184 kJ a kcal, `null` when both
+ *   are missing.
+ * - `given`: Its protein, carbs and fat per 100 g, `null` where missing.
  * - `name`: Its clean name.
  *
  * @param sent - Product as sent
- * @returns The product, or `null` when it has no name or no kcal, so it cannot count
+ * @returns The product, its kcal `null` when Open Food Facts does not know them, see {@link Product};
+ *   `null` when it has no name
  */
-function productOf(sent: ProductSent): Food | null {
+function productOf(sent: ProductSent): Product | null {
     const nutrients: { [nutrient: string]: number | string | undefined } = sent.nutriments ?? {};
-    const kcal: number = Number(nutrients["energy-kcal_100g"]);
+    const kj: number | null = nutrientOf(nutrients["energy-kj_100g"]);
+    const kcal: number | null = nutrientOf(nutrients["energy-kcal_100g"]) ?? (kj === null ? null : kj / 4.184);
+    const given: Omit<Nutrients, "kcal"> = {
+        protein: nutrientOf(nutrients.proteins_100g), carbs: nutrientOf(nutrients.carbohydrates_100g),
+        fat: nutrientOf(nutrients.fat_100g),
+    };
     const name: string = foodTextOf(sent.product_name ?? "");
-    if (name === "" || !Number.isFinite(kcal))
+    if (name === "")
         return null;
 
     return {
         name: name,
-        ...nutrientsOf({
-            kcal: kcal, protein: nutrientOf(nutrients.proteins_100g), carbs: nutrientOf(nutrients.carbohydrates_100g),
-            fat: nutrientOf(nutrients.fat_100g),
-        }),
+        ...kcal === null ? { kcal: null, ...given } : nutrientsOf({ kcal: kcal, ...given }),
         barcode: sent.code ?? "",
         brand: brandOf(firstOf(sent.brands)),
         store: brandOf(firstOf(sent.stores)),
@@ -801,9 +816,9 @@ async function productsAsk(query: string, page: number): Promise<ProductsPage> {
 
     const answer: Answer = await response.json() as Answer;
     const sent: ProductSent[] = answer.hits ?? (answer.product === undefined ? [] : [answer.product]);
-    const products: Food[] = sent
-        .map((product: ProductSent): Food | null => productOf(product))
-        .filter((product: Food | null): product is Food => product !== null);
+    const products: Product[] = sent
+        .map((product: ProductSent): Product | null => productOf(product))
+        .filter((product: Product | null): product is Product => product !== null);
     return {
         products: products,
         total: answer.count ?? products.length,
@@ -845,7 +860,7 @@ export async function foodsFind(text: string, page: number, products: boolean): 
         const found: ProductsPage = await productsAsk(query, Number.isInteger(page) && page > 0 ? page : 1);
         return {
             foods: foods,
-            products: found.products.filter((product: Food): boolean =>
+            products: found.products.filter((product: Product): boolean =>
                 !mine.some((candidate: Food): boolean => candidate.barcode === product.barcode)),
             total: found.total, exact: found.exact, more: found.more,
         };

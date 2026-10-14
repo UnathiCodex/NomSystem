@@ -8,7 +8,9 @@
  * Its sections stand apart at a glance, a thin grey line between them, each its name small and grey above it,
  * `My meals`, `My foods` and `Open Food Facts`, with the unit of its numbers at the right, `kcal / meal` or
  * `kcal / 100 g`, see {@link listHeadOf}.
- * It searches once the typing pauses, so a word asks only once; an empty field lists all my foods. That nothing
+ * It searches once the typing pauses, so a word asks only once; an empty field lists all my foods in the food view,
+ * and nothing where a food is picked, like the search of an entry or the plus of a meal, whose list would grow long:
+ * there a list shows only once I search. That nothing
  * is found it says in one grey line, only for the text as it stands, once its answer is in, never for a text typed
  * before, like a barcode typed digit by digit, whose first digits find nothing.
  * I search the food alone, like `räucherlachs`: Open Food Facts searches the names of its products, and a word of
@@ -38,7 +40,7 @@ import { crossPut, iconOf, iconPut, QuestionMark } from "../icons.ts";
 import { Check, Plus, X } from "lucide";
 import "./search.css";
 
-import type { Food, FoodsFound } from "./foods.ts";
+import type { Food, FoodsFound, Product } from "./foods.ts";
 
 
 /**
@@ -142,17 +144,18 @@ export function listHeadOf(name: string, unit: string): HTMLElement {
  * - `row`: Its row, a button where a click does something.
  *
  * @param name - Name of the meal or food, with what stands after or below it
- * @param kcal - Its kcal
+ * @param kcal - Its kcal; `null` while unknown, like those of a product Open Food Facts gives without them, which
+ *   leaves the number empty
  * @param click - What a click on the row does, like picking or opening it; `null` for a row a click does nothing on,
  *   or which takes its clicks itself, like that of a meal open, whose plus stands in it
  * @param end - What stands at the end of the line, like the `×` of a meal; `null` for nothing
  * @returns The line and its row
  */
-export function listLineOf(name: HTMLElement, kcal: number, click: (() => void) | null, end: HTMLElement | null):
-    [HTMLElement, HTMLElement] {
+export function listLineOf(name: HTMLElement, kcal: number | null, click: (() => void) | null,
+                           end: HTMLElement | null): [HTMLElement, HTMLElement] {
     const line: HTMLElement = elementOf("div", "food-item", "");
     const row: HTMLElement = click === null ? elementOf("div", "food-row", "") : buttonOf("food-row", "", click);
-    row.append(name, elementOf("span", "food-value", amountOf(kcal, 0)));
+    row.append(name, elementOf("span", "food-value", kcal === null ? "" : amountOf(kcal, 0)));
     line.append(row);
     if (end !== null)
         line.append(end);
@@ -350,7 +353,7 @@ function mineLinesOf(search: Search, food: Food): HTMLElement[] {
  * @param product - The product
  * @returns The name
  */
-function productNameOf(product: Food): HTMLElement {
+function productNameOf(product: Product): HTMLElement {
     const title: HTMLElement = elementOf("span", "food-title", "");
     title.append(foodNameOf("food-name", product.name, product.brand, product.store));
     if (product.pack !== "")
@@ -361,17 +364,25 @@ function productNameOf(product: Food): HTMLElement {
 /**
  * Builds the line of a product of Open Food Facts: a click adds it to my foods as Open Food Facts gives it, the line
  * taking no clicks meanwhile, so a double click adds it once, then takes it, see {@link addedOf}; when the reader
- * does not take it, a line below says so.
+ * does not take it, a line below says so. A product whose kcal Open Food Facts does not know shows no number, and
+ * a click opens the form of a food by hand with its name, brand, store, barcode and pack, the cursor in its kcal,
+ * which I type from its pack, see {@link newFormShow}, so nothing goes in without its kcal and nothing made up.
+ * - `kcal`: Its kcal, `null` while unknown.
  * - `line`, `row`: Its line and row.
  *
  * @param search - The search
  * @param product - The product
  * @returns Its line
  */
-function productLineOf(search: Search, product: Food): HTMLElement {
+function productLineOf(search: Search, product: Product): HTMLElement {
     const [line, row]: [HTMLElement, HTMLElement] = listLineOf(productNameOf(product), product.kcal, (): void => {
+        const kcal: number | null = product.kcal;
+        if (kcal === null) {
+            newFormShow(search, product);
+            return;
+        }
         row.inert = true;
-        foodSend(product).then(addedOf(search)).catch((reason: unknown): void => {
+        foodSend({ ...product, kcal: kcal }).then(addedOf(search)).catch((reason: unknown): void => {
             console.error(reason);
             row.inert = false;
             line.after(elementOf("p", "food-none food-nothing", `Not added: the reader did not take ${product.name}`));
@@ -398,8 +409,14 @@ function productLineOf(search: Search, product: Food): HTMLElement {
 function resultsShow(search: Search): void {
     const found: FoodsFound = search.found ?? { foods: [], products: [], total: 0, exact: true, more: false };
     const query: string = search.input.value.trim();
+    if (search.setup.pick !== null && query === "") {
+        search.results.replaceChildren();
+        search.shown = query;
+        search.enter = false;
+        return;
+    }
     const meals: HTMLElement[] = search.setup.meals?.(query) ?? [];
-    const products: Food[] = query === "" ? [] : found.products ?? [];
+    const products: Product[] = query === "" ? [] : found.products ?? [];
     const sections: HTMLElement[][] = [];
 
     if (meals.length > 0)
@@ -410,7 +427,7 @@ function resultsShow(search: Search): void {
             ...found.foods.flatMap((food: Food): HTMLElement[] => mineLinesOf(search, food)), ...fresh]);
     if (products.length > 0)
         sections.push([listHeadOf("Open Food Facts", "kcal / 100 g"),
-            ...products.map((product: Food): HTMLElement => productLineOf(search, product)),
+            ...products.map((product: Product): HTMLElement => productLineOf(search, product)),
             moreOf(search, products.length, found)]);
     else if (query !== "" && found.products === null)
         sections.push([listHeadOf("Open Food Facts", ""),
@@ -455,7 +472,7 @@ function newFoodOf(search: Search, query: string, mine: Food[]): HTMLElement[] {
     if (search.setup.pick === null || query === "" || /^\d{8,14}$/.test(query)
         || mine.some((food: Food): boolean => food.name.toLowerCase() === query.toLowerCase()))
         return [];
-    const plus: HTMLButtonElement = buttonOf("picker-new", "", (): void => newFormShow(search));
+    const plus: HTMLButtonElement = buttonOf("picker-new", "", (): void => newFormShow(search, null));
     plus.replaceChildren(iconOf(Plus), `New food “${query}”`);
     plus.title = "New food by hand, its kcal typed next";
     return [plus];
@@ -515,12 +532,14 @@ function numberRead(text: string): number | null {
 export function foodNewShow(element: HTMLElement): void {
     const search: Search | undefined = searches.get(element);
     if (search !== undefined)
-        newFormShow(search);
+        newFormShow(search, null);
 }
 
 /**
  * Opens the form of a food by hand in a search, see {@link foodNewShow}, named as typed in the search, the cursor in
- * its kcal, or in its name while none is typed.
+ * its kcal, or in its name while none is typed; for a product of Open Food Facts without kcal its name, brand and
+ * store filled in and its barcode and pack kept, see {@link productLineOf}.
+ * - `start`: What each field starts with.
  * - `form`: The form.
  * - `facts`: Its values in two columns.
  * - `inputs`: Text field of each value.
@@ -530,9 +549,12 @@ export function foodNewShow(element: HTMLElement): void {
  * - `add`: Sends the food, see {@link foodNewShow}.
  *
  * @param search - The search
+ * @param product - Product of Open Food Facts the food is, `null` for a food of my own
  */
-function newFormShow(search: Search): void {
+function newFormShow(search: Search, product: Product | null): void {
     search.results.querySelector(".food-form")?.remove();
+    const start: Map<string, string> = new Map([["name", product?.name ?? search.input.value.trim()],
+        ["brand", product?.brand ?? ""], ["store", product?.store ?? ""]]);
     const form: HTMLElement = elementOf("div", "food-form food-detail", "");
     const facts: HTMLElement = elementOf("div", "food-facts", "");
     const inputs: Map<string, HTMLInputElement> = new Map();
@@ -550,8 +572,8 @@ function newFormShow(search: Search): void {
         }
         form.inert = true;
         foodSend({
-            name: text("name"), kcal: kcal, protein: protein, carbs: carbs, fat: fat, barcode: "", brand: text("brand"),
-            store: text("store"), pack: "",
+            name: text("name"), kcal: kcal, protein: protein, carbs: carbs, fat: fat, barcode: product?.barcode ?? "",
+            brand: text("brand"), store: text("store"), pack: product?.pack ?? "",
         }).then((food: Food): void => {
             form.remove();
             addedOf(search)(food);
@@ -564,7 +586,7 @@ function newFormShow(search: Search): void {
 
     fields.forEach(([name, key]: [string, string]): void => {
         const label: HTMLElement = elementOf("span", "food-fact", name);
-        const input: HTMLInputElement = editFieldOf(key === "name" ? search.input.value.trim() : "", name, add, close);
+        const input: HTMLInputElement = editFieldOf(start.get(key) ?? "", name, add, close);
         input.className = "food-inline food-inline-new";
         input.inputMode = ["name", "brand", "store"].includes(key) ? "text" : "decimal";
         input.placeholder = "";
