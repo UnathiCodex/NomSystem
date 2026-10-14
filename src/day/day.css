@@ -1960,8 +1960,7 @@ svg.route-arrow {
 
     /* A meal or a food of the entry by category on a phone on one line, its grams first, as a recipe writes them,
        like `125 g Hackfleisch`, so grams and kcal stand apart, at both ends of the name: its grams, its name,
-       its kcal and ×; a food without its brand and store there, which would make the line too full, as a skill
-       shows its code alone on a phone; a name too long goes on below, never cut; the foods of a meal indented less,
+       its kcal and ×; a name too long goes on below, never cut; the foods of a meal indented less,
        the field of the grams narrower, just wide enough for four digits, and the kcal just as wide as four digits
        with their unit, like `1,250 kcal`, so a name like `Kidneybohnen` keeps its line whole */
     .meal-row {
@@ -1971,10 +1970,6 @@ svg.route-arrow {
 
     .meal-row .meal-grams {
         order: -1;
-    }
-
-    .meal-row .food-brand {
-        display: none;
     }
 
     .meal-parts {

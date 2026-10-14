@@ -145,10 +145,10 @@ body:has(> .food) {
 }
 
 /* The day's entries below the totals, each its start small and grey above it, so no column of times takes room
-   beside the names; then every line in the same two columns: what, and one column of numbers, the kcal of a meal
-   of mine and of a food eaten by itself, the grams of the foods of a meal, since a meal has no grams; the foods
-   of a meal indented under its name, so each meal reads as one block, their brackets below their names only where
-   one has no room */
+   beside the names; then every line in the same columns: what, and at the right the kcal, of a meal of mine and
+   of each food, a food with its grams in a column of their own before them, since a meal has no grams; the foods
+   of a meal indented under its name, so each meal reads as one block; every number at the right of its column,
+   see `.food-value` in `search.css` */
 #food-meals {
     margin-top: var(--gap);
 }
@@ -159,6 +159,10 @@ body:has(> .food) {
     gap: 0.75rem;
     align-items: baseline;
     padding: 0.125rem 0;
+}
+
+.food-eaten {
+    grid-template-columns: minmax(0, 1fr) 4.5rem 6.5rem;
 }
 
 .food-line:not(.food-meal) > .food-what,
@@ -193,7 +197,7 @@ body:has(> .food) {
     font-size: var(--control-text);
 }
 
-.food-entry > .food-kcal {
+.food-entry > .food-value {
     color: var(--text-main);
 }
 
@@ -214,8 +218,7 @@ body:has(> .food) {
     text-decoration: underline;
 }
 
-/* What of a meal and the name of a food with its brand and store, going on below where the column has no room,
-   never cut */
+/* What of a meal and the name of a food, going on below where the column has no room, never cut */
 .food-what {
     overflow-wrap: break-word;
 }
@@ -223,14 +226,6 @@ body:has(> .food) {
 /* Place and unknown foods grey */
 .food-place {
     color: var(--text-muted);
-}
-
-/* Grams and kcal at the right of their column, every digit equally wide, so the numbers align */
-.food-grams,
-.food-kcal {
-    text-align: right;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
 }
 
 

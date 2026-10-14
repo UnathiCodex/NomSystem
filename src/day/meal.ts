@@ -15,8 +15,8 @@
  *   own search at once, see {@link mealNew}; its first food puts it into `Meals.md` as its composition, at once,
  *   saved or not, and every food added or removed changes it there, see {@link freshSend}. Last among my foods
  *   stands `+ New food “Linsensuppe”`, which opens the form of a food by hand named as typed; when nothing is found,
- *   like a barcode Open Food Facts does not know, one grey line says so. A food is a row with its name, its brand and store in brackets, its grams, its kcal
- *   and its `×`, which removes it, like a food I did not eat of a cooking.
+ *   like a barcode Open Food Facts does not know, one grey line says so. A food is a row with its name alone, its
+ *   grams, its kcal and its `×`, which removes it, like a food I did not eat of a cooking.
  *   Its grams start at those I logged it with last in an entry of the same category, `Food` or `Cook`, see
  *   `gramsRead` in `reader/food.ts`, white like every fact, which I type over; the first time ever, they start empty,
  *   and I type my amount, like that of my chili; the cursor goes into the grams of what was picked, the first empty
@@ -59,9 +59,7 @@
 import { choicesOf, listOf, listOpen, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
-import {
-    bracketsWatch, buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodNameOf, foodsFind, gramsLoad,
-} from "../food/foods.ts";
+import { buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodsFind, gramsLoad } from "../food/foods.ts";
 import { dishesFound, dishNameOf, kcalTextOf, mealNameOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
 import { crossPut, iconOf, plusPut } from "../icons.ts";
@@ -453,11 +451,12 @@ function foodsClosed(): boolean {
 }
 
 /**
- * Builds the row of a food, beside the meals or of one: its name, its brand and store in brackets after it, like
- * `Skyr natur (K-Classic, Kaufland)`, since they only tell which one it is, marked when `Foods.md` does not hold it,
- * its grams, its kcal and a small grey `×`, which removes it, as a value picked in every list of the dialog.
+ * Builds the row of a food, beside the meals or of one: its name alone, like `Skyr natur`, without its brand and
+ * store, which only tell which one it is when I pick it, as everywhere a food stands as eaten, marked when `Foods.md`
+ * does not hold it, its grams, its kcal and a small grey `×`, which removes it, as a value picked in every list
+ * of the dialog.
  * - `food`: The food in `Foods.md`, `undefined` for one it does not hold.
- * - `name`: Its name with its brand and store, see `foodNameOf` in `../food/foods.ts`.
+ * - `name`: Its name.
  * - `kcalTextFor`: Its kcal as written, nothing while its grams are empty or `Foods.md` does not hold it.
  * - `kcal`: Cell of its kcal.
  * - `remove`: Its `×`.
@@ -471,7 +470,7 @@ function foodsClosed(): boolean {
 function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void, again: () => void): HTMLElement {
     const row: HTMLElement = elementOf("div", "meal-row", "");
     const food: Food | undefined = foodOf(pick);
-    const name: HTMLElement = foodNameOf("meal-name", pick.name, pick.brand, pick.store);
+    const name: HTMLElement = elementOf("span", "meal-name", pick.name);
     const kcalTextFor: () => string = (): string =>
         food === undefined || pick.grams.trim() === "" ? "" : kcalTextOf(kcalOf(pick));
     const kcal: HTMLElement = elementOf("span", "meal-kcal", kcalTextFor());
@@ -986,7 +985,6 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     foodsLine = document.createElement("button");
     plusPut(foodsLine, "Add a meal or a food");
     foodsRows = elementOf("div", "meal-rows", "");
-    bracketsWatch(foodsRows);
     foodsSearch = foodSearchOf({
         pick: (food: Food): void => foodPick(food, changed),
         meals: (query: string): HTMLElement[] => dishLinesOf(query, changed),
