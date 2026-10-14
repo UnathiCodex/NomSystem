@@ -12,8 +12,10 @@
  * - The row of a meal, the same in the section of the food view and in the list of the meals of an entry: its name,
  *   its foods in brackets after it by their names, and at the right what it gives at the usual portions.
  * - The section of the food view: `Meals`, then the row of each meal; a click shows its foods below it, each with
- *   its `×` while it has more than two, and the small grey plus that adds one through the food search, changed for good
- *   in `Meals.md` at once; the `×` of the meal, whose first click only asks, as the remove of the entry dialog does,
+ *   its `×` while it has more than two, and right after its name the small grey plus, like `ChiliConCarne +`, which
+ *   opens the food search below its foods and closes it again, a food picked changed for good in `Meals.md` at once;
+ *   a click on the row but on its plus hides its foods again; the `×` of the meal, whose first click only asks,
+ *   as the remove of the entry dialog does,
  *   the cross turning into a question mark, `Really remove?` as its tooltip. Right after the name `Meals` the one plus
  *   of a new meal, see `plusPut` in `../icons.ts`, as every plus stands right after what it adds to, which opens
  *   the form at the end of the meals.
@@ -228,11 +230,13 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
  * - `adding`: Name of the meal whose food search shows, in small letters, empty for none.
  * - `asked`: Name of the meal whose `×` asked `Really remove?`, in small letters, empty for none.
  * - `form`: The form of a new meal while open, `null` for none.
+ * - `toggle`: Shows the foods of a meal, or hides them again, its food search with them.
  * - `load`: Loads my meals again and shows them.
  * - `change`: Sends a meal with its foods changed for good and shows my meals as the reader sends them.
  * - `formOpen`: Opens the form of a new meal at the end of the meals.
  * - `heading`: The name `Meals` with its plus.
- * - `show`: Shows the meals, then the form while open.
+ * - `show`: Shows the meals, then the form while open; the row of the meal whose foods show no button but a row
+ *   that a click hides again, see `rowOf` in `../day/choices.ts`, since its plus stands inside it, right after its name.
  *
  * @returns The section
  */
@@ -279,15 +283,18 @@ export function mealsSectionOf(): HTMLElement {
         show();
         opened.querySelector("input")?.focus();
     };
+    const toggle: (key: string) => void = (key: string): void => {
+        open = open === key ? "" : key;
+        adding = "";
+        show();
+    };
     const show: () => void = (): void => {
         const rows: HTMLElement[] = dishes.flatMap((dish: Dish): HTMLElement[] => {
             const key: string = dish.name.toLowerCase();
             const line: HTMLElement = elementOf("div", "dish-line", "");
-            const row: HTMLButtonElement = buttonOf("dish-row", "", (): void => {
-                open = open === key ? "" : key;
-                adding = "";
-                show();
-            });
+            const cells: HTMLElement[] = dishCellsOf(dish);
+            const row: HTMLElement = open === key ? elementOf("div", "dish-row", "")
+                : buttonOf("dish-row", "", (): void => toggle(key));
             const remove: HTMLButtonElement = removeOf(`Remove ${dish.name}`, (): void => {
                 if (asked !== key) {
                     asked = key;
@@ -302,11 +309,20 @@ export function mealsSectionOf(): HTMLElement {
             });
             if (asked === key)
                 iconPut(remove, CircleQuestionMark, "Really remove?");
-            row.append(...dishCellsOf(dish));
+            row.append(...cells);
             row.setAttribute("aria-expanded", String(open === key));
             line.append(row, remove);
             if (open !== key)
                 return [line];
+
+            cells[0].append(plusOf(`Add a food to ${dish.name}`, (): void => {
+                adding = adding === key ? "" : key;
+                show();
+            }));
+            row.addEventListener("click", (event: MouseEvent): void => {
+                if ((event.target as HTMLElement).closest("button") === null)
+                    toggle(key);
+            });
 
             const detail: HTMLElement = elementOf("div", "dish-detail", "");
             detail.append(...dish.foods.map((food: string): HTMLElement => {
@@ -325,11 +341,7 @@ export function mealsSectionOf(): HTMLElement {
                 }, null);
                 detail.append(search);
                 queueMicrotask((): void => search.querySelector("input")?.focus());
-            } else
-                detail.append(plusOf("Add a food", (): void => {
-                    adding = key;
-                    show();
-                }));
+            }
             return [line, detail];
         });
         list.replaceChildren(...rows,

@@ -52,6 +52,13 @@
     overflow-wrap: break-word;
 }
 
+/* The plus right after the name of the meal whose foods show, which adds one more, a little apart from it and
+   in the middle of its line, as after the name of a meal in the entry by category */
+.dish-name .plus-quiet {
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
 .dish-row[aria-expanded="true"] .dish-parts {
     display: none;
 }
@@ -61,8 +68,8 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Foods of a meal below its row, in line with its name, a grey line at their left, then the plus or the food search
-   that adds one */
+/* Foods of a meal below its row, in line with its name, a grey line at their left, then the food search that adds
+   one while its plus has opened it */
 .dish-detail {
     display: flex;
     flex-direction: column;
