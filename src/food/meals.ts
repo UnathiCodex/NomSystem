@@ -24,7 +24,7 @@
  * - `./meals.css`: Look of the form and of the section.
  */
 
-import { amountOf, buttonOf, dishDelete, dishesLoad, dishSend, elementOf } from "./foods.ts";
+import { amountOf, buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodNameOf } from "./foods.ts";
 import { foodSearchClear, foodSearchOf } from "./search.ts";
 import { crossPut, iconPut, plusPut } from "../icons.ts";
 import { CircleQuestionMark } from "lucide";
@@ -96,21 +96,15 @@ function lineOfFood(food: Food): string {
 }
 
 /**
- * Makes the name of a food of a meal: its name, its brand and store grey in brackets after it, those it has,
- * like `Hackfleisch (Gut & Günstig, Edeka)`.
+ * Makes the name of a food of a meal, see `foodNameOf` in `./foods.ts`, like `Hackfleisch (Gut & Günstig, Edeka)`.
  * - `name`, `brand`, `store`: The parts of the line.
- * - `place`: Brand and store, those it has.
  *
  * @param line - Food of a meal, like `Hackfleisch;Gut & Günstig;Edeka`
  * @returns The name
  */
-function foodNameOf(line: string): HTMLElement {
+function lineNameOf(line: string): HTMLElement {
     const [name, brand, store]: string[] = line.split(";");
-    const place: string[] = [brand ?? "", store ?? ""].filter((part: string): boolean => part !== "");
-    const shown: HTMLElement = elementOf("span", "dish-name", name);
-    if (place.length > 0)
-        shown.append(elementOf("span", "food-brand", ` (${place.join(", ")})`));
-    return shown;
+    return foodNameOf("dish-name", name, brand ?? "", store ?? "");
 }
 
 /**
@@ -185,7 +179,7 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
     const foodsShow: () => void = (): void => {
         rows.replaceChildren(...foods.map((line: string): HTMLElement => {
             const row: HTMLElement = elementOf("div", "dish-food", "");
-            row.append(foodNameOf(line), removeOf(`Remove ${line.split(";")[0]}`, (): void => {
+            row.append(lineNameOf(line), removeOf(`Remove ${line.split(";")[0]}`, (): void => {
                 foods = foods.filter((other: string): boolean => other !== line);
                 foodsShow();
             }));
@@ -312,7 +306,7 @@ export function mealsSectionOf(): HTMLElement {
             const detail: HTMLElement = elementOf("div", "dish-detail", "");
             detail.append(...dish.foods.map((food: string): HTMLElement => {
                 const foodRow: HTMLElement = elementOf("div", "dish-food", "");
-                foodRow.append(foodNameOf(food), ...dish.foods.length > 2
+                foodRow.append(lineNameOf(food), ...dish.foods.length > 2
                     ? [removeOf(`Remove ${food.split(";")[0]}`, (): void =>
                         change(dish, dish.foods.filter((other: string): boolean => other !== food)))]
                     : []);

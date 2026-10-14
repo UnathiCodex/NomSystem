@@ -1194,10 +1194,9 @@ fieldset.entry-times {
     cursor: pointer;
 }
 
-/* Line of a value that stays as planned, see `locked` in `choices.ts`: grey, as every text that takes no click,
-   opening nothing */
+/* Line of a value that stays as planned, see `locked` in `choices.ts`: in the colour of any value, opening nothing */
 .picker-line:disabled {
-    color: var(--text-muted);
+    color: var(--text-main);
     cursor: default;
 }
 
@@ -1367,18 +1366,11 @@ fieldset.entry-times {
     width: 100%;
 }
 
-/* A meal of the log in its three rows: its summary, written by itself, grey as every text that takes no click,
-   its kcal beside it; then its meals and its foods, each its line, the rows picked below it, a bit smaller than
-   the fields, and its list under them; no room taken while nothing is picked */
+/* A meal of the log in its three rows: its summary as plain text, its kcal grey beside it; then its meals and its foods,
+   each its line, the rows picked below it, a bit smaller than the fields, and its list under them;
+   no room taken while nothing is picked */
 .meal-summary {
     overflow-wrap: anywhere;
-    color: var(--text-muted);
-}
-
-/* A row whose value takes no click, like the summary of a meal or a value as planned: no frame under the pointer */
-.panel-field:has(> .meal-summary):hover,
-.panel-field:has(.picker-line:disabled):hover {
-    border-color: transparent;
 }
 
 .meal {
@@ -1833,17 +1825,12 @@ svg.route-arrow {
 
     /* A meal or a food of the entry by category on a phone on one line, as on a computer: its name, its grams,
        kcal and ×, closer together; a food without its brand and store there, which would make the line too full,
-       as a skill shows its code alone on a phone; a name too long goes on below, never cut; the foods of a meal
-       indented less, the field of the grams narrower, just wide enough for four digits, and the kcal just as wide
-       as their number, so a name like `Kidneybohnen` keeps its line */
+       as a skill shows its code alone on a phone; a name too long cut short with dots; the foods of a meal indented
+       less, the field of the grams narrower, just wide enough for four digits, and the kcal just as wide as their
+       number, so a name like `Kidneybohnen` keeps its line whole */
     .meal-row {
         grid-template-columns: minmax(0, 1fr) auto 3.75rem auto;
         gap: 0.375rem;
-    }
-
-    .meal-row .meal-name {
-        white-space: normal;
-        overflow-wrap: break-word;
     }
 
     .meal-row .food-brand {

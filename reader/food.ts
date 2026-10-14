@@ -127,13 +127,17 @@ type ProductsPage = {
 /**
  * A food of a meal with what it gives, its {@link Nutrients}.
  *
- * - `name`: Name of the food, as the meal lists it.
+ * - `name`: Name of the food, as the meal lists it, like `Skyr natur`.
+ * - `brand`, `store`: Its brand and the store I bought it in, like `K-Classic` and `Kaufland`; empty where the line
+ *   names none, so the page shows them grey after the name, as everywhere.
  * - `grams`: Grams eaten as the meal lists them, else the usual portion of the food; 0 for an unknown food without grams.
  * - `estimate`: Whether the grams are the usual portion, because the meal lists none, or guessed, marked by `~`.
  * - `known`: Whether `Foods.md` holds the food; an unknown food gives nothing.
  */
 export type Eaten = Nutrients & {
     name: string;
+    brand: string;
+    store: string;
     grams: number;
     estimate: boolean;
     known: boolean;
@@ -807,8 +811,8 @@ function sumOf(parts: Nutrients[]): Nutrients {
 }
 
 /**
- * Turns a line `X-FOOD` of a meal into what its food gives, see {@link Eaten}, named by its label,
- * see {@link labelOf}.
+ * Turns a line `X-FOOD` of a meal into what its food gives, see {@link Eaten}, with its name, brand and store
+ * as the line writes them.
  * - `read`: The line as read, see {@link lineOf}.
  * - `known`: The food in `Foods.md`, `undefined` when it holds none, see {@link foodOfLine}.
  * - `grams`: Grams that count.
@@ -824,7 +828,8 @@ function eatenOf(line: string, mine: Map<string, Food>): Eaten {
     const grams: number = read.grams ?? known?.portion ?? 0;
     const share: number = known === undefined ? 0 : grams / 100;
     return {
-        name: labelOf(read), grams: grams, estimate: read.grams === null || read.guessed, known: known !== undefined,
+        name: read.name, brand: read.brand, store: read.store, grams: grams, estimate: read.grams === null || read.guessed,
+        known: known !== undefined,
         kcal: share * (known?.kcal ?? 0), protein: share * (known?.protein ?? 0),
         carbs: share * (known?.carbs ?? 0), fat: share * (known?.fat ?? 0),
     };

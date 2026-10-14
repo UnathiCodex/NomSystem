@@ -29,7 +29,7 @@
  * - `./food.css`: Look of the food view.
  */
 
-import { amountOf, elementOf, foodDayLoad } from "./foods.ts";
+import { amountOf, elementOf, foodDayLoad, foodNameOf } from "./foods.ts";
 import { foodSearchOf } from "./search.ts";
 import { mealsSectionOf } from "./meals.ts";
 import { labelOf } from "../day/places.ts";
@@ -113,15 +113,16 @@ function totalsShow(day: FoodDay): void {
 }
 
 /**
- * Builds the line of a food of a meal: its name, marked when not in `Foods.md`, its grams and its kcal.
- * - `name`: Name of the food.
+ * Builds the line of a food of a meal: its name, its brand and store grey in brackets after it, those it has,
+ * as everywhere, like `Reis (Golden Sun, Lidl)`, marked when not in `Foods.md`, its grams and its kcal.
+ * - `name`: Name of the food, see `foodNameOf` in `./foods.ts`.
  *
  * @param eaten - Food with what it gives
  * @returns Line in the columns of the meals, the first one empty
  */
 function eatenLineOf(eaten: Eaten): HTMLElement {
     const line: HTMLElement = elementOf("div", "food-line", "");
-    const name: HTMLElement = elementOf("span", "food-what", eaten.name);
+    const name: HTMLElement = foodNameOf("food-what", eaten.name, eaten.brand, eaten.store);
     if (!eaten.known)
         name.append(elementOf("span", "food-place", " · not in my foods"));
     line.append(
@@ -146,10 +147,11 @@ function eatenLineOf(eaten: Eaten): HTMLElement {
 function mealLinesOf(meal: Meal): HTMLElement[] {
     const head: HTMLElement = elementOf("div", "food-line food-meal", "");
     const start: HTMLAnchorElement = document.createElement("a");
-    const what: HTMLElement = elementOf("span", "food-what", meal.title);
+    const what: HTMLElement = elementOf("span", "food-what", "");
     start.className = "food-time";
     start.href = `/?date=${shown}`;
     start.textContent = new Date(meal.start).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    what.append(elementOf("span", "name-text", meal.title));
     if (meal.location !== "")
         what.append(elementOf("span", "food-place", ` · ${labelOf(meal.location)}`));
     head.append(start, what, elementOf("span", "", ""),

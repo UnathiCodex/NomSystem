@@ -27,7 +27,7 @@
  * - `./search.css`: Look of the search, the same wherever it stands.
  */
 
-import { amountOf, buttonOf, elementOf, foodSend, foodsFind } from "./foods.ts";
+import { amountOf, buttonOf, elementOf, foodNameOf, foodSend, foodsFind } from "./foods.ts";
 import { iconPut, plusTypedPut } from "../icons.ts";
 import { Check, X } from "lucide";
 import "./search.css";
@@ -112,11 +112,7 @@ const searches: WeakMap<HTMLElement, Search> = new WeakMap();
  */
 function cellsOf(food: Food, pack: string): HTMLElement[] {
     const title: HTMLElement = elementOf("span", "food-title", "");
-    const name: HTMLElement = elementOf("span", "food-name", food.name);
-    const place: string[] = [food.brand, food.store].filter((part: string): boolean => part !== "");
-    if (place.length > 0)
-        name.append(elementOf("span", "food-brand", ` (${place.join(", ")})`));
-    title.append(name);
+    title.append(foodNameOf("food-name", food.name, food.brand, food.store));
     if (pack !== "")
         title.append(elementOf("span", "food-pack", `Pack ${pack}`));
     return [

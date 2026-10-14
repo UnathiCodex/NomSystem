@@ -52,9 +52,37 @@ button.food-row {
     color: var(--text-muted);
 }
 
-/* Name of a food whole, with its brand and store grey after it, going on below where too long, never cut */
+/* Name of a food on one line, its brand and store grey after it, see the next rule where they do not fit */
 .food-name {
-    overflow-wrap: break-word;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* A name with a grey part after it on one line, like a food with its brand and store, a meal with its place or a food
+   not in my foods, see `foodNameOf` in `foods.ts`: where the row has no room for all, the grey part gives way first,
+   cut short with dots as grey as it is, like `Hackfleisch (Gut & Günstig, Ed…`, then the name itself, with dots
+   of its own colour; the same in the food view and the dialogs */
+:has(> .name-text) {
+    display: flex;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.name-text {
+    flex: none;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.food-brand,
+.food-place,
+.meal-unknown {
+    min-width: 0;
+    overflow: hidden;
+    white-space: pre;
+    text-overflow: ellipsis;
 }
 
 .food-brand {

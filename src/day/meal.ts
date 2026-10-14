@@ -48,7 +48,7 @@
 import { choicesOf, listOf, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
-import { amountOf, buttonOf, dishesLoad, elementOf, foodsFind } from "../food/foods.ts";
+import { amountOf, buttonOf, dishesLoad, elementOf, foodNameOf, foodsFind } from "../food/foods.ts";
 import { dishCellsOf, kcalTextOf, mealFormOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf } from "../food/search.ts";
 import { crossPut, plusPut, plusTake, plusTypedPut } from "../icons.ts";
@@ -386,7 +386,7 @@ function foodsClosed(): boolean {
  * `Skyr natur (K-Classic, Kaufland)`, since they only tell which one it is, marked when `Foods.md` does not hold it,
  * its grams, its kcal and a small grey `×`, which removes it, as a value picked in every list of the dialog.
  * - `food`: The food in `Foods.md`, `undefined` for one it does not hold.
- * - `place`: Its brand and store, those it has.
+ * - `name`: Its name with its brand and store, see `foodNameOf` in `../food/foods.ts`.
  * - `kcal`: Cell of its kcal.
  * - `remove`: Its `×`.
  *
@@ -398,8 +398,7 @@ function foodsClosed(): boolean {
 function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void): HTMLElement {
     const row: HTMLElement = elementOf("div", "meal-row", "");
     const food: Food | undefined = foodOf(pick);
-    const place: string[] = [pick.brand, pick.store].filter((part: string): boolean => part !== "");
-    const name: HTMLElement = elementOf("span", "meal-name", pick.name);
+    const name: HTMLElement = foodNameOf("meal-name", pick.name, pick.brand, pick.store);
     const kcal: HTMLElement = elementOf("span", "meal-kcal", food === undefined ? "" : kcalTextOf(kcalOf(pick)));
     const [grams, input]: [HTMLElement, HTMLInputElement] = gramsFieldOf(pick.grams,
         food === undefined ? "" : amountOf(food.portion, 0), `Grams of ${pick.name}`, (text: string): void => {
@@ -409,8 +408,6 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void): HTML
         });
     const remove: HTMLButtonElement = buttonOf("", "", removed);
 
-    if (place.length > 0)
-        name.append(elementOf("span", "food-brand", ` (${place.join(", ")})`));
     if (food === undefined)
         name.append(elementOf("span", "meal-unknown", " · not in my foods"));
     name.title = name.textContent ?? "";

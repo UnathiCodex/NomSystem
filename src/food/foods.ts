@@ -70,13 +70,17 @@ export type FoodsFound = {
 /**
  * A food of a meal with what it gives, as the reader sends it.
  *
- * - `name`: Name of the food, as the meal lists it.
+ * - `name`: Name of the food, as the meal lists it, like `Skyr natur`.
+ * - `brand`, `store`: Its brand and the store I bought it in, like `K-Classic` and `Kaufland`; empty where the line
+ *   names none.
  * - `grams`: Grams eaten as the meal lists them, else the usual portion of the food.
  * - `estimate`: Whether the grams are the usual portion, because the meal lists none.
  * - `known`: Whether `Foods.md` holds the food; an unknown food gives nothing.
  */
 export type Eaten = Nutrients & {
     name: string;
+    brand: string;
+    store: string;
     grams: number;
     estimate: boolean;
     known: boolean;
@@ -240,6 +244,28 @@ export function elementOf(tag: string, className: string, text: string): HTMLEle
     element.className = className;
     element.textContent = text;
     return element;
+}
+
+/**
+ * Makes the name of a food, the same wherever it stands: its name, then its brand and store grey in brackets, those
+ * it has, like `Skyr natur (K-Classic, Kaufland)`, since they only tell which one it is; where its row has no room,
+ * the brand and store give way first, cut short with grey dots, then the name with its own, see `search.css`.
+ * - `shown`: The name with its parts.
+ * - `place`: Brand and store, those it has.
+ *
+ * @param className - Class of the name where it stands, like `food-name` in the food search
+ * @param name - Name, like `Skyr natur`
+ * @param brand - Brand, empty for none
+ * @param store - Store, empty for none
+ * @returns The name
+ */
+export function foodNameOf(className: string, name: string, brand: string, store: string): HTMLElement {
+    const shown: HTMLElement = elementOf("span", className, "");
+    const place: string[] = [brand, store].filter((part: string): boolean => part !== "");
+    shown.append(elementOf("span", "name-text", name));
+    if (place.length > 0)
+        shown.append(elementOf("span", "food-brand", ` (${place.join(", ")})`));
+    return shown;
 }
 
 /**
