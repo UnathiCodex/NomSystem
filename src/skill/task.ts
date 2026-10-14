@@ -260,7 +260,7 @@ function fieldOf(form: HTMLElement, placeholder: string, enter: (text: string) =
  */
 function stuckShow(row: HTMLElement, task: SkillTask, part: string, written: () => Promise<void>): void {
     const form: HTMLElement = row.querySelector(".task-form") as HTMLElement;
-    const input: HTMLInputElement = fieldOf(form, part === "" ? "Where stuck, like step 3" : `Where stuck in ${part}), like step 3`,
+    const input: HTMLInputElement = fieldOf(form, part === "" ? "Where stuck" : `Where stuck in ${part}`,
         (text: string): void => attemptWrite(row, task, part, "stuck", text, "", written));
     form.replaceChildren(input);
     form.hidden = false;

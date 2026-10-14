@@ -304,7 +304,7 @@ function resultsShow(search: Search): void {
             rows.push(moreOf(search, products.length, found));
     }
 
-    const newFood: HTMLButtonElement = buttonOf("chip-button food-new", "", (): void => formShow(newFood,
+    const newFood: HTMLButtonElement = buttonOf("plus-quiet food-new", "", (): void => formShow(newFood,
         { name: query, kcal: 0, protein: 0, carbs: 0, fat: 0, portion: portionUsual, barcode: "", brand: "", store: "" },
         true, added));
     iconPut(newFood, Plus, "Own food by hand, when nothing is found");

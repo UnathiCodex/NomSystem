@@ -11,8 +11,8 @@
  *   the food search, which adds one; `Cancel` and `Save`, which takes no click until the meal has a name and two foods.
  *   A new variant starts as a copy of the latest, to change what was different that time. Saved, the reader writes it
  *   into `Meals.md`, named by today and its note, like `13.10.2026 · MitMais`, see `reader/food.ts`.
- * - The section of the food view: `Meals` with its + for a new meal, the square + of the page, see `.chip-button`
- *   in `base.css`, then a row per meal: its name, how many variants
+ * - The section of the food view: `Meals` with its small grey plus for a new meal, see `.plus-quiet` in `base.css`,
+ *   then a row per meal: its name, how many variants
  *   and the kcal of a serving of the latest; a click shows below it its variants, the latest first, each its name,
  *   its servings and the kcal of a serving, its foods below, and `×`, whose first click only asks, as the remove of the entry
  *   dialog does, the cross turning into a question mark, `Really remove?` as its tooltip; then its + for a new variant.
@@ -142,7 +142,7 @@ function buttonOf(className: string, text: string, click: () => void): HTMLButto
 }
 
 /**
- * Makes a + of the page, see `.chip-button` in `base.css`: the square button with the icon plus, its words as tooltip.
+ * Makes the small grey plus of every list that adds one more, see `.plus-quiet` in `base.css`, its words as tooltip.
  * - `button`: The +.
  *
  * @param words - What it adds, like `New variant`
@@ -150,7 +150,7 @@ function buttonOf(className: string, text: string, click: () => void): HTMLButto
  * @returns The +
  */
 function plusOf(words: string, click: () => void): HTMLButtonElement {
-    const button: HTMLButtonElement = buttonOf("chip-button", "", click);
+    const button: HTMLButtonElement = buttonOf("plus-quiet", "", click);
     iconPut(button, Plus, words);
     return button;
 }
@@ -198,9 +198,9 @@ function fieldOf(value: string, placeholder: string, name: string): HTMLInputEle
 export function mealFormOf(setup: FormSetup): HTMLElement {
     let draft: DraftFood[] = setup.foods.map(draftOf);
     const form: HTMLElement = elementOf("div", "dish-form", "");
-    const name: HTMLInputElement = fieldOf(setup.name, "Name of the meal, like Chili con Carne", "Name of the meal");
+    const name: HTMLInputElement = fieldOf(setup.name, "Name of the meal", "Name of the meal");
     const written: HTMLElement = elementOf("p", "dish-hint", "");
-    const note: HTMLInputElement = fieldOf("", "Note of this variant, like mit Mais", "Note of the variant");
+    const note: HTMLInputElement = fieldOf("", "Note of the variant", "Note of the variant");
     const servings: HTMLInputElement = fieldOf(String(setup.servings), "", "Servings the whole gives");
     const servingsLabel: HTMLElement = elementOf("label", "dish-number", "");
     const rows: HTMLElement = elementOf("div", "dish-foods", "");

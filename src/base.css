@@ -221,6 +221,28 @@ textarea {
     }
 }
 
+/* A small grey plus without border that adds one more, as the plus of every list in the dialogs, see
+   `.picker-line.picker-empty` in `day/day.css`: lighter under the pointer, its icon as small as a × */
+.plus-quiet {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    padding: 0.25rem 0;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.plus-quiet:hover {
+    color: var(--text-main);
+}
+
+.plus-quiet svg.lucide {
+    width: 0.9375rem;
+    height: 0.9375rem;
+}
+
 /* Focus of the keyboard as a calm grey line around, never the browser's glaring white */
 :focus-visible {
     outline: 2px solid var(--chosen-line);

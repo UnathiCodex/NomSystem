@@ -125,7 +125,8 @@ button.food-row {
     color: var(--text-muted);
 }
 
-/* The + of an own food by hand at the end of the foods, see `.chip-button` in `base.css`, a little apart from them */
+/* The small grey plus of an own food by hand at the end of the foods, see `.plus-quiet` in `base.css`,
+   a little apart from them */
 .food-new {
     margin-top: 0.5rem;
 }
@@ -193,7 +194,6 @@ button.food-row {
 
 /* A grey lighter under the pointer on every button of the search */
 button.food-row:hover,
-.food-new:hover,
 .food-form button:hover {
     background: var(--fill);
 }
