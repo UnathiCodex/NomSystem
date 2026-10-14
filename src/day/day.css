@@ -846,7 +846,7 @@ button.box-ring.box-checked svg {
 
 /* Two pickers side by side in one row, like the skill and the type of a skill entry in its summary, read as the file
    writes it, `MGT1372_EntrepreneurialBusiness (VO)`: each only as wide as its value, the type one space after the
-   name and in its brackets, `( )` faint while it has none; where the row has no room for both, as on a phone,
+   name and in its brackets, a small grey plus while it has none; where the row has no room for both, as on a phone,
    the type goes below the name; the list of either opens below both, as wide as the row */
 .panel-pair {
     display: flex;
@@ -867,20 +867,29 @@ button.box-ring.box-checked svg {
     min-width: 5rem;
 }
 
-.panel-pair > .picker:last-child .picker-line::before {
+.panel-pair > .picker:last-child .picker-line:not(.picker-empty)::before {
     content: "(";
 }
 
-.panel-pair > .picker:last-child .picker-line::after {
+.panel-pair > .picker:last-child .picker-line:not(.picker-empty)::after {
     content: ")";
 }
 
+/* Without type a small grey plus in its place, as under a chapter, which opens the types */
 .panel-pair > .picker:last-child .picker-line.picker-empty {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
     color: var(--text-muted);
 }
 
-.panel-pair > .picker:last-child .picker-line.picker-empty::after {
-    content: "\2002)";
+.panel-pair > .picker:last-child .picker-line.picker-empty:hover {
+    color: var(--text-main);
+}
+
+.panel-pair > .picker:last-child .picker-line svg.lucide {
+    width: 0.9375rem;
+    height: 0.9375rem;
 }
 
 .panel-pair .picker-box {
