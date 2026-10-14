@@ -69,8 +69,9 @@
 }
 
 /* Pickers of my modules below the root, the module, then its chapter, see `pickerOf` in `tree.ts`: each a row
-   of the tree, the name picked in the light text and the grey arrow of a folder after it, turned down, beside it
-   on its line also where the name ends in dots, which opens its menu; each the anchor of its menu */
+   of the tree, the name picked in bold, in the text of the tree, a step below the bold root, so what I picked stands
+   out from the notes below it, and the grey arrow of a folder after it, turned down, beside it on its line also where
+   the name ends in dots, which opens its menu; each the anchor of its menu */
 .tree-pick,
 .tree-choice {
     width: 100%;
@@ -83,6 +84,7 @@
 
 .tree-pick {
     display: flex;
+    font-weight: 600;
 }
 
 .tree-pick-name {
@@ -110,21 +112,20 @@
     anchor-name: --tree-chapter;
 }
 
-/* Menu of a picker beside the tree, in the middle of the room right of it, over the note, its first row level with
-   the picker, so the tree stays in sight; as wide as its longest name, so no name is cut, as the menus of the dialogs:
-   the page's background, a grey line and a soft shadow; its rows those of the tree, the one picked in the calm grey
-   of what is picked; it scrolls where the room below is short */
+/* Menu of a picker right beside the tree, over the note, its first row level with the picker, so it opens next to
+   what I clicked and the tree stays in sight; as wide as its longest name, so no name is cut, as the menus of
+   the dialogs: the page's background, a grey line and a soft shadow; its rows those of the tree, the one picked
+   in the calm grey of what is picked; it scrolls where the room below is short */
 .tree-menu {
     position: fixed;
     inset: auto;
     top: calc(anchor(top) - 0.375rem - 1px);
-    right: 0;
     bottom: var(--gap);
-    left: anchor(--tree right);
+    left: calc(anchor(--tree right) + 0.5rem);
     width: max-content;
     height: fit-content;
     max-height: stretch;
-    margin: 0 auto;
+    margin: 0;
     padding: 0.375rem;
     border: 1px solid var(--line);
     border-radius: var(--radius);
