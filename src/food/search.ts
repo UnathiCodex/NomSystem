@@ -328,10 +328,10 @@ function mineLinesOf(search: Search, food: Food): HTMLElement[] {
         foodDelete(food).then((): void => resultsLoad(search, 1))
             .catch((error: unknown): void => console.error(error));
     });
+    if (remove !== null)
+        crossPut(remove, `Remove ${food.name}`);
     if (remove !== null && search.asking === key)
         iconPut(remove, QuestionMark, "Really remove?");
-    else if (remove !== null)
-        crossPut(remove, `Remove ${food.name}`);
     const [line, row]: [HTMLElement, HTMLElement] = listLineOf(foodNameOf("food-name", food.name, food.brand, food.store),
         food.kcal, (): void => {
         if (search.setup.pick !== null) {
