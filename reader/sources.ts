@@ -195,7 +195,8 @@ export const systemFiles: SystemFilesSources = {
 /**
  * Skills of the semester, 2026W, each by its folder from `NomWorkspace`, written with `/`: my modules
  * in `NomSkillingmodules`, the pilot first, then my projects,
- * like `NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow`.
+ * like `NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow`, and the time I spend logging, planning and
+ * thinking about my day, `NomFrequencediary`, linking the folder of my diary.
  * The Skill picker offers them first, in this order, a module by its code, the part of its folder name before `_`,
  * like `IN2028`, a project by its folder name, like `WokFlow`; the menu of the scripts view and the skill area show
  * the modules, see {@link activeModules}, since a project has no chapters and no tasks.
@@ -212,6 +213,7 @@ export const activeSkills: string[] = [
     "NomSkillingmodules/MGT1372_EntrepreneurialBusiness",
     "NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow",
     "NomSystemdashboard",
+    "NomManageplannings/NomFrequencediary",
 ];
 
 /**
