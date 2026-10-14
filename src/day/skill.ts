@@ -164,11 +164,12 @@ let picks: SkillPicks = {
 /**
  * Beginning of the name of the folder of the material of each type in a module, whose files the Documents list offers
  * for an entry of that type: a lecture's slides in `VO_UniversityLectureLessons`, the sheet of an exercise
- * or a tutorial in `TU_UniversityTutorExercises`, a homework's in `HU_UniversityHomeExercises`, an exam's
- * in `FA_UniversityModuleExaminations`, a practical course's in a folder starting with `PR_`.
+ * in `UE_UniversityModuleExercises`, of a tutorial in `TU_UniversityTutorExercises`, a homework's
+ * in `HU_UniversityHomeExercises`, an exam's in `FA_UniversityModuleExaminations`, a practical course's in a folder
+ * starting with `PR_`.
  */
 const materialFolders: { [type: string]: string } = {
-    VO: "VO_", UE: "TU_", TU: "TU_", HU: "HU_", FA: "FA_", PR: "PR_",
+    VO: "VO_", UE: "UE_", TU: "TU_", HU: "HU_", FA: "FA_", PR: "PR_",
 };
 
 /**
