@@ -25,7 +25,7 @@
  *
  * A meal of the log lists its foods as lines `X-FOOD`, like `X-FOOD:Skyr natur · K-Classic · Kaufland;150`: appended
  * with the entry, and replaced as a whole when the entry changes; the reader counts what each meal gives, see `food.ts`.
- * A cooking, `Cook`, lists what went into the pot without grams, like `X-FOOD:Hackfleisch;Gut & Günstig;Edeka`,
+ * A cooking, `Cook`, lists what went into the pot the same way, like `X-FOOD:Hackfleisch;Gut & Günstig;Edeka;500`,
  * which counts nothing; a meal drawn from it holds `X-COOKED:<UID of the Cook entry>` and the foods it ate with their
  * grams, so each keeps its foods in its own lines and the meal what it was that day, whatever the cooking becomes
  * later; a link only ever points back in time, see {@link cookedCheck}.

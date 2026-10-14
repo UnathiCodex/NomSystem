@@ -27,12 +27,12 @@
  * or `Döner;~400` with grams guessed; and the summary as its what, see {@link mealTitle}.
  * A meal written before my meals, named on its own, like `Bortzeit`, opens as that one meal with its foods,
  * so its name stays.
- * A cooking of the log, `Cook`, lists what went into the pot in two of these rows, Summary and Foods, the foods alone,
- * without grams and kcal, written as their name, brand and store, like `Hackfleisch;Gut & Günstig;Edeka`.
+ * A cooking of the log, `Cook`, lists what went into the pot in two of these rows, Summary and Foods, each food with
+ * its grams, like `Hackfleisch;Gut & Günstig;Edeka;500`, and counts no kcal, see `reader/food.ts`.
  * A meal may draw from one of my cookings of the days before it in a row of its own, see {@link cookedRowOf}:
- * its foods come along, each taking the grams I ate typed in its row, and the meal writes `X-COOKED` with the cooking's
- * identifier and its foods with their grams as its own lines, so meal and cooking each keep their foods,
- * see {@link mealCooked}.
+ * its foods come along with their grams of the pot, which I type over with what I ate, no total for the pot,
+ * and the meal writes `X-COOKED` with the cooking's identifier and its foods with their grams as its own lines,
+ * so meal and cooking each keep their foods, see {@link mealCooked}.
  * A meal eaten out, where nothing can be weighed, I log by photo through Claude, who writes its entry through the reader;
  * the dialog itself takes no photo.
  *
@@ -164,11 +164,6 @@ let cookings: Cooking[] = [];
 let cooked: string = "";
 
 /**
- * Whether the rows are those of a cooking, which lists its foods without grams and counts nothing.
- */
-let forCooking: boolean = false;
-
-/**
  * My foods by their keys, see {@link keyOf}, and by their names alone in small letters, for lines written before
  * foods had brand and store; loaded when the meal was built, with every food added since.
  */
@@ -297,8 +292,7 @@ function gramsIs(part: string): boolean {
 /**
  * Turns a line `X-FOOD` into its parts, as the reader reads it: one of today of four parts, its food's name, brand
  * and store, then its grams, like `Skyr natur;K-Classic;Kaufland;150`, told by its last part being grams and its
- * second none, or of three parts without grams, as a cooking lists its foods, like `Skyr natur;K-Classic;Kaufland`;
- * an older one names its food alone, its grams after it, and for the food of a meal the meal,
+ * second none; an older one names its food alone, its grams after it, and for the food of a meal the meal,
  * its servings eaten and its variant, a line of a meal without grams, like `Salz;ChiliConCarne;1;09.10.2026`,
  * told apart by its second part being no number.
  * - `parts`: The parts of the line, without spaces at their ends.
@@ -313,8 +307,6 @@ function lineOf(line: string): Line {
     const parts: string[] = line.split(";").map((part: string): string => part.trim());
     if (parts.length === 4 && !gramsIs(parts[1]) && gramsIs(parts[3]))
         return { name: parts[0], brand: parts[1], store: parts[2], grams: parts[3], meal: "", servings: "", variant: "" };
-    if (parts.length === 3 && !gramsIs(parts[1]) && !gramsIs(parts[2]))
-        return { name: parts[0], brand: parts[1], store: parts[2], grams: "", meal: "", servings: "", variant: "" };
     const grams: boolean = parts.length > 1 && gramsIs(parts[1]);
     const rest: string[] = grams ? parts.slice(2) : parts.slice(1);
     return {
@@ -457,7 +449,6 @@ function foodsClosed(): boolean {
  * `Skyr natur · K-Classic · Kaufland`, marked when `Foods.md` does not hold it, its grams,
  * its kcal, `⇄`, which opens the list of the foods to replace it, and `×`, which removes it.
  * - `food`: The food in `Foods.md`, `undefined` for one it does not hold.
- * - `counted`: Whether it takes grams and shows its kcal, not in a cooking, see {@link forCooking}.
  * - `place`: Its brand and store, those it has.
  * - `kcal`: Cell of its kcal.
  * - `replace`, `remove`: Its buttons `⇄` and `×`.
@@ -469,10 +460,9 @@ function foodsClosed(): boolean {
 function foodRowOf(pick: FoodPick, changed: () => void): HTMLElement {
     const row: HTMLElement = elementOf("div", "meal-row", "");
     const food: Food | undefined = foodOf(pick);
-    const counted: boolean = !forCooking;
     const place: string[] = [pick.brand, pick.store].filter((part: string): boolean => part !== "");
     const name: HTMLElement = elementOf("span", "meal-name", pick.name);
-    const kcal: HTMLElement = elementOf("span", "meal-kcal", food === undefined || !counted ? "" : kcalTextOf(kcalOf(pick, 1)));
+    const kcal: HTMLElement = elementOf("span", "meal-kcal", food === undefined ? "" : kcalTextOf(kcalOf(pick, 1)));
     const [grams, input]: [HTMLElement, HTMLInputElement] = numberFieldOf(pick.grams,
         food === undefined ? "" : amountOf(food.portion, 0), "g", `Grams of ${pick.name}`, (text: string): void => {
             pick.grams = text;
@@ -509,7 +499,6 @@ function foodRowOf(pick: FoodPick, changed: () => void): HTMLElement {
     });
     iconPut(replace, ArrowLeftRight, `Replace ${pick.name}`);
     iconPut(remove, X, `Remove ${pick.name}`);
-    grams.hidden = !counted;
     row.append(name, grams, kcal, replace, remove);
     return row;
 }
@@ -570,7 +559,7 @@ function summaryShow(): void {
     const total: number = meals.reduce((sum: number, meal: MealPick): number => sum + mealKcalOf(meal), 0)
         + picks.reduce((sum: number, pick: FoodPick): number => sum + kcalOf(pick, 1), 0);
     summary.replaceChildren(mealTitle());
-    if (!forCooking && (meals.length > 0 || picks.length > 0))
+    if (meals.length > 0 || picks.length > 0)
         summary.append(elementOf("span", "picker-detail", kcalTextOf(total)));
 }
 
@@ -799,8 +788,8 @@ function cookingTextOf(cooking: Cooking): string {
 
 /**
  * Puts the foods of the cooking the meal draws from first among its foods, in place of those it brought before,
- * each with the grams it had among the foods already, else none yet, so I type the grams I ate in its row;
- * none while no cooking is picked.
+ * each with the grams it had among the foods already, else its grams of the pot, all of it, which I type over
+ * with what I ate in its row; none while no cooking is picked.
  * - `cooking`: The cooking picked, `undefined` for none.
  * - `before`: Grams typed of each food so far, by its key.
  * - `drawn`: The foods of the cooking.
@@ -812,7 +801,7 @@ function drawnShow(changed: () => void): void {
     const before: Map<string, string> = new Map(picks.map((pick: FoodPick): [string, string] => [keyOf(pick), pick.grams]));
     const drawn: FoodPick[] = (cooking?.foods ?? []).map((line: string): FoodPick => {
         const read: Line = lineOf(line);
-        return { ...pickOf(read, before.get(keyOf(read)) ?? ""), fromCooking: true };
+        return { ...pickOf(read, before.get(keyOf(read)) ?? read.grams), fromCooking: true };
     });
     picks = [...drawn, ...picks.filter((pick: FoodPick): boolean =>
         pick.fromCooking !== true && !drawn.some((other: FoodPick): boolean => keyOf(other) === keyOf(pick)))];
@@ -904,7 +893,7 @@ function pickerRowOf(name: string, line: HTMLButtonElement, rows: HTMLElement, b
  * @param title - Summary of the meal written before, like `ChiliConCarne, Brot`; empty for a new meal
  * @param changed - Tells the dialog that the meal changed
  * @param drawing - The cooking a meal draws from and its start, see {@link Drawing}; `null` for a cooking,
- *   which shows only its summary and its foods, without grams and kcal
+ *   which shows only its summary and its foods
  * @returns The rows of summary, meals and foods, to put into the dialog in place of the summary
  * @throws {Error} - When the reader cannot answer
  */
@@ -915,7 +904,6 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     dishes = mealsMine;
     cookings = cooks;
     cooked = drawing?.cooked ?? "";
-    forCooking = drawing === null;
     mine = new Map();
     found.foods.forEach(mineAdd);
     meals = [];
@@ -981,7 +969,7 @@ export async function mealOf(lines: string[], title: string, changed: () => void
  * then the foods beside the meals, each its name, brand and store, then its grams typed, else its usual portion,
  * parted by `;`, like `Skyr natur;K-Classic;Kaufland;150` or `Reis;;;80` of a food without brand and store,
  * so every line says which product it was and how much; a food `Foods.md` does not hold, without grams, by its
- * name alone; a decimal comma as a point. A cooking writes its foods without grams, like `Reis;;`.
+ * name alone; a decimal comma as a point.
  * - `times`: Servings eaten of a meal.
  * - `tail`: The meal, its servings eaten and its variant, as each line of its foods ends.
  * - `one`: Grams of one serving of a food of a meal, `null` for an unknown food without grams.
@@ -1001,8 +989,6 @@ export function mealFoods(): string[] {
             });
         }),
         ...picks.map((pick: FoodPick): string => {
-            if (forCooking)
-                return `${pick.name};${pick.brand};${pick.store}`;
             const portion: number | undefined = foodOf(pick)?.portion;
             const grams: string = pick.grams !== "" ? pick.grams.replace(",", ".")
                 : portion === undefined ? "" : gramsTextOf(portion);

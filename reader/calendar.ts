@@ -65,8 +65,8 @@ import type { CalendarSource } from "./sources.ts";
  * - `tutors`: Tasks I copied for my tutor in a skill entry of the log, its `X-TUTOR`s in order,
  *   like `IN2028/Kiosk Sales Standard Error`, none when the event has none.
  * - `foods`: Foods of a meal or a cooking, its `X-FOOD`s in order, each a food of `Foods.md` by its name, brand
- *   and store with the grams, like `Skyr natur;K-Classic;Kaufland;150`, a cooking's without grams, an older one
- *   by its name alone, like `Reis;150`; none when the event has none.
+ *   and store with the grams, like `Skyr natur;K-Classic;Kaufland;150`, an older one by its name alone,
+ *   like `Reis;150`; none when the event has none.
  * - `cooked`: For a meal drawn from a cooking, the identifier of that entry `Cook`, its `X-COOKED`;
  *   empty when the event has none.
  * - `pain`: My neck pain from 0 to 10 after a long neck session, its `X-PAIN`, like `5`, empty when the event has none.
