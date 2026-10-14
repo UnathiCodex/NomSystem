@@ -447,14 +447,24 @@ function productLineOf(search: Search, product: Product): HTMLElement {
 }
 
 /**
+ * Foods of mine the food view lists while nothing is typed, the most eaten first, see {@link resultsShow}, so the list
+ * stays short; the others it finds as I type.
+ */
+const shownFoods: number = 10;
+
+/**
  * Shows what the search found in its sections, each its head, see {@link listHeadOf}, a thin grey line between them,
- * those that found nothing left out: my meals, where the search shows them, see {@link SearchSetup}; my foods;
+ * those that found nothing left out: my meals, where the search shows them, see {@link SearchSetup}; my foods, while
+ * nothing is typed only the most eaten, see {@link shownFoods}, and the one open, with a grey line how many more
+ * a search finds;
  * then, for a search of some letters, the products of Open Food Facts of every page loaded, how many of how many,
  * like `8 of 54`, and `More` while a next page holds more, or that Open Food Facts cannot be reached;
  * one grey line when nothing is found at all.
  * - `found`: What the search found.
  * - `query`: The search as typed.
  * - `meals`: Lines of my meals found.
+ * - `listed`: My foods listed.
+ * - `more`: How many of my foods only a search lists.
  * - `products`: Products shown.
  * - `sections`: The sections that found something, each its head and its lines.
  *
@@ -470,6 +480,9 @@ function resultsShow(search: Search): void {
         return;
     }
     const meals: HTMLElement[] = search.setup.meals?.(query) ?? [];
+    const listed: Food[] = query !== "" ? found.foods : found.foods.filter((food: Food, index: number): boolean =>
+        index < shownFoods || keyOf(food) === search.open);
+    const more: number = found.foods.length - listed.length;
     const products: Product[] = query === "" ? [] : found.products ?? [];
     const sections: HTMLElement[][] = [];
 
@@ -478,7 +491,8 @@ function resultsShow(search: Search): void {
     const fresh: HTMLElement[] = newFoodOf(search, query, found.foods);
     if (found.foods.length > 0 || fresh.length > 0)
         sections.push([listHeadOf("My foods", "kcal / 100 g"),
-            ...found.foods.flatMap((food: Food): HTMLElement[] => mineLinesOf(search, food)), ...fresh]);
+            ...listed.flatMap((food: Food): HTMLElement[] => mineLinesOf(search, food)), ...fresh,
+            ...more > 0 ? [elementOf("p", "food-none food-nothing", `${more} more by searching`)] : []]);
     if (products.length > 0)
         sections.push([listHeadOf("Open Food Facts", "kcal / 100 g"),
             ...products.map((product: Product): HTMLElement => productLineOf(search, product)),
