@@ -141,7 +141,8 @@ function totalsShow(day: FoodDay): void {
 
 /**
  * Builds the line of a food of a meal: its name, its brand and store in brackets after it, those it has,
- * as everywhere, like `Reis (Golden Sun, Lidl)`, marked when not in `Foods.md`, its grams and its kcal.
+ * as everywhere, like `Reis (Golden Sun, Lidl)`, its grams and its kcal; a food not in `Foods.md` without kcal,
+ * since the hint below the totals names it, see {@link totalsShow}.
  * - `name`: Name of the food, see `foodNameOf` in `./foods.ts`.
  *
  * @param eaten - Food with what it gives
@@ -150,8 +151,6 @@ function totalsShow(day: FoodDay): void {
 function eatenLineOf(eaten: Eaten): HTMLElement {
     const line: HTMLElement = elementOf("div", "food-line", "");
     const name: HTMLElement = foodNameOf("food-what", eaten.name, eaten.brand, eaten.store);
-    if (!eaten.known)
-        name.append(elementOf("span", "food-place", " · not in my foods"));
     line.append(
         elementOf("span", "", ""),
         name,

@@ -1,6 +1,7 @@
 /* Food, in the scheme of the day: the bar of the shown day over the whole width, then the day and my meals and foods
-   side by side where both fit, else one below the other, beside the areas at the left edge; the day only as wide as
-   its totals and meals need, 30rem, my meals and foods all the rest, since they matter more than one day;
+   side by side where both fit, else one below the other, beside the areas at the left edge; the day at least 30rem
+   and my meals and foods at least 30rem, the day taking three parts of every width beyond, they one, so the foods
+   of a meal keep their brackets on their line;
    the page itself scrolls, no box of its own, so the wheel, a swipe, the keys and the scrollbar all scroll it,
    on a computer and on a phone alike */
 .food {
@@ -13,18 +14,18 @@
     padding: var(--gap) var(--gap) calc(4 * var(--gap));
 }
 
-/* The day's totals and meals in line with the date above them, a clear step from the rail's buttons, not right
-   beside them, as the date bar's framed arrows may stand; kept so; the step comes on top of the day's 30rem,
-   so its columns keep their room */
+/* The day's totals and meals a step from the rail's buttons, not right beside them, as the date bar's framed arrows
+   may stand, nor as far in as the date; kept so; the step comes on top of the day's 30rem, so its columns keep
+   their room */
 .food-day {
-    --food-indent: calc(var(--control-height) + 2 * var(--control-gap));
-    flex: 1 1 calc(30rem + var(--food-indent));
+    --food-indent: calc(2 * var(--gap));
+    flex: 3 1 calc(30rem + var(--food-indent));
     min-width: 0;
     padding-left: var(--food-indent);
 }
 
 .food-foods {
-    flex: 999 1 36rem;
+    flex: 1 1 30rem;
     min-width: 0;
 }
 
