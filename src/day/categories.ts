@@ -32,7 +32,7 @@
  * each by its name, like `TUM Innenstadt`, its address grey beside it in the list; a picked one is written with its address,
  * as one line, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`; its row shows its name with a pencil `✎`
  * beside it and its address small and grey below it, which opens the link of the place, its `ALTREP`, when it has
- * one; the pencil shows its parts below it, see {@link minePartsOf}, its address, postcode with town, country
+ * one; the pencil shows its parts below it, see {@link minePartsOf}, its name, address, postcode with town, country
  * and link, each one row, as the foods of a meal stand, which change my place in `Places.md` as I type them, entries
  * written before keeping what they have; a new place goes into `Places.md` by its typed name when picked, its parts
  * showing below it at once, so I type them next, see {@link placeAdd}.
@@ -658,9 +658,9 @@ function partOf(name: string, input: HTMLInputElement): HTMLLabelElement {
 
 /**
  * Builds the parts of the place picked in a field, as the foods of a meal and the documents of a chapter stand:
- * indented under the place with a thin grey line at their left, see `.place-parts` in `day.css`, the same four rows
- * for my place and for `Online`, three parts in place of an address and the link last, see {@link minePartsOf}
- * and {@link onlinePartsOf}.
+ * indented under the place with a thin grey line at their left, see `.place-parts` in `day.css`: for my place its name,
+ * then for my place and for `Online` alike three parts in place of an address and the link last,
+ * see {@link minePartsOf} and {@link onlinePartsOf}.
  *
  * @param field - Field of the place, like `Place`
  * @param parts - Pencil and address of the place, see {@link placePartsOf}
@@ -697,16 +697,17 @@ function placeTake(old: string, place: Place): void {
 }
 
 /**
- * Builds the parts of my place picked in a field, see {@link partsOf}: its address, its postcode with its town
- * and its country, see `addressPartsOf` in `places.ts`, then its link, which follows the address as the search
- * of Google Maps while it is that search or empty, see `mapsLinkIs`, until I type a link myself, like the NavigaTUM
- * page of a room. A part goes into `Places.md` as I leave it, the row of my place changed, see `placeSend`
- * in `places.ts`, every field of a place taking it as written, see {@link placeTake}; when the reader does not take
- * it, like a link that is no web address, a grey line says so.
+ * Builds the parts of my place picked in a field, see {@link partsOf}: its name, which renames it, then its address,
+ * its postcode with its town and its country, see `addressPartsOf` in `places.ts`, then its link, which follows
+ * the address as the search of Google Maps while it is that search or empty, see `mapsLinkIs`, until I type a link
+ * myself, like the NavigaTUM page of a room. A part goes into `Places.md` as I leave it, the row of my place changed,
+ * see `placeSend` in `places.ts`, every field of a place taking it as written, see {@link placeTake}; a new name
+ * shows the rows anew, the part I went on to keeping the cursor; when the reader does not take a part, like a name
+ * another place has or a link that is no web address, a grey line says so.
  * - `line`: The line of my place, as last written.
- * - `name`: Its name, which stays.
  * - `street`, `town`, `country`: The parts of its address.
- * - `address`, `postcode`, `land`, `link`: Fields of the street, the postcode with the town, the country and the link.
+ * - `name`, `address`, `postcode`, `land`, `link`: Fields of the name, the street, the postcode with the town,
+ *   the country and the link.
  * - `follows`: Whether the link follows the address.
  * - `typed`: The address as typed, its parts parted by commas.
  * - `hint`: Line saying that the reader did not take a part.
@@ -719,8 +720,8 @@ function placeTake(old: string, place: Place): void {
  */
 function minePartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]): HTMLElement {
     let line: string = mineOf(field) ?? values[field.key];
-    const name: string = labelOf(line);
     const [street, town, country]: [string, string, string] = addressPartsOf(addressOf(line));
+    const name: HTMLInputElement = partFieldOf("text", labelOf(line), "Name of the place");
     const address: HTMLInputElement = partFieldOf("text", street, "Address of the place");
     const postcode: HTMLInputElement = partFieldOf("text", town, "Postcode and town of the place");
     const land: HTMLInputElement = partFieldOf("text", country, "Country of the place");
@@ -731,14 +732,20 @@ function minePartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]
         .filter((part: string): boolean => part !== "").join(", ");
     const hint: HTMLParagraphElement = document.createElement("p");
     hint.className = "entry-none";
-    hint.textContent = "Not saved: a link only as a web address";
+    hint.textContent = "Not saved: it needs a new name, and a link only as a web address";
     hint.hidden = true;
     const write: () => void = (): void => {
-        placeSend({ name: name, address: typed(), link: link.value }, name).then((place: Place): void => {
+        placeSend({ name: name.value, address: typed(), link: link.value }, labelOf(line)).then((place: Place): void => {
+            const renamed: boolean = place.name !== labelOf(line);
+            const typing: string | null = document.activeElement?.getAttribute("aria-label") ?? null;
             placeTake(line, place);
             line = lineOf(place);
             hint.hidden = true;
             placePartsShow(parts[0], parts[1], field);
+            if (!renamed)
+                return;
+            placesShow();
+            document.querySelector<HTMLInputElement>(`#entry .place-parts input[aria-label="${typing}"]`)?.focus();
         }).catch((error: unknown): void => {
             console.error(error);
             hint.hidden = false;
@@ -752,12 +759,12 @@ function minePartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]
     link.addEventListener("input", (): void => {
         follows = false;
     });
-    for (const part of [address, postcode, land, link])
+    for (const part of [name, address, postcode, land, link])
         part.addEventListener("change", write);
     const element: HTMLElement = document.createElement("div");
     element.className = "place-parts";
-    element.append(partOf("Address", address), partOf("Postcode", postcode), partOf("Country", land),
-        partOf("Link", link), hint);
+    element.append(partOf("Name", name), partOf("Address", address), partOf("Postcode", postcode),
+        partOf("Country", land), partOf("Link", link), hint);
     return element;
 }
 
@@ -812,7 +819,7 @@ function onlinePartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElemen
 /**
  * Adds a place typed that is none of mine yet, see the top of this file: the reader writes it into `Places.md`
  * at once by its name, a room into `Rooms.md`, and picked it shows its parts, so I type its address and its link
- * below it next, see {@link minePartsOf}; nothing for an empty name, which no place has.
+ * below it next, its name still to mend, see {@link minePartsOf}; nothing for an empty name, which no place has.
  * - `place`: The place as written.
  *
  * @param field - Field of a place, like `Place`
