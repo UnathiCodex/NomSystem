@@ -17,12 +17,15 @@
  *   store in brackets, its grams as I ate it the last time and its `×` while the meal has more than one, each
  *   dragged up or down to another place, so the foods that matter most stand first and show in the brackets of its
  *   line, see {@link dragPut}, the order changed for good in `Meals.md` at once; right after
- *   the name of the meal the small grey plus, like `Chili con Carne +`, which opens the search of my foods below its
- *   foods and closes it again, a food picked changed for good in `Meals.md` at once; a click on the line but on its
- *   plus closes the meal again.
+ *   the name of the meal the small grey plus, like `Chili con Carne +`, which opens below its foods the search of my
+ *   foods and of Open Food Facts by name or barcode, as the plus of a meal in an entry does, and closes it again;
+ *   a food picked, a product taken into my foods first, changed for good in `Meals.md` at once, the search staying
+ *   open and empty for the next, since I mostly add many; a click on the line but on its plus closes the meal
+ *   again.
  *
  * - `./foods.ts`: Loads my meals, sends and removes meals, writes amounts and makes elements and buttons.
- * - `./search.ts`: The search of my foods, which adds a food to a meal, and the head and lines of every list.
+ * - `./search.ts`: The search of my foods and of Open Food Facts, which adds a food to a meal, and the head and lines
+ *   of every list.
  * - `../search.ts`: Compares the text typed in the search of the meals with their names and foods.
  * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, and the plain question mark, their words
  *   as tooltip.
@@ -293,12 +296,11 @@ export function mealsSectionOf(): HTMLElement {
                 const foods: HTMLElement = foodSearchOf({
                     pick: (food: Food): void => {
                         const added: string = `${food.name};${food.brand};${food.store}`;
-                        adding = "";
                         change(dish, [...dish.foods.filter((other: string): boolean => other !== added), added]);
                     },
                     meals: null,
-                    products: false,
-                    nothing: "None of my foods matches",
+                    products: true,
+                    nothing: "Nothing found",
                 });
                 detail.append(foods);
                 queueMicrotask((): void => foods.querySelector("input")?.focus());
