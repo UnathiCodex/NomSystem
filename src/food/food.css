@@ -145,10 +145,9 @@ body:has(> .food) {
 }
 
 /* The day's entries below the totals, each its start small and grey above it, so no column of times takes room
-   beside the names; then every line in the same columns: what, and at the right the kcal, of a meal of mine and
-   of each food, a food with its grams in a column of their own before them, since a meal has no grams; the foods
-   of a meal indented under its name, so each meal reads as one block; every number at the right of its column,
-   see `.food-value` in `search.css` */
+   beside the names; then every line in the same two columns: what, and at the right one column of numbers, the kcal
+   of each entry on the line of its start and the grams of each food; the foods of a meal indented under its name,
+   so each meal reads as one block; every number at the right of its column, see `.food-value` in `search.css` */
 #food-meals {
     margin-top: var(--gap);
 }
@@ -159,10 +158,6 @@ body:has(> .food) {
     gap: 0.75rem;
     align-items: baseline;
     padding: 0.125rem 0;
-}
-
-.food-eaten {
-    grid-template-columns: minmax(0, 1fr) 4.5rem 6.5rem;
 }
 
 .food-line:not(.food-meal) > .food-what,
@@ -184,8 +179,8 @@ body:has(> .food) {
 }
 
 /* Start of an entry in grey and its place after it, a grey line above it, apart from the entry before; in the column
-   of numbers, white as every fact, what the whole entry gives where it holds more than one thing; in the text
-   of the lines below, so the total reads as plainly as theirs */
+   of numbers, white and bold, what the whole entry gives, the one kcal of the entry, as the totals of the day are
+   bold; in the text of the lines below */
 .food-entry {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 6.5rem;
@@ -199,10 +194,10 @@ body:has(> .food) {
 
 .food-entry > .food-value {
     color: var(--text-main);
+    font-weight: 600;
 }
 
-/* What an entry holds at its top in the text of controls: a meal of mine, or a food eaten by itself as a meal
-   of that one food */
+/* What an entry holds at its top in the text of controls: a meal of mine, or a food eaten by itself */
 .food-meal {
     font-size: var(--control-text);
 }

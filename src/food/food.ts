@@ -6,8 +6,8 @@
  * to the day before and after, a small icon beside it back to today, faded and off on today.
  * The day: the number of its meals and its totals
  * of kcal, protein, carbs and fat, all alike, without goals, so the log stays a log, not calorie control;
- * then each meal of the log: its start, linking to the day in the day view,
- * what and where, and its kcal, below it each of its foods with its grams and kcal, by its name alone.
+ * then each meal of the log: its start, linking to the day in the day view, where, and its kcal in bold,
+ * below it what it holds, each food by its name alone with its grams.
  * A food listed without grams counts nothing; every amount is rounded and an estimate anyway,
  * so none is marked as one. A food not in `Foods.md` and a meal that lists no foods count nothing,
  * and a line below the totals says so; so does a nutrient a food does not know, the totals adding what is known,
@@ -149,52 +149,36 @@ function totalsShow(day: FoodDay): void {
 }
 
 /**
- * Builds the line of a food eaten: its name alone, without its brand and store, which only tell which one it is
- * when I pick it, then its grams and its kcal in the two columns of numbers, both empty where it gives nothing,
- * like a food without grams or one not in `Foods.md`, which the hints below the totals name, see {@link totalsShow};
- * in the text of controls for a food eaten by itself, which stands as an item of its entry, see {@link mealLinesOf}.
+ * Builds a line of what an entry holds, a name: a meal of mine alone, or a food alone, without its brand and store,
+ * which only tell which one it is when I pick it, with its grams in the column of numbers, none for a food without
+ * grams, which the hints below the totals name, see {@link totalsShow}; a meal or a food eaten by itself in the text
+ * of controls, the foods of a meal indented below it, see {@link mealLinesOf}.
  * - `line`: The line.
  *
- * @param eaten - Food with what it gives
- * @param item - Whether it is eaten by itself, not as a food of one of my meals
+ * @param name - Name of the meal or the food, like `Chili con Carne` or `Semmel`
+ * @param grams - Grams of the food, 0 for none, `null` for a meal, which has no grams
+ * @param item - Whether it stands at the top of its entry, as a meal or a food eaten by itself
  * @returns Line in the columns of the meals
  */
-function foodLineOf(eaten: Eaten, item: boolean): HTMLElement {
-    const line: HTMLElement = elementOf("div", item ? "food-line food-meal food-eaten" : "food-line food-eaten", "");
-    line.append(elementOf("span", "food-what", eaten.name),
-        elementOf("span", "food-value", eaten.grams > 0 ? amountTextOf(eaten.grams, "g") : ""),
-        elementOf("span", "food-value", eaten.known && eaten.grams > 0 ? amountTextOf(eaten.kcal, "kcal") : ""));
-    return line;
-}
-
-/**
- * Builds a line of what an entry holds at its top, in the text of controls: what, and its kcal in the column
- * of numbers, none when it gives nothing known.
- * - `line`: The line.
- *
- * @param what - What, like the name of a meal or of a food eaten by itself
- * @param kcal - Its kcal, `null` for none known
- * @returns The line
- */
-function itemLineOf(what: HTMLElement, kcal: number | null): HTMLElement {
-    const line: HTMLElement = elementOf("div", "food-line food-meal", "");
-    line.append(what, elementOf("span", "food-value", kcal === null ? "" : amountTextOf(kcal, "kcal")));
+function whatLineOf(name: string, grams: number | null, item: boolean): HTMLElement {
+    const line: HTMLElement = elementOf("div", item ? "food-line food-meal" : "food-line", "");
+    line.append(elementOf("span", "food-what", name),
+        elementOf("span", "food-value", grams === null || grams === 0 ? "" : amountTextOf(grams, "g")));
     return line;
 }
 
 /**
  * Builds the lines of an entry: its start in grey above it, linking to its day in the day view, so no column of times
- * takes room beside the names, and where, and at the right what the whole entry gives, when it holds more than one
- * meal or food, like `654 kcal` for Chili con Carne with bread; then what it holds: each meal of mine, its name with
- * its kcal, and below it its foods, each with its grams and kcal, see {@link foodLineOf}, and each food eaten
- * by itself on one line of the same columns, like bread beside the chili or an apple alone, so a food never stands
- * under a meal it does not belong to; an older entry whose summary names more than its foods, like `Bortzeit`, stands
- * as one meal of that name; an entry without foods stands by its summary with a hint.
+ * takes room beside the names, and where, and at the right what the whole entry gives, its kcal in bold, the one
+ * number of kcal of every entry, always where it gives anything known; then what it holds, each line a name,
+ * see {@link whatLineOf}: each meal of mine, below it its foods with their grams, and each food eaten by itself
+ * with its grams, like bread beside the chili or an apple alone, so a food never stands under a meal it does not
+ * belong to; an older entry whose summary names more than its foods, like `Bortzeit`, stands as one meal of that name;
+ * an entry without foods stands by its summary with a hint.
  * - `entry`: Line of its start and place, and of its kcal.
  * - `when`: Its start and place.
  * - `meals`: Foods of each meal of mine, by the name of the meal, in the order of the lines.
  * - `alone`: Foods eaten by themselves.
- * - `kcalOf`: kcal of foods together, `null` while none is known.
  *
  * @param meal - Entry with what it gives
  * @returns Lines of the entry
@@ -211,7 +195,7 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
     if (meal.foods.length === 0) {
         const none: HTMLElement = elementOf("div", "food-line", "");
         none.append(elementOf("span", "food-place", "No foods listed"));
-        return [entry, itemLineOf(elementOf("span", "food-what", meal.title), null), none];
+        return [entry, whatLineOf(meal.title, null, true), none];
     }
 
     const meals: Map<string, Eaten[]> = new Map();
@@ -226,17 +210,13 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
         meals.set(meal.title.trim(), alone);
         alone = [];
     }
-    const kcalOf: (foods: Eaten[]) => number | null = (foods: Eaten[]): number | null =>
-        foods.some((eaten: Eaten): boolean => eaten.known)
-            ? foods.reduce((sum: number, eaten: Eaten): number => sum + eaten.kcal, 0) : null;
-    if (meals.size + alone.length > 1)
+    if (meal.foods.some((eaten: Eaten): boolean => eaten.known))
         entry.append(elementOf("span", "food-value", amountTextOf(meal.kcal, "kcal")));
     return [
         entry,
-        ...[...meals].flatMap(([name, foods]: [string, Eaten[]]): HTMLElement[] =>
-            [itemLineOf(elementOf("span", "food-what", name), kcalOf(foods)),
-                ...foods.map((eaten: Eaten): HTMLElement => foodLineOf(eaten, false))]),
-        ...alone.map((eaten: Eaten): HTMLElement => foodLineOf(eaten, true)),
+        ...[...meals].flatMap(([name, foods]: [string, Eaten[]]): HTMLElement[] => [whatLineOf(name, null, true),
+            ...foods.map((eaten: Eaten): HTMLElement => whatLineOf(eaten.name, eaten.grams, false))]),
+        ...alone.map((eaten: Eaten): HTMLElement => whatLineOf(eaten.name, eaten.grams, true)),
     ];
 }
 
