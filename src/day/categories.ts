@@ -63,7 +63,7 @@
  *
  * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top.
  * - `./entries.ts`: Sends new, changed and removed entries to the reader.
- * - `./meal.ts`: A meal of the log: its summary, its meals and its foods, each picked from its own list.
+ * - `./meal.ts`: A meal of the log: its summary and its meals and foods, picked from one search, and its new meals.
  * - `./places.ts`: The dialog of a place, which adds a new one with its address to `Places.md` or changes mine.
  * - `./skill.ts`: The fields of `Skill`: skill and type, place, semester, chapters, documents,
  *   and in the log attempts.
@@ -78,7 +78,7 @@
 
 import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
-import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
+import { cookName, foodName, mealCooked, mealFoods, mealOf, mealsNewSend, mealTitle } from "./meal.ts";
 import {
     labelOf, lineOf, meetingIdOf, meetingLineOf, meetingOf, meetingSoftwareOf, onlineName, placeEdit, placeOpen,
     placesStart,
@@ -1166,7 +1166,8 @@ async function boxSave(): Promise<void> {
 
 /**
  * Sends the new or changed entry to the reader, into the log, then closes the dialog; a box goes into the plan,
- * see {@link boxSave}. A skill entry goes to the one writer of skill entries, see `skill.ts`.
+ * see {@link boxSave}. A skill entry goes to the one writer of skill entries, see `skill.ts`. A meal or a cooking
+ * sends its new meals to `Meals.md` first, see `mealsNewSend` in `meal.ts`.
  * - `fields`: Fields, note and times of the dialog.
  *
  * @param calendar - Calendar of the day
@@ -1178,6 +1179,8 @@ async function entrySave(calendar: Calendar): Promise<void> {
         return;
     }
     const fields: EntryFields = fieldsRead();
+    if (foodsListed())
+        await mealsNewSend();
     if (chosen?.name === skillName)
         await skillSave(calendar, opened.entry?.id ?? "", fields);
     else if (opened.entry !== null)

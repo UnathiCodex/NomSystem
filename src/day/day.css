@@ -1434,37 +1434,6 @@ fieldset.entry-times {
     font-variant-numeric: tabular-nums;
 }
 
-/* The summary with `Keep as meal` after it, or in their place the field of the name of a meal with its cross and check,
-   on one line where they fit */
-.meal-line {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.25rem var(--control-gap);
-    min-width: 0;
-}
-
-/* Keep as meal: a quiet action after the summary, grey without border, lighter under the pointer, as the one plus
-   of every list */
-.meal-keep {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--text-muted);
-    font: inherit;
-    cursor: pointer;
-}
-
-.meal-keep:hover {
-    color: var(--text-main);
-}
-
-/* The field of the name of a meal in the room of the summary */
-.meal-line > .food-field-text {
-    flex: 1 1 12rem;
-    width: auto;
-}
-
 .meal {
     display: flex;
     flex-direction: column;
