@@ -88,6 +88,23 @@ export function dishesFound(dishes: Dish[], typed: string): Dish[] {
 }
 
 /**
+ * Makes the name of a meal as the search of an entry shows it: its name, then grey in brackets its first two foods
+ * by their names, and `…` when it has more, like `Chili con Carne (Hackfleisch gemischt, Kidneybohnen, …)`, so I still
+ * know what is in it, as a food has its brand and store in brackets.
+ * - `name`: The name.
+ * - `foods`: Names of its foods.
+ *
+ * @param dish - Meal of `Meals.md`
+ * @returns The name
+ */
+export function dishNameOf(dish: Dish): HTMLElement {
+    const name: HTMLElement = elementOf("span", "food-name", dish.name);
+    const foods: string[] = dish.foods.map((line: string): string => line.split(";")[0]);
+    name.append(elementOf("span", "food-brand", ` (${[...foods.slice(0, 2), ...foods.length > 2 ? ["…"] : []].join(", ")})`));
+    return name;
+}
+
+/**
  * Makes the cells of the row of a meal in the food view: its name with its foods in brackets after it by their names
  * alone, as a food has its brand and store, like `ChiliConCarne (Hackfleisch, Kidneybohnen, Tomaten)`, going on below
  * where the row has no room, never cut; and at the right what it gave the last time I ate it, like `443 kcal`;

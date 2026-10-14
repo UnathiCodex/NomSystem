@@ -61,7 +61,7 @@ import { dayOf } from "../skill/attempts.ts";
 import {
     bracketsWatch, buttonOf, dishesLoad, dishSend, elementOf, foodNameOf, foodsFind, gramsLoad,
 } from "../food/foods.ts";
-import { dishesFound, kcalTextOf, mealNameOf } from "../food/meals.ts";
+import { dishesFound, dishNameOf, kcalTextOf, mealNameOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
 import { crossPut, iconOf, plusPut } from "../icons.ts";
 import { Plus } from "lucide";
@@ -657,7 +657,8 @@ export async function mealsNewSend(): Promise<void> {
  * Builds my meals as the search of the row `Foods` shows them above my foods, see `../food/search.ts`: while the text
  * typed is no meal of mine nor of this entry, first the one plus with it, `+ New meal “Chili con Carne”`, see
  * {@link mealNew}; then the line of each meal whose name or foods hold the words typed, see `dishesFound` in
- * `../food/meals.ts`, its name and what it gave the last time I ate it; a click picks it, see {@link dishPick}.
+ * `../food/meals.ts`, its name with its first foods in brackets, see `dishNameOf` there, and what it gave the last time
+ * I ate it; a click picks it, see {@link dishPick}.
  * - `name`: The text typed as the name of a meal.
  * - `lines`: Lines of the meals found.
  * - `plus`: The plus of a new meal.
@@ -669,7 +670,7 @@ export async function mealsNewSend(): Promise<void> {
 function dishLinesOf(query: string, changed: () => void): HTMLElement[] {
     const name: string = mealNameOf(query);
     const lines: HTMLElement[] = dishesFound(dishes, query).map((dish: Dish): HTMLElement =>
-        listLineOf(elementOf("span", "food-name", dish.name), dish.kcal, (): void => dishPick(dish, changed), null)[0]);
+        listLineOf(dishNameOf(dish), dish.kcal, (): void => dishPick(dish, changed), null)[0]);
     if (name === "" || [...dishes, ...meals].some((meal: Dish | MealPick): boolean =>
         meal.name.toLowerCase() === name.toLowerCase()))
         return lines;
