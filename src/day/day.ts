@@ -57,7 +57,7 @@ import themePlugin from "fullcalendar/themes/forma";
 import englishLocale from "fullcalendar/locales/en-gb";
 import { entryChange } from "./entries.ts";
 import { categoriesStart, entryOpen, entryOpenEdit, entryOpenNow } from "./categories.ts";
-import { cookName, foodName } from "./meal.ts";
+import { cookName, foodName, lineOf } from "./meal.ts";
 import { boxesSee, boxesStart, boxReceive, entryPartOf, shownWhatOf, whatOf } from "./boxes.ts";
 import { breakableOf } from "./choices.ts";
 import { monthStart } from "./month.ts";
@@ -78,6 +78,7 @@ import type {
     DateSelectInfo, DateSpanApi, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,
     EventInput, EventReceiveInfo, EventSourceInput,
 } from "fullcalendar";
+import type { Line } from "./meal.ts";
 
 
 /**
@@ -165,15 +166,14 @@ function entryDrag(calendar: Calendar, info: EventChangeInfo): void {
 }
 
 /**
- * Lists the foods of a dish, a meal or a cooking: a meal's from its lines `X-FOOD`, like `Haferflocken`
- * of `Haferflocken;60`, the foods of one of my meals once by the name of that meal, which their lines carry after
- * their grams, like `ChiliConCarne` of `Hackfleisch;125;ChiliConCarne;1;09.10.2026` and `Salz;ChiliConCarne;1`,
- * see `meal.ts`;
+ * Lists the foods of a dish, a meal or a cooking: from its lines `X-FOOD` by their names, read as the dialog reads them,
+ * see `lineOf` in `meal.ts`, like `Reis` of `Reis;Golden Sun;Lidl;125` or of `Reis;150`, the foods of one of my meals
+ * once by the name of that meal, which their lines carry after their grams, like `ChiliConCarne`
+ * of `Hackfleisch;125;ChiliConCarne;1;09.10.2026` and `Salz;ChiliConCarne;1`;
  * else from its what, parted by `, `, like `Reis`, `Bohnen` and `Eier` of `Reis, Bohnen, Eier`.
  * - `category`: Category of the entry.
  * - `foods`: Lines `X-FOOD` of the entry, none when it lists none.
  * - `names`: The names listed so far.
- * - `parts`, `grams`, `meal`: The parts of a line, whether its second is grams, and the meal it carries, empty for none.
  *
  * @param event - Entry
  * @returns Foods and meals in their order, none for an entry that is no dish
@@ -186,14 +186,11 @@ function dishOf(event: EventApi): string[] {
         return [];
     if (foods.length === 0)
         return event.title.split(", ");
-    foods.forEach((food: string): void => {
-        const parts: string[] = food.split(";").map((part: string): string => part.trim());
-        const grams: boolean = /^~?\s*\d+(?:[.,]\d+)?$/.test(parts[1] ?? "");
-        const meal: string = (grams ? parts[2] : parts.length >= 3 ? parts[1] : "") ?? "";
-        if (meal === "")
-            names.push(parts[0]);
-        else if (names.at(-1) !== meal)
-            names.push(meal);
+    foods.map(lineOf).forEach((read: Line): void => {
+        if (read.meal === "")
+            names.push(read.name);
+        else if (names.at(-1) !== read.meal)
+            names.push(read.meal);
     });
     return names;
 }

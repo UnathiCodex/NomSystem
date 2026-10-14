@@ -83,7 +83,7 @@ type FoodPick = {
  * - `meal`, `servings`, `variant`: For the food of one of my meals the meal, its servings eaten and its variant,
  *   each empty when the line gives none.
  */
-type Line = {
+export type Line = {
     name: string;
     brand: string;
     store: string;
@@ -298,7 +298,7 @@ function gramsIs(part: string): boolean {
  *   or `Hackfleisch;125;ChiliConCarne;1;09.10.2026`
  * @returns The line in its parts
  */
-function lineOf(line: string): Line {
+export function lineOf(line: string): Line {
     const parts: string[] = line.split(";").map((part: string): string => part.trim());
     if (parts.length === 4 && !gramsIs(parts[1]) && gramsIs(parts[3]))
         return { name: parts[0], brand: parts[1], store: parts[2], grams: parts[3], meal: "", servings: "", variant: "" };
