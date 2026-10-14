@@ -21,6 +21,16 @@
     color: var(--reading-text);
 }
 
+/* A draft of my modules exactly as wide as its text in the scripts view, my reading width, in the middle, so its lines
+   break at the same words as there, on every screen, see `.notes-page` in `../notes/notes.css`; markup shown left
+   of its text, like `##`, stands in the room beside it */
+.editor-note .editor-page {
+    width: min(var(--reading-width), 100%);
+    margin: 0 auto;
+    padding-right: 0;
+    padding-left: 0;
+}
+
 /* Head above the note: its name, the notice and the save button in a row, on top while the note scrolls below it */
 .editor-head {
     position: sticky;

@@ -46,8 +46,8 @@ import { treeShow } from "../notes/tree.ts";
 import "../notes/notes.css";
 import "./editor.css";
 
-import type { Extension } from "@codemirror/state";
-import type { ViewUpdate } from "@codemirror/view";
+import type { Extension, Line } from "@codemirror/state";
+import type { Command, ViewUpdate } from "@codemirror/view";
 import type { LanguageSupport } from "@codemirror/language";
 import type { Links } from "./preview.ts";
 
@@ -103,12 +103,37 @@ const markdownSupport: LanguageSupport =
     markdown({ extensions: [GFM, obsidianSyntax], addKeymap: false, completeHTMLTags: false });
 
 /**
+ * Goes on in the same point of a list on the next line, with Shift+Enter, where I find a break nice, as Enter starts
+ * the next point: the new line stands under the text of the point, its tabs and then as many spaces as its `-`
+ * or number with the space after it, two under `- `, three under `1. `, as my notes write a further line of a point;
+ * a further line keeps its own indentation; outside a list it is a plain new line.
+ * The scripts view and the preview show such a line in its point, below its text, see `./preview.ts`.
+ * - `line`: The line of the cursor.
+ * - `point`: Its tabs and its `-` or number with the space after it, `null` for a line that starts no point.
+ * - `indentation`: Indentation of the new line.
+ *
+ * @param view - The editor
+ * @returns `true`, as it always takes the key
+ */
+const pointContinue: Command = (view: EditorView): boolean => {
+    const line: Line = view.state.doc.lineAt(view.state.selection.main.head);
+    const point: RegExpExecArray | null = /^(\t*)((?:[-*+]|\d+[.)])[ \t])/.exec(line.text);
+    const indentation: string = point !== null ? point[1] + " ".repeat(point[2].length)
+        : /^[ \t]*/.exec(line.text)?.[0] ?? "";
+    view.dispatch(view.state.update(view.state.replaceSelection(view.state.lineBreak + indentation),
+        { scrollIntoView: true, userEvent: "input" }));
+    return true;
+};
+
+/**
  * Keys of a Markdown file, as in Obsidian: Enter continues a list, a task list or a quote on the next line,
- * and on an empty item ends the list; Backspace right after the `-` of an item or the `>` of a quote takes it away.
+ * and on an empty item ends the list; Shift+Enter goes on in the same point on the next line, see
+ * {@link pointContinue}; Backspace right after the `-` of an item or the `>` of a quote takes it away.
  * They go before the usual keys.
  */
 const markdownKeys: Extension = Prec.high(keymap.of([
     { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
+    { key: "Shift-Enter", run: pointContinue },
     { key: "Backspace", run: deleteMarkupBackward },
 ]));
 
@@ -267,7 +292,8 @@ async function openedRead(file: string): Promise<Opened | null> {
  * and so does the editor while it shows no file.
  * - `address`: The parameters of the address.
  * - `file`: Path of the file of my new system, empty for a note.
- * - `plannings`: Whether the editor shows my new system, for one of its files or at `/plannings`.
+ * - `plannings`: Whether the editor shows my new system, for one of its files or at `/plannings`; else a draft,
+ *   at my reading width, `editor-note`, see `./editor.css`.
  * - `opened`: The file read.
  * - `text`: Element of the text, with the look of the notes for Markdown, else of plain text.
  * - `beforeunload`: Comes before the page closes or loads again, also for another file of the tree;
@@ -278,6 +304,7 @@ export async function editorStart(): Promise<void> {
     const file: string = address.get("file") ?? "";
     const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
     const plannings: boolean = file !== "" || location.pathname === "/plannings";
+    document.querySelector(".editor")?.classList.toggle("editor-note", !plannings);
     path = file !== "" ? file : address.get("path") ?? "";
     saveAddress = file !== "" ? "/api/edit/file" : "/api/edit/note";
     treeShow(document.getElementById("notes-tree") as HTMLElement,
