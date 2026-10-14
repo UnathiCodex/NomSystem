@@ -114,6 +114,35 @@
     margin: 0;
 }
 
+/* Space above a heading and the little room around a list item, which the scripts view gives their elements,
+   given to their lines instead, by the sizes of `../notes/notes.css`: CodeMirror measures lines, not the elements
+   around them, and a heading's element still stands around what takes the place of the lines far above or below
+   the screen, so its space pushed every line below off from where CodeMirror placed it, and a click or Arrow Down
+   landed a line or two lower */
+.editor-text.markdown :is(h1, h2, h3, h4, h5, h6, li) {
+    padding-block: 0;
+}
+
+.editor-text.markdown :is(h1, h2) > .cm-line {
+    padding-top: 2em;
+}
+
+.editor-text.markdown h3 > .cm-line {
+    padding-top: 1em;
+}
+
+.editor-text.markdown h4 > .cm-line {
+    padding-top: 0.5em;
+}
+
+.editor-text.markdown li > .cm-line:first-child {
+    padding-top: 0.075em;
+}
+
+.editor-text.markdown li > .cm-line:last-child {
+    padding-bottom: 0.075em;
+}
+
 /* Markup shown, like `##` and `**`, and the markers of lists in the faint grey of list markers */
 .editor-text .cm-mark {
     color: var(--reading-marker);
