@@ -60,7 +60,7 @@ type FormSetup = {
  * @param typed - Name as typed
  * @returns Name in one word
  */
-function oneWordOf(typed: string): string {
+export function oneWordOf(typed: string): string {
     return typed.replace(/(\d),(?=\d)/g, "$1.").replace(/[|;,]/g, " ").split(/\s+/)
         .filter((word: string): boolean => word !== "")
         .map((word: string): string => word.charAt(0).toUpperCase() + word.slice(1)).join("");

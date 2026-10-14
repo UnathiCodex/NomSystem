@@ -4,7 +4,10 @@
  * A meal of the log, `Food`, in rows of the dialog, like every field, with the fewest steps and nothing nested:
  * - Summary: what I ate, written by itself, never typed: the meals, then the foods eaten beside them, parted by `, `,
  *   like `ChiliConCarne, Weißbrot`, and after it in brackets what they give together, as a type stands after its
- *   skill, like `ChiliConCarne, Weißbrot (660 kcal)`.
+ *   skill, like `ChiliConCarne, Weißbrot (660 kcal)`. While the meal lists foods beside its meals, the quiet action
+ *   `Keep as meal` stands after it, which turns the summary into one field for the name of a meal, empty; Enter or
+ *   the check keeps those foods as one meal of that name, its block in place of them, see {@link mealKeep}, Escape
+ *   or the cross goes back.
  * - Foods: what I ate, the one plus beside its name opening one list, a menu over the dialog right under the plus,
  *   see `listOf` in `choices.ts`, whose one search finds, as I type, my meals by their names and foods first, then my
  *   foods, then the products of Open Food Facts by name or barcode, see `../food/search.ts`; one click takes one:
@@ -37,18 +40,19 @@
  * - `./choices.ts`: Rows of the dialog, the lists that open as menus over it, and the picker of a cooking.
  * - `./times.ts`: Writes the day and time of a cooking.
  * - `../skill/attempts.ts`: Gives the day of an instant.
- * - `../food/foods.ts`: Finds my foods, loads my meals, writes amounts and makes elements and buttons.
- * - `../food/meals.ts`: Finds my meals for a search, and writes kcal as the page writes them.
- * - `../food/search.ts`: The food search, and the head and lines of every list.
+ * - `../food/foods.ts`: Finds my foods, loads my meals, sends a meal, writes amounts and makes elements and buttons.
+ * - `../food/meals.ts`: Finds my meals for a search, writes a name in one word as the reader does, and kcal as the
+ *   page writes them.
+ * - `../food/search.ts`: The food search, the lines of every list, and the field and buttons of a change in place.
  * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, their words as tooltip.
  */
 
 import { choicesOf, listOf, listOpen, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
-import { bracketsWatch, buttonOf, dishesLoad, elementOf, foodNameOf, foodsFind } from "../food/foods.ts";
-import { dishesFound, kcalTextOf } from "../food/meals.ts";
-import { foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
+import { bracketsWatch, buttonOf, dishesLoad, dishSend, elementOf, foodNameOf, foodsFind } from "../food/foods.ts";
+import { dishesFound, kcalTextOf, oneWordOf } from "../food/meals.ts";
+import { editButtonsOf, editFieldOf, foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
 import { crossPut, plusPut } from "../icons.ts";
 
 import type { Choice } from "./choices.ts";
@@ -165,7 +169,7 @@ let cooked: string = "";
 let mine: Map<string, Food> = new Map();
 
 /**
- * My meals of `Meals.md`, loaded when the meal was built.
+ * My meals of `Meals.md`, loaded when the meal was built, as they are after every meal kept since.
  */
 let dishes: Dish[] = [];
 
@@ -180,9 +184,14 @@ let meals: MealPick[] = [];
 let picks: FoodPick[] = [];
 
 /**
- * Place of the summary.
+ * Place of the summary with `Keep as meal` after it, or of the field of the name of a meal in their place.
  */
 let summaryLine: HTMLElement = document.createElement("span");
+
+/**
+ * Whether the summary shows the field of the name of a meal, see {@link namingShow}.
+ */
+let naming: boolean = false;
 
 /**
  * The plus beside the name `Foods`, which opens the list.
@@ -489,7 +498,7 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
     row.append(name, elementOf("span", "", ""), kcal, remove);
     parts.append(...meal.foods.map((pick: FoodPick): HTMLElement => foodRowOf(pick, (): void => {
         kcal.textContent = kcalTextOf(mealKcalOf(meal));
-        summaryShow();
+        summaryShow(changed);
         changed();
     }, (): void => {
         meal.foods = meal.foods.filter((other: FoodPick): boolean => other !== pick);
@@ -502,35 +511,106 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
 
 /**
  * Shows the summary, see {@link mealTitle}, and after it the kcal of the whole meal in brackets, as a type stands
- * after its skill, like `ChiliConCarne, Weißbrot (660 kcal)`, white like the summary, nothing while nothing is picked.
+ * after its skill, like `ChiliConCarne, Weißbrot (660 kcal)`, white like the summary, nothing while nothing is picked;
+ * after them, while foods stand beside the meals, the quiet action `Keep as meal`, which opens the field of its name,
+ * see {@link namingShow}. While that field shows, it stays as it is.
  * - `total`: kcal of the meals and the foods beside them.
  * - `text`: The summary with its kcal.
+ *
+ * @param changed - Tells the dialog that the meal changed
  */
-function summaryShow(): void {
+function summaryShow(changed: () => void): void {
+    if (naming)
+        return;
     const total: number = meals.reduce((sum: number, meal: MealPick): number => sum + mealKcalOf(meal), 0)
         + picks.reduce((sum: number, pick: FoodPick): number => sum + kcalOf(pick), 0);
     const text: HTMLElement = elementOf("span", "meal-summary", mealTitle());
     if (meals.length > 0 || picks.length > 0)
         text.append(elementOf("span", "meal-total", ` (${kcalTextOf(total)})`));
     summaryLine.replaceChildren(text);
+    if (picks.length > 0)
+        summaryLine.append(buttonOf("meal-keep", "Keep as meal", (): void => namingShow(changed)));
 }
 
 /**
- * Shows the blocks of the meals picked, then the rows of the foods beside them, then the summary.
+ * Turns the summary into one field for the name of a meal, empty, the cursor in it, the cross and the check after it,
+ * as every change in place, see `editButtonsOf` in `../food/search.ts`: Enter or the check keeps the foods beside
+ * the meals as that meal, see {@link mealKeep}; Escape or the cross shows the summary again.
+ * - `close`: Shows the summary again.
+ * - `keep`: Keeps the foods as the meal named.
+ * - `field`: The field of the name.
+ *
+ * @param changed - Tells the dialog that the meal changed
+ */
+function namingShow(changed: () => void): void {
+    const close: () => void = (): void => {
+        naming = false;
+        summaryShow(changed);
+    };
+    const keep: () => void = (): void => mealKeep(field.value, changed);
+    const field: HTMLInputElement = editFieldOf("", "Name of the meal", keep, close);
+    naming = true;
+    summaryLine.replaceChildren(field, editButtonsOf(close, keep));
+    field.focus();
+}
+
+/**
+ * Keeps the foods beside the meals as one meal of the name typed, one food being enough: they become its block in this
+ * entry, their lines carrying its name, their grams kept, joining the block of a meal of that name the entry holds
+ * already; and the meal goes into `Meals.md` as its composition, the foods of that block by name, brand and store,
+ * without grams, in place of what a meal of mine of that name held, the reader writing the name in one word,
+ * like `ChiliConCarne` of `Chili con carne`, see `dishAdd` in `reader/food.ts`. Nothing happens for an empty name;
+ * when the reader does not take the meal, the field stays.
+ * - `kept`: The foods beside the meals.
+ * - `block`: The block of a meal of that name the entry holds already, `undefined` for none.
+ * - `foods`: Foods of the meal kept.
+ *
+ * @param typed - Name as typed, like `Chili con carne`
+ * @param changed - Tells the dialog that the meal changed
+ */
+function mealKeep(typed: string, changed: () => void): void {
+    const kept: FoodPick[] = picks;
+    const block: MealPick | undefined = meals.find((meal: MealPick): boolean =>
+        meal.name.toLowerCase() === oneWordOf(typed).toLowerCase());
+    const foods: FoodPick[] = [...block?.foods ?? [], ...kept.filter((pick: FoodPick): boolean =>
+        !(block?.foods ?? []).some((other: FoodPick): boolean => keyOf(other) === keyOf(pick)))];
+    if (oneWordOf(typed) === "" || kept.length === 0)
+        return;
+    dishSend(typed, foods.map((pick: FoodPick): string => `${pick.name};${pick.brand};${pick.store}`))
+        .then((sent: Dish[]): void => {
+            dishes = sent;
+            const name: string = sent.find((dish: Dish): boolean =>
+                dish.name.toLowerCase() === oneWordOf(typed).toLowerCase())?.name ?? oneWordOf(typed);
+            if (block === undefined)
+                meals.push({ name: name, foods: foods });
+            else
+                block.foods = foods;
+            picks = picks.filter((pick: FoodPick): boolean => !kept.includes(pick));
+            naming = false;
+            rowsShow(changed);
+            changed();
+        }).catch((reason: unknown): void => console.error(reason));
+}
+
+/**
+ * Shows the blocks of the meals picked, then the rows of the foods beside them, then the summary; a field of the name
+ * of a meal goes with the last food beside the meals.
  *
  * @param changed - Tells the dialog that the meal changed
  */
 function rowsShow(changed: () => void): void {
     foodsRows.replaceChildren(...meals.flatMap((meal: MealPick): HTMLElement[] => mealRowsOf(meal, changed)),
         ...picks.map((pick: FoodPick): HTMLElement => foodRowOf(pick, (): void => {
-            summaryShow();
+            summaryShow(changed);
             changed();
         }, (): void => {
             picks = picks.filter((other: FoodPick): boolean => other !== pick);
             rowsShow(changed);
             changed();
         })));
-    summaryShow();
+    if (picks.length === 0)
+        naming = false;
+    summaryShow(changed);
 }
 
 /**
@@ -795,6 +875,7 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     });
 
     summaryLine = elementOf("span", "meal-line", "");
+    naming = false;
     gramsFields = new WeakMap();
     foodsLine = document.createElement("button");
     plusPut(foodsLine, "Add a meal or a food");
