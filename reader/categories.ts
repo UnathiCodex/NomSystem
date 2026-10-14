@@ -10,8 +10,8 @@
  * of `Places.md`, each as a line with its address, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`,
  * see `places.ts`, and `Online`, the place of a meeting online, but in a way, which leads from one place of mine
  * to another, see {@link offlineNames}; the most used by the entries of the log first, counted by their names.
- * `Online` takes its address and its link typed per entry, and only in `Skill` also the ID and the passcode of its
- * meeting, see `meeting` of {@link Field}.
+ * `Online` takes its parts and its link typed per entry, its software, who offers it and its passcode,
+ * see `onlineName` in `places.ts`.
  * A value offered in the code may come with steps, which the dialog shows while it is picked, and below them
  * the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
  * `Body` is my body care, showering and any care, offering `Shower` before any use; my neck routine,
@@ -61,9 +61,6 @@ export type FieldKey = "title" | "from" | "location";
  * - `fixed`: Whether it takes only the values offered in the code, like `Night` and `Day` of `Sleep`, and no new ones.
  * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `U-Bahn, Bus`;
  *   one when left out.
- * - `meeting`: Whether its place `Online` asks for the ID and the passcode of its meeting too, see `onlineName`
- *   in `places.ts`, like the place of a skill entry or box, since lectures and tutorials happen on Zoom and the like;
- *   left out, `Online` takes only its address and its link, like for a call of `Talk`.
  */
 export type Field = {
     name: string;
@@ -72,7 +69,6 @@ export type Field = {
     steps: { [value: string]: string[] };
     fixed: boolean;
     many?: boolean;
-    meeting?: boolean;
 };
 
 /**
@@ -222,7 +218,7 @@ const retiredWhats: { [category: string]: string[] } = { Body: Object.keys(neckR
 const categories: Category[] = [
     {
         name: skillName,
-        fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false, meeting: true }],
+        fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false }],
     },
     {
         name: "Sleep",

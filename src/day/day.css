@@ -1489,10 +1489,10 @@ fieldset.entry-times {
 }
 
 /* Parts of a meal below its row, as the documents of a chapter, see `.panel-nested`: its foods, indented under its
-   name with the grey guide line, `--guide`, at their left, so they read as its parts; the same for the parts of the meeting
-   of `Online` below its place, its link, ID and passcode, see `meetingPartsOf` in `categories.ts` */
+   name with the grey guide line, `--guide`, at their left, so they read as its parts; the same for the parts of a place
+   below it, my place's address, postcode, country and link, or those of `Online`, see `partsOf` in `categories.ts` */
 .meal-parts,
-.meeting-parts {
+.place-parts {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
@@ -1501,9 +1501,9 @@ fieldset.entry-times {
     border-left: 2px solid var(--guide);
 }
 
-/* Parts of a meeting in two columns, each its name small and grey, then its value, the values one below the other;
-   a little room above them, below the place's address */
-.meeting-parts {
+/* Parts of a place in two columns, each its name small and grey, then its value, the values one below the other;
+   a little room above them, below the place's address; the line saying a part was not saved across both */
+.place-parts {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
     gap: 0.375rem var(--control-gap);
@@ -1511,8 +1511,13 @@ fieldset.entry-times {
     margin-top: 0.5rem;
 }
 
-.meeting-part {
+.place-part {
     display: contents;
+}
+
+.place-parts > .entry-none {
+    grid-column: 1 / -1;
+    margin: 0;
 }
 
 /* Name of a meal or a food with its brand and store, going on below where the row has no room, never cut */

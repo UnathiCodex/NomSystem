@@ -19,9 +19,8 @@ import type { Calendar } from "fullcalendar";
  * - `category`: Category picked, `CATEGORIES`.
  * - `title`: What picked, `SUMMARY`.
  * - `location`: Place picked, `LOCATION`.
- * - `locationLink`: Link of the meeting of the place `Online` of a skill entry or box, as pasted, the `ALTREP`
- *   of its `LOCATION`; left out for any other place, whose link the reader finds itself, also for `Online`
- *   in any other category, and after a drag, so the place keeps its link.
+ * - `locationLink`: Link of the place `Online`, as typed or pasted, the `ALTREP` of its `LOCATION`; left out for any
+ *   other place, whose link the reader finds itself, and after a drag, so the place keeps its link.
  * - `from`: Where a way starts, `X-FROM`.
  * - `module`: Module of a skill entry, like `IN2028`, written by the reader only in its `SUMMARY`,
  *   like `IN2028 Business Analytics Machine Learning (VO)`.

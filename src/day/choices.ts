@@ -71,7 +71,7 @@ export type Choice = {
  * - `picked`: Values picked at first.
  * - `many`: Whether more than one value may be picked.
  * - `adding`: Whether the plus with the typed text at the end of the list adds it as a new value.
- * - `add`: Takes the typed text as a new value before it is picked, like a new place through its dialog,
+ * - `add`: Takes the typed text as a new value before it is picked, like a new place, which the reader writes,
  *   and gives the value to pick, `null` to pick none; left out, the plus picks the typed text itself.
  * - `pick`: Takes the values picked after each change, in the order they were picked; for a list of one value
  *   once it is closed.
@@ -631,7 +631,7 @@ export function lineMove(row: HTMLElement, place: HTMLElement): void {
 
 /**
  * Makes a row of a dialog: the name of a field before its picker, like `Place`. A click anywhere on the row
- * but on something to click itself, like the pencil of a place, or on a label of a part, like the link of a meeting,
+ * but on something to click itself, like the pencil of a place, or on a label of a part, like the link of a place,
  * which puts the focus into its own field, opens the list of its first picker, see {@link listOf}, or puts the focus
  * into its first field. No `<label>` around the row, which would pass a click on the name to the first button
  * of the picker.

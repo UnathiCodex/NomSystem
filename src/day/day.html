@@ -175,28 +175,3 @@
     </form>
 </dialog>
 
-<!-- New place, opened over the entry by category by + of a list of places, or my place to change by its pencil,
-     see places.ts: the place, filled with what I typed, required, its address with its country and its link,
-     both optional, each empty field showing its form; the link of a new place follows its address as the search
-     of Google Maps until I type in it -->
-<dialog class="panel" id="place" closedby="any">
-    <form class="panel-form" id="place-form">
-        <label class="panel-field"><span class="entry-name">Place</span>
-            <input id="place-name" type="text" autocomplete="off" required></label>
-        <label class="panel-field"><span class="entry-name">Address</span>
-            <input id="place-address" type="text" autocomplete="off"
-                   placeholder="Street (number), postcode town, country"></label>
-        <label class="panel-field"><span class="entry-name">Link</span>
-            <input id="place-link" type="url" autocomplete="off" placeholder="https://…"></label>
-
-        <!-- Hint when the reader does not take the place -->
-        <p class="panel-error" id="place-error" hidden>
-            Not saved: it needs a new name, and a link only as a web address</p>
-
-        <!-- Cancel closes the dialog and picks nothing, save adds the place to Places.md and picks it -->
-        <div class="panel-buttons">
-            <button id="place-cancel" type="button"></button>
-            <button class="panel-main" id="place-save" type="submit"></button>
-        </div>
-    </form>
-</dialog>

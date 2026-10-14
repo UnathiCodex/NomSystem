@@ -1,36 +1,34 @@
 /**
  * ## Places
  *
- * A new place for a field of a place, the place of an entry or where a way starts, see `categories.ts`,
- * since the fields offer only my places of `Places.md`, each with its address, see `reader/places.ts`:
- * a place typed that is none of mine yet, then `+` or Enter, opens a small dialog over the entry by category
- * with three fields, the place, filled with what I typed, its address in German as on an envelope, umlauts included,
- * with its country, like `Burg-Eltz-Weg, 81375 München, Deutschland`, the number of the house optional, and its link,
- * like `https://nav.tum.de/room/0509.EG.980`; address and link may stay empty, each showing its form while empty.
- * As I type the address of a new place, its link follows as the search of the address in Google Maps, in the form
- * Google gives for it, see {@link mapsLinkOf}, which I keep or delete; a link I typed or pasted myself, like the
- * NavigaTUM page of a room, stays as it is.
- * Save adds the place to `Places.md` and picks it; Cancel, `Esc` or a click beside the dialog pick nothing.
- * The pencil below a place picked opens the same dialog filled with my place, see {@link placeEdit}, and Save
- * changes its row in `Places.md`, its name, its address and its link, and nothing else, asking nothing more:
- * entries written before keep what they have.
+ * The parts of a place, which I type below it in the entry by category, see `minePartsOf` and `onlinePartsOf`
+ * in `categories.ts`, since the fields offer only my places of `Places.md`, each with its address,
+ * see `reader/places.ts`, and `Online`.
+ * The address of a place has three parts, as on an envelope in German, umlauts included, see {@link addressPartsOf}:
+ * its street with the number of the house, which may stay out, like `Burg-Eltz-Weg`, its postcode with its town,
+ * like `81375 München`, and its country, like `Deutschland`; then its link, which follows the address as the search
+ * of Google Maps, in the form Google gives for it, see {@link mapsLinkOf}, until I type a link myself, like
+ * the NavigaTUM page of a room. A place typed that is none of mine yet goes into `Places.md` at once, by its name,
+ * and each part I write after it changes its row there, see {@link placeSend}: entries written before keep what
+ * they have.
  * An entry writes a place as one line, its name and its address, like
  * `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, see {@link lineOf}; it shows by its name, the part
  * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens the link
  * of the place, written with it as its `ALTREP`, when it has one, and nothing else: nothing opens a map by itself,
  * only a link stored with the place opens on a click.
  * A way shows its route by labels, with an arrow drawn between them, see {@link whereLinkedOf}.
- * A meeting online has its own place, `Online`, see {@link onlineName}, one generic place, whose address I type
- * per entry, like `Teams, Microsoft`, and whose link I paste per entry, and which in a skill entry or box also holds
- * the ID and the passcode I need to join, see {@link Meeting}; it shows by its name with the first part of its address
- * in brackets, like `Online (Teams)`, see {@link shownOf}.
+ * A meeting online has its own place, `Online`, see {@link onlineName}, one generic place, whose parts I type
+ * per entry in place of an address, the same three: its software, like `Teams`, who offers it, like `Microsoft`,
+ * and its passcode, which a meeting may have, see {@link Online}; then its link, which follows its software as the
+ * address of its web app, see {@link standardLinkOf}, until I paste the link of the meeting; it shows by its name
+ * with its software in brackets, like `Online (Teams)`, see {@link shownOf}.
  *
- * - `lucide`: The arrow of a route, and the icons of Cancel and Save.
- * - `../icons.ts`: Makes the element of an icon, and shows an icon in a button.
+ * - `lucide`: The arrow of a route.
+ * - `../icons.ts`: Makes the element of an icon.
  */
 
-import { ArrowRight, Check, X } from "lucide";
-import { iconOf, iconPut } from "../icons.ts";
+import { ArrowRight } from "lucide";
+import { iconOf } from "../icons.ts";
 
 
 /**
@@ -47,62 +45,40 @@ export type Place = {
 };
 
 /**
- * What `Online` holds in place of an address, see {@link meetingLineOf}: the address I type, then what I need
- * to join a meeting.
+ * What `Online` holds in place of an address, see {@link onlineLineOf}, its three parts as I type them.
  *
- * - `address`: What I type as its address, its parts parted by commas as an address has them, like
- *   `Teams, Microsoft`, its software first, then who offers it and whatever else; empty for none.
- * - `id`: Its ID, as its software writes it, like `123 456 789 012 345`, empty for none.
- * - `passcode`: Its passcode, like `Ab12Cd34`, empty for none.
+ * - `software`: Its software, like `Teams`, in place of the street; empty for none.
+ * - `provider`: Who offers it, like `Microsoft`, in place of the town; empty for none.
+ * - `passcode`: The passcode of its meeting, like `Ab12Cd34`, in place of the country; empty for none, since many
+ *   meetings have none.
  */
-export type Meeting = {
-    address: string;
-    id: string;
+export type Online = {
+    software: string;
+    provider: string;
     passcode: string;
 };
 
 /**
  * The place of a meeting online, its name alone, offered once among my places and never a row of `Places.md`,
- * see `onlineName` in `reader/places.ts`: picked, I type its address and paste its link per entry, and in a skill
- * entry or box also its ID and passcode, see {@link Meeting}.
+ * see `onlineName` in `reader/places.ts`: picked, I type its parts and paste its link per entry, see {@link Online}.
  */
 export const onlineName: string = "Online";
 
 /**
- * Software of a meeting by the host of its link, see {@link meetingSoftwareOf}: `teams.microsoft.com` Teams, and
- * `teams.live.com`, its host for personal accounts,
- * any host of `zoom.us`, like `tum-conf.zoom.us`, Zoom, a host starting with `bbb.`, like `bbb.tum.de`, BBB,
- * and `live.rbg.tum.de` or `tum.live` TUM-Live, where I watch lectures.
+ * Address of the web app of a software of meetings, which the link of `Online` follows until I paste the link
+ * of the meeting, see {@link standardLinkOf}: Teams, Zoom and TUM-Live, where I watch lectures.
  */
-const meetingHosts: { [software: string]: RegExp } = {
-    "Teams": /^teams\.(?:microsoft|live)\.com$/,
-    "Zoom": /(?:^|\.)zoom\.us$/,
-    "BBB": /^bbb\./,
-    "TUM-Live": /^(?:live\.rbg\.tum\.de|tum\.live)$/,
+const standardLinks: { [software: string]: string } = {
+    "Teams": "https://teams.microsoft.com",
+    "Zoom": "https://zoom.us",
+    "TUM-Live": "https://live.rbg.tum.de",
 };
 
 /**
- * Names the ID and the passcode of a meeting go by in the line of `Online`, each before its value,
- * like `ID 123 456 789 012 345`, see `onlineName` in `reader/places.ts`.
+ * Name the passcode of a meeting goes by in the line of `Online`, before its value, like `Passcode Ab12Cd34`,
+ * so it never reads as a part of the address, see {@link onlineLineOf}.
  */
-const meetingNames: { id: string; passcode: string } = { id: "ID", passcode: "Passcode" };
-
-/**
- * Takes the place the open dialog saved, or `null` when it closed without saving, so the picker that opened it
- * picks the place or nothing; `null` while no dialog waits for an answer.
- */
-let answer: ((place: Place | null) => void) | null = null;
-
-/**
- * Name of my place the open dialog changes, like `TUM Innenstadt`, empty while it adds a new place.
- */
-let editing: string = "";
-
-/**
- * Whether the link of the open dialog follows the address as I type it, see {@link mapsLinkOf}: for a new place
- * until I type in the link myself, never for my place being changed.
- */
-let linkFollows: boolean = false;
+const passcodeName: string = "Passcode";
 
 
 /**
@@ -127,19 +103,18 @@ export function labelOf(line: string): string {
 }
 
 /**
- * Gives a place as the grid and the plan show it: its name, see {@link labelOf}, and for `Online` the first part
- * of its address in brackets after it, its software, read from its line, see {@link meetingOf}, like `Online (Teams)`
- * of `Online, Teams, Microsoft, ID 123 456 789 012 345`, as a type stands after its skill; `Online` without address
- * alone.
+ * Gives a place as the grid and the plan show it: its name, see {@link labelOf}, and for `Online` its software
+ * in brackets after it, read from its line, see {@link onlineOf}, like `Online (Teams)` of
+ * `Online, Teams, Microsoft, Passcode Ab12Cd34`, as a type stands after its skill; `Online` without software alone.
  * - `label`: Its name.
- * - `way`: The first part of the address of `Online`, empty for none.
+ * - `way`: The software of `Online`, empty for none.
  *
  * @param line - Place as an entry writes it
  * @returns Place as shown, like `Online (Teams)` or `Home Munich`
  */
 export function shownOf(line: string): string {
     const label: string = labelOf(line);
-    const way: string = label === onlineName ? meetingOf(line).address.split(",")[0].trim() : "";
+    const way: string = label === onlineName ? onlineOf(line).software : "";
     return way === "" ? label : `${label} (${way})`;
 }
 
@@ -228,84 +203,55 @@ export function whereLinkedOf(category: string, from: string, location: string, 
 }
 
 /**
- * Reads the address of `Online` and what I need to join a meeting from its line, see {@link meetingLineOf}:
- * the part after `ID` its ID, the part after `Passcode` its passcode, the other parts its address.
- * - `parts`: Parts of the line, after `Online`.
- * - `named`: Tells whether a part is the ID or the passcode.
- * - `value`: Gives the value of the part of a name, empty for none.
+ * Reads the parts of `Online` from its line, see {@link onlineLineOf}: the part after `Passcode` its passcode,
+ * the first other part its software, every other part after it who offers it; a part `ID` an earlier line wrote
+ * stays out, since the link of a meeting holds its ID.
+ * - `parts`: Parts of the line after `Online`, but its ID.
+ * - `named`: Tells whether a part is the passcode.
+ * - `address`: The other parts.
  *
- * @param line - Place as an entry writes it, like `Online, Teams, Microsoft, ID 123 456 789 012 345`
- * @returns Its address, like `Teams, Microsoft`, ID and passcode, each empty for none
+ * @param line - Place as an entry writes it, like `Online, Teams, Microsoft, Passcode Ab12Cd34`
+ * @returns Its software, provider and passcode, each empty for none
  */
-export function meetingOf(line: string): Meeting {
-    const parts: string[] = line.split(",").slice(1).map((part: string): string => part.trim());
-    const named: (part: string) => boolean = (part: string): boolean =>
-        Object.values(meetingNames).some((name: string): boolean => part.startsWith(`${name} `));
-    const value: (name: string) => string = (name: string): string =>
-        parts.find((part: string): boolean => part.startsWith(`${name} `))?.slice(name.length + 1) ?? "";
+export function onlineOf(line: string): Online {
+    const parts: string[] = line.split(",").slice(1).map((part: string): string => part.trim())
+        .filter((part: string): boolean => !part.startsWith("ID "));
+    const named: (part: string) => boolean = (part: string): boolean => part.startsWith(`${passcodeName} `);
+    const address: string[] = parts.filter((part: string): boolean => !named(part));
     return {
-        address: parts.filter((part: string): boolean => !named(part)).join(", "),
-        id: value(meetingNames.id),
-        passcode: value(meetingNames.passcode),
+        software: address[0] ?? "",
+        provider: address.slice(1).join(", "),
+        passcode: parts.find(named)?.slice(passcodeName.length + 1) ?? "",
     };
 }
 
 /**
- * Writes the line of `Online`, as an entry writes it into `LOCATION`: `Online`, the parts of its address as typed,
- * then its ID and its passcode, each after its name, parted by commas like the parts of an address, a part left out
- * while empty; a comma typed in the ID or the passcode dropped, leaving a space, since a comma ends a part.
+ * Writes the line of `Online`, as an entry writes it into `LOCATION`: `Online`, its software, who offers it,
+ * then its passcode after its name, parted by commas like the parts of an address, a part left out while empty;
+ * a comma typed in a part dropped, leaving a space, since a comma ends a part.
  * - `clean`: Cleans a part as typed: a comma dropped, spaces in a row one, none at the ends.
- * - `address`: Parts of the address, each without spaces at its ends, empty ones left out.
- * - `id`, `passcode`: ID and passcode, cleaned.
+ * - `passcode`: The passcode, cleaned.
  *
- * @param meeting - Its address, ID and passcode, as typed
- * @returns Line like `Online, Teams, Microsoft, ID 123 456 789 012 345, Passcode Ab12Cd34`, or `Online` alone
+ * @param online - Its software, provider and passcode, as typed
+ * @returns Line like `Online, Teams, Microsoft, Passcode Ab12Cd34`, or `Online` alone
  */
-export function meetingLineOf(meeting: Meeting): string {
+export function onlineLineOf(online: Online): string {
     const clean: (text: string) => string = (text: string): string => text.replace(/[,\s]+/g, " ").trim();
-    const address: string[] = meeting.address.split(",").map((part: string): string => part.replace(/\s+/g, " ").trim());
-    const id: string = clean(meeting.id);
-    const passcode: string = clean(meeting.passcode);
-    return [
-        onlineName, ...address, id === "" ? "" : `${meetingNames.id} ${id}`,
-        passcode === "" ? "" : `${meetingNames.passcode} ${passcode}`,
-    ].filter((part: string): boolean => part !== "").join(", ");
+    const passcode: string = clean(online.passcode);
+    return [onlineName, clean(online.software), clean(online.provider),
+        passcode === "" ? "" : `${passcodeName} ${passcode}`].filter((part: string): boolean => part !== "").join(", ");
 }
 
 /**
- * Reads the software of a meeting from the host of its link, see {@link meetingHosts}, which tells how its link
- * holds its ID, see {@link meetingIdOf}.
- * - `host`: Host of the link in small letters, like `tum-conf.zoom.us`, empty for no web address.
+ * Gives the address of the web app of a software of meetings, see {@link standardLinks}, as the link of `Online`
+ * until I paste the link of the meeting, ignoring case, like `https://teams.microsoft.com` for `teams`.
  *
- * @param link - Link of a meeting, like `https://tum-conf.zoom.us/j/12345678901?pwd=…`
- * @returns Software like `Zoom`, empty for a host none of them has
+ * @param software - Software as typed, like `Teams`
+ * @returns Its address, empty for a software without one, like `BBB`
  */
-function meetingSoftwareOf(link: string): string {
-    const host: string = /^https?:\/\/([^/?#:]+)/i.exec(link.trim())?.[1].toLowerCase() ?? "";
-    return Object.entries(meetingHosts).find(([, form]: [string, RegExp]): boolean => form.test(host))?.[0] ?? "";
-}
-
-/**
- * Reads the ID of a meeting from its link, written as its software writes it in an invitation, for the two links
- * I checked, by the software of their host, see {@link meetingSoftwareOf}: Teams, `…/meet/<ID>?p=…`, in groups
- * of three from the left, like `123 456 789 012 345`; Zoom, `…/j/<ID>?pwd=…`, three digits and the rest in two
- * halves, like `123 4567 8901`. No link holds the passcode: `p` and `pwd` are codes of their own, not the passcode
- * of the invitation, and a link of BBB or TUM-Live holds no ID.
- * - `software`: Software of the link.
- * - `teams`, `zoom`: The digits of the ID in a link of Teams or of Zoom, empty for none.
- * - `half`: Where the second half of the digits of Zoom after the first three begins.
- *
- * @param link - Link of a meeting, like `https://teams.microsoft.com/meet/123456789012345?p=…`
- * @returns ID like `123 456 789 012 345`, empty for a link without one
- */
-export function meetingIdOf(link: string): string {
-    const software: string = meetingSoftwareOf(link);
-    const teams: string = software === "Teams" ? /\/meet\/(\d+)/.exec(link)?.[1] ?? "" : "";
-    const zoom: string = software === "Zoom" ? /\/j\/(\d{9,})/.exec(link)?.[1] ?? "" : "";
-    const half: number = 3 + Math.floor((zoom.length - 3) / 2);
-    if (teams !== "")
-        return teams.replace(/\d{3}(?=\d)/g, "$& ");
-    return zoom === "" ? "" : `${zoom.slice(0, 3)} ${zoom.slice(3, half)} ${zoom.slice(half)}`;
+export function standardLinkOf(software: string): string {
+    return Object.entries(standardLinks).find(([name]: [string, string]): boolean =>
+        name.toLowerCase() === software.trim().toLowerCase())?.[1] ?? "";
 }
 
 /**
@@ -317,127 +263,59 @@ export function meetingIdOf(link: string): string {
  * @param address - Address as typed
  * @returns The link, empty for an empty address
  */
-function mapsLinkOf(address: string): string {
+export function mapsLinkOf(address: string): string {
     return address.trim() === "" ? ""
         : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address.trim())}`;
 }
 
+/**
+ * Tells whether a link is the search of an address in Google Maps, as {@link mapsLinkOf} makes it or in the form
+ * an earlier one wrote it, its spaces as `+`, so the link of my place follows its address while it is that search.
+ * - `plain`: Gives a link decoded, its `+` as spaces.
+ *
+ * @param link - Link of a place, like `https://www.google.com/maps/search/?api=1&query=Burg-Eltz-Weg%2C+81375+…`
+ * @param address - Address of the place, like `Burg-Eltz-Weg, 81375 München, Deutschland`
+ * @returns Whether it is the search of the address
+ */
+export function mapsLinkIs(link: string, address: string): boolean {
+    const plain: (text: string) => string = (text: string): string => decodeURIComponent(text.replace(/\+/g, " "));
+    return plain(link) === plain(mapsLinkOf(address));
+}
 
 /**
- * Sends a new place to the reader, which adds it to `Places.md`, or my place being changed, with its old name,
- * see {@link editing}, which the reader changes in its row.
+ * Parts an address into its three parts, as {@link Place} holds them parted by commas: its street, its postcode
+ * with its town, and its country, the last two the last two parts, the street all before them, like
+ * `Arcisstraße 21`, `80333 München` and `Deutschland`; an address of two parts its street and its postcode
+ * with its town, of one its street.
+ * - `parts`: Parts of the address, without spaces at their ends.
+ *
+ * @param address - Address, like `Arcisstraße 21, 80333 München, Deutschland`
+ * @returns Street, postcode with town, and country, each empty for none
+ */
+export function addressPartsOf(address: string): [string, string, string] {
+    const parts: string[] = address.split(",").map((part: string): string => part.trim())
+        .filter((part: string): boolean => part !== "");
+    if (parts.length < 3)
+        return [parts[0] ?? "", parts[1] ?? "", ""];
+    return [parts.slice(0, -2).join(", "), parts[parts.length - 2], parts[parts.length - 1]];
+}
+
+/**
+ * Sends a place to the reader: a new one, which it adds to `Places.md`, a room to `Rooms.md`, or my place with its
+ * name as it was, whose row it changes, keeping its name.
  *
  * @param place - Name, address and link as typed
+ * @param old - Name of my place being changed, like `TUM Innenstadt`, empty for a new one
  * @returns The place as written, its name, address and link cleaned
- * @throws {Error} - When the reader does not take it, like for a name another place has
+ * @throws {Error} - When the reader does not take it, like for a name another place has or a link that is none
  */
-async function placeSend(place: Place): Promise<Place> {
+export async function placeSend(place: Place, old: string): Promise<Place> {
     const response: Response = await fetch("/api/day/places", {
-        method: editing === "" ? "POST" : "PATCH",
+        method: old === "" ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editing === "" ? place : { ...place, old: editing }),
+        body: JSON.stringify(old === "" ? place : { ...place, old: old }),
     });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
     return await response.json() as Place;
-}
-
-/**
- * Sends the place of the fields, then closes the dialog and gives the place as written to the picker that opened it;
- * shows a hint and stays open when the reader does not take it.
- * - `take`: Takes the place, kept apart before the dialog closes, so its closing answers nothing more.
- */
-function placeSave(): void {
-    placeSend({
-        name: (document.getElementById("place-name") as HTMLInputElement).value,
-        address: (document.getElementById("place-address") as HTMLInputElement).value,
-        link: (document.getElementById("place-link") as HTMLInputElement).value,
-    }).then((place: Place): void => {
-        const take: ((place: Place | null) => void) | null = answer;
-        answer = null;
-        (document.getElementById("place") as HTMLDialogElement).close();
-        take?.(place);
-    }).catch((error: unknown): void => {
-        console.error(error);
-        document.getElementById("place-error")?.removeAttribute("hidden");
-    });
-}
-
-/**
- * Opens the dialog of a new place over the entry by category: the place filled with the typed text,
- * like `Home Munich`, the address empty and focused, since the place is typed already, the link empty, following
- * the address as I type it, see {@link linkFollows};
- * the place focused while nothing is typed, like for `+ New place` of an empty search.
- *
- * @param name - Typed name of the place, like `Home Munich`
- * @returns The place as written once it is saved, `null` when the dialog closes without saving
- */
-export function placeOpen(name: string): Promise<Place | null> {
-    editing = "";
-    linkFollows = true;
-    return placeShow({ name: name, address: "", link: "" }, name === "" ? "place-name" : "place-address");
-}
-
-/**
- * Opens the dialog of a place over the entry by category to change my place: its name, its address and its link
- * filled in, the name focused; it asks nothing more, the entries written before keeping what they have.
- *
- * @param place - My place as it is, like `TUM Innenstadt` with its address and link
- * @returns The place as written once it is saved, `null` when the dialog closes without saving
- */
-export function placeEdit(place: Place): Promise<Place | null> {
-    editing = place.name;
-    linkFollows = false;
-    return placeShow(place, "place-name");
-}
-
-/**
- * Shows the dialog of a place with its fields filled, focusing one, and waits for its answer.
- * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page and the entry by category, `Esc` closes it.
- *
- * @param place - Name, address and link to fill in
- * @param focused - Identifier of the field to focus, like `place-address`
- * @returns The place as written once it is saved, `null` when the dialog closes without saving
- */
-function placeShow(place: Place, focused: string): Promise<Place | null> {
-    (document.getElementById("place-name") as HTMLInputElement).value = place.name;
-    (document.getElementById("place-address") as HTMLInputElement).value = place.address;
-    (document.getElementById("place-link") as HTMLInputElement).value = place.link;
-    document.getElementById("place-error")?.setAttribute("hidden", "");
-    (document.getElementById("place") as HTMLDialogElement).showModal();
-    document.getElementById(focused)?.focus();
-    return new Promise((resolve: (place: Place | null) => void): void => {
-        answer = resolve;
-    });
-}
-
-/**
- * Starts the dialog of a new place after the router has put its HTML into the page: `Cancel` closes it,
- * `Enter` and `Save` save the place, and every closing without saving answers `null`, so nothing is picked;
- * the link of a new place follows its address as I type it, until I type in the link myself, see {@link linkFollows}.
- * - `close`: Comes when the dialog closes, by `Cancel`, by `Esc` or by a click beside it.
- * - `input`: Comes as I type in a field.
- */
-export function placesStart(): void {
-    const dialog: HTMLDialogElement = document.getElementById("place") as HTMLDialogElement;
-    const address: HTMLInputElement = document.getElementById("place-address") as HTMLInputElement;
-    const link: HTMLInputElement = document.getElementById("place-link") as HTMLInputElement;
-    address.addEventListener("input", (): void => {
-        if (linkFollows)
-            link.value = mapsLinkOf(address.value);
-    });
-    link.addEventListener("input", (): void => {
-        linkFollows = false;
-    });
-    iconPut(document.getElementById("place-cancel") as HTMLElement, X, "Cancel");
-    iconPut(document.getElementById("place-save") as HTMLElement, Check, "Save");
-    document.getElementById("place-cancel")?.addEventListener("click", (): void => dialog.close());
-    dialog.addEventListener("close", (): void => {
-        answer?.(null);
-        answer = null;
-    });
-    document.getElementById("place-form")?.addEventListener("submit", (event: SubmitEvent): void => {
-        event.preventDefault();
-        placeSave();
-    });
 }
