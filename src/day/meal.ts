@@ -110,6 +110,7 @@ export type Line = {
  * - `title`: What it was, like `Hackfleisch, Kidneybohnen, Tomaten`.
  * - `start`: Start as ISO instant.
  * - `foods`: Its lines `X-FOOD`, what went into the pot, like `Hackfleisch;Gut & Günstig;Edeka;500`.
+ * - `eaters`: How many other meals draw from it already, which share it with this one, see {@link drawnShow}.
  */
 type Cooking = {
     id: string;
@@ -117,6 +118,7 @@ type Cooking = {
     title: string;
     start: string;
     foods: string[];
+    eaters: number;
 };
 
 /**
@@ -124,10 +126,13 @@ type Cooking = {
  *
  * - `cooked`: Identifier of the cooking it draws from as written, its `X-COOKED`, empty for none.
  * - `start`: Start of the meal, whose cookings of the days before it are offered.
+ * - `id`: Identifier of the meal when it is changed, empty for a new one, so it does not count itself among the meals
+ *   that share a cooking, see {@link Cooking}.
  */
 export type Drawing = {
     cooked: string;
     start: Date;
+    id: string;
 };
 
 /**
@@ -177,6 +182,12 @@ let cookings: Cooking[] = [];
  * Identifier of the cooking the meal draws from, empty for none.
  */
 let cooked: string = "";
+
+/**
+ * The row of the cooking the meal draws from, so it shows a cooking picked by a meal, see {@link dishPick};
+ * `null` for a cooking, which draws from none.
+ */
+let cookedRow: HTMLElement | null = null;
 
 /**
  * My foods by their keys, see {@link keyOf}, and by their names alone in small letters, for lines written before
@@ -644,12 +655,29 @@ function foodPick(food: Food, changed: () => void): void {
  * Picks one of my meals with its foods, each at its standard grams, which I set in the food view, see
  * `../food/meals.ts`, a food I rarely put in at 0, one without standard grams empty, unless it is picked already;
  * then closes the list and puts the cursor into the grams of its foods, see {@link gramsFocus}.
+ * A meal I cooked in the days before comes from its cooking instead, in a meal that draws from none yet: the nearest
+ * cooking holding it is picked in the row `Cooked`, which brings its pot at this meal's share, see {@link drawnShow},
+ * since a cooked meal is eaten only from what I cooked.
+ * - `cooking`: The nearest cooking holding the meal, `undefined` for none or while the meal draws already.
  * - `meal`: The meal picked.
  *
  * @param dish - Meal of `Meals.md`
  * @param changed - Tells the dialog that the meal changed
  */
 function dishPick(dish: Dish, changed: () => void): void {
+    const cooking: Cooking | undefined = cooked !== "" ? undefined : cookings.find((one: Cooking): boolean =>
+        one.foods.some((line: string): boolean => lineOf(line).meal.toLowerCase() === dish.name.toLowerCase()));
+    if (cooking !== undefined) {
+        cooked = cooking.id;
+        drawnShow(changed);
+        if (cookedRow !== null) {
+            const row: HTMLElement = cookedRowOf(changed);
+            cookedRow.replaceWith(row);
+            cookedRow = row;
+        }
+        foodsClose();
+        return;
+    }
     let meal: MealPick | undefined = meals.find((other: MealPick): boolean =>
         other.name.toLowerCase() === dish.name.toLowerCase());
     if (meal === undefined) {
@@ -731,23 +759,33 @@ function dishLinesOf(query: string, changed: () => void): HTMLElement[] {
 
 /**
  * Loads my cookings of the days before a meal from the reader, those that list foods and start before it,
- * the nearest first, see {@link cookingDays}.
- * - `from`: Start of those days.
+ * the nearest first, see {@link cookingDays}, each with how many other meals of those days and the days after draw
+ * from it already, see {@link Cooking}.
+ * - `days`: Length of those days in milliseconds.
+ * - `from`, `until`: Start of the days before the meal and end of as many after it.
  * - `entries`: Entries of the log of those days.
  *
  * @param start - Start of the meal
+ * @param id - Identifier of the meal when it is changed, empty for a new one, which counts not itself
  * @returns The cookings
  * @throws {Error} - When the reader cannot answer
  */
-async function cookingsLoad(start: Date): Promise<Cooking[]> {
-    const from: Date = new Date(start.getTime() - cookingDays * 24 * 60 * 60 * 1000);
-    const response: Response = await fetch(`/api/day/log?start=${from.toISOString()}&end=${start.toISOString()}`);
+async function cookingsLoad(start: Date, id: string): Promise<Cooking[]> {
+    const days: number = cookingDays * 24 * 60 * 60 * 1000;
+    const from: Date = new Date(start.getTime() - days);
+    const until: Date = new Date(start.getTime() + days);
+    const response: Response = await fetch(`/api/day/log?start=${from.toISOString()}&end=${until.toISOString()}`);
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
-    const entries: Cooking[] = await response.json() as Cooking[];
+    const entries: (Cooking & { cooked?: string })[] = await response.json() as (Cooking & { cooked?: string })[];
     return entries
         .filter((entry: Cooking): boolean => entry.category === cookName && entry.foods.length > 0
             && Date.parse(entry.start) < start.getTime())
+        .map((cooking: Cooking): Cooking => ({
+            ...cooking,
+            eaters: entries.filter((entry: Cooking & { cooked?: string }): boolean =>
+                entry.category === foodName && entry.cooked === cooking.id && entry.id !== id).length,
+        }))
         .sort((first: Cooking, second: Cooking): number => second.start.localeCompare(first.start));
 }
 
@@ -767,11 +805,11 @@ function cookingTextOf(cooking: Cooking): string {
 
 /**
  * Puts the meals and foods of the cooking the meal draws from first among its meals and foods, in place of those
- * it brought before,
- * each with the grams it had among the foods already, else its grams of the pot, all of it, which I type over
- * with what I ate in its row; none while no cooking is picked.
+ * it brought before, each at its share of the pot: the pot shared evenly among every meal drawing from it, this one
+ * too, halves for two, thirds for three, as the reader writes it once saved, see `cookedShare` in `reader/day.ts`;
+ * none while no cooking is picked.
  * - `cooking`: The cooking picked, `undefined` for none.
- * - `before`: Grams typed of each food so far, of the meals and beside them, by its key.
+ * - `share`: Part of the pot of each meal, like 0.5 for two.
  * - `drawnMeals`: The meals of the cooking, each with its foods.
  * - `drawn`: The foods of the cooking beside its meals.
  *
@@ -779,13 +817,16 @@ function cookingTextOf(cooking: Cooking): string {
  */
 function drawnShow(changed: () => void): void {
     const cooking: Cooking | undefined = cookings.find((one: Cooking): boolean => one.id === cooked);
-    const before: Map<string, string> = new Map([...meals.flatMap((meal: MealPick): FoodPick[] => meal.foods), ...picks]
-        .map((pick: FoodPick): [string, string] => [keyOf(pick), pick.grams]));
+    const share: number = 1 / ((cooking?.eaters ?? 0) + 1);
     const drawnMeals: MealPick[] = [];
     const drawn: FoodPick[] = [];
     (cooking?.foods ?? []).forEach((line: string): void => {
         const read: Line = lineOf(line);
-        const pick: FoodPick = { ...pickOf(read, before.get(keyOf(read)) ?? read.grams), fromCooking: true };
+        const pot: number | null = numberOf(read.grams);
+        const pick: FoodPick = {
+            ...pickOf(read, pot === null || !Number.isFinite(pot) ? read.grams : gramsTextOf(pot * share)),
+            fromCooking: true,
+        };
         if (read.meal === "") {
             drawn.push(pick);
             return;
@@ -902,7 +943,7 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     Promise<HTMLElement[]> {
     const category: string = drawing === null ? cookName : foodName;
     const [found, mealsMine, cooks, grams]: [FoodsFound, Dish[], Cooking[], Map<string, number>] = await Promise.all([
-        foodsFind("", 1, false), dishesLoad(), drawing === null ? Promise.resolve([]) : cookingsLoad(drawing.start),
+        foodsFind("", 1, false), dishesLoad(), drawing === null ? Promise.resolve([]) : cookingsLoad(drawing.start, drawing.id),
         gramsLoad(category)]);
     dishes = mealsMine;
     cookings = cooks;
@@ -962,9 +1003,10 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     rowsShow(changed);
     const summaryRow: HTMLDivElement = rowOf("Summary", summaryLine);
     summaryRow.classList.add("panel-fixed");
-    if (drawing === null)
+    cookedRow = drawing === null ? null : cookedRowOf(changed);
+    if (cookedRow === null)
         return [summaryRow, foodsRow];
-    return [summaryRow, cookedRowOf(changed), foodsRow];
+    return [summaryRow, cookedRow, foodsRow];
 }
 
 /**

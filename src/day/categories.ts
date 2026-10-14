@@ -932,7 +932,10 @@ async function categoryPick(category: Category | null): Promise<void> {
         const changing: boolean = opened.category === category.name;
         const built: HTMLElement[] = await mealOf(changing ? opened.foods : [], changing ? opened.values.title : "",
             saveAllow, category.name === cookName ? null
-                : { cooked: changing ? String(opened.entry?.extendedProps.cooked ?? "") : "", start: startRead() });
+                : {
+                    cooked: changing ? String(opened.entry?.extendedProps.cooked ?? "") : "", start: startRead(),
+                    id: changing ? opened.entry?.id ?? "" : "",
+                });
         if (chosen !== category)
             return;
         meal = built;

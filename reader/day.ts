@@ -41,7 +41,9 @@
  */
 
 import { boxDone, boxFind, boxOpenFind, boxReopen } from "./boxes.ts";
-import { berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryRemove, propertiesPut } from "./calendar.ts";
+import {
+    berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryLookup, entryRemove, propertiesPut,
+} from "./calendar.ts";
 import { categoryAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
 import { foodLineAllows, foodName, mealsOf } from "./food.ts";
@@ -261,6 +263,48 @@ function cookedCheck(category: string, start: Date, cooked: string): void {
 }
 
 /**
+ * Shares a cooking out evenly among the meals that draw from it, so each eats its part of the pot by itself:
+ * every food of the cooking, in every meal drawing from it, gets the grams of the pot divided by how many meals draw,
+ * halves for two, thirds for three, to one decimal, like 250 of 500 g; its line keeps its meal, and foods the meal
+ * ate beside the pot keep theirs; a food without grams in the pot stays without. Called after a meal drawing from it
+ * is added, changed or removed, and after the cooking itself changes, so every share stays right.
+ * - `found`: The cooking with its file, `undefined` when it is gone.
+ * - `keyOf`: Key of a line by its food and meal, in small letters.
+ * - `pot`: Grams of each food of the pot by its key, `null` for none.
+ * - `eaters`: The meals drawing from it.
+ *
+ * @param cooked - Identifier of the cooking, empty for none
+ */
+function cookedShare(cooked: string): void {
+    const found: [string, Entry] | undefined = cooked === "" ? undefined : entryLookup(day.log, cooked);
+    if (found === undefined)
+        return;
+    const keyOf: (line: string) => string = (line: string): string => {
+        const parts: string[] = line.split(";");
+        return [parts[0], parts[1] ?? "", parts[2] ?? "", parts[4] ?? ""].join(";").toLowerCase();
+    };
+    const pot: Map<string, number | null> = new Map(found[1].foods.map((line: string): [string, number | null] => {
+        const grams: number = Number(line.split(";")[3] ?? "");
+        return [keyOf(line), (line.split(";")[3] ?? "") === "" || !Number.isFinite(grams) ? null : grams];
+    }));
+    const eaters: Entry[] = entriesRead(day.log, found[1].start, "9999-12-31T00:00:00Z")
+        .filter((entry: Entry): boolean => entry.category === foodName && entry.cooked === cooked);
+    eaters.forEach((entry: Entry): void => {
+        const foods: string[] = entry.foods.map((line: string): string => {
+            const grams: number | null | undefined = pot.get(keyOf(line));
+            if (grams === undefined || grams === null)
+                return line;
+            const parts: string[] = line.split(";");
+            parts[3] = String(Math.round(grams / eaters.length * 10) / 10);
+            return parts.join(";");
+        });
+        const file: string | undefined = entryLookup(day.log, entry.id)?.[0];
+        if (file !== undefined && foods.join("\n") !== entry.foods.join("\n"))
+            propertiesPut(file, entry.id, [["x-food", foods]]);
+    });
+}
+
+/**
  * Reads how long the last entries of the log like a box really lasted, the latest first, so I anchor the expected
  * minutes of a box on what really happened, not on a hope, since plans run long (Buehler 1994): the last three
  * entries up to now with the same category and the same what, or for `Skill` the same module
@@ -320,6 +364,7 @@ export function entryAdd(entry: EntryNew): string {
     const id: string = entryAppend(logFileOf(fields), fields, own);
     if (entry.planned !== "")
         boxDone(entry.planned);
+    cookedShare(cooked);
     return id;
 }
 
@@ -420,6 +465,11 @@ export function entryEdit(change: EntryChange): void {
     if (change.cooked !== undefined && change.cooked !== entry.cooked)
         propertiesPut(file, entry.id, [["x-cooked", change.cooked === "" ? [] : [change.cooked]]]);
     entryChange(file, entry, fields, logFileOf(fields));
+    cookedShare(entry.cooked);
+    if (change.cooked !== undefined && change.cooked !== entry.cooked)
+        cookedShare(change.cooked);
+    if (fields.category === cookName)
+        cookedShare(entry.id);
 }
 
 /**
@@ -436,4 +486,5 @@ export function entryDelete(id: string): void {
     entryRemove(file, entry.id);
     if (entry.planned !== "")
         boxReopen(entry.planned);
+    cookedShare(entry.cooked);
 }
