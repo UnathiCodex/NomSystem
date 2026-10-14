@@ -29,8 +29,8 @@
  * the one way to write a new summary or another one in place of the one picked, but to the summary of `Sleep`
  * and `Way`, which take no new ones.
  * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first,
- * each by its name, like `TumMain`, its address grey beside it in the list; a picked one is written with its address,
- * as one line, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`; its row shows its name with a pencil `✎`
+ * each by its name, like `TUM Innenstadt`, its address grey beside it in the list; a picked one is written with its address,
+ * as one line, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`; its row shows its name with a pencil `✎`
  * beside it and its address small and grey below it, which opens the link of the place, its `ALTREP`, when it has
  * one; the pencil changes my place in `Places.md`, its name, its address and its link, and nothing else, entries
  * written before keeping what they have;
@@ -112,7 +112,7 @@ type FieldKey = "title" | "from" | "location";
  * - `values`: Values to pick, the most used first.
  * - `steps`: Steps of a value offered in the code, by the value, like the exercises of `Neck short`.
  * - `fixed`: Whether it takes only its values, like `Night` and `Day` of `Sleep`, and no new ones.
- * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `UBahn, Bus`,
+ * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `U-Bahn, Bus`,
  *   see {@link manyRowOf}; one when left out.
  * - `rooms`: For a field of a place, the rooms of the university in `Rooms.md`, each as the line an entry writes,
  *   which its list offers only as I search, see {@link placeSearchOf}; none for any other field.
@@ -451,13 +451,13 @@ function stepsShow(steps: HTMLElement, field: Field): void {
 
 /**
  * Gives the value of a field that takes only its values, like my means of transport, for a value an older entry
- * wrote another way, like `UBahn` for `U-Bahn`: the value that reads the same without hyphens and spaces,
+ * wrote another way, like `U-Bahn` for `UBahn`: the value that reads the same without hyphens and spaces,
  * ignoring case; any other value as it is, also one no value reads like.
  * - `simple`: Writes a value without hyphens and spaces, in small letters.
  *
  * @param field - Field of the value, like the summary of `Way`
- * @param value - Value as written, like `U-Bahn`
- * @returns Value of the field, like `UBahn`
+ * @param value - Value as written, like `UBahn`
+ * @returns Value of the field, like `U-Bahn`
  */
 function fixedValueOf(field: Field, value: string): string {
     const simple: (text: string) => string = (text: string): string => text.replace(/[-\s]/g, "").toLowerCase();
@@ -471,8 +471,8 @@ function fixedValueOf(field: Field, value: string): string {
  * beside it in the list, any other value as it is.
  *
  * @param field - Field of the value, like `Place`
- * @param value - Value, like `TumMain, Arcisstraße 21, 80333 München, Deutschland` or `Bahn`
- * @returns Choice, like one showing `TumMain`
+ * @param value - Value, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland` or `Bahn`
+ * @returns Choice, like one showing `TUM Innenstadt`
  */
 function fieldChoiceOf(field: Field, value: string): Choice {
     return field.key === "title" ? choiceOf(value)
@@ -482,7 +482,7 @@ function fieldChoiceOf(field: Field, value: string): Choice {
 /**
  * Gives the address of a place as an entry writes it, the part after its name.
  *
- * @param line - Place like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, or only its name, like `HomeMunich`
+ * @param line - Place like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, or only its name, like `Home Munich`
  * @returns Address like `Arcisstraße 21, 80333 München, Deutschland`, empty for none
  */
 function addressOf(line: string): string {
@@ -494,7 +494,7 @@ function addressOf(line: string): string {
  * of `Places.md`, or `Online`.
  *
  * @param field - Field of a place, like `From`
- * @returns The line of my place, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, or `Online`,
+ * @returns The line of my place, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, or `Online`,
  *   `undefined` while the place picked is none offered, like an older place by its name alone, or nothing is picked
  */
 function mineOf(field: Field): string | undefined {
@@ -509,7 +509,7 @@ function mineOf(field: Field): string | undefined {
  * the pencil that changes my place, while it is one of mine, see {@link placeChange}; no address while no place
  * is picked, the link itself for a place with a link but without address, like `https://nav.tum.de/room/5602.EG.001`,
  * so every place with a link opens it here too, and nothing for an older place written by its name alone,
- * like `HomeMunich`, which has neither. `Online` has no pencil, since it is no place of `Places.md`; where it asks
+ * like `Home Munich`, which has neither. `Online` has no pencil, since it is no place of `Places.md`; where it asks
  * for its meeting, see {@link meetingPartsOf}, it shows what I need to join as its address, like
  * `Teams, ID 123 456 789 012 345`, opening the link of its meeting as pasted.
  * - `line`: The place picked.
@@ -817,7 +817,7 @@ function meetingShow(field: Field): void {
 
 /**
  * Builds the row of a summary of several values, like the means of a way, since I change on it, like U-Bahn then bus:
- * one line of the row, the values picked concatenated as one summary, parted by `, `, like `UBahn, Bus`, which is
+ * one line of the row, the values picked concatenated as one summary, parted by `, `, like `U-Bahn, Bus`, which is
  * also how the entry writes them; its list, a menu, takes a value or takes it back by a click, in the order picked,
  * and stays open for the next, see `many` in `choices.ts`; while none is picked, the small grey plus beside the name
  * of the row, `Summary +`, `Add a means of transport` as its tooltip, see `besideName` in `choices.ts`.

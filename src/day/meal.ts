@@ -324,7 +324,7 @@ function gramsIs(part: string): boolean {
  * being no grams and its fourth grams or empty; a food of a meal of `Meals.md` only its name, brand and store, like
  * `Hackfleisch;Gut & Günstig;Edeka`; an older line names its food alone, its grams after it, and for the food of a meal
  * the meal, then its servings eaten and its variant, which no longer count, like
- * `Hackfleisch;62.5;ChiliConCarne;0.5;09.10.2026`.
+ * `Hackfleisch;62.5;Chili con Carne;0.5;09.10.2026`.
  * - `parts`: The parts of the line, without spaces at their ends.
  * - `grams`: Whether the second part of an older line is grams.
  *

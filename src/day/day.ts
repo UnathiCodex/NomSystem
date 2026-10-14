@@ -168,8 +168,8 @@ function entryDrag(calendar: Calendar, info: EventChangeInfo): void {
 /**
  * Lists the foods of a dish, a meal or a cooking: from its lines `X-FOOD` by their names, read as the dialog reads them,
  * see `lineOf` in `meal.ts`, like `Reis` of `Reis;Golden Sun;Lidl;125` or of `Reis;150`, the foods of one of my meals
- * once by the name of that meal, which their lines carry after their grams, like `ChiliConCarne`
- * of `Hackfleisch;125;ChiliConCarne;1;09.10.2026` and `Salz;ChiliConCarne;1`;
+ * once by the name of that meal, which their lines carry after their grams, like `Chili con Carne`
+ * of `Hackfleisch;125;Chili con Carne;1;09.10.2026` and `Salz;Chili con Carne;1`;
  * else from its what, parted by `, `, like `Reis`, `Bohnen` and `Eier` of `Reis, Bohnen, Eier`.
  * - `category`: Category of the entry.
  * - `foods`: Lines `X-FOOD` of the entry, none when it lists none.
@@ -251,9 +251,9 @@ function linesOf(info: EventDisplayInfo): number {
  *   see `shownWhatOf` in `boxes.ts`, its foods for a dish, empty when it is its category, like an old `Sleep`
  *   written before it had its what.
  * - `from`: Where a way starts, its `X-FROM`, empty for none.
- * - `location`: Place of the entry, its `LOCATION`, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`.
- * - `place`: Place of the entry by its label, like `HomeMunich`, for a way its route from its `X-FROM`,
- *   like `HomeMunich -> TumGarching`, see `whereOf` in `places.ts`, shown with its arrow drawn; empty when it has none.
+ * - `location`: Place of the entry, its `LOCATION`, like `Home Munich, Burgweg 1, 81375 München, Deutschland`.
+ * - `place`: Place of the entry by its label, like `Home Munich`, for a way its route from its `X-FROM`,
+ *   like `Home Munich -> TUM Garching`, see `whereOf` in `places.ts`, shown with its arrow drawn; empty when it has none.
  * - `link`: Link of the place, its `ALTREP`, like `https://nav.tum.de/room/8120.01.101`, empty for none.
  * - `note`: Note of the entry, its `DESCRIPTION`, empty when it has none.
  * - `start`, `end`: Start and end of the entry.

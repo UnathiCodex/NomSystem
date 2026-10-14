@@ -15,7 +15,7 @@
  * changes its row in `Places.md`, its name, its address and its link, and nothing else, asking nothing more:
  * entries written before keep what they have.
  * An entry writes a place as one line, its name and its address, like
- * `TumMain, Arcisstraße 21, 80333 München, Deutschland`, see {@link lineOf}; it shows by its name, the part
+ * `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, see {@link lineOf}; it shows by its name, the part
  * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens the link
  * of the place, written with it as its `ALTREP`, when it has one, and nothing else: nothing opens a map by itself,
  * only a link stored with the place opens on a click.
@@ -34,7 +34,7 @@ import { iconOf, iconPut } from "../icons.ts";
 /**
  * A place, as the reader writes it into `Places.md`.
  *
- * - `name`: Name, like `TumMain`, without a comma, which the reader drops, see `nameOf` in `reader/places.ts`.
+ * - `name`: Name, like `TUM Innenstadt`, without a comma, which the reader drops, see `nameOf` in `reader/places.ts`.
  * - `address`: Its address with its country, like `Arcisstraße 21, 80333 München, Deutschland`.
  * - `link`: Its link, like `https://nav.tum.de/room/0509.EG.980`, empty for none.
  */
@@ -93,7 +93,7 @@ const meetingNames: { id: string; passcode: string } = { id: "ID", passcode: "Pa
 let answer: ((place: Place | null) => void) | null = null;
 
 /**
- * Name of my place the open dialog changes, like `TumMain`, empty while it adds a new place.
+ * Name of my place the open dialog changes, like `TUM Innenstadt`, empty while it adds a new place.
  */
 let editing: string = "";
 
@@ -108,7 +108,7 @@ let linkFollows: boolean = false;
  * Writes a place as an entry writes it into `LOCATION`, as Google Calendar does, its name and its address in one line.
  *
  * @param place - A place of `Places.md`
- * @returns Line like `TumMain, Arcisstraße 21, 80333 München, Deutschland`
+ * @returns Line like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`
  */
 export function lineOf(place: Place): string {
     return place.address === "" ? place.name : `${place.name}, ${place.address}`;
@@ -117,9 +117,9 @@ export function lineOf(place: Place): string {
 /**
  * Gives the name of the place of a line, the part before its first comma, as the grid and the plan show it.
  *
- * @param line - Place as an entry writes it, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
- *   or an older one, only its name, like `HomeMunich`
- * @returns Name like `TumMain`
+ * @param line - Place as an entry writes it, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`,
+ *   or an older one, only its name, like `Home Munich`
+ * @returns Name like `TUM Innenstadt`
  */
 export function labelOf(line: string): string {
     return line.split(",")[0].trim();
@@ -133,15 +133,15 @@ export const wayName: string = "Way";
 /**
  * Writes where an entry or a box was, by labels alone, see {@link labelOf}, as text, which tells whether it has
  * a place at all: the route of a way, from where it starts, its `X-FROM`, to its goal, its `LOCATION`,
- * like `HomeMunich -> TumGarching`, a missing end left out beside its arrow, like `-> TumGarching`; the place
- * of any other entry, like `HomeMunich`. The page shows it with the arrow drawn, see {@link whereLinkedOf}.
+ * like `Home Munich -> TUM Garching`, a missing end left out beside its arrow, like `-> TUM Garching`; the place
+ * of any other entry, like `Home Munich`. The page shows it with the arrow drawn, see {@link whereLinkedOf}.
  * - `start`: Label of where a way starts, empty for none.
  * - `goal`: Label of the place or the goal, empty for none.
  *
  * @param category - Category of the entry, like `Way`
- * @param from - Where a way starts, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`, empty for none
- * @param location - Place or goal, like `TumGarching, Boltzmannstraße 3, 85748 Garching, Deutschland`
- * @returns Where it was, like `HomeMunich -> TumGarching`, empty for no place at all
+ * @param from - Where a way starts, like `Home Munich, Burgweg 1, 81375 München, Deutschland`, empty for none
+ * @param location - Place or goal, like `TUM Garching, Boltzmannstraße 3, 85748 Garching, Deutschland`
+ * @returns Where it was, like `Home Munich -> TUM Garching`, empty for no place at all
  */
 export function whereOf(category: string, from: string, location: string): string {
     const start: string = labelOf(from);
@@ -187,16 +187,16 @@ function routeArrowOf(): SVGElement {
 
 /**
  * Shows where an entry or a box was, as {@link whereOf} writes it, the arrow of a route drawn, see
- * {@link routeArrowOf}, like `HomeMunich` → `TumGarching`, and its place a link when it has one, its `ALTREP`,
- * see {@link placeAnchorOf}; of a way its goal, which its `LOCATION` names, like `TumGarching`.
+ * {@link routeArrowOf}, like `Home Munich` → `TUM Garching`, and its place a link when it has one, its `ALTREP`,
+ * see {@link placeAnchorOf}; of a way its goal, which its `LOCATION` names, like `TUM Garching`.
  * A place without link is plain text.
- * - `start`: Label of where a way starts, like `HomeMunich`, empty for none.
- * - `goal`: Label of the place or the goal, like `TumGarching`, empty for none.
+ * - `start`: Label of where a way starts, like `Home Munich`, empty for none.
+ * - `goal`: Label of the place or the goal, like `TUM Garching`, empty for none.
  * - `place`: The place or the goal as shown, a link or plain text, none for none.
  *
  * @param category - Category of the entry, like `Way`
- * @param from - Where a way starts, like `HomeMunich, Burgweg 1, 81375 München, Deutschland`, empty for none
- * @param location - Place or goal, like `TumGarching, Boltzmannstraße 3, 85748 Garching, Deutschland`
+ * @param from - Where a way starts, like `Home Munich, Burgweg 1, 81375 München, Deutschland`, empty for none
+ * @param location - Place or goal, like `TUM Garching, Boltzmannstraße 3, 85748 Garching, Deutschland`
  * @param link - Link of the place or the goal, its `ALTREP`, empty for none
  * @returns Where it was, its place or goal a link, none for no place at all
  */
@@ -342,11 +342,11 @@ function placeSave(): void {
 
 /**
  * Opens the dialog of a new place over the entry by category: the place filled with the typed text,
- * like `HomeMunich`, the address empty and focused, since the place is typed already, the link empty, following
+ * like `Home Munich`, the address empty and focused, since the place is typed already, the link empty, following
  * the address as I type it, see {@link linkFollows};
  * the place focused while nothing is typed, like for `+ New place` of an empty search.
  *
- * @param name - Typed name of the place, like `HomeMunich`
+ * @param name - Typed name of the place, like `Home Munich`
  * @returns The place as written once it is saved, `null` when the dialog closes without saving
  */
 export function placeOpen(name: string): Promise<Place | null> {
@@ -359,7 +359,7 @@ export function placeOpen(name: string): Promise<Place | null> {
  * Opens the dialog of a place over the entry by category to change my place: its name, its address and its link
  * filled in, the name focused; it asks nothing more, the entries written before keeping what they have.
  *
- * @param place - My place as it is, like `TumMain` with its address and link
+ * @param place - My place as it is, like `TUM Innenstadt` with its address and link
  * @returns The place as written once it is saved, `null` when the dialog closes without saving
  */
 export function placeEdit(place: Place): Promise<Place | null> {

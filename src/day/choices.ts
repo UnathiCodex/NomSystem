@@ -171,7 +171,7 @@ let listsStarted: boolean = false;
 /**
  * Makes a choice that shows its value, without group.
  *
- * @param value - Value, like `HomeMunich`
+ * @param value - Value, like `Home Munich`
  * @returns Choice
  */
 export function choiceOf(value: string): Choice {

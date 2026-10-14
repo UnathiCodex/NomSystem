@@ -29,10 +29,10 @@
  * `X-FOOD:Hackfleisch;Gut & Günstig;Edeka;500`, which counts nothing.
  * Grams guessed, not weighed, like those Claude reads from a photo of a meal, carry `~`, like `X-FOOD:Döner;~400`,
  * and count as an estimate, since a guess from a photo is about a third off (Fridolfsson 2025).
- * A food of one of my meals carries the meal as a fifth part, like `X-FOOD:Hackfleisch;Gut & Günstig;Edeka;125;ChiliConCarne`,
+ * A food of one of my meals carries the meal as a fifth part, like `X-FOOD:Hackfleisch;Gut & Günstig;Edeka;125;Chili con Carne`,
  * so the log keeps what the meal held that day, whatever I change in `Meals.md` later; its what names the meal,
- * then the foods eaten beside it, like `ChiliConCarne, Weißbrot`; an older line of a meal carried its servings eaten
- * and its variant, like `Hackfleisch;62.5;ChiliConCarne;0.5;09.10.2026`, still read.
+ * then the foods eaten beside it, like `Chili con Carne, Weißbrot`; an older line of a meal carried its servings eaten
+ * and its variant, like `Hackfleisch;62.5;Chili con Carne;0.5;09.10.2026`, still read.
  * A product of Open Food Facts is a pack as sold, its values per 100 g, with the size of the pack, like `450 g`.
  * Open Food Facts is asked anonymously: a request carries the search and the name of the dashboard,
  * never my email or my name.
@@ -181,7 +181,7 @@ export type FoodChanged = {
  * - `grams`: Grams eaten as the meal lists them, 0 for a line without grams, which counts nothing.
  * - `estimate`: Whether the grams are guessed, not weighed, marked by `~`.
  * - `known`: Whether `Foods.md` holds the food; an unknown food gives nothing.
- * - `meal`: The meal of mine it belongs to in this entry, as its line carries it, like `ChiliConCarne`;
+ * - `meal`: The meal of mine it belongs to in this entry, as its line carries it, like `Chili con Carne`;
  *   empty for a food eaten by itself, like bread beside a meal.
  */
 export type Eaten = Nutrients & {
@@ -219,7 +219,7 @@ type Line = {
  * - `id`: Identifier of the entry.
  * - `start`: Start as ISO instant.
  * - `title`: What I ate, its `SUMMARY`, like `Reis, Bohnen, Eier`.
- * - `location`: Where, its `LOCATION`, like `HomeMunich`, empty when it has none.
+ * - `location`: Where, its `LOCATION`, like `Home Munich`, empty when it has none.
  * - `foods`: Its foods in the order of its lines `X-FOOD`, none when it lists none.
  * - `estimate`: Whether one of its foods counts grams guessed.
  */
@@ -358,7 +358,7 @@ const mealsHead: string[] = [
  * Line `X-FOOD` written before foods had brand and store, which names its food alone: the name of a food, then `;`
  * and the grams when given, `~` before grams guessed, then for a food of one of my meals `;` with the meal,
  * `;` with its servings eaten and maybe `;` with its variant, like `Reis;150`, `Milch;200.5`, `Döner;~400`, `Eier`
- * or `Hackfleisch;62.5;ChiliConCarne;0.5;09.10.2026`; see {@link lineOf} for the line of today.
+ * or `Hackfleisch;62.5;Chili con Carne;0.5;09.10.2026`; see {@link lineOf} for the line of today.
  */
 const foodLine: RegExp =
     /^([^;]+?)(?:;\s*(~)?\s*(\d+(?:[.,]\d+)?))?(?:;\s*([^;|]+?)\s*;\s*(\d+(?:[.,]\d+)?)(?:\s*;\s*([^;|]*?))?)?\s*$/;
@@ -505,7 +505,7 @@ function nameOf(name: string): string {
 /**
  * Cleans the name of a food as it goes into `Foods.md`, from Open Food Facts or typed by hand, and the name of a meal:
  * as a name, see {@link nameOf}, and without a comma, since the comma is ours: it parts the names of a summary,
- * like `ChiliConCarne, Weißbrot`, and the brand from the store in `(Gut & Günstig, Edeka)`. A comma between two digits
+ * like `Chili con Carne, Weißbrot`, and the brand from the store in `(Gut & Günstig, Edeka)`. A comma between two digits
  * becomes a point, like `Milch 1.5 %` of `Milch 1,5 %`; every other comma goes, its space with it, the words around it
  * one space apart, like `Sonnenmais zart` of `Sonnenmais, zart`; everything else stays exactly as given.
  * Rows already in `Foods.md` and `Meals.md` are read as they are.
@@ -654,7 +654,7 @@ function foodOfLine(read: Line, mine: Map<string, Food>): Food | undefined {
 /**
  * Cuts a line `X-FOOD` of today into its five parts: its food's name, brand and store, its grams, empty for a food
  * `Foods.md` does not hold, and the meal of mine it belongs to, like `Skyr natur;K-Classic;Kaufland;150`,
- * `Reis;;;80` of a food without brand and store, or `Hackfleisch;Gut & Günstig;Edeka;125;ChiliConCarne`,
+ * `Reis;;;80` of a food without brand and store, or `Hackfleisch;Gut & Günstig;Edeka;125;Chili con Carne`,
  * told by its second part being no grams and its fourth grams or empty; the foods of a meal in `Meals.md`
  * without grams, like `Hackfleisch;Gut & Günstig;Edeka`.
  *
@@ -985,7 +985,7 @@ export function foodAdd(sent: Food): Food {
  * like one written before foods had brand and store.
  * - `parts`: Parts of the line, `null` for an older one.
  *
- * @param line - Line like `Sonnenmais zart;GUT&GÜNSTIG;Edeka;265;ChiliConCarne` or `Hackfleisch;Gut & Günstig;Edeka`
+ * @param line - Line like `Sonnenmais zart;GUT&GÜNSTIG;Edeka;265;Chili con Carne` or `Hackfleisch;Gut & Günstig;Edeka`
  * @param old - Key of the food renamed, see {@link keyOf}
  * @param renamed - Its new name, brand and store
  * @returns The line, the food renamed where it names it
@@ -1216,7 +1216,7 @@ export function mealsOf(entries: Entry[]): Map<string, Meal> {
  * brand and store without `|`, like `Skyr natur;K-Classic;Kaufland;150`, grams above 0 or none, and maybe the meal
  * it belongs to; or an older one,
  * see {@link foodLine}, a name without `;` and `|`, then grams above 0 when given, like `Reis;150` or `Eier`,
- * and for a food of a meal the meal, servings above 0 and maybe its variant, like `Hackfleisch;62.5;ChiliConCarne;0.5`.
+ * and for a food of a meal the meal, servings above 0 and maybe its variant, like `Hackfleisch;62.5;Chili con Carne;0.5`.
  * Whether `Foods.md` holds the food is not asked, so a meal keeps a food that left `Foods.md` when it is moved.
  * - `read`: The line as read, see {@link lineOf}.
  * - `parts`: A line of today cut into its five parts, `null` for an older one.

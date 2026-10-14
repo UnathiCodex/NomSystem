@@ -266,7 +266,7 @@ export const activeModules: string[] = activeSkills
  *   of the years in `Living/` and those of my skills in `Skilling/`, my one calendar.
  * - `system`: Calendars of birthdays and holidays in {@link metaRoot}, shown above the boxes of their day,
  *   each a whole day: `Birthdays.ics`, which I write by hand, a birthday a yearly series with `CATEGORIES:Birthday`
- *   and the name as `SUMMARY`, like `Birthday: KarlbauerFlorian`, and beside it `Holidays.ics`, a holiday
+ *   and the name as `SUMMARY`, like `Birthday: Karlbauer Florian`, and beside it `Holidays.ics`, a holiday
  *   with `CATEGORIES:Holiday`, like `Holiday: Ostermontag (AT, DE)`; my gift idea for one is its `DESCRIPTION`,
  *   which the reader writes, see `gifts.ts`; none of a file while it is missing.
  * - `places`: My places, `Places.md` in {@link dataRoot}, beside `Foods.md`, one Markdown table

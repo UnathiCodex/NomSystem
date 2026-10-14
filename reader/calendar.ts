@@ -37,14 +37,14 @@ import type { CalendarSource } from "./sources.ts";
  * - `id`: Identifier of the event, its `UID`, like `b8f1e81f-15b4-460e-910d-ef6b1b3d09b3@nomsystem`;
  *   all occurrences of a series share it, like those of a birthday.
  * - `category`: Category of the entry, its `CATEGORIES`, like `Way`; empty for an entry without one, like a birthday.
- * - `title`: Summary of the entry, what it was, like `UBahn`, for a skill entry the name of the folder of its skill
+ * - `title`: Summary of the entry, what it was, like `U-Bahn`, for a skill entry the name of the folder of its skill
  *   with its type in round brackets, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see {@link skillPartsOf};
  *   empty for an entry without `SUMMARY`.
  * - `titleLink`: Link of what it was, the standard parameter `ALTREP` of its `SUMMARY`: for a skill entry the folder
  *   of its skill from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
  *   see `documents.ts`; empty when it has none.
- * - `location`: Place of the entry, its `LOCATION`, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
- *   or `HomeMunich` in an older entry, empty when the event has none.
+ * - `location`: Place of the entry, its `LOCATION`, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`,
+ *   or `Home Munich` in an older entry, empty when the event has none.
  * - `locationLink`: Link of its place, the standard parameter `ALTREP` of its `LOCATION`,
  *   like `https://nav.tum.de/room/0509.EG.980`, empty when it has none.
  * - `from`: Where a way starts, its `X-FROM`, empty when the event has none.

@@ -65,7 +65,7 @@
  *
  * Above its boxes a day shows its birthdays and holidays, those of `Birthdays.ics` and `Holidays.ics`
  * in `NomManagecalendar/Meta/`, see `sources.ts`, each on its date, a yearly series on each of its days,
- * with its category, like `Birthday: KarlbauerFlorian` or `Holiday: Ostermontag (AT, DE)`, and my gift idea for it,
+ * with its category, like `Birthday: Karlbauer Florian` or `Holiday: Ostermontag (AT, DE)`, and my gift idea for it,
  * its `DESCRIPTION`, see `gifts.ts`; none of a file while it is missing.
  *
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
@@ -154,7 +154,7 @@ export type Box = EntryTexts & {
  *
  * - `id`: Its identifier in `Birthdays.ics` or `Holidays.ics`, its `UID`, shared by every year of its series.
  * - `category`: Its category, like `Birthday` or `Holiday`, empty for none.
- * - `title`: Its name as its file writes it, like `KarlbauerFlorian` or `Ostermontag (AT, DE)`.
+ * - `title`: Its name as its file writes it, like `Karlbauer Florian` or `Ostermontag (AT, DE)`.
  * - `gift`: My gift idea for it, its `DESCRIPTION`, see `gifts.ts`, empty for none.
  */
 export type Occasion = {

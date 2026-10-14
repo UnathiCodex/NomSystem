@@ -113,7 +113,7 @@ export type FoodsFound = {
  * - `grams`: Grams eaten as the meal lists them, 0 for none, which count nothing.
  * - `estimate`: Whether the grams are guessed, marked by `~`.
  * - `known`: Whether `Foods.md` holds the food; an unknown food gives nothing.
- * - `meal`: The meal of mine it belongs to in this entry, like `ChiliConCarne`; empty for a food eaten by itself.
+ * - `meal`: The meal of mine it belongs to in this entry, like `Chili con Carne`; empty for a food eaten by itself.
  */
 export type Eaten = Nutrients & {
     name: string;
@@ -131,7 +131,7 @@ export type Eaten = Nutrients & {
  * - `id`: Identifier of the entry.
  * - `start`: Start as ISO instant.
  * - `title`: What I ate, like `Reis-Bohnen-Eier`.
- * - `location`: Where, like `HomeMunich`, empty when it has none.
+ * - `location`: Where, like `Home Munich`, empty when it has none.
  * - `foods`: Its foods with what each gives, none when it lists none.
  * - `estimate`: Whether one of its foods counts grams guessed.
  */

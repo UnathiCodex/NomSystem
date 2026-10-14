@@ -182,7 +182,7 @@ function itemLineOf(what: HTMLElement, kcal: number | null): HTMLElement {
 /**
  * Builds the lines of an entry: its start in grey above it, linking to its day in the day view, so no column of times
  * takes room beside the names, and where, and at the right what the whole entry gives, when it holds more than one
- * meal or food, like `654 kcal` for ChiliConCarne with bread; then everything it holds in one shape: a name with its
+ * meal or food, like `654 kcal` for Chili con Carne with bread; then everything it holds in one shape: a name with its
  * kcal, and below it its foods with their grams, see {@link partLineOf}: each meal of mine with its foods, and each food
  * eaten by itself as a meal of that one food, like bread beside the chili or an apple alone, so a food never stands
  * under a meal it does not belong to; an older entry whose summary names more than its foods, like `Bortzeit`, stands

@@ -56,7 +56,7 @@ function giftSave(gift: string): void {
 
 /**
  * Opens the dialog of the gift idea for a birthday or holiday, its category and name small and grey above the field,
- * like `Birthday: KarlbauerFlorian`, the field holding the idea I have, focused; the bin shows only when there is one
+ * like `Birthday: Karlbauer Florian`, the field holding the idea I have, focused; the bin shows only when there is one
  * to take out.
  * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page, `Esc` closes it.
  *

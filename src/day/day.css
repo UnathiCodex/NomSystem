@@ -1436,7 +1436,7 @@ fieldset.entry-times {
     overflow-wrap: anywhere;
 }
 
-/* kcal of the whole meal in brackets after its summary, like `ChiliConCarne, Weißbrot (660 kcal)`, as a type stands
+/* kcal of the whole meal in brackets after its summary, like `Chili con Carne, Weißbrot (660 kcal)`, as a type stands
    after its skill; white and as big as the summary, like the kcal of every meal and food */
 .meal-total {
     font-variant-numeric: tabular-nums;
@@ -1458,7 +1458,7 @@ fieldset.entry-times {
 }
 
 /* The one plus right after what it adds to, never on a line of its own: beside the name of a field, like `Foods +`
-   or `Chapter +`, or after a value, like `ChiliConCarne +` or a chapter's plus that adds a document to it, a little
+   or `Chapter +`, or after a value, like `Chili con Carne +` or a chapter's plus that adds a document to it, a little
    apart, see `lineMove` in `choices.ts`; its box one line of its text high and at the top of its line, so its icon stands
    exactly in the middle of the line, also after a name going on over two lines; its padding above and below,
    taken back by its margins, makes it easier to hit without moving the line */
@@ -1648,10 +1648,10 @@ fieldset.entry-times {
 }
 
 /* One line in parts, alone in an entry of a quarter hour or half an hour: what, then the time, then the place,
-   parted by a middle dot, like `Skill: WI1059 (HU) · 05:15 – 05:45 · HomeMunich`; what and the time keep
+   parted by a middle dot, like `Skill: WI1059 (HU) · 05:15 – 05:45 · Home Munich`; what and the time keep
    their width and only the place gives way, cut with an ellipsis; where what and the time are wider than the entry,
    the time moves onto a next line, which `.entry-lines` hides, so what stays whole; also the line of the time
-   and the place of an entry of 45 minutes, like `16:00 – 16:45 · HomeMunich` */
+   and the place of an entry of 45 minutes, like `16:00 – 16:45 · Home Munich` */
 .entry-line {
     display: flex;
     flex-wrap: wrap;
@@ -1707,7 +1707,7 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Place of an entry, in the grey of the time, like `HomeMunich`: beside the time, see `.entry-beside`,
+/* Place of an entry, in the grey of the time, like `Home Munich`: beside the time, see `.entry-beside`,
    or with room for three lines on the third, below the time and above the note, going on over the lines below
    where it is wider than the entry, like a long route, never cut there */
 .entry-place {
@@ -1715,7 +1715,7 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Part of a line after a middle dot, like `· 05:15 – 05:45` or `· HomeMunich` in the log, or `· 90 min` in a box:
+/* Part of a line after a middle dot, like `· 05:15 – 05:45` or `· Home Munich` in the log, or `· 90 min` in a box:
    the dot drawn before it with half a letter of space on both sides, which a line in parts would drop as spaces
    at the start of a part */
 .entry-parted::before {
@@ -1723,7 +1723,7 @@ fieldset.entry-times {
     margin-inline: 0.5em;
 }
 
-/* Place beside the time on its line, like `· HomeMunich` or a route like `· HomeMunich → TumGarching`,
+/* Place beside the time on its line, like `· Home Munich` or a route like `· Home Munich → TUM Garching`,
    in an entry with room for only one or two lines: it takes only the room left beside what and the time,
    cut with an ellipsis, so a short entry cuts the place, never what or the time; with less room than for about
    four letters it moves onto the next line, which `.entry-lines` hides, so no dot stands alone at the end */
@@ -1734,7 +1734,7 @@ fieldset.entry-times {
     text-overflow: ellipsis;
 }
 
-/* Arrow of a route between where a way starts and its goal, like `HomeMunich → TumGarching`: drawn as an icon
+/* Arrow of a route between where a way starts and its goal, like `Home Munich → TUM Garching`: drawn as an icon
    as high as a letter, in the grey of its line, its middle on the middle of the letters, with a third of a letter
    of room on both sides, see `routeArrowOf` in `places.ts` */
 svg.route-arrow {

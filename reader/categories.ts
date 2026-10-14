@@ -7,7 +7,7 @@
  * Each field of a what offers its values from the log itself, the what of its entries of the category,
  * the most used first, equal ones alphabetical.
  * Places are one list for every field of a place, the place of an entry and where a way starts: only my places
- * of `Places.md`, each as a line with its address, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
+ * of `Places.md`, each as a line with its address, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`,
  * see `places.ts`, and `Online`, the place of a meeting online, but in a way, which leads from one place of mine
  * to another, see {@link offlineNames}; the most used by the entries of the log first, counted by their names.
  * `Online` asks for its meeting only in `Skill`, see `meeting` of {@link Field}; in any other category, like a call
@@ -58,7 +58,7 @@ export type FieldKey = "title" | "from" | "location";
  * - `steps`: Steps of a value offered in the code, by the value, which the dialog shows while it is picked,
  *   like the exercises of `Neck short`; none for the other values.
  * - `fixed`: Whether it takes only the values offered in the code, like `Night` and `Day` of `Sleep`, and no new ones.
- * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `UBahn, Bus`;
+ * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `U-Bahn, Bus`;
  *   one when left out.
  * - `meeting`: Whether its place `Online` asks for its meeting, its link, ID and passcode, see `onlineName`
  *   in `places.ts`, like the place of a skill entry or box, since lectures and tutorials happen on Zoom and the like;
@@ -185,11 +185,11 @@ const semesterForm: RegExp = /^\d{4}[WS]$/;
 const sleepWhats: string[] = ["Night", "Day"];
 
 /**
- * The only whats of `Way`, my means of transport, each written one way, without hyphen, like my other names:
- * `Walk`, `Bike`, `Bus`, `Tram`, `UBahn`, `SBahn`, `Train` and `Car`; a way may use several, since I change on it,
- * parted by `, `, like `UBahn, Bus`.
+ * The only whats of `Way`, my means of transport, each written one way, as German writes them, like my other names:
+ * `Walk`, `Bike`, `Bus`, `Tram`, `U-Bahn`, `S-Bahn`, `Train` and `Car`; a way may use several, since I change on it,
+ * parted by `, `, like `U-Bahn, Bus`.
  */
-const transports: string[] = ["Walk", "Bike", "Bus", "Tram", "UBahn", "SBahn", "Train", "Car"];
+const transports: string[] = ["Walk", "Bike", "Bus", "Tram", "U-Bahn", "S-Bahn", "Train", "Car"];
 
 /**
  * Categories no box of the plan has, since they happen anyway: my sleep, my meals and their cooking, my drinks
@@ -304,10 +304,10 @@ function logsRead(now: string): Entry[] {
 
 /**
  * Lists the places of log entries by their names: their places and where their ways start, see `labelOf`
- * in `places.ts`, so `TumMain, Arcisstraße 21, 80333 München, Deutschland` and an older `TumMain` count alike.
+ * in `places.ts`, so `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland` and an older `TUM Innenstadt` count alike.
  *
  * @param logs - Log entries
- * @returns Every use of a place by its name, like `TumMain`, a place as often as it was used
+ * @returns Every use of a place by its name, like `TUM Innenstadt`, a place as often as it was used
  */
 function placeUsesOf(logs: Entry[]): string[] {
     return logs.flatMap((log: Entry): string[] => [labelOf(log.location), labelOf(log.from)]);
@@ -316,7 +316,7 @@ function placeUsesOf(logs: Entry[]): string[] {
 /**
  * Gives the names of my places and of the rooms of the university, which an entry writes as places, see `places.ts`.
  *
- * @returns Names like `HomeMunich`, in the order of `Places.md`, then those of `Rooms.md`
+ * @returns Names like `Home Munich`, in the order of `Places.md`, then those of `Rooms.md`
  */
 function placeNamesRead(): string[] {
     return [...placesRead(), ...roomsRead()].map((place: Place): string => place.name);
@@ -421,7 +421,7 @@ export function categoriesRead(now: string): CategoryShown[] {
 
 /**
  * Finds where the last way before an instant ended: the place of the last `Way` as it wrote it, with the address
- * it had then, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, when its name is one of my places
+ * it had then, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, when its name is one of my places
  * or of the rooms.
  * - `last`: Last way that started before the instant.
  *

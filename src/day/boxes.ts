@@ -106,7 +106,7 @@ const phone: boolean = matchMedia("(max-width: 900px)").matches;
  *   like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z`.
  * - `category`: Category, like `Skill`, empty for a box without one, like a to-do another app wrote.
  * - `title`: What, like `WI1059 HU`.
- * - `location`: Place, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, empty for none.
+ * - `location`: Place, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, empty for none.
  * - `locationLink`: Link of its place, its `ALTREP`, like `https://nav.tum.de/room/0509.EG.980`, empty for none.
  * - `from`: Where a way starts, empty for none.
  * - `module`: Module of a skill box, like `WI1059`, empty for any other box.
@@ -163,7 +163,7 @@ export type Box = {
  *
  * - `id`: Its identifier in `Birthdays.ics` or `Holidays.ics`, shared by every year of it.
  * - `category`: Its category, like `Birthday` or `Holiday`, empty for none.
- * - `title`: Its name as its file writes it, like `KarlbauerFlorian` or `Ostermontag (AT, DE)`.
+ * - `title`: Its name as its file writes it, like `Karlbauer Florian` or `Ostermontag (AT, DE)`.
  * - `gift`: My gift idea for it, its `DESCRIPTION`, empty for none.
  */
 export type Occasion = {
@@ -407,7 +407,7 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
  * like **`Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`**, see {@link shownWhatOf}, its long names breakable,
  * see `breakableOf` in `choices.ts`; then its time in the light grey of a time, its parts apart by a middle dot
  * with room on both sides, see {@link timePartsOf}, and after it its place in the darker grey, by its label alone,
- * its address hidden, like `16:00 – 17:30 · Audimax im Galileo`, a way its route, like `HomeMunich → TumGarching`,
+ * its address hidden, like `16:00 – 17:30 · Audimax im Galileo`, a way its route, like `Home Munich → TUM Garching`,
  * see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click instead of the box; then its topics,
  * one per line with a bullet, see {@link topicsOf}; a line without anything to say is left out, a line wider than
  * the box goes on below, see `.box-what` in `day.css`.
@@ -459,7 +459,7 @@ function topicsOf(box: Box): string[] {
 
 /**
  * Makes the birthdays and holidays of a day, each a grey line above its boxes with its category in bold and a colon
- * as every entry has it, like **`Birthday:`**` KarlbauerFlorian`, see {@link whatOf}, and below it, after a gift,
+ * as every entry has it, like **`Birthday:`**` Karlbauer Florian`, see {@link whatOf}, and below it, after a gift,
  * my gift idea for it, when I have one. A click on one opens the dialog of its gift idea, see `gifts.ts`,
  * and one without an idea shows the gift at its right under the pointer.
  * - `element`: A birthday or holiday with its idea.
