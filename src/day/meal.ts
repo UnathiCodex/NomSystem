@@ -20,7 +20,8 @@
  *   Its grams start at its usual portion, white like every fact, and I type over them; a field I empty counts
  *   the usual portion too; every amount is rounded and an estimate anyway, so none is marked as one.
  *   Enter in its grams opens the list again.
- * Below each, the small grey plus of every list opens its list once one is picked; an empty row opens its list on a click.
+ * Beside the name of each, the one plus opens its list, as every plus stands right after what it adds to, and so does
+ * a click on the empty row; a meal has its own plus right after its name, which adds a food to it.
  * The dialog writes each food as a line `X-FOOD`: its name, brand and store, then its grams, its usual portion when none
  * are typed, empty for a food `Foods.md` does not hold, and for a food of one of my meals the meal after them, like
  * `Hackfleisch;Gut & Günstig;Edeka;125;ChiliConCarne` or `Weißbrot;Harry;Rewe;50`, so the log keeps what the meal held
@@ -52,7 +53,7 @@ import { dayOf } from "../skill/attempts.ts";
 import { amountOf, bracketsWatch, buttonOf, dishesLoad, elementOf, foodNameOf, foodsFind } from "../food/foods.ts";
 import { dishCellsOf, kcalTextOf, mealFormOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf } from "../food/search.ts";
-import { crossPut, plusPut, plusTake, plusTypedPut } from "../icons.ts";
+import { crossPut, plusPut, plusTypedPut } from "../icons.ts";
 
 import type { Choice } from "./choices.ts";
 import type { Dish, Food, FoodsFound } from "../food/foods.ts";
@@ -427,14 +428,16 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void): HTML
 }
 
 /**
- * Builds the rows of a meal picked, as a chapter of a skill entry has its documents: its row, its name, its kcal
- * and a small grey `×`, which removes it; below it its parts, indented with a thin grey line at their left,
- * see `.meal-parts` in `day.css`: its foods, each a row of a food, see {@link foodRowOf}, then the one plus,
- * like `Add a food to ChiliConCarne`, which opens the food search there and adds the food picked to this meal
- * of this entry only, never to `Meals.md`; Escape in the search closes it again. The meal goes with its last food.
+ * Builds the rows of a meal picked, as a chapter of a skill entry has its documents: its row, its name with the one
+ * plus right after it, like `ChiliConCarne +`, its kcal and a small grey `×`, which removes it; below it its parts,
+ * indented with a thin grey line at their left, see `.meal-parts` in `day.css`: its foods, each a row of a food,
+ * see {@link foodRowOf}. The plus, `Add a food to ChiliConCarne` as its tooltip, opens the food search below its
+ * foods and closes it again, and adds the food picked to this meal of this entry only, never to `Meals.md`;
+ * Escape in the search closes it too. The meal goes with its last food.
+ * - `name`: Its name with the plus.
  * - `kcal`: Cell of its kcal.
  * - `remove`: Its `×`.
- * - `parts`: Its foods and the plus, indented.
+ * - `parts`: Its foods, indented, and the food search while open.
  * - `plus`: The plus that adds a food to it.
  *
  * @param meal - Meal picked
@@ -449,8 +452,14 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
         rowsShow(changed);
         changed();
     });
+    const name: HTMLElement = elementOf("span", "meal-name", meal.name);
     const parts: HTMLElement = elementOf("div", "meal-parts", "");
     const plus: HTMLButtonElement = buttonOf("", "", (): void => {
+        const open: HTMLElement | null = parts.querySelector(":scope > .meal-box");
+        if (open !== null) {
+            open.remove();
+            return;
+        }
         const box: HTMLElement = elementOf("div", "meal-box", "");
         box.append(foodSearchOf((food: Food): void => {
             mineAdd(food);
@@ -464,15 +473,16 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
                 return;
             event.preventDefault();
             event.stopPropagation();
-            rowsShow(changed);
+            box.remove();
         });
-        plus.replaceWith(box);
+        parts.append(box);
         box.querySelector("input")?.focus();
     });
 
     crossPut(remove, `Remove ${meal.name}`);
     plusPut(plus, `Add a food to ${meal.name}`);
-    row.append(elementOf("span", "meal-name", meal.name), elementOf("span", "", ""), kcal, remove);
+    name.append(plus);
+    row.append(name, elementOf("span", "", ""), kcal, remove);
     parts.append(...meal.foods.map((pick: FoodPick): HTMLElement => foodRowOf(pick, (): void => {
         kcal.textContent = kcalTextOf(mealKcalOf(meal));
         summaryShow();
@@ -482,7 +492,7 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
         meals = meals.filter((other: MealPick): boolean => other.foods.length > 0);
         rowsShow(changed);
         changed();
-    })), plus);
+    })));
     return [row, parts];
 }
 
@@ -500,25 +510,7 @@ function summaryShow(): void {
 }
 
 /**
- * Shows the lines of the meals and the foods below their rows: while some are picked, the one plus of every list
- * that adds one more, see `plusPut` in `../icons.ts`, `Add a meal` or `Add a food` as its tooltip; nothing while none
- * is, so the empty row opens its list like every empty field.
- */
-function linesShow(): void {
-    mealsLine.classList.add("picker-empty");
-    foodsLine.classList.add("picker-empty");
-    if (meals.length > 0)
-        plusPut(mealsLine, "Add a meal");
-    else
-        plusTake(mealsLine);
-    if (picks.length > 0)
-        plusPut(foodsLine, "Add a food");
-    else
-        plusTake(foodsLine);
-}
-
-/**
- * Shows the rows of the meals and of the foods picked, then the summary and the lines.
+ * Shows the rows of the meals and of the foods picked, then the summary.
  *
  * @param changed - Tells the dialog that the meal changed
  */
@@ -533,7 +525,6 @@ function rowsShow(changed: () => void): void {
         changed();
     })));
     summaryShow();
-    linesShow();
 }
 
 /**
@@ -747,9 +738,10 @@ export function mealCooked(): string {
 }
 
 /**
- * Builds a row with its picker, like the meals or the foods: the rows picked, the line below them, which opens
- * the list under it, see `listOf` in `choices.ts`.
- * - `picker`: Rows, line and list.
+ * Builds a row with its picker, like the meals or the foods: its name with the line beside it, the one plus that
+ * opens the list, see `listOf` in `choices.ts`, then the rows picked and the list under them.
+ * - `picker`: Rows and list.
+ * - `row`: The row.
  * - `close`: Closes the list.
  *
  * @param name - Name of the row, like `Meals`
@@ -763,10 +755,12 @@ export function mealCooked(): string {
 function pickerRowOf(name: string, line: HTMLButtonElement, rows: HTMLElement, box: HTMLElement, opened: () => void,
                      closed: () => void): [HTMLElement, () => void] {
     const picker: HTMLElement = elementOf("div", "meal picker", "");
-    line.className = "picker-line";
+    line.classList.add("picker-line");
     const close: () => void = listOf(picker, line, box, opened, closed);
-    picker.append(rows, line, box);
-    return [rowOf(name, picker), close];
+    picker.append(rows, box);
+    const row: HTMLElement = rowOf(name, picker);
+    row.querySelector(".entry-name")?.append(line);
+    return [row, close];
 }
 
 /**
@@ -826,6 +820,8 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     summary = elementOf("span", "meal-summary", "");
     mealsLine = document.createElement("button");
     foodsLine = document.createElement("button");
+    plusPut(mealsLine, "Add a meal");
+    plusPut(foodsLine, "Add a food");
     mealsRows = elementOf("div", "meal-rows", "");
     foodsRows = elementOf("div", "meal-rows", "");
     bracketsWatch(mealsRows);

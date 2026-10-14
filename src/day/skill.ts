@@ -50,7 +50,9 @@
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
-import { addedRowOf, addedRowsOf, choiceOf, choicesOf, pairOf, rowOf, searchOf } from "./choices.ts";
+import {
+    addedRowOf, addedRowsOf, addRowOf, choiceOf, choicesOf, lineMove, pairOf, rowOf, searchOf,
+} from "./choices.ts";
 import {
     dayTextOf, groupsOf, moduleLoad, semesterOf, skillEntrySend, skillingLoad,
 } from "../skill/attempts.ts";
@@ -605,13 +607,14 @@ function tasksOf(changed: () => void): HTMLElement[] {
 
 /**
  * Builds the rows of the chapters of my system the entry belongs to and of its documents, in plan and log,
- * one chapter after another, see the top of this file, once a skill is picked: each chapter picked its row
- * `Chapter` with a small × that takes it back, see `addedRowOf` in `choices.ts`, and for my own learning right below
- * it, indented and grey, its documents, the notes of that chapter, each with its ×, then the grey line `Documents`
- * that adds one, see {@link documentRowsOf}; for a type the documents of its material
- * once a chapter is picked, or while the entry has some, below all chapters; then, while the module has chapters
- * left, the row that adds one by the names of their folders: an empty row `Chapter` before the first, after that a small
- * grey plus below the chapters, `Add a chapter` as its tooltip, as food adds its next meal. A chapter keeps the name it has
+ * one chapter after another, see the top of this file, once a skill is picked: each chapter picked its row,
+ * the first named `Chapter`, with a small × that takes it back, see `addedRowOf` in `choices.ts`, and for my own
+ * learning the one plus right after its name, `Add a document` as its tooltip, and right below it, indented under
+ * a thin grey line, its documents, the notes of that chapter, each with its ×, see {@link documentRowsOf}; for a type
+ * the documents of its material once a chapter is picked, or while the entry has some, below all chapters; then,
+ * while the module has chapters left, the list that adds one by the names of their folders, its plus beside the name
+ * `Chapter`, `Add a chapter` as its tooltip, see `addRowOf` in `choices.ts`, as a meal adds its next food: every plus
+ * right after what it adds to, none on a line of its own. A chapter keeps the name it has
  * in the entry, also once its folder has another name. Taking back a chapter of my own learning takes back
  * its notes too; documents of my own learning that belong to no chapter picked stay below, to be taken back.
  * Each change shows the fields again, the tasks of the chapters picked with them, see {@link tasksOf}.
@@ -629,17 +632,25 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
     const own: boolean = picks.type === "";
     const offered: Choice[] = contents.chapters.filter((chapter: string): boolean => !picks.chapters.includes(chapter))
         .map(choiceOf);
-    const rows: HTMLElement[] = picks.chapters.flatMap((chapter: string): HTMLElement[] => [
-        addedRowOf("Chapter", chapter, (): void => {
+    const rows: HTMLElement[] = [];
+    picks.chapters.forEach((chapter: string, index: number): void => {
+        const row: HTMLElement = addedRowOf(index === 0 ? "Chapter" : "", chapter, (): void => {
             picks.chapters = picks.chapters.filter((other: string): boolean => other !== chapter);
             if (own)
                 picks.documents = picks.documents.filter((path: string): boolean =>
                     chapterOfDocument(path) !== chapter);
             again();
-        }),
-        ...(own ? documentRowsOf(documentChoicesOf(chapter), picks.documents.filter((path: string): boolean =>
-            chapterOfDocument(path) === chapter), again, true) : []),
-    ]);
+        });
+        const documents: HTMLElement[] = own ? documentRowsOf(documentChoicesOf(chapter),
+            picks.documents.filter((path: string): boolean => chapterOfDocument(path) === chapter), again, true) : [];
+        const list: HTMLElement | undefined = documents.find((one: HTMLElement): boolean =>
+            one.querySelector(".picker-line") !== null);
+        const text: HTMLElement | null = row.querySelector(".picker-added-text");
+        if (list !== undefined && text !== null)
+            lineMove(list, text);
+        rows.push(row, ...documents);
+    });
+    const first: HTMLElement | undefined = rows[0];
     const loose: string[] = picks.documents.filter((path: string): boolean =>
         !picks.chapters.includes(chapterOfDocument(path)));
     if (own)
@@ -647,9 +658,9 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
     else if (picks.chapters.length > 0 || picks.documents.length > 0)
         rows.push(...documentRowsOf(documentChoicesOf(""), picks.documents, again, false));
     if (offered.length > 0)
-        rows.push(rowOf(picks.chapters.length === 0 ? "Chapter" : "", choicesOf({
+        rows.push(addRowOf("Chapter", first, choicesOf({
             search: searchOf(offered), picked: [], many: false, adding: false, noun: "chapter",
-            ...(picks.chapters.length === 0 ? {} : { empty: "Add a chapter", plus: true }),
+            empty: "Add a chapter", plus: true,
             pick: (values: string[]): void => {
                 picks.chapters = [...picks.chapters, ...values];
                 again();
@@ -663,7 +674,7 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
  * {@link documentChoicesOf}, and a row per document picked of it, the name of its file, see {@link fileNameOf};
  * no list while it offers nothing, like for a chapter without notes, and a hint below when a document picked
  * is in the module no more, which the reader could not find by its fingerprint either. Inside a chapter they stand
- * indented and grey below it, see `nested` in `choices.ts`.
+ * below it, indented under a thin grey line, see `nested` in `choices.ts`, their plus moved after the chapter's name.
  * - `rows`: The rows of the list and of the documents picked.
  *
  * @param choices - Documents the list offers, none for no list

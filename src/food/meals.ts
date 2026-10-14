@@ -14,8 +14,9 @@
  * - The section of the food view: `Meals`, then the row of each meal; a click shows its foods below it, each with
  *   its `×` while it has more than two, and the small grey plus that adds one through the food search, changed for good
  *   in `Meals.md` at once; the `×` of the meal, whose first click only asks, as the remove of the entry dialog does,
- *   the cross turning into a question mark, `Really remove?` as its tooltip. At the end of the meals, a list without
- *   a search, the small grey plus of a new meal, see `.plus-quiet` in `base.css`, which turns into the form.
+ *   the cross turning into a question mark, `Really remove?` as its tooltip. Right after the name `Meals` the one plus
+ *   of a new meal, see `plusPut` in `../icons.ts`, as every plus stands right after what it adds to, which opens
+ *   the form at the end of the meals.
  *
  * - `./foods.ts`: Loads my foods and meals, sends and removes meals, writes amounts and makes elements and buttons.
  * - `./search.ts`: The food search, which adds a food to a meal.
@@ -221,7 +222,7 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
  * Builds the section of my meals in the food view, see the top of this file, loading my meals,
  * and again after every meal added, changed or removed.
  * - `section`: The section.
- * - `list`: Place of the rows of the meals and, at their end, of the plus or the form of a new meal.
+ * - `list`: Place of the rows of the meals and, at their end, of the form of a new meal while open.
  * - `dishes`: My meals.
  * - `open`: Name of the meal whose foods show, in small letters, empty for none.
  * - `adding`: Name of the meal whose food search shows, in small letters, empty for none.
@@ -229,8 +230,9 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
  * - `form`: The form of a new meal while open, `null` for none.
  * - `load`: Loads my meals again and shows them.
  * - `change`: Sends a meal with its foods changed for good and shows my meals as the reader sends them.
- * - `formOpen`: Turns the plus into the form of a new meal.
- * - `show`: Shows the meals, then the plus or the form.
+ * - `formOpen`: Opens the form of a new meal at the end of the meals.
+ * - `heading`: The name `Meals` with its plus.
+ * - `show`: Shows the meals, then the form while open.
  *
  * @returns The section
  */
@@ -332,10 +334,12 @@ export function mealsSectionOf(): HTMLElement {
         });
         list.replaceChildren(...rows,
             ...dishes.length === 0 && form === null ? [elementOf("p", "food-none", "No meals yet")] : [],
-            form ?? plusOf("New meal", formOpen));
+            ...form === null ? [] : [form]);
     };
+    const heading: HTMLElement = elementOf("h2", "food-heading", "Meals");
 
-    section.append(elementOf("h2", "food-heading", "Meals"), list);
+    heading.append(plusOf("New meal", formOpen));
+    section.append(heading, list);
     load();
     return section;
 }

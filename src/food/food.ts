@@ -30,14 +30,14 @@
  * - `./food.css`: Look of the food view.
  */
 
-import { amountOf, bracketsWatch, elementOf, foodDayLoad, foodNameOf } from "./foods.ts";
-import { foodSearchOf } from "./search.ts";
+import { amountOf, bracketsWatch, buttonOf, elementOf, foodDayLoad, foodNameOf } from "./foods.ts";
+import { foodNewShow, foodSearchOf } from "./search.ts";
 import { mealsSectionOf } from "./meals.ts";
 import { labelOf } from "../day/places.ts";
 import { dateTextOf } from "../day/times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
-import { iconPut } from "../icons.ts";
+import { iconPut, plusPut } from "../icons.ts";
 import { CalendarCheck, ChevronLeft, ChevronRight } from "lucide";
 import "./food.css";
 
@@ -262,7 +262,11 @@ export function foodStart(): void {
     today.addEventListener("click", (): void => dayOpen(calendarTodayOf()));
     bracketsWatch(document.getElementById("food-meals") as HTMLElement);
     document.getElementById("food-dishes")?.append(mealsSectionOf());
-    document.getElementById("food-search")?.append(foodSearchOf(null, null));
+    const search: HTMLElement = foodSearchOf(null, null);
+    const plus: HTMLButtonElement = buttonOf("", "", (): void => foodNewShow(search));
+    plusPut(plus, "New food");
+    document.getElementById("food-foods-heading")?.append(plus);
+    document.getElementById("food-search")?.append(search);
     dayOpen(askedDayOf() ?? calendarTodayOf());
     todayFollow((): string => shown, dayOpen);
 }

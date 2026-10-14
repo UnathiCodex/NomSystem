@@ -90,10 +90,16 @@ body:has(> .food) {
     cursor: default;
 }
 
-/* Name of my foods above their search, in the text of controls */
+/* Name of my meals and of my foods, in the text of controls, the one plus right after it, which adds one,
+   as beside Plan and Log */
 .food-heading {
     font-size: var(--control-text);
     line-height: var(--chip-height);
+}
+
+.food-heading .plus-quiet {
+    margin-left: 0.375rem;
+    vertical-align: middle;
 }
 
 /* Totals of the day side by side, each its name small and grey above its amount;

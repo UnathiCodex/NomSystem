@@ -67,7 +67,7 @@ import { trackersSee } from "./trackers.ts";
 import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
-import { iconPut } from "../icons.ts";
+import { iconPut, plusPut } from "../icons.ts";
 import { timerStart } from "../timer.ts";
 import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from "lucide";
 import "fullcalendar/skeleton.css";
@@ -562,7 +562,7 @@ export function dayStart(note: boolean): void {
     nowCenter(calendar);
     iconPut(document.getElementById("day-back") as HTMLElement, ChevronLeft, "Day before");
     iconPut(document.getElementById("day-next") as HTMLElement, ChevronRight, "Day after");
-    iconPut(document.getElementById("log-new") as HTMLElement, Plus, "New entry");
+    plusPut(document.getElementById("log-new") as HTMLElement, "New entry");
     iconPut(document.getElementById("day-today") as HTMLElement, CalendarCheck, "Back to today");
     iconPut(document.getElementById("day-new") as HTMLElement, Plus, "New box or entry");
     document.getElementById("day-show-plan")?.addEventListener("click", (): void => phoneShow(calendar, "plan"));

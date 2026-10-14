@@ -267,11 +267,7 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
 function resultsShow(search: Search): void {
     const found: FoodsFound = search.found ?? { foods: [], products: [], total: 0, exact: true, more: false };
     const query: string = search.input.value.trim();
-    const added: (food: Food) => void = (food: Food): void => {
-        search.input.value = food.name;
-        resultsLoad(search, 1);
-        search.pick?.(food);
-    };
+    const added: (food: Food) => void = addedOf(search);
     const rows: HTMLElement[] = [...search.before?.(query) ?? [], headOf()];
 
     if (found.foods.length === 0)
@@ -315,6 +311,40 @@ function resultsShow(search: Search): void {
         rows.push(newFood);
     }
     search.results.replaceChildren(...rows);
+}
+
+/**
+ * Gives what a search does with a food once the reader wrote it: searches for its name, so it shows among my foods,
+ * and picks it where foods are picked.
+ *
+ * @param search - The search
+ * @returns Takes the food written
+ */
+function addedOf(search: Search): (food: Food) => void {
+    return (food: Food): void => {
+        search.input.value = food.name;
+        resultsLoad(search, 1);
+        search.pick?.(food);
+    };
+}
+
+/**
+ * Opens the form of an own food by hand below the head of the columns of a search, named as typed, as the plus with
+ * the typed text at the end does, see {@link resultsShow}; for the plus beside the name `Foods` of the food view.
+ * - `search`: The search, `undefined` for an element that is none.
+ * - `head`: The head of its columns, below which the form opens.
+ *
+ * @param element - The search, as {@link foodSearchOf} built it
+ */
+export function foodNewShow(element: HTMLElement): void {
+    const search: Search | undefined = searches.get(element);
+    const head: HTMLElement | null = search?.results.querySelector(".food-columns") ?? null;
+    if (search === undefined || head === null)
+        return;
+    formShow(head, {
+        name: search.input.value.trim(), kcal: 0, protein: null, carbs: null, fat: null, portion: portionUsual,
+        barcode: "", brand: "", store: "",
+    }, true, addedOf(search));
 }
 
 /**

@@ -115,9 +115,9 @@ export type ChoicesSetup = {
  * - `hint`: Shown in place of the line while there are no values to offer at all, like `No chapters yet`;
  *   left out, the field then has no row of its own, only the rows of the values picked, the first named by it.
  * - `change`: Takes the values picked after each pick and each value taken back, in their order.
- * - `nested`: Whether the rows stand inside the value above them, like the documents of a chapter: indented and grey,
- *   without a name at the left, the values picked first, then the line of the list as a small grey plus,
- *   `Add a document` its tooltip; false when left out.
+ * - `nested`: Whether the rows stand inside the value above them, like the documents of a chapter: indented under
+ *   a thin grey line, without a name at the left, the values picked first, then the list, whose plus, `Add a document`
+ *   its tooltip, the one who builds the value above moves right after it, see {@link lineMove}; false when left out.
  */
 export type AddedSetup = {
     choices: Choice[];
@@ -140,6 +140,12 @@ const searchedLength: number = 60;
  * The picker whose list is open, `null` while none is, so only one list is open at a time, see {@link listOf}.
  */
 let openPicker: HTMLElement | null = null;
+
+/**
+ * Line of the list that is open, `null` while none is; it may stand outside its picker, like a plus moved beside
+ * the name of its field, see {@link lineMove}, and a click on it still counts as one on the picker.
+ */
+let openLine: HTMLElement | null = null;
 
 /**
  * Closes the list that is open, `null` while none is.
@@ -252,6 +258,7 @@ export function listOf(picker: HTMLElement, line: HTMLButtonElement, box: HTMLEl
         picker.classList.remove("picker-open");
         if (openPicker === picker) {
             openPicker = null;
+            openLine = null;
             openClose = null;
         }
         closed();
@@ -267,6 +274,7 @@ export function listOf(picker: HTMLElement, line: HTMLButtonElement, box: HTMLEl
         box.hidden = false;
         picker.classList.add("picker-open");
         openPicker = picker;
+        openLine = line;
         openClose = close;
         box.scrollIntoView({ block: "nearest" });
         opened();
@@ -493,45 +501,87 @@ export function addedRowOf(name: string, text: string, remove: () => void): HTML
 }
 
 /**
- * Builds the rows of a field of several values, like the chapters or the documents of a skill entry: its row
- * with the line of its list, empty, see {@link choicesOf}, whose pick closes the list and adds
- * the value as a row of its own below, see {@link addedRowOf}; opening the list again adds the next one.
- * The list offers the values not picked yet, and has no row while every value is picked; while there are none
- * at all, a hint stands in place of its line, or without hint the field has no row of its own.
- * Nested inside the value above, see `nested` of {@link AddedSetup}, the values come first and the line of the list
- * last, indented and grey, so a chapter and its documents read as one.
+ * Builds the rows of a field of several values, like the documents of a skill entry, as the chapters and the means
+ * of a way are built: a row per value picked, the first named by the field, see {@link addedRowOf}, then the row
+ * of the list, whose plus stands beside the name of the field, see {@link addRowOf}; a pick closes the list and adds
+ * the value as a row of its own, opening the list again adds the next one. The list offers the values not picked yet,
+ * and has no row while every value is picked; while there are none at all, a hint stands in its place, or without
+ * hint the field has no row of its own. Nested inside the value above, see `nested` of {@link AddedSetup}, the rows
+ * stand indented under a thin grey line, and the plus of the list waits for the one who builds that value to move it
+ * right after it, see {@link lineMove}, so a chapter and its documents read as one.
  * - `offered`: Values the list offers.
  * - `nested`: Whether the rows stand inside the value above them.
- * - `head`: The row of the field, with the line of the list or the hint, none without either.
  * - `added`: The rows of the values picked.
+ * - `last`: The row of the list, or of the hint, none without either.
  *
- * @param name - Name of the field, like `Chapters`
+ * @param name - Name of the field, like `Documents`
  * @param setup - How the rows are built
- * @returns The row of the field, then one row per value picked
+ * @returns One row per value picked, then the row of the list
  */
 export function addedRowsOf(name: string, setup: AddedSetup): HTMLDivElement[] {
     const offered: Choice[] = setup.choices.filter((choice: Choice): boolean => !setup.picked.includes(choice.value));
     const nested: boolean = setup.nested ?? false;
-    let head: HTMLDivElement[] = setup.hint === undefined || setup.choices.length > 0 ? []
-        : [rowOf(nested ? "" : name, setup.hint)];
-    if (offered.length > 0)
-        head = [rowOf(nested ? "" : name, choicesOf({
+    const added: HTMLDivElement[] = setup.picked.map((value: string, index: number): HTMLDivElement =>
+        addedRowOf(!nested && index === 0 ? name : "", setup.textOf(value), (): void =>
+            setup.change(setup.picked.filter((other: string): boolean => other !== value))));
+    let last: HTMLDivElement[] = setup.hint === undefined || setup.choices.length > 0 ? []
+        : [rowOf(nested || added.length > 0 ? "" : name, setup.hint)];
+    if (offered.length > 0) {
+        const picker: HTMLDivElement = choicesOf({
             search: setup.grouped ? groupedSearchOf(offered) : searchOf(offered), picked: [], many: false,
-            adding: false, noun: setup.noun, empty: nested ? `Add a ${setup.noun}` : undefined,
-            plus: nested,
+            adding: false, noun: setup.noun, empty: `Add a ${setup.noun}`, plus: true,
             pick: (values: string[]): void => {
                 if (values.length > 0)
                     setup.change([...setup.picked, values[0]]);
             },
-        }))];
-    const added: HTMLDivElement[] = setup.picked.map((value: string, index: number): HTMLDivElement =>
-        addedRowOf(!nested && head.length === 0 && index === 0 ? name : "", setup.textOf(value), (): void =>
-            setup.change(setup.picked.filter((other: string): boolean => other !== value))));
+        });
+        last = [nested ? rowOf("", picker) : addRowOf(name, added[0], picker)];
+    }
     if (!nested)
-        return [...head, ...added];
-    const rows: HTMLDivElement[] = [...added, ...head];
+        return [...added, ...last];
+    const rows: HTMLDivElement[] = [...added, ...last];
     rows.forEach((row: HTMLDivElement): void => row.classList.add("panel-nested"));
     return rows;
+}
+
+/**
+ * Builds the row of the list that adds the next value of a field of several values, like a chapter, a document
+ * or the means of a way, its plus beside the name of the field, see {@link lineMove}: on the row of the first value
+ * picked, the row of the list keeping only the list then, or on the row of the list itself while none is picked,
+ * named by the field, like `Chapter +`. Its picker is built with a plus as its line, see `plus` of {@link ChoicesSetup}.
+ * - `row`: The row of the list.
+ * - `place`: The name the plus goes beside.
+ *
+ * @param name - Name of the field, like `Chapter`
+ * @param first - Row of the first value picked, `undefined` while none is
+ * @param picker - The picker of the list
+ * @returns The row of the list
+ */
+export function addRowOf(name: string, first: HTMLElement | undefined, picker: HTMLElement): HTMLDivElement {
+    const row: HTMLDivElement = rowOf(first === undefined ? name : "", picker);
+    const place: HTMLElement | null = (first ?? row).querySelector(".entry-name");
+    if (place !== null)
+        lineMove(row, place);
+    return row;
+}
+
+/**
+ * Moves the line of the picker of a row, its plus, right after what it adds to, so no plus stands on a line of its own:
+ * beside the name of a field, like `Chapter +`, or after a value, like a chapter's plus that adds a document to it;
+ * moved out of its row, the row keeps only the list, which shows only while open, right where the next value will
+ * stand, see `.panel-list` in `day.css`.
+ * - `line`: The line of the picker of the row.
+ *
+ * @param row - Row with its picker, built with a plus as its line, see `plus` in {@link ChoicesSetup}
+ * @param place - Where the plus goes, like the name of the field or the text of a value
+ */
+export function lineMove(row: HTMLElement, place: HTMLElement): void {
+    const line: HTMLElement | null = row.querySelector(".picker-line");
+    if (line === null)
+        return;
+    place.append(line);
+    if (!row.contains(place))
+        row.classList.add("panel-list");
 }
 
 /**
@@ -585,7 +635,8 @@ export function listsStart(): void {
         openClose();
     }, true);
     document.addEventListener("click", (event: MouseEvent): void => {
-        if (openPicker !== null && !openPicker.contains(event.target as Node))
+        if (openPicker !== null && !openPicker.contains(event.target as Node)
+            && !(openLine?.contains(event.target as Node) ?? false))
             openClose?.();
     }, true);
 }

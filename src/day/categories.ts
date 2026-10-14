@@ -76,7 +76,7 @@
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
-import { addedRowOf, choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
+import { addedRowOf, addRowOf, choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import {
@@ -792,8 +792,8 @@ function meetingShow(field: Field): void {
 /**
  * Builds the rows of a summary of several values, like the means of a way, since I change on it, like U-Bahn then bus:
  * each value picked its own row with its small ×, see `addedRowOf` in `choices.ts`, the first named by the field,
- * then the row that adds the next, as the chapters of a skill entry: an empty row named by the field before the first,
- * after that a small grey plus, `Add a means of transport` as its tooltip, the only field of several values so far;
+ * then the list that adds the next, as the chapters of a skill entry, its plus beside the name of the field,
+ * `Add a means of transport` as its tooltip, see `addRowOf` in `choices.ts`;
  * written as one summary, the values parted by `, `, like `UBahn, Bus`.
  * - `picked`: The values picked, in their order.
  * - `offered`: The values not picked yet.
@@ -813,9 +813,9 @@ function manyRowsOf(field: Field): HTMLElement[] {
         addedRowOf(index === 0 ? field.name : "", value, (): void =>
             change(picked.filter((other: string): boolean => other !== value))));
     if (offered.length > 0)
-        rows.push(rowOf(picked.length === 0 ? field.name : "", choicesOf({
+        rows.push(addRowOf(field.name, rows[0], choicesOf({
             search: searchOf(offered), picked: [], many: false, adding: false, noun: "means of transport",
-            ...(picked.length === 0 ? {} : { empty: "Add a means of transport", plus: true }),
+            empty: "Add a means of transport", plus: true,
             pick: (chosen: string[]): void => change([...picked, ...chosen]),
         })));
     return rows;

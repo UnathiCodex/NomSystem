@@ -70,8 +70,8 @@ import { linkNameOf } from "../skill/links.ts";
 import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { iconOf, iconPut } from "../icons.ts";
-import { ArrowRight, Check, Gift, Landmark, Plus, Undo2, X } from "lucide";
+import { iconOf, iconPut, plusPut } from "../icons.ts";
+import { ArrowRight, Check, Gift, Landmark, Undo2, X } from "lucide";
 
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
 import type { IconNode } from "lucide";
@@ -808,7 +808,7 @@ export function boxesStart(calendar: Calendar): void {
             category: item.dataset.category ?? "",
         }),
     });
-    iconPut(document.getElementById("plan-new") as HTMLElement, Plus, "New box");
+    plusPut(document.getElementById("plan-new") as HTMLElement, "New box");
     document.getElementById("plan-new")?.addEventListener("click", (): void => {
         boxOpenNew(calendar.view.currentStart).catch((error: unknown): void => console.error(error));
     });

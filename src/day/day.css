@@ -78,8 +78,8 @@
     background: var(--fill);
 }
 
-/* Plan and log, each its name small and grey above it with its + at the right, the boxes and the time grid filling
-   the height below it */
+/* Plan and log, each its name above it, bold as the names of my meals and foods in the food view, with the one plus
+   right after it, the boxes and the time grid filling the height below it */
 .day-column {
     display: flex;
     flex-direction: column;
@@ -90,14 +90,16 @@
 .column-head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--control-gap);
+    gap: 0.375rem;
+}
+
+.column-head .plus-quiet {
+    align-self: center;
 }
 
 .column-head h2 {
-    font-size: 0.875rem;
-    font-weight: 400;
-    color: var(--text-muted);
+    font-size: var(--control-text);
+    line-height: var(--chip-height);
 }
 
 /* Buttons that switch between plan and log, with their +, only on a phone, see the end of this file */
@@ -1407,14 +1409,19 @@ fieldset.entry-times {
     display: none;
 }
 
-/* Line below the meals or foods picked: the one plus of every list, see `.picker-line.plus-quiet`, at the start
-   of the line under the names and a row's room below the last one */
-.meal-rows:not(:empty) + .picker-line {
-    margin-top: 0.75rem;
+/* The one plus right after what it adds to, never on a line of its own: beside the name of a field, like `Meals +`
+   or `Chapter +`, or after a value, like `ChiliConCarne +` or a chapter's plus that adds a document to it, a little
+   apart and in the middle of the line, see `lineMove` in `choices.ts` */
+.entry-name .picker-line,
+.picker-added-text .picker-line,
+.meal-name .plus-quiet {
+    margin-left: 0.375rem;
+    vertical-align: middle;
 }
 
-.meal .picker-line.plus-quiet {
-    align-self: flex-start;
+/* A row that keeps only the list of a plus moved away, see `lineMove` in `choices.ts`, shown only while it is open */
+.panel-list:not(:has(.picker-open)) {
+    display: none;
 }
 
 /* Row of a meal or a food: its name, the grams of a food, its kcal and its small grey `×`, see `.cross-quiet`
