@@ -33,6 +33,8 @@ import { iconPut, iconWordsOf } from "../icons.ts";
 import { matchesAll, searchTextOf, wordsOf } from "../search.ts";
 import { Plus, X } from "lucide";
 
+import type { IconNode } from "lucide";
+
 
 /**
  * Marks where a long name may go on over a next line, where it is wider than its room, as on a phone, in the line
@@ -83,6 +85,8 @@ export type Choice = {
  * - `below`: Elements below the line and above the list, like the address of a place; none when left out.
  * - `locked`: Whether the value stays as picked, its line opening no list, `As planned` as its tooltip, like the summary
  *   of an entry of the log logged from a box of the plan; open when left out.
+ * - `emptyIcon`: Icon the line shows in place of `empty` while nothing is picked, small and grey, `empty` then its
+ *   tooltip, like the plus that adds a document to a chapter; words when left out.
  */
 export type ChoicesSetup = {
     search: (text: string) => Promise<Choice[]>;
@@ -96,6 +100,7 @@ export type ChoicesSetup = {
     aside?: HTMLElement[];
     below?: HTMLElement[];
     locked?: boolean;
+    emptyIcon?: IconNode;
 };
 
 /**
@@ -111,8 +116,8 @@ export type ChoicesSetup = {
  *   left out, the field then has no row of its own, only the rows of the values picked, the first named by it.
  * - `change`: Takes the values picked after each pick and each value taken back, in their order.
  * - `nested`: Whether the rows stand inside the value above them, like the documents of a chapter: indented and grey,
- *   without a name at the left, the values picked first, then the line of the list, which shows the name of the field
- *   while empty, like `Documents`; false when left out.
+ *   without a name at the left, the values picked first, then the line of the list as a small grey plus,
+ *   `Add a document` its tooltip; false when left out.
  */
 export type AddedSetup = {
     choices: Choice[];
@@ -318,6 +323,11 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
 
     const lineShow: () => void = (): void => {
         const text: string = chosen.map((value: string): string => texts.get(value) ?? value).join(", ");
+        if (text === "" && setup.emptyIcon !== undefined) {
+            iconPut(line, setup.emptyIcon, setup.empty ?? "");
+            line.classList.add("picker-empty");
+            return;
+        }
         line.textContent = text === "" ? setup.empty ?? "" : breakableOf(text);
         line.title = setup.locked ? "As planned" : text;
         line.classList.toggle("picker-empty", text === "");
@@ -508,7 +518,8 @@ export function addedRowsOf(name: string, setup: AddedSetup): HTMLDivElement[] {
     if (offered.length > 0)
         head = [rowOf(nested ? "" : name, choicesOf({
             search: setup.grouped ? groupedSearchOf(offered) : searchOf(offered), picked: [], many: false,
-            adding: false, noun: setup.noun, empty: nested ? name : undefined,
+            adding: false, noun: setup.noun, empty: nested ? `Add a ${setup.noun}` : undefined,
+            emptyIcon: nested ? Plus : undefined,
             pick: (values: string[]): void => {
                 if (values.length > 0)
                     setup.change([...setup.picked, values[0]]);

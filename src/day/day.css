@@ -1228,6 +1228,23 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
+/* The plus that adds a value inside the value above, like a document to its chapter: as small and grey as its ×,
+   lighter under the pointer, so the list stays calm */
+.panel-nested .picker-line {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-muted);
+}
+
+.panel-nested .picker-line:hover {
+    color: var(--text-main);
+}
+
+.panel-nested .picker-line svg.lucide {
+    width: 0.9375rem;
+    height: 0.9375rem;
+}
+
 /* A value picked of a field of several values in its own row below the field, like a chapter or the name of the file
    of a document, see `addedRowsOf` in `choices.ts`: its text going on below where it is wider than its row,
    a small grey × at the right, lighter under the pointer, which takes it back */
