@@ -875,22 +875,7 @@ button.box-ring.box-checked svg {
     content: ")";
 }
 
-/* Without type a small grey plus in its place, as under a chapter, which opens the types */
-.panel-pair > .picker:last-child .picker-line.picker-empty {
-    display: inline-flex;
-    align-items: center;
-    align-self: center;
-    color: var(--text-muted);
-}
 
-.panel-pair > .picker:last-child .picker-line.picker-empty:hover {
-    color: var(--text-main);
-}
-
-.panel-pair > .picker:last-child .picker-line svg.lucide {
-    width: 0.9375rem;
-    height: 0.9375rem;
-}
 
 .panel-pair .picker-box {
     flex: 1 1 100%;
@@ -1277,19 +1262,20 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* The plus that adds a value inside the value above, like a document to its chapter: as small and grey as its ×,
-   lighter under the pointer, so the list stays calm */
-.panel-nested .picker-line {
+/* A line that adds with a plus, see `emptyIcon` in `choices.ts`, like a document to its chapter, the next chapter
+   or a type: as small and grey as a ×, lighter under the pointer, so the dialog stays calm */
+.picker-line.picker-empty:has(> svg.lucide) {
     display: inline-flex;
     align-items: center;
+    align-self: center;
     color: var(--text-muted);
 }
 
-.panel-nested .picker-line:hover {
+.picker-line.picker-empty:has(> svg.lucide):hover {
     color: var(--text-main);
 }
 
-.panel-nested .picker-line svg.lucide {
+.picker-line.picker-empty > svg.lucide {
     width: 0.9375rem;
     height: 0.9375rem;
 }

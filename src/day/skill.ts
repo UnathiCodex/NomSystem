@@ -611,8 +611,9 @@ function tasksOf(changed: () => void): HTMLElement[] {
  * `Chapter` with a small × that takes it back, see `addedRowOf` in `choices.ts`, and for my own learning right below
  * it, indented and grey, its documents, the notes of that chapter, each with its ×, then the grey line `Documents`
  * that adds one, see {@link documentRowsOf}; for a type the documents of its material
- * once a chapter is picked, or while the entry has some, below all chapters; then an empty row `Chapter` to add
- * the next one, while the module has chapters left, by the names of their folders. A chapter keeps the name it has
+ * once a chapter is picked, or while the entry has some, below all chapters; then, while the module has chapters
+ * left, the row that adds one by the names of their folders: an empty row `Chapter` before the first, after that a small
+ * grey plus below the chapters, `Add a chapter` as its tooltip, as food adds its next meal. A chapter keeps the name it has
  * in the entry, also once its folder has another name. Taking back a chapter of my own learning takes back
  * its notes too; documents of my own learning that belong to no chapter picked stay below, to be taken back.
  * Each change shows the fields again, the tasks of the chapters picked with them, see {@link tasksOf}.
@@ -648,8 +649,9 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
     else if (picks.chapters.length > 0 || picks.documents.length > 0)
         rows.push(...documentRowsOf(documentChoicesOf(""), picks.documents, again, false));
     if (offered.length > 0)
-        rows.push(rowOf("Chapter", choicesOf({
+        rows.push(rowOf(picks.chapters.length === 0 ? "Chapter" : "", choicesOf({
             search: searchOf(offered), picked: [], many: false, adding: false, noun: "chapter",
+            ...(picks.chapters.length === 0 ? {} : { empty: "Add a chapter", emptyIcon: Plus }),
             pick: (values: string[]): void => {
                 picks.chapters = [...picks.chapters, ...values];
                 again();
