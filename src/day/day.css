@@ -98,8 +98,9 @@
 }
 
 .column-head h2 {
+    display: flex;
+    align-items: center;
     font-size: var(--control-text);
-    line-height: var(--chip-height);
 }
 
 /* Buttons that switch between plan and log, with their +, only on a phone, see the end of this file */
