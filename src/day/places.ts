@@ -68,12 +68,13 @@ export type Meeting = {
 export const onlineName: string = "Online";
 
 /**
- * Software of a meeting by the host of its link, see {@link meetingSoftwareOf}: `teams.microsoft.com` Teams,
+ * Software of a meeting by the host of its link, see {@link meetingSoftwareOf}: `teams.microsoft.com` Teams, and
+ * `teams.live.com`, its host for personal accounts,
  * any host of `zoom.us`, like `tum-conf.zoom.us`, Zoom, a host starting with `bbb.`, like `bbb.tum.de`, BBB,
  * and `live.rbg.tum.de` or `tum.live` TUM-Live, where I watch lectures.
  */
 const meetingHosts: { [software: string]: RegExp } = {
-    "Teams": /^teams\.microsoft\.com$/,
+    "Teams": /^teams\.(?:microsoft|live)\.com$/,
     "Zoom": /(?:^|\.)zoom\.us$/,
     "BBB": /^bbb\./,
     "TUM-Live": /^(?:live\.rbg\.tum\.de|tum\.live)$/,
