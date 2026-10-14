@@ -94,11 +94,12 @@ type Search = {
 const pause: number = 300;
 
 /**
- * Fields of the form of a food by hand: the name shown and the value of the food it fills.
+ * Fields of the form of a food by hand: the name shown, the value of the food it fills and its unit after it, empty
+ * for none.
  */
-const fields: [string, "name" | "brand" | "store" | "kcal" | "protein" | "carbs" | "fat"][] = [
-    ["Name", "name"], ["Brand", "brand"], ["Store", "store"], ["kcal", "kcal"], ["Protein", "protein"], ["Carbs", "carbs"],
-    ["Fat", "fat"],
+const fields: [string, "name" | "brand" | "store" | "kcal" | "protein" | "carbs" | "fat" | "piece" | "pack", string][] = [
+    ["Name", "name", ""], ["Brand", "brand", ""], ["Store", "store", ""], ["kcal", "kcal", "kcal"],
+    ["Protein", "protein", "g"], ["Carbs", "carbs", "g"], ["Fat", "fat", "g"], ["Piece", "piece", "g"], ["Pack", "pack", ""],
 ];
 
 /**
@@ -249,35 +250,55 @@ export function inlineFieldOf(value: string, words: string, saved: () => void): 
 
 /**
  * Builds a food of mine opened below its line in the food view, in two columns as the parts of a dialog, each its name
- * small and grey, then its value: on top its name, brand and store, which change in place by a click into them, see
- * {@link inlineFieldOf}, renaming it wherever it stands, see `foodChange` in `foods.ts`; then its protein, carbs and
- * fat per 100 g, one unknown empty, never 0, its pack and its barcode where known. A click on its line closes it again.
- * When the reader does not take the name, it stays open and says so.
+ * small and grey, then its value, every value as high as a field, so the rows stand equally apart: on top its name,
+ * brand and store, which change in place by a click into them, see {@link inlineFieldOf}, renaming it wherever it
+ * stands, see `foodChange` in `foods.ts`; then its kcal, protein, carbs and fat per 100 g, the grams of one piece and
+ * its pack. A food I made by hand, without barcode, changes them all in place, so a mistake of mine is mended; one of
+ * Open Food Facts keeps its kcal, nutrients and pack as they came, one unknown empty, never 0, and shows its barcode;
+ * the grams of one piece change in place for every food, since how big a piece is only I know. A click on its line
+ * closes it again. When the reader does not take a change, the food stays open and says so.
+ * - `own`: Whether I made it by hand.
  * - `detail`: The food opened.
  * - `facts`: Its values in two columns.
  * - `factAdd`: Adds a value with its name.
- * - `inputs`: Its name, brand and store, to change in place.
- * - `error`: Hint that the reader did not take the name.
- * - `save`: Sends the name, brand and store, the food taking no clicks meanwhile, and shows the search anew,
- *   the food staying open under its new name.
+ * - `fields`: Its values that change in place, by their keys.
+ * - `text`: The text of a value that changes, as typed.
+ * - `error`: Hint that the reader did not take the change.
+ * - `save`: Sends the values, the food taking no clicks meanwhile, and shows the search anew, the food staying open
+ *   under its new name; a number that is none, like `abc`, takes nothing and says so.
+ * - `fieldAdd`: Adds a value that changes in place, with its unit after it where it has one.
+ * - `gramsOf`: Writes grams of a nutrient as a fixed value, empty while unknown.
  *
  * @param search - The search
  * @param food - My food
  * @returns The food opened
  */
 function detailOf(search: Search, food: Food): HTMLElement {
+    const own: boolean = food.barcode === "";
     const detail: HTMLElement = elementOf("div", "food-detail", "");
     const facts: HTMLElement = elementOf("div", "food-facts", "");
     const factAdd: (name: string, value: Node | string) => void = (name: string, value: Node | string): void => {
         facts.append(elementOf("span", "food-fact", name), typeof value === "string" ? elementOf("span", "", value) : value);
     };
+    const fields: Map<string, HTMLInputElement> = new Map();
+    const text: (key: string) => string = (key: string): string => fields.get(key)?.value.trim() ?? "";
     const error: HTMLElement = elementOf("p", "food-error",
-        "Not changed: it needs a name, and no other food of mine may have this name, brand and store");
+        "Not changed: it needs a name and its kcal, numbers only, and no other food of mine may have this name, "
+        + "brand and store");
     const save: () => void = (): void => {
+        const [kcal, protein, carbs, fat, piece]: (number | null)[] = ["kcal", "protein", "carbs", "fat", "piece"]
+            .map((key: string): number | null => numberRead(text(key)));
+        if (text("name") === "" || (own && kcal === null)
+            || [kcal, protein, carbs, fat, piece].some((typed: number | null): boolean => Number.isNaN(typed))) {
+            error.hidden = false;
+            return;
+        }
         detail.inert = true;
-        foodChange(food, inputs[0].value, inputs[1].value, inputs[2].value).then((): void => {
-            search.open = keyOf({ ...food, name: inputs[0].value.trim(), brand: inputs[1].value.trim(),
-                store: inputs[2].value.trim() });
+        foodChange(food, {
+            name: text("name"), brand: text("brand"), store: text("store"), piece: piece,
+            ...own && kcal !== null ? { kcal: kcal, protein: protein, carbs: carbs, fat: fat, pack: text("pack") } : {},
+        }).then((): void => {
+            search.open = keyOf({ ...food, name: text("name"), brand: text("brand"), store: text("store") });
             resultsLoad(search, 1);
         }).catch((reason: unknown): void => {
             console.error(reason);
@@ -285,14 +306,43 @@ function detailOf(search: Search, food: Food): HTMLElement {
             detail.inert = false;
         });
     };
-    const inputs: HTMLInputElement[] = [["Name", food.name], ["Brand", food.brand], ["Store", food.store]]
-        .map(([name, value]: string[]): HTMLInputElement => inlineFieldOf(value, name, save));
+    const fieldAdd: (name: string, key: string, value: string, unit: string) => void = (name: string, key: string,
+        value: string, unit: string): void => {
+        const input: HTMLInputElement = inlineFieldOf(value, name, save);
+        fields.set(key, input);
+        if (unit === "") {
+            factAdd(name, input);
+            return;
+        }
+        const amount: HTMLElement = elementOf("span", "food-grams", "");
+        input.inputMode = "decimal";
+        input.classList.add("food-inline-grams");
+        amount.append(input, unit);
+        amount.addEventListener("click", (): void => input.focus());
+        factAdd(name, amount);
+    };
+    const gramsOf: (grams: number | null) => string = (grams: number | null): string =>
+        grams === null ? "" : `${amountOf(grams, 1)} g`;
+    const numberOf: (value: number | null) => string = (value: number | null): string =>
+        value === null ? "" : String(value);
 
-    ["Name", "Brand", "Store"].forEach((name: string, index: number): void => factAdd(name, inputs[index]));
-    factAdd("Protein", food.protein === null ? "" : `${amountOf(food.protein, 1)} g`);
-    factAdd("Carbs", food.carbs === null ? "" : `${amountOf(food.carbs, 1)} g`);
-    factAdd("Fat", food.fat === null ? "" : `${amountOf(food.fat, 1)} g`);
-    if (food.pack !== "")
+    fieldAdd("Name", "name", food.name, "");
+    fieldAdd("Brand", "brand", food.brand, "");
+    fieldAdd("Store", "store", food.store, "");
+    if (own) {
+        fieldAdd("kcal", "kcal", String(food.kcal), "kcal");
+        fieldAdd("Protein", "protein", numberOf(food.protein), "g");
+        fieldAdd("Carbs", "carbs", numberOf(food.carbs), "g");
+        fieldAdd("Fat", "fat", numberOf(food.fat), "g");
+    } else {
+        factAdd("Protein", gramsOf(food.protein));
+        factAdd("Carbs", gramsOf(food.carbs));
+        factAdd("Fat", gramsOf(food.fat));
+    }
+    fieldAdd("Piece", "piece", numberOf(food.piece), "g");
+    if (own)
+        fieldAdd("Pack", "pack", food.pack, "");
+    else if (food.pack !== "")
         factAdd("Pack", food.pack);
     if (food.barcode !== "")
         factAdd("Barcode", food.barcode);
@@ -511,11 +561,12 @@ function numberRead(text: string): number | null {
 /**
  * Opens the form of a food by hand at the top of the results of a search, named as typed, for the plus beside
  * the name `Foods` of the food view, in place of one open before, in the look of a food of mine opened, see
- * {@link detailOf}: its name, brand and store, its kcal and its protein, carbs and fat per 100 g, in two columns,
- * each its name small and grey, then its value, plain with a thin line below to type on, see `.food-inline-new`
- * in `search.css`, a click on its name putting the cursor into it; its name and its kcal it needs, brand and store
- * may stay empty, and protein, carbs or fat left empty is unknown, never 0, the one of them missing worked out
- * by the reader from the kcal, see `nutrientsOf` in `reader/food.ts`.
+ * {@link detailOf}: its name, brand and store, its kcal and its protein, carbs and fat per 100 g, the grams of one
+ * piece, like 50 of a Semmel, and its pack, in two columns, each its name small and grey, then its value, plain with
+ * a thin line below to type on, see `.food-inline-new` in `search.css`, its unit after a number, a click on its name
+ * putting the cursor into it; its name, brand, store and kcal it needs, since I keep my own brands and places
+ * always, like my bakery and where it is, and protein, carbs or fat left empty is unknown, never 0, the one of them
+ * missing worked out by the reader from the kcal, see `nutrientsOf` in `reader/food.ts`.
  * The check or Enter in a field sends the food; the cross or Escape in a field closes the form. When the reader
  * does not take the food, like for the name, brand and store of one of mine, or a field holds no number, the form
  * stays open and says so.
@@ -556,26 +607,26 @@ export function foodNewShow(element: HTMLElement): void {
 function newFormShow(search: Search, product: Product | null): void {
     search.results.querySelector(".food-form")?.remove();
     const start: Map<string, string> = new Map([["name", product?.name ?? search.input.value.trim()],
-        ["brand", product?.brand ?? ""], ["store", product?.store ?? ""]]);
+        ["brand", product?.brand ?? ""], ["store", product?.store ?? ""], ["pack", product?.pack ?? ""]]);
     const form: HTMLElement = elementOf("div", "food-form food-detail", "");
     const facts: HTMLElement = elementOf("div", "food-facts", "");
     const inputs: Map<string, HTMLInputElement> = new Map();
-    const error: HTMLElement = elementOf("p", "food-error",
-        "Not saved: it needs a name and its kcal, numbers only, and no food of mine of this name, brand and store");
+    const error: HTMLElement = elementOf("p", "food-error", "Not saved: it needs a name, a brand, a store and its kcal, "
+        + "numbers only, and no food of mine of this name, brand and store");
     const text: (key: string) => string = (key: string): string => inputs.get(key)?.value.trim() ?? "";
     const close: () => void = (): void => form.remove();
     const add: () => void = (): void => {
-        const [kcal, protein, carbs, fat]: (number | null)[] = ["kcal", "protein", "carbs", "fat"]
+        const [kcal, protein, carbs, fat, piece]: (number | null)[] = ["kcal", "protein", "carbs", "fat", "piece"]
             .map((key: string): number | null => numberRead(text(key)));
-        if (text("name") === "" || kcal === null
-            || [kcal, protein, carbs, fat].some((typed: number | null): boolean => Number.isNaN(typed))) {
+        if (text("name") === "" || text("brand") === "" || text("store") === "" || kcal === null
+            || [kcal, protein, carbs, fat, piece].some((typed: number | null): boolean => Number.isNaN(typed))) {
             error.hidden = false;
             return;
         }
         form.inert = true;
         foodSend({
             name: text("name"), kcal: kcal, protein: protein, carbs: carbs, fat: fat, barcode: product?.barcode ?? "",
-            brand: text("brand"), store: text("store"), pack: product?.pack ?? "",
+            brand: text("brand"), store: text("store"), pack: text("pack"), piece: piece,
         }).then((food: Food): void => {
             form.remove();
             addedOf(search)(food);
@@ -586,15 +637,21 @@ function newFormShow(search: Search, product: Product | null): void {
         });
     };
 
-    fields.forEach(([name, key]: [string, string]): void => {
+    fields.forEach(([name, key, unit]: [string, string, string]): void => {
         const label: HTMLElement = elementOf("span", "food-fact", name);
         const input: HTMLInputElement = editFieldOf(start.get(key) ?? "", name, add, close);
+        const amount: HTMLElement = elementOf("span", "food-grams", "");
         input.className = "food-inline food-inline-new";
-        input.inputMode = ["name", "brand", "store"].includes(key) ? "text" : "decimal";
+        input.inputMode = unit === "" ? "text" : "decimal";
         input.placeholder = "";
         label.addEventListener("click", (): void => input.focus());
         inputs.set(key, input);
-        facts.append(label, input);
+        if (unit !== "") {
+            input.classList.add("food-inline-grams");
+            amount.append(input, unit);
+            amount.addEventListener("click", (): void => input.focus());
+        }
+        facts.append(label, unit === "" ? input : amount);
     });
     error.hidden = true;
     form.append(facts, editButtonsOf(close, add), error);

@@ -95,6 +95,8 @@ export type Totals = {
  * - `store`: The store I bought it in, like `Lidl`, empty when none is known.
  * - `pack`: Size of its pack as sold, like `450 g` or `140 g (7 x 20 g)`, empty when none is known,
  *   like for a food added by hand.
+ * - `piece`: Grams of one piece, like 50 of a Semmel, for a food I eat in pieces, so an entry takes `2 St` as 100 g;
+ *   `null` for none.
  */
 export type Food = Nutrients & {
     name: string;
@@ -102,6 +104,7 @@ export type Food = Nutrients & {
     brand: string;
     store: string;
     pack: string;
+    piece: number | null;
 };
 
 /**
@@ -147,16 +150,26 @@ type ProductsPage = {
 };
 
 /**
- * A food of mine to rename, as the page sends it, see {@link foodChange}.
+ * A food of mine to change, as the page sends it, see {@link foodChange}.
  *
  * - `old`: Its name, brand and store as `Foods.md` holds them.
  * - `name`, `brand`, `store`: Its name, brand and store as typed.
+ * - `kcal`, `protein`, `carbs`, `fat`: Its nutrients per 100 g as typed, `null` for one unknown; sent only for a food
+ *   I made by hand, without barcode, since those of Open Food Facts stay as they came.
+ * - `pack`: Size of its pack as typed, for a food by hand.
+ * - `piece`: Grams of one piece as typed, `null` for none.
  */
 export type FoodChanged = {
     old: { name: string; brand: string; store: string };
     name: string;
     brand: string;
     store: string;
+    kcal?: number;
+    protein?: number | null;
+    carbs?: number | null;
+    fat?: number | null;
+    pack?: string;
+    piece?: number | null;
 };
 
 /**
@@ -301,7 +314,7 @@ export const foodName: string = "Food";
  */
 function tableHeadOf(): string[] {
     return [
-        "| Food | kcal | Protein | Carbs | Fat | Portion | Barcode | Brand | Store | Pack |",
+        "| Food | kcal | Protein | Carbs | Fat | Piece | Barcode | Brand | Store | Pack |",
         "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |",
     ];
 }
@@ -314,7 +327,8 @@ const fileHead: string[] = [
     "# Foods",
     "",
     "My foods: kcal, protein, carbs and fat per 100 g, the Open Food Facts barcode, the brand and the store,",
-    "so the same name of two shops never mixes up, and the size of the pack as sold; Portion is no longer filled.",
+    "so the same name of two shops never mixes up, and the size of the pack as sold; Piece is the grams of one piece,",
+    "like 50 of a Semmel, for a food I eat in pieces.",
     "A meal in the log lists a food by its name, brand and store, then the grams I ate, like",
     "`X-FOOD:Skyr natur;K-Classic;Kaufland;150`; a cooking lists what went into the pot the same way.",
     "",
@@ -553,7 +567,8 @@ function cellsOf(line: string): string[] {
 
 /**
  * Reads my foods, the rows of the table of `Foods.md`: its lines starting with `|`, after the head of the table,
- * as they are, the column `Portion` left out. kcal that cannot be read counts as 0; a nutrient empty or unreadable
+ * as they are, the column `Piece` the grams of one piece, once called `Portion`. kcal that cannot be read counts as 0;
+ * a nutrient empty or unreadable
  * is unknown, `null`, never 0, see {@link nutrientOf}; a row without a name stays out.
  *
  * @returns Foods in the order of the table, none while `Foods.md` does not exist
@@ -570,7 +585,7 @@ function foodsRead(): Food[] {
         .map((cells: string[]): Food => ({
             name: cells[0], kcal: numberOf(cells[1]), protein: nutrientOf(cells[2]), carbs: nutrientOf(cells[3]),
             fat: nutrientOf(cells[4]), barcode: cells[6] ?? "", brand: cells[7] ?? "", store: cells[8] ?? "",
-            pack: cells[9] ?? "",
+            pack: cells[9] ?? "", piece: nutrientOf(cells[5]),
         }));
 }
 
@@ -793,6 +808,7 @@ function productOf(sent: ProductSent): Product | null {
         brand: brandOf(firstOf(sent.brands)),
         store: brandOf(firstOf(sent.stores)),
         pack: packOf(sent.quantity),
+        piece: null,
     };
 }
 
@@ -873,28 +889,28 @@ export async function foodsFind(text: string, page: number, products: boolean): 
 }
 
 /**
- * Writes a food as a row of the table of `Foods.md`, an unknown nutrient an empty cell, never 0, and the column
- * `Portion` empty, see the top of this file.
+ * Writes a food as a row of the table of `Foods.md`, an unknown nutrient an empty cell, never 0, and the grams of one
+ * piece in the column `Piece`, empty for none, see the top of this file.
  * - `cells`: Its values in the order of the columns, see {@link tableHeadOf}.
  *
  * @param food - Food as written
  * @returns Row like `| Gouda | 356 | 25 |  |  |  | 4056489012345 | Milbona | Lidl | 400 g |`
  */
 function rowOf(food: Food): string {
-    const cells: (string | number | null)[] = [food.name, food.kcal, food.protein, food.carbs, food.fat, "",
+    const cells: (string | number | null)[] = [food.name, food.kcal, food.protein, food.carbs, food.fat, food.piece,
         food.barcode, food.brand, food.store, food.pack];
     return `| ${cells.map((cell: string | number | null): string => String(cell ?? "")).join(" | ")} |`;
 }
 
 /**
- * Gives the head of the table of `Foods.md` the columns it lacks, see {@link tableHeadOf}, like a table written before
- * packs were kept, so the rows written since stand under their names.
+ * Gives the head of the table of `Foods.md` the columns of today, see {@link tableHeadOf}, like a table written before
+ * packs were kept, or with `Portion` where `Piece` stands now, so the rows written since stand under their names.
  *
  * @param lines - Lines of `Foods.md`, changed in place
  * @param header - Index of the header of its table
  */
 function tableHeadPut(lines: string[], header: number): void {
-    if (!lines[header].includes("| Pack |"))
+    if (lines[header] !== tableHeadOf()[0])
         lines.splice(header, tableHead, ...tableHeadOf());
 }
 
@@ -935,6 +951,7 @@ export function foodAdd(sent: Food): Food {
         brand: brandOf(String(sent.brand ?? "")),
         store: brandOf(String(sent.store ?? "")),
         pack: nameOf(String(sent.pack ?? "")),
+        piece: amount(sent.piece) && Number(sent.piece) > 0 ? roundOf(Number(sent.piece), 1) : null,
     };
     if (added.name === "")
         throw new Error(`No name of a food: ${JSON.stringify(sent)}`);
@@ -981,25 +998,28 @@ function lineRenamed(line: string, old: string, renamed: { name: string; brand: 
 }
 
 /**
- * Renames a food of mine wherever it stands, its name, brand and store as typed, cleaned as those of a food added,
- * see {@link foodTextOf}, so every entry and meal still finds it: first every line `X-FOOD` of the log naming it,
- * past and to come, its grams and meal kept, then every meal of `Meals.md` holding it, last its row of `Foods.md`,
- * every other cell and line staying as it is, so one stopped in between finishes when sent again. A food sent without
- * change writes nothing.
+ * Changes a food of mine: renames it wherever it stands, its name, brand and store as typed, cleaned as those of
+ * a food added, see {@link foodTextOf}, so every entry and meal still finds it: first every line `X-FOOD` of the log
+ * naming it, past and to come, its grams and meal kept, then every meal of `Meals.md` holding it, last its row of
+ * `Foods.md`, every other line staying as it is, so one stopped in between finishes when sent again; with its row its
+ * kcal, protein, carbs, fat and pack where sent for a food I made by hand, without barcode, those of Open Food Facts
+ * staying as they came, and the grams of one piece of any food. A food sent without change writes nothing.
  * - `old`: Key of the food, see {@link keyOf}.
  * - `renamed`: Its new name, brand and store, cleaned.
  * - `mine`: My foods.
- * - `found`: The food renamed.
+ * - `found`: The food changed.
+ * - `amount`: Tells whether a value is a number of 0 or more.
+ * - `own`: Whether I made it by hand, so its nutrients and pack change.
+ * - `changed`: The food as written.
  * - `meals`: My meals.
  * - `lines`: Lines of `Foods.md`.
  * - `header`: Index of the header of its table.
  * - `row`: Index of the row of the food.
- * - `cells`: Its cells, as many as the head of the table names.
  *
- * @param sent - The food and its new name, brand and store, as the page sends them
+ * @param sent - The food and what changes, as the page sends it
  * @returns The food as written
  * @throws {Error} - When `Foods.md` holds no such food, the new name is empty, another food of mine has the new name,
- *   brand and store, ignoring case, or a file lies outside the new system
+ *   brand and store, ignoring case, a number is none of 0 or more, or a file lies outside the new system
  */
 export function foodChange(sent: FoodChanged): Food {
     const old: string = keyOf({
@@ -1016,7 +1036,22 @@ export function foodChange(sent: FoodChanged): Food {
     if (renamed.name === "" || mine.some((candidate: Food): boolean =>
         candidate !== found && keyOf(candidate) === keyOf(renamed)))
         throw new Error(`No new name of a food: ${labelOf(renamed)}`);
-    if (renamed.name === found.name && renamed.brand === found.brand && renamed.store === found.store)
+    const amount: (value: unknown) => boolean = (value: unknown): boolean => typeof value === "number" && value >= 0;
+    const own: boolean = found.barcode === "";
+    if ((own && sent.kcal !== undefined && !amount(sent.kcal))
+        || ![sent.protein, sent.carbs, sent.fat, sent.piece].every((value: unknown): boolean =>
+            value === undefined || value === null || amount(value)))
+        throw new Error(`No numbers of a food: ${JSON.stringify(sent)}`);
+    const changed: Food = {
+        ...found, ...renamed,
+        ...own && sent.kcal !== undefined ? nutrientsOf({
+            kcal: sent.kcal, protein: sent.protein ?? null, carbs: sent.carbs ?? null, fat: sent.fat ?? null,
+        }) : {},
+        pack: own && sent.pack !== undefined ? nameOf(String(sent.pack)) : found.pack,
+        piece: sent.piece === undefined ? found.piece
+            : sent.piece === null || sent.piece === 0 ? null : roundOf(sent.piece, 1),
+    };
+    if (rowOf(changed) === rowOf(found))
         return found;
     if (!writeAllowed(food.foods) || !writeAllowed(food.meals))
         throw new Error(`No writing outside the new system: ${food.foods}`);
@@ -1044,16 +1079,10 @@ export function foodChange(sent: FoodChanged): Food {
         return index >= header + tableHead && line.startsWith("|")
             && keyOf({ name: cells[0] ?? "", brand: cells[7] ?? "", store: cells[8] ?? "" }) === old;
     });
-    const cells: string[] = cellsOf(lines[row]);
-    while (cells.length < cellsOf(tableHeadOf()[0]).length)
-        cells.push("");
-    cells[0] = renamed.name;
-    cells[7] = renamed.brand;
-    cells[8] = renamed.store;
-    lines[row] = `| ${cells.join(" | ")} |`;
+    lines[row] = rowOf(changed);
     tableHeadPut(lines, header);
     writeFileSync(food.foods, lines.join("\n"));
-    return { ...found, ...renamed };
+    return changed;
 }
 
 /**

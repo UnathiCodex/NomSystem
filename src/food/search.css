@@ -178,20 +178,22 @@ button.food-row {
     font: inherit;
 }
 
-/* The cross and the check of a change in place, as a dialog ends: square, one chip high, outlined, an icon in the
-   middle, the check in the calm grey of what is picked; a grey lighter under the pointer */
+/* The cross and the check of a form, as a dialog ends: square, one control high like the buttons of a dialog,
+   outlined, an icon in the middle, the check in the calm grey of what is picked, a grey lighter under the pointer;
+   well apart from the last value above them */
 .food-buttons {
     display: inline-flex;
     flex: none;
     gap: var(--control-gap);
+    margin-top: 0.75rem;
 }
 
 .food-buttons button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: var(--chip-height);
-    height: var(--chip-height);
+    width: var(--control-height);
+    height: var(--control-height);
     padding: 0;
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -283,4 +285,34 @@ button.food-row:hover {
     flex-basis: 100%;
     margin: 0;
     color: var(--text-muted);
+}
+
+/* A number that changes in place, like the grams of a food of a meal or the protein of a food of mine: a plain value
+   as wide as five digits, its digits right, then its unit, like `g` */
+.food-grams {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    line-height: normal;
+    white-space: nowrap;
+}
+
+.food-inline-grams {
+    width: 3.5rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* In the values of a food, a number starts where every value of its column starts and its unit follows it closely,
+   its field as wide as what is typed; a click on its unit puts the cursor into it too, so an empty one takes a click,
+   see `detailOf` in `search.ts` */
+.food-facts > .food-grams > .food-inline-grams {
+    width: auto;
+    min-width: 1ch;
+    field-sizing: content;
+    text-align: left;
+}
+
+.food-facts > .food-grams {
+    cursor: text;
 }

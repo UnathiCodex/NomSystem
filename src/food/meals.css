@@ -28,14 +28,3 @@
     gap: 0.625rem;
     min-width: 0;
 }
-
-/* Standard grams of a food of a meal, a plain value as wide as five digits, its digits right, then `g` */
-.food-grams {
-    white-space: nowrap;
-}
-
-.food-inline-grams {
-    width: 3.5rem;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}

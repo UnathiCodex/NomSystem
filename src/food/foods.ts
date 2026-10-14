@@ -49,6 +49,8 @@ export type Totals = {
  * - `brand`: Its first brand, like `Milbona`, empty when none is known.
  * - `store`: The first store that sells it, like `Lidl`, empty when none is known.
  * - `pack`: Size of its pack as sold, like `450 g`, empty when none is known.
+ * - `piece`: Grams of one piece, like 50 of a Semmel, for a food I eat in pieces, so an entry takes `2 St` as 100 g;
+ *   `null` for none.
  */
 export type Food = Nutrients & {
     name: string;
@@ -56,6 +58,23 @@ export type Food = Nutrients & {
     brand: string;
     store: string;
     pack: string;
+    piece: number | null;
+};
+
+/**
+ * What changes of a food of mine, as typed, see {@link foodChange}: its name, brand and store always; its nutrients
+ * per 100 g and its pack only for a food I made by hand; the grams of one piece of any food, `null` for none.
+ */
+export type FoodChanges = {
+    name: string;
+    brand: string;
+    store: string;
+    kcal?: number;
+    protein?: number | null;
+    carbs?: number | null;
+    fat?: number | null;
+    pack?: string;
+    piece?: number | null;
 };
 
 /**
@@ -268,21 +287,18 @@ export async function foodDelete(food: Food): Promise<void> {
 }
 
 /**
- * Renames a food of mine through the reader, in `Foods.md`, in my meals and in every entry of the log naming it.
+ * Changes a food of mine through the reader: renames it in `Foods.md`, in my meals and in every entry of the log
+ * naming it, and writes its other values, see {@link FoodChanges}.
  *
  * @param food - The food as `Foods.md` holds it
- * @param name - Its new name
- * @param brand - Its new brand, empty for none
- * @param store - Its new store, empty for none
+ * @param changes - Its values as typed
  * @returns The food as the reader wrote it, its name, brand and store cleaned
  * @throws {Error} - When the reader does not take it, like for an empty name or one another food of mine has
  *   with that brand and store
  */
-export async function foodChange(food: Food, name: string, brand: string, store: string): Promise<Food> {
+export async function foodChange(food: Food, changes: FoodChanges): Promise<Food> {
     const response: Response = await fetch("/api/food/foods", {
-        method: "PATCH", body: JSON.stringify({
-            old: { name: food.name, brand: food.brand, store: food.store }, name: name, brand: brand, store: store,
-        }),
+        method: "PATCH", body: JSON.stringify({ old: { name: food.name, brand: food.brand, store: food.store }, ...changes }),
     });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
