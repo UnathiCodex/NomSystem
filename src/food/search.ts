@@ -74,6 +74,7 @@ export type SearchSetup = {
  * - `shown`: The text the results shown were found for.
  * - `enter`: Whether Enter waits for the results of the text typed, to take the first, see {@link firstPick}.
  * - `asking`: Key of my food whose `×` asked `Really remove?`, empty for none.
+ * - `reveal`: Whether the food open goes into sight once shown, as after a click on it in a meal, see {@link foodShow}.
  */
 type Search = {
     input: HTMLInputElement;
@@ -86,6 +87,7 @@ type Search = {
     shown: string;
     enter: boolean;
     asking: string;
+    reveal: boolean;
 };
 
 /**
@@ -114,7 +116,7 @@ const searches: WeakMap<HTMLElement, Search> = new WeakMap();
  * @param food - Food
  * @returns Key like `skyr natur;k-classic;kaufland`
  */
-function keyOf(food: Food): string {
+function keyOf(food: { name: string; brand: string; store: string }): string {
     return `${food.name};${food.brand};${food.store}`.toLowerCase();
 }
 
@@ -489,6 +491,10 @@ function resultsShow(search: Search): void {
         : sections.flatMap((section: HTMLElement[], index: number): HTMLElement[] =>
             index === 0 ? section : [elementOf("hr", "food-divider", ""), ...section]));
     search.shown = query;
+    if (search.reveal) {
+        search.reveal = false;
+        search.results.querySelector(".food-detail")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
     if (search.enter) {
         search.enter = false;
         firstPick(search);
@@ -753,6 +759,7 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
         shown: "",
         enter: false,
         asking: "",
+        reveal: false,
     };
     let waiting: number = 0;
 
@@ -781,6 +788,24 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
     searches.set(element, search);
     resultsLoad(search, 1);
     return element;
+}
+
+/**
+ * Shows one of my foods opened in a search that only shows, like that of the food view: the field emptied, so all
+ * my foods show, the food open below its line and moved into sight, as a click on a food of a meal asks, see
+ * `../food/meals.ts`.
+ *
+ * @param element - The search, as {@link foodSearchOf} built it
+ * @param food - The food, its name, brand and store
+ */
+export function foodShow(element: HTMLElement, food: { name: string; brand: string; store: string }): void {
+    const search: Search | undefined = searches.get(element);
+    if (search === undefined)
+        return;
+    search.input.value = "";
+    search.open = keyOf(food);
+    search.reveal = true;
+    resultsLoad(search, 1);
 }
 
 /**

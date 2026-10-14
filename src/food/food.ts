@@ -34,7 +34,7 @@
  */
 
 import { amountOf, bracketsWatch, buttonOf, elementOf, foodDayLoad, foodNameOf } from "./foods.ts";
-import { foodNewShow, foodSearchOf } from "./search.ts";
+import { foodNewShow, foodSearchOf, foodShow } from "./search.ts";
 import { mealsSectionOf } from "./meals.ts";
 import { labelOf } from "../day/places.ts";
 import { dateTextOf } from "../day/times.ts";
@@ -310,13 +310,14 @@ export function foodStart(): void {
     after.addEventListener("click", (): void => dayMove(1));
     today.addEventListener("click", (): void => dayOpen(calendarTodayOf()));
     bracketsWatch(document.getElementById("food-meals") as HTMLElement);
-    document.getElementById("food-dishes")?.append(mealsSectionOf());
     const search: HTMLElement = foodSearchOf({
         pick: null,
         meals: null,
         products: true,
         nothing: "Nothing found; the plus beside Foods adds a food by hand",
     });
+    document.getElementById("food-dishes")?.append(mealsSectionOf((food: { name: string; brand: string;
+        store: string }): void => foodShow(search, food)));
     const plus: HTMLButtonElement = buttonOf("", "", (): void => foodNewShow(search));
     plusPut(plus, "New food");
     document.getElementById("food-foods-heading")?.append(plus);
