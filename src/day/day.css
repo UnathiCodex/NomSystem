@@ -1560,7 +1560,7 @@ fieldset.entry-times {
 }
 
 /* Food search in the list of the foods or of a meal, see `.picker-box`: its field one chip high, as the search
-   of every list */
+   of every list, with a little room above and below it */
 .meal-box .food-search {
     display: flex;
     flex-direction: column;
@@ -1570,7 +1570,7 @@ fieldset.entry-times {
 .panel .meal-box .food-search > input {
     flex: none;
     height: var(--chip-height);
-    margin-top: 0;
+    margin: 0.375rem 0;
     padding: 0 0.75rem;
     border: 1px solid var(--line);
     border-radius: var(--radius);
