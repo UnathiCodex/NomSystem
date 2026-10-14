@@ -79,7 +79,7 @@ import { labelOf, lineOf, placeEdit, placeOpen, placesStart } from "./places.ts"
 import {
     skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPlaceShow, skillSave, skillSemesterOf,
 } from "./skill.ts";
-import { boxTimesOf, dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
+import { boxTimesOf, dateOf, dateParse, dateTextOf, lengthOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
 import { Check, CircleCheck, CircleQuestionMark, Copy, Pencil, Trash, X } from "lucide";
@@ -313,7 +313,8 @@ function saveAllow(): void {
 
 /**
  * Shows under the end of a box how long the last three entries like it really lasted, the latest first,
- * like `Real, last 3: 150 · 165 · 140 min`, so I plan by what happened, not by a hope (Buehler 1994);
+ * like `Real, last 3: 02h 30m · 02h 45m · 02h 20m`, see `lengthOf` in `times.ts`, so I plan by what happened,
+ * not by a hope (Buehler 1994);
  * a new box gets their median as its length, see {@link endFill}. Hidden for an entry of the log and while none
  * is logged.
  * - `line`: The line under the end.
@@ -346,7 +347,7 @@ async function realShow(): Promise<void> {
         return;
     const sorted: number[] = [...real].sort((first: number, second: number): number => first - second);
     realMiddle = sorted[Math.floor(real.length / 2)];
-    line.textContent = `Real, last ${real.length}: ${real.join(" · ")} min`;
+    line.textContent = `Real, last ${real.length}: ${real.map(lengthOf).join(" · ")}`;
     line.hidden = false;
     endFill();
 }
@@ -959,7 +960,7 @@ function fieldsRead(): EntryFields {
  * of its start, its expected time its start, its expected duration the minutes from its start to its end,
  * so `19.10.2026 09:15` to `10:45` moves a box of 12 October at 14:00 to 19 October at 09:15 for 90 minutes,
  * and the reader into the plan it belongs into; a box whose times stay empty lies on its day without time,
- * keeping the duration it had, like `45 min`; with a deadline it lies on the day of its deadline, without
+ * keeping the duration it had, like `00h 45m`; with a deadline it lies on the day of its deadline, without
  * expected time, start and end off, keeping the duration it had; an empty deadline is none.
  * - `day`: Typed day of the start, like `2026-10-19`, the day the dialog opened with should it be no date.
  * - `startTime`, `endTime`: Typed times of start and end, empty for none.

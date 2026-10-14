@@ -10,7 +10,7 @@
  * Every box has the same lines, open or done: its category in bold with a colon and what,
  * like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`, as an entry of the log does, then grey its expected time,
  * its length only where no end shows it, and how often it was pushed, with its place after them, by its label alone,
- * like `11:30 – 13:00 · Audimax im Galileo` or `75 min · pushed once`, the place opening its link on a click when
+ * like `11:30 – 13:00 · Audimax im Galileo` or `01h 15m · pushed once`, the place opening its link on a click when
  * it has one; then what it is about, each of its chapters and documents on a line of its own with a bullet,
  * by the last part of its path, like `02_LogisticPoissonRegression` and `04_LogisticPoissonRegression.pdf`, none
  * for a lecture, whose topic is not known before; a line without anything to say is left out.
@@ -18,7 +18,7 @@
  * since a task I keep pushing is often too big or no longer wanted, and a click on it opens it to cut it.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
  * and on the day of its deadline always, done or not, and looks like every other box, its deadline in place
- * of its time and how near it is after its length, like `Deadline Fri, 23.10.2026, 12:00 · 120 min · in 3 days`;
+ * of its time and how near it is after its length, like `Deadline Fri, 23.10.2026, 12:00 · 02h 00m · in 3 days`;
  * it has no arrow, since it stays on the day of its deadline.
  * An open box is dragged into the log at the real time: the reader writes a log entry like it, pointing to it,
  * as long as its expected duration, else half an hour, and I resize the entry when it lasted otherwise.
@@ -33,7 +33,7 @@
  * with one tap on its arrow, which shows under the pointer; a skipped box stays in its file, see `reader/boxes.ts`,
  * and shows greyed, never struck through, at the end of the list, where one tap on its arrow back takes it back.
  * A box neither done nor cancelled stays greyed on its day once that is over, without its arrow, and is carried
- * along on today: below the list of today, under `Carried along`, each with its day, like `Mon, 12.10.2026 · 45 min`,
+ * along on today: below the list of today, under `Carried along`, each with its day, like `Mon, 12.10.2026 · 00h 45m`,
  * the earliest first, see `boxesCarried` in `reader/boxes.ts`, until I do it, dragged into the log or with its ring,
  * or cancel it with its cross; a click on it changes it, like its day. It never moves into the next days by itself.
  * `+` beside the name of the plan opens the entry by category for a new box of the shown day; a click on a box changes it,
@@ -67,7 +67,7 @@ import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } 
 import { giftOpen } from "./gifts.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
 import { linkNameOf } from "../skill/links.ts";
-import { boxMinutes, boxTimesOf, timeOf } from "./times.ts";
+import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut } from "../icons.ts";
@@ -353,9 +353,9 @@ const pushesAsking: number = 3;
  * the same whether it is open or done, since the log shows its real time: its own day when it is carried along
  * to a later day, like `Mon, 12.10.2026`, its expected start and end, or its deadline, like
  * `Deadline Fri, 23.10.2026, 12:00`, see {@link deadlineTextOf}, its expected duration where no end shows it,
- * after a deadline or alone, like `75 min`, how near its deadline is while it is open,
+ * after a deadline or alone, like `01h 15m`, see `lengthOf` in `times.ts`, how near its deadline is while it is open,
  * see {@link nearOf}, and how often it was pushed, from {@link pushesAsking} pushes on, while it is open,
- * with the question `smaller or skip?`, like `75 min · pushed once`; a box carried along leaves out how near
+ * with the question `smaller or skip?`, like `01h 15m · pushed once`; a box carried along leaves out how near
  * its deadline is; one the university cancelled says so at its end, like `16:00 – 17:30 · cancelled by university`.
  * - `pushes`: How often it was pushed, empty for never.
  * - `asking`: The question whether to make it smaller or skip it, empty while it does not ask.
@@ -363,8 +363,7 @@ const pushesAsking: number = 3;
  * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
  * - `start`: Its expected start, `null` for none.
  * - `when`: Its deadline, else its expected start and end, or its start alone without duration, empty for neither.
- * - `length`: Its expected duration, empty for none and where its start and end show it; a space that never breaks
- *   between its number and `min`, so a narrow box keeps `90 min` together on one line.
+ * - `length`: Its expected duration, empty for none and where its start and end show it.
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
@@ -387,7 +386,7 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
     if (box.deadline !== "")
         when = deadlineTextOf(box);
     const length: string =
-        box.minutes === null || (start !== null && box.deadline === "") ? "" : `${box.minutes}\u00a0min`;
+        box.minutes === null || (start !== null && box.deadline === "") ? "" : lengthOf(box.minutes);
     return [over, when, length, near, pushes, asking, box.state === "university" ? "cancelled by university" : ""]
         .filter((part: string): boolean => part !== "");
 }
@@ -640,10 +639,13 @@ function boxElementOf(calendar: Calendar, box: Box, index: number, carriedShown:
 }
 
 /**
- * Makes a suggested study session of the list, dashed: what it is, its expected duration, and at its right
- * the check, which plans it, and the cross, which dismisses it; a click on it opens the entry by category
- * of a new box filled in as suggested, see `suggestions.ts`.
+ * Makes a suggested study session of the list, dashed: what it is, named as a box is, see {@link shownWhatOf},
+ * like `Skill: IN2028_BusinessAnalyticsMachineLearning`, on a phone `Skill: IN2028`, its long name broken only where
+ * its parts meet, see `breakableOf` in `choices.ts`; its expected duration, and at its right the check, which plans it,
+ * and the cross, which dismisses it; a click on it opens the entry by category of a new box filled in as suggested,
+ * see `suggestions.ts`.
  * - `element`: The suggestion.
+ * - `what`: What it is as shown.
  * - `body`: Its lines.
  *
  * @param calendar - Calendar of the day
@@ -652,9 +654,10 @@ function boxElementOf(calendar: Calendar, box: Box, index: number, carriedShown:
  */
 function suggestionElementOf(calendar: Calendar, suggestion: Suggestion): HTMLElement {
     const element: HTMLElement = entryPartOf("div", "box box-suggested", []);
+    const what: string = shownWhatOf(skillName, suggestion.title, suggestion.module, "");
     const body: HTMLElement = entryPartOf("div", "box-body", [
-        entryPartOf("div", "box-what", whatOf(skillName, suggestion.title)),
-        entryPartOf("div", "box-meta", [`${suggestion.minutes} min · suggested`]),
+        entryPartOf("div", "box-what", whatOf(skillName, breakableOf(what))),
+        entryPartOf("div", "box-meta", [`${lengthOf(suggestion.minutes)} · suggested`]),
     ]);
     body.addEventListener("click", (): void => {
         suggestionOpen(suggestion, calendar.view.currentStart).catch((error: unknown): void => console.error(error));
