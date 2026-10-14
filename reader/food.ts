@@ -9,8 +9,7 @@
  * the food, its brand and its store; an entry brings each food at the grams I logged it with last in an entry of its
  * category, see {@link gramsRead}, which I change there; the lists of my meals show each with what it gave the last
  * time I ate it, see {@link dishesRead}.
- * A meal is named as all my names are, in one word without spaces, each word with a capital, like `ChiliConCarne`
- * of `Chili con Carne`.
+ * A meal keeps its name as I type it, its spaces too, like `Chili con Carne`, only without commas, see {@link mealNameOf}.
  * `Foods.md` is one Markdown table with one row per food: its name, kcal, protein, carbs and fat per 100 g,
  * the column `Portion`, a usual portion written before and no longer filled, the Open Food Facts barcode it came from,
  * its brand and store, like `Milbona` and `Lidl`, so the same name of two shops never mixes up, and the size of its
@@ -1050,16 +1049,14 @@ export function foodLineAllows(line: string): boolean {
 }
 
 /**
- * Writes a name of mine as all my names are written, in one word, each word with a capital, the rest as typed,
- * like `ChiliConCarne` of `Chili con Carne` or `Käsesalat` of `käsesalat`, cleaned as the name of a food,
- * see {@link foodTextOf}, so no comma parts it in a summary.
+ * Writes the name of a meal as typed, its spaces too, cleaned as the name of a food, see {@link foodTextOf}, so no
+ * comma parts it in a summary and spaces in a row are one, like `Chili con Carne` of `Chili con  Carne,`.
  *
  * @param typed - Name as typed
- * @returns Name in one word
+ * @returns Name of the meal
  */
-function oneWordOf(typed: string): string {
-    return foodTextOf(typed).split(" ").filter((word: string): boolean => word !== "")
-        .map((word: string): string => word.charAt(0).toUpperCase() + word.slice(1)).join("");
+function mealNameOf(typed: string): string {
+    return foodTextOf(typed);
 }
 
 /**
@@ -1147,7 +1144,7 @@ function compositionsWrite(meals: Composition[]): void {
 
 /**
  * Writes a meal into `Meals.md`, new or changed for good, its foods in place of those it had, at its place,
- * a new meal last; the name in one word, see {@link oneWordOf}, each food by its name, brand and store as `Foods.md`
+ * a new meal last; the name as typed, see {@link mealNameOf}, each food by its name, brand and store as `Foods.md`
  * holds them, cleaned only for a table, see {@link nameOf}, each once.
  * - `meals`: My meals so far.
  * - `name`: Name of the meal, as a meal of mine of the name, ignoring case, already writes it.
@@ -1159,7 +1156,7 @@ function compositionsWrite(meals: Composition[]): void {
  */
 export function dishAdd(sent: { name?: string; foods?: string[] }): Dish[] {
     const meals: Composition[] = compositionsRead();
-    const typed: string = oneWordOf(String(sent.name ?? ""));
+    const typed: string = mealNameOf(String(sent.name ?? ""));
     const name: string = meals.find((meal: Composition): boolean => meal.name.toLowerCase() === typed.toLowerCase())
         ?.name ?? typed;
     const foods: string[] = [...new Set((sent.foods ?? []).map((line: string): string => {

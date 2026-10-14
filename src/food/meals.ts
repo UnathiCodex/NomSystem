@@ -4,8 +4,8 @@
  * My meals of `Meals.md`, each only its composition, one or more of my foods without grams, servings or variants,
  * since I prepare it a little differently every time: shared by the food view, whose section lists them above
  * my foods, and by the entry by category of the day, whose search finds them above my foods, see `../day/meal.ts`.
- * - The form of a new meal: the name of the meal, which the reader writes in one word, as all my names are,
- *   like `ChiliConCarne` of `Chili con Carne`, shown below the field as I type; its foods, each its name with its brand
+ * - The form of a new meal: the name of the meal, which keeps its spaces, like `Chili con Carne`, the reader only
+ *   taking its commas, shown below the field as I type; its foods, each its name with its brand
  *   and store in brackets and a small grey `×`, and below them the food search, which adds one;
  *   `Cancel` and `Save`, which takes no click until the meal has a name and a food.
  * - The row of a meal in the section of the food view: its name, its foods in brackets after it by their names,
@@ -53,17 +53,15 @@ type FormSetup = {
 
 
 /**
- * Writes a name of mine as the reader writes it, in one word, each word with a capital, the rest as typed, a comma
- * between two digits a point and every other comma gone, since the comma parts names, like `ChiliConCarne`
- * of `Chili con Carne`, see `oneWordOf` in `reader/food.ts`.
+ * Writes the name of a meal as the reader writes it, as typed, its spaces too, a comma between two digits a point,
+ * every other comma gone, since the comma parts names, and spaces in a row one, like `Chili con Carne`, see
+ * `mealNameOf` in `reader/food.ts`.
  *
  * @param typed - Name as typed
- * @returns Name in one word
+ * @returns Name of the meal
  */
-export function oneWordOf(typed: string): string {
-    return typed.replace(/(\d),(?=\d)/g, "$1.").replace(/[|;,]/g, " ").split(/\s+/)
-        .filter((word: string): boolean => word !== "")
-        .map((word: string): string => word.charAt(0).toUpperCase() + word.slice(1)).join("");
+export function mealNameOf(typed: string): string {
+    return typed.replace(/(\d),(?=\d)/g, "$1.").replace(/\s*,\s*/g, " ").replace(/[|;]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -161,7 +159,7 @@ function removeOf(words: string, click: () => void): HTMLButtonElement {
  * says so.
  * - `foods`: Its foods so far, see {@link lineOfFood}.
  * - `name`: Field of the name of the meal, `Name of the meal` grey in it while empty.
- * - `written`: The name in one word, as the reader writes it, below the field.
+ * - `written`: The name as the reader writes it, below the field.
  * - `rows`: Rows of the foods.
  * - `error`: Hint that the reader did not take it.
  * - `save`: The button `Save`.
@@ -184,7 +182,7 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
     const save: HTMLButtonElement = buttonOf("dish-save", "Save meal", (): void => {
         save.disabled = true;
         dishSend(name.value.trim(), foods)
-            .then((dishes: Dish[]): void => setup.saved(dishes, oneWordOf(name.value).toLowerCase()))
+            .then((dishes: Dish[]): void => setup.saved(dishes, mealNameOf(name.value).toLowerCase()))
             .catch((reason: unknown): void => {
                 console.error(reason);
                 error.hidden = false;
@@ -192,8 +190,8 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
             });
     });
     const ready: () => void = (): void => {
-        written.textContent = oneWordOf(name.value) === name.value.trim() || name.value.trim() === ""
-            ? "" : `Saved as ${oneWordOf(name.value)}`;
+        written.textContent = mealNameOf(name.value) === name.value.trim() || name.value.trim() === ""
+            ? "" : `Saved as ${mealNameOf(name.value)}`;
         save.disabled = name.value.trim() === "" || foods.length === 0;
     };
     const foodsShow: () => void = (): void => {

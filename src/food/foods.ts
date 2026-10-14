@@ -121,7 +121,7 @@ export type Meal = Totals & {
  * A meal of mine, as the reader sends it from `Meals.md`: only its composition, one or more of my foods without grams,
  * with what it gave.
  *
- * - `name`: Name of the meal, in one word, like `ChiliConCarne`.
+ * - `name`: Name of the meal, like `Chili con Carne`.
  * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order.
  * - `grams`: Grams of each of its foods as I ate them the last time, `null` for a food not eaten then; for a meal never
  *   eaten, the grams I logged each food with last, `null` for one never logged with grams.
@@ -177,8 +177,8 @@ export async function dishesLoad(): Promise<Dish[]> {
 }
 
 /**
- * Sends a meal to the reader, new or changed for good, which writes it into `Meals.md`; the reader writes the name
- * in one word, like `ChiliConCarne` of `Chili con Carne`.
+ * Sends a meal to the reader, new or changed for good, which writes it into `Meals.md`; the name keeps its spaces,
+ * like `Chili con Carne`, the reader only taking its commas.
  *
  * @param name - Name of the meal
  * @param foods - Its foods by name, brand and store, like `Hackfleisch;Gut & Günstig;Edeka`

@@ -45,7 +45,7 @@
  * - `../skill/attempts.ts`: Gives the day of an instant.
  * - `../food/foods.ts`: Finds my foods, loads my meals and the grams I logged each food with last, sends a meal,
  *   writes amounts and makes elements and buttons.
- * - `../food/meals.ts`: Finds my meals for a search, writes a name in one word as the reader does, and kcal as the
+ * - `../food/meals.ts`: Finds my meals for a search, writes the name of a meal as the reader does, and kcal as the
  *   page writes them.
  * - `../food/search.ts`: The food search, the lines of every list, and the field and buttons of a change in place.
  * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, their words as tooltip.
@@ -57,7 +57,7 @@ import { dayOf } from "../skill/attempts.ts";
 import {
     bracketsWatch, buttonOf, dishesLoad, dishSend, elementOf, foodNameOf, foodsFind, gramsLoad,
 } from "../food/foods.ts";
-import { dishesFound, kcalTextOf, oneWordOf } from "../food/meals.ts";
+import { dishesFound, kcalTextOf, mealNameOf } from "../food/meals.ts";
 import { editButtonsOf, editFieldOf, foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
 import { crossPut, plusPut } from "../icons.ts";
 
@@ -582,8 +582,8 @@ function namingShow(changed: () => void): void {
  * Keeps the foods beside the meals as one meal of the name typed, one food being enough: they become its block in this
  * entry, their lines carrying its name, their grams kept, joining the block of a meal of that name the entry holds
  * already; and the meal goes into `Meals.md` as its composition, the foods of that block by name, brand and store,
- * without grams, in place of what a meal of mine of that name held, the reader writing the name in one word,
- * like `ChiliConCarne` of `Chili con carne`, see `dishAdd` in `reader/food.ts`. Nothing happens for an empty name;
+ * without grams, in place of what a meal of mine of that name held, its name as typed, like `Chili con Carne`,
+ * see `dishAdd` in `reader/food.ts`. Nothing happens for an empty name;
  * when the reader does not take the meal, the field stays.
  * - `kept`: The foods beside the meals.
  * - `block`: The block of a meal of that name the entry holds already, `undefined` for none.
@@ -595,16 +595,16 @@ function namingShow(changed: () => void): void {
 function mealKeep(typed: string, changed: () => void): void {
     const kept: FoodPick[] = picks;
     const block: MealPick | undefined = meals.find((meal: MealPick): boolean =>
-        meal.name.toLowerCase() === oneWordOf(typed).toLowerCase());
+        meal.name.toLowerCase() === mealNameOf(typed).toLowerCase());
     const foods: FoodPick[] = [...block?.foods ?? [], ...kept.filter((pick: FoodPick): boolean =>
         !(block?.foods ?? []).some((other: FoodPick): boolean => keyOf(other) === keyOf(pick)))];
-    if (oneWordOf(typed) === "" || kept.length === 0)
+    if (mealNameOf(typed) === "" || kept.length === 0)
         return;
     dishSend(typed, foods.map((pick: FoodPick): string => `${pick.name};${pick.brand};${pick.store}`))
         .then((sent: Dish[]): void => {
             dishes = sent;
             const name: string = sent.find((dish: Dish): boolean =>
-                dish.name.toLowerCase() === oneWordOf(typed).toLowerCase())?.name ?? oneWordOf(typed);
+                dish.name.toLowerCase() === mealNameOf(typed).toLowerCase())?.name ?? mealNameOf(typed);
             if (block === undefined)
                 meals.push({ name: name, foods: foods });
             else
