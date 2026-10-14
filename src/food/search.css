@@ -126,12 +126,18 @@ button.food-row {
 }
 
 /* The values of a food opened in two columns, as the parts of a dialog: each its name small and grey, then its value
-   or its field */
+   or its field; a value that does not change, like the protein set once when the food was made, as high as a field
+   beside it, its line below it unseen, so every row stands as far from the next */
 .food-facts {
     display: grid;
     grid-template-columns: max-content minmax(0, 24rem);
     gap: 0.625rem var(--gap);
     align-items: baseline;
+}
+
+.food-facts > span:not(.food-fact) {
+    padding-bottom: 0.125rem;
+    border-bottom: 1px solid transparent;
 }
 
 /* A value of a food of mine that changes in place, its name, brand or store: as plain as every value beside it,
