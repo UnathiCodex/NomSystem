@@ -9,8 +9,9 @@
 
 /* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the scripts view
    and the editor, each row in the text of the tree, see `--tree-text` in `../variants.css`, and one chip high
-   to click */
+   to click; the anchor of the menus of its pickers, which open beside it */
 .notes-tree {
+    anchor-name: --tree;
     overflow-y: auto;
     padding: var(--gap) 0.75rem;
     border-right: 1px solid var(--line);
@@ -109,19 +110,21 @@
     anchor-name: --tree-chapter;
 }
 
-/* Menu of a picker right under it and as wide as the tree, as the menus of the dialogs: the page's background,
-   a grey line and a soft shadow; its rows those of the tree, the one picked in the calm grey of what is picked;
-   it scrolls where the room below is short */
+/* Menu of a picker beside the tree, in the middle of the room right of it, over the note, its first row level with
+   the picker, so the tree stays in sight; as wide as its longest name, so no name is cut, as the menus of the dialogs:
+   the page's background, a grey line and a soft shadow; its rows those of the tree, the one picked in the calm grey
+   of what is picked; it scrolls where the room below is short */
 .tree-menu {
     position: fixed;
     inset: auto;
-    top: calc(anchor(bottom) + 0.25rem);
+    top: calc(anchor(top) - 0.375rem - 1px);
+    right: 0;
     bottom: var(--gap);
-    left: anchor(left);
-    width: anchor-size(width);
+    left: anchor(--tree right);
+    width: max-content;
     height: fit-content;
     max-height: stretch;
-    margin: 0;
+    margin: 0 auto;
     padding: 0.375rem;
     border: 1px solid var(--line);
     border-radius: var(--radius);
