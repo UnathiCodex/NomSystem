@@ -254,11 +254,12 @@ export function inlineFieldOf(value: string, words: string, saved: () => void): 
  * Builds a food of mine opened below its line in the food view, in two columns as the parts of a dialog, each its name
  * small and grey, then its value, every value as high as a field, so the rows stand equally apart: on top its name,
  * brand and store, which change in place by a click into them, see {@link inlineFieldOf}, renaming it wherever it
- * stands, see `foodChange` in `foods.ts`; then its kcal, protein, carbs and fat per 100 g, the grams of one piece and
- * its pack. A food I made by hand, without barcode, changes them all in place, so a mistake of mine is mended; one of
- * Open Food Facts keeps its kcal, nutrients and pack as they came, one unknown empty, never 0, and shows its barcode;
- * the grams of one piece change in place for every food, since how big a piece is only I know. A click on its line
- * closes it again. When the reader does not take a change, the food stays open and says so.
+ * stands, see `foodChange` in `foods.ts`; then its protein, carbs and fat per 100 g, its kcal standing on its line,
+ * the grams of one piece and its pack. Its nutrients are set once: a food I made by hand, without barcode, takes
+ * a nutrient still unknown in place, which then stays as every known one, so nothing known is changed by mistake,
+ * and changes its pack; one of Open Food Facts keeps them and its pack as they came, one unknown empty, never 0,
+ * and shows its barcode; the grams of one piece change in place for every food, since how big a piece is only I know.
+ * A click on its line closes it again. When the reader does not take a change, the food stays open and says so.
  * - `own`: Whether I made it by hand.
  * - `detail`: The food opened.
  * - `facts`: Its values in two columns.
@@ -270,6 +271,7 @@ export function inlineFieldOf(value: string, words: string, saved: () => void): 
  *   under its new name; a number that is none, like `abc`, takes nothing and says so.
  * - `fieldAdd`: Adds a value that changes in place, with its unit after it where it has one.
  * - `gramsOf`: Writes grams of a nutrient as a fixed value, empty while unknown.
+ * - `nutrientAdd`: Adds a nutrient, a field while unknown in a food I made by hand, else fixed.
  *
  * @param search - The search
  * @param food - My food
@@ -285,20 +287,19 @@ function detailOf(search: Search, food: Food): HTMLElement {
     const fields: Map<string, HTMLInputElement> = new Map();
     const text: (key: string) => string = (key: string): string => fields.get(key)?.value.trim() ?? "";
     const error: HTMLElement = elementOf("p", "food-error",
-        "Not changed: it needs a name and its kcal, numbers only, and no other food of mine may have this name, "
-        + "brand and store");
+        "Not changed: it needs a name, numbers only, and no other food of mine may have this name, brand and store");
     const save: () => void = (): void => {
-        const [kcal, protein, carbs, fat, piece]: (number | null)[] = ["kcal", "protein", "carbs", "fat", "piece"]
+        const [protein, carbs, fat, piece]: (number | null)[] = ["protein", "carbs", "fat", "piece"]
             .map((key: string): number | null => numberRead(text(key)));
-        if (text("name") === "" || (own && kcal === null)
-            || [kcal, protein, carbs, fat, piece].some((typed: number | null): boolean => Number.isNaN(typed))) {
+        if (text("name") === ""
+            || [protein, carbs, fat, piece].some((typed: number | null): boolean => Number.isNaN(typed))) {
             error.hidden = false;
             return;
         }
         detail.inert = true;
         foodChange(food, {
             name: text("name"), brand: text("brand"), store: text("store"), piece: piece,
-            ...own && kcal !== null ? { kcal: kcal, protein: protein, carbs: carbs, fat: fat, pack: text("pack") } : {},
+            ...own ? { protein: protein, carbs: carbs, fat: fat, pack: text("pack") } : {},
         }).then((): void => {
             search.open = keyOf({ ...food, name: text("name"), brand: text("brand"), store: text("store") });
             resultsLoad(search, 1);
@@ -327,20 +328,20 @@ function detailOf(search: Search, food: Food): HTMLElement {
         grams === null ? "" : `${amountOf(grams, 1)} g`;
     const numberOf: (value: number | null) => string = (value: number | null): string =>
         value === null ? "" : String(value);
+    const nutrientAdd: (name: string, key: string, grams: number | null) => void = (name: string, key: string,
+        grams: number | null): void => {
+        if (own && grams === null)
+            fieldAdd(name, key, "", "g");
+        else
+            factAdd(name, gramsOf(grams));
+    };
 
     fieldAdd("Name", "name", food.name, "");
     fieldAdd("Brand", "brand", food.brand, "");
     fieldAdd("Store", "store", food.store, "");
-    if (own) {
-        fieldAdd("kcal", "kcal", String(food.kcal), "kcal");
-        fieldAdd("Protein", "protein", numberOf(food.protein), "g");
-        fieldAdd("Carbs", "carbs", numberOf(food.carbs), "g");
-        fieldAdd("Fat", "fat", numberOf(food.fat), "g");
-    } else {
-        factAdd("Protein", gramsOf(food.protein));
-        factAdd("Carbs", gramsOf(food.carbs));
-        factAdd("Fat", gramsOf(food.fat));
-    }
+    nutrientAdd("Protein", "protein", food.protein);
+    nutrientAdd("Carbs", "carbs", food.carbs);
+    nutrientAdd("Fat", "fat", food.fat);
     fieldAdd("Piece", "piece", numberOf(food.piece), "g");
     if (own)
         fieldAdd("Pack", "pack", food.pack, "");

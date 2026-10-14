@@ -62,14 +62,14 @@ export type Food = Nutrients & {
 };
 
 /**
- * What changes of a food of mine, as typed, see {@link foodChange}: its name, brand and store always; its nutrients
- * per 100 g and its pack only for a food I made by hand; the grams of one piece of any food, `null` for none.
+ * What changes of a food of mine, as typed, see {@link foodChange}: its name, brand and store always; for a food
+ * I made by hand a nutrient per 100 g still unknown, which once known stays, and its pack; the grams of one piece
+ * of any food, `null` for none.
  */
 export type FoodChanges = {
     name: string;
     brand: string;
     store: string;
-    kcal?: number;
     protein?: number | null;
     carbs?: number | null;
     fat?: number | null;

@@ -154,8 +154,8 @@ type ProductsPage = {
  *
  * - `old`: Its name, brand and store as `Foods.md` holds them.
  * - `name`, `brand`, `store`: Its name, brand and store as typed.
- * - `kcal`, `protein`, `carbs`, `fat`: Its nutrients per 100 g as typed, `null` for one unknown; sent only for a food
- *   I made by hand, without barcode, since those of Open Food Facts stay as they came.
+ * - `protein`, `carbs`, `fat`: Its nutrients per 100 g as typed, `null` for one unknown; taken only for a food I made
+ *   by hand, without barcode, and only while unknown, see {@link foodChange}.
  * - `pack`: Size of its pack as typed, for a food by hand.
  * - `piece`: Grams of one piece as typed, `null` for none.
  */
@@ -164,7 +164,6 @@ export type FoodChanged = {
     name: string;
     brand: string;
     store: string;
-    kcal?: number;
     protein?: number | null;
     carbs?: number | null;
     fat?: number | null;
@@ -1001,15 +1000,17 @@ function lineRenamed(line: string, old: string, renamed: { name: string; brand: 
  * Changes a food of mine: renames it wherever it stands, its name, brand and store as typed, cleaned as those of
  * a food added, see {@link foodTextOf}, so every entry and meal still finds it: first every line `X-FOOD` of the log
  * naming it, past and to come, its grams and meal kept, then every meal of `Meals.md` holding it, last its row of
- * `Foods.md`, every other line staying as it is, so one stopped in between finishes when sent again; with its row its
- * kcal, protein, carbs, fat and pack where sent for a food I made by hand, without barcode, those of Open Food Facts
- * staying as they came, and the grams of one piece of any food. A food sent without change writes nothing.
+ * `Foods.md`, every other line staying as it is, so one stopped in between finishes when sent again; with its row
+ * for a food I made by hand, without barcode, its protein, carbs and fat where they are still unknown, each set once
+ * and then fixed, as its kcal from the start, so nothing known is changed by mistake, and its pack; those of Open Food
+ * Facts stay as they came; and the grams of one piece of any food. A food sent without change writes nothing.
  * - `old`: Key of the food, see {@link keyOf}.
  * - `renamed`: Its new name, brand and store, cleaned.
  * - `mine`: My foods.
  * - `found`: The food changed.
  * - `amount`: Tells whether a value is a number of 0 or more.
- * - `own`: Whether I made it by hand, so its nutrients and pack change.
+ * - `own`: Whether I made it by hand, so its nutrients still unknown and its pack change.
+ * - `settled`: Gives a nutrient of it as written: as it is once known, else as sent for my own food.
  * - `changed`: The food as written.
  * - `meals`: My meals.
  * - `lines`: Lines of `Foods.md`.
@@ -1038,15 +1039,18 @@ export function foodChange(sent: FoodChanged): Food {
         throw new Error(`No new name of a food: ${labelOf(renamed)}`);
     const amount: (value: unknown) => boolean = (value: unknown): boolean => typeof value === "number" && value >= 0;
     const own: boolean = found.barcode === "";
-    if ((own && sent.kcal !== undefined && !amount(sent.kcal))
-        || ![sent.protein, sent.carbs, sent.fat, sent.piece].every((value: unknown): boolean =>
-            value === undefined || value === null || amount(value)))
+    if (![sent.protein, sent.carbs, sent.fat, sent.piece].every((value: unknown): boolean =>
+        value === undefined || value === null || amount(value)))
         throw new Error(`No numbers of a food: ${JSON.stringify(sent)}`);
+    const settled: (known: number | null, typed: number | null | undefined) => number | null =
+        (known: number | null, typed: number | null | undefined): number | null =>
+            known !== null || !own || typed === undefined ? known : typed;
     const changed: Food = {
         ...found, ...renamed,
-        ...own && sent.kcal !== undefined ? nutrientsOf({
-            kcal: sent.kcal, protein: sent.protein ?? null, carbs: sent.carbs ?? null, fat: sent.fat ?? null,
-        }) : {},
+        ...nutrientsOf({
+            kcal: found.kcal, protein: settled(found.protein, sent.protein), carbs: settled(found.carbs, sent.carbs),
+            fat: settled(found.fat, sent.fat),
+        }),
         pack: own && sent.pack !== undefined ? nameOf(String(sent.pack)) : found.pack,
         piece: sent.piece === undefined ? found.piece
             : sent.piece === null || sent.piece === 0 ? null : roundOf(sent.piece, 1),
