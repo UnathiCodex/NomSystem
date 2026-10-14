@@ -21,11 +21,14 @@
     gap: var(--control-gap);
 }
 
-/* Row of a meal: its name, and grey at the right its kcal at the usual portions; a grey lighter under the pointer */
+/* Row of a meal, in the food view and in the list of the meals of an entry alike: its name, its foods grey after it,
+   cut short where the row has no room, and grey at the right its kcal at the usual portions; a grey lighter under
+   the pointer. Its foods show nowhere while the meal is open, since they stand below it then */
 .dish-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     flex: 1 1 auto;
-    justify-content: space-between;
+    align-content: center;
     align-items: baseline;
     gap: var(--control-gap);
     min-width: 0;
@@ -50,12 +53,24 @@
     text-overflow: ellipsis;
 }
 
+.dish-parts,
 .dish-meta {
-    flex: none;
     color: var(--text-muted);
     font-size: 0.8125rem;
-    font-variant-numeric: tabular-nums;
     white-space: nowrap;
+}
+
+.dish-parts {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dish-row[aria-expanded="true"] .dish-parts {
+    visibility: hidden;
+}
+
+.dish-meta {
+    font-variant-numeric: tabular-nums;
 }
 
 /* Foods of a meal below its row, in line with its name, a grey line at their left, then the plus or the food search
@@ -152,4 +167,21 @@
 .dish-buttons .dish-save:disabled {
     opacity: 0.4;
     cursor: default;
+}
+
+/* Phone: a meal on two lines, its name and kcal on the first, its foods below them */
+@media (max-width: 900px) {
+    .dish-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        row-gap: 0;
+    }
+
+    .dish-parts {
+        grid-row: 2;
+        grid-column: 1 / -1;
+    }
+
+    .dish-row[aria-expanded="true"] .dish-parts {
+        display: none;
+    }
 }

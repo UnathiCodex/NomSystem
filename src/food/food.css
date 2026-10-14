@@ -1,14 +1,26 @@
-/* Food, in the scheme of the day: the bar of the shown day over the whole width, then the day and my foods
-   side by side where both fit, else one below the other, beside the areas at the left edge; the page itself scrolls,
-   no box of its own, so the wheel, a swipe, the keys and the scrollbar all scroll it, on a computer
-   and on a phone alike */
+/* Food, in the scheme of the day: the bar of the shown day over the whole width, then the day and my meals and foods
+   side by side where both fit, else one below the other, beside the areas at the left edge; the day only as wide as
+   its totals and meals need, 30rem, my meals and foods all the rest, since they matter more than one day;
+   the page itself scrolls, no box of its own, so the wheel, a swipe, the keys and the scrollbar all scroll it,
+   on a computer and on a phone alike */
 .food {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 34rem), 1fr));
-    align-content: start;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    align-items: flex-start;
     gap: calc(1.5 * var(--gap)) calc(3 * var(--gap));
     flex: none;
     padding: var(--gap) var(--gap) calc(4 * var(--gap));
+}
+
+.food-day {
+    flex: 1 1 30rem;
+    min-width: 0;
+}
+
+.food-foods {
+    flex: 999 1 36rem;
+    min-width: 0;
 }
 
 /* The page of the food view grows with its content instead of being one screen high, see `body` in `base.css` */
@@ -20,8 +32,8 @@ body:has(> .food) {
 /* Bar of the day as the day has it: the date between its arrows at the left end, the icon back to today beside it */
 .food-bar {
     display: flex;
+    flex: 1 1 100%;
     flex-wrap: wrap;
-    grid-column: 1 / -1;
     align-items: center;
     gap: var(--control-gap);
 }

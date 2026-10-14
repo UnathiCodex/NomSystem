@@ -9,12 +9,13 @@
  *   like `ChiliConCarne` of `Chili con Carne`, shown below the field as I type; its foods, each its name with its brand
  *   and store grey in brackets and a small grey `×`, and below them the food search, which adds one;
  *   `Cancel` and `Save`, which takes no click until the meal has a name and two foods.
- * - The section of the food view: `Meals`, then a row per meal, its name and grey what it gives at the usual portions;
- *   a click shows its foods below it, each with its `×` while it has more than two, and the small grey plus that adds
- *   one through the food search, changed for good in `Meals.md` at once; the `×` of the meal, whose first click only
- *   asks, as the remove of the entry dialog does, the cross turning into a question mark, `Really remove?` as its
- *   tooltip. At the end of the meals, as at the end of every list, the small grey plus of a new meal, see
- *   `.plus-quiet` in `base.css`, which turns into the form.
+ * - The row of a meal, the same in the section of the food view and in the list of the meals of an entry: its name,
+ *   its foods grey after it by their names, and at the right what it gives at the usual portions.
+ * - The section of the food view: `Meals`, then the row of each meal; a click shows its foods below it, each with
+ *   its `×` while it has more than two, and the small grey plus that adds one through the food search, changed for good
+ *   in `Meals.md` at once; the `×` of the meal, whose first click only asks, as the remove of the entry dialog does,
+ *   the cross turning into a question mark, `Really remove?` as its tooltip. At the end of the meals, a list without
+ *   a search, the small grey plus of a new meal, see `.plus-quiet` in `base.css`, which turns into the form.
  *
  * - `./foods.ts`: Loads my foods and meals, sends and removes meals, writes amounts and makes elements.
  * - `./search.ts`: The food search, which adds a food to a meal.
@@ -66,6 +67,22 @@ function oneWordOf(typed: string): string {
  */
 export function kcalTextOf(kcal: number): string {
     return `${amountOf(kcal, 0)} kcal`;
+}
+
+/**
+ * Makes the cells of the row of a meal, the same in the food view and in the list of the meals of an entry: its name,
+ * its foods grey after it by their names alone, like `Hackfleisch, Kidneybohnen, Tomaten`, cut short where the row
+ * has no room for them, and at the right what it gives at the usual portions, like `443 kcal`.
+ *
+ * @param dish - Meal of `Meals.md`
+ * @returns Its name, its foods and its kcal
+ */
+export function dishCellsOf(dish: Dish): HTMLElement[] {
+    return [
+        elementOf("span", "dish-name", dish.name),
+        elementOf("span", "dish-parts", dish.foods.map((line: string): string => line.split(";")[0]).join(", ")),
+        elementOf("span", "dish-meta", kcalTextOf(dish.kcal)),
+    ];
 }
 
 /**
@@ -303,7 +320,7 @@ export function mealsSectionOf(): HTMLElement {
             });
             if (asked === key)
                 iconPut(remove, CircleQuestionMark, "Really remove?");
-            row.append(elementOf("span", "dish-name", dish.name), elementOf("span", "dish-meta", kcalTextOf(dish.kcal)));
+            row.append(...dishCellsOf(dish));
             row.setAttribute("aria-expanded", String(open === key));
             line.append(row, remove);
             if (open !== key)

@@ -14,8 +14,10 @@
  * A search field at its top, like `Search or add a place`, filters the values as I type, ignoring case and accents:
  * a value matches when each typed word stands somewhere in its name, so `mensa garch` finds `Mensa-Garching`;
  * Enter picks the first match. Each value shows its whole name, its detail grey beside it, like the address
- * of a place; where a list takes new values, `+ New place` at its end adds the typed text, or first asks for what
- * a new value needs, like the address of a new place; a fixed list, like the categories, has none.
+ * of a place; where a list takes new values, the small grey plus with the typed text, like `+ “Zz”`, stands at its end
+ * while no value has that text, and adds it, or first asks for what a new value needs, like the address of a new
+ * place; with nothing typed it shows nowhere, so a plus inside a list always names what it adds;
+ * a fixed list, like the categories, has none.
  * Values keep their order, like the most used first; a group, like `Due today`, stands above its first value.
  * Picked values are a lighter grey; a click picks a value, a click on a picked one takes it back.
  * The values come from a search function, so a list can later come from the reader, like the foods.
@@ -23,7 +25,7 @@
  * A value wider than its row goes on below, never cut, a long name broken where its parts meet,
  * see {@link breakableOf}.
  *
- * - `../icons.ts`: Puts the icon of every + of the page before the words of `+ New …`, and the cross into the button
+ * - `../icons.ts`: Puts the icon of every + of the page before the typed text it adds, and the cross into the button
  *   that takes a value back.
  * - `../search.ts`: Compares a typed text with the values, as every search of the page does.
  * - `lucide`: The icons plus and cross.
@@ -71,16 +73,15 @@ export type Choice = {
  * - `search`: Gives the values for a typed text, all of them for an empty one, see {@link searchOf}.
  * - `picked`: Values picked at first.
  * - `many`: Whether more than one value may be picked.
- * - `adding`: Whether `+ New …` at the end of the list adds the typed text as a new value.
+ * - `adding`: Whether the plus with the typed text at the end of the list adds it as a new value.
  * - `add`: Takes the typed text as a new value before it is picked, like a new place through its dialog,
- *   also an empty one, and gives the value to pick, `null` to pick none; left out, `+ New …` picks the typed text
- *   itself.
+ *   and gives the value to pick, `null` to pick none; left out, the plus picks the typed text itself.
  * - `pick`: Takes the values picked after each change, in the order they were picked; for a list of one value
  *   once it is closed.
  * - `empty`: What the line shows, grey, while nothing is picked; nothing when left out, as every field of the entry
  *   by category has it.
  * - `noun`: What a value is, like `place` or `summary`, for the search field, `Search or add a place`,
- *   and for `+ New place`; `value` when left out.
+ *   and for the tooltip of the plus, `New place`; `value` when left out.
  * - `aside`: Elements beside the line, like the pencil of a place; none when left out.
  * - `below`: Elements below the line and above the list, like the address of a place; none when left out.
  * - `locked`: Whether the value stays as picked, its line opening no list, `As planned` as its tooltip, like the summary
@@ -280,13 +281,13 @@ export function listOf(picker: HTMLElement, line: HTMLButtonElement, box: HTMLEl
 /**
  * Builds a picker, see the top of this file: the line of the field, showing the texts of the values picked,
  * with what stands beside and below it, and its list, which the line opens and closes, see {@link listOf}:
- * the search field, when the list is long or takes new values, above the values found, and `+ New …` at the end,
- * where new values are taken. Values picked but not found, like a place an entry kept, come first while nothing
- * is typed; `+ New …` names the typed text while no value has it already, nor shows it, case and accents ignored.
+ * the search field, when the list is long or takes new values, above the values found, and the plus with the typed
+ * text at the end, where new values are taken, while no value has that text already, nor shows it, case and accents
+ * ignored. Values picked but not found, like a place an entry kept, come first while nothing is typed.
  * - `head`: The line with what stands beside it.
  * - `line`: The line of the field, the button that opens the list.
  * - `box`: The list under the line, with its search field.
- * - `newButton`: `+ New …` at the end of the list.
+ * - `newButton`: The plus with the typed text at the end of the list, `New place` as its tooltip.
  * - `noun`: What a value is, like `place`.
  * - `chosen`: Values picked so far, in the order they were picked.
  * - `texts`: Text of each value seen, for the line.
@@ -298,13 +299,12 @@ export function listOf(picker: HTMLElement, line: HTMLButtonElement, box: HTMLEl
  * - `toggle`: Picks a value or takes it back, shows it in the line, and tells the dialog; a list of one value
  *   closes first.
  * - `show`: Shows the values found for the text of the search field, unless a newer text came meanwhile,
- *   and names the typed text in `+ New …`.
- * - `typedPick`: Picks the value Enter or `+ New …` gives, empties the search and shows all values again,
+ *   and shows the plus with the typed text while no value has it.
+ * - `typedPick`: Picks the value Enter or the plus gives, empties the search and shows all values again,
  *   the value picked scrolled into sight, like a new dish at the end of a long list; a value picked already,
  *   like the place an entry kept, now added to my places, stays picked, and the dialog is told again.
- * - `typedAdd`: Takes the typed text as a new value, by `+ New …` or by Enter when nothing matches: picks it,
- *   or, with `add`, what `add` gives for it, also for an empty text, and nothing when it gives `null`, the text
- *   staying typed; an empty text without `add` puts the focus into the search field instead.
+ * - `typedAdd`: Takes the typed text as a new value, by the plus or by Enter when nothing matches: picks it,
+ *   or, with `add`, what `add` gives for it, and nothing when it gives `null`, the text staying typed.
  *
  * @param setup - How the picker is built
  * @returns Picker
@@ -372,9 +372,9 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
             group.textContent = choice.group;
             return [group, button];
         }));
-        newButton.replaceChildren(...iconWordsOf(Plus, text !== "" && !found.some((choice: Choice): boolean =>
-            searchTextOf(choice.value) === searchTextOf(text) || searchTextOf(choice.text) === searchTextOf(text))
-            ? `New ${noun} “${text}”` : `New ${noun}`));
+        newButton.hidden = text === "" || found.some((choice: Choice): boolean =>
+            searchTextOf(choice.value) === searchTextOf(text) || searchTextOf(choice.text) === searchTextOf(text));
+        newButton.replaceChildren(...iconWordsOf(Plus, `“${text}”`));
     };
     const typedPick: (value: string) => void = (value: string): void => {
         input.value = "";
@@ -391,10 +391,7 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     };
     const typedAdd: (text: string) => void = (text: string): void => {
         if (setup.add === undefined) {
-            if (text === "")
-                input.focus();
-            else
-                typedPick(text);
+            typedPick(text);
             return;
         }
         setup.add(text).then((value: string | null): void => {
@@ -415,6 +412,8 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     list.className = "picker-list";
     newButton.type = "button";
     newButton.className = "picker-new";
+    newButton.title = `New ${noun}`;
+    newButton.hidden = true;
     input.addEventListener("input", (): void => {
         show().catch((error: unknown): void => console.error(error));
     });

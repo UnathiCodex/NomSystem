@@ -8,10 +8,11 @@
  * - Meals: my meals of `Meals.md`, each only its composition, two or more of my foods, see `../food/meals.ts`.
  *   A meal picked brings its foods at their usual portion: a row with its name, its kcal and a small grey `×`,
  *   which removes it, its foods indented below it, each a row as a food beside the meals has it, so I change the grams
- *   of each, or remove one I did not eat. Its list finds my meals as I type, each with its kcal at the usual portions
- *   and its foods grey beside it, and ends with the small grey plus of a new meal, see `.plus-quiet` in `base.css`,
- *   which turns the list into the form of a meal, see `mealFormOf` in `../food/meals.ts`, named as typed;
- *   the meal saved goes into `Meals.md` and into this meal at once.
+ *   of each, or remove one I did not eat. Its list finds my meals as I type, each in the row of a meal of the food
+ *   view, see `dishCellsOf` in `../food/meals.ts`, and while no meal has the name typed, the small grey plus with that
+ *   name ends it, as in every list with a search, see `choices.ts`, and turns the list into the form of a meal,
+ *   see `mealFormOf` in `../food/meals.ts`, named as typed; the meal saved goes into `Meals.md` and into this meal
+ *   at once.
  * - Foods: foods eaten beside the meals, like `Weißbrot` beside `ChiliConCarne`, each a row with its name, its brand
  *   and store grey in brackets, its grams, its kcal and a small grey `×`, which removes it, like a food I did not eat
  *   of a cooking. Its list is the food search, see `../food/search.ts`: my foods first, then those of Open Food Facts;
@@ -38,9 +39,9 @@
  * - `./times.ts`: Writes the day and time of a cooking.
  * - `../skill/attempts.ts`: Gives the day of an instant.
  * - `../food/foods.ts`: Finds my foods, loads my meals, writes amounts and makes elements.
- * - `../food/meals.ts`: The form of a new meal, and kcal as the page writes them.
+ * - `../food/meals.ts`: The row of a meal, the form of a new meal, and kcal as the page writes them.
  * - `../food/search.ts`: The food search.
- * - `../icons.ts`: Puts the icons into the buttons, their words as tooltip.
+ * - `../icons.ts`: Puts the icons into the buttons, their words as tooltip, or the typed text after the plus.
  * - `lucide`: The icons remove and add.
  */
 
@@ -48,9 +49,9 @@ import { choicesOf, listOf, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { amountOf, dishesLoad, elementOf, foodsFind } from "../food/foods.ts";
-import { kcalTextOf, mealFormOf } from "../food/meals.ts";
+import { dishCellsOf, kcalTextOf, mealFormOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf } from "../food/search.ts";
-import { iconOf, iconPut } from "../icons.ts";
+import { iconOf, iconPut, iconWordsOf } from "../icons.ts";
 import { Plus, X } from "lucide";
 
 import type { Choice } from "./choices.ts";
@@ -588,44 +589,46 @@ function formShow(name: string, changed: () => void): void {
 }
 
 /**
- * Shows the list of the meals in its box: the search field, my meals whose name holds what is typed, ignoring case
- * and spaces, each with its kcal at the usual portions and its foods grey beside it, then the small grey plus of
- * a new meal, `New meal` its tooltip, named as typed while no meal has that name.
+ * Shows the list of the meals in its box, as every list with a search, see `choices.ts`: the search field, my meals
+ * whose name holds what is typed, ignoring case and spaces, each in the row of a meal, see `dishCellsOf`
+ * in `../food/meals.ts`, and while no meal has the name typed, the small grey plus with that name, `New meal`
+ * its tooltip, which turns the list into the form of a meal named so; Enter picks the first meal found, else does
+ * what the plus does.
  * - `input`: The search field.
  * - `list`: The meals found.
- * - `listShow`: Shows the meals found for what is typed.
+ * - `plus`: The plus with the name typed.
+ * - `listShow`: Shows the meals found for what is typed, and the plus while none has that name.
  *
  * @param changed - Tells the dialog that the meal changed
  */
 function mealsListShow(changed: () => void): void {
     const input: HTMLInputElement = document.createElement("input");
     const list: HTMLElement = elementOf("div", "picker-list", "");
+    const plus: HTMLButtonElement = buttonOf("picker-new", "", (): void => formShow(input.value.trim(), changed));
     const listShow: () => void = (): void => {
-        const key: string = input.value.replace(/\s+/g, "").toLowerCase();
-        list.replaceChildren(...dishes
-            .filter((dish: Dish): boolean => dish.name.toLowerCase().includes(key))
-            .map((dish: Dish): HTMLElement => {
-                const button: HTMLButtonElement = buttonOf("", dish.name, (): void => dishPick(dish, changed));
-                button.append(elementOf("span", "picker-detail", `${kcalTextOf(dish.kcal)} · `
-                    + dish.foods.map((line: string): string => lineOf(line).name).join(", ")));
-                return button;
-            }));
-    };
-    const plus: HTMLButtonElement = buttonOf("plus-quiet", "", (): void => {
         const typed: string = input.value.trim();
-        formShow(dishes.some((dish: Dish): boolean => dish.name.toLowerCase() === typed.replace(/\s+/g, "").toLowerCase())
-            ? "" : typed, changed);
-    });
-    input.type = "text";
+        const key: string = typed.replace(/\s+/g, "").toLowerCase();
+        const found: Dish[] = dishes.filter((dish: Dish): boolean => dish.name.toLowerCase().includes(key));
+        list.replaceChildren(...found.map((dish: Dish): HTMLElement => {
+            const button: HTMLButtonElement = buttonOf("dish-row", "", (): void => dishPick(dish, changed));
+            button.append(...dishCellsOf(dish));
+            return button;
+        }));
+        plus.hidden = typed === "" || found.some((dish: Dish): boolean => dish.name.toLowerCase() === key);
+        plus.replaceChildren(...iconWordsOf(Plus, `“${typed}”`));
+    };
+    input.type = "search";
     input.className = "picker-search";
-    input.placeholder = "Search meals";
+    input.placeholder = "Search or add a meal";
     input.autocomplete = "off";
     input.addEventListener("input", listShow);
     input.addEventListener("keydown", (event: KeyboardEvent): void => {
-        if (event.key === "Enter")
-            event.preventDefault();
+        if (event.key !== "Enter")
+            return;
+        event.preventDefault();
+        (list.querySelector("button") ?? (plus.hidden ? null : plus))?.click();
     });
-    iconPut(plus, Plus, "New meal");
+    plus.title = "New meal";
     listShow();
     mealsBox.replaceChildren(input, list, plus);
     input.focus();

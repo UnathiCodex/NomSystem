@@ -1,7 +1,8 @@
 /* Food search: its field, then the foods found in columns, mine first, then those
    of Open Food Facts with how many of how many and More, the form to add one below its row;
    the same look in the food view and in the entry by category of the day */
-/* Field of the search one control high, across the foods */
+/* Field of the search one control high, across the foods, without the browser's own clear cross, which is no Lucide
+   icon, as every search field of the page; Escape or deleting the text clears it */
 .food-search > input {
     width: 100%;
     height: var(--control-height);
@@ -10,6 +11,10 @@
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--background);
+}
+
+.food-search > input::-webkit-search-cancel-button {
+    display: none;
 }
 
 /* Row of a food in its columns: name, kcal, protein, carbs, fat and portion; at least one chip high,
@@ -123,12 +128,6 @@ button.food-row {
     margin: 0.25rem 0 0;
     padding: 0 0.75rem;
     color: var(--text-muted);
-}
-
-/* The small grey plus of an own food by hand at the end of the foods, see `.plus-quiet` in `base.css`,
-   a little apart from them */
-.food-new {
-    margin-top: 0.5rem;
 }
 
 /* Form to add a food, below its row: its fields side by side, each its name small and grey above it,

@@ -258,6 +258,39 @@ textarea {
     height: 0.9375rem;
 }
 
+/* The plus with the text typed at the end of a list with a search, like `+ “Zz”` of the places or `+ “skyr”`
+   of the foods, which adds what I typed while no value of the list has it, and shows nowhere while nothing is typed,
+   so a plus inside a list always names what it adds: a row of the list, grey, the small plus before the text,
+   a grey lighter under the pointer; the same in the dialogs and in the food view */
+.picker-new {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.125rem;
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.picker-new:hover {
+    background: var(--fill);
+}
+
+.picker-new[hidden] {
+    display: none;
+}
+
+.picker-new svg.lucide {
+    width: 0.9375rem;
+    height: 0.9375rem;
+}
+
 /* Focus of the keyboard as a calm grey line around, never the browser's glaring white */
 :focus-visible {
     outline: 2px solid var(--chosen-line);

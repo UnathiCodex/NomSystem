@@ -14,8 +14,9 @@
  * A click on a product opens a short form below it to add it to my foods, with a name of my own and its portion,
  * both prefilled, 100 g for a product without serving, its name with its brand after it when one of my foods has
  * its name already; it goes into `Foods.md` with its brand and store.
- * The square + at the end, `Own food by hand, when nothing is found` as its tooltip, for a food found nowhere,
- * opens one to add it with its values per 100 g typed.
+ * While none of my foods has the name typed, the small grey plus with that name ends the results, as in every list
+ * with a search, `Own food by hand, when nothing is found` as its tooltip, for a food found nowhere: it opens the form
+ * to add it with its values per 100 g typed.
  * Where a food is wanted, like in a meal, a click on one of my foods picks it, and so does adding one,
  * so a meal lists only foods of `Foods.md`; there rows of its own may stand above my foods, like the meals eaten before,
  * built anew for each search. Nothing in the search is a form or sends one, so it can stand inside the form of a dialog.
@@ -27,7 +28,7 @@
  */
 
 import { amountOf, elementOf, foodSend, foodsFind } from "./foods.ts";
-import { iconPut } from "../icons.ts";
+import { iconPut, iconWordsOf } from "../icons.ts";
 import { Check, Plus, X } from "lucide";
 import "./search.css";
 
@@ -249,9 +250,9 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
 
 /**
  * Shows what the search found: the rows above my foods, see {@link Before}, the head of the columns, my foods,
- * then, for a search of some letters,
- * the products of Open Food Facts of every page loaded, how many of how many,
- * like `8 of 54`, `More` while a next page holds more, and the + of an own food by hand at the end.
+ * then, for a search of some letters, the products of Open Food Facts of every page loaded, how many of how many,
+ * like `8 of 54`, `More` while a next page holds more, and while none of my foods has the name typed, the plus
+ * with that name, which opens the form of an own food by hand.
  * Where `pick` takes foods, a click on one of mine picks it; a click on a product opens the form to add it.
  * A food once added is searched for by its name, so it shows among my foods, and picked.
  * - `found`: What the search found.
@@ -260,6 +261,7 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
  * - `rows`: Rows of the results, with the names of the groups and the hints.
  * - `products`: Products shown.
  * - `taken`: Whether one of my foods found has the name of a product already, so its form adds the brand to the name.
+ * - `newFood`: The plus with the name typed.
  *
  * @param search - The search
  */
@@ -304,11 +306,14 @@ function resultsShow(search: Search): void {
             rows.push(moreOf(search, products.length, found));
     }
 
-    const newFood: HTMLButtonElement = buttonOf("plus-quiet food-new", "", (): void => formShow(newFood,
-        { name: query, kcal: 0, protein: 0, carbs: 0, fat: 0, portion: portionUsual, barcode: "", brand: "", store: "" },
-        true, added));
-    iconPut(newFood, Plus, "Own food by hand, when nothing is found");
-    rows.push(newFood);
+    if (query !== "" && !found.foods.some((food: Food): boolean => food.name.toLowerCase() === query.toLowerCase())) {
+        const newFood: HTMLButtonElement = buttonOf("picker-new", "", (): void => formShow(newFood, {
+            name: query, kcal: 0, protein: 0, carbs: 0, fat: 0, portion: portionUsual, barcode: "", brand: "", store: "",
+        }, true, added));
+        newFood.replaceChildren(...iconWordsOf(Plus, `“${query}”`));
+        newFood.title = "Own food by hand, when nothing is found";
+        rows.push(newFood);
+    }
     search.results.replaceChildren(...rows);
 }
 
