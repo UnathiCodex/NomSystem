@@ -151,6 +151,8 @@ type ProductsPage = {
  * - `grams`: Grams eaten as the meal lists them, else the usual portion of the food; 0 for an unknown food without grams.
  * - `estimate`: Whether the grams are the usual portion, because the meal lists none, or guessed, marked by `~`.
  * - `known`: Whether `Foods.md` holds the food; an unknown food gives nothing.
+ * - `meal`: The meal of mine it belongs to in this entry, as its line carries it, like `ChiliConCarne`;
+ *   empty for a food eaten by itself, like bread beside a meal.
  */
 export type Eaten = Nutrients & {
     name: string;
@@ -159,6 +161,7 @@ export type Eaten = Nutrients & {
     grams: number;
     estimate: boolean;
     known: boolean;
+    meal: string;
 };
 
 /**
@@ -921,7 +924,7 @@ function eatenOf(line: string, mine: Map<string, Food>): Eaten {
         per === null || per === undefined ? null : share * per;
     return {
         name: read.name, brand: read.brand, store: read.store, grams: grams, estimate: read.grams === null || read.guessed,
-        known: known !== undefined,
+        known: known !== undefined, meal: read.meal,
         kcal: share * (known?.kcal ?? 0), protein: part(known?.protein), carbs: part(known?.carbs), fat: part(known?.fat),
     };
 }

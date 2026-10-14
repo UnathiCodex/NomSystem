@@ -93,6 +93,7 @@ export type FoodsFound = {
  * - `grams`: Grams eaten as the meal lists them, else the usual portion of the food.
  * - `estimate`: Whether the grams are the usual portion, because the meal lists none.
  * - `known`: Whether `Foods.md` holds the food; an unknown food gives nothing.
+ * - `meal`: The meal of mine it belongs to in this entry, like `ChiliConCarne`; empty for a food eaten by itself.
  */
 export type Eaten = Nutrients & {
     name: string;
@@ -101,6 +102,7 @@ export type Eaten = Nutrients & {
     grams: number;
     estimate: boolean;
     known: boolean;
+    meal: string;
 };
 
 /**

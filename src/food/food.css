@@ -144,10 +144,11 @@ body:has(> .food) {
     line-height: 1.25;
 }
 
-/* Meals below the totals, every line in the same two columns: what, and one column of numbers, a meal's kcal and
-   its foods' grams, since a meal has no grams; a meal's start small and grey above its name, over both columns,
-   so no column of times takes room beside the names; the foods of a meal indented under its name, so each meal
-   reads as one block, their brackets below their names only where one has no room */
+/* The day's entries below the totals, each its start small and grey above it, so no column of times takes room
+   beside the names; then every line in the same two columns: what, and one column of numbers, the kcal of a meal
+   of mine and of a food eaten by itself, the grams of the foods of a meal, since a meal has no grams; the foods
+   of a meal indented under its name, so each meal reads as one block, their brackets below their names only where
+   one has no room */
 #food-meals {
     margin-top: var(--gap);
 }
@@ -178,21 +179,24 @@ body:has(> .food) {
     border-left: 1px solid var(--line);
 }
 
-/* Line of a meal in the text of controls, a grey line above it, apart from the meal before, its start right above its name */
-.food-meal {
-    row-gap: 0.125rem;
+/* Start of an entry, small and grey, and its place after it, a grey line above it, apart from the entry before */
+.food-entry {
     margin-top: 0.75rem;
     padding-top: 0.625rem;
     border-top: 1px solid var(--line);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* What an entry holds at its top in the text of controls: a meal of mine, or a food eaten by itself with its grams
+   after its brackets, white like every fact */
+.food-meal {
     font-size: var(--control-text);
 }
 
-/* Start of a meal, grey, linking to its day in the day view */
+/* Start of an entry, grey, linking to its day in the day view */
 .food-time {
-    grid-column: 1 / -1;
-    justify-self: start;
     color: var(--text-muted);
-    font-size: 0.75rem;
     text-decoration: none;
     font-variant-numeric: tabular-nums;
 }
