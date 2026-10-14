@@ -2,8 +2,8 @@
  * ## Food
  *
  * Reads my foods from `Foods.md`, finds foods by a name or a barcode, mine first, then on Open Food Facts,
- * page by page, adds new foods to `Foods.md`, keeps my meals in `Meals.md`, finds the grams I logged each food with
- * last, and reads the meals of a day from the log with what they give.
+ * page by page, adds new foods to `Foods.md` and renames them, keeps my meals in `Meals.md`, finds the grams I logged
+ * each food with last, and reads the meals of a day from the log with what they give.
  * `Meals.md` holds my meals, each only its composition, one or more of my foods without grams, servings or variants,
  * since I prepare it a little differently every time: one Markdown table with one row per food of a meal, the meal,
  * the food, its brand and its store; an entry brings each food at the grams I logged it with last in an entry of its
@@ -19,6 +19,7 @@
  * A nutrient nobody gives is never 0: the one of protein, carbs and fat a food lacks is worked out from its kcal,
  * two or three missing stay unknown, an empty cell, which counts nothing, see {@link nutrientsOf}.
  * A row written before brand, store or pack were kept lacks them, and the table gets their columns with the next food.
+ * A food renamed is renamed wherever it stands, see {@link foodChange}.
  * A meal is a log entry of the category `Food`: `SUMMARY` what I ate, its foods parted by `, `,
  * like `Reis, Bohnen, Eier`, `LOCATION` where, and one line `X-FOOD` per food: its name, brand and store in `Foods.md`,
  * then the grams I ate, each part parted by `;`, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150`, so the log tells
@@ -38,14 +39,15 @@
  *
  * - `node:fs`: Reads and writes `Foods.md` and `Meals.md`.
  * - `node:path`: Gives the folder of `Foods.md` and `Meals.md`.
- * - `./calendar.ts`: Reads the log and gives the day of an instant in Berlin time.
+ * - `./calendar.ts`: Reads the log, finds the file of an entry, writes the foods of an entry anew and gives the day
+ *   of an instant in Berlin time.
  * - `./sources.ts`: Names `Foods.md`, `Meals.md`, the log and the addresses of Open Food Facts,
  *   and tells which files the reader may write.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { berlinDateOf, entriesRead } from "./calendar.ts";
+import { berlinDateOf, entriesRead, entryLookup, propertiesPut } from "./calendar.ts";
 import { food, writeAllowed } from "./sources.ts";
 
 import type { Entry } from "./calendar.ts";
@@ -134,6 +136,19 @@ type ProductsPage = {
     total: number;
     exact: boolean;
     more: boolean;
+};
+
+/**
+ * A food of mine to rename, as the page sends it, see {@link foodChange}.
+ *
+ * - `old`: Its name, brand and store as `Foods.md` holds them.
+ * - `name`, `brand`, `store`: Its name, brand and store as typed.
+ */
+export type FoodChanged = {
+    old: { name: string; brand: string; store: string };
+    name: string;
+    brand: string;
+    store: string;
 };
 
 /**
@@ -369,6 +384,11 @@ const answerTime: number = 5000;
  * Milliseconds of a day.
  */
 const dayLength: number = 24 * 60 * 60 * 1000;
+
+/**
+ * End of every range that reads the whole log, past and to come, like for a food renamed in every entry naming it.
+ */
+const logEnd: string = "9999-12-31T00:00:00Z";
 
 /**
  * Energy of a gram of protein, of carbs and of fat in kcal, as food labels count it: 4, 4 and 9,
@@ -923,6 +943,100 @@ export function foodAdd(sent: Food): Food {
     mkdirSync(dirname(food.foods), { recursive: true });
     writeFileSync(food.foods, lines.join("\n"));
     return added;
+}
+
+/**
+ * Writes a line `X-FOOD` or a food of a meal of `Meals.md` with a food renamed, when it names that food by its name,
+ * brand and store, everything after them staying as it is, like its grams and its meal; any other line as it is,
+ * like one written before foods had brand and store.
+ * - `parts`: Parts of the line, `null` for an older one.
+ *
+ * @param line - Line like `Sonnenmais zart;GUT&GÜNSTIG;Edeka;265;ChiliConCarne` or `Hackfleisch;Gut & Günstig;Edeka`
+ * @param old - Key of the food renamed, see {@link keyOf}
+ * @param renamed - Its new name, brand and store
+ * @returns The line, the food renamed where it names it
+ */
+function lineRenamed(line: string, old: string, renamed: { name: string; brand: string; store: string }): string {
+    const parts: string[] | null = partsOf(line);
+    if (parts === null || keyOf({ name: parts[0], brand: parts[1], store: parts[2] }) !== old)
+        return line;
+    return [renamed.name, renamed.brand, renamed.store, ...line.split(";").slice(3)].join(";");
+}
+
+/**
+ * Renames a food of mine wherever it stands, its name, brand and store as typed, cleaned as those of a food added,
+ * see {@link foodTextOf}, so every entry and meal still finds it: first every line `X-FOOD` of the log naming it,
+ * past and to come, its grams and meal kept, then every meal of `Meals.md` holding it, last its row of `Foods.md`,
+ * every other cell and line staying as it is, so one stopped in between finishes when sent again. A food sent without
+ * change writes nothing.
+ * - `old`: Key of the food, see {@link keyOf}.
+ * - `renamed`: Its new name, brand and store, cleaned.
+ * - `mine`: My foods.
+ * - `found`: The food renamed.
+ * - `meals`: My meals.
+ * - `lines`: Lines of `Foods.md`.
+ * - `header`: Index of the header of its table.
+ * - `row`: Index of the row of the food.
+ * - `cells`: Its cells, as many as the head of the table names.
+ *
+ * @param sent - The food and its new name, brand and store, as the page sends them
+ * @returns The food as written
+ * @throws {Error} - When `Foods.md` holds no such food, the new name is empty, another food of mine has the new name,
+ *   brand and store, ignoring case, or a file lies outside the new system
+ */
+export function foodChange(sent: FoodChanged): Food {
+    const old: string = keyOf({
+        name: String(sent.old?.name ?? ""), brand: String(sent.old?.brand ?? ""), store: String(sent.old?.store ?? ""),
+    });
+    const renamed: { name: string; brand: string; store: string } = {
+        name: foodTextOf(String(sent.name ?? "")), brand: brandOf(String(sent.brand ?? "")),
+        store: brandOf(String(sent.store ?? "")),
+    };
+    const mine: Food[] = foodsRead();
+    const found: Food | undefined = mine.find((candidate: Food): boolean => keyOf(candidate) === old);
+    if (found === undefined)
+        throw new Error(`No food of mine: ${JSON.stringify(sent.old)}`);
+    if (renamed.name === "" || mine.some((candidate: Food): boolean =>
+        candidate !== found && keyOf(candidate) === keyOf(renamed)))
+        throw new Error(`No new name of a food: ${labelOf(renamed)}`);
+    if (renamed.name === found.name && renamed.brand === found.brand && renamed.store === found.store)
+        return found;
+    if (!writeAllowed(food.foods) || !writeAllowed(food.meals))
+        throw new Error(`No writing outside the new system: ${food.foods}`);
+
+    entriesRead(food.log, "1970-01-01T00:00:00Z", logEnd)
+        .filter((entry: Entry): boolean =>
+            entry.foods.some((line: string): boolean => lineRenamed(line, old, renamed) !== line))
+        .forEach((entry: Entry): void => {
+            const file: string | undefined = entryLookup(food.log, entry.id)?.[0];
+            if (file !== undefined)
+                propertiesPut(file, entry.id, [["x-food",
+                    entry.foods.map((line: string): string => lineRenamed(line, old, renamed))]]);
+        });
+    const meals: Composition[] = compositionsRead();
+    if (meals.some((meal: Composition): boolean =>
+        meal.foods.some((line: string): boolean => lineRenamed(line, old, renamed) !== line)))
+        compositionsWrite(meals.map((meal: Composition): Composition => ({
+            name: meal.name, foods: meal.foods.map((line: string): string => lineRenamed(line, old, renamed)),
+        })));
+
+    const lines: string[] = readFileSync(food.foods, "utf8").split("\n");
+    const header: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
+    const row: number = lines.findIndex((line: string, index: number): boolean => {
+        const cells: string[] = cellsOf(line);
+        return index >= header + tableHead && line.startsWith("|")
+            && keyOf({ name: cells[0] ?? "", brand: cells[7] ?? "", store: cells[8] ?? "" }) === old;
+    });
+    const cells: string[] = cellsOf(lines[row]);
+    while (cells.length < cellsOf(tableHeadOf()[0]).length)
+        cells.push("");
+    cells[0] = renamed.name;
+    cells[7] = renamed.brand;
+    cells[8] = renamed.store;
+    lines[row] = `| ${cells.join(" | ")} |`;
+    tableHeadPut(lines, header);
+    writeFileSync(food.foods, lines.join("\n"));
+    return { ...found, ...renamed };
 }
 
 /**

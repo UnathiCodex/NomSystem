@@ -20,17 +20,19 @@
  * its name, like `Pack 265 g`, which tells products apart.
  * A click on a product adds it to my foods as Open Food Facts gives it, no form in between, see `foodSend`
  * in `foods.ts`, and takes it like one of mine. Where a food is wanted, like in an entry, a click on one of my foods
- * picks it. A food found nowhere goes in by hand only in the food view, by the plus beside the name `Foods`,
- * see {@link foodNewShow}.
+ * picks it; in the food view, which wants none, it opens the food below its line: its protein, carbs and fat per 100 g,
+ * one unknown empty, never 0, its pack and its barcode where known, and its name, brand and store to change,
+ * see {@link detailOf}. A food found nowhere goes in by hand only in the food view, by the plus beside the name
+ * `Foods`, see {@link foodNewShow}.
  * Nothing in the search is a form or sends one, so it can stand inside the form of a dialog.
  *
- * - `./foods.ts`: Finds foods, sends new foods, writes amounts and makes elements and buttons.
+ * - `./foods.ts`: Finds foods, sends new and renamed foods, writes amounts and makes elements and buttons.
  * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
  * - `lucide`: The icons save and cancel.
  * - `./search.css`: Look of the search and of every list of meals or foods, the same wherever they stand.
  */
 
-import { amountOf, bracketsWatch, buttonOf, elementOf, foodNameOf, foodSend, foodsFind } from "./foods.ts";
+import { amountOf, bracketsWatch, buttonOf, elementOf, foodChange, foodNameOf, foodSend, foodsFind } from "./foods.ts";
 import { iconPut } from "../icons.ts";
 import { Check, X } from "lucide";
 import "./search.css";
@@ -41,7 +43,8 @@ import type { Food, FoodsFound } from "./foods.ts";
 /**
  * What a search does, where it stands.
  *
- * - `pick`: Takes a food picked or added, like into an entry; `null` where no food is wanted, like in the food view.
+ * - `pick`: Takes a food picked or added, like into an entry; `null` where no food is wanted, like in the food view,
+ *   where a click on one of my foods opens it, see {@link detailOf}.
  * - `meals`: Builds the lines of my meals to show above my foods for the search as typed, see `listLineOf`,
  *   in an entry; `null` for none.
  * - `products`: Whether it finds products of Open Food Facts too; not for a meal of the food view, which takes only
@@ -64,6 +67,7 @@ export type SearchSetup = {
  * - `page`: Last page of products shown, 1 for the first.
  * - `found`: What the search found, with the products of every page shown; `null` before its first answer.
  * - `asked`: Number of the last search asked, so a late answer never covers a newer one.
+ * - `open`: Key of my food open below its line, see {@link keyOf}, empty for none.
  */
 type Search = {
     input: HTMLInputElement;
@@ -72,6 +76,7 @@ type Search = {
     page: number;
     found: FoodsFound | null;
     asked: number;
+    open: string;
 };
 
 /**
@@ -92,6 +97,16 @@ const fields: [string, "name" | "brand" | "store" | "kcal" | "protein" | "carbs"
  */
 const searches: WeakMap<HTMLElement, Search> = new WeakMap();
 
+
+/**
+ * Writes the key of a food: its name, brand and store parted by `;`, in small letters, as the reader keys it.
+ *
+ * @param food - Food
+ * @returns Key like `skyr natur;k-classic;kaufland`
+ */
+function keyOf(food: Food): string {
+    return `${food.name};${food.brand};${food.store}`.toLowerCase();
+}
 
 /**
  * Makes the head of a list or a section of meals or foods, small and grey, in the columns of its lines, see
@@ -189,16 +204,89 @@ export function editFieldOf(value: string, words: string, saved: () => void, can
 }
 
 /**
- * Builds the line of a food of mine: a click picks it where foods are picked.
+ * Builds a food of mine opened below its line in the food view, in two columns as the parts of a dialog, each its name
+ * small and grey, then its value: its protein, carbs and fat per 100 g, one unknown empty, never 0, its pack and its
+ * barcode where known, then its name, brand and store in fields to change, the cross and the check at their end;
+ * the check or Enter renames it wherever it stands, see `foodChange` in `foods.ts`, the cross or Escape closes it.
+ * When the reader does not take the name, it stays open and says so.
+ * - `detail`: The food opened.
+ * - `facts`: Its values and fields in two columns.
+ * - `factAdd`: Adds a value with its name.
+ * - `inputs`: Fields of its name, brand and store.
+ * - `error`: Hint that the reader did not take the name.
+ * - `close`: Closes it without change.
+ * - `save`: Sends the name, brand and store, the food taking no clicks meanwhile, and shows the search anew.
  *
  * @param search - The search
  * @param food - My food
- * @returns Its line
+ * @returns The food opened
  */
-function mineLineOf(search: Search, food: Food): HTMLElement {
-    const pick: ((food: Food) => void) | null = search.setup.pick;
-    return listLineOf(foodNameOf("food-name", food.name, food.brand, food.store), food.kcal,
-        pick === null ? null : (): void => pick(food), null)[0];
+function detailOf(search: Search, food: Food): HTMLElement {
+    const detail: HTMLElement = elementOf("div", "food-detail", "");
+    const facts: HTMLElement = elementOf("div", "food-facts", "");
+    const factAdd: (name: string, value: Node | string) => void = (name: string, value: Node | string): void => {
+        facts.append(elementOf("span", "food-fact", name), typeof value === "string" ? elementOf("span", "", value) : value);
+    };
+    const error: HTMLElement = elementOf("p", "food-error",
+        "Not changed: it needs a name, and no other food of mine may have this name, brand and store");
+    const close: () => void = (): void => {
+        search.open = "";
+        resultsShow(search);
+    };
+    const save: () => void = (): void => {
+        detail.inert = true;
+        foodChange(food, inputs[0].value, inputs[1].value, inputs[2].value).then((): void => {
+            search.open = "";
+            resultsLoad(search, 1);
+        }).catch((reason: unknown): void => {
+            console.error(reason);
+            error.hidden = false;
+            detail.inert = false;
+        });
+    };
+    const inputs: HTMLInputElement[] = [["Name", food.name], ["Brand", food.brand], ["Store", food.store]]
+        .map(([name, value]: string[]): HTMLInputElement => editFieldOf(value, name, save, close));
+
+    factAdd("Protein", food.protein === null ? "" : `${amountOf(food.protein, 1)} g`);
+    factAdd("Carbs", food.carbs === null ? "" : `${amountOf(food.carbs, 1)} g`);
+    factAdd("Fat", food.fat === null ? "" : `${amountOf(food.fat, 1)} g`);
+    if (food.pack !== "")
+        factAdd("Pack", food.pack);
+    if (food.barcode !== "")
+        factAdd("Barcode", food.barcode);
+    ["Name", "Brand", "Store"].forEach((name: string, index: number): void => factAdd(name, inputs[index]));
+    error.hidden = true;
+    detail.append(facts, editButtonsOf(close, save), error);
+    queueMicrotask((): void => inputs[0].focus());
+    return detail;
+}
+
+/**
+ * Builds the line of a food of mine: a click picks it where foods are picked, else opens it below its line or closes
+ * it again, see {@link detailOf}.
+ * - `key`: Its key.
+ * - `open`: Whether it is open.
+ * - `line`, `row`: Its line and row.
+ *
+ * @param search - The search
+ * @param food - My food
+ * @returns Its line, and the food opened below it while open
+ */
+function mineLinesOf(search: Search, food: Food): HTMLElement[] {
+    const key: string = keyOf(food);
+    const open: boolean = search.setup.pick === null && search.open === key;
+    const [line, row]: [HTMLElement, HTMLElement] = listLineOf(foodNameOf("food-name", food.name, food.brand, food.store),
+        food.kcal, (): void => {
+        if (search.setup.pick !== null) {
+            search.setup.pick(food);
+            return;
+        }
+        search.open = open ? "" : key;
+        resultsShow(search);
+    }, null);
+    if (search.setup.pick === null)
+        row.setAttribute("aria-expanded", String(open));
+    return open ? [line, detailOf(search, food)] : [line];
 }
 
 /**
@@ -264,7 +352,7 @@ function resultsShow(search: Search): void {
         sections.push([listHeadOf("My meals", "kcal / meal"), ...meals]);
     if (found.foods.length > 0)
         sections.push([listHeadOf("My foods", "kcal / 100 g"),
-            ...found.foods.map((food: Food): HTMLElement => mineLineOf(search, food))]);
+            ...found.foods.flatMap((food: Food): HTMLElement[] => mineLinesOf(search, food))]);
     if (products.length > 0)
         sections.push([listHeadOf("Open Food Facts", "kcal / 100 g"),
             ...products.map((product: Food): HTMLElement => productLineOf(search, product)),
@@ -464,6 +552,7 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
         page: 1,
         found: null,
         asked: 0,
+        open: "",
     };
     let waiting: number = 0;
 
@@ -490,7 +579,7 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
 }
 
 /**
- * Empties the field of a search and shows what an empty search finds, with my meals found anew,
+ * Empties the field of a search, closes a food open, and shows what an empty search finds, with my meals found anew,
  * like each time the list of an entry opens.
  *
  * @param element - The search, as {@link foodSearchOf} built it
@@ -500,5 +589,6 @@ export function foodSearchClear(element: HTMLElement): void {
     if (search === undefined)
         return;
     search.input.value = "";
+    search.open = "";
     resultsLoad(search, 1);
 }

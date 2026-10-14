@@ -12,14 +12,16 @@
  * so none is marked as one. A food not in `Foods.md` and a meal that lists no foods count nothing,
  * and a line below the totals says so; so does a nutrient a food does not know, the totals adding what is known,
  * like `Not counted, fat unknown: Gouda`.
- * My meals: each only its foods, and new meals, above my foods, see `meals.ts`.
- * My foods: the food search, which finds mine first, then those of Open Food Facts, adds a product with a click,
- * and a food by hand by the plus beside the name `Foods`, see `search.ts`.
+ * My meals and my foods, built alike, each list its search field, its head and a flat line per meal or food, a click
+ * opening it below: my meals, each only its foods, with what it gave the last time I ate it, see `meals.ts`, above
+ * my foods, the food search, which finds mine first, then those of Open Food Facts, adds a product with a click,
+ * opens one of mine to change its name, brand and store, and adds a food by hand by the plus beside the name `Foods`,
+ * see `search.ts`.
  * It opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today it moves on
  * with it; only a link like `/food?date=2026-10-10` opens on that day, see `today.ts`.
  *
  * - `./foods.ts`: Loads the meals of a day, writes amounts and makes elements.
- * - `./search.ts`: Finds foods, mine first, then on Open Food Facts, and adds new ones.
+ * - `./search.ts`: Finds foods, mine first, then on Open Food Facts, adds new ones and changes mine.
  * - `./meals.ts`: The section of my meals.
  * - `../day/places.ts`: Gives the name of the place of a meal.
  * - `../day/times.ts`: Writes a day as its date, like `13.10.2026`.

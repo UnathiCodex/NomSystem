@@ -31,8 +31,8 @@
  * - `./documents.ts`: Checks the links of the skill entries at the start and every night, repairing what it can,
  *   and reads a file a skill entry links
  * - `./suggestions.ts`: Suggests study sessions as boxes for the plan of a day, never written until I accept one
- * - `./food.ts`: Finds foods, mine first, then on Open Food Facts, adds foods to `Foods.md`
- *   and meals to `Meals.md`, reads the meals of a day, my meals, and the grams I logged each food with last
+ * - `./food.ts`: Finds foods, mine first, then on Open Food Facts, adds foods to `Foods.md` and renames them,
+ *   adds meals to `Meals.md`, reads the meals of a day, my meals, and the grams I logged each food with last
  * - `./trackers.ts`: Reads my sleep against my goals, my glasses of water, my neck sessions and what my meals gave
  *   on a day
  * - `./devices.ts`: Writes what each of my devices shows of the page into `Devices.md`
@@ -58,7 +58,7 @@ import {
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
 import {
-    dishAdd, dishesRead, dishRemove, foodAdd, foodDayRead, foodsFind, gramsRead,
+    dishAdd, dishesRead, dishRemove, foodAdd, foodChange, foodDayRead, foodsFind, gramsRead,
 } from "./food.ts";
 import { trackersRead } from "./trackers.ts";
 import { deviceReport } from "./devices.ts";
@@ -75,7 +75,7 @@ import type { DeviceReport } from "./devices.ts";
 import type { NotesFile } from "./notes.ts";
 import type { NoteChange } from "./edit.ts";
 import type { AttemptNew, EffortNew, SkillEntryChange, SkillEntryNew } from "./skill.ts";
-import type { Food } from "./food.ts";
+import type { Food, FoodChanged } from "./food.ts";
 
 
 /**
@@ -176,6 +176,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/food/search?q=…&page=…&products=…`: Sends my foods for a name or barcode, the most eaten first,
  *   then a page of those of Open Food Facts, none for `products=0`.
  * - `POST /api/food/foods`: Adds food of the body to `Foods.md` and sends it as written.
+ * - `PATCH /api/food/foods`: Renames food of the body wherever it stands and sends it as written.
  * - `GET /api/food/grams?category=…`: Sends the grams I logged each food with last in an entry of the category.
  * - `GET /api/food/day?date=…`: Sends the meals of the date with what they give.
  * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each with its foods and what it gave.
@@ -366,6 +367,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "POST" && url.pathname === "/api/food/foods") {
         responseSend(response, 200, foodAdd(await json(request) as Food));
+
+    } else if (request.method === "PATCH" && url.pathname === "/api/food/foods") {
+        responseSend(response, 200, foodChange(await json(request) as FoodChanged));
 
     } else if (request.method === "GET" && url.pathname === "/api/food/grams") {
         responseSend(response, 200, Object.fromEntries(gramsRead(url.searchParams.get("category") ?? "")));

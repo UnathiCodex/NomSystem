@@ -1,8 +1,8 @@
 /**
  * ## Foods
  *
- * Finds foods through the reader, mine first, then on Open Food Facts, page by page, sends new foods to `Foods.md`,
- * loads the grams I logged each food with last, loads my meals of `Meals.md`, sends new and changed ones and removes
+ * Finds foods through the reader, mine first, then on Open Food Facts, page by page, sends new foods to `Foods.md`
+ * and renames them, loads the grams I logged each food with last, loads my meals of `Meals.md`, sends new and changed ones and removes
  * them, loads the meals of a day with what they give, writes amounts as the page shows them,
  * and makes the elements and buttons of both, the names of foods with their brackets kept alike in a list:
  * for the food view and the entry by category of the day alike.
@@ -226,6 +226,28 @@ export async function foodSend(food: Food): Promise<Food> {
 }
 
 /**
+ * Renames a food of mine through the reader, in `Foods.md`, in my meals and in every entry of the log naming it.
+ *
+ * @param food - The food as `Foods.md` holds it
+ * @param name - Its new name
+ * @param brand - Its new brand, empty for none
+ * @param store - Its new store, empty for none
+ * @returns The food as the reader wrote it, its name, brand and store cleaned
+ * @throws {Error} - When the reader does not take it, like for an empty name or one another food of mine has
+ *   with that brand and store
+ */
+export async function foodChange(food: Food, name: string, brand: string, store: string): Promise<Food> {
+    const response: Response = await fetch("/api/food/foods", {
+        method: "PATCH", body: JSON.stringify({
+            old: { name: food.name, brand: food.brand, store: food.store }, name: name, brand: brand, store: store,
+        }),
+    });
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as Food;
+}
+
+/**
  * Loads from the reader the grams I logged each food with last in an entry of a category, at which a food picked
  * into an entry of it starts.
  *
@@ -307,7 +329,7 @@ export function foodNameOf(className: string, name: string, brand: string, store
 }
 
 /**
- * Keeps the brackets after the names of a list alike, like the brand and store of a food or the foods of a meal:
+ * Keeps the brackets after the names of a list alike, like the brand and store of the foods:
  * all on the line of their name while every one fits there, else every one on a line of its own below its name,
  * never one here and one there; looked at again whenever the list changes or gets narrower or wider.
  * A bracket hidden, like the brand of a food of a meal on a phone, counts as fitting.
@@ -332,7 +354,7 @@ export function bracketsWatch(list: HTMLElement): void {
         return first === undefined || parts[parts.length - 1].bottom <= first.bottom + 1;
     };
     const look: () => void = (): void => {
-        const brackets: HTMLElement[] = [...list.querySelectorAll<HTMLElement>(".food-brand, .dish-parts")]
+        const brackets: HTMLElement[] = [...list.querySelectorAll<HTMLElement>(".food-brand")]
             .filter((bracket: HTMLElement): boolean => bracket.parentElement?.closest("[data-brackets]") === list);
         brackets.forEach((bracket: HTMLElement): void => bracket.classList.remove("bracket-below"));
         const below: boolean = !brackets.every(fits);
