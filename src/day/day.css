@@ -882,6 +882,12 @@ button.box-ring.box-checked svg {
     border-color: var(--line);
 }
 
+/* A row written by itself, never typed, like the summary of a meal: no frame under the pointer, so it does not look
+   as if a click did something */
+.panel-field.panel-fixed:hover {
+    border-color: transparent;
+}
+
 /* Two pickers side by side in one row, like the skill and the type of a skill entry in its summary, read as the file
    writes it, `MGT1372_EntrepreneurialBusiness (VO)`: each only as wide as its value, the type one space after the
    name and in its brackets, a small grey plus while it has none; where the row has no room for both, as on a phone,

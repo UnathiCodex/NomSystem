@@ -43,6 +43,7 @@ import { icsLook } from "./ics.ts";
 import { obsidianSyntax } from "./syntax.ts";
 import { livePreview } from "./preview.ts";
 import { treeShow } from "../notes/tree.ts";
+import { timeOf } from "../day/times.ts";
 import "../notes/notes.css";
 import "./editor.css";
 
@@ -179,7 +180,8 @@ function stateShow(notice: string): void {
 
 /**
  * Saves the file: sends its text to the reader with the text it had when read or saved last;
- * the reader writes it when the file has not changed since, a draft with its change as a diff.
+ * the reader writes it when the file has not changed since, a draft with its change as a diff;
+ * then says so beside the button with the time, like `Saved 20:41`, until the next change.
  * Does nothing while a save is on its way, when nothing changed, or for a file to read only.
  */
 async function noteSave(): Promise<void> {
@@ -196,7 +198,7 @@ async function noteSave(): Promise<void> {
         });
         if (response.ok) {
             saved = text;
-            stateShow("");
+            stateShow(`Saved ${timeOf(new Date())}`);
         } else if (response.status === 409) {
             stateShow("Not saved: it changed on the disk, reload it");
         } else {

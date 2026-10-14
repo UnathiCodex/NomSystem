@@ -960,9 +960,11 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     });
     foodsClose = closeFoods;
     rowsShow(changed);
+    const summaryRow: HTMLDivElement = rowOf("Summary", summaryLine);
+    summaryRow.classList.add("panel-fixed");
     if (drawing === null)
-        return [rowOf("Summary", summaryLine), foodsRow];
-    return [rowOf("Summary", summaryLine), cookedRowOf(changed), foodsRow];
+        return [summaryRow, foodsRow];
+    return [summaryRow, cookedRowOf(changed), foodsRow];
 }
 
 /**
