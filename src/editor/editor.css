@@ -23,7 +23,12 @@
 
 /* A draft of my modules exactly as wide as its text in the scripts view, my reading width, in the middle, so its lines
    break at the same words as there, on every screen, see `.notes-page` in `../notes/notes.css`; markup shown left
-   of its text, like `##`, stands in the room beside it */
+   of its text, like `##`, stands in the room beside it; on a screen without room for my reading width at least
+   2rem left and right of it, as the scripts view keeps around its note, so the text never touches the tree or the edge */
+.editor-note .editor-file {
+    padding-inline: 2rem;
+}
+
 .editor-note .editor-page {
     width: min(var(--reading-width), 100%);
     margin: 0 auto;
