@@ -79,10 +79,10 @@ import { labelOf, lineOf, placeEdit, placeOpen, placesStart } from "./places.ts"
 import {
     skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPlaceShow, skillSave, skillSemesterOf,
 } from "./skill.ts";
-import { boxTimesOf, dateOf, dateParse, dateTextOf, lengthOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
+import { dateOf, dateParse, dateTextOf, lengthOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
-import { Check, CircleCheck, CircleQuestionMark, Copy, Pencil, Plus, Trash, X } from "lucide";
+import { Check, CircleQuestionMark, Copy, Pencil, Plus, Trash, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -1172,7 +1172,6 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     (document.getElementById("entry-plan-title") as HTMLElement).textContent =
         opening.plan === null ? "" : `From the plan: ${opening.plan.title}`;
     document.getElementById("entry-plan")?.toggleAttribute("hidden", opening.target === "box" || opening.plan === null);
-    document.getElementById("entry-plan-log")?.toggleAttribute("hidden", opening.box?.state !== "open");
     document.getElementById("entry-plan-edit")?.toggleAttribute("hidden", opening.plan?.editable !== true);
     timesShow(opening);
     (document.getElementById("entry-note") as HTMLTextAreaElement).value = opening.note;
@@ -1375,15 +1374,13 @@ function timesCheck(): boolean {
 /**
  * Starts the entry by category after the router has put its HTML into the page:
  * the copy duplicates the entry or the box being changed, see {@link entryDuplicate}, the pencil beside the box being
- * logged changes that box, the ring with its check logs the box being changed, as expected on the shown day,
- * which for a box with a deadline may lie before its own, in the dialog of the log, see `boxTimesOf` in `times.ts`;
+ * logged changes that box; the dialog logs no box, since the ring of the box in the plan does that already;
  * typing a deadline turns start and end of a box off, see {@link deadlineSee}; typing the day, start or end
  * fills the day of the end, see {@link endDayFill}, until I type that day myself, and a start typed for a new box
  * its end, see {@link endFill}; typing a day of a skill entry gives it the semester of that day while I picked none,
  * see `skillDaySet` in `skill.ts`; times that are not right are not sent, see {@link timesCheck};
  * the dialog of a new place starts too, see `places.ts`.
  * - `endDay`: Field of the day of the end.
- * - `start`, `end`: The times the box is logged at as expected.
  *
  * @param calendar - Calendar of the day
  */
@@ -1399,19 +1396,12 @@ export function categoriesStart(calendar: Calendar): void {
     });
     iconPut(document.getElementById("entry-duplicate") as HTMLElement, Copy, "Duplicate");
     iconPut(document.getElementById("entry-plan-edit") as HTMLElement, Pencil, "Change the box in the plan");
-    iconPut(document.getElementById("entry-plan-log") as HTMLElement, CircleCheck, "Log it");
     document.getElementById("entry-duplicate")?.addEventListener("click", (): void => {
         entryDuplicate().catch(errorShow);
     });
     document.getElementById("entry-plan-edit")?.addEventListener("click", (): void => {
         if (opened.plan !== null)
             boxOpenEdit(opened.plan).catch(errorShow);
-    });
-    document.getElementById("entry-plan-log")?.addEventListener("click", (): void => {
-        if (opened.box === null)
-            return;
-        const [start, end]: [Date, Date] = boxTimesOf(opened.box, calendar.view.currentStart);
-        entryOpenFromBox(opened.box, start, end).catch(errorShow);
     });
     ["entry-deadline-day", "entry-deadline-time"].forEach((id: string): void =>
         document.getElementById(id)?.addEventListener("input", deadlineSee));

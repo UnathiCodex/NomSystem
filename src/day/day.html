@@ -142,13 +142,12 @@
         <p class="panel-error" id="entry-error" hidden>Saving failed</p>
 
         <!-- The copy at the left duplicates the entry or the box being changed, a new one filled in alike;
-             the bin removes it, asking once more with a question mark; for an open box of the plan the ring with its check
-             logs it instead, as its ring in the plan does; cancel closes the dialog, save sends the entry once its fields are picked;
-             the pencil beside the box a log entry comes from, above, changes that box -->
+             the bin removes it, asking once more with a question mark; cancel closes the dialog, save sends the entry
+             once its fields are picked; the pencil beside the box a log entry comes from, above, changes that box;
+             no button logs a box here, since its ring in the plan does that -->
         <div class="panel-buttons">
             <button class="panel-duplicate" id="entry-duplicate" type="button" hidden></button>
             <button class="panel-remove" id="entry-remove" type="button" hidden></button>
-            <button id="entry-plan-log" type="button" hidden></button>
             <button id="entry-cancel" type="button"></button>
             <button class="panel-main" id="entry-save" type="submit" disabled></button>
         </div>
