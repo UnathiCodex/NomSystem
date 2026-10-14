@@ -192,6 +192,12 @@ let shown: PlanDay = { day: "", occasions: [], boxes: [] };
 let suggested: Suggestion[] = [];
 
 /**
+ * Whether the plan shows the suggested study sessions, see `suggestions.ts`: not until I have talked them through,
+ * then `true`.
+ */
+const suggestionsShown: boolean = false;
+
+/**
  * The boxes carried along to the shown day, as loaded last: those of the days before it, neither done nor cancelled,
  * the earliest first; none for any day but today.
  */
@@ -356,7 +362,7 @@ const pushesAsking: number = 3;
  * after a deadline or alone, like `01h 15m`, see `lengthOf` in `times.ts`, how near its deadline is while it is open,
  * see {@link nearOf}, and how often it was pushed, from {@link pushesAsking} pushes on, while it is open,
  * with the question `smaller or skip?`, like `01h 15m · pushed once`; a box carried along leaves out how near
- * its deadline is; one the university cancelled says so at its end, like `16:00 – 17:30 · cancelled by university`.
+ * its deadline is; that a box was cancelled shows its mark in the place of its ring, see {@link ringOf}.
  * - `pushes`: How often it was pushed, empty for never.
  * - `asking`: The question whether to make it smaller or skip it, empty while it does not ask.
  * - `near`: How near its deadline is, empty for a box without, one not open, or one carried along.
@@ -387,8 +393,7 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
         when = deadlineTextOf(box);
     const length: string =
         box.minutes === null || (start !== null && box.deadline === "") ? "" : lengthOf(box.minutes);
-    return [over, when, length, near, pushes, asking, box.state === "university" ? "cancelled by university" : ""]
-        .filter((part: string): boolean => part !== "");
+    return [over, when, length, near, pushes, asking].filter((part: string): boolean => part !== "");
 }
 
 /**
@@ -508,8 +513,10 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
 /**
  * Makes the ring at the left of a box, a button: for an open box an empty ring like the circle of a to-do,
  * its check showing under the pointer, which logs it as expected, see {@link boxTap}; for a done box its check,
- * grey, which takes it back to open, see `boxUndo` in `entries.ts`; for a box cancelled, by me or by the university,
- * an empty place.
+ * grey, which takes it back to open, see `boxUndo` in `entries.ts`; for a box cancelled its grey mark in that place,
+ * no button: the landmark for one the university cancelled, as on the button that cancels it, the cross for one
+ * I skipped, its tooltip saying which, so no word in its line has to.
+ * - `mark`: The mark of a cancelled box.
  * - `ring`: The button.
  *
  * @param calendar - Calendar of the day
@@ -517,8 +524,12 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
  * @returns The ring
  */
 function ringOf(calendar: Calendar, box: Box): HTMLElement {
-    if (box.state === "dropped" || box.state === "university")
-        return entryPartOf("span", "box-ring", []);
+    if (box.state === "dropped" || box.state === "university") {
+        const mark: HTMLElement = entryPartOf("span", "box-ring", []);
+        iconPut(mark, box.state === "university" ? Landmark : X,
+            box.state === "university" ? "Cancelled by university" : "Skipped");
+        return mark;
+    }
 
     const ring: HTMLButtonElement = document.createElement("button");
     ring.type = "button";
@@ -723,7 +734,7 @@ function boxesShow(calendar: Calendar): void {
 async function boxesLoad(calendar: Calendar): Promise<void> {
     const day: string = dayOf(calendar.view.currentStart);
     const [plans, suggestions, carriedNow]: [PlanDay[], Suggestion[], Box[]] = await Promise.all([
-        boxesFetch(day, dayOf(calendar.view.currentEnd)), suggestionsLoad(day),
+        boxesFetch(day, dayOf(calendar.view.currentEnd)), suggestionsShown ? suggestionsLoad(day) : Promise.resolve([]),
         day === calendarTodayOf() ? carriedFetch(day) : Promise.resolve([]),
     ]);
     if (day !== dayOf(calendar.view.currentStart))
