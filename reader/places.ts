@@ -21,6 +21,8 @@
  * and `https://nav.tum.de/room/0509.EG.980`, read the same way, see {@link roomsRead}; an entry writes a room
  * as a place. A new place goes into `Rooms.md` when its name starts like the code of a room, digits and a dot,
  * see {@link roomForm}, otherwise into `Places.md`; a name is unique over both files.
+ * A meeting online has one place of its own, `Online`, fixed here and in no file, see {@link onlineName}:
+ * its address holds what I need to join, and its link, the link of the meeting, is typed per entry.
  *
  * - `node:fs`: Reads and writes `Places.md` and `Rooms.md`.
  * - `node:path`: Gives the folder of a file.
@@ -87,6 +89,27 @@ const linkForm: RegExp = /^https?:\/\/\S+$/;
  */
 const tableHead: number = 2;
 
+/**
+ * The place of a meeting online, its name alone, like the place of a call on Teams: offered once among my places,
+ * never a row of `Places.md`, since every meeting has a link of its own, typed per entry and written
+ * as the `ALTREP` of its `LOCATION`, see {@link placeLinkOf}. In place of an address it holds what I need to join,
+ * in the order of an address, each part a fact of the meeting: its software in place of the street, then its ID
+ * and its passcode, a part left out while empty, like `Online, Teams, ID 123 456 789 012 345, Passcode Ab12Cd34`.
+ */
+export const onlineName: string = "Online";
+
+/**
+ * Software of a meeting online offered before any use, see {@link onlineName}: `Teams`, `BBB`, `Zoom`,
+ * and `TUM-Live`, where I watch lectures; another one I type.
+ */
+export const onlineSoftware: string[] = ["Teams", "BBB", "Zoom", "TUM-Live"];
+
+/**
+ * Names the ID and the passcode of a meeting go by in the line of `Online`, each before its value,
+ * like `ID 123 456 789 012 345`, see {@link onlineName}.
+ */
+const meetingNames: { id: string; passcode: string } = { id: "ID", passcode: "Passcode" };
+
 
 /**
  * Cleans a text for a cell of `Places.md`: `|` and line breaks become spaces, spaces in a row one, none at the ends.
@@ -133,16 +156,44 @@ export function labelOf(line: string): string {
 }
 
 /**
- * Gives the link to write with a place as the `ALTREP` of `LOCATION`: the link it had in the entry or box
- * it comes from, like the box a log entry is logged from or the entry being changed, while it is that same place,
- * else the link of my place or the room of that line in `Places.md` or `Rooms.md`, else none.
+ * Gives the software of a meeting online of a line, the first part of its address that is neither its ID
+ * nor its passcode, see {@link onlineName}.
+ *
+ * @param line - Place as an entry writes it, like `Online, Teams, ID 123 456 789 012 345`
+ * @returns Software like `Teams`, empty for none and for any place but `Online`
+ */
+export function softwareOf(line: string): string {
+    if (labelOf(line) !== onlineName)
+        return "";
+    return line.split(",").slice(1).map((part: string): string => part.trim())
+        .find((part: string): boolean => !Object.values(meetingNames)
+            .some((name: string): boolean => part.startsWith(`${name} `))) ?? "";
+}
+
+/**
+ * Gives the link to write with a place as the `ALTREP` of `LOCATION`: for `Online` the link of the meeting
+ * typed in the dialog, see {@link onlineName}; else, and from a sender that knows no typed link, like the calendar
+ * after a drag, the link it had in the entry or box it comes from, like the box a log entry is logged from
+ * or the entry being changed, while it is that same place, else the link of my place or the room of that line
+ * in `Places.md` or `Rooms.md`, else none.
+ * - `link`: The link typed, without spaces at its ends.
  * - `mine`: My place or the room of the line, `undefined` for none.
  *
  * @param line - Place as an entry writes it, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`
+ * @param typed - Link typed for `Online`, like `https://teams.microsoft.com/meet/123456789012345?p=…`,
+ *   empty for none; `undefined` from a sender that knows none
  * @param from - The entry or box it comes from, `null` for none
  * @returns Link like `https://nav.tum.de/room/0509.EG.980`, empty for none
+ * @throws {Error} - When the link typed for `Online` is no web address
  */
-export function placeLinkOf(line: string, from: { location: string; locationLink: string } | null): string {
+export function placeLinkOf(line: string, typed: string | undefined,
+                            from: { location: string; locationLink: string } | null): string {
+    if (typed !== undefined && labelOf(line) === onlineName) {
+        const link: string = typed.trim();
+        if (link !== "" && !linkForm.test(link))
+            throw new Error(`No link of ${onlineName}: ${link}`);
+        return link;
+    }
     if (from !== null && from.location === line)
         return from.locationLink;
     const mine: Place | undefined = [...placesRead(), ...roomsRead()]
@@ -191,14 +242,15 @@ export function roomsRead(): Place[] {
 
 /**
  * Cleans a place as the page sends it, see {@link cellOf}, a comma in its name dropped, see {@link nameOf},
- * and checks it against my other places and the rooms: its name is needed, its address and its link may stay empty,
- * and an address needs no number of a house, like `Burg-Eltz-Weg, 81375 München, Deutschland`.
+ * and checks it against my other places, the rooms and `Online`, see {@link onlineName}: its name is needed,
+ * its address and its link may stay empty, and an address needs no number of a house,
+ * like `Burg-Eltz-Weg, 81375 München, Deutschland`.
  * - `clean`: The place cleaned.
  *
  * @param sent - Place as the page sends it, its name, its address and its link as typed
  * @param others - My other places and the rooms, whose names it may not have
  * @returns The place cleaned
- * @throws {Error} - When the name is empty, another place has the name, ignoring case,
+ * @throws {Error} - When the name is empty, another place or `Online` has the name, ignoring case,
  *   or the link is no web address
  */
 function placeCleanOf(sent: Place, others: Place[]): Place {
@@ -206,7 +258,7 @@ function placeCleanOf(sent: Place, others: Place[]): Place {
         name: nameOf(String(sent.name ?? "")), address: cellOf(String(sent.address ?? "")),
         link: cellOf(String(sent.link ?? "")),
     };
-    if (clean.name === ""
+    if (clean.name === "" || clean.name.toLowerCase() === onlineName.toLowerCase()
         || others.some((mine: Place): boolean => mine.name.toLowerCase() === clean.name.toLowerCase()))
         throw new Error(`No new name of a place: ${clean.name}`);
     if (clean.link !== "" && !linkForm.test(clean.link))
@@ -262,7 +314,7 @@ function rowOf(place: Place): string {
  *
  * @param sent - Place as the page sends it, its name, its address and its link as typed
  * @returns The place as written
- * @throws {Error} - When the name is empty, another place or a room has the name, ignoring case,
+ * @throws {Error} - When the name is empty, another place, a room or `Online` has the name, ignoring case,
  *   the link is no web address, or the file lies outside the new system or holds no table
  */
 export function placeAdd(sent: Place): Place {
@@ -289,8 +341,8 @@ export function placeAdd(sent: Place): Place {
  *
  * @param sent - The place as the page sends it, its old name and its name, address and link as typed
  * @returns The place as written
- * @throws {Error} - When no place has the old name, the name is empty, another place or a room has the name,
- *   ignoring case, the link is no web address, or the file lies outside the new system
+ * @throws {Error} - When no place has the old name, the name is empty, another place, a room or `Online` has
+ *   the name, ignoring case, the link is no web address, or the file lies outside the new system
  */
 export function placeChange(sent: PlaceChanged): Place {
     const old: string = nameOf(String(sent.old ?? "")).toLowerCase();

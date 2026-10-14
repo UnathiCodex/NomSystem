@@ -852,7 +852,8 @@ export async function skillSave(calendar: Calendar, id: string, fields: EntryFie
     await skillEntrySend(id, {
         type: picks.type, module: picks.module, semester: fields.semester, chapters: picks.chapters,
         documents: picks.documents, attempts: attempts,
-        location: fields.location, planned: fields.planned, note: fields.note, start: fields.start, end: fields.end,
+        location: fields.location, locationLink: fields.locationLink, planned: fields.planned, note: fields.note,
+        start: fields.start, end: fields.end,
     });
     calendar.getEventSourceById("log")?.refetch();
 }

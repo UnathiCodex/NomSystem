@@ -281,6 +281,8 @@ export type AttemptNew = {
  *   with its fingerprint, see `reader/documents.ts`.
  * - `attempts`: Its attempts, none for none.
  * - `location`: Place, like the room of a lecture logged from the plan.
+ * - `locationLink`: Link of the meeting of the place `Online`, as pasted, the `ALTREP` of its `LOCATION`;
+ *   left out for any other place, whose link the reader finds itself.
  * - `planned`: Identifier of the plan entry it is logged from, empty for none.
  * - `note`: Free note.
  * - `start`: Start of the entry.
@@ -294,6 +296,7 @@ export type SkillEntryNew = {
     documents: string[];
     attempts: AttemptNew[];
     location: string;
+    locationLink?: string;
     planned: string;
     note: string;
     start: Date;

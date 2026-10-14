@@ -36,6 +36,8 @@
  * written before keeping what they have;
  * a new place is added with its address and maybe its link through a small dialog before it is picked,
  * see `places.ts`.
+ * `Online`, the place of a meeting online, stands among my places, but for a way; picked, it asks step by step
+ * for what I need to join, its software, its link, its ID and its passcode, see {@link meetingRowsOf}.
  * `From` starts where the last way before the entry ended.
  * Plan and log use one and the same dialog with the same fields and lists, see `skill.ts`: an entry of the log
  * and a box of the plan alike have a start and an end, each a day like `13.10.2026` and a plain time, as calendar apps
@@ -75,7 +77,9 @@
 import { addedRowOf, choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
-import { labelOf, lineOf, placeEdit, placeOpen, placesStart } from "./places.ts";
+import {
+    labelOf, lineOf, meetingIdOf, meetingLineOf, meetingOf, onlineName, placeEdit, placeOpen, placesStart,
+} from "./places.ts";
 import {
     skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPlaceShow, skillSave, skillSemesterOf,
 } from "./skill.ts";
@@ -87,7 +91,7 @@ import { Check, CircleQuestionMark, Copy, Pencil, Trash, X } from "lucide";
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
 import type { Choice } from "./choices.ts";
-import type { Place } from "./places.ts";
+import type { Meeting, Place } from "./places.ts";
 import type { BoxFields, EntryFields } from "./entries.ts";
 import type { ModuleType, SkillLinks, SkillValues } from "./skill.ts";
 
@@ -111,6 +115,8 @@ type FieldKey = "title" | "from" | "location";
  *   which its list offers only as I search, see {@link placeSearchOf}; none for any other field.
  * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
  *   like `https://nav.tum.de/room/0509.EG.980`; none for any other field.
+ * - `software`: For a field of a place that offers `Online`, the software of a meeting, like `Teams`, the most used
+ *   first, see {@link meetingRowsOf}; none for any other field, like the places of a way.
  */
 type Field = {
     name: string;
@@ -121,6 +127,7 @@ type Field = {
     many?: boolean;
     rooms: string[];
     links: { [value: string]: string };
+    software: string[];
 };
 
 /**
@@ -152,6 +159,8 @@ type EntryTarget = "log" | "box";
  * - `minutes`: Expected duration of a box in minutes, `null` for none and for an entry of the log.
  * - `category`: Category picked already, else `null`.
  * - `values`: Values picked already, by the field they write into.
+ * - `locationLink`: Link of its place, its `ALTREP`, as the entry, the box or the box to log has it,
+ *   or the one it is a copy of; empty for none.
  * - `note`: Note of the entry.
  * - `foods`: Foods of the meal the dialog changes, its lines `X-FOOD`; none for any other entry.
  * - `skill`: Skill, type, chapters, links and attempts of the skill entry the dialog changes or logs from a box;
@@ -168,6 +177,7 @@ type EntryOpening = {
     minutes: number | null;
     category: string | null;
     values: { [key in FieldKey]: string };
+    locationLink: string;
     note: string;
     foods: string[];
     skill: SkillValues;
@@ -203,8 +213,15 @@ let values: { [key in FieldKey]: string } = { title: "", from: "", location: "" 
  */
 let opened: EntryOpening = {
     target: "log", start: new Date(), end: new Date(), time: null, minutes: null, category: null,
-    values: { title: "", from: "", location: "" }, note: "", foods: [], skill: skillNone, plan: null, entry: null, box: null,
+    values: { title: "", from: "", location: "" }, locationLink: "", note: "", foods: [], skill: skillNone, plan: null,
+    entry: null, box: null,
 };
+
+/**
+ * Link of the meeting of `Online` picked as the place, as pasted, written as the `ALTREP` of its `LOCATION`,
+ * see {@link meetingRowsOf}; empty for none and while another place is picked.
+ */
+let meetingLink: string = "";
 
 /**
  * Category picked, `null` before picking.
@@ -470,20 +487,12 @@ function addressOf(line: string): string {
 }
 
 /**
- * Gives the link of the place of the entry, the box or the box to log the dialog opened with, its `ALTREP`.
- *
- * @returns Link like `https://nav.tum.de/room/0509.EG.980`, empty for none
- */
-function openedLinkOf(): string {
-    return opened.entry?.extendedProps.locationLink ?? opened.box?.locationLink ?? opened.plan?.locationLink ?? "";
-}
-
-/**
- * Gives my place of `Places.md` that the place picked in a field is, by its name, as its field offers it.
+ * Gives the place offered in a field that the place picked is, by its name, as its field offers it: my place
+ * of `Places.md`, or `Online`.
  *
  * @param field - Field of a place, like `From`
- * @returns The line of my place, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, `undefined` while
- *   the place picked is none of mine, like an older place by its name alone, or nothing is picked
+ * @returns The line of my place, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, or `Online`,
+ *   `undefined` while the place picked is none offered, like an older place by its name alone, or nothing is picked
  */
 function mineOf(field: Field): string | undefined {
     const line: string = values[field.key];
@@ -497,8 +506,11 @@ function mineOf(field: Field): string | undefined {
  * the pencil that changes my place, while it is one of mine, see {@link placeChange}; no address while no place
  * is picked, the link itself for a place with a link but without address, like `https://nav.tum.de/room/5602.EG.001`,
  * so every place with a link opens it here too, and nothing for an older place written by its name alone,
- * like `HomeMunich`, which has neither.
+ * like `HomeMunich`, which has neither. `Online` shows what I need to join as its address, like
+ * `Teams, ID 123 456 789 012 345`, opening the link of its meeting as pasted, and has no pencil, since it is
+ * no place of `Places.md`.
  * - `line`: The place picked.
+ * - `online`: Whether it is `Online`.
  * - `kept`: The link of the place the entry kept, empty for none.
  * - `link`: The link to open, empty for none.
  *
@@ -508,15 +520,16 @@ function mineOf(field: Field): string | undefined {
  */
 function placePartsShow(pencil: HTMLButtonElement, address: HTMLAnchorElement, field: Field): void {
     const line: string = values[field.key];
-    const kept: string = field.key === "location" && line === opened.values.location ? openedLinkOf() : "";
-    const link: string = kept !== "" ? kept : field.links[line] ?? "";
+    const online: boolean = onlinePicked(field);
+    const kept: string = field.key === "location" && line === opened.values.location ? opened.locationLink : "";
+    const link: string = online ? meetingLink : kept !== "" ? kept : field.links[line] ?? "";
     address.textContent = addressOf(line) === "" ? link : addressOf(line);
     if (link !== "")
         address.href = link;
     else
         address.removeAttribute("href");
     address.hidden = address.textContent === "";
-    pencil.hidden = mineOf(field) === undefined;
+    pencil.hidden = online || mineOf(field) === undefined;
 }
 
 /**
@@ -581,10 +594,99 @@ async function placeChange(field: Field): Promise<void> {
         .forEach((key: FieldKey): void => {
             values[key] = line;
         });
+    placesShow();
+}
+
+/**
+ * Shows the rows of the places anew, with the other fields as picked: those of a skill entry where `skill.ts`
+ * shows them, see `skillPlaceShow`, any other's with all fields, see {@link fieldsShow}.
+ */
+function placesShow(): void {
     if (chosen?.name === skillName)
         skillPlaceShow(placeRowsOf());
     else
         fieldsShow();
+}
+
+/**
+ * Tells whether `Online` is picked in a field that offers it, see {@link meetingRowsOf}: only the place of an entry,
+ * its `LOCATION`, which carries the link of a meeting, but of a way.
+ *
+ * @param field - Field of the category picked, like `Place`
+ * @returns Whether it shows a meeting online
+ */
+function onlinePicked(field: Field): boolean {
+    return field.software.length > 0 && labelOf(values[field.key]) === onlineName;
+}
+
+/**
+ * Makes a field of a meeting online, a plain field without placeholder, empty until I type or paste into it,
+ * see {@link meetingRowsOf}.
+ * - `input`: The field.
+ *
+ * @param type - Type of the field, `url` for a link, else `text`
+ * @param value - What it holds at first, like `123 456 789 012 345`
+ * @param name - What it holds, for screen readers, like `ID of the meeting`
+ * @returns The field
+ */
+function meetingFieldOf(type: string, value: string, name: string): HTMLInputElement {
+    const input: HTMLInputElement = document.createElement("input");
+    input.type = type;
+    input.value = value;
+    input.autocomplete = "off";
+    input.setAttribute("aria-label", name);
+    return input;
+}
+
+/**
+ * Builds the rows of the meeting of `Online` below its place, filled one after another, see `Meeting`
+ * in `places.ts`: its software, whose list offers Teams, BBB, Zoom and TUM-Live and those I used, the most used
+ * first, and takes one typed, then its link, pasted, which I may leave empty, its ID and its passcode.
+ * The ID follows the link as I paste it, read from it, see `meetingIdOf` in `places.ts`, until I type another;
+ * a link holds no passcode. Each change writes the line of the place anew, like
+ * `Online, Teams, ID 123 456 789 012 345`, see `meetingLineOf` in `places.ts`, shown as its address.
+ * After the software is picked, the field of the link takes the focus, while empty.
+ * - `meeting`: Software, ID and passcode of the place picked.
+ * - `link`, `id`, `passcode`: Fields of the link, the ID and the passcode.
+ * - `write`: Writes the line of the place from the fields, and shows it as its address.
+ * - `software`: Row of the software.
+ *
+ * @param field - Field of the place, `Place`
+ * @param parts - Pencil and address of the place, see {@link placePartsOf}
+ * @returns The rows of software, link, ID and passcode
+ */
+function meetingRowsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]): HTMLElement[] {
+    const meeting: Meeting = meetingOf(values[field.key]);
+    const link: HTMLInputElement = meetingFieldOf("url", meetingLink, "Link of the meeting");
+    const id: HTMLInputElement = meetingFieldOf("text", meeting.id, "ID of the meeting");
+    const passcode: HTMLInputElement = meetingFieldOf("text", meeting.passcode, "Passcode of the meeting");
+    const write: () => void = (): void => {
+        values[field.key] = meetingLineOf({ software: meeting.software, id: id.value, passcode: passcode.value });
+        placePartsShow(parts[0], parts[1], field);
+    };
+    link.addEventListener("input", (): void => {
+        if (id.value.trim() === meetingIdOf(meetingLink))
+            id.value = meetingIdOf(link.value);
+        meetingLink = link.value.trim();
+        write();
+    });
+    id.addEventListener("input", write);
+    passcode.addEventListener("input", write);
+    const software: HTMLDivElement = rowOf("Software", choicesOf({
+        search: searchOf(field.software.map(choiceOf)),
+        picked: meeting.software === "" ? [] : [meeting.software],
+        many: false,
+        adding: true,
+        noun: "software",
+        pick: (picked: string[]): void => {
+            meeting.software = picked[0] ?? "";
+            write();
+            if (link.value === "")
+                link.focus();
+        },
+    }));
+    software.id = "entry-software";
+    return [software, rowOf("Link", link), rowOf("ID", id), rowOf("Passcode", passcode)];
 }
 
 /**
@@ -637,12 +739,14 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
  * A place shows by its name, once, however often it was used and whatever address an entry kept, which a place picked
  * again keeps, with its pencil beside it and its address below it, see {@link placePartsOf}; a summary with the steps
  * of the value picked below it, see {@link stepsShow}. A meal of the log has its summary, its meals and its foods
- * in place of the summary, see {@link meal}.
+ * in place of the summary, see {@link meal}. `Online` has the rows of its meeting below it, which come and go
+ * as it is picked and left, see {@link meetingShow}.
  * - `place`: Pencil and address of a place, `null` for any other field.
  * - `steps`: Place of the steps of the field.
+ * - `online`: Whether `Online` is picked, see {@link onlinePicked}.
  *
  * @param field - Field of the category picked, like `Place`
- * @returns Its row
+ * @returns Its row, for `Online` with the rows of its meeting
  */
 function fieldRowsOf(field: Field): HTMLElement[] {
     if (field.key === "title" && meal !== null)
@@ -651,6 +755,7 @@ function fieldRowsOf(field: Field): HTMLElement[] {
         return manyRowsOf(field);
     const place: [HTMLButtonElement, HTMLAnchorElement] | null = field.key === "title" ? null : placePartsOf(field);
     const steps: HTMLElement = document.createElement("ul");
+    const online: boolean = onlinePicked(field);
     steps.className = "entry-steps";
     stepsShow(steps, field);
     return [rowOf(field.name, choicesOf({
@@ -668,15 +773,30 @@ function fieldRowsOf(field: Field): HTMLElement[] {
             const line: string = picked[0] ?? "";
             values[field.key] = field.key !== "title" && line !== "" && labelOf(line) === labelOf(values[field.key])
                 ? values[field.key] : line;
-            if (values[field.key] !== "")
-                valueAdd(field, values[field.key]);
+            if (line !== "")
+                valueAdd(field, line);
             if (place !== null)
                 placePartsShow(place[0], place[1], field);
             stepsShow(steps, field);
             document.getElementById("entry-pain")?.toggleAttribute("hidden", !neckLongPicked());
             saveAllow();
+            if (onlinePicked(field) !== online)
+                meetingShow(field);
         },
-    }))];
+    })), ...(place !== null && online ? meetingRowsOf(field, place) : [])];
+}
+
+/**
+ * Shows the rows of the places anew as `Online` is picked or left, see {@link meetingRowsOf}: picked, with the list
+ * of its software open, so I pick or type it next; left, its link gone with it.
+ *
+ * @param field - Field of the place, `Place`
+ */
+function meetingShow(field: Field): void {
+    meetingLink = "";
+    placesShow();
+    if (onlinePicked(field))
+        document.querySelector<HTMLButtonElement>("#entry-software .picker-line")?.click();
 }
 
 /**
@@ -859,15 +979,17 @@ function titleRead(picked: string): string {
  * Reads the text fields of the dialog, as an entry of the log and a box have them, a skill entry its place too,
  * like the room of a lecture imported into the plan, and its chapters and documents.
  * - `picked`: Values picked in the lists.
+ * - `online`: Whether `Online` is the place, whose link of its meeting goes along, see {@link meetingRowsOf}.
  * - `skill`: Skill and type of a skill entry, empty for any other entry.
  * - `links`: Chapters and documents of a skill entry, none for any other entry.
  *
- * @returns Category, what, place, where a way starts, module, type, semester, note, chapters and documents,
- *   as a box of the day the dialog opened with, without time, duration and deadline; the semester of a skill entry
- *   as picked, else of that day
+ * @returns Category, what, place with the link of a meeting, where a way starts, module, type, semester, note,
+ *   chapters and documents, as a box of the day the dialog opened with, without time, duration and deadline;
+ *   the semester of a skill entry as picked, else of that day
  */
 function textsRead(): BoxFields {
     const picked: { [key in FieldKey]: string } = valuesRead();
+    const online: boolean = (chosen?.fields ?? []).some(onlinePicked);
     const skill: ModuleType = chosen?.name === skillName ? skillModuleType() : { module: "", type: "" };
     const links: SkillLinks =
         chosen?.name === skillName ? skillLinksRead() : { chapters: [], documents: [] };
@@ -875,6 +997,7 @@ function textsRead(): BoxFields {
         category: chosen?.name ?? "",
         title: titleRead(picked.title),
         location: picked.location,
+        locationLink: online ? meetingLink : undefined,
         from: picked.from,
         module: skill.module,
         type: skill.type,
@@ -954,8 +1077,8 @@ function fieldsRead(): EntryFields {
     const end: Date = endRead(start);
     const texts: BoxFields = textsRead();
     return {
-        category: texts.category, title: texts.title, location: texts.location, from: texts.from,
-        module: texts.module, type: texts.type,
+        category: texts.category, title: texts.title, location: texts.location, locationLink: texts.locationLink,
+        from: texts.from, module: texts.module, type: texts.type,
         semester: chosen?.name === skillName ? skillSemesterOf(dayOf(start)) : "", note: texts.note,
         foods: [foodName, cookName].includes(chosen?.name ?? "") ? mealFoods() : [],
         cooked: chosen?.name === foodName ? mealCooked() : "",
@@ -1162,6 +1285,7 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     const dialog: HTMLDialogElement = document.getElementById("entry") as HTMLDialogElement;
     categories = await categoriesLoad();
     opened = opening;
+    meetingLink = labelOf(opening.values.location) === onlineName ? opening.locationLink : "";
     chosen = null;
     realSeen = "";
     realMiddle = null;
@@ -1201,7 +1325,7 @@ async function entryShow(opening: EntryOpening): Promise<void> {
 export async function entryOpen(start: Date, end: Date): Promise<void> {
     await entryShow({
         target: "log", start: start, end: end, time: null, minutes: null, category: null,
-        values: { title: "", from: "", location: "" }, note: "", foods: [], skill: skillNone,
+        values: { title: "", from: "", location: "" }, locationLink: "", note: "", foods: [], skill: skillNone,
         plan: null, entry: null, box: null,
     });
 }
@@ -1241,7 +1365,7 @@ export async function entryOpenFromBox(box: Box, start: Date, end: Date): Promis
         values: planned
             ? { title: box.title, from: box.from, location: box.location }
             : { title: "", from: "", location: "" },
-        note: "", foods: [],
+        locationLink: planned ? box.locationLink : "", note: "", foods: [],
         skill: {
             ...skillNone, module: box.module, type: box.type, semester: box.semester, chapters: box.chapters,
             links: box.links,
@@ -1259,7 +1383,7 @@ export async function entryOpenFromBox(box: Box, start: Date, end: Date): Promis
 export async function boxOpenNew(day: Date): Promise<void> {
     await entryShow({
         target: "box", start: day, end: day, time: null, minutes: null, category: null,
-        values: { title: "", from: "", location: "" }, note: "", foods: [], skill: skillNone,
+        values: { title: "", from: "", location: "" }, locationLink: "", note: "", foods: [], skill: skillNone,
         plan: null, entry: null, box: null,
     });
 }
@@ -1277,7 +1401,7 @@ export async function boxOpenNew(day: Date): Promise<void> {
 export async function boxOpenSuggestion(day: Date, module: string, type: string, minutes: number): Promise<void> {
     await entryShow({
         target: "box", start: day, end: day, time: null, minutes: minutes, category: skillName,
-        values: { title: "", from: "", location: "" }, note: "", foods: [],
+        values: { title: "", from: "", location: "" }, locationLink: "", note: "", foods: [],
         skill: { ...skillNone, module: module, type: type }, plan: null, entry: null, box: null,
     });
 }
@@ -1295,7 +1419,8 @@ export async function boxOpenEdit(box: Box): Promise<void> {
     await entryShow({
         target: "box", start: day, end: day, time: box.time === "" ? null : day, minutes: box.minutes,
         category: box.category === "" ? null : box.category,
-        values: { title: box.title, from: box.from, location: box.location }, note: box.note, foods: [],
+        values: { title: box.title, from: box.from, location: box.location }, locationLink: box.locationLink,
+        note: box.note, foods: [],
         skill: {
             ...skillNone, module: box.module, type: box.type, semester: box.semester, chapters: box.chapters,
             links: box.links,
@@ -1318,7 +1443,7 @@ export async function entryOpenEdit(entry: EventApi): Promise<void> {
         target: "log", start: entry.start as Date, end: entry.end as Date, time: null, minutes: null,
         category: props.category ?? null,
         values: { title: entry.title, from: props.from ?? "", location: props.location ?? "" },
-        note: props.note ?? "", foods: entry.extendedProps.foods ?? [],
+        locationLink: props.locationLink ?? "", note: props.note ?? "", foods: entry.extendedProps.foods ?? [],
         skill: {
             module: props.module ?? "", type: props.type ?? "", semester: props.semester ?? "", title: entry.title,
             titleLink: props.titleLink ?? "",

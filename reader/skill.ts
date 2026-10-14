@@ -325,6 +325,8 @@ export type AttemptNew = {
  *   empty for none.
  * - `attempts`: Its attempts, in the order they were picked, none for none.
  * - `location`: Place, `LOCATION`, like the room of a lecture logged from its box.
+ * - `locationLink`: Link of the meeting of the place `Online`, as typed, written as the `ALTREP` of its `LOCATION`;
+ *   left out for any other place, as for any entry of the log, see `EntryNew` in `day.ts`.
  * - `planned`: Identifier of the box it is logged from, written as its `RELATED-TO`, empty for none.
  * - `note`: Free note, `DESCRIPTION`.
  * - `start`: Start as ISO instant.
@@ -338,6 +340,7 @@ export type SkillEntryNew = {
     documents: string[];
     attempts: AttemptNew[];
     location: string;
+    locationLink?: string;
     planned: string;
     note: string;
     start: string;
@@ -1103,7 +1106,8 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
  *
  * @param entry - Skill entry as the page sends it
  * @throws {Error} - When an attempt is not right, see {@link attemptValueOf}, the entry is not right,
- *   see {@link skillEntryCheck}, a document is none of the module's, or the box it is logged from is not open
+ *   see {@link skillEntryCheck}, a document is none of the module's, the link typed for `Online` is no web address,
+ *   or the box it is logged from is not open
  */
 export function skillEntryAdd(entry: SkillEntryNew): void {
     const tasks: Task[] = tasksRead();
@@ -1114,7 +1118,7 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
     const [title, titleLink]: [string, string] = titleOf({ ...entry, category: skillName, title: "" });
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: entry.location,
-        locationLink: placeLinkOf(entry.location, plan), from: "",
+        locationLink: placeLinkOf(entry.location, entry.locationLink, plan), from: "",
         module: entry.module, type: entry.type,
         semester: semesterFor(skillName, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note.trim(),
         start: new Date(entry.start), end: new Date(entry.end),
@@ -1148,8 +1152,8 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
  *
  * @param change - Changed skill entry as the page sends it
  * @throws {Error} - When there is no such skill entry in the log of the new system, a new attempt is not right,
- *   see {@link attemptValueOf}, the entry is not right, see {@link skillEntryCheck}, or a document is none
- *   of the module's
+ *   see {@link attemptValueOf}, the entry is not right, see {@link skillEntryCheck}, a document is none
+ *   of the module's, or the link typed for `Online` is no web address
  */
 export function skillEntryEdit(change: SkillEntryChange): void {
     const [file, old]: [string, Entry] = entryFind(skillLog, change.id);
@@ -1171,7 +1175,7 @@ export function skillEntryEdit(change: SkillEntryChange): void {
     const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" });
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: change.location,
-        locationLink: placeLinkOf(change.location, old), from: "",
+        locationLink: placeLinkOf(change.location, change.locationLink, old), from: "",
         module: change.module, type: change.type,
         semester: semesterFor(skillName, change.semester, berlinDateOf(new Date(change.start))),
         note: change.note.trim(),

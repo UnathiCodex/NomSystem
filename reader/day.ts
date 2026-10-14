@@ -60,6 +60,9 @@ import type { Meal } from "./food.ts";
  * - `category`: Category picked.
  * - `title`: What picked.
  * - `location`: Place picked.
+ * - `locationLink`: Link of the meeting of the place `Online`, as typed, written as the `ALTREP` of its `LOCATION`,
+ *   see `placeLinkOf` in `places.ts`; left out for any other place, whose link the reader finds itself,
+ *   and by a sender that does not know it, like the calendar after a drag, so the place keeps its link.
  * - `from`: Where a way starts.
  * - `module`: Module of a skill entry, like `IN2028`, empty for any other entry.
  * - `type`: Type of a skill entry, like `VO`, empty for any other entry.
@@ -80,6 +83,7 @@ export type EntryNew = {
     category: string;
     title: string;
     location: string;
+    locationLink?: string;
     from: string;
     module: string;
     type: string;
@@ -153,19 +157,21 @@ export function logFileOf(fields: { category: string; module: string; start: Dat
 }
 
 /**
- * Turns an entry as the page sends it into the fields to write: its place with its link, see `placeLinkOf`
- * in `places.ts`, and what a skill entry was as the reader writes it, see `titleOf` in `documents.ts`.
+ * Turns an entry as the page sends it into the fields to write: its place with its link, the one typed
+ * for `Online` or the one the reader finds, see `placeLinkOf` in `places.ts`, and what a skill entry was
+ * as the reader writes it, see `titleOf` in `documents.ts`.
  * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
  *
  * @param entry - New or changed entry, with ISO instants
  * @param from - The box it is logged from or the entry being changed, `null` for none
  * @returns Fields and times
+ * @throws {Error} - When the link typed for `Online` is no web address
  */
 function fieldsOf(entry: EntryNew, from: { location: string; locationLink: string } | null): EntryFields {
     const [title, titleLink]: [string, string] = titleOf(entry);
     return {
         category: entry.category, title: title, titleLink: titleLink, location: entry.location,
-        locationLink: placeLinkOf(entry.location, from), from: entry.from,
+        locationLink: placeLinkOf(entry.location, entry.locationLink, from), from: entry.from,
         module: entry.module, type: entry.type,
         semester: semesterFor(entry.category, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note,
         start: new Date(entry.start), end: new Date(entry.end),
@@ -290,8 +296,8 @@ export function realMinutesRead(category: string, title: string, module: string,
  *
  * @param entry - Entry as the entry by category or the counter of glasses sends it
  * @returns Identifier of the new entry
- * @throws {Error} - When the fields or foods are not allowed, the end is not after the start,
- *   or the box it is logged from is not open
+ * @throws {Error} - When the fields or foods are not allowed, the link typed for `Online` is no web address,
+ *   the end is not after the start, or the box it is logged from is not open
  */
 export function entryAdd(entry: EntryNew): string {
     const plan: Box | null = entry.planned === "" ? null : boxOpenFind(entry.planned);
@@ -393,7 +399,7 @@ export function boxUndo(id: string): void {
  *
  * @param change - Changed entry as the dialogs or the calendar send it, the calendar with the foods as they were
  * @throws {Error} - When there is no such entry, it may not be changed, the fields or foods are not allowed,
- *   or the end is not after the start
+ *   the link typed for `Online` is no web address, or the end is not after the start
  */
 export function entryEdit(change: EntryChange): void {
     const [file, entry]: [string, Entry] = entryFind(day.log, change.id);

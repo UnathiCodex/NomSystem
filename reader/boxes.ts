@@ -177,6 +177,8 @@ export type PlanDay = {
  * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of an entry of the log;
  *   the link of its place the reader finds, see `placeLinkOf` in `places.ts`, and what a skill box is
  *   it writes from its skill and type, see `titleOf` in `documents.ts`.
+ * - `locationLink`: Link of the meeting of the place `Online`, as typed, written as the `ALTREP` of its `LOCATION`;
+ *   left out for any other place, as for an entry of the log, see `EntryNew` in `day.ts`.
  * - `semester`: Semester of a skill box, like `2026W`, the semester of its day when empty, see `semesterFor`
  *   in `categories.ts`; empty for any other box.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
@@ -189,6 +191,7 @@ export type PlanDay = {
  *   `VO_UniversityLectureLessons/TUM_2026W/01_Introduction.pdf`, none for none and for any other box.
  */
 export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink"> & {
+    locationLink?: string;
     day: string;
     time: string;
     minutes: number | null;
@@ -564,20 +567,22 @@ function boxLinksPut(file: string, id: string, box: BoxNew, old: Entry | null): 
 }
 
 /**
- * Turns a box as the page sends it into the fields of its to-do: its place with its link, see `placeLinkOf`
- * in `places.ts`, and what a skill box is as the reader writes it, see `titleOf` in `documents.ts`.
+ * Turns a box as the page sends it into the fields of its to-do: its place with its link, the one typed
+ * for `Online` or the one the reader finds, see `placeLinkOf` in `places.ts`, and what a skill box is as the reader
+ * writes it, see `titleOf` in `documents.ts`.
  * - `title`, `titleLink`: What it is, its `SUMMARY`, and the link of it.
  *
  * @param box - New or changed box
  * @param old - The box as it was, `null` for a new one
  * @returns Fields of the to-do
+ * @throws {Error} - When the link typed for `Online` is no web address
  */
 function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
     const [title, titleLink]: [string, string] = titleOf(box);
     return {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
-        locationLink: placeLinkOf(box.location, old), from: box.from, module: box.module, type: box.type,
-        semester: semesterFor(box.category, box.semester, box.day), note: box.note,
+        locationLink: placeLinkOf(box.location, box.locationLink, old), from: box.from,
+        module: box.module, type: box.type, semester: semesterFor(box.category, box.semester, box.day), note: box.note,
         day: box.day, time: box.time === "" ? null : new Date(box.time), minutes: box.minutes, deadline: box.deadline,
     };
 }
@@ -622,7 +627,8 @@ function numberNextOf(title: string, date: string): string {
  *
  * @param box - The box as the page sends it
  * @returns Identifier of the new box
- * @throws {Error} - When the box is not right, see {@link boxCheck}, or a document is none of the module's
+ * @throws {Error} - When the box is not right, see {@link boxCheck}, the link typed for `Online` is no web address,
+ *   or a document is none of the module's
  */
 export function boxAdd(box: BoxNew): string {
     boxCheck(box, null);
@@ -684,8 +690,8 @@ export function boxUniversity(id: string, cancelled: boolean): void {
  * - `fields`: New fields and times of an event.
  *
  * @param change - The changed box as the page sends it
- * @throws {Error} - When there is no such box in the new system, the box is not right,
- *   an event would lose its time or its duration, or a document is none of the module's
+ * @throws {Error} - When there is no such box in the new system, the box is not right, the link typed for `Online`
+ *   is no web address, an event would lose its time or its duration, or a document is none of the module's
  */
 export function boxEdit(change: BoxChange): void {
     const [file, entry]: [string, Entry, Box] = boxFind(change.id);
@@ -706,7 +712,7 @@ export function boxEdit(change: BoxChange): void {
     const [title, titleLink]: [string, string] = titleOf(change);
     const fields: EntryFields = {
         category: change.category, title: title, titleLink: titleLink, location: change.location,
-        locationLink: placeLinkOf(change.location, entry), from: change.from,
+        locationLink: placeLinkOf(change.location, change.locationLink, entry), from: change.from,
         module: change.module, type: change.type, semester: semesterFor(change.category, change.semester, change.day),
         note: change.note,
         start: start, end: new Date(start.getTime() + change.minutes * minuteLength),

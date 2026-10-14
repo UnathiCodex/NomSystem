@@ -8,7 +8,10 @@
  * the most used first, equal ones alphabetical.
  * Places are one list for every field of a place, the place of an entry and where a way starts: only my places
  * of `Places.md`, each as a line with its address, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
- * see `places.ts`, the most used by the entries of the log first, counted by their names.
+ * see `places.ts`, and `Online`, the place of a meeting online, but in a way, which leads from one place of mine
+ * to another, see {@link offlineNames}; the most used by the entries of the log first, counted by their names.
+ * A field that offers `Online` also offers the software of a meeting, `Teams`, `BBB`, `Zoom` and `TUM-Live` before
+ * any use, and any other the log holds, the most used first, see `onlineSoftware` in `places.ts`.
  * A value offered in the code may come with steps, which the dialog shows while it is picked, and below them
  * the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
  * `Body` is my body care, showering and any care, offering `Shower` before any use; my neck routine,
@@ -33,7 +36,7 @@
  */
 
 import { entriesRead, skillName } from "./calendar.ts";
-import { labelOf, lineOf, placesRead, roomsRead } from "./places.ts";
+import { labelOf, lineOf, onlineName, onlineSoftware, placesRead, roomsRead, softwareOf } from "./places.ts";
 import { day } from "./sources.ts";
 
 import type { Entry, EntryTexts } from "./calendar.ts";
@@ -87,10 +90,13 @@ export type Category = {
  *   of the table, which the list offers only as I search, see `places.ts`; none for any other field.
  * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
  *   like `https://nav.tum.de/room/0509.EG.980`, see `places.ts`; none for any other field.
+ * - `software`: For a field of a place that offers `Online`, the software of a meeting, like `Teams`, the most used
+ *   first, see `onlineSoftware` in `places.ts`; none for any other field.
  */
 export type FieldShown = Field & {
     rooms: string[];
     links: { [value: string]: string };
+    software: string[];
 };
 
 /**
@@ -195,6 +201,12 @@ const unplannedNames: string[] = ["Sleep", "Food", "Cook", "Drink", "Game"];
  * of the trackers writes, see the top of this file.
  */
 const hiddenNames: string[] = ["Drink"];
+
+/**
+ * Categories whose places offer no `Online`, see `onlineName` in `places.ts`: `Way`, which leads from one place
+ * of mine to another.
+ */
+const offlineNames: string[] = ["Way"];
 
 /**
  * Whats a category no longer offers, by category, also where the log holds them: the neck routine of `Body`,
@@ -363,20 +375,23 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * see {@link stepsWithNoteOf}; but the categories the dialog leaves out, see {@link hiddenNames}, and the whats
  * a category no longer offers, see {@link retiredWhats}.
  * - `logs`: Log entries up to now.
- * - `mine`: My places.
+ * - `mine`: My places, and `Online`, the place of a meeting online, without address, see `onlineName` in `places.ts`.
  * - `names`: Their names.
- * - `places`: One list of places for every field of a place: my places, the most used first, see {@link placeUsesOf},
- *   each as the line an entry writes, see `lineOf` in `places.ts`.
+ * - `places`: One list of places for every field of a place: my places and `Online`, the most used first,
+ *   see {@link placeUsesOf}, each as the line an entry writes, see `lineOf` in `places.ts`.
  * - `rooms`: The rooms of the university for every field of a place, each as the line an entry writes, in the order
  *   of `Rooms.md`, none of the name of one of my places.
  * - `links`: The links of my places and rooms that have one, by their lines.
+ * - `software`: The software of a meeting online, those offered before any use and those of the log, the most used
+ *   first, see `onlineSoftware` and `softwareOf` in `places.ts`.
+ * - `online`: Whether a field offers `Online`: the place of an entry, but of a way, see {@link offlineNames}.
  *
  * @param now - Present as ISO instant, as the page knows it
  * @returns {@link CategoryShown}s in their order
  */
 export function categoriesRead(now: string): CategoryShown[] {
     const logs: Entry[] = logsRead(now);
-    const mine: Place[] = placesRead();
+    const mine: Place[] = [...placesRead(), { name: onlineName, address: "", link: "" }];
     const names: string[] = mine.map((place: Place): string => place.name);
     const places: string[] = valuesOrder(placeUsesOf(logs).filter((use: string): boolean => names.includes(use)), names)
         .map((name: string): string => lineOf(mine[names.indexOf(name)]));
@@ -384,19 +399,25 @@ export function categoriesRead(now: string): CategoryShown[] {
     const links: { [value: string]: string } = Object.fromEntries([...mine, ...rooms]
         .filter((place: Place): boolean => place.link !== "")
         .map((place: Place): [string, string] => [lineOf(place), place.link]));
+    const software: string[] = valuesOrder(logs.map((log: Entry): string => softwareOf(log.location)), onlineSoftware);
     return categories
         .filter((category: Category): boolean => !hiddenNames.includes(category.name))
         .map((category: Category): CategoryShown => ({
             name: category.name,
-            fields: category.fields.map((field: Field): FieldShown => ({
-                ...field,
-                values: field.key !== "title" ? places
-                    : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values)
-                        .filter((value: string): boolean => !(retiredWhats[category.name] ?? []).includes(value)),
-                steps: stepsWithNoteOf(logs, category.name, field.steps),
-                rooms: field.key === "title" ? [] : rooms.map(lineOf),
-                links: field.key === "title" ? {} : links,
-            })),
+            fields: category.fields.map((field: Field): FieldShown => {
+                const online: boolean = field.key === "location" && !offlineNames.includes(category.name);
+                return {
+                    ...field,
+                    values: field.key === "title"
+                        ? field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values)
+                            .filter((value: string): boolean => !(retiredWhats[category.name] ?? []).includes(value))
+                        : places.filter((line: string): boolean => online || line !== onlineName),
+                    steps: stepsWithNoteOf(logs, category.name, field.steps),
+                    rooms: field.key === "title" ? [] : rooms.map(lineOf),
+                    links: field.key === "title" ? {} : links,
+                    software: online ? software : [],
+                };
+            }),
             plan: !unplannedNames.includes(category.name),
         }));
 }
