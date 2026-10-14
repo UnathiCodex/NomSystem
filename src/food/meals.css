@@ -33,3 +33,27 @@
 .dish-list .food-part.drop-after {
     box-shadow: 0 0.3125rem 0 -0.1875rem var(--chosen-line);
 }
+
+/* A meal opened in the look of a food of mine opened, see `.food-facts` in `search.css`: its name, its short title
+   and its foods, each name small and grey at the left; its foods taking the rest of the width, one below the other */
+.dish-list .food-facts {
+    grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.dish-foods {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    min-width: 0;
+}
+
+/* Standard grams of a food of a meal, a plain value as wide as five digits, its digits right, then `g` */
+.food-grams {
+    white-space: nowrap;
+}
+
+.food-inline-grams {
+    width: 3.5rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

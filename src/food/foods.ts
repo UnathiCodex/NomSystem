@@ -126,20 +126,22 @@ export type Meal = Totals & {
 };
 
 /**
- * A meal of mine, as the reader sends it from `Meals.md`: only its composition, one or more of my foods without grams,
- * with what it gave.
+ * A meal of mine, as the reader sends it from `Meals.md`: one list of every food I may put in, never variants,
+ * each with the grams I put in as a rule, and what they give.
  *
  * - `name`: Name of the meal, like `Chili con Carne`.
+ * - `short`: What its brackets show, as I typed it, like `Hackfleisch, Tomaten`; empty for its first two foods.
  * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order.
- * - `grams`: Grams of each of its foods as I ate them the last time, `null` for a food not eaten then; for a meal never
- *   eaten, the grams I logged each food with last, `null` for one never logged with grams.
- * - `kcal`: What it gave the last time I ate it; for a meal never eaten, what its foods give at those grams.
+ * - `standard`: The grams of each food, in their order, which an entry starts with: 0 for one I rarely put in,
+ *   `null` for none set yet.
+ * - `kcal`: What its foods give at those grams; `null` while none has grams.
  */
 export type Dish = {
     name: string;
+    short: string;
     foods: string[];
-    grams: (number | null)[];
-    kcal: number;
+    standard: (number | null)[];
+    kcal: number | null;
 };
 
 /**
@@ -193,9 +195,10 @@ export async function dishesLoad(): Promise<Dish[]> {
  * @returns All my meals after
  * @throws {Error} - When the reader does not take the meal, like one without name or food
  */
-export async function dishSend(name: string, foods: string[]): Promise<Dish[]> {
+export async function dishSend(name: string, foods: string[], short?: string, grams?: (number | null)[]):
+    Promise<Dish[]> {
     const response: Response = await fetch("/api/food/meals", {
-        method: "POST", body: JSON.stringify({ name: name, foods: foods }),
+        method: "POST", body: JSON.stringify({ name: name, foods: foods, short: short, grams: grams }),
     });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);

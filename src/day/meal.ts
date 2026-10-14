@@ -612,9 +612,9 @@ function foodPick(food: Food, changed: () => void): void {
 }
 
 /**
- * Picks one of my meals with its foods, each with its grams as a food picked newly starts them, see {@link pickNewOf},
- * unless it is picked already; then closes the list and puts the cursor into the grams of its foods, see
- * {@link gramsFocus}.
+ * Picks one of my meals with its foods, each at its standard grams, which I set in the food view, see
+ * `../food/meals.ts`, a food I rarely put in at 0, one without standard grams empty, unless it is picked already;
+ * then closes the list and puts the cursor into the grams of its foods, see {@link gramsFocus}.
  * - `meal`: The meal picked.
  *
  * @param dish - Meal of `Meals.md`
@@ -624,7 +624,12 @@ function dishPick(dish: Dish, changed: () => void): void {
     let meal: MealPick | undefined = meals.find((other: MealPick): boolean =>
         other.name.toLowerCase() === dish.name.toLowerCase());
     if (meal === undefined) {
-        meal = { name: dish.name, foods: dish.foods.map((line: string): FoodPick => pickNewOf(lineOf(line))) };
+        meal = {
+            name: dish.name, foods: dish.foods.map((line: string, index: number): FoodPick => {
+                const standard: number | null = dish.standard[index] ?? null;
+                return pickOf(lineOf(line), standard === null ? "" : gramsTextOf(standard));
+            }),
+        };
         meals.push(meal);
         rowsShow(changed);
         changed();
@@ -945,15 +950,17 @@ function lineTextOf(pick: FoodPick): string {
 
 /**
  * Gives the meal as lines `X-FOOD`, see {@link lineTextOf}: first the foods of each meal, its name after each,
- * like `Hackfleisch;Gut & Günstig;Edeka;125;Chili con Carne`, then the foods beside the meals.
+ * like `Hackfleisch;Gut & Günstig;Edeka;125;Chili con Carne`, then the foods beside the meals; a food at 0 g,
+ * like one I rarely put into a meal and did not this time, left out, since I did not eat it.
  *
  * @returns Lines in the order of the meals and the foods picked
  */
 export function mealFoods(): string[] {
+    const eaten: (pick: FoodPick) => boolean = (pick: FoodPick): boolean => numberOf(pick.grams) !== 0;
     return [
         ...meals.flatMap((meal: MealPick): string[] =>
-            meal.foods.map((pick: FoodPick): string => `${lineTextOf(pick)};${meal.name}`)),
-        ...picks.map(lineTextOf),
+            meal.foods.filter(eaten).map((pick: FoodPick): string => `${lineTextOf(pick)};${meal.name}`)),
+        ...picks.filter(eaten).map(lineTextOf),
     ];
 }
 

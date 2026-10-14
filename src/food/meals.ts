@@ -80,7 +80,8 @@ export function kcalTextOf(kcal: number): string {
 export function dishNameOf(dish: Dish): HTMLElement {
     const name: HTMLElement = elementOf("span", "food-name", dish.name);
     const foods: string[] = dish.foods.map((line: string): string => line.split(";")[0]);
-    name.append(elementOf("span", "food-brand", ` (${[...foods.slice(0, 2), ...foods.length > 2 ? ["…"] : []].join(", ")})`));
+    name.append(elementOf("span", "food-brand", ` (${dish.short !== "" ? dish.short
+        : [...foods.slice(0, 2), ...foods.length > 2 ? ["…"] : []].join(", ")})`));
     return name;
 }
 
@@ -127,23 +128,52 @@ function removeOf(words: string, click: () => void): HTMLButtonElement {
 
 /**
  * Makes the line of a food of a meal opened: its name with its brand and store in brackets, see `foodNameOf`
- * in `./foods.ts`, its grams as I ate it the last time, whole, and its `×` where given.
+ * in `./foods.ts`, its standard grams, which change in place by a click into them, and its `×` where given.
  * - `part`: The line.
  * - `name`, `brand`, `store`: The parts of the food.
+ * - `amount`: Its grams with their unit.
  *
  * @param food - Food of the meal, like `Hackfleisch;Gut & Günstig;Edeka`
- * @param grams - Its grams, `null` for none
+ * @param grams - Field of its standard grams, see {@link gramsFieldOf}
  * @param remove - Its `×`, `null` while it is the only food of the meal
  * @returns The line
  */
-function partOf(food: string, grams: number | null, remove: HTMLButtonElement | null): HTMLElement {
+function partOf(food: string, grams: HTMLInputElement, remove: HTMLButtonElement | null): HTMLElement {
     const part: HTMLElement = elementOf("div", "food-part", "");
     const [name, brand, store]: string[] = food.split(";");
-    part.append(foodNameOf("food-name", name, brand ?? "", store ?? ""),
-        elementOf("span", "food-value", grams === null ? "" : `${amountOf(grams, 0)} g`));
+    const amount: HTMLElement = elementOf("span", "food-value food-grams", "");
+    amount.append(grams, " g");
+    part.append(foodNameOf("food-name", name, brand ?? "", store ?? ""), amount);
     if (remove !== null)
         part.append(remove);
     return part;
+}
+
+/**
+ * Makes the field of the standard grams of a food of a meal opened, see {@link inlineFieldOf}: plain as every value,
+ * a click puts the cursor into it, Enter or leaving it saves a change; empty for none set, 0 for a food I rarely put
+ * in; a text that is no number of 0 or more takes nothing and shows the grams again.
+ * - `input`: The field.
+ * - `typed`: The grams typed, `null` for none, not a number for an unreadable text.
+ *
+ * @param grams - Its standard grams, `null` for none
+ * @param name - Name of the food, for screen readers
+ * @param saved - Takes the grams typed, `null` for none
+ * @returns The field
+ */
+function gramsFieldOf(grams: number | null, name: string, saved: (grams: number | null) => void): HTMLInputElement {
+    const input: HTMLInputElement = inlineFieldOf(grams === null ? "" : String(grams), `Grams of ${name}`, (): void => {
+        const text: string = input.value.trim().replace(",", ".");
+        const typed: number | null = text === "" ? null : Number(text);
+        if (typed !== null && !(typed >= 0)) {
+            input.value = grams === null ? "" : String(grams);
+            return;
+        }
+        saved(typed);
+    });
+    input.inputMode = "decimal";
+    input.classList.add("food-inline-grams");
+    return input;
 }
 
 /**
@@ -239,6 +269,13 @@ export function mealsSectionOf(): HTMLElement {
             list.replaceChildren(elementOf("p", "food-none", "The meals cannot be read"));
         });
     };
+    const send: (dish: Dish, foods: string[], short: string, grams: (number | null)[]) => void = (dish: Dish,
+        foods: string[], short: string, grams: (number | null)[]): void => {
+        dishSend(dish.name, foods, short, grams).then((meals: Dish[]): void => {
+            dishes = meals;
+            show();
+        }).catch((error: unknown): void => console.error(error));
+    };
     const change: (dish: Dish, foods: string[]) => void = (dish: Dish, foods: string[]): void => {
         dishSend(dish.name, foods).then((meals: Dish[]): void => {
             dishes = meals;
@@ -299,11 +336,18 @@ export function mealsSectionOf(): HTMLElement {
                     detail.inert = false;
                 });
             });
-            facts.append(elementOf("span", "food-fact", "Name"), rename);
+            const short: HTMLInputElement = inlineFieldOf(dish.short, "Short", (): void =>
+                send(dish, dish.foods, short.value, dish.standard));
+            const parts: HTMLElement = elementOf("div", "dish-foods", "");
+            facts.append(elementOf("span", "food-fact", "Name"), rename, elementOf("span", "food-fact", "Short"), short,
+                elementOf("span", "food-fact", "Foods"), parts);
             error.hidden = true;
             detail.append(facts, error);
-            detail.append(...dish.foods.map((food: string, index: number): HTMLElement => {
-                const part: HTMLElement = partOf(food, dish.grams[index] ?? null, dish.foods.length > 1
+            parts.append(...dish.foods.map((food: string, index: number): HTMLElement => {
+                const grams: HTMLInputElement = gramsFieldOf(dish.standard[index] ?? null, food.split(";")[0],
+                    (typed: number | null): void => send(dish, dish.foods, dish.short,
+                        dish.standard.map((other: number | null, at: number): number | null => at === index ? typed : other)));
+                const part: HTMLElement = partOf(food, grams, dish.foods.length > 1
                     ? removeOf(`Remove ${food.split(";")[0]}`, (): void =>
                         change(dish, dish.foods.filter((other: string): boolean => other !== food)))
                     : null);
@@ -324,7 +368,7 @@ export function mealsSectionOf(): HTMLElement {
                     products: true,
                     nothing: "Nothing found",
                 });
-                detail.append(foods);
+                parts.append(foods);
                 queueMicrotask((): void => foods.querySelector("input")?.focus());
             }
             return [line, detail];

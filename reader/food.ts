@@ -220,30 +220,31 @@ export type Meal = Totals & {
 };
 
 /**
- * A meal of mine, as `Meals.md` holds it: only its composition, one or more of my foods without grams.
+ * A meal of mine, as `Meals.md` holds it: one list of every food I may put in, never variants, each with the grams
+ * I put in as a rule.
  *
- * - `name`: Name of the meal, like `ChiliConCarne`; unique, without spaces, `|`, `;` and, in a meal written since
- *   commas went, `,`.
+ * - `name`: Name of the meal, like `Chili con Carne`; unique, without `|`, `;` and `,`.
+ * - `short`: What its brackets show, as I typed it, like `Hackfleisch, Tomaten`; empty for its first two foods.
  * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order;
  *   by their names alone in a table written before foods had brand and store.
+ * - `standard`: The grams of each food, in their order, which an entry starts with: 0 for one I rarely put in,
+ *   `null` for none set yet.
  */
 type Composition = {
     name: string;
+    short: string;
     foods: string[];
+    standard: (number | null)[];
 };
 
 /**
- * A meal of mine with what it gave, see {@link dishesRead}.
+ * A meal of mine with what it gives, see {@link dishesRead}.
  *
- * - `grams`: Grams of each of its foods, in their order, as I ate them the last time, `null` for a food not eaten then;
- *   for a meal never eaten, the grams I logged each food with last, `null` for one never logged with grams.
- * - `kcal`: What it gave the last time I ate it: its lines in the newest meal `Food` up to now holding it, each
- *   at its grams; for a meal never eaten, what its foods give at the grams I logged each with last; a food not
- *   in `Foods.md` or without grams counting nothing.
+ * - `kcal`: What its foods give at their standard grams, a food not in `Foods.md` counting nothing; `null` while
+ *   no food has standard grams.
  */
 export type Dish = Composition & {
-    grams: (number | null)[];
-    kcal: number;
+    kcal: number | null;
 };
 
 /**
@@ -331,11 +332,12 @@ const tableHead: number = 2;
 const mealsHead: string[] = [
     "# Meals",
     "",
-    "My meals, each only its foods, by name, brand and store; an entry brings each at the grams I logged it with last,",
-    "which I change there, so a meal changed here leaves past days as they were.",
+    "My meals, each one list of every food I may put in, by name, brand and store, with the grams I put in as a rule,",
+    "0 for a food I rarely put in; an entry brings each at these grams, which I change there, so a meal changed here",
+    "leaves past days as they were. `Short` is what the brackets after its name show, its first two foods while empty.",
     "",
-    "| Meal | Food | Brand | Store |",
-    "| --- | --- | --- | --- |",
+    "| Meal | Short | Food | Brand | Store | Grams |",
+    "| --- | --- | --- | --- | --- | ---: |",
 ];
 
 /**
@@ -1032,7 +1034,7 @@ export function foodChange(sent: FoodChanged): Food {
     if (meals.some((meal: Composition): boolean =>
         meal.foods.some((line: string): boolean => lineRenamed(line, old, renamed) !== line)))
         compositionsWrite(meals.map((meal: Composition): Composition => ({
-            name: meal.name, foods: meal.foods.map((line: string): string => lineRenamed(line, old, renamed)),
+            ...meal, foods: meal.foods.map((line: string): string => lineRenamed(line, old, renamed)),
         })));
 
     const lines: string[] = readFileSync(food.foods, "utf8").split("\n");
@@ -1217,10 +1219,13 @@ function mealNameOf(typed: string): string {
 }
 
 /**
- * Reads my meals of `Meals.md` as it holds them, each with its foods in their order, see {@link Composition};
- * a table written before, in variants with servings and grams, by the foods of all its variants, by their names alone.
+ * Reads my meals of `Meals.md` as it holds them, each with its foods in their order, see {@link Composition}, its cells
+ * found by the names of the head, so a table written before `Short` and `Grams` reads too, its meals without both;
+ * a table written before in variants with servings and grams by the foods of all its variants, by their names alone.
  * - `rows`: The lines of the table.
- * - `old`: Whether the table was written in variants, its header naming `Variant`.
+ * - `head`: Names of its columns.
+ * - `cellOf`: Gives the cell of a row under a name of the head, empty where the table has no such column.
+ * - `old`: Whether the table was written in variants, its head naming `Variant`.
  * - `meals`: The meals read so far, by their names in small letters.
  *
  * @returns My meals in the order of the table, none while `Meals.md` does not exist
@@ -1230,70 +1235,60 @@ function compositionsRead(): Composition[] {
         return [];
 
     const rows: string[] = readFileSync(food.meals, "utf8").split("\n").filter((line: string): boolean => line.startsWith("|"));
-    const old: boolean = rows[0]?.includes("| Variant |") ?? false;
+    const head: string[] = cellsOf(rows[0] ?? "");
+    const cellOf: (cells: string[], name: string) => string = (cells: string[], name: string): string =>
+        head.includes(name) ? cells[head.indexOf(name)] ?? "" : "";
+    const old: boolean = head.includes("Variant");
     const meals: Map<string, Composition> = new Map();
     rows.slice(tableHead)
         .map(cellsOf)
-        .filter((cells: string[]): boolean => (cells[0] ?? "") !== "" && (cells[old ? 3 : 1] ?? "") !== "")
+        .filter((cells: string[]): boolean => cellOf(cells, "Meal") !== "" && cellOf(cells, "Food") !== "")
         .forEach((cells: string[]): void => {
-            const meal: Composition = meals.get(cells[0].toLowerCase()) ?? { name: cells[0], foods: [] };
-            const line: string = old ? cells[3] : `${cells[1]};${cells[2] ?? ""};${cells[3] ?? ""}`;
-            if (!meal.foods.includes(line))
+            const name: string = cellOf(cells, "Meal");
+            const meal: Composition = meals.get(name.toLowerCase())
+                ?? { name: name, short: cellOf(cells, "Short"), foods: [], standard: [] };
+            const line: string = old ? cellOf(cells, "Food")
+                : `${cellOf(cells, "Food")};${cellOf(cells, "Brand")};${cellOf(cells, "Store")}`;
+            if (!meal.foods.includes(line)) {
                 meal.foods.push(line);
-            meals.set(cells[0].toLowerCase(), meal);
+                meal.standard.push(old ? null : nutrientOf(cellOf(cells, "Grams")));
+            }
+            meals.set(name.toLowerCase(), meal);
         });
     return [...meals.values()];
 }
 
 /**
- * Reads my meals of `Meals.md`, each with the grams of its foods and what it gave, see {@link Dish}: as I ate it
- * the last time, in the newest meal `Food` up to now whose lines carry its name, ignoring case; a meal never eaten
- * with each food at the grams I logged it with last in any entry, see {@link lastGramsOf}.
+ * Reads my meals of `Meals.md`, each with what its foods give at their standard grams, see {@link Dish}.
  * - `mine`: My foods by their keys and names, see {@link foodsByKeyRead}.
- * - `entries`: Entries of the log up to now that list foods, the newest first.
- * - `last`: The grams I logged each food with last.
- * - `kcalOf`: What a food gives at grams, 0 for no grams or a food not in `Foods.md`.
- * - `reads`: The foods of a meal as read, see {@link lineOf}.
- * - `ate`: Its lines in the newest meal holding it, none for a meal never eaten.
  *
  * @returns My meals in the order of the table, none while `Meals.md` does not exist
  */
 export function dishesRead(): Dish[] {
     const mine: Map<string, Food> = foodsByKeyRead();
-    const entries: Entry[] = foodEntriesRead();
-    const last: Map<string, number> = lastGramsOf(entries);
-    const kcalOf: (read: Line, grams: number | null) => number = (read: Line, grams: number | null): number =>
-        (grams ?? 0) / 100 * (foodOfLine(read, mine)?.kcal ?? 0);
-    return compositionsRead().map((meal: Composition): Dish => {
-        const reads: Line[] = meal.foods.map(lineOf);
-        const ate: Line[] = entries.filter((entry: Entry): boolean => entry.category === foodName)
-            .map((entry: Entry): Line[] => entry.foods.map(lineOf)
-                .filter((read: Line): boolean => read.meal.toLowerCase() === meal.name.toLowerCase()))
-            .find((lines: Line[]): boolean => lines.length > 0) ?? [];
-        const grams: (number | null)[] = reads.map((read: Line): number | null => ate.length > 0
-            ? ate.find((line: Line): boolean => keyOf(line) === keyOf(read))?.grams ?? null
-            : last.get(keyOf(read)) ?? null);
-        return {
-            ...meal,
-            grams: grams,
-            kcal: ate.length > 0
-                ? ate.reduce((sum: number, line: Line): number => sum + kcalOf(line, line.grams), 0)
-                : reads.reduce((sum: number, read: Line, index: number): number => sum + kcalOf(read, grams[index]), 0),
-        };
-    });
+    return compositionsRead().map((meal: Composition): Dish => ({
+        ...meal,
+        kcal: meal.standard.every((grams: number | null): boolean => grams === null) ? null
+            : meal.foods.reduce((sum: number, line: string, index: number): number =>
+                sum + (meal.standard[index] ?? 0) / 100 * (foodOfLine(lineOf(line), mine)?.kcal ?? 0), 0),
+    }));
 }
 
 /**
  * Writes my meals into `Meals.md` anew, its head first, see {@link mealsHead}, then a row per food of each meal,
- * so a table written before in variants turns into the table of today.
+ * its short title in each, its standard grams whole or to one decimal, empty where none is set,
+ * so a table written before turns into the table of today.
  * - `rows`: The rows of the table.
  *
  * @param meals - My meals to write, in their order
  */
 function compositionsWrite(meals: Composition[]): void {
-    const rows: string[] = meals.flatMap((meal: Composition): string[] => meal.foods.map((line: string): string => {
+    const rows: string[] = meals.flatMap((meal: Composition): string[] => meal.foods.map((line: string,
+        index: number): string => {
         const read: Line = lineOf(line);
-        return `| ${meal.name} | ${read.name} | ${read.brand} | ${read.store} |`;
+        const grams: number | null = meal.standard[index] ?? null;
+        return `| ${meal.name} | ${meal.short} | ${read.name} | ${read.brand} | ${read.store} | `
+            + `${grams === null ? "" : roundOf(grams, 1)} |`;
     }));
     mkdirSync(dirname(food.meals), { recursive: true });
     writeFileSync(food.meals, [...mealsHead, ...rows, ""].join("\n"));
@@ -1302,16 +1297,21 @@ function compositionsWrite(meals: Composition[]): void {
 /**
  * Writes a meal into `Meals.md`, new or changed for good, its foods in place of those it had, at its place,
  * a new meal last; the name as typed, see {@link mealNameOf}, each food by its name, brand and store as `Foods.md`
- * holds them, cleaned only for a table, see {@link nameOf}, each once.
+ * holds them, cleaned only for a table, see {@link nameOf}, each once; its short title and the standard grams of its
+ * foods as sent, else as the meal had them, a food new to it without.
  * - `meals`: My meals so far.
  * - `name`: Name of the meal, as a meal of mine of the name, ignoring case, already writes it.
  * - `foods`: Its foods, like `Hackfleisch;Gut & Günstig;Edeka`.
+ * - `before`: The meal as it was, `undefined` for a new one.
+ * - `standard`: Standard grams of its foods.
  *
- * @param sent - Name and foods as the page sends them
- * @returns All my meals, each with what it gave, see {@link dishesRead}
+ * @param sent - Name and foods as the page sends them, and its short title and the standard grams of its foods,
+ *   in their order, where they change
+ * @returns All my meals, each with what it gives, see {@link dishesRead}
  * @throws {Error} - When the name is empty, it holds no food, or `Meals.md` lies outside the new system
  */
-export function dishAdd(sent: { name?: string; foods?: string[] }): Dish[] {
+export function dishAdd(sent: { name?: string; foods?: string[]; short?: string; grams?: (number | null)[] }):
+    Dish[] {
     const meals: Composition[] = compositionsRead();
     const typed: string = mealNameOf(String(sent.name ?? ""));
     const name: string = meals.find((meal: Composition): boolean => meal.name.toLowerCase() === typed.toLowerCase())
@@ -1328,7 +1328,14 @@ export function dishAdd(sent: { name?: string; foods?: string[] }): Dish[] {
         throw new Error(`No writing outside the new system: ${food.meals}`);
 
     const at: number = meals.findIndex((meal: Composition): boolean => meal.name.toLowerCase() === name.toLowerCase());
-    const meal: Composition = { name: name, foods: foods };
+    const before: Composition | undefined = meals[at];
+    const standard: (number | null)[] = foods.map((line: string, index: number): number | null =>
+        sent.grams !== undefined ? nutrientOf(sent.grams[index])
+            : before?.standard[before.foods.indexOf(line)] ?? null);
+    const meal: Composition = {
+        name: name, short: sent.short === undefined ? before?.short ?? "" : nameOf(String(sent.short)),
+        foods: foods, standard: standard,
+    };
     compositionsWrite(at === -1 ? [...meals, meal]
         : meals.map((other: Composition, index: number): Composition => index === at ? meal : other));
     return dishesRead();
@@ -1382,7 +1389,7 @@ export function dishRename(sent: { old?: string; name?: string }): Dish[] {
             ]);
         });
     compositionsWrite(meals.map((meal: Composition): Composition =>
-        meal === found ? { name: typed, foods: meal.foods } : meal));
+        meal === found ? { ...meal, name: typed } : meal));
     return dishesRead();
 }
 

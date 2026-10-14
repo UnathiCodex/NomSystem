@@ -181,8 +181,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/food/grams?category=…`: Sends the grams I logged each food with last in an entry of the category.
  * - `GET /api/food/day?date=…`: Sends the meals of the date with what they give.
  * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each with its foods and what it gave.
- * - `POST /api/food/meals`: Writes the meal of the body, its name and foods, into `Meals.md`, new or changed,
- *   and sends all my meals.
+ * - `POST /api/food/meals`: Writes the meal of the body, its name and foods, and where sent its short title and the
+ *   standard grams of its foods, into `Meals.md`, new or changed, and sends all my meals.
  * - `PATCH /api/food/meals`: Renames the meal of the body, its old name and its new one, wherever it stands, and sends
  *   all my meals.
  * - `DELETE /api/food/meals?meal=…`: Removes the meal from `Meals.md` and sends all my meals.
@@ -389,7 +389,8 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, dishesRead());
 
     } else if (request.method === "POST" && url.pathname === "/api/food/meals") {
-        responseSend(response, 200, dishAdd(await json(request) as { name?: string; foods?: string[] }));
+        responseSend(response, 200, dishAdd(await json(request) as
+            { name?: string; foods?: string[]; short?: string; grams?: (number | null)[] }));
 
     } else if (request.method === "PATCH" && url.pathname === "/api/food/meals") {
         responseSend(response, 200, dishRename(await json(request) as { old?: string; name?: string }));
