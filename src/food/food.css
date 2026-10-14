@@ -29,6 +29,15 @@
     min-width: 0;
 }
 
+/* My meals and foods apart from the day by a thin grey line and a little more room, as the tree of Scripts stands apart
+   from its note, where both stand side by side; one below the other they need none */
+@media (min-width: 1200px) {
+    .food-foods {
+        padding-left: calc(1.5 * var(--gap));
+        border-left: 1px solid var(--line);
+    }
+}
+
 /* The page of the food view grows with its content instead of being one screen high, see `body` in `base.css` */
 body:has(> .food) {
     height: auto;
