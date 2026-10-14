@@ -38,7 +38,7 @@
  * see `places.ts`.
  * `Online`, the place of a meeting online, stands among my places, but for a way; picked in a skill entry or box,
  * where lectures and tutorials happen on Zoom and the like, it asks step by step for its meeting, its link, which
- * gives its software and its ID, then its passcode, see {@link meetingRowsOf}; elsewhere, like in a call of `Talk`,
+ * gives its software and its ID, then its passcode, see {@link meetingPartsOf}; elsewhere, like in a call of `Talk`,
  * it is a plain place.
  * `From` starts where the last way before the entry ended.
  * Plan and log use one and the same dialog with the same fields and lists, see `skill.ts`: an entry of the log
@@ -76,7 +76,7 @@
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
-import { addedRowOf, addRowOf, choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
+import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import {
@@ -113,13 +113,13 @@ type FieldKey = "title" | "from" | "location";
  * - `steps`: Steps of a value offered in the code, by the value, like the exercises of `Neck short`.
  * - `fixed`: Whether it takes only its values, like `Night` and `Day` of `Sleep`, and no new ones.
  * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `UBahn, Bus`,
- *   see {@link manyRowsOf}; one when left out.
+ *   see {@link manyRowOf}; one when left out.
  * - `rooms`: For a field of a place, the rooms of the university in `Rooms.md`, each as the line an entry writes,
  *   which its list offers only as I search, see {@link placeSearchOf}; none for any other field.
  * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
  *   like `https://nav.tum.de/room/0509.EG.980`; none for any other field.
  * - `meeting`: Whether its place `Online` asks for its meeting, its link, ID and passcode, like the place of a skill
- *   entry or box, see {@link meetingRowsOf}; left out, `Online` is a plain place, like for a call of `Talk`.
+ *   entry or box, see {@link meetingPartsOf}; left out, `Online` is a plain place, like for a call of `Talk`.
  */
 type Field = {
     name: string;
@@ -222,7 +222,7 @@ let opened: EntryOpening = {
 
 /**
  * Link of the meeting of `Online` picked as the place where it asks for its meeting, as pasted, written
- * as the `ALTREP` of its `LOCATION`, see {@link meetingRowsOf}; empty for none and while another place is picked.
+ * as the `ALTREP` of its `LOCATION`, see {@link meetingPartsOf}; empty for none and while another place is picked.
  */
 let meetingLink: string = "";
 
@@ -510,7 +510,7 @@ function mineOf(field: Field): string | undefined {
  * is picked, the link itself for a place with a link but without address, like `https://nav.tum.de/room/5602.EG.001`,
  * so every place with a link opens it here too, and nothing for an older place written by its name alone,
  * like `HomeMunich`, which has neither. `Online` has no pencil, since it is no place of `Places.md`; where it asks
- * for its meeting, see {@link meetingRowsOf}, it shows what I need to join as its address, like
+ * for its meeting, see {@link meetingPartsOf}, it shows what I need to join as its address, like
  * `Teams, ID 123 456 789 012 345`, opening the link of its meeting as pasted.
  * - `line`: The place picked.
  * - `meeting`: Whether `Online` is picked where it asks for its meeting, see {@link meetingPicked}.
@@ -612,7 +612,7 @@ function placesShow(): void {
 }
 
 /**
- * Tells whether `Online` is picked in a field where it asks for its meeting, see {@link meetingRowsOf}: the place
+ * Tells whether `Online` is picked in a field where it asks for its meeting, see {@link meetingPartsOf}: the place
  * of a skill entry or box, see `meeting` of {@link Field}.
  *
  * @param field - Field of the category picked, like `Place`
@@ -624,7 +624,7 @@ function meetingPicked(field: Field): boolean {
 
 /**
  * Makes a field of a meeting online, a plain field without placeholder, empty until I type or paste into it,
- * see {@link meetingRowsOf}.
+ * see {@link meetingPartsOf}.
  * - `input`: The field.
  *
  * @param type - Type of the field, `url` for a link, else `text`
@@ -642,21 +642,44 @@ function meetingFieldOf(type: string, value: string, name: string): HTMLInputEle
 }
 
 /**
- * Builds the rows of the meeting of `Online` below its place, filled one after another, see `Meeting`
- * in `places.ts`: its link, pasted, which I may leave empty, then its ID and its passcode. Its software follows
- * the link as I paste it, read from its host, see `meetingSoftwareOf` in `places.ts`, and so does its ID,
- * see `meetingIdOf`, until I type another; a link holds no passcode. Each change writes the line of the place anew,
- * like `Online, Teams, ID 123 456 789 012 345`, see `meetingLineOf` in `places.ts`, shown as its address.
+ * Makes a part of the meeting of `Online`, see {@link meetingPartsOf}: its name small and grey, then its field;
+ * a click on the name puts the focus into the field.
+ * - `part`: The part, a label around name and field.
+ * - `label`: Its name.
+ *
+ * @param name - Name of the part, like `Link`
+ * @param input - Its field
+ * @returns The part
+ */
+function meetingPartOf(name: string, input: HTMLInputElement): HTMLLabelElement {
+    const part: HTMLLabelElement = document.createElement("label");
+    const label: HTMLSpanElement = document.createElement("span");
+    part.className = "meeting-part";
+    label.className = "entry-name";
+    label.textContent = name;
+    part.append(label, input);
+    return part;
+}
+
+/**
+ * Builds the parts of the meeting of `Online` below its place, as the foods of a meal and the documents of a chapter
+ * stand: indented under the place with a thin grey line at their left, see `.meeting-parts` in `day.css`, each its
+ * name small and grey, then its value, filled one after another, see `Meeting` in `places.ts`: its link, pasted,
+ * which I may leave empty, then its ID and its passcode. Its software follows the link as I paste it, read from its
+ * host, see `meetingSoftwareOf` in `places.ts`, and so does its ID, see `meetingIdOf`, until I type another; a link
+ * holds no passcode. Each change writes the line of the place anew, like `Online, Teams, ID 123 456 789 012 345`,
+ * see `meetingLineOf` in `places.ts`, shown as its address.
  * - `meeting`: Software, ID and passcode of the place picked, its software as written until the link changes,
  *   like one an older entry typed.
  * - `link`, `id`, `passcode`: Fields of the link, the ID and the passcode.
  * - `write`: Writes the line of the place from the fields, and shows it as its address.
+ * - `element`: The parts.
  *
  * @param field - Field of the place, `Place` of a skill entry or box
  * @param parts - Pencil and address of the place, see {@link placePartsOf}
- * @returns The rows of link, ID and passcode
+ * @returns The parts of link, ID and passcode
  */
-function meetingRowsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]): HTMLElement[] {
+function meetingPartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]): HTMLElement {
     const meeting: Meeting = meetingOf(values[field.key]);
     const link: HTMLInputElement = meetingFieldOf("url", meetingLink, "Link of the meeting");
     const id: HTMLInputElement = meetingFieldOf("text", meeting.id, "ID of the meeting");
@@ -675,7 +698,10 @@ function meetingRowsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElemen
     });
     id.addEventListener("input", write);
     passcode.addEventListener("input", write);
-    return [rowOf("Link", link), rowOf("ID", id), rowOf("Passcode", passcode)];
+    const element: HTMLElement = document.createElement("div");
+    element.className = "meeting-parts";
+    element.append(meetingPartOf("Link", link), meetingPartOf("ID", id), meetingPartOf("Passcode", passcode));
+    return element;
 }
 
 /**
@@ -728,20 +754,20 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
  * A place shows by its name, once, however often it was used and whatever address an entry kept, which a place picked
  * again keeps, with its pencil beside it and its address below it, see {@link placePartsOf}; a summary with the steps
  * of the value picked below it, see {@link stepsShow}. A meal of the log has its summary, its meals and its foods
- * in place of the summary, see {@link meal}. `Online` in a skill entry or box has the rows of its meeting below it,
+ * in place of the summary, see {@link meal}. `Online` in a skill entry or box has the parts of its meeting below it,
  * which come and go as it is picked and left, see {@link meetingShow}.
  * - `place`: Pencil and address of a place, `null` for any other field.
  * - `steps`: Place of the steps of the field.
  * - `meeting`: Whether `Online` is picked where it asks for its meeting, see {@link meetingPicked}.
  *
  * @param field - Field of the category picked, like `Place`
- * @returns Its row, for `Online` in a skill entry or box with the rows of its meeting
+ * @returns Its row, for `Online` in a skill entry or box with the parts of its meeting
  */
 function fieldRowsOf(field: Field): HTMLElement[] {
     if (field.key === "title" && meal !== null)
         return meal;
     if (field.key === "title" && field.many === true && !asPlanned())
-        return manyRowsOf(field);
+        return [manyRowOf(field)];
     const place: [HTMLButtonElement, HTMLAnchorElement] | null = field.key === "title" ? null : placePartsOf(field);
     const steps: HTMLElement = document.createElement("ul");
     const meeting: boolean = meetingPicked(field);
@@ -756,7 +782,7 @@ function fieldRowsOf(field: Field): HTMLElement[] {
         add: field.key === "title" ? undefined : placeAdd,
         noun: field.key === "title" ? "summary" : "place",
         aside: place !== null ? [place[0]] : [],
-        below: place !== null ? [place[1]] : [steps],
+        below: place === null ? [steps] : [place[1], ...meeting ? [meetingPartsOf(field, place)] : []],
         locked: field.key === "title" && asPlanned(),
         pick: (picked: string[]): void => {
             const line: string = picked[0] ?? "";
@@ -772,12 +798,12 @@ function fieldRowsOf(field: Field): HTMLElement[] {
             if (meetingPicked(field) !== meeting)
                 meetingShow(field);
         },
-    })), ...(place !== null && meeting ? meetingRowsOf(field, place) : [])];
+    }))];
 }
 
 /**
- * Shows the rows of the places anew as `Online` is picked or left where it asks for its meeting,
- * see {@link meetingRowsOf}: picked, with the field of its link focused, so I paste it next; left, its link gone
+ * Shows the rows of the places anew as `Online` is picked or left where it asks for its meeting, with its parts,
+ * see {@link meetingPartsOf}: picked, with the field of its link focused, so I paste it next; left, its link gone
  * with it.
  *
  * @param field - Field of the place, `Place` of a skill entry or box
@@ -790,35 +816,26 @@ function meetingShow(field: Field): void {
 }
 
 /**
- * Builds the rows of a summary of several values, like the means of a way, since I change on it, like U-Bahn then bus:
- * each value picked its own row with its small ×, see `addedRowOf` in `choices.ts`, the first named by the field,
- * then the list that adds the next, as the chapters of a skill entry, its plus beside the name of the field,
- * `Add a means of transport` as its tooltip, see `addRowOf` in `choices.ts`;
- * written as one summary, the values parted by `, `, like `UBahn, Bus`.
+ * Builds the row of a summary of several values, like the means of a way, since I change on it, like U-Bahn then bus:
+ * one line of the row, the values picked concatenated as one summary, parted by `, `, like `UBahn, Bus`, which is
+ * also how the entry writes them; its list, a menu, takes a value or takes it back by a click, in the order picked,
+ * and stays open for the next, see `many` in `choices.ts`; while none is picked, the small grey plus beside the name
+ * of the row, `Summary +`, `Add a means of transport` as its tooltip, see `besideName` in `choices.ts`.
  * - `picked`: The values picked, in their order.
- * - `offered`: The values not picked yet.
- * - `change`: Writes the values picked and shows the fields again.
  *
  * @param field - Field of several values, like the summary of `Way`
- * @returns Its rows
+ * @returns Its row
  */
-function manyRowsOf(field: Field): HTMLElement[] {
+function manyRowOf(field: Field): HTMLElement {
     const picked: string[] = values[field.key] === "" ? [] : values[field.key].split(", ");
-    const offered: Choice[] = field.values.filter((value: string): boolean => !picked.includes(value)).map(choiceOf);
-    const change: (chosen: string[]) => void = (chosen: string[]): void => {
-        values[field.key] = chosen.join(", ");
-        fieldsShow();
-    };
-    const rows: HTMLElement[] = picked.map((value: string, index: number): HTMLElement =>
-        addedRowOf(index === 0 ? field.name : "", value, (): void =>
-            change(picked.filter((other: string): boolean => other !== value))));
-    if (offered.length > 0)
-        rows.push(addRowOf(field.name, rows[0], choicesOf({
-            search: searchOf(offered), picked: [], many: false, adding: false, noun: "means of transport",
-            empty: "Add a means of transport", plus: true,
-            pick: (chosen: string[]): void => change([...picked, ...chosen]),
-        })));
-    return rows;
+    return rowOf(field.name, choicesOf({
+        search: searchOf(field.values.map(choiceOf)), picked: picked, many: true, adding: false,
+        noun: "means of transport", empty: "Add a means of transport", plus: true, besideName: true,
+        pick: (chosen: string[]): void => {
+            values[field.key] = chosen.join(", ");
+            saveAllow();
+        },
+    }));
 }
 
 /**

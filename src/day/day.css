@@ -861,7 +861,8 @@ button.box-ring.box-checked svg {
 
 /* Row of a panel, the same for every field: its name small and grey at the left, its value at the right,
    like the place, or its day and time, or the note, the name on the line of the value's first text;
-   generous room around both, and a faint frame under the pointer, while I type in it and while its list is open */
+   generous room around both, and a faint frame under the pointer, while I type in it and while a list opened from it
+   is open, see `listOf` in `choices.ts` */
 .panel-field {
     display: grid;
     grid-template-columns: var(--name-width) minmax(0, 1fr);
@@ -875,14 +876,14 @@ button.box-ring.box-checked svg {
 
 .panel-field:hover,
 .panel-field:focus-within,
-.panel-field:has(.picker-open) {
+.panel-field.list-field {
     border-color: var(--line);
 }
 
 /* Two pickers side by side in one row, like the skill and the type of a skill entry in its summary, read as the file
    writes it, `MGT1372_EntrepreneurialBusiness (VO)`: each only as wide as its value, the type one space after the
    name and in its brackets, a small grey plus while it has none; where the row has no room for both, as on a phone,
-   the type goes below the name; the list of either opens below both, as wide as the row */
+   the type goes below the name; the list of either opens as a menu under its line, see `.picker-box` */
 .panel-pair {
     display: flex;
     flex-wrap: wrap;
@@ -908,13 +909,6 @@ button.box-ring.box-checked svg {
 
 .panel-pair > .picker:last-child .picker-line:not(.picker-empty)::after {
     content: ")";
-}
-
-
-
-.panel-pair .picker-box {
-    flex: 1 1 100%;
-    order: 1;
 }
 
 /* The copy and the bin apart from the others, at the left, the copy alone there while the bin is hidden */
@@ -1012,8 +1006,7 @@ button.box-ring.box-checked svg {
 }
 
 /* Entry by category: one column of rows, at most as high as the screen with a gap around, then scrolling
-   as a whole, the lists of its fields too, which open inside it, see `.picker-box`; its top stays where it is
-   as a list opens or closes, so the rows above never move */
+   as a whole; the lists of its fields open as menus over it, see `.picker-box`, so its rows never move */
 .entry-panel {
     max-height: calc(100dvh - 2 * var(--gap));
     margin-top: max(var(--gap), 6dvh);
@@ -1217,17 +1210,63 @@ fieldset.entry-times {
     content: "\200b";
 }
 
-/* List of a field right under its row, inside the dialog, pushing the rows below down: its search field,
-   its values, and at its end the plus with the text typed while no value has it, see `.picker-new` in `base.css` */
+/* The line that opened the open list and its row, the anchors of its menu, see `listOf` in `choices.ts` */
+.list-line {
+    anchor-name: --list-line;
+}
+
+.list-field {
+    anchor-name: --list-field;
+}
+
+/* List of a field as a menu of its own over the dialog, a popover of the browser, see `listOf` in `choices.ts`:
+   its search field first, then its values, and at its end the plus with the text typed while no value has it,
+   see `.picker-new` in `base.css`; with the dialog's background and line and a soft shadow; right under the line
+   that opened it, never covering it, as wide as the value of its row: the texts of its search field and its values
+   start where the value above starts, their 0.75rem of padding and the menu's own left of it, and it ends where its row
+   ends; the rows of the dialog staying where they are; above the line instead where there is more room above, as low
+   in a long dialog; its values scrolling where the room is short, the search field staying in sight */
 .picker-box {
+    --menu-padding: 0.5rem;
+    position: fixed;
+    position-anchor: --list-line;
+    inset: auto;
+    top: calc(anchor(bottom) + 0.375rem);
+    bottom: var(--gap);
+    left: calc(anchor(--list-field left) + var(--value-start) - 0.75rem - var(--menu-padding) - 1px);
+    right: anchor(--list-field right);
+    width: auto;
+    height: fit-content;
+    max-height: stretch;
+    align-self: start;
+    margin: 0;
+    padding: var(--menu-padding);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--text-main);
+    box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.5);
+    overflow-y: auto;
+    position-try-fallbacks: flip-block;
+    position-try-order: most-height;
+}
+
+.picker-box:popover-open {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-    margin-top: 0.625rem;
 }
 
-.picker-box[hidden] {
-    display: none;
+/* Values of a menu scroll inside it where it has no room for all, its search field and the plus at its end staying */
+.picker-box > .picker-list,
+.picker-box .food-search,
+.picker-box .food-results {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.picker-box .food-search {
+    flex: 0 1 auto;
 }
 
 /* Search field of a list, one chip high and outlined, like `Search or add a place` */
@@ -1420,9 +1459,21 @@ fieldset.entry-times {
     vertical-align: middle;
 }
 
-/* A row that keeps only the list of a plus moved away, see `lineMove` in `choices.ts`, shown only while it is open */
-.panel-list:not(:has(.picker-open)) {
+/* A row that keeps only the list of a plus moved away, see `lineMove` in `choices.ts`: no room of the dialog,
+   since the list opens as a menu over it, see `.picker-box` */
+.panel-list,
+.panel-list > .picker {
+    display: contents;
+}
+
+.panel-list > .entry-name,
+.panel-list .picker-head {
     display: none;
+}
+
+/* Nor the thin line of the parts, should the row stand among them, like the list of the documents of a chapter */
+.panel-list::before {
+    content: none;
 }
 
 /* Row of a meal or a food: its name, the grams of a food, its kcal and its small grey `×`, see `.cross-quiet`
@@ -1435,15 +1486,31 @@ fieldset.entry-times {
     font-size: 0.875rem;
 }
 
-/* Parts of a meal below its row, as the documents of a chapter, see `.panel-nested`: its foods and the one plus
-   that adds one more, indented under its name with a thin grey line at their left, so they read as its parts */
-.meal-parts {
+/* Parts of a meal below its row, as the documents of a chapter, see `.panel-nested`: its foods, indented under its
+   name with a thin grey line at their left, so they read as its parts; the same for the parts of the meeting
+   of `Online` below its place, its link, ID and passcode, see `meetingPartsOf` in `categories.ts` */
+.meal-parts,
+.meeting-parts {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
     margin: 0 0 0.25rem 0.375rem;
     padding-left: 1.375rem;
     border-left: 1px solid var(--line);
+}
+
+/* Parts of a meeting in two columns, each its name small and grey, then its value, the values one below the other;
+   a little room above them, below the place's address */
+.meeting-parts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.375rem var(--control-gap);
+    align-items: baseline;
+    margin-top: 0.5rem;
+}
+
+.meeting-part {
+    display: contents;
 }
 
 /* Name of a meal or a food with its brand and store, going on below where the row has no room, never cut */
@@ -1848,11 +1915,17 @@ svg.route-arrow {
         row-gap: 0.25rem;
     }
 
-    /* An empty line or its plus takes no room while its list is open, so the list stands right under the name
-       of its row */
-    .picker-open > .picker-line.picker-empty,
-    .picker-open > .picker-head > .picker-line.picker-empty {
-        display: none;
+    /* A list on a phone rises from the bottom over the whole width, like the dialog itself, never higher than
+       the screen leaves room for, above the keyboard while one is open, see `interactive-widget` in `index.html` */
+    .picker-box {
+        position-try-fallbacks: none;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: auto;
+        max-height: calc(100dvh - 4rem);
+        border-radius: var(--radius) var(--radius) 0 0;
     }
 
     /* A meal or a food of the entry by category on a phone on one line, its grams first, as a recipe writes them,

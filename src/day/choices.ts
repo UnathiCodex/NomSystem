@@ -5,8 +5,9 @@
  * categories, places, summaries, ways to travel, skills, types, chapters, documents, semesters, tasks and efforts.
  * A field is one row of its dialog: its name at the left, then one line showing its value, like
  * `IN2028_BusinessAnalyticsMachineLearning (VO)`, empty without one, no dash and no placeholder; a click anywhere
- * on the row opens its list right under the line, inside the dialog, pushing the rows below it down, never covering
- * its own row, see {@link listOf}; only one list is open at a time, and Esc or a click beside it closes it.
+ * on the row opens its list as a menu of its own over the dialog, right under the line, never covering it, the rows
+ * of the dialog staying where they are, see {@link listOf}; only one list is open at a time, and Esc or a click
+ * beside it closes it.
  * A list of one value to pick closes as I pick; one of several, like tasks, stays open, its picks lighter rows,
  * never checkboxes, until I close it. A field of several values may also add each value as a row of its own,
  * like the chapters of a skill entry: each pick closes the list and adds a row with a small × to take it back,
@@ -84,6 +85,9 @@ export type Choice = {
  *   of an entry of the log logged from a box of the plan; open when left out.
  * - `plus`: Whether the line shows the one plus in place of `empty` while nothing is picked, see `plusPut`
  *   in `../icons.ts`, `empty` then its tooltip, like the plus that adds a document to a chapter; words when left out.
+ * - `besideName`: Whether the line, while it shows the plus, stands beside the name of its row, like `Cooked +`,
+ *   so no plus stands on a line of its own and the value keeps the whole width, as {@link lineMove} does for a list;
+ *   back in its picker once a value shows; false when left out.
  * - `textOf`: Text of a value picked before its list ever opened, like the name and day of a cooking
  *   of its identifier; the value itself when left out.
  */
@@ -100,6 +104,7 @@ export type ChoicesSetup = {
     below?: HTMLElement[];
     locked?: boolean;
     plus?: boolean;
+    besideName?: boolean;
     textOf?: (value: string) => string;
 };
 
@@ -146,6 +151,11 @@ let openPicker: HTMLElement | null = null;
  * the name of its field, see {@link lineMove}, and a click on it still counts as one on the picker.
  */
 let openLine: HTMLElement | null = null;
+
+/**
+ * The list that is open, the menu, `null` while none is.
+ */
+let openBox: HTMLElement | null = null;
 
 /**
  * Closes the list that is open, `null` while none is.
@@ -237,49 +247,71 @@ function valueButtonOf(choice: Choice, chosen: boolean, click: () => void): HTML
 }
 
 /**
- * Makes a list that the line of a field opens and closes right under it, inside the dialog, see the top
- * of this file: it opens on a click on the line, closing the list open before, and closes on another click on the line,
- * on Esc, see {@link listsStart}, and on a click beside its picker; open, it shows in sight, as the dialog scrolls.
+ * Makes a list that the line of a field opens and closes as a menu of its own over the dialog, see the top
+ * of this file, the same for every list of the dialogs: a popover of the browser, `manual`, so this file alone
+ * decides when it closes, which the anchors of CSS place right under the line that opened it, as wide as the values
+ * of the row the line stands in, see `.picker-box` in `day.css`; the line and its row are those anchors while the list
+ * is open, `list-line` and `list-field`. It opens on a click on the line, closing the list open before, and closes
+ * on another click on the line, on Esc, see {@link listsStart}, and on a click beside its picker and its line.
+ * - `field`: The row of the dialog the line stands in, also when moved beside the name of a field, see {@link lineMove};
+ *   the picker itself while the line stands in no row.
+ * - `close`: Closes the list; also takes back what an open list whose picker left the page meanwhile still holds,
+ *   so the next list opens alone.
  *
  * @param picker - The picker, the line and its list
  * @param line - The line of the field, a button
- * @param box - The list
+ * @param box - The list, the menu
  * @param opened - Comes once the list is open, like to focus its search field
  * @param closed - Comes once the list is closed
  * @returns Closes the list, like after a pick
  */
 export function listOf(picker: HTMLElement, line: HTMLButtonElement, box: HTMLElement, opened: () => void,
                        closed: () => void): () => void {
-
+    let field: HTMLElement = picker;
     const close: () => void = (): void => {
-        if (box.hidden)
-            return;
-        box.hidden = true;
-        picker.classList.remove("picker-open");
+        const open: boolean = box.matches(":popover-open");
+        if (open)
+            box.hidePopover();
+        line.classList.remove("list-line");
+        field.classList.remove("list-field");
         if (openPicker === picker) {
             openPicker = null;
             openLine = null;
+            openBox = null;
             openClose = null;
         }
-        closed();
+        if (open)
+            closed();
     };
     line.type = "button";
-    box.hidden = true;
+    box.popover = "manual";
     line.addEventListener("click", (): void => {
-        if (!box.hidden) {
+        if (box.matches(":popover-open")) {
             close();
             return;
         }
         openClose?.();
-        box.hidden = false;
-        picker.classList.add("picker-open");
+        field = line.closest<HTMLElement>(".panel-field") ?? picker;
+        line.classList.add("list-line");
+        field.classList.add("list-field");
+        box.showPopover();
         openPicker = picker;
         openLine = line;
+        openBox = box;
         openClose = close;
-        box.scrollIntoView({ block: "nearest" });
         opened();
     });
     return close;
+}
+
+/**
+ * Tells whether a list is open, see {@link listOf}.
+ *
+ * @param box - The list
+ * @returns Whether it shows
+ */
+export function listOpen(box: HTMLElement): boolean {
+    return box.matches(":popover-open");
 }
 
 /**
@@ -290,7 +322,7 @@ export function listOf(picker: HTMLElement, line: HTMLButtonElement, box: HTMLEl
  * ignored. Values picked but not found, like a place an entry kept, come first while nothing is typed.
  * - `head`: The line with what stands beside it.
  * - `line`: The line of the field, the button that opens the list.
- * - `box`: The list under the line, with its search field.
+ * - `box`: The list, a menu over the dialog, with its search field.
  * - `newButton`: The plus with the typed text at the end of the list, `New place` as its tooltip.
  * - `noun`: What a value is, like `place`.
  * - `chosen`: Values picked so far, in the order they were picked.
@@ -299,6 +331,8 @@ export function listOf(picker: HTMLElement, line: HTMLButtonElement, box: HTMLEl
  *   of all values together, fixed at the start.
  * - `found`: Values found for the typed text.
  * - `close`: Closes the list.
+ * - `linePlace`: Puts the line beside the name of its row while it shows the plus, see `besideName`
+ *   of {@link ChoicesSetup}, else back at the start of its head; nothing before the picker stands in a row.
  * - `lineShow`: Shows the texts of the values picked in the line, or nothing without them.
  * - `toggle`: Picks a value or takes it back, shows it in the line, and tells the dialog; a list of one value
  *   closes first.
@@ -328,14 +362,25 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     let found: Choice[] = [];
     let close: () => void = (): void => {};
 
+    const linePlace: (beside: boolean) => void = (beside: boolean): void => {
+        const name: HTMLElement | null = picker.closest(".panel-field")?.querySelector(":scope > .entry-name") ?? null;
+        if (setup.besideName !== true || name === null)
+            return;
+        if (beside)
+            name.append(line);
+        else
+            head.prepend(line);
+    };
     const lineShow: () => void = (): void => {
         const text: string = chosen.map((value: string): string => texts.get(value) ?? setup.textOf?.(value) ?? value)
             .join(", ");
         if (text === "" && setup.plus === true) {
             plusPut(line, setup.empty ?? "");
             line.classList.add("picker-empty");
+            linePlace(true);
             return;
         }
+        linePlace(false);
         plusTake(line);
         line.textContent = text === "" ? setup.empty ?? "" : breakableOf(text);
         line.title = setup.locked ? "As planned" : text;
@@ -568,8 +613,8 @@ export function addRowOf(name: string, first: HTMLElement | undefined, picker: H
 /**
  * Moves the line of the picker of a row, its plus, right after what it adds to, so no plus stands on a line of its own:
  * beside the name of a field, like `Chapter +`, or after a value, like a chapter's plus that adds a document to it;
- * moved out of its row, the row keeps only the list, which shows only while open, right where the next value will
- * stand, see `.panel-list` in `day.css`.
+ * moved out of its row, the row keeps only the list, which takes no room of the dialog, see `.panel-list`
+ * in `day.css`, and opens as a menu right under the plus, see {@link listOf}.
  * - `line`: The line of the picker of the row.
  *
  * @param row - Row with its picker, built with a plus as its line, see `plus` in {@link ChoicesSetup}
@@ -586,9 +631,10 @@ export function lineMove(row: HTMLElement, place: HTMLElement): void {
 
 /**
  * Makes a row of a dialog: the name of a field before its picker, like `Place`. A click anywhere on the row
- * but on something to click itself, like the pencil of a place, opens the list of its first picker, see
- * {@link listOf}, or puts the focus into its first field. No `<label>`, which would pass a click on the name
- * to the first button of the picker.
+ * but on something to click itself, like the pencil of a place, or on a label of a part, like the link of a meeting,
+ * which puts the focus into its own field, opens the list of its first picker, see {@link listOf}, or puts the focus
+ * into its first field. No `<label>` around the row, which would pass a click on the name to the first button
+ * of the picker.
  * - `target`: What was clicked.
  * - `line`: The line of the first picker of the row, `null` for none.
  *
@@ -605,7 +651,7 @@ export function rowOf(name: string, picker: HTMLElement): HTMLDivElement {
     row.addEventListener("click", (event: MouseEvent): void => {
         const target: HTMLElement = event.target as HTMLElement;
         const line: HTMLButtonElement | null = row.querySelector(".picker-line");
-        if (target.closest("button, input, textarea, a, .picker-box") !== null)
+        if (target.closest("button, input, textarea, a, label, .picker-box") !== null)
             return;
         if (line !== null)
             line.click();
@@ -619,9 +665,10 @@ export function rowOf(name: string, picker: HTMLElement): HTMLDivElement {
 /**
  * Starts the lists of the pickers once for the page, however often the day starts: Esc closes the open list
  * and not the dialog around it, and a click beside the picker of the open list closes it, see {@link listOf}.
- * - `keydown`: Comes before the dialog sees Esc, since it listens first.
- * - `click`: Comes before the element clicked sees it, so the list is closed before another one opens; the click
- *   still goes to the element under the pointer, though the rows move as the list closes.
+ * - `keydown`: Comes before the dialog sees Esc, since it listens first; a list whose picker left the page
+ *   meanwhile, like rows shown anew, lets Esc go on to the dialog.
+ * - `shown`: Whether the open list still shows.
+ * - `click`: Comes before the element clicked sees it, so the list is closed before another one opens.
  */
 export function listsStart(): void {
     if (listsStarted)
@@ -630,9 +677,12 @@ export function listsStart(): void {
     document.addEventListener("keydown", (event: KeyboardEvent): void => {
         if (event.key !== "Escape" || openClose === null)
             return;
+        const shown: boolean = openBox !== null && listOpen(openBox);
+        openClose();
+        if (!shown)
+            return;
         event.preventDefault();
         event.stopPropagation();
-        openClose();
     }, true);
     document.addEventListener("click", (event: MouseEvent): void => {
         if (openPicker !== null && !openPicker.contains(event.target as Node)
