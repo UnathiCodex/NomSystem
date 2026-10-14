@@ -10,7 +10,10 @@
    icons one icon size big, notes with lines a bit higher than my Obsidian's;
    the tree of the scripts a step smaller than the text of controls, `--tree-text`, as Obsidian's file explorer
    is 13 px beside its 16 px text, so the names of my notes and their headings fit on their line;
-   what is picked or shown, and the main button of a dialog, a calm lighter grey with a soft line, never glaring white.
+   what is picked or shown, and the main button of a dialog, a calm lighter grey with a soft line, never glaring white;
+   content without a frame of its own, like the plan of the day or the meals of a day, a step in from the rail's
+   buttons, `--content-indent`, while a framed control, like the arrows of a date, stands one gap beside them,
+   since text without a frame looks too close there; the same step in every view.
    Every size is in rem, the root font size, so that one size scales the whole page:
    125 % of the browser's 16 px, the look of Chrome's zoom at 125 %, also for the time grid and the formulas */
 :root {
@@ -40,6 +43,7 @@
     --icon-size: 1.125rem;
     --reading-line-height: 2.2;
     --gap: 1rem;
+    --content-indent: calc(2 * var(--gap));
     --slot-margin: 0.5rem;
     --radius: 0.75rem;
     --note-width: 18rem;

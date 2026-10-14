@@ -87,6 +87,14 @@
     min-height: 0;
 }
 
+/* The plan, my gratitude and the rest of the note below them a step from the rail's buttons, `--content-indent`,
+   as the meals of the food view, while the arrows of the date stand one gap beside them */
+#day-plan,
+.note-boxes > .day-column:first-child,
+.day-note {
+    padding-left: var(--content-indent);
+}
+
 .column-head {
     display: flex;
     align-items: center;
