@@ -6,7 +6,8 @@
  * the products of Open Food Facts, a page of them at a time, `More` loading the next page, beside it how many it shows
  * of how many the search matches, like `8 of 54`; in an entry my meals above my foods, see {@link SearchSetup}.
  * Its sections stand apart at a glance, a thin grey line between them, each its name small and grey above it,
- * `My meals`, `My foods` and `Open Food Facts`, with the unit of its numbers at the right, see {@link listHeadOf}.
+ * `My meals`, `My foods` and `Open Food Facts`, with the unit of its numbers at the right, `kcal / meal` or
+ * `kcal / 100 g`, see {@link listHeadOf}.
  * It searches once the typing pauses, so a word asks only once; an empty field lists all my foods. That nothing
  * is found it says in one grey line, only for the text as it stands, once its answer is in, never for a text typed
  * before, like a barcode typed digit by digit, whose first digits find nothing.
@@ -244,7 +245,7 @@ function resultsShow(search: Search): void {
     const sections: HTMLElement[][] = [];
 
     if (meals.length > 0)
-        sections.push([listHeadOf("My meals", "kcal"), ...meals]);
+        sections.push([listHeadOf("My meals", "kcal / meal"), ...meals]);
     if (found.foods.length > 0)
         sections.push([listHeadOf("My foods", "kcal / 100 g"),
             ...found.foods.map((food: Food): HTMLElement => mineLineOf(search, food))]);
