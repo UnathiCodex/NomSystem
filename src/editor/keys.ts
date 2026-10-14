@@ -10,6 +10,8 @@
  *   them all one step in, and Shift+Tab one step out.
  * - Alt+Up and Alt+Down move the line of the cursor, or the lines picked, one line up or down; a list item goes
  *   with its sub-points and further lines past the item before or after it, see {@link itemMove}.
+ * - Ctrl+B and Ctrl+I make the text picked bold or italic, `**…**` and `*…*`, or take it back;
+ *   with nothing picked the word at the cursor, see {@link markupToggle}.
  *
  * - `@codemirror/state`, `@codemirror/view`: The text with its cursor, and the keys.
  * - `@codemirror/commands`: CodeMirror's own commands: a tab at the cursor, indenting lines.
@@ -23,7 +25,7 @@ import { indentLess, indentMore, insertTab } from "@codemirror/commands";
 import { syntaxTree } from "@codemirror/language";
 import { deleteMarkupBackward, insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
 
-import type { EditorState, Extension, Line, SelectionRange, StateCommand } from "@codemirror/state";
+import type { ChangeSpec, EditorState, Extension, Line, SelectionRange, StateCommand } from "@codemirror/state";
 import type { Command, EditorView } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
 
@@ -181,6 +183,60 @@ function itemMove(down: boolean): Command {
 }
 
 /**
+ * Counts the markup characters, like `*`, right before or after a place, up to three, as `***` is bold and italic.
+ *
+ * @param state - Text
+ * @param pos - Place
+ * @param forward - Whether to count after it, else before
+ * @param char - Markup character, like `*`
+ * @returns How many stand there in a row, at most three
+ */
+function marksCount(state: EditorState, pos: number, forward: boolean, char: string): number {
+    let count: number = 0;
+    while (count < 3 && state.sliceDoc(forward ? pos + count : pos - count - 1, forward ? pos + count + 1 : pos - count) === char)
+        count++;
+    return count;
+}
+
+/**
+ * Makes text bold, Ctrl+B with `**`, or italic, Ctrl+I with `*`, as Obsidian does: the text picked, else the word
+ * at the cursor, gets the markup around it, or loses it when it is already bold or italic, so the same key takes it
+ * back; `***` counts as both. In empty space it writes the markup twice with the cursor between, to type into.
+ * - `word`: The text to mark: the text picked, or the word at the cursor, `null` for none.
+ * - `before`, `after`: The markup characters right before and after it.
+ * - `marked`: Whether it is marked already: bold with two or three on both sides, italic with one or three.
+ *
+ * @param mark - Markup, `**` or `*`
+ * @returns The command
+ */
+function markupToggle(mark: string): Command {
+    return (view: EditorView): boolean => {
+        if (view.state.readOnly)
+            return false;
+
+        view.dispatch(view.state.changeByRange((range: SelectionRange): { range: SelectionRange; changes: ChangeSpec } => {
+            const word: SelectionRange | null = range.empty ? view.state.wordAt(range.head) : range;
+            if (word === null)
+                return { range: EditorSelection.cursor(range.head + mark.length), changes: { from: range.head, insert: mark + mark } };
+
+            const before: number = marksCount(view.state, word.from, false, mark[0]);
+            const after: number = marksCount(view.state, word.to, true, mark[0]);
+            const marked: boolean = mark.length === 2 ? Math.min(before, after) >= 2 : Math.min(before, after) % 2 === 1;
+            if (marked)
+                return {
+                    range: EditorSelection.range(range.anchor - mark.length, range.head - mark.length),
+                    changes: [{ from: word.from - mark.length, to: word.from }, { from: word.to, to: word.to + mark.length }],
+                };
+            return {
+                range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
+                changes: [{ from: word.from, insert: mark }, { from: word.to, insert: mark }],
+            };
+        }), { scrollIntoView: true, userEvent: "input" });
+        return true;
+    };
+}
+
+/**
  * Keys of a Markdown file, see the top of this file; Tab and Shift+Tab, Alt+Up and Alt+Down try the list item first,
  * then the key goes on to the next command, CodeMirror's own.
  */
@@ -192,4 +248,6 @@ export const markdownKeys: Extension = Prec.high(keymap.of([
     { key: "Tab", run: insertTab, shift: indentLess },
     { key: "Alt-ArrowUp", run: itemMove(false) },
     { key: "Alt-ArrowDown", run: itemMove(true) },
+    { key: "Mod-b", run: markupToggle("**") },
+    { key: "Mod-i", run: markupToggle("*") },
 ]));
