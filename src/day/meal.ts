@@ -417,6 +417,7 @@ function foodsClosed(): boolean {
  * its grams, its kcal and a small grey `×`, which removes it, as a value picked in every list of the dialog.
  * - `food`: The food in `Foods.md`, `undefined` for one it does not hold.
  * - `name`: Its name with its brand and store, see `foodNameOf` in `../food/foods.ts`.
+ * - `kcalTextFor`: Its kcal as written, nothing while its grams are empty or `Foods.md` does not hold it.
  * - `kcal`: Cell of its kcal.
  * - `remove`: Its `×`.
  *
@@ -430,11 +431,13 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void, again
     const row: HTMLElement = elementOf("div", "meal-row", "");
     const food: Food | undefined = foodOf(pick);
     const name: HTMLElement = foodNameOf("meal-name", pick.name, pick.brand, pick.store);
-    const kcal: HTMLElement = elementOf("span", "meal-kcal", food === undefined ? "" : kcalTextOf(kcalOf(pick)));
+    const kcalTextFor: () => string = (): string =>
+        food === undefined || pick.grams.trim() === "" ? "" : kcalTextOf(kcalOf(pick));
+    const kcal: HTMLElement = elementOf("span", "meal-kcal", kcalTextFor());
     const [grams, input]: [HTMLElement, HTMLInputElement] = gramsFieldOf(pick.grams, `Grams of ${pick.name}`,
         (text: string): void => {
             pick.grams = text;
-            kcal.textContent = food === undefined ? "" : kcalTextOf(kcalOf(pick));
+            kcal.textContent = kcalTextFor();
             typed();
         });
     const remove: HTMLButtonElement = buttonOf("", "", removed);
@@ -654,11 +657,12 @@ export async function mealsNewSend(): Promise<void> {
 }
 
 /**
- * Builds my meals as the search of the row `Foods` shows them above my foods, see `../food/search.ts`: while the text
- * typed is no meal of mine nor of this entry, nor a barcode, first the one plus with it,
- * `+ New meal “Chili con Carne”`, see {@link mealNew}; then the line of each meal whose name or foods hold the words
- * typed, see `dishesFound` in `../food/meals.ts`, its name with its first foods in brackets, see `dishNameOf` there,
- * and what it gave the last time I ate it; a click picks it, see {@link dishPick}.
+ * Builds my meals as the search of the row `Foods` shows them above my foods, see `../food/search.ts`: the line of each
+ * meal whose name or foods hold the words typed, see `dishesFound` in `../food/meals.ts`, its name with its first foods
+ * in brackets, see `dishNameOf` there, and what it gave the last time I ate it, a click picking it, see
+ * {@link dishPick}; then, while the text typed is no meal of mine nor of this entry, nor a barcode, last, the one plus
+ * with it, `+ New meal “Chili con Carne”`, see {@link mealNew}, so `chili` offers Chili con Carne before a new meal
+ * and Enter takes a meal or food found first, see `firstPick` in `../food/search.ts`.
  * - `name`: The text typed as the name of a meal.
  * - `lines`: Lines of the meals found.
  * - `plus`: The plus of a new meal.
@@ -677,7 +681,7 @@ function dishLinesOf(query: string, changed: () => void): HTMLElement[] {
     const plus: HTMLButtonElement = buttonOf("picker-new", "", (): void => mealNew(name, changed));
     plus.replaceChildren(iconOf(Plus), `New meal “${name}”`);
     plus.title = "New meal, its foods picked next";
-    return [plus, ...lines];
+    return [...lines, plus];
 }
 
 /**

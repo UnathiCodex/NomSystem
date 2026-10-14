@@ -68,6 +68,8 @@ export type SearchSetup = {
  * - `found`: What the search found, with the products of every page shown; `null` before its first answer.
  * - `asked`: Number of the last search asked, so a late answer never covers a newer one.
  * - `open`: Key of my food open below its line, see {@link keyOf}, empty for none.
+ * - `shown`: The text the results shown were found for.
+ * - `enter`: Whether Enter waits for the results of the text typed, to take the first, see {@link firstPick}.
  */
 type Search = {
     input: HTMLInputElement;
@@ -77,6 +79,8 @@ type Search = {
     found: FoodsFound | null;
     asked: number;
     open: string;
+    shown: string;
+    enter: boolean;
 };
 
 /**
@@ -204,18 +208,51 @@ export function editFieldOf(value: string, words: string, saved: () => void, can
 }
 
 /**
+ * Makes a value of a food of mine that changes in place, its name, brand or store: its text as plain as every value
+ * beside it, no frame, a click puts the cursor into it, see `.food-inline` in `search.css`; Enter or leaving it saves
+ * a change, Escape takes the change back.
+ * - `input`: The value.
+ *
+ * @param value - Its text
+ * @param words - What it is, for screen readers, like `Brand`
+ * @param saved - Sends the change, after a change only
+ * @returns The value
+ */
+function inlineFieldOf(value: string, words: string, saved: () => void): HTMLInputElement {
+    const input: HTMLInputElement = document.createElement("input");
+    input.type = "text";
+    input.className = "food-inline";
+    input.autocomplete = "off";
+    input.value = value;
+    input.setAttribute("aria-label", words);
+    input.addEventListener("keydown", (event: KeyboardEvent): void => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            input.blur();
+        } else if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            input.value = value;
+            input.blur();
+        }
+    });
+    input.addEventListener("change", saved);
+    return input;
+}
+
+/**
  * Builds a food of mine opened below its line in the food view, in two columns as the parts of a dialog, each its name
- * small and grey, then its value: its protein, carbs and fat per 100 g, one unknown empty, never 0, its pack and its
- * barcode where known, then its name, brand and store in fields to change, the cross and the check at their end;
- * the check or Enter renames it wherever it stands, see `foodChange` in `foods.ts`, the cross or Escape closes it.
+ * small and grey, then its value: on top its name, brand and store, which change in place by a click into them, see
+ * {@link inlineFieldOf}, renaming it wherever it stands, see `foodChange` in `foods.ts`; then its protein, carbs and
+ * fat per 100 g, one unknown empty, never 0, its pack and its barcode where known. A click on its line closes it again.
  * When the reader does not take the name, it stays open and says so.
  * - `detail`: The food opened.
- * - `facts`: Its values and fields in two columns.
+ * - `facts`: Its values in two columns.
  * - `factAdd`: Adds a value with its name.
- * - `inputs`: Fields of its name, brand and store.
+ * - `inputs`: Its name, brand and store, to change in place.
  * - `error`: Hint that the reader did not take the name.
- * - `close`: Closes it without change.
- * - `save`: Sends the name, brand and store, the food taking no clicks meanwhile, and shows the search anew.
+ * - `save`: Sends the name, brand and store, the food taking no clicks meanwhile, and shows the search anew,
+ *   the food staying open under its new name.
  *
  * @param search - The search
  * @param food - My food
@@ -229,14 +266,11 @@ function detailOf(search: Search, food: Food): HTMLElement {
     };
     const error: HTMLElement = elementOf("p", "food-error",
         "Not changed: it needs a name, and no other food of mine may have this name, brand and store");
-    const close: () => void = (): void => {
-        search.open = "";
-        resultsShow(search);
-    };
     const save: () => void = (): void => {
         detail.inert = true;
         foodChange(food, inputs[0].value, inputs[1].value, inputs[2].value).then((): void => {
-            search.open = "";
+            search.open = keyOf({ ...food, name: inputs[0].value.trim(), brand: inputs[1].value.trim(),
+                store: inputs[2].value.trim() });
             resultsLoad(search, 1);
         }).catch((reason: unknown): void => {
             console.error(reason);
@@ -245,8 +279,9 @@ function detailOf(search: Search, food: Food): HTMLElement {
         });
     };
     const inputs: HTMLInputElement[] = [["Name", food.name], ["Brand", food.brand], ["Store", food.store]]
-        .map(([name, value]: string[]): HTMLInputElement => editFieldOf(value, name, save, close));
+        .map(([name, value]: string[]): HTMLInputElement => inlineFieldOf(value, name, save));
 
+    ["Name", "Brand", "Store"].forEach((name: string, index: number): void => factAdd(name, inputs[index]));
     factAdd("Protein", food.protein === null ? "" : `${amountOf(food.protein, 1)} g`);
     factAdd("Carbs", food.carbs === null ? "" : `${amountOf(food.carbs, 1)} g`);
     factAdd("Fat", food.fat === null ? "" : `${amountOf(food.fat, 1)} g`);
@@ -254,10 +289,8 @@ function detailOf(search: Search, food: Food): HTMLElement {
         factAdd("Pack", food.pack);
     if (food.barcode !== "")
         factAdd("Barcode", food.barcode);
-    ["Name", "Brand", "Store"].forEach((name: string, index: number): void => factAdd(name, inputs[index]));
     error.hidden = true;
-    detail.append(facts, editButtonsOf(close, save), error);
-    queueMicrotask((): void => inputs[0].focus());
+    detail.append(facts, error);
     return detail;
 }
 
@@ -364,6 +397,26 @@ function resultsShow(search: Search): void {
         ? [elementOf("p", "food-none food-nothing", query === "" ? "No foods yet" : search.setup.nothing)]
         : sections.flatMap((section: HTMLElement[], index: number): HTMLElement[] =>
             index === 0 ? section : [elementOf("hr", "food-divider", ""), ...section]));
+    search.shown = query;
+    if (search.enter) {
+        search.enter = false;
+        firstPick(search);
+    }
+}
+
+/**
+ * Takes what Enter takes in a search that picks, like that of a dialog: the first meal, food or product it shows,
+ * in the order of its sections, else `+ New meal` where it is offered; nothing in a search that only shows.
+ * - `first`: The first row that takes a click.
+ *
+ * @param search - The search
+ */
+function firstPick(search: Search): void {
+    if (search.setup.pick === null)
+        return;
+    const first: HTMLElement | null = search.results.querySelector("button.food-row")
+        ?? search.results.querySelector(".picker-new");
+    first?.click();
 }
 
 /**
@@ -394,8 +447,10 @@ function numberRead(text: string): number | null {
 
 /**
  * Opens the form of a food by hand at the top of the results of a search, named as typed, for the plus beside
- * the name `Foods` of the food view, in place of one open before: its name, brand and store, its kcal and its protein,
- * carbs and fat per 100 g, each field its name small and grey above it; its name and its kcal it needs, brand and store
+ * the name `Foods` of the food view, in place of one open before, in the look of a food of mine opened, see
+ * {@link detailOf}: its name, brand and store, its kcal and its protein, carbs and fat per 100 g, in two columns,
+ * each its name small and grey, then its value, plain with a thin line below to type on, see `.food-inline-new`
+ * in `search.css`, a click on its name putting the cursor into it; its name and its kcal it needs, brand and store
  * may stay empty, and protein, carbs or fat left empty is unknown, never 0, the one of them missing worked out
  * by the reader from the kcal, see `nutrientsOf` in `reader/food.ts`.
  * The check or Enter in a field sends the food; the cross or Escape in a field closes the form. When the reader
@@ -403,6 +458,7 @@ function numberRead(text: string): number | null {
  * stays open and says so.
  * - `search`: The search, `undefined` for an element that is none.
  * - `form`: The form.
+ * - `facts`: Its values in two columns.
  * - `inputs`: Text field of each value.
  * - `error`: Hint that the food is not taken.
  * - `text`: Name, brand or store as its field says.
@@ -417,7 +473,8 @@ export function foodNewShow(element: HTMLElement): void {
     if (search === undefined)
         return;
     search.results.querySelector(".food-form")?.remove();
-    const form: HTMLElement = elementOf("div", "food-form", "");
+    const form: HTMLElement = elementOf("div", "food-form food-detail", "");
+    const facts: HTMLElement = elementOf("div", "food-facts", "");
     const inputs: Map<string, HTMLInputElement> = new Map();
     const error: HTMLElement = elementOf("p", "food-error",
         "Not saved: it needs a name and its kcal, numbers only, and no food of mine of this name, brand and store");
@@ -446,18 +503,17 @@ export function foodNewShow(element: HTMLElement): void {
     };
 
     fields.forEach(([name, key]: [string, string]): void => {
-        const word: boolean = ["name", "brand", "store"].includes(key);
-        const label: HTMLElement = elementOf("label",
-            key === "name" ? "food-field food-field-name" : word ? "food-field food-field-word" : "food-field", name);
+        const label: HTMLElement = elementOf("span", "food-fact", name);
         const input: HTMLInputElement = editFieldOf(key === "name" ? search.input.value.trim() : "", name, add, close);
-        input.inputMode = word ? "text" : "decimal";
+        input.className = "food-inline food-inline-new";
+        input.inputMode = ["name", "brand", "store"].includes(key) ? "text" : "decimal";
         input.placeholder = "";
+        label.addEventListener("click", (): void => input.focus());
         inputs.set(key, input);
-        label.append(input);
-        form.append(label);
+        facts.append(label, input);
     });
     error.hidden = true;
-    form.append(editButtonsOf(close, add), error);
+    form.append(facts, editButtonsOf(close, add), error);
     search.results.prepend(form);
     inputs.get("name")?.focus();
 }
@@ -553,6 +609,8 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
         found: null,
         asked: 0,
         open: "",
+        shown: "",
+        enter: false,
     };
     let waiting: number = 0;
 
@@ -569,6 +627,11 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
             return;
         event.preventDefault();
         clearTimeout(waiting);
+        if (search.found !== null && search.shown === search.input.value.trim()) {
+            firstPick(search);
+            return;
+        }
+        search.enter = true;
         resultsLoad(search, 1);
     });
     bracketsWatch(search.results);
