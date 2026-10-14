@@ -427,14 +427,19 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void): HTML
 }
 
 /**
- * Builds the rows of a meal picked: its row, its name, its kcal and a small grey `×`, which removes it; below it
- * its foods, indented, each a row of a food, see {@link foodRowOf}; the meal goes with its last food.
+ * Builds the rows of a meal picked, as a chapter of a skill entry has its documents: its row, its name, its kcal
+ * and a small grey `×`, which removes it; below it its parts, indented with a thin grey line at their left,
+ * see `.meal-parts` in `day.css`: its foods, each a row of a food, see {@link foodRowOf}, then the one plus,
+ * like `Add a food to ChiliConCarne`, which opens the food search there and adds the food picked to this meal
+ * of this entry only, never to `Meals.md`; Escape in the search closes it again. The meal goes with its last food.
  * - `kcal`: Cell of its kcal.
  * - `remove`: Its `×`.
+ * - `parts`: Its foods and the plus, indented.
+ * - `plus`: The plus that adds a food to it.
  *
  * @param meal - Meal picked
  * @param changed - Tells the dialog that the meal changed
- * @returns Its row, then the rows of its foods
+ * @returns Its row, then its parts
  */
 function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
     const row: HTMLElement = elementOf("div", "meal-row", "");
@@ -444,23 +449,41 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
         rowsShow(changed);
         changed();
     });
-
-    crossPut(remove, `Remove ${meal.name}`);
-    row.append(elementOf("span", "meal-name", meal.name), elementOf("span", "", ""), kcal, remove);
-    return [row, ...meal.foods.map((pick: FoodPick): HTMLElement => {
-        const part: HTMLElement = foodRowOf(pick, (): void => {
-            kcal.textContent = kcalTextOf(mealKcalOf(meal));
-            summaryShow();
-            changed();
-        }, (): void => {
-            meal.foods = meal.foods.filter((other: FoodPick): boolean => other !== pick);
-            meals = meals.filter((other: MealPick): boolean => other.foods.length > 0);
+    const parts: HTMLElement = elementOf("div", "meal-parts", "");
+    const plus: HTMLButtonElement = buttonOf("", "", (): void => {
+        const box: HTMLElement = elementOf("div", "meal-box", "");
+        box.append(foodSearchOf((food: Food): void => {
+            mineAdd(food);
+            if (!meal.foods.some((other: FoodPick): boolean => keyOf(other) === keyOf(food)))
+                meal.foods.push({ name: food.name, brand: food.brand, store: food.store, grams: "" });
             rowsShow(changed);
             changed();
+        }, null));
+        box.addEventListener("keydown", (event: KeyboardEvent): void => {
+            if (event.key !== "Escape")
+                return;
+            event.preventDefault();
+            event.stopPropagation();
+            rowsShow(changed);
         });
-        part.classList.add("meal-part");
-        return part;
-    })];
+        plus.replaceWith(box);
+        box.querySelector("input")?.focus();
+    });
+
+    crossPut(remove, `Remove ${meal.name}`);
+    plusPut(plus, `Add a food to ${meal.name}`);
+    row.append(elementOf("span", "meal-name", meal.name), elementOf("span", "", ""), kcal, remove);
+    parts.append(...meal.foods.map((pick: FoodPick): HTMLElement => foodRowOf(pick, (): void => {
+        kcal.textContent = kcalTextOf(mealKcalOf(meal));
+        summaryShow();
+        changed();
+    }, (): void => {
+        meal.foods = meal.foods.filter((other: FoodPick): boolean => other !== pick);
+        meals = meals.filter((other: MealPick): boolean => other.foods.length > 0);
+        rowsShow(changed);
+        changed();
+    })), plus);
+    return [row, parts];
 }
 
 /**

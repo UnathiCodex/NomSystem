@@ -67,8 +67,7 @@ button.food-row {
 
 /* The brackets of a list all on a line of their own below their names while one of them has no room on the line
    of its name, see `bracketsWatch` in `foods.ts`: all one line, or all two */
-.brackets-below .food-brand,
-.brackets-below .dish-parts {
+.bracket-below {
     display: block;
 }
 

@@ -274,13 +274,15 @@ export function foodNameOf(className: string, name: string, brand: string, store
  * never one here and one there; looked at again whenever the list changes or gets narrower or wider.
  * A bracket hidden, like the brand of a food of a meal on a phone, counts as fitting.
  * - `width`: Width of the list when last looked at, so a change of its height alone looks at nothing.
+ * A list watched inside another, like the food search inside the parts of a meal, keeps its own brackets.
  * - `fits`: Whether a bracket stands on the first line of its name, after it.
- * - `look`: Looks at the brackets and puts them all on the line of their names, or all below them.
+ * - `look`: Looks at the brackets of this list and puts them all on the line of their names, or all below them.
  *
  * @param list - List of names, like the results of the food search
  */
 export function bracketsWatch(list: HTMLElement): void {
     let width: number = -1;
+    list.dataset.brackets = "";
     const fits: (bracket: HTMLElement) => boolean = (bracket: HTMLElement): boolean => {
         const parts: DOMRectList = bracket.getClientRects();
         const name: Node | null = bracket.parentElement?.firstChild ?? null;
@@ -292,9 +294,13 @@ export function bracketsWatch(list: HTMLElement): void {
         return first === undefined || parts[parts.length - 1].bottom <= first.bottom + 1;
     };
     const look: () => void = (): void => {
-        list.classList.remove("brackets-below");
-        list.classList.toggle("brackets-below",
-            ![...list.querySelectorAll<HTMLElement>(".food-brand, .dish-parts")].every(fits));
+        const brackets: HTMLElement[] = [...list.querySelectorAll<HTMLElement>(".food-brand, .dish-parts")]
+            .filter((bracket: HTMLElement): boolean => bracket.parentElement?.closest("[data-brackets]") === list);
+        brackets.forEach((bracket: HTMLElement): void => bracket.classList.remove("bracket-below"));
+        const below: boolean = !brackets.every(fits);
+        brackets.forEach((bracket: HTMLElement): void => {
+            bracket.classList.toggle("bracket-below", below);
+        });
     };
     new ResizeObserver((entries: ResizeObserverEntry[]): void => {
         const now: number = entries[0]?.contentRect.width ?? width;

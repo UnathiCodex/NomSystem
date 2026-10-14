@@ -144,7 +144,20 @@ body:has(> .food) {
 
 .food-line:not(.food-meal) > .food-what,
 .food-line:not(.food-meal) > .food-place {
+    position: relative;
     padding-left: 1.25rem;
+}
+
+/* The thin grey line at the left of the foods of a meal, as at the parts of a meal or a chapter in the dialog,
+   see `.meal-parts` in `day/day.css`, reaching over the room between two lines, so it runs through */
+.food-line:not(.food-meal) > .food-what::before,
+.food-line:not(.food-meal) > .food-place::before {
+    content: "";
+    position: absolute;
+    top: -0.125rem;
+    bottom: -0.125rem;
+    left: 0.25rem;
+    border-left: 1px solid var(--line);
 }
 
 /* Line of a meal in the text of controls, a grey line above it, apart from the meal before */
