@@ -269,7 +269,7 @@
     text-decoration: line-through;
 }
 
-/* Section of a chapter, closed at first: its line like a task's with the fold arrow before it,
+/* Section of a chapter, closed at first: its line like a task's with the fold arrow before it, centred on the name,
    its tasks indented below it once open */
 .skill-section > summary {
     list-style: none;
@@ -283,6 +283,7 @@
 .skill-section > summary::before {
     content: "";
     flex: none;
+    align-self: center;
     width: 1em;
     height: 1lh;
     margin-right: calc(0.5rem - 2 * var(--gap));
