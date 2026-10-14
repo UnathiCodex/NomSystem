@@ -11,7 +11,8 @@
  *   wrapped and further lines under its text, its guide lines and the line of quotes.
  *   Their `##`, `>`, indentation, `-` and `1.` are hidden; on the line of the cursor the `##` and `>` show left of the text,
  *   and the `-` or number of an item shows in place of its bullet or number, so the text never moves.
- * - Empty lines as high as the space the scripts view leaves between the blocks around them, see {@link spaceLook}.
+ * - Empty lines as high as the space the scripts view leaves between the blocks around them, the line of the cursor
+ *   as high as a line, see {@link spaceLook}.
  * - Bold, italic, struck and code without `**`, `*`, `~~` and `` ` ``, Markdown links and wiki links
  *   `[[Note#Heading|Text]]` as their text; the markup of the piece the cursor touches shows.
  * - Line breaks `<br>` and break opportunities `<wbr>` drawn as in the scripts view, so `<br><wbr>` at the end of a line
@@ -477,6 +478,18 @@ function touched(look: Look, from: number, to: number): boolean {
 }
 
 /**
+ * Tells whether the cursor stands on a line while I am editing, the end of a selection counting as the cursor.
+ *
+ * @param look - Look being built
+ * @param line - The line
+ * @returns Whether the cursor stands on it
+ */
+function cursorOn(look: Look, line: Line): boolean {
+    return look.focused
+        && look.state.selection.ranges.some((range: SelectionRange): boolean => range.head >= line.from && range.head <= line.to);
+}
+
+/**
  * Tells whether the cursor or a selection lies on a line of a stretch of the text.
  *
  * @param look - Look being built
@@ -909,8 +922,11 @@ const looks: { [name: string]: (look: Look, node: SyntaxNode) => boolean } = {
  * the larger of the space below the block before, 1em below a quote, and the space above the block after,
  * see {@link spaceAboveOf}, shared evenly by several, since the scripts view leaves the same space for any number
  * of them; without height next to a block rendered whole, which keeps its own space.
+ * The empty line of the cursor keeps the height of a line, so I see where I type: Enter after a heading,
+ * which leaves no space below it, gives a line the rest moves down for, as in Obsidian.
  * - `first`: Number of the first empty line after the block before.
  * - `count`: How many empty lines stand between the two blocks.
+ * - `line`: One of them.
  *
  * @param look - Look being built
  */
@@ -923,8 +939,11 @@ function spaceLook(look: Look): void {
         const first: number = before === null ? 1 : look.state.doc.lineAt(before.to).number + 1;
         const count: number = look.state.doc.lineAt(block.from).number - first;
         const space: Decoration = Decoration.line({ attributes: { style: `height: calc(${height} / ${Math.max(count, 1)})` } });
-        for (let number: number = first; number < first + count; number++)
-            look.decorations.push(space.range(look.state.doc.line(number).from));
+        for (let number: number = first; number < first + count; number++) {
+            const line: Line = look.state.doc.line(number);
+            if (!cursorOn(look, line))
+                look.decorations.push(space.range(line.from));
+        }
         before = block;
     }
 }
