@@ -1848,6 +1848,13 @@ svg.route-arrow {
         display: none;
     }
 
+    /* The plan on a phone over the whole width, as the log and the switch below them, so its boxes stand as far
+       from both edges of the screen: no step in from the rail's buttons, `--content-indent`, since a phone has
+       no rail */
+    #day-plan {
+        padding-left: 0;
+    }
+
     /* Switch between plan and log at the bottom, its buttons side by side in the middle, the one shown in the calm
        grey of what is picked, and the + of the shown one at the right */
     .day-switch {
