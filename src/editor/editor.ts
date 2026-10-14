@@ -23,9 +23,10 @@
  * - `@codemirror/state`, `@codemirror/view`: The editor, CodeMirror 6, the engine of Obsidian's editor.
  * - `@codemirror/commands`: Undo, redo and the usual keys, Tab indenting a line.
  * - `@codemirror/language`: Indents with tabs.
- * - `@codemirror/lang-markdown`: Reads the note as Markdown and continues a list on Enter, as Obsidian does.
+ * - `@codemirror/lang-markdown`: Reads the note as Markdown.
  * - `@lezer/markdown`: GitHub's tables, task lists and strikethrough for the Markdown parser.
  * - `./ics.ts`: Shows an `.ics` file with its blocks one step in and its entries apart.
+ * - `./keys.ts`: The keys of a Markdown file as in Obsidian, like Enter continuing a list.
  * - `./syntax.ts`: Obsidian syntax for the Markdown parser.
  * - `./preview.ts`: Shows the Markdown as in the scripts view.
  * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked.
@@ -33,13 +34,14 @@
  * - `./editor.css`: Look of the editor.
  */
 
-import { EditorState, Prec } from "@codemirror/state";
+import { EditorState } from "@codemirror/state";
 import { EditorView, drawSelection, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
-import { deleteMarkupBackward, insertNewlineContinueMarkupCommand, markdown } from "@codemirror/lang-markdown";
+import { markdown } from "@codemirror/lang-markdown";
 import { GFM } from "@lezer/markdown";
 import { icsLook } from "./ics.ts";
+import { markdownKeys } from "./keys.ts";
 import { obsidianSyntax } from "./syntax.ts";
 import { livePreview } from "./preview.ts";
 import { treeShow } from "../notes/tree.ts";
@@ -47,8 +49,8 @@ import { timeOf } from "../day/times.ts";
 import "../notes/notes.css";
 import "./editor.css";
 
-import type { Extension, Line } from "@codemirror/state";
-import type { Command, ViewUpdate } from "@codemirror/view";
+import type { Extension } from "@codemirror/state";
+import type { ViewUpdate } from "@codemirror/view";
 import type { LanguageSupport } from "@codemirror/language";
 import type { Links } from "./preview.ts";
 
@@ -98,45 +100,10 @@ type Opened = {
 /**
  * Markdown as my notes are written: CommonMark with GitHub's tables, task lists, strikethrough and links,
  * and the Obsidian syntax of `./syntax.ts`; a URL pasted over selected text makes it a link, as in Obsidian.
- * Its keys are {@link markdownKeys}, and it completes no HTML tags.
+ * Its keys are those of `./keys.ts`, and it completes no HTML tags.
  */
 const markdownSupport: LanguageSupport =
     markdown({ extensions: [GFM, obsidianSyntax], addKeymap: false, completeHTMLTags: false });
-
-/**
- * Goes on in the same point of a list on the next line, with Shift+Enter, where I find a break nice, as Enter starts
- * the next point: the new line stands under the text of the point, its tabs and then as many spaces as its `-`
- * or number with the space after it, two under `- `, three under `1. `, as my notes write a further line of a point;
- * a further line keeps its own indentation; outside a list it is a plain new line.
- * The scripts view and the preview show such a line in its point, below its text, see `./preview.ts`.
- * - `line`: The line of the cursor.
- * - `point`: Its tabs and its `-` or number with the space after it, `null` for a line that starts no point.
- * - `indentation`: Indentation of the new line.
- *
- * @param view - The editor
- * @returns `true`, as it always takes the key
- */
-const pointContinue: Command = (view: EditorView): boolean => {
-    const line: Line = view.state.doc.lineAt(view.state.selection.main.head);
-    const point: RegExpExecArray | null = /^(\t*)((?:[-*+]|\d+[.)])[ \t])/.exec(line.text);
-    const indentation: string = point !== null ? point[1] + " ".repeat(point[2].length)
-        : /^[ \t]*/.exec(line.text)?.[0] ?? "";
-    view.dispatch(view.state.update(view.state.replaceSelection(view.state.lineBreak + indentation),
-        { scrollIntoView: true, userEvent: "input" }));
-    return true;
-};
-
-/**
- * Keys of a Markdown file, as in Obsidian: Enter continues a list, a task list or a quote on the next line,
- * and on an empty item ends the list; Shift+Enter goes on in the same point on the next line, see
- * {@link pointContinue}; Backspace right after the `-` of an item or the `>` of a quote takes it away.
- * They go before the usual keys.
- */
-const markdownKeys: Extension = Prec.high(keymap.of([
-    { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
-    { key: "Shift-Enter", run: pointContinue },
-    { key: "Backspace", run: deleteMarkupBackward },
-]));
 
 /**
  * Path of the file: of a note as the scripts view takes it, of a file of my new system as the tree names it.
@@ -229,8 +196,8 @@ function keyDown(event: KeyboardEvent): void {
  * - `lineSeparator`: Splits and joins the lines by the line break of the file, `\r\n` or `\n`,
  *   so saving writes the line breaks as they were, also a single other one, which stays inside its line.
  * - `readOnly`: Lets me read a note that is no draft, or an `.ics` file, never change it.
- * - `markdownSupport`, `markdownKeys`, `livePreview`: Read a Markdown file as Markdown, continue its lists on Enter
- *   and show it as in the scripts view;
+ * - `markdownSupport`, `markdownKeys`, `livePreview`: Read a Markdown file as Markdown, take its keys as in Obsidian,
+ *   see `./keys.ts`, and show it as in the scripts view;
  *   any other file stays its plain text, an `.ics` file with its blocks one step in, see `./ics.ts`.
  * - `indentUnit`: Indents with a tab, as my notes do.
  * - `lineWrapping`: Wraps long lines at the reading width, as the scripts view does, so I see where a line overflows.
