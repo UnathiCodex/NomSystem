@@ -5,7 +5,9 @@
  * a field where a few letters or a barcode find my foods first, the most eaten first,
  * and below them the products of Open Food Facts, a page of them at a time, `More` loading the next page,
  * beside it how many it shows of how many the search matches, like `8 of 54`.
- * It searches once the typing pauses, so a word asks only once; an empty field lists all my foods.
+ * It searches once the typing pauses, so a word asks only once; an empty field lists all my foods. That nothing
+ * is found it says only for the text as it stands, once its answer is in, never for a text typed before, like
+ * a barcode typed digit by digit, whose first digits find nothing.
  * I search the food alone, like `räucherlachs`: Open Food Facts searches the names of its products, and a word of
  * a brand or a shop only ranks them, it filters nothing, so the brand and store of a product stand beside its name.
  * Each food shows kcal, protein, carbs and fat per 100 g and its usual portion, its brand and store in brackets
@@ -271,7 +273,7 @@ function resultsShow(search: Search): void {
     const rows: HTMLElement[] = [...search.before?.(query) ?? [], headOf()];
 
     if (found.foods.length === 0)
-        rows.push(elementOf("p", "food-none", query === "" ? "No foods yet" : "None of my foods matches"));
+        rows.push(elementOf("p", "food-none food-nothing", query === "" ? "No foods yet" : "None of my foods matches"));
     rows.push(...found.foods.map((food: Food): HTMLElement => {
         const row: HTMLElement = search.pick === null
             ? elementOf("div", "food-row", "")
@@ -284,9 +286,9 @@ function resultsShow(search: Search): void {
         const products: Product[] = found.products ?? [];
         rows.push(elementOf("hr", "food-divider", ""));
         if (found.products === null)
-            rows.push(elementOf("p", "food-none", "Open Food Facts cannot be reached"));
+            rows.push(elementOf("p", "food-none food-nothing", "Open Food Facts cannot be reached"));
         else if (products.length === 0)
-            rows.push(elementOf("p", "food-none", "No products: type more letters"));
+            rows.push(elementOf("p", "food-none food-nothing", "No products: type more letters"));
         rows.push(...products.map((product: Product): HTMLElement => {
             const taken: boolean = found.foods.some((food: Food): boolean =>
                 food.name.toLowerCase() === product.name.toLowerCase());
@@ -374,10 +376,12 @@ function moreOf(search: Search, shown: number, found: FoodsFound): HTMLElement {
 }
 
 /**
- * Searches for the text of the field, of the brand picked, and shows what it finds, unless another search was asked
- * meanwhile, so a late answer never covers a newer one: the first page in place of what was shown,
+ * Searches for the text of the field and shows what it finds, unless another search was asked meanwhile or the text
+ * changed since, so a late answer never covers a newer one, and an answer that found nothing never stands below
+ * a text it was not given for, see {@link nothingHide}: the first page in place of what was shown,
  * a later page after the products shown, which stay when Open Food Facts cannot be reached for it.
  * - `asked`: Number of this search.
+ * - `text`: The text searched for.
  * - `before`: What the search had found before.
  *
  * @param search - The search
@@ -385,9 +389,10 @@ function moreOf(search: Search, shown: number, found: FoodsFound): HTMLElement {
  */
 function resultsLoad(search: Search, page: number): void {
     const asked: number = ++search.asked;
+    const text: string = search.input.value.trim();
     const before: FoodsFound | null = search.found;
-    foodsFind(search.input.value.trim(), page).then((found: FoodsFound): void => {
-        if (asked !== search.asked)
+    foodsFind(text, page).then((found: FoodsFound): void => {
+        if (asked !== search.asked || search.input.value.trim() !== text)
             return;
         search.page = page;
         search.found = page === 1 || before === null ? found : {
@@ -404,9 +409,20 @@ function resultsLoad(search: Search, page: number): void {
 }
 
 /**
+ * Takes away the lines of a search that say nothing was found, like `No products: type more letters`, as soon as
+ * the text changes, since they told of the text before; the answer for the text as it stands shows them again,
+ * should it find nothing too, see {@link resultsLoad}.
+ *
+ * @param search - The search
+ */
+function nothingHide(search: Search): void {
+    search.results.querySelectorAll(".food-nothing").forEach((line: Element): void => line.remove());
+}
+
+/**
  * Builds the food search, see the top of this file, showing all my foods at first.
- * Typing searches from the first page once it pauses for {@link pause}; Enter searches at once,
- * without sending a form around it.
+ * Typing searches from the first page once it pauses for {@link pause}, the lines that found nothing for the text
+ * before gone at once, see {@link nothingHide}; Enter searches at once, without sending a form around it.
  * - `element`: Field and results.
  * - `search`: The search with what it shows.
  * - `waiting`: Timer of the search waiting for the pause, 0 for none.
@@ -433,6 +449,7 @@ export function foodSearchOf(pick: Pick, before: Before): HTMLElement {
     search.input.autocomplete = "off";
     search.input.addEventListener("input", (): void => {
         clearTimeout(waiting);
+        nothingHide(search);
         waiting = window.setTimeout((): void => resultsLoad(search, 1), pause);
     });
     search.input.addEventListener("keydown", (event: KeyboardEvent): void => {

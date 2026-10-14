@@ -7,6 +7,7 @@
  * Where an icon would be unclear, like Right, Wrong, Stuck and Skip, the words stay.
  * One plus adds one more and one `×` takes a value back, made only here, so they look and act the same everywhere,
  * for a meal, a food, a chapter, a type, a document or a way, see {@link plusPut} and {@link crossPut}.
+ * A remove that asks once more shows a plain question mark, see {@link QuestionMark}.
  *
  * - `lucide`: Makes the SVG element of an icon; the icons plus and cross.
  */
@@ -15,6 +16,17 @@ import { createElement, Plus, X } from "lucide";
 
 import type { IconNode } from "lucide";
 
+
+/**
+ * A plain question mark, without the circle of Lucide's `CircleQuestionMark`, which Lucide has no icon of: its two
+ * paths alone, scaled by 1.5 about the middle of the icon, (12, 12), so the mark fills about as much of it as the
+ * other icons do; shown by a remove that asks once more, `Really remove?`, like the bin of a dialog or the `×`
+ * of a meal.
+ */
+export const QuestionMark: IconNode = [
+    ["path", { d: "M7.64 7.5a4.5 4.5 0 0 1 8.74 1.5c0 3-4.5 4.5-4.5 4.5" }],
+    ["path", { d: "M12 19.5h.01" }],
+];
 
 /**
  * Makes the element of an icon, hidden from screen readers, which read the words of its button instead.

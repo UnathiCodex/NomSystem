@@ -71,8 +71,8 @@
  *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
  * - `../icons.ts`: Shows the icons of the copy, the bin and its question, Cancel and Save in their buttons,
- *   and the pencil of a place.
- * - `lucide`: The icons of the copy, the bin and its question, Cancel, Save and the pencil.
+ *   and the pencil of a place; makes the plain question mark of the bin.
+ * - `lucide`: The icons of the copy, the bin, Cancel, Save and the pencil.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
@@ -88,8 +88,8 @@ import {
 } from "./skill.ts";
 import { dateOf, dateParse, dateTextOf, lengthOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
-import { iconPut } from "../icons.ts";
-import { Check, CircleQuestionMark, Copy, Pencil, Trash, X } from "lucide";
+import { iconPut, QuestionMark } from "../icons.ts";
+import { Check, Copy, Pencil, Trash, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -1199,7 +1199,7 @@ async function entryRemove(calendar: Calendar): Promise<void> {
     const button: HTMLButtonElement = document.getElementById("entry-remove") as HTMLButtonElement;
     if (!removeAsked) {
         removeAsked = true;
-        iconPut(button, CircleQuestionMark, "Really remove?");
+        iconPut(button, QuestionMark, "Really remove?");
         return;
     }
 

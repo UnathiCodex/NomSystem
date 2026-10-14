@@ -5,7 +5,8 @@
  * a menu over the dialog right under the plus that opens it, see `listOf` in `choices.ts`, so meals and foods
  * never mix:
  * - Summary: what I ate, written by itself, never typed: the meals, then the foods eaten beside them, parted by `, `,
- *   like `ChiliConCarne, Weißbrot`, and beside it what they give together, like `660 kcal`.
+ *   like `ChiliConCarne, Weißbrot`, and after it in brackets what they give together, as a type stands after its
+ *   skill, like `ChiliConCarne, Weißbrot (660 kcal)`.
  * - Meals: my meals of `Meals.md`, each only its composition, one or more of my foods, see `../food/meals.ts`.
  *   A meal picked brings its foods at their usual portion: a row with its name, its kcal and a small grey `×`,
  *   which removes it, its foods indented below it, each a row as a food beside the meals has it, so I change the grams
@@ -499,8 +500,8 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
 }
 
 /**
- * Shows the summary, see {@link mealTitle}, and beside it the kcal of the whole meal, white like every kcal;
- * nothing while nothing is picked.
+ * Shows the summary, see {@link mealTitle}, and after it the kcal of the whole meal in brackets, as a type stands
+ * after its skill, like `ChiliConCarne, Weißbrot (660 kcal)`, white like the summary; nothing while nothing is picked.
  * - `total`: kcal of the meals and the foods beside them.
  */
 function summaryShow(): void {
@@ -508,7 +509,7 @@ function summaryShow(): void {
         + picks.reduce((sum: number, pick: FoodPick): number => sum + kcalOf(pick), 0);
     summary.replaceChildren(mealTitle());
     if (meals.length > 0 || picks.length > 0)
-        summary.append(elementOf("span", "meal-total", kcalTextOf(total)));
+        summary.append(elementOf("span", "meal-total", ` (${kcalTextOf(total)})`));
 }
 
 /**

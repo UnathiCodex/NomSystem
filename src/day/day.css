@@ -1428,9 +1428,9 @@ fieldset.entry-times {
     overflow-wrap: anywhere;
 }
 
-/* kcal of the whole meal beside its summary, white and as big as it, like the kcal of every meal and food */
+/* kcal of the whole meal in brackets after its summary, like `ChiliConCarne, Weißbrot (660 kcal)`, as a type stands
+   after its skill; white and as big as the summary, like the kcal of every meal and food */
 .meal-total {
-    margin-left: 0.75rem;
     font-variant-numeric: tabular-nums;
 }
 
@@ -1482,13 +1482,20 @@ fieldset.entry-times {
 }
 
 /* Row of a meal or a food: its name, the grams of a food, its kcal and its small grey `×`, see `.cross-quiet`
-   in `base.css` */
+   in `base.css`; grams, kcal and × on the line of the name, also while its brand and store stand on a line below it,
+   see `bracketsWatch` in `../food/foods.ts`, never between the two lines; the ×, which has no line of text,
+   one line high at the top */
 .meal-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 6.5rem 6rem auto;
     gap: var(--control-gap);
-    align-items: center;
+    align-items: baseline;
     font-size: 0.875rem;
+}
+
+.meal-row > .cross-quiet {
+    align-self: start;
+    height: 1lh;
 }
 
 /* Parts of a meal below its row, as the documents of a chapter, see `.panel-nested`: its foods, indented under its

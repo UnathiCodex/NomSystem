@@ -11,7 +11,9 @@
  *   `Cancel` and `Save`, which takes no click until the meal has a name and a food.
  * - The row of a meal, the same in the section of the food view and in the list of the meals of an entry: its name,
  *   its foods in brackets after it by their names, and at the right what it gives at the usual portions.
- * - The section of the food view: `Meals`, then the row of each meal; a click shows its foods below it, each with
+ * - The section of the food view: `Meals`, then a search field, as the foods have one, which shows only the meals
+ *   whose name or foods hold what is typed, ignoring case and accents, see `../search.ts`, like `reis` finding every
+ *   meal with rice; then the row of each meal; a click shows its foods below it, each with
  *   its `×` while it has more than one, and right after its name the small grey plus, like `ChiliConCarne +`, which
  *   opens the food search below its foods and closes it again, a food picked changed for good in `Meals.md` at once;
  *   a click on the row but on its plus hides its foods again; the `×` of the meal, whose first click only asks,
@@ -22,15 +24,16 @@
  *
  * - `./foods.ts`: Loads my foods and meals, sends and removes meals, writes amounts and makes elements and buttons.
  * - `./search.ts`: The food search, which adds a food to a meal.
- * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, and the question mark, their words as tooltip.
- * - `lucide`: The icon ask.
+ * - `../search.ts`: Compares the text typed in the search of the meals with their names and foods.
+ * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, and the plain question mark, their words
+ *   as tooltip.
  * - `./meals.css`: Look of the form and of the section.
  */
 
 import { amountOf, bracketsWatch, buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodNameOf } from "./foods.ts";
 import { foodSearchClear, foodSearchOf } from "./search.ts";
-import { crossPut, iconPut, plusPut } from "../icons.ts";
-import { CircleQuestionMark } from "lucide";
+import { crossPut, iconPut, plusPut, QuestionMark } from "../icons.ts";
+import { matchesAll, wordsOf } from "../search.ts";
 import "./meals.css";
 
 import type { Dish, Food } from "./foods.ts";
@@ -222,6 +225,7 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
  * Builds the section of my meals in the food view, see the top of this file, loading my meals,
  * and again after every meal added, changed or removed.
  * - `section`: The section.
+ * - `search`: The search field of the meals, `Search meals` grey in it while empty.
  * - `list`: Place of the rows of the meals and, at their end, of the form of a new meal while open.
  * - `dishes`: My meals.
  * - `open`: Name of the meal whose foods show, in small letters, empty for none.
@@ -233,13 +237,17 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
  * - `change`: Sends a meal with its foods changed for good and shows my meals as the reader sends them.
  * - `formOpen`: Opens the form of a new meal at the end of the meals.
  * - `heading`: The name `Meals` with its plus.
- * - `show`: Shows the meals, then the form while open; the row of the meal whose foods show no button but a row
+ * - `show`: Shows the meals whose name or foods hold the words typed in the search, all of them for none typed,
+ *   or a hint when none does, then the form while open; the row of the meal whose foods show no button but a row
  *   that a click hides again, see `rowOf` in `../day/choices.ts`, since its plus stands inside it, right after its name.
+ * - `words`: The words typed in the search.
+ * - `shown`: The meals found.
  *
  * @returns The section
  */
 export function mealsSectionOf(): HTMLElement {
     const section: HTMLElement = elementOf("section", "food-dishes", "");
+    const search: HTMLInputElement = document.createElement("input");
     const list: HTMLElement = elementOf("div", "dish-list", "");
     bracketsWatch(list);
     let dishes: Dish[] = [];
@@ -287,7 +295,10 @@ export function mealsSectionOf(): HTMLElement {
         show();
     };
     const show: () => void = (): void => {
-        const rows: HTMLElement[] = dishes.flatMap((dish: Dish): HTMLElement[] => {
+        const words: string[] = wordsOf(search.value);
+        const shown: Dish[] = dishes.filter((dish: Dish): boolean => matchesAll([dish.name,
+            ...dish.foods.map((line: string): string => line.split(";")[0])].join(" "), words));
+        const rows: HTMLElement[] = shown.flatMap((dish: Dish): HTMLElement[] => {
             const key: string = dish.name.toLowerCase();
             const line: HTMLElement = elementOf("div", "dish-line", "");
             const cells: HTMLElement[] = dishCellsOf(dish);
@@ -306,7 +317,7 @@ export function mealsSectionOf(): HTMLElement {
                 }).catch((error: unknown): void => console.error(error));
             });
             if (asked === key)
-                iconPut(remove, CircleQuestionMark, "Really remove?");
+                iconPut(remove, QuestionMark, "Really remove?");
             row.append(...cells);
             row.setAttribute("aria-expanded", String(open === key));
             line.append(row, remove);
@@ -344,12 +355,19 @@ export function mealsSectionOf(): HTMLElement {
         });
         list.replaceChildren(...rows,
             ...dishes.length === 0 && form === null ? [elementOf("p", "food-none", "No meals yet")] : [],
+            ...dishes.length > 0 && shown.length === 0 ? [elementOf("p", "food-none", "None of my meals matches")] : [],
             ...form === null ? [] : [form]);
     };
     const heading: HTMLElement = elementOf("h2", "food-heading", "Meals");
 
     heading.append(plusOf("New meal", formOpen));
-    section.append(heading, list);
+    search.type = "search";
+    search.className = "dish-search";
+    search.placeholder = "Search meals";
+    search.autocomplete = "off";
+    search.setAttribute("aria-label", "Search meals");
+    search.addEventListener("input", show);
+    section.append(heading, search, list);
     load();
     return section;
 }
