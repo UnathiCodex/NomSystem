@@ -462,15 +462,17 @@ function newFoodOf(search: Search, query: string, mine: Food[]): HTMLElement[] {
 }
 
 /**
- * Gives what a search does with a food once the reader wrote it: searches for its name, so it shows among my foods,
- * and picks it where foods are picked.
+ * Gives what a search does with a food once the reader wrote it: clears the text typed, so the list shows all my
+ * foods again, the new one among them, closed, and I am out of the search, see {@link foodSearchClear}; and picks it
+ * where foods are picked.
  *
  * @param search - The search
  * @returns Takes the food written
  */
 function addedOf(search: Search): (food: Food) => void {
     return (food: Food): void => {
-        search.input.value = food.name;
+        search.input.value = "";
+        search.open = "";
         resultsLoad(search, 1);
         search.setup.pick?.(food);
     };

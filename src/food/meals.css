@@ -15,3 +15,21 @@
     font: inherit;
     vertical-align: top;
 }
+
+/* A food of a meal opened, dragged to another place, see `dragPut` in `meals.ts`: the hand to grab it, faint while
+   it is dragged, and a thin line above or below the food it would go before or after */
+.dish-list .food-part[draggable="true"] {
+    cursor: grab;
+}
+
+.dish-list .food-part.dragged {
+    opacity: 0.4;
+}
+
+.dish-list .food-part.drop-before {
+    box-shadow: 0 -0.3125rem 0 -0.1875rem var(--chosen-line);
+}
+
+.dish-list .food-part.drop-after {
+    box-shadow: 0 0.3125rem 0 -0.1875rem var(--chosen-line);
+}

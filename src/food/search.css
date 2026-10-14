@@ -3,12 +3,13 @@
    opened below its line; the same look in the food view and in the entry by category of the day */
 /* Field of the search one control high, across the foods, without the browser's own clear cross, which is no Lucide
    icon, as every search field of the page; Escape or deleting the text clears it; the same for the search of my meals
-   in the food view, see `mealsSectionOf` in `meals.ts` */
+   in the food view, see `mealsSectionOf` in `meals.ts`; as much room above and below it as in the dialogs, so its
+   list starts as far below it there as here */
 .food-search > input,
 .dish-search {
     width: 100%;
     height: var(--control-height);
-    margin-top: 0.75rem;
+    margin: 0.75rem 0;
     padding: 0 var(--control-padding);
     border: 1px solid var(--line);
     border-radius: var(--radius);
