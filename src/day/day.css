@@ -166,8 +166,8 @@
 }
 
 /* A box: its ring, its lines and its buttons in one row, outlined in a soft grey with round corners, with air around
-   its lines, so the plan looks as real as the log; every box as bright as every other, open, done, cancelled or
-   of a day that is over, only its ring telling its state; an open box is grabbed to drag it into the log */
+   its lines, so the plan looks as real as the log; an open box as bright on a day that is over as on today;
+   an open box is grabbed to drag it into the log */
 .box {
     display: flex;
     align-items: flex-start;
@@ -290,6 +290,18 @@ button.box-ring.box-checked svg {
 .box .box-ring svg {
     width: 0.75rem;
     height: 0.75rem;
+}
+
+/* Done box: its lines as when it was open, only greyed, its what grey too */
+.box-done .box-what {
+    color: var(--text-muted);
+}
+
+/* Cancelled box, skipped by me or cancelled by the university, like a lecture that does not take place:
+   only faded, never struck through; the time line of one the university cancelled says so */
+.box-dropped,
+.box-university {
+    opacity: 0.55;
 }
 
 /* Heading of the boxes carried along to today, below the list of today:
