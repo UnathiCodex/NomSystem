@@ -75,6 +75,8 @@ export type SearchSetup = {
  * - `enter`: Whether Enter waits for the results of the text typed, to take the first, see {@link firstPick}.
  * - `asking`: Key of my food whose `×` asked `Really remove?`, empty for none.
  * - `reveal`: Whether the food open goes into sight once shown, as after a click on it in a meal, see {@link foodShow}.
+ * - `linked`: Whether the text was put in by a click on a food of a meal, see {@link foodShow}, so the search finds only
+ *   my foods, not Open Food Facts, until I type.
  * - `added`: Keys of the foods I added in the food view since it opened, the last first, which stay on top until
  *   the page loads anew, so I mend what came wrong right away, see {@link addedOf}.
  */
@@ -90,6 +92,7 @@ type Search = {
     enter: boolean;
     asking: string;
     reveal: boolean;
+    linked: boolean;
     added: string[];
 };
 
@@ -518,7 +521,7 @@ function resultsShow(search: Search): void {
     search.shown = query;
     if (search.reveal) {
         search.reveal = false;
-        search.results.querySelector(".food-detail")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        search.results.querySelector(".food-detail")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
     if (search.enter) {
         search.enter = false;
@@ -573,6 +576,7 @@ function newFoodOf(search: Search, query: string, mine: Food[]): HTMLElement[] {
 function addedOf(search: Search): (food: Food) => void {
     return (food: Food): void => {
         search.input.value = "";
+        search.linked = false;
         search.open = search.setup.pick === null ? keyOf(food) : "";
         if (search.setup.pick === null)
             search.added = [keyOf(food), ...search.added.filter((key: string): boolean => key !== keyOf(food))];
@@ -723,7 +727,8 @@ function moreOf(search: Search, shown: number, found: FoodsFound): HTMLElement {
  * Searches for the text of the field and shows what it finds, unless another search was asked meanwhile or the text
  * changed since, so a late answer never covers a newer one, and an answer that found nothing never stands below
  * a text it was not given for, see {@link nothingHide}: the first page in place of what was shown,
- * a later page after the products shown, which stay when Open Food Facts cannot be reached for it.
+ * a later page after the products shown, which stay when Open Food Facts cannot be reached for it; a text put in by
+ * a click on a food of a meal finds only my foods, see {@link foodShow}.
  * - `asked`: Number of this search.
  * - `text`: The text searched for.
  * - `before`: What the search had found before.
@@ -735,7 +740,7 @@ function resultsLoad(search: Search, page: number): void {
     const asked: number = ++search.asked;
     const text: string = search.input.value.trim();
     const before: FoodsFound | null = search.found;
-    foodsFind(text, page, search.setup.products).then((found: FoodsFound): void => {
+    foodsFind(text, page, search.setup.products && !search.linked).then((found: FoodsFound): void => {
         if (asked !== search.asked || search.input.value.trim() !== text)
             return;
         search.page = page;
@@ -788,6 +793,7 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
         enter: false,
         asking: "",
         reveal: false,
+        linked: false,
         added: [],
     };
     let waiting: number = 0;
@@ -797,6 +803,7 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
     search.input.autocomplete = "off";
     search.input.addEventListener("input", (): void => {
         clearTimeout(waiting);
+        search.linked = false;
         nothingHide(search);
         waiting = window.setTimeout((): void => resultsLoad(search, 1), pause);
     });
@@ -820,9 +827,10 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
 }
 
 /**
- * Shows one of my foods opened in a search that only shows, like that of the food view: the field emptied, so all
- * my foods show, the food open below its line and moved into sight, as a click on a food of a meal asks, see
- * `../food/meals.ts`.
+ * Shows one of my foods opened in a search that only shows, like that of the food view, as a click on a food of a meal
+ * asks, see `../food/meals.ts`: its name put into the field, so the search lists it among my foods, without the
+ * products of Open Food Facts, see {@link Search}, open below its line, the page moving only as far as it needs to show
+ * it.
  *
  * @param element - The search, as {@link foodSearchOf} built it
  * @param food - The food, its name, brand and store
@@ -831,8 +839,9 @@ export function foodShow(element: HTMLElement, food: { name: string; brand: stri
     const search: Search | undefined = searches.get(element);
     if (search === undefined)
         return;
-    search.input.value = "";
+    search.input.value = food.name;
     search.open = keyOf(food);
+    search.linked = true;
     search.reveal = true;
     resultsLoad(search, 1);
 }
@@ -849,5 +858,6 @@ export function foodSearchClear(element: HTMLElement): void {
         return;
     search.input.value = "";
     search.open = "";
+    search.linked = false;
     resultsLoad(search, 1);
 }
