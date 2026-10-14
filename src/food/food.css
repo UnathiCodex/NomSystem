@@ -98,7 +98,7 @@ body:has(> .food) {
 }
 
 .food-heading .plus-quiet {
-    margin-left: 0.375rem;
+    margin-left: 0.5rem;
     vertical-align: middle;
 }
 
@@ -151,7 +151,7 @@ body:has(> .food) {
 .food-line:not(.food-meal) > .food-what,
 .food-line:not(.food-meal) > .food-place {
     position: relative;
-    padding-left: 1.25rem;
+    padding-left: 1.75rem;
 }
 
 /* The thin grey line at the left of the foods of a meal, as at the parts of a meal or a chapter in the dialog,
@@ -162,7 +162,7 @@ body:has(> .food) {
     position: absolute;
     top: -0.125rem;
     bottom: -0.125rem;
-    left: 0.25rem;
+    left: 0.375rem;
     border-left: 1px solid var(--line);
 }
 
