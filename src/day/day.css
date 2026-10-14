@@ -669,7 +669,8 @@ button.box-ring.box-checked svg {
 }
 
 /* My gratitude below the plan and my points about the day below the log, as wide as them, each its name small
-   and grey above its list of points like them, see `.note-points`; the rest of the note below both */
+   and grey above its list of points like them, see `.note-points`; the rest of the note below both;
+   all of it but the names hidden while folded, see `.note-fold` */
 .note-boxes {
     display: grid;
     grid-column: 1 / -1;
@@ -679,6 +680,43 @@ button.box-ring.box-checked svg {
 
 .note-boxes .panel-error {
     grid-column: 1 / -1;
+}
+
+/* Name of a list as a button looking like the names of plan and log, lighter under the pointer, the grey fold arrow
+   of a chapter of a skill before it, pointing down while open; a click on either name folds both lists and the note,
+   see `foldToggle` in `evening.ts` */
+.note-fold {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.note-fold:hover {
+    color: var(--text-main);
+}
+
+.note-fold::before {
+    content: "";
+    width: 1em;
+    height: 1lh;
+    margin-right: 0.25rem;
+    background: var(--text-muted);
+    mask: var(--fold-icon) center / 0.875em no-repeat;
+    transition: rotate 100ms ease-in-out;
+}
+
+.note-folded .note-fold::before {
+    rotate: -90deg;
+}
+
+.note-folded .note-points,
+.note-folded .day-note {
+    display: none;
 }
 
 /* A list of points of the note as Markdown shows a list, framed like a box of the plan: a grey bullet before each

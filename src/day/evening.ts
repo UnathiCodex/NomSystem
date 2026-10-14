@@ -133,11 +133,24 @@ export async function eveningShow(day: string): Promise<void> {
 }
 
 /**
+ * Hides both lists and the note below them, or shows them again, after a click on the name of either list,
+ * so plan and log take their height; open at every start, see `.note-fold` in `day.css`.
+ * - `folded`: Whether they are hidden now.
+ */
+function foldToggle(): void {
+    const folded: boolean = (document.querySelector(".note-boxes") as HTMLElement).classList.toggle("note-folded");
+    document.querySelectorAll(".note-fold").forEach((fold: Element): void =>
+        fold.setAttribute("aria-expanded", String(!folded)));
+}
+
+/**
  * Starts the lists after the router has put their HTML into the page, each a list of points, see `points.ts`,
  * saved a moment after the typing pauses, when the focus leaves the list, and when the page goes out of sight,
- * like when I close it or switch to another app, so nothing typed gets lost.
+ * like when I close it or switch to another app, so nothing typed gets lost; their names fold them, see {@link foldToggle}.
  */
 export function eveningStart(): void {
+    document.querySelectorAll(".note-fold").forEach((fold: Element): void =>
+        fold.addEventListener("click", foldToggle));
     document.addEventListener("visibilitychange", (): void => {
         if (document.visibilityState === "hidden")
             boxesSave().catch(errorShow);
