@@ -55,6 +55,8 @@ export type FieldKey = "title" | "from" | "location";
  * - `steps`: Steps of a value offered in the code, by the value, which the dialog shows while it is picked,
  *   like the exercises of `Neck short`; none for the other values.
  * - `fixed`: Whether it takes only the values offered in the code, like `Night` and `Day` of `Sleep`, and no new ones.
+ * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `UBahn, Bus`;
+ *   one when left out.
  */
 export type Field = {
     name: string;
@@ -62,6 +64,7 @@ export type Field = {
     values: string[];
     steps: { [value: string]: string[] };
     fixed: boolean;
+    many?: boolean;
 };
 
 /**
@@ -176,7 +179,8 @@ const sleepWhats: string[] = ["Night", "Day"];
 
 /**
  * The only whats of `Way`, my means of transport, each written one way, without hyphen, like my other names:
- * `Walk`, `Bike`, `Bus`, `Tram`, `UBahn`, `SBahn`, `Train` and `Car`.
+ * `Walk`, `Bike`, `Bus`, `Tram`, `UBahn`, `SBahn`, `Train` and `Car`; a way may use several, since I change on it,
+ * parted by `, `, like `UBahn, Bus`.
  */
 const transports: string[] = ["Walk", "Bike", "Bus", "Tram", "UBahn", "SBahn", "Train", "Car"];
 
@@ -224,7 +228,7 @@ const categories: Category[] = [
         name: "Way",
         fields: [
             {
-                name: "Summary", key: "title", values: transports, steps: {}, fixed: true,
+                name: "Summary", key: "title", values: transports, steps: {}, fixed: true, many: true,
             },
             { name: "From", key: "from", values: [], steps: {}, fixed: false },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
@@ -441,7 +445,9 @@ export function categoryAllows(fields: Omit<EntryTexts, "locationLink" | "titleL
     const keys: FieldKey[] = category.fields.map((field: Field): FieldKey => field.key);
     const what: Field | undefined = category.fields.find((field: Field): boolean => field.key === "title");
     const whatAllowed: boolean = what === undefined ? fields.title === category.name
-        : fields.title.trim() === "" || !what.fixed || what.values.includes(fields.title);
+        : fields.title.trim() === "" || !what.fixed
+            || (what.many === true ? fields.title.split(", ") : [fields.title])
+                .every((value: string): boolean => what.values.includes(value));
     return whatAllowed && (keys.includes("from") || fields.from === "") && fields.module === "" && fields.type === "";
 }
 

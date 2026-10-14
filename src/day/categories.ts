@@ -72,7 +72,7 @@
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
-import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
+import { addedRowOf, choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import { labelOf, lineOf, placeEdit, placeOpen, placesStart } from "./places.ts";
@@ -82,7 +82,7 @@ import {
 import { boxTimesOf, dateOf, dateParse, dateTextOf, lengthOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
-import { Check, CircleCheck, CircleQuestionMark, Copy, Pencil, Trash, X } from "lucide";
+import { Check, CircleCheck, CircleQuestionMark, Copy, Pencil, Plus, Trash, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -105,6 +105,8 @@ type FieldKey = "title" | "from" | "location";
  * - `values`: Values to pick, the most used first.
  * - `steps`: Steps of a value offered in the code, by the value, like the exercises of `Neck short`.
  * - `fixed`: Whether it takes only its values, like `Night` and `Day` of `Sleep`, and no new ones.
+ * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `UBahn, Bus`,
+ *   see {@link manyRowsOf}; one when left out.
  * - `rooms`: For a field of a place, the rooms of the university in `Rooms.md`, each as the line an entry writes,
  *   which its list offers only as I search, see {@link placeSearchOf}; none for any other field.
  * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
@@ -116,6 +118,7 @@ type Field = {
     values: string[];
     steps: { [value: string]: string[] };
     fixed: boolean;
+    many?: boolean;
     rooms: string[];
     links: { [value: string]: string };
 };
@@ -644,6 +647,8 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
 function fieldRowsOf(field: Field): HTMLElement[] {
     if (field.key === "title" && meal !== null)
         return meal;
+    if (field.key === "title" && field.many === true && !asPlanned())
+        return manyRowsOf(field);
     const place: [HTMLButtonElement, HTMLAnchorElement] | null = field.key === "title" ? null : placePartsOf(field);
     const steps: HTMLElement = document.createElement("ul");
     steps.className = "entry-steps";
@@ -672,6 +677,38 @@ function fieldRowsOf(field: Field): HTMLElement[] {
             saveAllow();
         },
     }))];
+}
+
+/**
+ * Builds the rows of a summary of several values, like the means of a way, since I change on it, like U-Bahn then bus:
+ * each value picked its own row with its small ×, see `addedRowOf` in `choices.ts`, the first named by the field,
+ * then the row that adds the next, as the chapters of a skill entry: an empty row named by the field before the first,
+ * after that a small grey plus, `Add a means of transport` as its tooltip, the only field of several values so far;
+ * written as one summary, the values parted by `, `, like `UBahn, Bus`.
+ * - `picked`: The values picked, in their order.
+ * - `offered`: The values not picked yet.
+ * - `change`: Writes the values picked and shows the fields again.
+ *
+ * @param field - Field of several values, like the summary of `Way`
+ * @returns Its rows
+ */
+function manyRowsOf(field: Field): HTMLElement[] {
+    const picked: string[] = values[field.key] === "" ? [] : values[field.key].split(", ");
+    const offered: Choice[] = field.values.filter((value: string): boolean => !picked.includes(value)).map(choiceOf);
+    const change: (chosen: string[]) => void = (chosen: string[]): void => {
+        values[field.key] = chosen.join(", ");
+        fieldsShow();
+    };
+    const rows: HTMLElement[] = picked.map((value: string, index: number): HTMLElement =>
+        addedRowOf(index === 0 ? field.name : "", value, (): void =>
+            change(picked.filter((other: string): boolean => other !== value))));
+    if (offered.length > 0)
+        rows.push(rowOf(picked.length === 0 ? field.name : "", choicesOf({
+            search: searchOf(offered), picked: [], many: false, adding: false, noun: "means of transport",
+            ...(picked.length === 0 ? {} : { empty: "Add a means of transport", emptyIcon: Plus }),
+            pick: (chosen: string[]): void => change([...picked, ...chosen]),
+        })));
+    return rows;
 }
 
 /**
@@ -749,7 +786,8 @@ async function categoryPick(category: Category | null): Promise<void> {
     values = chosen === null ? { ...opened.values } : { ...valuesRead(), title: "" };
     chosen = category;
     (category?.fields ?? []).forEach((field: Field): void => {
-        values[field.key] = fixedValueOf(field, values[field.key]);
+        values[field.key] = (field.many === true ? values[field.key].split(", ") : [values[field.key]])
+            .map((value: string): string => fixedValueOf(field, value)).join(", ");
     });
     meal = null;
     document.getElementById("entry-more")?.replaceChildren();
