@@ -17,7 +17,7 @@
  * - Its entries of the plan by type, like all its lectures `VO`, one list per type, each open at first and folding
  *   by a click on its line, which shows how many are done, like `VO 3 / 14 done`; in it each entry numbered by date,
  *   the cancelled ones counted too, with its day and time, like `1  Tue, 06.10.2026, 10:00`, and its state
- *   at the right: `Done` once a log entry relates to it, `Cancelled`, greyed and struck through, `Open` once its day
+ *   at the right: `Done` once a log entry relates to it, `Cancelled`, greyed, never struck through, `Open` once its day
  *   is over, as on the day, or `To come`.
  * - The chapters, each open at first and folding by a click on its line, which shows how many of its sections are ready;
  *   in each its sections, closed, each with how many of its tasks I tried and the state of its cold task at the right,
@@ -285,8 +285,9 @@ function plannedStateOf(entry: PlannedEntry, today: string): string {
 /**
  * Builds the lists of the entries of the plan of a module, one per type, see the top of this file: each a fold,
  * open at first like a chapter, whose line holds the type and how many of its entries are done; in it each entry
- * by date, with its number as stored, `—` for one the university cancelled, its place by date for one without,
- * its day and time and its state at the right, a cancelled one greyed and struck through.
+ * by date, with its number as stored, none for one the university cancelled, which its state names, its place by date
+ * for one without, its day and time and its state at the right, a cancelled one greyed, never struck through,
+ * as a cancelled box of the day.
  * - `numberOf`: The number shown of an entry.
  * - `done`: Number of its entries done.
  * - `folder`: The fold of a type.
@@ -302,7 +303,7 @@ function plannedStateOf(entry: PlannedEntry, today: string): string {
 function plannedOf(module: SkillModule, today: string): HTMLElement[] {
     const numberOf: (entry: PlannedEntry, index: number) => string = (entry: PlannedEntry, index: number): string => {
         if (entry.number === "NONE")
-            return "—";
+            return "";
         return entry.number === "" ? String(index + 1) : entry.number;
     };
     return module.planned.map((planned: PlannedType): HTMLElement => {

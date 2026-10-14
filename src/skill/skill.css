@@ -263,10 +263,10 @@
     text-decoration: none;
 }
 
+/* A cancelled entry only greyed, never struck through, as a cancelled box of the day */
 .skill-planned .skill-planned-dropped .skill-name,
 .skill-planned .skill-planned-university .skill-name {
     color: var(--text-muted);
-    text-decoration: line-through;
 }
 
 /* Section of a chapter, closed at first: its line like a task's with the fold arrow before it, centred on the name,
