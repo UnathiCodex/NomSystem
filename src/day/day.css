@@ -1483,8 +1483,9 @@ fieldset.entry-times {
 
 /* Row of a meal or a food: its name, the grams of a food, its kcal and its small grey `×`, see `.cross-quiet`
    in `base.css`; grams, kcal and × on the line of the name, also while its brand and store stand on a line below it,
-   see `bracketsWatch` in `../food/foods.ts`, never between the two lines; the ×, which has no line of text,
-   one line high at the top */
+   see `bracketsWatch` in `../food/foods.ts`, never between the two lines; the kcal with the room of four digits and
+   their unit, like `1,250 kcal`, a clear gap to the grams before them and to the × after them; the ×, which has no
+   text of its own, on the line of the name, its icon level with the small letters, as an icon beside a word stands */
 .meal-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 6.5rem 6rem auto;
@@ -1494,8 +1495,15 @@ fieldset.entry-times {
 }
 
 .meal-row > .cross-quiet {
-    align-self: start;
-    height: 1lh;
+    display: block;
+    align-self: baseline;
+    margin-left: 0.25rem;
+    line-height: inherit;
+}
+
+.meal-row > .cross-quiet svg.lucide {
+    display: inline-block;
+    vertical-align: middle;
 }
 
 /* Parts of a meal below its row, as the documents of a chapter, see `.panel-nested`: its foods, indented under its
@@ -1936,10 +1944,10 @@ svg.route-arrow {
        like `125 g Hackfleisch`, so grams and kcal stand apart, at both ends of the name: its grams, its name,
        its kcal and ×; a food without its brand and store there, which would make the line too full, as a skill
        shows its code alone on a phone; a name too long goes on below, never cut; the foods of a meal indented less,
-       the field of the grams narrower, just wide enough for four digits, and the kcal just as wide as their number,
-       so a name like `Kidneybohnen` keeps its line whole */
+       the field of the grams narrower, just wide enough for four digits, and the kcal just as wide as four digits
+       with their unit, like `1,250 kcal`, so a name like `Kidneybohnen` keeps its line whole */
     .meal-row {
-        grid-template-columns: auto minmax(0, 1fr) 3.75rem auto;
+        grid-template-columns: auto minmax(0, 1fr) 4.75rem auto;
         gap: 0.375rem 0.4375rem;
     }
 
