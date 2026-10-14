@@ -255,6 +255,7 @@ export type FoodDay = Totals & {
  * - `code`: Barcode.
  * - `product_name`: Name.
  * - `brands`: Brands, a list from the search, a text parted by commas from the products.
+ * - `stores`: Stores that sell it, as the brands.
  * - `quantity`: Size of the pack as its maker writes it, like `450g`.
  * - `nutriments`: Nutrients by their names, like `energy-kcal_100g` or `proteins_100g`.
  */
@@ -262,6 +263,7 @@ type ProductSent = {
     code?: string;
     product_name?: string;
     brands?: string | string[];
+    stores?: string | string[];
     quantity?: string;
     nutriments?: { [nutrient: string]: number | string | undefined };
 };
@@ -361,7 +363,7 @@ const agent: string = "NomSystemDashboard/0.1";
 /**
  * Fields of a product the reader asks Open Food Facts for, see {@link ProductSent}.
  */
-const productFields: string = "code,product_name,brands,quantity,nutriments";
+const productFields: string = "code,product_name,brands,stores,quantity,nutriments";
 
 /**
  * Languages of the names a search looks in: German, since I shop in Germany, and English.
@@ -503,10 +505,10 @@ function brandOf(brand: string): string {
 }
 
 /**
- * Gives the first of the brands of a product, as the search sends a list and a product a text parted by commas,
- * cleaned for `Foods.md`, see {@link nameOf}.
+ * Gives the first of the brands or stores of a product, as the search sends a list and a product a text
+ * parted by commas, cleaned for `Foods.md`, see {@link nameOf}.
  *
- * @param sent - Brands as sent, like `["Milbona", "Lidl"]` or `Milbona, Lidl`; missing for none
+ * @param sent - Brands or stores as sent, like `["Milbona", "Lidl"]` or `Milbona, Lidl`; missing for none
  * @returns The first, like `Milbona`, empty for none
  */
 function firstOf(sent: string | string[] | undefined): string {
@@ -747,10 +749,9 @@ function addressOf(query: string, page: number): URL {
 
 /**
  * Turns a product as Open Food Facts sends it into a {@link Food} as it would go into `Foods.md`: its name cleaned,
- * see {@link foodTextOf}, the first of its brands, cleaned too, as its pack names it, its nutrients as `Foods.md`
- * writes them, the one of protein, carbs and fat it lacks worked out from its kcal, more missing unknown,
- * see {@link nutrientsOf}, and the size of its pack; no store, since the stores Open Food Facts lists are where
- * someone saw it, not where I buy it, so only I type mine.
+ * see {@link foodTextOf}, the first of its brands and of its stores, cleaned too, its nutrients as `Foods.md` writes
+ * them, the one of protein, carbs and fat it lacks worked out from its kcal, more missing unknown,
+ * see {@link nutrientsOf}, and the size of its pack.
  * - `nutrients`: Its nutrients by their names.
  * - `kcal`: Its kcal per 100 g, not a number when missing.
  * - `name`: Its clean name.
@@ -773,7 +774,7 @@ function productOf(sent: ProductSent): Food | null {
         }),
         barcode: sent.code ?? "",
         brand: brandOf(firstOf(sent.brands)),
-        store: "",
+        store: brandOf(firstOf(sent.stores)),
         pack: packOf(sent.quantity),
     };
 }

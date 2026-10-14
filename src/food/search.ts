@@ -12,8 +12,7 @@
  * is found it says in one grey line, only for the text as it stands, once its answer is in, never for a text typed
  * before, like a barcode typed digit by digit, whose first digits find nothing.
  * I search the food alone, like `räucherlachs`: Open Food Facts searches the names of its products, and a word of
- * a brand or a shop only ranks them, it filters nothing, so the brand of a product stands beside its name; a store
- * only I type, see `productOf` in `reader/food.ts`.
+ * a brand or a shop only ranks them, it filters nothing, so the brand and store of a product stand beside its name.
  * Every list of meals or foods looks alike, wherever it stands: one flat line per meal or food, nothing in it
  * but its name, a food's brand and store in brackets after it, like `Gouda (Milbona, Lidl)`, so the same name of two
  * shops never mixes up, and its kcal as a bare number, a meal's whole, a food's per 100 g, the head of its section
@@ -344,7 +343,7 @@ function mineLinesOf(search: Search, food: Food): HTMLElement[] {
 }
 
 /**
- * Makes the name of a product of Open Food Facts in its line: its name with its brand in brackets, see
+ * Makes the name of a product of Open Food Facts in its line: its name with its brand and store in brackets, see
  * `foodNameOf` in `foods.ts`, and below it, small and grey, its pack, like `Pack 265 g`, where known.
  * - `title`: Name, and below it the pack.
  *
