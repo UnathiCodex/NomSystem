@@ -994,15 +994,29 @@ fieldset.entry-times {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    column-gap: 1rem;
+    column-gap: 1.25rem;
     row-gap: 0.25rem;
 }
 
-/* Day and time side by side, like `13.10.2026 01:45`, closer to each other than to the dash, so start and end
-   each read as one */
+/* Day and time side by side, like `13.10.2026 01:45`, one space apart, each field as wide as what it holds,
+   so start and end each read as one; the room goes to the dash between them */
 .entry-moment {
     display: flex;
-    gap: 0.75rem;
+    align-items: baseline;
+    gap: 0.3em;
+}
+
+.entry-dash {
+    margin-left: 1rem;
+}
+
+@supports (field-sizing: content) {
+    .entry-moment .date-field,
+    .entry-moment .time-field {
+        width: auto;
+        min-width: 2ch;
+        field-sizing: content;
+    }
 }
 
 /* The box a log entry comes from, small and grey below the fields, in line with the names of the rows,
