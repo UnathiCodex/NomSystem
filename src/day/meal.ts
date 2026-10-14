@@ -49,7 +49,7 @@
 import { choicesOf, listOf, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
-import { amountOf, buttonOf, dishesLoad, elementOf, foodNameOf, foodsFind } from "../food/foods.ts";
+import { amountOf, bracketsWatch, buttonOf, dishesLoad, elementOf, foodNameOf, foodsFind } from "../food/foods.ts";
 import { dishCellsOf, kcalTextOf, mealFormOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf } from "../food/search.ts";
 import { crossPut, plusPut, plusTake, plusTypedPut } from "../icons.ts";
@@ -591,6 +591,7 @@ function mealsListShow(changed: () => void): void {
     const input: HTMLInputElement = document.createElement("input");
     const list: HTMLElement = elementOf("div", "picker-list", "");
     const plus: HTMLButtonElement = buttonOf("picker-new", "", (): void => formShow(input.value.trim(), changed));
+    bracketsWatch(list);
     const listShow: () => void = (): void => {
         const typed: string = input.value.trim();
         const key: string = typed.replace(/\s+/g, "").toLowerCase();
@@ -804,6 +805,8 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     foodsLine = document.createElement("button");
     mealsRows = elementOf("div", "meal-rows", "");
     foodsRows = elementOf("div", "meal-rows", "");
+    bracketsWatch(mealsRows);
+    bracketsWatch(foodsRows);
     mealsBox = elementOf("div", "picker-box meal-box", "");
     foodsSearch = foodSearchOf((food: Food): void => foodPick(food, changed), null);
     const foodsBox: HTMLElement = elementOf("div", "picker-box meal-box", "");

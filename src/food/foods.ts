@@ -4,7 +4,8 @@
  * Finds foods through the reader, mine first, then on Open Food Facts, page by page, sends new foods to `Foods.md`,
  * loads my meals of `Meals.md`, sends new and changed ones and removes them,
  * loads the meals of a day with what they give, writes amounts as the page shows them, and makes the elements
- * and buttons of both: for the food view and the entry by category of the day alike.
+ * and buttons of both, the names of foods with their brackets kept alike in a list: for the food view and the entry
+ * by category of the day alike.
  */
 
 
@@ -247,9 +248,9 @@ export function elementOf(tag: string, className: string, text: string): HTMLEle
 }
 
 /**
- * Makes the name of a food, the same wherever it stands: its name, then its brand and store in brackets, those it has,
- * like `Skyr natur (K-Classic, Kaufland)`, since they only tell which one it is; in the colour and size of the name,
- * going on below where its row has no room, never cut.
+ * Makes the name of a food, the same wherever it stands: its name, then its brand and store grey in brackets, those
+ * it has, like `Skyr natur (K-Classic, Kaufland)`, since they only tell which one it is; in the size of the name,
+ * never cut, on a line of their own below it where one name of the list has no room, see {@link bracketsWatch}.
  * - `shown`: The name with its brand and store.
  * - `place`: Brand and store, those it has.
  *
@@ -265,6 +266,44 @@ export function foodNameOf(className: string, name: string, brand: string, store
     if (place.length > 0)
         shown.append(elementOf("span", "food-brand", ` (${place.join(", ")})`));
     return shown;
+}
+
+/**
+ * Keeps the brackets after the names of a list alike, like the brand and store of a food or the foods of a meal:
+ * all on the line of their name while every one fits there, else every one on a line of its own below its name,
+ * never one here and one there; looked at again whenever the list changes or gets narrower or wider.
+ * A bracket hidden, like the brand of a food of a meal on a phone, counts as fitting.
+ * - `width`: Width of the list when last looked at, so a change of its height alone looks at nothing.
+ * - `fits`: Whether a bracket stands on the first line of its name, after it.
+ * - `look`: Looks at the brackets and puts them all on the line of their names, or all below them.
+ *
+ * @param list - List of names, like the results of the food search
+ */
+export function bracketsWatch(list: HTMLElement): void {
+    let width: number = -1;
+    const fits: (bracket: HTMLElement) => boolean = (bracket: HTMLElement): boolean => {
+        const parts: DOMRectList = bracket.getClientRects();
+        const name: Node | null = bracket.parentElement?.firstChild ?? null;
+        if (parts.length === 0 || name === null || name.nodeType !== Node.TEXT_NODE)
+            return true;
+        const range: Range = document.createRange();
+        range.selectNodeContents(name);
+        const first: DOMRect | undefined = range.getClientRects()[0];
+        return first === undefined || parts[parts.length - 1].bottom <= first.bottom + 1;
+    };
+    const look: () => void = (): void => {
+        list.classList.remove("brackets-below");
+        list.classList.toggle("brackets-below",
+            ![...list.querySelectorAll<HTMLElement>(".food-brand, .dish-parts")].every(fits));
+    };
+    new ResizeObserver((entries: ResizeObserverEntry[]): void => {
+        const now: number = entries[0]?.contentRect.width ?? width;
+        if (now === width)
+            return;
+        width = now;
+        look();
+    }).observe(list);
+    new MutationObserver(look).observe(list, { childList: true, subtree: true });
 }
 
 /**

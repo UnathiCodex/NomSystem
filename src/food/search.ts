@@ -27,7 +27,7 @@
  * - `./search.css`: Look of the search, the same wherever it stands.
  */
 
-import { amountOf, buttonOf, elementOf, foodNameOf, foodSend, foodsFind } from "./foods.ts";
+import { amountOf, bracketsWatch, buttonOf, elementOf, foodNameOf, foodSend, foodsFind } from "./foods.ts";
 import { iconPut, plusTypedPut } from "../icons.ts";
 import { Check, X } from "lucide";
 import "./search.css";
@@ -390,6 +390,7 @@ export function foodSearchOf(pick: Pick, before: Before): HTMLElement {
         clearTimeout(waiting);
         resultsLoad(search, 1);
     });
+    bracketsWatch(search.results);
     element.append(search.input, search.results);
     searches.set(element, search);
     resultsLoad(search, 1);

@@ -29,7 +29,7 @@
  * - `./food.css`: Look of the food view.
  */
 
-import { amountOf, elementOf, foodDayLoad, foodNameOf } from "./foods.ts";
+import { amountOf, bracketsWatch, elementOf, foodDayLoad, foodNameOf } from "./foods.ts";
 import { foodSearchOf } from "./search.ts";
 import { mealsSectionOf } from "./meals.ts";
 import { labelOf } from "../day/places.ts";
@@ -233,6 +233,7 @@ export function foodStart(): void {
     before.addEventListener("click", (): void => dayMove(-1));
     after.addEventListener("click", (): void => dayMove(1));
     today.addEventListener("click", (): void => dayOpen(calendarTodayOf()));
+    bracketsWatch(document.getElementById("food-meals") as HTMLElement);
     document.getElementById("food-dishes")?.append(mealsSectionOf());
     document.getElementById("food-search")?.append(foodSearchOf(null, null));
     dayOpen(askedDayOf() ?? calendarTodayOf());

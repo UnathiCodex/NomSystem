@@ -24,7 +24,7 @@
  * - `./meals.css`: Look of the form and of the section.
  */
 
-import { amountOf, buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodNameOf } from "./foods.ts";
+import { amountOf, bracketsWatch, buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodNameOf } from "./foods.ts";
 import { foodSearchClear, foodSearchOf } from "./search.ts";
 import { crossPut, iconPut, plusPut } from "../icons.ts";
 import { CircleQuestionMark } from "lucide";
@@ -158,6 +158,7 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
     const name: HTMLInputElement = document.createElement("input");
     const written: HTMLElement = elementOf("p", "dish-hint", "");
     const rows: HTMLElement = elementOf("div", "dish-foods", "");
+    bracketsWatch(rows);
     const hint: HTMLElement = elementOf("p", "dish-hint", "A meal holds two foods or more; add them below");
     const error: HTMLElement = elementOf("p", "dish-hint", "Not saved: it needs a name and two foods");
     const buttons: HTMLElement = elementOf("div", "dish-buttons", "");
@@ -236,6 +237,7 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
 export function mealsSectionOf(): HTMLElement {
     const section: HTMLElement = elementOf("section", "food-dishes", "");
     const list: HTMLElement = elementOf("div", "dish-list", "");
+    bracketsWatch(list);
     let dishes: Dish[] = [];
     let open: string = "";
     let adding: string = "";

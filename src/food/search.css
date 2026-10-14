@@ -52,10 +52,24 @@ button.food-row {
     color: var(--text-muted);
 }
 
-/* Name of a food with its brand and store in brackets, see `foodNameOf` in `foods.ts`: all in the colour and size
-   of the name, going on below where the row has no room, never cut with dots, here, in the food view and the dialogs */
+/* Name of a food with its brand and store in brackets, see `foodNameOf` in `foods.ts`: going on below where the row
+   has no room, never cut with dots, here, in the food view and the dialogs */
 .food-name {
     overflow-wrap: break-word;
+}
+
+/* What stands in brackets after a name, the brand and store of a food or the foods of a meal, grey, in the size
+   of the name, since it only tells which one it is or what is in it: the one grey of the page beside white facts */
+.food-brand,
+.dish-parts {
+    color: var(--text-muted);
+}
+
+/* The brackets of a list all on a line of their own below their names while one of them has no room on the line
+   of its name, see `bracketsWatch` in `foods.ts`: all one line, or all two */
+.brackets-below .food-brand,
+.brackets-below .dish-parts {
+    display: block;
 }
 
 /* Values at the right of their columns, every digit equally wide, so the columns align;

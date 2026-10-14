@@ -1851,9 +1851,13 @@ svg.route-arrow {
         padding: 0 0.25rem;
     }
 
-    /* A food found in the list of the foods on a phone: its kcal and portion in narrower columns, just as wide
-       as their numbers, so its name has the room */
+    /* A food found in the list of the foods on a phone: its name and its kcal only, so its brand and store fit
+       on their line; its portion shows in the field of its grams once it is picked */
     .meal-box .food-row {
-        grid-template-columns: minmax(0, 1fr) 2.5rem 3.75rem;
+        grid-template-columns: minmax(0, 1fr) 2.75rem;
+    }
+
+    .meal-box .food-row > :last-child {
+        display: none;
     }
 }
