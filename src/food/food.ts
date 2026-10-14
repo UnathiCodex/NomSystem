@@ -147,23 +147,20 @@ function totalsShow(day: FoodDay): void {
  * - `name`: Name of the food, see `foodNameOf` in `./foods.ts`.
  *
  * @param eaten - Food with what it gives
- * @returns Line in the columns of the meals, the first one empty
+ * @returns Line in the columns of the meals
  */
 function eatenLineOf(eaten: Eaten): HTMLElement {
     const line: HTMLElement = elementOf("div", "food-line", "");
     const name: HTMLElement = foodNameOf("food-what", eaten.name, eaten.brand, eaten.store);
-    line.append(
-        elementOf("span", "", ""),
-        name,
-        elementOf("span", "food-grams", eaten.grams > 0 ? amountTextOf(eaten.grams, "g") : ""),
-    );
+    line.append(name, elementOf("span", "food-grams", eaten.grams > 0 ? amountTextOf(eaten.grams, "g") : ""));
     return line;
 }
 
 /**
- * Builds the lines of a meal: its start, linking to its day in the day view, what and where, and its kcal in the column
- * of numbers, none when it lists no foods, since then it counts nothing; below it a line per food with its grams
- * in that column, or a hint when it lists none.
+ * Builds the lines of a meal: its start small and grey above it, linking to its day in the day view, so no column
+ * of times takes room beside the names; what and where, and its kcal in the column of numbers, none when it lists
+ * no foods, since then it counts nothing; below it a line per food with its grams in that column, or a hint when
+ * it lists none.
  * - `head`: Line of the meal itself.
  * - `start`: Its start, like `13:00`.
  * - `what`: What I ate, then where.
@@ -186,7 +183,7 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
     const lines: HTMLElement[] = meal.foods.map(eatenLineOf);
     if (meal.foods.length === 0) {
         const none: HTMLElement = elementOf("div", "food-line", "");
-        none.append(elementOf("span", "", ""), elementOf("span", "food-place", "No foods listed"));
+        none.append(elementOf("span", "food-place", "No foods listed"));
         lines.push(none);
     }
     return [head, ...lines];

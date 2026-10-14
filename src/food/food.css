@@ -1,8 +1,7 @@
 /* Food, in the scheme of the day: the bar of the shown day over the whole width, then the day and my meals and foods
-   side by side where both fit, else one below the other, beside the areas at the left edge; the day 36rem wide,
-   so each food keeps its brand and store on its line and the numbers stand close to the names, since the day is
-   what I read at a glance; my meals and foods all the rest, going on over a second line where they must, since
-   I mostly search them;
+   side by side where both fit, else one below the other, beside the areas at the left edge; the day 31rem wide,
+   each food with its brand and store on its line, the numbers close to the names, its times above its meals;
+   my meals and foods all the rest, each row flat, its name and its kcal;
    the page itself scrolls, no box of its own, so the wheel, a swipe, the keys and the scrollbar all scroll it,
    on a computer and on a phone alike */
 .food {
@@ -16,11 +15,11 @@
 }
 
 /* The day's totals and meals a step from the rail's buttons, not right beside them, as the date bar's framed arrows
-   may stand, nor as far in as the date; kept so; the step comes on top of the day's 36rem, so its columns keep
+   may stand, nor as far in as the date; kept so; the step comes on top of the day's 31rem, so its columns keep
    their room */
 .food-day {
     --food-indent: calc(2 * var(--gap));
-    flex: 0 1 calc(36rem + var(--food-indent));
+    flex: 0 1 calc(31rem + var(--food-indent));
     min-width: 0;
     padding-left: var(--food-indent);
 }
@@ -145,16 +144,17 @@ body:has(> .food) {
     line-height: 1.25;
 }
 
-/* Meals below the totals, every line in the same columns: start, what, and one column of numbers, a meal's kcal and
-   its foods' grams, since a meal has no grams; the foods of a meal indented under its name, so each meal reads as
-   one block, their brackets below their names where one has no room */
+/* Meals below the totals, every line in the same two columns: what, and one column of numbers, a meal's kcal and
+   its foods' grams, since a meal has no grams; a meal's start small and grey above its name, over both columns,
+   so no column of times takes room beside the names; the foods of a meal indented under its name, so each meal
+   reads as one block, their brackets below their names only where one has no room */
 #food-meals {
     margin-top: var(--gap);
 }
 
 .food-line {
     display: grid;
-    grid-template-columns: 3.5rem minmax(0, 1fr) 6.5rem;
+    grid-template-columns: minmax(0, 1fr) 6.5rem;
     gap: 0.75rem;
     align-items: baseline;
     padding: 0.125rem 0;
@@ -178,8 +178,9 @@ body:has(> .food) {
     border-left: 1px solid var(--line);
 }
 
-/* Line of a meal in the text of controls, a grey line above it, apart from the meal before */
+/* Line of a meal in the text of controls, a grey line above it, apart from the meal before, its start right above its name */
 .food-meal {
+    row-gap: 0.125rem;
     margin-top: 0.75rem;
     padding-top: 0.625rem;
     border-top: 1px solid var(--line);
@@ -188,7 +189,10 @@ body:has(> .food) {
 
 /* Start of a meal, grey, linking to its day in the day view */
 .food-time {
+    grid-column: 1 / -1;
+    justify-self: start;
     color: var(--text-muted);
+    font-size: 0.75rem;
     text-decoration: none;
     font-variant-numeric: tabular-nums;
 }
