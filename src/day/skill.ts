@@ -231,6 +231,11 @@ let linked: { title: string; titleLink: string; links: Link[] } = { title: "", t
 let inPlan: boolean = false;
 
 /**
+ * First choice of the list of types, which takes the type back, my own learning without type.
+ */
+const noType: string = "None";
+
+/**
  * Whether the dialog changes an entry of the log logged from a box of the plan, whose skill and type stay the plan's,
  * see `asPlanned` in `categories.ts`.
  */
@@ -708,10 +713,10 @@ function picksShow(shown: SkillShown): void {
             },
         }),
         choicesOf({
-            search: searchOf(skilling.types.map(choiceOf)), picked: picks.type === "" ? [] : [picks.type],
+            search: searchOf([noType, ...skilling.types].map(choiceOf)), picked: picks.type === "" ? [] : [picks.type],
             many: false, adding: false, noun: "type", locked: asPlanned,
             pick: (values: string[]): void => {
-                picks.type = values[0] ?? "";
+                picks.type = values[0] === noType ? "" : values[0] ?? "";
                 again();
             },
         }))));

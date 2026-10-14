@@ -844,14 +844,14 @@ button.box-ring.box-checked svg {
     border-color: var(--line);
 }
 
-/* Two pickers side by side in one row, like the skill and the type of a skill entry in its summary: the first takes
-   the room, like the whole name `IN2028_BusinessAnalyticsMachineLearning`, at least 12rem, the second only what
-   its value needs, at least 5rem to click; where the row has no room for both, as on a phone, the second goes below
-   the first, which then takes the whole row; the list of either opens below both, as wide as the row */
+/* Two pickers side by side in one row, like the skill and the type of a skill entry in its summary, read as the file
+   writes it, `MGT1372_EntrepreneurialBusiness (VO)`: each only as wide as its value, the type one space after the
+   name and in its brackets, `( )` faint while it has none; where the row has no room for both, as on a phone,
+   the type goes below the name; the list of either opens below both, as wide as the row */
 .panel-pair {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.375rem var(--gap);
+    gap: 0.375rem 0.3em;
     align-items: baseline;
 }
 
@@ -860,12 +860,27 @@ button.box-ring.box-checked svg {
 }
 
 .panel-pair .picker-head {
-    flex: 0 0 auto;
-    min-width: 5rem;
+    flex: 0 1 auto;
 }
 
 .panel-pair > .picker:first-child .picker-head {
-    flex: 1 1 12rem;
+    min-width: 5rem;
+}
+
+.panel-pair > .picker:last-child .picker-line::before {
+    content: "(";
+}
+
+.panel-pair > .picker:last-child .picker-line::after {
+    content: ")";
+}
+
+.panel-pair > .picker:last-child .picker-line.picker-empty {
+    color: var(--text-muted);
+}
+
+.panel-pair > .picker:last-child .picker-line.picker-empty::after {
+    content: "\2002)";
 }
 
 .panel-pair .picker-box {
