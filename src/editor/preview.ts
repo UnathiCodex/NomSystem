@@ -27,7 +27,10 @@
  *   on the line of the cursor as faint dots, so I see where they stand.
  * A click on a rendered piece puts the cursor there, so it shows as text; while the editor is not focused,
  * like before the first click, the whole note shows rendered.
- * Links resolve as the reader found them when the note was read: a link that leads nowhere fades,
+ * A click on a rendered link follows it, as in Obsidian, and so does a click with Ctrl held on a link shown as text,
+ * see {@link linkFollow}: a note opens in the scripts view at its heading, a heading of the same note scrolls into
+ * sight, any other file, like a PDF at its page, and an address of the web open in a new tab.
+ * Links resolve as the reader found them when the note was read: a link that leads nowhere fades and leads nowhere,
  * a link or image written since shows once the note is read again.
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold the text and the cursor, draw the text with decorations and widgets,
@@ -36,6 +39,7 @@
  * - `@lezer/highlight`: Gives pieces of the syntax the classes of their look, see `./editor.css`.
  * - `../notes/math.ts`: Renders formulas as the scripts view does.
  * - `../notes/markdown.ts`: Renders tables, callouts, code blocks and HTML blocks as the scripts view does.
+ * - `../notes/tree.ts`: Builds the address of a note in the scripts view, for a link to follow.
  */
 
 import { RangeSet, StateEffect, StateField } from "@codemirror/state";
@@ -44,6 +48,7 @@ import { syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import { tagHighlighter, tags } from "@lezer/highlight";
 import { mathRender } from "../notes/math.ts";
 import { htmlOf } from "../notes/markdown.ts";
+import { noteAddressOf } from "../notes/tree.ts";
 
 import type { EditorState, Extension, Line, Range, SelectionRange, StateEffectType, Transaction } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
@@ -115,6 +120,16 @@ const calloutRule: RegExp = /^>[ \t]?\[![^\]]+\]/;
 const breakRule: RegExp = /^<(br|wbr)\s*\/?>$/i;
 
 /**
+ * Address with a scheme, like `https://…`: a link out of my modules, opened as it is, as in the scripts view.
+ */
+const externalRule: RegExp = /^[a-z][a-z\d+.-]*:/i;
+
+/**
+ * Heading of a note, `##` and its text, with the text as written.
+ */
+const headingRule: RegExp = /^#{1,6}[ \t]+(.*?)[ \t]*$/;
+
+/**
  * Spacers `⠀` and invisible format characters, like the soft hyphen and the zero-width space.
  */
 const invisibleRule: RegExp = /[\u2800\p{Cf}]/gu;
@@ -148,6 +163,11 @@ const spacerMark: Decoration = Decoration.mark({ class: "cm-spacer" });
  * Link that leads nowhere, faded as in the scripts view.
  */
 const unresolved: Decoration = Decoration.mark({ class: "is-unresolved" });
+
+/**
+ * Text of a rendered link, which a click follows, see {@link linkClicked}.
+ */
+const followable: Decoration = Decoration.mark({ class: "cm-follow" });
 
 /**
  * Line of a code block being edited.
@@ -604,7 +624,7 @@ function markupLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * Markdown link `[Text](Address)`: only its text while the cursor does not touch it.
+ * Markdown link `[Text](Address)`: only its text while the cursor does not touch it, which a click follows.
  * Brackets without an address, like the `[!note]` of a callout, are no link, as in the scripts view, and stay as written.
  *
  * @param look - Look being built
@@ -616,13 +636,29 @@ function linkLook(look: Look, node: SyntaxNode): boolean {
     if (node.getChild("URL") !== null && marks.length >= 2 && !touched(look, node.from, node.to)) {
         hide(look, node.from, marks[0].to);
         hide(look, marks[1].from, node.to);
+        if (marks[0].to < marks[1].from)
+            look.decorations.push(followable.range(marks[0].to, marks[1].from));
     }
     return true;
 }
 
 /**
+ * Address of the web written as it is, like `https://…`, which GitHub's Markdown takes as a link:
+ * followed by a click while the cursor does not touch it; the address of a Markdown link is hidden there anyway.
+ *
+ * @param look - Look being built
+ * @param node - Address, `URL`
+ * @returns `false`, as it has nothing inside to look into
+ */
+function urlLook(look: Look, node: SyntaxNode): boolean {
+    if (node.parent?.name !== "Link" && node.parent?.name !== "Image" && !touched(look, node.from, node.to))
+        look.decorations.push(followable.range(node.from, node.to));
+    return false;
+}
+
+/**
  * Wiki link or embed, while the cursor does not touch it: an embedded image shown,
- * else only its text after `|`, or its target without one, faded when it leads nowhere.
+ * else only its text after `|`, or its target without one, which a click follows, faded when it leads nowhere.
  * Its target is the link before `#`, `|` or the `\|` written in tables, as the reader lists it.
  *
  * @param look - Look being built
@@ -650,8 +686,8 @@ function wikiLinkLook(look: Look, node: SyntaxNode): boolean {
     }
     hide(look, node.from, shownFrom);
     hide(look, shownTo, node.to);
-    if (path === null && shownFrom < shownTo)
-        look.decorations.push(unresolved.range(shownFrom, shownTo));
+    if (shownFrom < shownTo)
+        look.decorations.push((path === null ? unresolved : followable).range(shownFrom, shownTo));
     return false;
 }
 
@@ -899,6 +935,7 @@ const looks: { [name: string]: (look: Look, node: SyntaxNode) => boolean } = {
     Strikethrough: markupLook,
     InlineCode: markupLook,
     Link: linkLook,
+    URL: urlLook,
     WikiLink: wikiLinkLook,
     WikiEmbed: wikiLinkLook,
     InlineMath: mathLook,
@@ -983,6 +1020,103 @@ function drawingOf(state: EditorState, links: Links): Drawing {
     return { decorations: Decoration.set(look.decorations, true), wrappers: BlockWrapper.set(look.wrappers, true) };
 }
 
+/**
+ * Scrolls the note to a heading, so it stands right below the head of the editor, or to its top when the heading
+ * is empty or the note has none of that text.
+ * - `line`: The line of the heading, `undefined` for none.
+ *
+ * @param view - The editor
+ * @param heading - Heading as written, like `Definition. Standard Error of the Mean`
+ */
+export function headingShow(view: EditorView, heading: string): void {
+    let line: Line | undefined;
+    for (let number: number = 1; heading !== "" && line === undefined && number <= view.state.doc.lines; number++)
+        if (headingRule.exec(view.state.doc.line(number).text)?.[1] === heading)
+            line = view.state.doc.line(number);
+    view.dispatch({ effects: EditorView.scrollIntoView(line?.from ?? 0, { y: "start" }) });
+}
+
+/**
+ * Finds the link at a place of the note: a wiki link, a Markdown link, or an address written as it is.
+ * - `url`: An address found on the way, `null` for none.
+ *
+ * @param state - Text and syntax tree of the note
+ * @param pos - The place
+ * @returns The link, `WikiLink`, `Link` or `URL`, `null` for none
+ */
+function linkAt(state: EditorState, pos: number): SyntaxNode | null {
+    let url: SyntaxNode | null = null;
+    for (let node: SyntaxNode | null = syntaxTree(state).resolveInner(pos, 1); node !== null; node = node.parent) {
+        if (node.name === "WikiLink" || node.name === "Link")
+            return node;
+        if (node.name === "URL")
+            url = node;
+    }
+    return url;
+}
+
+/**
+ * Follows a link, as the scripts view does: a note opens in the scripts view at the heading after `#`, a heading
+ * of the same note, like `[[#Task. Kiosk Sales Standard Error|…]]`, scrolls into sight, see {@link headingShow};
+ * any other file opens in a new tab at the place after `#`, like a PDF at its page with `#page=10`,
+ * and so does an address of the web; a link that leads nowhere does nothing.
+ * - `url`: The address of a Markdown link or an address written as it is.
+ * - `address`: The link as written, like `01_01_SampleMeanStandardError#Theorem. Central Limit Theorem`.
+ * - `hash`: Where its `#` stands, -1 for none.
+ * - `target`, `heading`: The link to a file before `#`, empty for the note itself, and the place in it after `#`.
+ * - `path`: The file it leads to, as the reader found it, `null` for none.
+ *
+ * @param view - The editor
+ * @param node - The link, see {@link linkAt}
+ * @param links - Files the links of the note lead to
+ */
+function linkFollow(view: EditorView, node: SyntaxNode, links: Links): void {
+    const url: SyntaxNode | null = node.name === "URL" ? node : node.getChild("URL");
+    const address: string = node.name === "WikiLink"
+        ? /^\[\[([^\]|\\]*)/.exec(view.state.sliceDoc(node.from, node.to))?.[1] ?? ""
+        : url === null ? "" : view.state.sliceDoc(url.from, url.to).replace(/^<|>$/g, "");
+    if (externalRule.test(address)) {
+        window.open(address, "_blank", "noopener");
+        return;
+    }
+
+    const hash: number = address.indexOf("#");
+    const target: string = (hash === -1 ? address : address.slice(0, hash)).trim();
+    const heading: string = hash === -1 ? "" : address.slice(hash + 1).trim();
+    const path: string | null = links[target] ?? null;
+    if (target === "")
+        headingShow(view, heading);
+    else if (path !== null && /\.md$/i.test(path))
+        location.assign(noteAddressOf(path, heading));
+    else if (path !== null)
+        window.open(heading === "" ? fileAddressOf(path) : `${fileAddressOf(path)}#${heading}`, "_blank");
+}
+
+/**
+ * Follows the link of a click: one of a rendered link, see {@link followable}, or with Ctrl held, on a Mac with Cmd,
+ * one of a link shown as its text. Taking the mouse button down there keeps the cursor where it is, so the link
+ * stays rendered; letting it go follows it, see {@link linkFollow}; any other click goes on to the editor.
+ * - `pos`: The place of the text clicked, `null` beside the text.
+ * - `node`: The link there, `null` for none.
+ *
+ * @param event - Mouse button taken down, `mousedown`, or a click, `click`
+ * @param view - The editor
+ * @param links - Files the links of the note lead to
+ * @returns Whether it was a click on a link, which the editor then leaves alone
+ */
+function linkClicked(event: MouseEvent, view: EditorView, links: Links): boolean {
+    if (event.button !== 0 || (!(event.target as Element).closest(".cm-follow") && !event.ctrlKey && !event.metaKey))
+        return false;
+
+    const pos: number | null = view.posAtCoords({ x: event.clientX, y: event.clientY });
+    const node: SyntaxNode | null = pos === null ? null : linkAt(view.state, pos);
+    if (node === null)
+        return false;
+    event.preventDefault();
+    if (event.type === "click")
+        linkFollow(view, node, links);
+    return true;
+}
 
 /**
  * Live preview of a note, see the top of this file: its look, built again when the text, the cursor,
@@ -990,6 +1124,8 @@ function drawingOf(state: EditorState, links: Links): Drawing {
  * - {@link StateField}: Holds the look; only a field may hide line breaks, like those inside a table.
  * - {@link EditorView.decorations}, {@link EditorView.blockWrappers}: Take the decorations and elements of the look.
  * - {@link EditorView.focusChangeEffect}: Tells {@link focused} when the editor gets or loses the focus.
+ * - {@link EditorView.domEventHandlers}: Follow a link clicked, see {@link linkClicked}, before the editor
+ *   puts the cursor there.
  *
  * @param links - Files the links of the note lead to, as the reader found them
  * @returns Extension for the editor
@@ -1012,6 +1148,10 @@ export function livePreview(links: Links): Extension {
         focused,
         look,
         EditorView.focusChangeEffect.of((_state: EditorState, focusing: boolean): StateEffect<boolean> => focusChange.of(focusing)),
+        EditorView.domEventHandlers({
+            mousedown: (event: MouseEvent, view: EditorView): boolean => linkClicked(event, view, links),
+            click: (event: MouseEvent, view: EditorView): boolean => linkClicked(event, view, links),
+        }),
         syntaxHighlighting(highlighter),
     ];
 }

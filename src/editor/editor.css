@@ -206,6 +206,19 @@
     color: var(--reading-marker);
 }
 
+/* A rendered link, which a click follows, see `./preview.ts`: in the grey of links, also an address of the web
+   written as it is, with the pointer of a link, its text's grey under the pointer, as a link of the scripts view */
+.editor-text .cm-follow,
+.editor-text .cm-follow * {
+    color: var(--reading-link);
+    cursor: pointer;
+}
+
+.editor-text .cm-follow:hover,
+.editor-text .cm-follow:hover * {
+    color: var(--reading-text);
+}
+
 /* Code within a line on a grey ground in a font of fixed width, with its room around it, as in the scripts view;
    code blocks on grey line by line, their code without a ground of its own */
 .editor-text .cm-monospace,
