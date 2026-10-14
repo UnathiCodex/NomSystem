@@ -128,7 +128,8 @@ body:has(> .food) {
     line-height: 1.25;
 }
 
-/* Meals below the totals, every line in the same columns: start, what, grams and kcal */
+/* Meals below the totals, every line in the same columns: start, what, grams and kcal; the foods of a meal indented
+   under its name, so each meal reads as one block, their brackets below their names where one has no room */
 #food-meals {
     margin-top: var(--gap);
 }
@@ -139,6 +140,11 @@ body:has(> .food) {
     gap: 0.75rem;
     align-items: baseline;
     padding: 0.125rem 0;
+}
+
+.food-line:not(.food-meal) > .food-what,
+.food-line:not(.food-meal) > .food-place {
+    padding-left: 1.25rem;
 }
 
 /* Line of a meal in the text of controls, a grey line above it, apart from the meal before */

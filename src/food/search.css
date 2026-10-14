@@ -125,12 +125,12 @@ button.food-row {
     color: var(--text-muted);
 }
 
-/* Group of foods, like My foods, small and grey above its first one, as the groups of the lists of the day */
-.food-group {
-    margin: 0.75rem 0 0;
-    padding: 0 0.75rem;
-    font-size: 0.75rem;
-    color: var(--text-muted);
+/* Line between my foods and the products of Open Food Facts, thin and in the grey of every line, in place of a name
+   above each group, so the two stay apart without words */
+.food-divider {
+    margin: 0.5rem 0.75rem;
+    border: 0;
+    border-top: 1px solid var(--line);
 }
 
 /* Hint for a group without foods, or when the foods cannot be read */

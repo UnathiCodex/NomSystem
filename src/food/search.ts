@@ -236,7 +236,7 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
  * - `found`: What the search found.
  * - `query`: The search as typed.
  * - `added`: Takes a food once the reader wrote it.
- * - `rows`: Rows of the results, with the names of the groups and the hints.
+ * - `rows`: Rows of the results, the line between my foods and the products, and the hints.
  * - `products`: Products shown.
  * - `taken`: Whether one of my foods found has the name of a product already, so its form adds the brand to the name.
  * - `newFood`: The plus with the name typed.
@@ -251,7 +251,7 @@ function resultsShow(search: Search): void {
         resultsLoad(search, 1);
         search.pick?.(food);
     };
-    const rows: HTMLElement[] = [...search.before?.(query) ?? [], headOf(), elementOf("p", "food-group", "My foods")];
+    const rows: HTMLElement[] = [...search.before?.(query) ?? [], headOf()];
 
     if (found.foods.length === 0)
         rows.push(elementOf("p", "food-none", query === "" ? "No foods yet" : "None of my foods matches"));
@@ -265,7 +265,7 @@ function resultsShow(search: Search): void {
 
     if (query !== "") {
         const products: Product[] = found.products ?? [];
-        rows.push(elementOf("p", "food-group", "Open Food Facts"));
+        rows.push(elementOf("hr", "food-divider", ""));
         if (found.products === null)
             rows.push(elementOf("p", "food-none", "Open Food Facts cannot be reached"));
         else if (products.length === 0)
