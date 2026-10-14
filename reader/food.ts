@@ -487,14 +487,15 @@ function mealsRead(start: string, end: string): Entry[] {
 }
 
 /**
- * Writes the label of a food as the page shows it: its name, brand and store parted by ` · `, those it has,
- * like `Skyr natur · K-Classic · Kaufland`.
+ * Writes the label of a food as the page shows it: its name, then its brand and store in brackets, those it has,
+ * like `Skyr natur (K-Classic, Kaufland)`, since they only tell which one it is.
  *
  * @param food - Food with its name, brand and store
- * @returns Label, like `Skyr natur · K-Classic · Kaufland`, the name alone for a food without brand and store
+ * @returns Label, the name alone for a food without brand and store
  */
 export function labelOf(food: { name: string; brand: string; store: string }): string {
-    return [food.name, food.brand, food.store].filter((part: string): boolean => part !== "").join(" · ");
+    const place: string[] = [food.brand, food.store].filter((part: string): boolean => part !== "");
+    return place.length === 0 ? food.name : `${food.name} (${place.join(", ")})`;
 }
 
 /**

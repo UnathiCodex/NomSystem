@@ -440,8 +440,9 @@ function foodsClosed(): boolean {
 }
 
 /**
- * Builds the row of a food beside the meals: its name, its brand and store grey after it, like
- * `Skyr natur · K-Classic · Kaufland`, marked when `Foods.md` does not hold it, its grams,
+ * Builds the row of a food beside the meals: its name, its brand and store grey in brackets after it, like
+ * `Skyr natur (K-Classic, Kaufland)`, since they only tell which one it is, marked when `Foods.md` does not hold it,
+ * its grams,
  * its kcal and a small grey `×`, which removes it, as a value picked in every list of the dialog.
  * - `food`: The food in `Foods.md`, `undefined` for one it does not hold.
  * - `place`: Its brand and store, those it has.
@@ -472,7 +473,7 @@ function foodRowOf(pick: FoodPick, changed: () => void): HTMLElement {
     });
 
     if (place.length > 0)
-        name.append(elementOf("span", "meal-label", ` · ${place.join(" · ")}`));
+        name.append(elementOf("span", "meal-label", ` (${place.join(", ")})`));
     if (food === undefined)
         name.append(elementOf("span", "meal-unknown", " · not in my foods"));
     name.title = name.textContent ?? "";
@@ -549,19 +550,17 @@ function summaryShow(): void {
 }
 
 /**
- * Shows the lines of the meals and the foods below their rows: while some are picked, the square + of the page,
- * `Add a meal` or `Add a food` as its tooltip, see `.picker-line.meal-add` in `day.css`; nothing while none is,
- * so the empty row opens its list like every empty field.
+ * Shows the lines of the meals and the foods below their rows: while some are picked, the small grey plus of every
+ * list that adds one more, `Add a meal` or `Add a food` as its tooltip, see `.picker-line.picker-empty` in `day.css`;
+ * nothing while none is, so the empty row opens its list like every empty field.
  */
 function linesShow(): void {
     mealsLine.replaceChildren(...meals.length === 0 ? [] : [iconOf(Plus)]);
     mealsLine.title = meals.length === 0 ? "" : "Add a meal";
-    mealsLine.classList.toggle("picker-empty", meals.length === 0);
-    mealsLine.classList.toggle("meal-add", meals.length > 0);
+    mealsLine.classList.add("picker-empty");
     foodsLine.replaceChildren(...picks.length === 0 ? [] : [iconOf(Plus)]);
     foodsLine.title = picks.length === 0 ? "" : "Add a food";
-    foodsLine.classList.toggle("picker-empty", picks.length === 0);
-    foodsLine.classList.toggle("meal-add", picks.length > 0);
+    foodsLine.classList.add("picker-empty");
 }
 
 /**

@@ -122,13 +122,13 @@ function buttonOf(className: string, text: string, click: () => void): HTMLButto
 }
 
 /**
- * Builds the cells of the row of a food: its name with its brand after it, below it small the pack of a product
- * and the store, like `Pack 450 g · Lidl`, then its values per 100 g and its portion, `none` for a product without
- * serving, the numbers in columns; protein, carbs and fat with the class `food-macro`, so a narrow place, like a meal,
- * can leave them out.
- * - `title`: Name, and below it pack and store.
- * - `name`: Name with its brand; cut with an ellipsis when too long, whole when pointed at.
- * - `below`: Pack and store, those known.
+ * Builds the cells of the row of a food: its name with its brand and store grey in brackets after it, like
+ * `Skyr natur (K-Classic, Kaufland)`, below it small the pack of a product, like `Pack 450 g`, then its values
+ * per 100 g and its portion, `none` for a product without serving, the numbers in columns; protein, carbs and fat
+ * with the class `food-macro`, so a narrow place, like a meal, can leave them out.
+ * - `title`: Name, and below it the pack.
+ * - `name`: Name with its brand and store; cut with an ellipsis when too long, whole when pointed at.
+ * - `place`: Brand and store, those known.
  *
  * @param food - Food or product
  * @param pack - Pack of a product, like `450 g`, empty for none
@@ -137,13 +137,13 @@ function buttonOf(className: string, text: string, click: () => void): HTMLButto
 function cellsOf(food: Food, pack: string): HTMLElement[] {
     const title: HTMLElement = elementOf("span", "food-title", "");
     const name: HTMLElement = elementOf("span", "food-name", food.name);
-    const below: string[] = [pack === "" ? "" : `Pack ${pack}`, food.store].filter((part: string): boolean => part !== "");
-    if (food.brand !== "")
-        name.append(elementOf("span", "food-brand", ` · ${food.brand}`));
+    const place: string[] = [food.brand, food.store].filter((part: string): boolean => part !== "");
+    if (place.length > 0)
+        name.append(elementOf("span", "food-brand", ` (${place.join(", ")})`));
     name.title = name.textContent ?? "";
     title.append(name);
-    if (below.length > 0)
-        title.append(elementOf("span", "food-pack", below.join(" · ")));
+    if (pack !== "")
+        title.append(elementOf("span", "food-pack", `Pack ${pack}`));
     return [
         title,
         elementOf("span", "food-value", amountOf(food.kcal, 0)),
