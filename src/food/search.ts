@@ -16,7 +16,8 @@
  * Every list of meals or foods looks alike, wherever it stands: one flat line per meal or food, nothing in it
  * but its name, a food's brand and store in brackets after it, like `Gouda (Milbona, Lidl)`, so the same name of two
  * shops never mixes up, and its kcal as a bare number, a meal's whole, a food's per 100 g, the head of its section
- * naming the unit once, see {@link listLineOf}.
+ * naming the unit once, see {@link listLineOf}; a product of Open Food Facts also its pack small and grey below
+ * its name, like `Pack 265 g`, which tells products apart.
  * A click on a product adds it to my foods as Open Food Facts gives it, no form in between, see `foodSend`
  * in `foods.ts`, and takes it like one of mine. Where a food is wanted, like in an entry, a click on one of my foods
  * picks it. A food found nowhere goes in by hand only in the food view, by the plus beside the name `Foods`,
@@ -201,6 +202,22 @@ function mineLineOf(search: Search, food: Food): HTMLElement {
 }
 
 /**
+ * Makes the name of a product of Open Food Facts in its line: its name with its brand and store in brackets, see
+ * `foodNameOf` in `foods.ts`, and below it, small and grey, its pack, like `Pack 265 g`, where known.
+ * - `title`: Name, and below it the pack.
+ *
+ * @param product - The product
+ * @returns The name
+ */
+function productNameOf(product: Food): HTMLElement {
+    const title: HTMLElement = elementOf("span", "food-title", "");
+    title.append(foodNameOf("food-name", product.name, product.brand, product.store));
+    if (product.pack !== "")
+        title.append(elementOf("span", "food-pack", `Pack ${product.pack}`));
+    return title;
+}
+
+/**
  * Builds the line of a product of Open Food Facts: a click adds it to my foods as Open Food Facts gives it, the line
  * taking no clicks meanwhile, so a double click adds it once, then takes it, see {@link addedOf}; when the reader
  * does not take it, a line below says so.
@@ -211,8 +228,7 @@ function mineLineOf(search: Search, food: Food): HTMLElement {
  * @returns Its line
  */
 function productLineOf(search: Search, product: Food): HTMLElement {
-    const [line, row]: [HTMLElement, HTMLElement] = listLineOf(
-        foodNameOf("food-name", product.name, product.brand, product.store), product.kcal, (): void => {
+    const [line, row]: [HTMLElement, HTMLElement] = listLineOf(productNameOf(product), product.kcal, (): void => {
         row.inert = true;
         foodSend(product).then(addedOf(search)).catch((reason: unknown): void => {
             console.error(reason);

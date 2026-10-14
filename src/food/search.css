@@ -33,8 +33,9 @@
 }
 
 /* Row of a meal or a food, flat: its name, then its kcal as a bare number, just as wide as five digits, so the name
-   has the room; at least one chip high, higher for a name going on below, its number then on the line of the name,
-   never between its lines; a grey lighter under the pointer where a click does something */
+   has the room; at least one chip high, higher for a product with its pack below its name or a name going on below,
+   its number then on the line of the name, never between its lines; a grey lighter under the pointer where a click
+   does something */
 .food-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 4rem;
@@ -53,6 +54,19 @@
 
 button.food-row {
     cursor: pointer;
+}
+
+/* Name of a product above its pack, small and grey */
+.food-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.food-pack {
+    font-size: 0.75rem;
+    line-height: 1.25;
+    color: var(--text-muted);
 }
 
 /* Name of a meal or a food with its brand and store in brackets, see `foodNameOf` in `foods.ts`: going on below where
