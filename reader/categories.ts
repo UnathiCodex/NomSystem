@@ -10,8 +10,8 @@
  * of `Places.md`, each as a line with its address, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`,
  * see `places.ts`, and `Online`, the place of a meeting online, but in a way, which leads from one place of mine
  * to another, see {@link offlineNames}; the most used by the entries of the log first, counted by their names.
- * A field that offers `Online` also offers the software of a meeting, `Teams`, `BBB`, `Zoom` and `TUM-Live` before
- * any use, and any other the log holds, the most used first, see `onlineSoftware` in `places.ts`.
+ * `Online` asks for its meeting only in `Skill`, see `meeting` of {@link Field}; in any other category, like a call
+ * of `Talk`, it is a plain place.
  * A value offered in the code may come with steps, which the dialog shows while it is picked, and below them
  * the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
  * `Body` is my body care, showering and any care, offering `Shower` before any use; my neck routine,
@@ -36,7 +36,7 @@
  */
 
 import { entriesRead, skillName } from "./calendar.ts";
-import { labelOf, lineOf, onlineName, onlineSoftware, placesRead, roomsRead, softwareOf } from "./places.ts";
+import { labelOf, lineOf, onlineName, placesRead, roomsRead } from "./places.ts";
 import { day } from "./sources.ts";
 
 import type { Entry, EntryTexts } from "./calendar.ts";
@@ -60,6 +60,9 @@ export type FieldKey = "title" | "from" | "location";
  * - `fixed`: Whether it takes only the values offered in the code, like `Night` and `Day` of `Sleep`, and no new ones.
  * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `UBahn, Bus`;
  *   one when left out.
+ * - `meeting`: Whether its place `Online` asks for its meeting, its link, ID and passcode, see `onlineName`
+ *   in `places.ts`, like the place of a skill entry or box, since lectures and tutorials happen on Zoom and the like;
+ *   left out, `Online` is a plain place, like for a call of `Talk`, which needs no tracking.
  */
 export type Field = {
     name: string;
@@ -68,6 +71,7 @@ export type Field = {
     steps: { [value: string]: string[] };
     fixed: boolean;
     many?: boolean;
+    meeting?: boolean;
 };
 
 /**
@@ -90,13 +94,10 @@ export type Category = {
  *   of the table, which the list offers only as I search, see `places.ts`; none for any other field.
  * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
  *   like `https://nav.tum.de/room/0509.EG.980`, see `places.ts`; none for any other field.
- * - `software`: For a field of a place that offers `Online`, the software of a meeting, like `Teams`, the most used
- *   first, see `onlineSoftware` in `places.ts`; none for any other field.
  */
 export type FieldShown = Field & {
     rooms: string[];
     links: { [value: string]: string };
-    software: string[];
 };
 
 /**
@@ -218,7 +219,10 @@ const retiredWhats: { [category: string]: string[] } = { Body: Object.keys(neckR
  * Categories with their fields, in the order of their importance for my life, the one order of every list of them.
  */
 const categories: Category[] = [
-    { name: skillName, fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false }] },
+    {
+        name: skillName,
+        fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false, meeting: true }],
+    },
     {
         name: "Sleep",
         fields: [
@@ -379,12 +383,10 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * - `names`: Their names.
  * - `places`: One list of places for every field of a place: my places and `Online`, the most used first,
  *   see {@link placeUsesOf}, each as the line an entry writes, see `lineOf` in `places.ts`.
+ * - `offline`: The same without `Online`, for the places of a way, see {@link offlineNames}.
  * - `rooms`: The rooms of the university for every field of a place, each as the line an entry writes, in the order
  *   of `Rooms.md`, none of the name of one of my places.
  * - `links`: The links of my places and rooms that have one, by their lines.
- * - `software`: The software of a meeting online, those offered before any use and those of the log, the most used
- *   first, see `onlineSoftware` and `softwareOf` in `places.ts`.
- * - `online`: Whether a field offers `Online`: the place of an entry, but of a way, see {@link offlineNames}.
  *
  * @param now - Present as ISO instant, as the page knows it
  * @returns {@link CategoryShown}s in their order
@@ -395,29 +397,24 @@ export function categoriesRead(now: string): CategoryShown[] {
     const names: string[] = mine.map((place: Place): string => place.name);
     const places: string[] = valuesOrder(placeUsesOf(logs).filter((use: string): boolean => names.includes(use)), names)
         .map((name: string): string => lineOf(mine[names.indexOf(name)]));
+    const offline: string[] = places.filter((line: string): boolean => line !== onlineName);
     const rooms: Place[] = roomsRead().filter((room: Place): boolean => !names.includes(room.name));
     const links: { [value: string]: string } = Object.fromEntries([...mine, ...rooms]
         .filter((place: Place): boolean => place.link !== "")
         .map((place: Place): [string, string] => [lineOf(place), place.link]));
-    const software: string[] = valuesOrder(logs.map((log: Entry): string => softwareOf(log.location)), onlineSoftware);
     return categories
         .filter((category: Category): boolean => !hiddenNames.includes(category.name))
         .map((category: Category): CategoryShown => ({
             name: category.name,
-            fields: category.fields.map((field: Field): FieldShown => {
-                const online: boolean = field.key === "location" && !offlineNames.includes(category.name);
-                return {
-                    ...field,
-                    values: field.key === "title"
-                        ? field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values)
-                            .filter((value: string): boolean => !(retiredWhats[category.name] ?? []).includes(value))
-                        : places.filter((line: string): boolean => online || line !== onlineName),
-                    steps: stepsWithNoteOf(logs, category.name, field.steps),
-                    rooms: field.key === "title" ? [] : rooms.map(lineOf),
-                    links: field.key === "title" ? {} : links,
-                    software: online ? software : [],
-                };
-            }),
+            fields: category.fields.map((field: Field): FieldShown => ({
+                ...field,
+                values: field.key !== "title" ? offlineNames.includes(category.name) ? offline : places
+                    : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values)
+                        .filter((value: string): boolean => !(retiredWhats[category.name] ?? []).includes(value)),
+                steps: stepsWithNoteOf(logs, category.name, field.steps),
+                rooms: field.key === "title" ? [] : rooms.map(lineOf),
+                links: field.key === "title" ? {} : links,
+            })),
             plan: !unplannedNames.includes(category.name),
         }));
 }

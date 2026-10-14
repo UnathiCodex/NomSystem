@@ -20,8 +20,8 @@
  * of the place, written with it as its `ALTREP`, when it has one, and nothing else: nothing opens a map by itself,
  * only a link stored with the place opens on a click.
  * A way shows its route by labels, with an arrow drawn between them, see {@link whereLinkedOf}.
- * A meeting online has its own place, `Online`, see {@link onlineName}, whose link I paste per entry and whose
- * address holds what I need to join, see {@link Meeting}; it shows by its name alone, like every place.
+ * A meeting online has its own place, `Online`, see {@link onlineName}, which in a skill entry or box holds what
+ * I need to join, see {@link Meeting}, and the link I paste per entry; it shows by its name alone, like every place.
  *
  * - `lucide`: The arrow of a route, and the icons of Cancel and Save.
  * - `../icons.ts`: Makes the element of an icon, and shows an icon in a button.
@@ -48,7 +48,8 @@ export type Place = {
  * What I need to join a meeting online, the parts of the address of `Online` in the order of an address,
  * each a fact of the meeting, see {@link meetingLineOf}.
  *
- * - `software`: Its software, in place of the street, like `Teams`, empty for none.
+ * - `software`: Its software, in place of the street, like `Teams`, read from the host of its link,
+ *   see {@link meetingSoftwareOf}, or as an older entry typed it; empty for none.
  * - `id`: Its ID, as its software writes it, like `123 456 789 012 345`, empty for none.
  * - `passcode`: Its passcode, like `Ab12Cd34`, empty for none.
  */
@@ -60,10 +61,23 @@ export type Meeting = {
 
 /**
  * The place of a meeting online, its name alone, offered once among my places and never a row of `Places.md`,
- * see `onlineName` in `reader/places.ts`: its link, the link of the meeting, I paste per entry, and in place
- * of an address it holds what I need to join, see {@link Meeting}.
+ * see `onlineName` in `reader/places.ts`: in a skill entry or box I paste its link, the link of the meeting,
+ * per entry, and in place of an address it holds what I need to join, see {@link Meeting}; elsewhere, like
+ * in a call of `Talk`, it is a plain place.
  */
 export const onlineName: string = "Online";
+
+/**
+ * Software of a meeting by the host of its link, see {@link meetingSoftwareOf}: `teams.microsoft.com` Teams,
+ * any host of `zoom.us`, like `tum-conf.zoom.us`, Zoom, a host starting with `bbb.`, like `bbb.tum.de`, BBB,
+ * and `live.rbg.tum.de` or `tum.live` TUM-Live, where I watch lectures.
+ */
+const meetingHosts: { [software: string]: RegExp } = {
+    "Teams": /^teams\.microsoft\.com$/,
+    "Zoom": /(?:^|\.)zoom\.us$/,
+    "BBB": /^bbb\./,
+    "TUM-Live": /^(?:live\.rbg\.tum\.de|tum\.live)$/,
+};
 
 /**
  * Names the ID and the passcode of a meeting go by in the line of `Online`, each before its value,
@@ -236,11 +250,24 @@ export function meetingLineOf(meeting: Meeting): string {
 }
 
 /**
+ * Reads the software of a meeting from the host of its link, see {@link meetingHosts}.
+ * - `host`: Host of the link in small letters, like `tum-conf.zoom.us`, empty for no web address.
+ *
+ * @param link - Link of a meeting, like `https://tum-conf.zoom.us/j/12345678901?pwd=…`
+ * @returns Software like `Zoom`, empty for a host none of them has
+ */
+export function meetingSoftwareOf(link: string): string {
+    const host: string = /^https?:\/\/([^/?#:]+)/i.exec(link.trim())?.[1].toLowerCase() ?? "";
+    return Object.entries(meetingHosts).find(([, form]: [string, RegExp]): boolean => form.test(host))?.[0] ?? "";
+}
+
+/**
  * Reads the ID of a meeting from its link, written as its software writes it in an invitation, for the two links
- * I checked: Teams, `https://teams.microsoft.com/meet/<ID>?p=…`, in groups of three from the left, like
- * `123 456 789 012 345`; Zoom, `https://<name>.zoom.us/j/<ID>?pwd=…`, three digits and the rest in two halves,
- * like `123 4567 8901`. No link holds the passcode: `p` and `pwd` are codes of their own, not the passcode of
- * the invitation, and a link of BBB or TUM-Live holds no ID.
+ * I checked, by the software of their host, see {@link meetingSoftwareOf}: Teams, `…/meet/<ID>?p=…`, in groups
+ * of three from the left, like `123 456 789 012 345`; Zoom, `…/j/<ID>?pwd=…`, three digits and the rest in two
+ * halves, like `123 4567 8901`. No link holds the passcode: `p` and `pwd` are codes of their own, not the passcode
+ * of the invitation, and a link of BBB or TUM-Live holds no ID.
+ * - `software`: Software of the link.
  * - `teams`, `zoom`: The digits of the ID in a link of Teams or of Zoom, empty for none.
  * - `half`: Where the second half of the digits of Zoom after the first three begins.
  *
@@ -248,8 +275,9 @@ export function meetingLineOf(meeting: Meeting): string {
  * @returns ID like `123 456 789 012 345`, empty for a link without one
  */
 export function meetingIdOf(link: string): string {
-    const teams: string = /^https:\/\/teams\.microsoft\.com\/meet\/(\d+)/.exec(link.trim())?.[1] ?? "";
-    const zoom: string = /^https:\/\/(?:[\w-]+\.)*zoom\.us\/j\/(\d{9,})/.exec(link.trim())?.[1] ?? "";
+    const software: string = meetingSoftwareOf(link);
+    const teams: string = software === "Teams" ? /\/meet\/(\d+)/.exec(link)?.[1] ?? "" : "";
+    const zoom: string = software === "Zoom" ? /\/j\/(\d{9,})/.exec(link)?.[1] ?? "" : "";
     const half: number = 3 + Math.floor((zoom.length - 3) / 2);
     if (teams !== "")
         return teams.replace(/\d{3}(?=\d)/g, "$& ");

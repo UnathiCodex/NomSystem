@@ -36,8 +36,10 @@
  * written before keeping what they have;
  * a new place is added with its address and maybe its link through a small dialog before it is picked,
  * see `places.ts`.
- * `Online`, the place of a meeting online, stands among my places, but for a way; picked, it asks step by step
- * for what I need to join, its software, its link, its ID and its passcode, see {@link meetingRowsOf}.
+ * `Online`, the place of a meeting online, stands among my places, but for a way; picked in a skill entry or box,
+ * where lectures and tutorials happen on Zoom and the like, it asks step by step for its meeting, its link, which
+ * gives its software and its ID, then its passcode, see {@link meetingRowsOf}; elsewhere, like in a call of `Talk`,
+ * it is a plain place.
  * `From` starts where the last way before the entry ended.
  * Plan and log use one and the same dialog with the same fields and lists, see `skill.ts`: an entry of the log
  * and a box of the plan alike have a start and an end, each a day like `13.10.2026` and a plain time, as calendar apps
@@ -78,7 +80,8 @@ import { addedRowOf, choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import {
-    labelOf, lineOf, meetingIdOf, meetingLineOf, meetingOf, onlineName, placeEdit, placeOpen, placesStart,
+    labelOf, lineOf, meetingIdOf, meetingLineOf, meetingOf, meetingSoftwareOf, onlineName, placeEdit, placeOpen,
+    placesStart,
 } from "./places.ts";
 import {
     skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPlaceShow, skillSave, skillSemesterOf,
@@ -115,8 +118,8 @@ type FieldKey = "title" | "from" | "location";
  *   which its list offers only as I search, see {@link placeSearchOf}; none for any other field.
  * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
  *   like `https://nav.tum.de/room/0509.EG.980`; none for any other field.
- * - `software`: For a field of a place that offers `Online`, the software of a meeting, like `Teams`, the most used
- *   first, see {@link meetingRowsOf}; none for any other field, like the places of a way.
+ * - `meeting`: Whether its place `Online` asks for its meeting, its link, ID and passcode, like the place of a skill
+ *   entry or box, see {@link meetingRowsOf}; left out, `Online` is a plain place, like for a call of `Talk`.
  */
 type Field = {
     name: string;
@@ -127,7 +130,7 @@ type Field = {
     many?: boolean;
     rooms: string[];
     links: { [value: string]: string };
-    software: string[];
+    meeting?: boolean;
 };
 
 /**
@@ -218,8 +221,8 @@ let opened: EntryOpening = {
 };
 
 /**
- * Link of the meeting of `Online` picked as the place, as pasted, written as the `ALTREP` of its `LOCATION`,
- * see {@link meetingRowsOf}; empty for none and while another place is picked.
+ * Link of the meeting of `Online` picked as the place where it asks for its meeting, as pasted, written
+ * as the `ALTREP` of its `LOCATION`, see {@link meetingRowsOf}; empty for none and while another place is picked.
  */
 let meetingLink: string = "";
 
@@ -506,11 +509,11 @@ function mineOf(field: Field): string | undefined {
  * the pencil that changes my place, while it is one of mine, see {@link placeChange}; no address while no place
  * is picked, the link itself for a place with a link but without address, like `https://nav.tum.de/room/5602.EG.001`,
  * so every place with a link opens it here too, and nothing for an older place written by its name alone,
- * like `HomeMunich`, which has neither. `Online` shows what I need to join as its address, like
- * `Teams, ID 123 456 789 012 345`, opening the link of its meeting as pasted, and has no pencil, since it is
- * no place of `Places.md`.
+ * like `HomeMunich`, which has neither. `Online` has no pencil, since it is no place of `Places.md`; where it asks
+ * for its meeting, see {@link meetingRowsOf}, it shows what I need to join as its address, like
+ * `Teams, ID 123 456 789 012 345`, opening the link of its meeting as pasted.
  * - `line`: The place picked.
- * - `online`: Whether it is `Online`.
+ * - `meeting`: Whether `Online` is picked where it asks for its meeting, see {@link meetingPicked}.
  * - `kept`: The link of the place the entry kept, empty for none.
  * - `link`: The link to open, empty for none.
  *
@@ -520,16 +523,16 @@ function mineOf(field: Field): string | undefined {
  */
 function placePartsShow(pencil: HTMLButtonElement, address: HTMLAnchorElement, field: Field): void {
     const line: string = values[field.key];
-    const online: boolean = onlinePicked(field);
+    const meeting: boolean = meetingPicked(field);
     const kept: string = field.key === "location" && line === opened.values.location ? opened.locationLink : "";
-    const link: string = online ? meetingLink : kept !== "" ? kept : field.links[line] ?? "";
+    const link: string = meeting ? meetingLink : kept !== "" ? kept : field.links[line] ?? "";
     address.textContent = addressOf(line) === "" ? link : addressOf(line);
     if (link !== "")
         address.href = link;
     else
         address.removeAttribute("href");
     address.hidden = address.textContent === "";
-    pencil.hidden = online || mineOf(field) === undefined;
+    pencil.hidden = labelOf(line) === onlineName || mineOf(field) === undefined;
 }
 
 /**
@@ -609,14 +612,14 @@ function placesShow(): void {
 }
 
 /**
- * Tells whether `Online` is picked in a field that offers it, see {@link meetingRowsOf}: only the place of an entry,
- * its `LOCATION`, which carries the link of a meeting, but of a way.
+ * Tells whether `Online` is picked in a field where it asks for its meeting, see {@link meetingRowsOf}: the place
+ * of a skill entry or box, see `meeting` of {@link Field}.
  *
  * @param field - Field of the category picked, like `Place`
- * @returns Whether it shows a meeting online
+ * @returns Whether it shows the rows of a meeting
  */
-function onlinePicked(field: Field): boolean {
-    return field.software.length > 0 && labelOf(values[field.key]) === onlineName;
+function meetingPicked(field: Field): boolean {
+    return field.meeting === true && labelOf(values[field.key]) === onlineName;
 }
 
 /**
@@ -640,20 +643,18 @@ function meetingFieldOf(type: string, value: string, name: string): HTMLInputEle
 
 /**
  * Builds the rows of the meeting of `Online` below its place, filled one after another, see `Meeting`
- * in `places.ts`: its software, whose list offers Teams, BBB, Zoom and TUM-Live and those I used, the most used
- * first, and takes one typed, then its link, pasted, which I may leave empty, its ID and its passcode.
- * The ID follows the link as I paste it, read from it, see `meetingIdOf` in `places.ts`, until I type another;
- * a link holds no passcode. Each change writes the line of the place anew, like
- * `Online, Teams, ID 123 456 789 012 345`, see `meetingLineOf` in `places.ts`, shown as its address.
- * After the software is picked, the field of the link takes the focus, while empty.
- * - `meeting`: Software, ID and passcode of the place picked.
+ * in `places.ts`: its link, pasted, which I may leave empty, then its ID and its passcode. Its software follows
+ * the link as I paste it, read from its host, see `meetingSoftwareOf` in `places.ts`, and so does its ID,
+ * see `meetingIdOf`, until I type another; a link holds no passcode. Each change writes the line of the place anew,
+ * like `Online, Teams, ID 123 456 789 012 345`, see `meetingLineOf` in `places.ts`, shown as its address.
+ * - `meeting`: Software, ID and passcode of the place picked, its software as written until the link changes,
+ *   like one an older entry typed.
  * - `link`, `id`, `passcode`: Fields of the link, the ID and the passcode.
  * - `write`: Writes the line of the place from the fields, and shows it as its address.
- * - `software`: Row of the software.
  *
- * @param field - Field of the place, `Place`
+ * @param field - Field of the place, `Place` of a skill entry or box
  * @param parts - Pencil and address of the place, see {@link placePartsOf}
- * @returns The rows of software, link, ID and passcode
+ * @returns The rows of link, ID and passcode
  */
 function meetingRowsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]): HTMLElement[] {
     const meeting: Meeting = meetingOf(values[field.key]);
@@ -664,29 +665,17 @@ function meetingRowsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElemen
         values[field.key] = meetingLineOf({ software: meeting.software, id: id.value, passcode: passcode.value });
         placePartsShow(parts[0], parts[1], field);
     };
+    link.id = "entry-meeting-link";
     link.addEventListener("input", (): void => {
         if (id.value.trim() === meetingIdOf(meetingLink))
             id.value = meetingIdOf(link.value);
+        meeting.software = meetingSoftwareOf(link.value);
         meetingLink = link.value.trim();
         write();
     });
     id.addEventListener("input", write);
     passcode.addEventListener("input", write);
-    const software: HTMLDivElement = rowOf("Software", choicesOf({
-        search: searchOf(field.software.map(choiceOf)),
-        picked: meeting.software === "" ? [] : [meeting.software],
-        many: false,
-        adding: true,
-        noun: "software",
-        pick: (picked: string[]): void => {
-            meeting.software = picked[0] ?? "";
-            write();
-            if (link.value === "")
-                link.focus();
-        },
-    }));
-    software.id = "entry-software";
-    return [software, rowOf("Link", link), rowOf("ID", id), rowOf("Passcode", passcode)];
+    return [rowOf("Link", link), rowOf("ID", id), rowOf("Passcode", passcode)];
 }
 
 /**
@@ -739,14 +728,14 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
  * A place shows by its name, once, however often it was used and whatever address an entry kept, which a place picked
  * again keeps, with its pencil beside it and its address below it, see {@link placePartsOf}; a summary with the steps
  * of the value picked below it, see {@link stepsShow}. A meal of the log has its summary, its meals and its foods
- * in place of the summary, see {@link meal}. `Online` has the rows of its meeting below it, which come and go
- * as it is picked and left, see {@link meetingShow}.
+ * in place of the summary, see {@link meal}. `Online` in a skill entry or box has the rows of its meeting below it,
+ * which come and go as it is picked and left, see {@link meetingShow}.
  * - `place`: Pencil and address of a place, `null` for any other field.
  * - `steps`: Place of the steps of the field.
- * - `online`: Whether `Online` is picked, see {@link onlinePicked}.
+ * - `meeting`: Whether `Online` is picked where it asks for its meeting, see {@link meetingPicked}.
  *
  * @param field - Field of the category picked, like `Place`
- * @returns Its row, for `Online` with the rows of its meeting
+ * @returns Its row, for `Online` in a skill entry or box with the rows of its meeting
  */
 function fieldRowsOf(field: Field): HTMLElement[] {
     if (field.key === "title" && meal !== null)
@@ -755,7 +744,7 @@ function fieldRowsOf(field: Field): HTMLElement[] {
         return manyRowsOf(field);
     const place: [HTMLButtonElement, HTMLAnchorElement] | null = field.key === "title" ? null : placePartsOf(field);
     const steps: HTMLElement = document.createElement("ul");
-    const online: boolean = onlinePicked(field);
+    const meeting: boolean = meetingPicked(field);
     steps.className = "entry-steps";
     stepsShow(steps, field);
     return [rowOf(field.name, choicesOf({
@@ -780,23 +769,24 @@ function fieldRowsOf(field: Field): HTMLElement[] {
             stepsShow(steps, field);
             document.getElementById("entry-pain")?.toggleAttribute("hidden", !neckLongPicked());
             saveAllow();
-            if (onlinePicked(field) !== online)
+            if (meetingPicked(field) !== meeting)
                 meetingShow(field);
         },
-    })), ...(place !== null && online ? meetingRowsOf(field, place) : [])];
+    })), ...(place !== null && meeting ? meetingRowsOf(field, place) : [])];
 }
 
 /**
- * Shows the rows of the places anew as `Online` is picked or left, see {@link meetingRowsOf}: picked, with the list
- * of its software open, so I pick or type it next; left, its link gone with it.
+ * Shows the rows of the places anew as `Online` is picked or left where it asks for its meeting,
+ * see {@link meetingRowsOf}: picked, with the field of its link focused, so I paste it next; left, its link gone
+ * with it.
  *
- * @param field - Field of the place, `Place`
+ * @param field - Field of the place, `Place` of a skill entry or box
  */
 function meetingShow(field: Field): void {
     meetingLink = "";
     placesShow();
-    if (onlinePicked(field))
-        document.querySelector<HTMLButtonElement>("#entry-software .picker-line")?.click();
+    if (meetingPicked(field))
+        document.getElementById("entry-meeting-link")?.focus();
 }
 
 /**
@@ -979,7 +969,8 @@ function titleRead(picked: string): string {
  * Reads the text fields of the dialog, as an entry of the log and a box have them, a skill entry its place too,
  * like the room of a lecture imported into the plan, and its chapters and documents.
  * - `picked`: Values picked in the lists.
- * - `online`: Whether `Online` is the place, whose link of its meeting goes along, see {@link meetingRowsOf}.
+ * - `meeting`: Whether `Online` is the place where it asks for its meeting, whose link goes along,
+ *   see {@link meetingPicked}.
  * - `skill`: Skill and type of a skill entry, empty for any other entry.
  * - `links`: Chapters and documents of a skill entry, none for any other entry.
  *
@@ -989,7 +980,7 @@ function titleRead(picked: string): string {
  */
 function textsRead(): BoxFields {
     const picked: { [key in FieldKey]: string } = valuesRead();
-    const online: boolean = (chosen?.fields ?? []).some(onlinePicked);
+    const meeting: boolean = (chosen?.fields ?? []).some(meetingPicked);
     const skill: ModuleType = chosen?.name === skillName ? skillModuleType() : { module: "", type: "" };
     const links: SkillLinks =
         chosen?.name === skillName ? skillLinksRead() : { chapters: [], documents: [] };
@@ -997,7 +988,7 @@ function textsRead(): BoxFields {
         category: chosen?.name ?? "",
         title: titleRead(picked.title),
         location: picked.location,
-        locationLink: online ? meetingLink : undefined,
+        locationLink: meeting ? meetingLink : undefined,
         from: picked.from,
         module: skill.module,
         type: skill.type,
