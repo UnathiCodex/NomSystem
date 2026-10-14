@@ -9,7 +9,8 @@
  * A click on the date opens a month to pick any day from, see `month.ts`.
  * A box goes into the log at its real time by dragging it there, or as expected with one tap on its ring.
  * The log is written by category: `+` below the time grid opens the entry by category for the last half hour,
- * a range selected in the time grid for that range; a click on an entry changes it.
+ * a range selected in the time grid for that range, on a phone by a short press into the grid and pulling it down
+ * over the time, as in Google Calendar; a click on an entry changes it.
  * Entries are moved and resized by dragging, and the reader writes them back into their files.
  * Entries look as Google Calendar shows them: what first, then the time, then the place, in one size, the time a light
  * grey, and a taller one its note below, see {@link entryContentOf};
@@ -457,6 +458,10 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `eventClick`: Opens the entry by category for an entry that can be changed, see {@link entryClick}.
  * - `select`: Opens the entry by category for a range selected in the time grid.
  * - `selectAllow`: Allows selecting a time range, but not in the row of the whole day.
+ * - `selectLongPressDelay`: Starts a selection on a phone after a short press of 300 ms, in place of FullCalendar's
+ *   long press of a second, so a finger presses into the time grid and pulls the range down over the time,
+ *   as in Google Calendar; a swipe moves at once, so it scrolls the grid, and once the grid scrolled FullCalendar
+ *   selects nothing. An entry keeps the long press of a second before it is dragged, so a slow tap never moves it.
  * - `nowIndicatorLineClass`, `nowIndicatorDotClass`: Add the classes `now-line` and `now-dot` to the line of now
  *   and its dot, so `day.css` draws them calm grey behind the entries, never through their text.
  * - `slotMinTime`, `slotMaxTime`: Run the grid over the calendar day, 00:00 to 24:00, as the trackers and the done
@@ -506,6 +511,7 @@ export function dayStart(note: boolean): void {
         eventClick: entryClick,
         selectable: true,
         selectAllow: (span: DateSpanApi): boolean => !span.allDay,
+        selectLongPressDelay: 300,
         select: (info: DateSelectInfo): void => {
             entryOpen(info.start, info.end).catch((error: unknown): void => console.error(error));
         },
