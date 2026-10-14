@@ -815,13 +815,15 @@ button.box-ring.box-checked svg {
 
 /* Panel: card over the page, for the entry by category, the gift idea, a place and the month, as sketched:
    one column of rows, each its name grey at the left, `--name-width` wide, about 96 pixels, so every value starts
-   at the same place, `--value-start` from the edge of the card's content; 44rem wide, so whole names, addresses
-   and links fit, a place opened from the entry by category as wide as it; the month smaller, see `.month-panel` */
+   at the same place, `--value-start` from the edge of the card's content; 52rem wide, so whole names, addresses
+   and links fit, and a food of a meal with its brand and store, its grams and its kcal on one line, like
+   `Hackfleisch gemischt zum Braten (GUT&GÜNSTIG, Edeka)`, on the PC as on the laptop; a place opened from the entry
+   by category as wide as it; the month smaller, see `.month-panel` */
 .panel {
     --name-width: 4.8rem;
     --row-padding: 0.75rem;
     --value-start: calc(var(--row-padding) + 1px + var(--name-width) + var(--control-gap));
-    width: min(44rem, calc(100vw - 2 * var(--gap)));
+    width: min(52rem, calc(100vw - 2 * var(--gap)));
     padding: var(--gap);
     border: 1px solid var(--line);
     border-radius: var(--radius);
