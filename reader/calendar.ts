@@ -78,6 +78,8 @@ import type { CalendarSource } from "./sources.ts";
  * - `note`: Free note, its `DESCRIPTION`, empty when the event has none.
  * - `todo`: Whether the entry is a to-do, a `VTODO`, a box of the plan; else it is an event, a `VEVENT`.
  * - `status`: Its `STATUS`, like `CANCELLED` for a dropped box or `COMPLETED` for a done one, empty when it has none.
+ * - `completed`: When a to-do was done, its `COMPLETED`, as ISO instant, like the moment I ticked a homework submitted;
+ *   empty when it has none and for an event.
  * - `minutes`: Expected duration of a to-do in minutes, its `ESTIMATED-DURATION`, like 75 of `PT1H15M`;
  *   `null` for none and for an event, whose length lies between its start and its end.
  * - `deadline`: Deadline of a to-do, its `DUE`, as ISO instant, or as date like `2026-10-23` when it has no time;
@@ -123,6 +125,7 @@ export type Entry = {
     note: string;
     todo: boolean;
     status: string;
+    completed: string;
     minutes: number | null;
     deadline: string;
     pushed: string[];
@@ -456,6 +459,7 @@ function deadlineDayOf(component: ICAL.Component): [ICAL.Time, ICAL.Time] {
  * - `category`: Its `CATEGORIES`, empty for none.
  * - `module`, `type`: Skill and type of a skill entry from its `SUMMARY`, see {@link skillPartsOf}, else empty.
  * - `stamp`: Its `DTSTAMP`, an `ical.js` time when it has one.
+ * - `completed`: Its `COMPLETED`, an `ical.js` time when it has one.
  * - `recurrence`: For a changed occurrence its `RECURRENCE-ID`, for an occurrence of a series its start,
  *   empty for an event that happens once.
  *
@@ -472,6 +476,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
     const [module, type]: [string, string] =
         category === skillName ? skillPartsOf(event.summary ?? "", titleLink) : ["", ""];
     const stamp: unknown = event.component.getFirstPropertyValue("dtstamp");
+    const completed: unknown = event.component.getFirstPropertyValue("completed");
     let recurrence: string = "";
     if (event.isRecurrenceException())
         recurrence = textOf(event.recurrenceId);
@@ -505,6 +510,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         note: event.description ?? "",
         todo: todo,
         status: String(event.component.getFirstPropertyValue("status") ?? ""),
+        completed: completed instanceof ICAL.Time ? completed.toJSDate().toISOString() : "",
         minutes: todo ? minutesOf(event.component) : null,
         deadline: todo ? deadlineOf(event.component) : "",
         pushed: event.component.getAllProperties("x-pushed")

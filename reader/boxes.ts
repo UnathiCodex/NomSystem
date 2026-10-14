@@ -28,12 +28,14 @@
  *   times, so a box with a deadline has no `DTSTART`: the day of its deadline is its day, and it has no expected time.
  *   It shows from {@link deadlineDays} days before its deadline, so I start early, until it is done, at the latest
  *   on the day of its deadline, and on that day always, so I see there that it is done, at the top of each of those
- *   days, see {@link boxesRead}; it cannot be pushed;
+ *   days, see {@link boxesRead}; it cannot be pushed. It is done only once I tick it submitted, see {@link boxSubmit},
+ *   since the log entries pointing to it are its sessions, as many as it needs;
  * - its expected duration in `ESTIMATED-DURATION`, like `ESTIMATED-DURATION:PT1H15M`, left out when it has none:
  *   the property of the task extensions of iCalendar (draft-ietf-calext-ical-tasks, approved by the IETF and waiting
  *   for its RFC number), since RFC 5545 has none for how long a to-do takes: its `DURATION` is the window to do it in,
  *   and after a `DTSTART` without time it may only be whole days;
- * - its state in `STATUS`: `NEEDS-ACTION` while open, `COMPLETED` with `COMPLETED`, the moment in UTC it was logged,
+ * - its state in `STATUS`: `NEEDS-ACTION` while open, `COMPLETED` with `COMPLETED`, the moment in UTC it was logged
+ *   or ticked submitted,
  *   and `CANCELLED` once dropped;
  * - each push in one `X-PUSHED` with the day it was pushed from, as a date of the iCalendar format,
  *   like `X-PUSHED;VALUE=DATE:20261013`, since the standard has nothing for it;
@@ -42,8 +44,8 @@
  *   as `X-CHAPTER`s and the documents it will use as `ATTACH`es, like the slides of a lecture,
  *   see `linksOf` in `documents.ts`, which a log entry from it gets too.
  * The log entry written from a box points to it the standard way, with `RELATED-TO:<UID of the box>`, which gives
- * its real time, an older one with `X-PLANNED:<UID of the box>`: a box is done once a log entry points to it,
- * or once it is `COMPLETED`, like a box ticked in another app.
+ * its real time, an older one with `X-PLANNED:<UID of the box>`: a box without deadline is done once a log entry
+ * points to it, and any box once it is `COMPLETED`, like a box ticked in another app or a homework ticked submitted.
  * An occurrence of a series in the plan, like a weekly lecture, is a box of its own: its identifier is the `UID`
  * of its series and its start as the series has it, after `#`,
  * like `weekly-lecture@nomsystem#2026-10-26T09:00:00.000Z`, see `entryIdOf` in `calendar.ts`, so its log entry
@@ -114,7 +116,10 @@ const numberedTypes: string[] = ["VO", "UE", "TU", "HU"];
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` when it has no time; empty for none.
  * - `state`: Whether it is open, done or dropped.
  * - `pushed`: Days it was pushed from to the next day, in order, like `2026-10-12`.
- * - `log`: Start and end of the log entry written from it, as ISO instants, `null` for none.
+ * - `log`: Start and end of the log entry written from it, for a box with a deadline of one of its sessions,
+ *   as ISO instants, `null` for none.
+ * - `completed`: When it was done, its `COMPLETED`, as ISO instant, like the moment I ticked a homework submitted;
+ *   empty for none.
  * - `editable`: Whether it can be changed, pushed and dropped: a to-do or an event with times, see `calendar.ts`,
  *   also one occurrence of a series.
  * - `series`: Whether it is one occurrence of a series, like a weekly lecture, which cannot be removed.
@@ -135,6 +140,7 @@ export type Box = EntryTexts & {
     state: BoxState;
     pushed: string[];
     log: { start: string; end: string } | null;
+    completed: string;
     editable: boolean;
     series: boolean;
     todo: boolean;
@@ -320,7 +326,8 @@ function planEntryFind(id: string): [string, Entry] {
 
 /**
  * Turns an entry of the plan, a to-do or an event, into a box, see the top of this file: dropped while I cancelled it,
- * done once a log entry points to it, cancelled by the university while its number is `NONE`, else open.
+ * done once it is `COMPLETED`, or one without deadline once a log entry points to it, cancelled by the university
+ * while its number is `NONE`, else open.
  * - `log`: The log entry written from it, `undefined` for none.
  *
  * @param entry - Entry of the plan
@@ -335,7 +342,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
     let state: BoxState = "open";
     if (entry.status === "CANCELLED")
         state = "dropped";
-    else if (log !== undefined || entry.status === "COMPLETED")
+    else if (entry.status === "COMPLETED" || (log !== undefined && entry.deadline === ""))
         state = "done";
     else if (entry.number === "NONE")
         state = "university";
@@ -350,6 +357,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         state: state,
         pushed: entry.pushed,
         log: log === undefined ? null : { start: log.start, end: log.end },
+        completed: entry.completed,
         editable: entry.editable,
         series: entry.recurrence !== "",
         todo: entry.todo,
@@ -384,15 +392,15 @@ function boxCompare(first: Box, second: Box): number {
 
 /**
  * Tells whether a box with a deadline shows on a day: on the day of its deadline always, so I see there that it is
- * done, and before it from {@link deadlineDays} days before that day, once done only until the day of its log entry.
- * - `last`: Day of its log entry, the day of its deadline while it has none.
+ * done, and before it from {@link deadlineDays} days before that day, once done only until the day it was done.
+ * - `last`: Day it was done, the day of its deadline while it is open, or when that day is not known.
  *
  * @param box - Box with a deadline
  * @param date - Day like `2026-10-20`
  * @returns Whether it shows on the day
  */
 function deadlineShows(box: Box, date: string): boolean {
-    const last: string = box.log === null ? box.day : berlinDateOf(new Date(box.log.start));
+    const last: string = box.completed === "" ? box.day : berlinDateOf(new Date(box.completed));
     return date === box.day || (dayAdd(box.day, -deadlineDays) <= date && date < box.day && date <= last);
 }
 
@@ -796,27 +804,46 @@ export function boxDrop(id: string, dropped: boolean): void {
 
 /**
  * Marks a box done once a log entry pointing to it is written: a to-do that happens once becomes `COMPLETED`,
- * as of now; an event, which has no such status, and an occurrence of a series are done by the log entry alone.
+ * as of now; an event, which has no such status, and an occurrence of a series are done by the log entry alone;
+ * one with a deadline stays open, since that log entry is one of its sessions, see {@link boxSubmit}.
  *
  * @param id - Identifier of the box, like `study-13@nomsystem`
  * @throws {Error} - When the plan holds no such box
  */
 export function boxDone(id: string): void {
     const [file, entry]: [string, Entry] = planEntryFind(id);
-    if (entry.todo && entry.editable && entry.recurrence === "")
+    if (entry.todo && entry.editable && entry.recurrence === "" && entry.deadline === "")
         statusPut(file, id, "COMPLETED", new Date());
 }
 
 /**
+ * Ticks a box with a deadline submitted, like a homework sheet I handed in, with one tap on its ring, or takes
+ * the tick back: it becomes `COMPLETED`, as of now, or `NEEDS-ACTION` again, its sessions staying in the log.
+ *
+ * @param id - Identifier of the box, like `sheet-3@nomsystem`
+ * @param submitted - Whether to tick it submitted, else to take the tick back
+ * @throws {Error} - When there is no such box in the new system, it has no deadline, or it is not open,
+ *   or not done for taking the tick back
+ */
+export function boxSubmit(id: string, submitted: boolean): void {
+    const [file, entry, box]: [string, Entry, Box] = boxFind(id);
+    if (!entry.editable || box.deadline === "" || box.state !== (submitted ? "open" : "done"))
+        throw new Error(`${entry.title} cannot be ${submitted ? "ticked submitted" : "taken back"}`);
+    statusPut(file, id, submitted ? "COMPLETED" : "NEEDS-ACTION", submitted ? new Date() : null);
+}
+
+/**
  * Opens a box again once the log entry written from it is removed: a done to-do of the new system becomes
- * `NEEDS-ACTION`; an occurrence of a series is open again by itself, and a box no longer in the plan stays as it is.
+ * `NEEDS-ACTION`; an occurrence of a series is open again by itself, and a box no longer in the plan stays as it is,
+ * as one with a deadline does, since only my tick decides it, see {@link boxSubmit}.
  * - `found`: Its `.ics` file and its entry, `undefined` when it is gone.
  *
  * @param id - Identifier of the box
  */
 export function boxReopen(id: string): void {
     const found: [string, Entry] | undefined = entryLookup(day.plan, id);
-    if (found !== undefined && found[1].todo && found[1].editable && found[1].status === "COMPLETED")
+    if (found !== undefined && found[1].todo && found[1].editable && found[1].status === "COMPLETED"
+        && found[1].deadline === "")
         statusPut(found[0], id, "NEEDS-ACTION", null);
 }
 

@@ -263,6 +263,17 @@ export async function boxUniversity(id: string, cancelled: boolean): Promise<voi
 }
 
 /**
+ * Ticks a box with a deadline submitted, or takes the tick back; its sessions stay in the log.
+ *
+ * @param id - Identifier of the box
+ * @param submitted - Whether to tick it submitted, else to take the tick back
+ * @throws {Error} - When the reader does not take it
+ */
+export async function boxSubmit(id: string, submitted: boolean): Promise<void> {
+    await requestSend("POST", "/api/day/submitted", { box: id, submitted: submitted });
+}
+
+/**
  * Drops a box, or takes a dropped box back.
  *
  * @param id - Identifier of the box

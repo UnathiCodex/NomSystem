@@ -287,7 +287,8 @@ export function realMinutesRead(category: string, title: string, module: string,
 
 /**
  * Adds an entry to the log, into the log it belongs into, see {@link logFileOf}, a meal with one line `X-FOOD`
- * per food, see {@link fieldsCheck}; an entry logged from a box with its `RELATED-TO`, after which the box is done;
+ * per food, see {@link fieldsCheck}; an entry logged from a box with its `RELATED-TO`, after which the box is done,
+ * see `boxDone` in `boxes.ts`;
  * a long neck session with my pain as `X-PAIN`, see {@link painCheck}; a meal drawn from a cooking with its
  * `X-COOKED`, see {@link cookedCheck}.
  * - `pain`: My pain, empty for none.
@@ -326,10 +327,10 @@ export function entryAdd(entry: EntryNew): string {
  * Logs a box at its real time, with one drop or one tap: a log entry of its category, what, place, and a skill entry
  * with its skill and type, written as the reader writes them, see `titleOf` in `documents.ts`, linking the folder
  * of its skill, from the start to the end the day sends,
- * pointing to the box with `RELATED-TO`, after which the box is done. Its note stays empty, since the note
- * of a log entry is my diary note about what happened; a skill box hands on its links to documents, like the slides
- * of a lecture, see `documents.ts`, and its chapters as `X-CHAPTER`s, also those whose folders
- * an older box links; more chapters and documents a skill entry gets later in the dialog.
+ * pointing to the box with `RELATED-TO`, after which the box is done, see `boxDone` in `boxes.ts`. Its note stays
+ * empty, since the note of a log entry is my diary note about what happened; a skill box hands on its links
+ * to documents, like the slides of a lecture, see `documents.ts`, and its chapters as `X-CHAPTER`s, also those
+ * whose folders an older box links; more chapters and documents a skill entry gets later in the dialog.
  * - `box`: The box.
  * - `skill`: Whether it is a skill box, whose links go along.
  * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
@@ -373,12 +374,13 @@ export function boxLog(logged: BoxLogged): string {
  * - `file`: `.ics` file of that log entry.
  *
  * @param id - Identifier of the box, like `study-13@nomsystem`
- * @throws {Error} - When there is no such box or it is not done
+ * @throws {Error} - When there is no such box, it is not done, or it has a deadline, which only my tick decides,
+ *   see `boxSubmit` in `boxes.ts`
  */
 export function boxUndo(id: string): void {
     const [, , box]: [string, Entry, Box] = boxFind(id);
-    if (box.state !== "done")
-        throw new Error(`${box.title} is not done`);
+    if (box.state !== "done" || box.deadline !== "")
+        throw new Error(`${box.title} is not done by a log entry`);
     const logged: Entry | undefined = box.log === null ? undefined
         : entriesRead(day.log, box.log.start, new Date(Date.parse(box.log.end) + 1).toISOString())
             .find((entry: Entry): boolean => entry.planned === id);
@@ -421,7 +423,7 @@ export function entryEdit(change: EntryChange): void {
 }
 
 /**
- * Removes an entry of the log; when it was logged from a box, the box is open again, see `boxes.ts`.
+ * Removes an entry of the log; when it was logged from a box, the box is open again, see `boxReopen` in `boxes.ts`.
  *
  * @param id - Identifier of the entry
  * @throws {Error} - When there is no such entry or it may not be removed

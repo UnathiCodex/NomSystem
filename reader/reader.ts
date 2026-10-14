@@ -44,7 +44,7 @@ import { json } from "node:stream/consumers";
 import {
     boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, realMinutesRead,
 } from "./day.ts";
-import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxUniversity } from "./boxes.ts";
+import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxSubmit, boxUniversity } from "./boxes.ts";
 import { giftWrite } from "./gifts.ts";
 import { noteRead, sectionsRead, sectionWrite } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
@@ -145,6 +145,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/day/dropped`: Drops the box named in the body, or takes it back when the body says `dropped: false`.
  * - `POST /api/day/university`: Marks the box named in the body cancelled by the university, renumbering its series,
  *   or takes it back when the body says `cancelled: false`.
+ * - `POST /api/day/submitted`: Ticks the box with a deadline named in the body submitted, or takes the tick back
+ *   when the body says `submitted: false`.
  * - `POST /api/day/sections`: Writes the section of the body into its daily note, my gratitude or my points about the day.
  * - `POST /api/day/gifts`: Writes the gift idea of the body for its birthday or holiday into its file,
  *   `Birthdays.ics` or `Holidays.ics`, or takes it out when it is empty.
@@ -276,6 +278,11 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
     } else if (request.method === "POST" && url.pathname === "/api/day/university") {
         const marked: { box: string; cancelled: boolean } = await json(request) as { box: string; cancelled: boolean };
         boxUniversity(marked.box, marked.cancelled);
+        responseSend(response, 200, null);
+
+    } else if (request.method === "POST" && url.pathname === "/api/day/submitted") {
+        const ticked: { box: string; submitted: boolean } = await json(request) as { box: string; submitted: boolean };
+        boxSubmit(ticked.box, ticked.submitted);
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/sections") {

@@ -19,11 +19,13 @@
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
  * and on the day of its deadline always, done or not, and looks like every other box, its deadline in place
  * of its time and how near it is after its length, like `Deadline Fri, 23.10.2026, 12:00 · 02h 00m · in 3 days`;
- * it has no arrow, since it stays on the day of its deadline.
+ * it has no arrow, since it stays on the day of its deadline. Its sessions are dragged into the log, as many as it
+ * needs, and leave it open; its ring ticks it submitted, which alone makes it done, see `reader/boxes.ts`.
  * An open box is dragged into the log at the real time: the reader writes a log entry like it, pointing to it,
  * as long as its expected duration, else half an hour, and I resize the entry when it lasted otherwise.
  * Every box shows its two buttons, not only under the pointer: done, the ring at its left, which logs it
- * as expected with one tap, from its expected time, else ending now, see `times.ts`, and skip, the cross at its right,
+ * as expected with one tap, from its expected time, else ending now, see `times.ts`, a box with a deadline ticks it
+ * submitted, and skip, the cross at its right,
  * see below; when the reader does not log a box dropped or tapped, a hint says so above the list until it loads again.
  * Everything undoes with one click: the check of a done box takes it back to open, removing its log entry
  * unless that holds what I added since, see `boxUndo` in `entries.ts`, and the arrow back of a skipped box.
@@ -60,7 +62,7 @@
  */
 
 import { Draggable } from "fullcalendar/interaction";
-import { boxDrop, boxLog, boxPush, boxUndo, boxUniversity } from "./entries.ts";
+import { boxDrop, boxLog, boxPush, boxSubmit, boxUndo, boxUniversity } from "./entries.ts";
 import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
 import { breakableOf } from "./choices.ts";
 import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } from "./suggestions.ts";
@@ -117,7 +119,9 @@ const phone: boolean = matchMedia("(max-width: 900px)").matches;
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` when it has no time; empty for none.
  * - `state`: Whether it is open, done or dropped, which is cancelled.
  * - `pushed`: Days it was pushed from to the next day, in order.
- * - `log`: Start and end of the log entry written from it, as ISO instants, `null` for none.
+ * - `log`: Start and end of the log entry written from it, for a box with a deadline of one of its sessions,
+ *   as ISO instants, `null` for none.
+ * - `completed`: When it was done, as ISO instant, like the moment I ticked a homework submitted; empty for none.
  * - `editable`: Whether it can be changed, pushed and dropped: a to-do or an event with times,
  *   also one occurrence of a series, alone, like the lecture `IN2028 VO` on 26.10.2026.
  * - `series`: Whether it is one occurrence of a series, which cannot be removed.
@@ -145,6 +149,7 @@ export type Box = {
     state: BoxState;
     pushed: string[];
     log: { start: string; end: string } | null;
+    completed: string;
     editable: boolean;
     series: boolean;
     todo: boolean;
@@ -513,7 +518,9 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
 /**
  * Makes the ring at the left of a box, a button: for an open box an empty ring like the circle of a to-do,
  * its check showing under the pointer, which logs it as expected, see {@link boxTap}; for a done box its check,
- * grey, which takes it back to open, see `boxUndo` in `entries.ts`; for a box cancelled its grey mark in that place,
+ * grey, which takes it back to open, see `boxUndo` in `entries.ts`; for a box with a deadline the same ring and check,
+ * which tick it submitted and take the tick back, see `boxSubmit` in `entries.ts`, its sessions staying in the log;
+ * for a box cancelled its grey mark in that place,
  * no button: the landmark for one the university cancelled, as on the button that cancels it, the cross for one
  * I skipped, its tooltip saying which, so no word in its line has to.
  * - `mark`: The mark of a cancelled box.
@@ -534,6 +541,15 @@ function ringOf(calendar: Calendar, box: Box): HTMLElement {
     const ring: HTMLButtonElement = document.createElement("button");
     ring.type = "button";
     ring.className = "box-ring";
+    if (box.deadline !== "") {
+        ring.classList.toggle("box-checked", box.state === "done");
+        iconPut(ring, Check, box.state === "done" ? "Not submitted" : "Submitted");
+        ring.addEventListener("click", (): void => {
+            boxSubmit(box.id, box.state !== "done").then((): Promise<void> => boxesLoad(calendar))
+                .catch((error: unknown): void => console.error(error));
+        });
+        return ring;
+    }
     if (box.state === "done") {
         ring.classList.add("box-checked");
         iconPut(ring, Check, "Not done");
