@@ -76,7 +76,7 @@
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
-import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
+import { choiceOf, choicesOf, listsStart, pairOf, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import {
@@ -746,6 +746,65 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
 }
 
 /**
+ * Category of what I watch, whose summary names what I watched and where, see {@link watchRowOf}.
+ */
+const watchName: string = "Watch";
+
+/**
+ * Reads the summary of a `Watch` as its two parts: what I watched, then the platform in brackets after it,
+ * like `Lex Fridman (YouTube)`; an older summary without brackets, like `YouTube`, named only the platform.
+ * - `parts`: What and platform as the summary writes them, `null` for one without brackets.
+ *
+ * @param summary - Summary as written
+ * @returns What I watched and the platform, each empty for none
+ */
+function watchPartsOf(summary: string): [string, string] {
+    const parts: RegExpExecArray | null = /^(.*\S)\s+\((.+)\)$/.exec(summary.trim());
+    return parts === null ? ["", summary.trim()] : [parts[1], parts[2]];
+}
+
+/**
+ * Builds the summary of a `Watch` as two pickers side by side, as the skill and its type of a skill entry, see
+ * `pairOf` in `choices.ts`: what I watched, the object, like `Lex Fridman`, and after it in brackets where, like
+ * `YouTube`, each offering what my earlier entries wrote and taking a new one with its plus; the summary written
+ * `Lex Fridman (YouTube)`, the platform alone while no what is picked, as older entries wrote it.
+ * - `parts`: What and platform of each summary offered.
+ * - `what`, `where`: The two parts picked.
+ * - `write`: Writes the summary of the two parts.
+ * - `offered`: The parts of one kind that the summaries offer, each once, in their order.
+ *
+ * @param field - The summary of `Watch`
+ * @returns Its row
+ */
+function watchRowOf(field: Field): HTMLElement {
+    const parts: [string, string][] = field.values.map(watchPartsOf);
+    let [what, where]: [string, string] = watchPartsOf(values[field.key]);
+    const write: () => void = (): void => {
+        values[field.key] = what === "" ? where : where === "" ? what : `${what} (${where})`;
+        saveAllow();
+    };
+    const offered: (index: number) => Choice[] = (index: number): Choice[] =>
+        [...new Set(parts.map((part: [string, string]): string => part[index]).filter((part: string): boolean =>
+            part !== ""))].map(choiceOf);
+    return rowOf(field.name, pairOf(
+        choicesOf({
+            search: searchOf(offered(0)), picked: what === "" ? [] : [what], many: false, adding: true, noun: "title",
+            pick: (picked: string[]): void => {
+                what = picked[0] ?? "";
+                write();
+            },
+        }),
+        choicesOf({
+            search: searchOf(offered(1)), picked: where === "" ? [] : [where], many: false, adding: true,
+            noun: "platform", empty: "Add a platform", plus: true,
+            pick: (picked: string[]): void => {
+                where = picked[0] ?? "";
+                write();
+            },
+        })));
+}
+
+/**
  * Builds the row of a field of the category picked: its name and one line showing its value, see {@link choicesOf},
  * whose list offers its values, the most used first, searched as I type, the typed text taken as a new value
  * with `+ New …`, see {@link valueAdd}, but in a field that takes no new values, like the summary of `Sleep`,
@@ -766,6 +825,8 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
 function fieldRowsOf(field: Field): HTMLElement[] {
     if (field.key === "title" && meal !== null)
         return meal;
+    if (field.key === "title" && chosen?.name === watchName && !asPlanned())
+        return [watchRowOf(field)];
     if (field.key === "title" && field.many === true && !asPlanned())
         return [manyRowOf(field)];
     const place: [HTMLButtonElement, HTMLAnchorElement] | null = field.key === "title" ? null : placePartsOf(field);
