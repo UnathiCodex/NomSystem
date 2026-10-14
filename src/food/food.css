@@ -1,6 +1,8 @@
 /* Food, in the scheme of the day: the bar of the shown day over the whole width, then the day and my meals and foods
-   side by side where both fit, else one below the other, beside the areas at the left edge; the day 32rem wide,
-   its numbers close to its names, my meals and foods all the rest, so their rows stay flat, on one line;
+   side by side where both fit, else one below the other, beside the areas at the left edge; the day 36rem wide,
+   so each food keeps its brand and store on its line and the numbers stand close to the names, since the day is
+   what I read at a glance; my meals and foods all the rest, going on over a second line where they must, since
+   I mostly search them;
    the page itself scrolls, no box of its own, so the wheel, a swipe, the keys and the scrollbar all scroll it,
    on a computer and on a phone alike */
 .food {
@@ -14,11 +16,11 @@
 }
 
 /* The day's totals and meals a step from the rail's buttons, not right beside them, as the date bar's framed arrows
-   may stand, nor as far in as the date; kept so; the step comes on top of the day's 32rem, so its columns keep
+   may stand, nor as far in as the date; kept so; the step comes on top of the day's 36rem, so its columns keep
    their room */
 .food-day {
     --food-indent: calc(2 * var(--gap));
-    flex: 0 1 calc(32rem + var(--food-indent));
+    flex: 0 1 calc(36rem + var(--food-indent));
     min-width: 0;
     padding-left: var(--food-indent);
 }
