@@ -195,8 +195,8 @@
 }
 
 /* Grey line of a box, its time and after it its place, apart by the middle dot, on one line as in the log: the time
-   whole, the place giving way with an ellipsis where the line is too narrow; the place in the darker grey of a place,
-   the time in the light grey of a time; on a phone the place on a line of its own, see the end of this file */
+   whole, the place giving way with an ellipsis where the line is too narrow; both in the one grey of the page;
+   on a phone the place on a line of its own, see the end of this file */
 .box-meta {
     display: flex;
     font-size: 0.8125rem;
@@ -218,7 +218,7 @@
 }
 
 .box-time {
-    color: var(--text-time);
+    color: var(--text-muted);
 }
 
 /* What a box is about, its chapters and documents, one per line with a grey bullet, in the size and grey
@@ -571,7 +571,7 @@ button.box-ring.box-checked svg {
 
 .session-left {
     flex: none;
-    color: var(--text-time);
+    color: var(--text-muted);
     font-variant-numeric: tabular-nums;
 }
 
@@ -1366,11 +1366,17 @@ fieldset.entry-times {
     width: 100%;
 }
 
-/* A meal of the log in its three rows: its summary as plain text, its kcal grey beside it; then its meals and its foods,
+/* A meal of the log in its three rows: its summary as plain text, its kcal beside it; then its meals and its foods,
    each its line, the rows picked below it, a bit smaller than the fields, and its list under them;
    no room taken while nothing is picked */
 .meal-summary {
     overflow-wrap: anywhere;
+}
+
+/* kcal of the whole meal beside its summary, white and as big as it, like the kcal of every meal and food */
+.meal-total {
+    margin-left: 0.75rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .meal {
@@ -1422,12 +1428,12 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Grams of a food: a small field with `g` after it, its usual portion grey while empty */
+/* Grams of a food: a small field with `g` after it, white as the kcal, like every fact, its usual portion in it
+   at first, which I type over */
 .meal-grams {
     display: flex;
     align-items: center;
     gap: 0.375rem;
-    color: var(--text-muted);
 }
 
 .panel .meal-grams input {
@@ -1574,7 +1580,7 @@ fieldset.entry-times {
     font-weight: 700;
 }
 
-/* Time in normal weight and the light grey of a time, see `--text-time`, so it stands out a little, never cut:
+/* Time in normal weight and the one grey of the page, never cut:
    after what on one line, like `· 05:15 – 05:45`, or on a line of its own, like `20:00 – 23:45`, as wide
    as its text; only an entry narrower than the time alone, beside others in a narrow column, ends it
    with an ellipsis */
@@ -1583,10 +1589,10 @@ fieldset.entry-times {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: var(--text-time);
+    color: var(--text-muted);
 }
 
-/* Place of an entry, lighter than the time, like `HomeMunich`: beside the time, see `.entry-beside`,
+/* Place of an entry, in the grey of the time, like `HomeMunich`: beside the time, see `.entry-beside`,
    or with room for three lines on the third, below the time and above the note, going on over the lines below
    where it is wider than the entry, like a long route, never cut there */
 .entry-place {

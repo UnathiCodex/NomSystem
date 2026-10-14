@@ -4,7 +4,7 @@
  * A meal of the log, `Food`, in rows of the dialog, like every field, its meals and its foods each with its own list
  * right under it, see `listOf` in `choices.ts`, so meals and foods never mix:
  * - Summary: what I ate, written by itself, never typed: the meals, then the foods eaten beside them, parted by `, `,
- *   like `ChiliConCarne, Weißbrot`, and grey beside it what they give together, like `660 kcal`.
+ *   like `ChiliConCarne, Weißbrot`, and beside it what they give together, like `660 kcal`.
  * - Meals: my meals of `Meals.md`, each only its composition, two or more of my foods, see `../food/meals.ts`.
  *   A meal picked brings its foods at their usual portion: a row with its name, its kcal and a small grey `×`,
  *   which removes it, its foods indented below it, each a row as a food beside the meals has it, so I change the grams
@@ -17,8 +17,9 @@
  *   and store in brackets, its grams, its kcal and a small grey `×`, which removes it, like a food I did not eat
  *   of a cooking. Its list is the food search, see `../food/search.ts`: my foods first, then those of Open Food Facts;
  *   a click on one of my foods takes it, and so does adding a product, which goes into `Foods.md` first.
- *   Grams are optional: a food without them counts its usual portion, shown grey in its empty field;
- *   every amount is rounded and an estimate anyway, so none is marked as one. Enter in its grams opens the list again.
+ *   Its grams start at its usual portion, white like every fact, and I type over them; a field I empty counts
+ *   the usual portion too; every amount is rounded and an estimate anyway, so none is marked as one.
+ *   Enter in its grams opens the list again.
  * Below each, the small grey plus of every list opens its list once one is picked; an empty row opens its list on a click.
  * The dialog writes each food as a line `X-FOOD`: its name, brand and store, then its grams, its usual portion when none
  * are typed, empty for a food `Foods.md` does not hold, and for a food of one of my meals the meal after them, like
@@ -344,7 +345,8 @@ function mealKcalOf(meal: MealPick): number {
 }
 
 /**
- * Makes the small field of the grams of a food with `g` after it, its usual portion grey in it while empty,
+ * Makes the small field of the grams of a food with `g` after it, starting at the grams typed, else at the usual
+ * portion, which a click selects so I type over it; grey in it only once I empty it, the usual portion it then counts;
  * marking itself invalid while its text is no number above 0, so the dialog does not send it.
  *
  * @param value - Grams as typed, empty for none
@@ -360,8 +362,9 @@ function gramsFieldOf(value: string, empty: string, name: string,
     input.type = "text";
     input.inputMode = "decimal";
     input.autocomplete = "off";
-    input.value = value;
+    input.value = value !== "" ? value : empty;
     input.placeholder = empty;
+    input.addEventListener("focus", (): void => input.select());
     input.setAttribute("aria-label", name);
     input.addEventListener("input", (): void => {
         const number: number | null = numberOf(input.value.trim());
@@ -461,8 +464,8 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
 }
 
 /**
- * Shows the summary, see {@link mealTitle}, and grey beside it the kcal of the whole meal; nothing while nothing
- * is picked.
+ * Shows the summary, see {@link mealTitle}, and beside it the kcal of the whole meal, white like every kcal;
+ * nothing while nothing is picked.
  * - `total`: kcal of the meals and the foods beside them.
  */
 function summaryShow(): void {
@@ -470,7 +473,7 @@ function summaryShow(): void {
         + picks.reduce((sum: number, pick: FoodPick): number => sum + kcalOf(pick), 0);
     summary.replaceChildren(mealTitle());
     if (meals.length > 0 || picks.length > 0)
-        summary.append(elementOf("span", "picker-detail", kcalTextOf(total)));
+        summary.append(elementOf("span", "meal-total", kcalTextOf(total)));
 }
 
 /**

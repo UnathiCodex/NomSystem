@@ -1,4 +1,6 @@
-/* Grey page, plan and log told apart by their grey, no colour;
+/* Grey page, plan and log told apart by their grey, no colour; text in two tones only, white for what a thing is
+   and its facts, like a name, its brand, its grams and its kcal, and one grey for times, places, the names of rows
+   and hints, a fact in the same tone wherever it stands;
    notes in the greys of my Obsidian's dark theme with my accent #969696, and in its reading width;
    controls and lines sized for my 4K monitor: buttons and fields one control high,
    chips, small buttons and the rows of the menu one chip high, all with the text of controls and the space beside it,
@@ -12,7 +14,6 @@
     --background: #1e1e1e;
     --text-main: #ececec;
     --text-muted: #999999;
-    --text-time: color-mix(in oklab, var(--text-muted) 50%, var(--text-main));
     --line: #323232;
     --fill: #262626;
     --chosen: #3a3a3a;
