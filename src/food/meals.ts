@@ -7,10 +7,10 @@
  * see `../day/meal.ts`.
  * - The form of a new meal: the name of the meal, which the reader writes in one word, as all my names are,
  *   like `ChiliConCarne` of `Chili con Carne`, shown below the field as I type; its foods, each its name with its brand
- *   and store grey in brackets and a small grey `×`, and below them the food search, which adds one;
+ *   and store in brackets and a small grey `×`, and below them the food search, which adds one;
  *   `Cancel` and `Save`, which takes no click until the meal has a name and two foods.
  * - The row of a meal, the same in the section of the food view and in the list of the meals of an entry: its name,
- *   its foods grey after it by their names, and at the right what it gives at the usual portions.
+ *   its foods in brackets after it by their names, and at the right what it gives at the usual portions.
  * - The section of the food view: `Meals`, then the row of each meal; a click shows its foods below it, each with
  *   its `×` while it has more than two, and the small grey plus that adds one through the food search, changed for good
  *   in `Meals.md` at once; the `×` of the meal, whose first click only asks, as the remove of the entry dialog does,
@@ -70,19 +70,20 @@ export function kcalTextOf(kcal: number): string {
 }
 
 /**
- * Makes the cells of the row of a meal, the same in the food view and in the list of the meals of an entry: its name,
- * its foods grey after it by their names alone, like `Hackfleisch, Kidneybohnen, Tomaten`, cut short where the row
- * has no room for them, and at the right what it gives at the usual portions, like `443 kcal`.
+ * Makes the cells of the row of a meal, the same in the food view and in the list of the meals of an entry: its name
+ * with its foods in brackets after it by their names alone, as a food has its brand and store, like
+ * `ChiliConCarne (Hackfleisch, Kidneybohnen, Tomaten)`, going on below where the row has no room, never cut;
+ * and at the right what it gives at the usual portions, like `443 kcal`; all in one colour and one size.
+ * - `name`: Its name with its foods.
  *
  * @param dish - Meal of `Meals.md`
- * @returns Its name, its foods and its kcal
+ * @returns Its name with its foods, and its kcal
  */
 export function dishCellsOf(dish: Dish): HTMLElement[] {
-    return [
-        elementOf("span", "dish-name", dish.name),
-        elementOf("span", "dish-parts", dish.foods.map((line: string): string => line.split(";")[0]).join(", ")),
-        elementOf("span", "dish-meta", kcalTextOf(dish.kcal)),
-    ];
+    const name: HTMLElement = elementOf("span", "dish-name", dish.name);
+    name.append(elementOf("span", "dish-parts",
+        ` (${dish.foods.map((line: string): string => line.split(";")[0]).join(", ")})`));
+    return [name, elementOf("span", "dish-meta", kcalTextOf(dish.kcal))];
 }
 
 /**

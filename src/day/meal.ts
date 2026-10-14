@@ -14,7 +14,7 @@
  *   see `mealFormOf` in `../food/meals.ts`, named as typed; the meal saved goes into `Meals.md` and into this meal
  *   at once.
  * - Foods: foods eaten beside the meals, like `Weißbrot` beside `ChiliConCarne`, each a row with its name, its brand
- *   and store grey in brackets, its grams, its kcal and a small grey `×`, which removes it, like a food I did not eat
+ *   and store in brackets, its grams, its kcal and a small grey `×`, which removes it, like a food I did not eat
  *   of a cooking. Its list is the food search, see `../food/search.ts`: my foods first, then those of Open Food Facts;
  *   a click on one of my foods takes it, and so does adding a product, which goes into `Foods.md` first.
  *   Grams are optional: a food without them counts its usual portion, shown grey in its empty field;
@@ -382,7 +382,7 @@ function foodsClosed(): boolean {
 }
 
 /**
- * Builds the row of a food, beside the meals or of one: its name, its brand and store grey in brackets after it, like
+ * Builds the row of a food, beside the meals or of one: its name, its brand and store in brackets after it, like
  * `Skyr natur (K-Classic, Kaufland)`, since they only tell which one it is, marked when `Foods.md` does not hold it,
  * its grams, its kcal and a small grey `×`, which removes it, as a value picked in every list of the dialog.
  * - `food`: The food in `Foods.md`, `undefined` for one it does not hold.

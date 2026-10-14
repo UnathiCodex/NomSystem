@@ -21,12 +21,13 @@
     gap: var(--control-gap);
 }
 
-/* Row of a meal, in the food view and in the list of the meals of an entry alike: its name, its foods grey after it,
-   cut short where the row has no room, and grey at the right its kcal at the usual portions; a grey lighter under
-   the pointer. Its foods show nowhere while the meal is open, since they stand below it then */
+/* Row of a meal, in the food view and in the list of the meals of an entry alike: its name with its foods
+   in brackets, going on below where the row has no room, never cut, and at the right its kcal at the usual portions,
+   all in one colour and one size; a grey lighter under the pointer. Its foods show nowhere while the meal is open,
+   since they stand below it then */
 .dish-row {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     flex: 1 1 auto;
     align-content: center;
     align-items: baseline;
@@ -48,28 +49,15 @@
 }
 
 .dish-name {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.dish-parts,
-.dish-meta {
-    color: var(--text-muted);
-    font-size: 0.8125rem;
-    white-space: nowrap;
-}
-
-.dish-parts {
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: break-word;
 }
 
 .dish-row[aria-expanded="true"] .dish-parts {
-    visibility: hidden;
+    display: none;
 }
 
 .dish-meta {
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
 
@@ -117,7 +105,7 @@
     font-size: var(--text-size);
 }
 
-/* Foods of the form or of a meal: each its name, its brand and store grey in brackets, and its `×` at the right */
+/* Foods of the form or of a meal: each its name, its brand and store in brackets, and its `×` at the right */
 .dish-foods {
     display: flex;
     flex-direction: column;
@@ -171,10 +159,6 @@
 
 /* Phone: a meal on one line, its name and its kcal; its foods show once it is picked or open */
 @media (max-width: 900px) {
-    .dish-row {
-        grid-template-columns: minmax(0, 1fr) auto;
-    }
-
     .dish-parts {
         display: none;
     }

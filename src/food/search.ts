@@ -8,7 +8,7 @@
  * It searches once the typing pauses, so a word asks only once; an empty field lists all my foods.
  * I search the food alone, like `räucherlachs`: Open Food Facts searches the names of its products, and a word of
  * a brand or a shop only ranks them, it filters nothing, so the brand and store of a product stand beside its name.
- * Each food shows kcal, protein, carbs and fat per 100 g and its usual portion, its brand and store grey in brackets
+ * Each food shows kcal, protein, carbs and fat per 100 g and its usual portion, its brand and store in brackets
  * after its name, like `Gouda (Milbona, Lidl)`, so the same name of two shops never mixes up; a product also
  * its pack below it, like `Pack 450 g`, and as portion the serving its maker gives, `none` when it gives none.
  * A click on a product opens a short form below it to add it to my foods, with a name of my own and its portion,
@@ -98,7 +98,7 @@ const searches: WeakMap<HTMLElement, Search> = new WeakMap();
 
 
 /**
- * Builds the cells of the row of a food: its name with its brand and store grey in brackets after it, like
+ * Builds the cells of the row of a food: its name with its brand and store in brackets after it, like
  * `Skyr natur (K-Classic, Kaufland)`, below it small the pack of a product, like `Pack 450 g`, then its values
  * per 100 g and its portion, `none` for a product without serving, the numbers in columns; protein, carbs and fat
  * with the class `food-macro`, so a narrow place, like a meal, can leave them out.

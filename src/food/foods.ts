@@ -247,10 +247,10 @@ export function elementOf(tag: string, className: string, text: string): HTMLEle
 }
 
 /**
- * Makes the name of a food, the same wherever it stands: its name, then its brand and store grey in brackets, those
- * it has, like `Skyr natur (K-Classic, Kaufland)`, since they only tell which one it is; where its row has no room,
- * the brand and store give way first, cut short with grey dots, then the name with its own, see `search.css`.
- * - `shown`: The name with its parts.
+ * Makes the name of a food, the same wherever it stands: its name, then its brand and store in brackets, those it has,
+ * like `Skyr natur (K-Classic, Kaufland)`, since they only tell which one it is; in the colour and size of the name,
+ * going on below where its row has no room, never cut.
+ * - `shown`: The name with its brand and store.
  * - `place`: Brand and store, those it has.
  *
  * @param className - Class of the name where it stands, like `food-name` in the food search
@@ -260,9 +260,8 @@ export function elementOf(tag: string, className: string, text: string): HTMLEle
  * @returns The name
  */
 export function foodNameOf(className: string, name: string, brand: string, store: string): HTMLElement {
-    const shown: HTMLElement = elementOf("span", className, "");
+    const shown: HTMLElement = elementOf("span", className, name);
     const place: string[] = [brand, store].filter((part: string): boolean => part !== "");
-    shown.append(elementOf("span", "name-text", name));
     if (place.length > 0)
         shown.append(elementOf("span", "food-brand", ` (${place.join(", ")})`));
     return shown;

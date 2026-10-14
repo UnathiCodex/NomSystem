@@ -160,11 +160,10 @@ body:has(> .food) {
     text-decoration: underline;
 }
 
-/* What of a meal and the name of a food on one line, cut with an ellipsis instead of wrapping */
+/* What of a meal and the name of a food with its brand and store, going on below where the column has no room,
+   never cut */
 .food-what {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: break-word;
 }
 
 /* Place and unknown foods grey */
@@ -180,9 +179,6 @@ body:has(> .food) {
     font-variant-numeric: tabular-nums;
 }
 
-.food-grams {
-    color: var(--text-muted);
-}
 
 /* Hint for a day without meals, or when the meals cannot be read */
 .food-none {

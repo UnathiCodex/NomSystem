@@ -1412,13 +1412,12 @@ fieldset.entry-times {
     padding-left: 1.25rem;
 }
 
+/* Name of a meal or a food with its brand and store, going on below where the row has no room, never cut */
 .meal-name {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: break-word;
 }
 
-/* Mark of a food `Foods.md` does not hold, grey after its name, like its brand and store, see `.food-brand` */
+/* Mark of a food `Foods.md` does not hold, grey after its name with its brand and store, a hint, not a name */
 .meal-unknown {
     color: var(--text-muted);
 }
@@ -1440,12 +1439,11 @@ fieldset.entry-times {
     font-variant-numeric: tabular-nums;
 }
 
-/* kcal of a meal or a food at the right of their column, grey, every digit equally wide */
+/* kcal of a meal or a food at the right of their column, in the colour of the name, every digit equally wide */
 .meal-kcal {
     text-align: right;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
-    color: var(--text-muted);
 }
 
 /* Food search in the list of the foods or in the form of a new meal, see `.picker-box`: its field one chip high,
@@ -1825,9 +1823,9 @@ svg.route-arrow {
 
     /* A meal or a food of the entry by category on a phone on one line, as on a computer: its name, its grams,
        kcal and ×, closer together; a food without its brand and store there, which would make the line too full,
-       as a skill shows its code alone on a phone; a name too long cut short with dots; the foods of a meal indented
-       less, the field of the grams narrower, just wide enough for four digits, and the kcal just as wide as their
-       number, so a name like `Kidneybohnen` keeps its line whole */
+       as a skill shows its code alone on a phone; a name too long goes on below, never cut; the foods of a meal
+       indented less, the field of the grams narrower, just wide enough for four digits, and the kcal just as wide
+       as their number, so a name like `Kidneybohnen` keeps its line whole */
     .meal-row {
         grid-template-columns: minmax(0, 1fr) auto 3.75rem auto;
         gap: 0.375rem;

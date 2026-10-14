@@ -113,7 +113,7 @@ function totalsShow(day: FoodDay): void {
 }
 
 /**
- * Builds the line of a food of a meal: its name, its brand and store grey in brackets after it, those it has,
+ * Builds the line of a food of a meal: its name, its brand and store in brackets after it, those it has,
  * as everywhere, like `Reis (Golden Sun, Lidl)`, marked when not in `Foods.md`, its grams and its kcal.
  * - `name`: Name of the food, see `foodNameOf` in `./foods.ts`.
  *
@@ -147,11 +147,10 @@ function eatenLineOf(eaten: Eaten): HTMLElement {
 function mealLinesOf(meal: Meal): HTMLElement[] {
     const head: HTMLElement = elementOf("div", "food-line food-meal", "");
     const start: HTMLAnchorElement = document.createElement("a");
-    const what: HTMLElement = elementOf("span", "food-what", "");
+    const what: HTMLElement = elementOf("span", "food-what", meal.title);
     start.className = "food-time";
     start.href = `/?date=${shown}`;
     start.textContent = new Date(meal.start).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-    what.append(elementOf("span", "name-text", meal.title));
     if (meal.location !== "")
         what.append(elementOf("span", "food-place", ` · ${labelOf(meal.location)}`));
     head.append(start, what, elementOf("span", "", ""),
