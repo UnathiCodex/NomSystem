@@ -12,16 +12,17 @@
  *   with its sub-points and further lines past the item before or after it, see {@link itemMove}.
  * - Ctrl+B and Ctrl+I make the text picked bold or italic, `**…**` and `*…*`, or take it back;
  *   with nothing picked the word at the cursor, see {@link markupToggle}.
+ * - Ctrl+D takes away the line of the cursor, or the lines picked, as Obsidian's Delete paragraph.
  *
  * - `@codemirror/state`, `@codemirror/view`: The text with its cursor, and the keys.
- * - `@codemirror/commands`: CodeMirror's own commands: a tab at the cursor, indenting lines.
+ * - `@codemirror/commands`: CodeMirror's own commands: a tab at the cursor, indenting lines, deleting lines.
  * - `@codemirror/language`: The syntax tree of the note, which tells where a list item begins and ends.
  * - `@codemirror/lang-markdown`: Continues a list on Enter and takes its markup away on Backspace.
  */
 
 import { EditorSelection, Prec, Transaction } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
-import { indentLess, indentMore, insertTab } from "@codemirror/commands";
+import { deleteLine, indentLess, indentMore, insertTab } from "@codemirror/commands";
 import { syntaxTree } from "@codemirror/language";
 import { deleteMarkupBackward, insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
 
@@ -250,4 +251,5 @@ export const markdownKeys: Extension = Prec.high(keymap.of([
     { key: "Alt-ArrowDown", run: itemMove(true) },
     { key: "Mod-b", run: markupToggle("**") },
     { key: "Mod-i", run: markupToggle("*") },
+    { key: "Mod-d", run: deleteLine },
 ]));
