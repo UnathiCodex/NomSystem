@@ -59,7 +59,9 @@
 import { choicesOf, listOf, listOpen, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
-import { buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodsFind, gramsLoad } from "../food/foods.ts";
+import {
+    buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodsFind, gramsLoad, portionGramsOf,
+} from "../food/foods.ts";
 import { dishesFound, dishNameOf, kcalTextOf, mealNameOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
 import { crossPut, iconOf, plusPut } from "../icons.ts";
@@ -384,18 +386,17 @@ function mealKcalOf(meal: MealPick): number {
 }
 
 /**
- * Turns portions typed into the grams of a food into its grams, by the grams of its portion I keep with the food,
- * see `portion` in `../food/foods.ts`: `2x` of oil of 30 g becomes `60`, and `2 St`, `2 Stk` and `2 Stück` alike,
- * as for a Semmel of 50 g; any other text, and portions of a food without a portion, stay as they are.
- * - `typed`: The number of portions typed and their word, `null` for no portions.
+ * Turns portions typed into the grams of a food into its grams, see `portionGramsOf` in `../food/foods.ts`:
+ * `2x` of oil of 30 g becomes `60`; any other text, and portions of a food without a portion, stay as they are.
+ * - `grams`: The grams of the portions typed, `null` for none.
  *
  * @param text - Grams or portions as typed
  * @param portion - Grams of the portion of the food, `null` for none kept
  * @returns Grams as text, like `60`, or the text as it was
  */
 function portionsOf(text: string, portion: number | null): string {
-    const typed: RegExpExecArray | null = /^(\d+(?:[.,]\d+)?)\s*(st|stk|stück|x)\.?$/i.exec(text.trim());
-    return typed === null || portion === null ? text : gramsTextOf(Number(typed[1].replace(",", ".")) * portion);
+    const grams: number | null = portionGramsOf(text, portion);
+    return grams === null ? text : gramsTextOf(grams);
 }
 
 /**

@@ -154,6 +154,7 @@ export type Meal = Totals & {
  * - `standard`: The grams of each food, in their order, which an entry starts with: 0 for one I rarely put in,
  *   `null` for none set yet.
  * - `kcal`: What its foods give at those grams; `null` while none has grams.
+ * - `portions`: The grams of the portion of each food, in their order, so its grams take `2x`; `null` for none.
  */
 export type Dish = {
     name: string;
@@ -161,7 +162,23 @@ export type Dish = {
     foods: string[];
     standard: (number | null)[];
     kcal: number | null;
+    portions: (number | null)[];
 };
+
+/**
+ * Reads portions typed into the grams of a food, by the grams of its portion I keep with the food, see `portion`
+ * of {@link Food}: `2x` of oil of 30 g gives 60, `x` alone one portion, and `2 St`, `2 Stk` and `2 Stück` alike,
+ * as for a Semmel of 50 g.
+ * - `typed`: The number of portions typed and their word, `null` for no portions.
+ *
+ * @param text - Grams or portions as typed, like `2x`
+ * @param portion - Grams of the portion of the food, `null` for none kept
+ * @returns Grams, like 60, `null` for a text that names no portions or a food without portion
+ */
+export function portionGramsOf(text: string, portion: number | null): number | null {
+    const typed: RegExpExecArray | null = /^(\d+(?:[.,]\d+)?)?\s*(st|stk|stück|x)\.?$/i.exec(text.trim());
+    return typed === null || portion === null ? null : Number((typed[1] ?? "1").replace(",", ".")) * portion;
+}
 
 /**
  * The meals of a day with what they give together, as the reader sends them.

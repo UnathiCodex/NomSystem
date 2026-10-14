@@ -254,9 +254,12 @@ type Composition = {
  *
  * - `kcal`: What its foods give at their standard grams, a food not in `Foods.md` counting nothing; `null` while
  *   no food has standard grams.
+ * - `portions`: The grams of the portion of each of its foods, in their order, as `Foods.md` holds them, so its
+ *   standard grams take `2x`; `null` for a food without portion or not in `Foods.md`.
  */
 export type Dish = Composition & {
     kcal: number | null;
+    portions: (number | null)[];
 };
 
 /**
@@ -1293,7 +1296,8 @@ function compositionsRead(): Composition[] {
 }
 
 /**
- * Reads my meals of `Meals.md`, each with what its foods give at their standard grams, see {@link Dish}.
+ * Reads my meals of `Meals.md`, each with what its foods give at their standard grams and the portion of each,
+ * see {@link Dish}.
  * - `mine`: My foods by their keys and names, see {@link foodsByKeyRead}.
  *
  * @returns My meals in the order of the table, none while `Meals.md` does not exist
@@ -1305,6 +1309,7 @@ export function dishesRead(): Dish[] {
         kcal: meal.standard.every((grams: number | null): boolean => grams === null) ? null
             : meal.foods.reduce((sum: number, line: string, index: number): number =>
                 sum + (meal.standard[index] ?? 0) / 100 * (foodOfLine(lineOf(line), mine)?.kcal ?? 0), 0),
+        portions: meal.foods.map((line: string): number | null => foodOfLine(lineOf(line), mine)?.portion ?? null),
     }));
 }
 

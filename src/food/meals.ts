@@ -40,6 +40,7 @@
 
 import {
     amountOf, bracketsWatch, buttonOf, dishDelete, dishesLoad, dishRename, dishSend, elementOf, foodNameOf,
+    portionGramsOf,
 } from "./foods.ts";
 import { editButtonsOf, editFieldOf, foodSearchOf, inlineFieldOf, listHeadOf, listLineOf } from "./search.ts";
 import { crossPut, iconOf, iconPut, plusPut, QuestionMark } from "../icons.ts";
@@ -164,19 +165,23 @@ function partOf(food: string, grams: HTMLInputElement, remove: HTMLButtonElement
 /**
  * Makes the field of the standard grams of a food of a meal opened, see {@link inlineFieldOf}: plain as every value,
  * a click puts the cursor into it, Enter or leaving it saves a change; empty for none set, 0 for a food I rarely put
- * in; a text that is no number of 0 or more takes nothing and shows the grams again.
+ * in; portions typed, like `2x`, count as grams by the portion of the food, see `portionGramsOf` in `foods.ts`;
+ * a text that is no number of 0 or more takes nothing and shows the grams again.
  * - `input`: The field.
+ * - `text`: The text typed, a decimal comma as a point.
  * - `typed`: The grams typed, `null` for none, not a number for an unreadable text.
  *
  * @param grams - Its standard grams, `null` for none
  * @param name - Name of the food, for screen readers
+ * @param portion - Grams of the portion of the food, `null` for none
  * @param saved - Takes the grams typed, `null` for none
  * @returns The field
  */
-function gramsFieldOf(grams: number | null, name: string, saved: (grams: number | null) => void): HTMLInputElement {
+function gramsFieldOf(grams: number | null, name: string, portion: number | null,
+                      saved: (grams: number | null) => void): HTMLInputElement {
     const input: HTMLInputElement = inlineFieldOf(grams === null ? "" : String(grams), `Grams of ${name}`, (): void => {
         const text: string = input.value.trim().replace(",", ".");
-        const typed: number | null = text === "" ? null : Number(text);
+        const typed: number | null = portionGramsOf(text, portion) ?? (text === "" ? null : Number(text));
         if (typed !== null && !(typed >= 0)) {
             input.value = grams === null ? "" : String(grams);
             return;
@@ -260,7 +265,7 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
         if (taken)
             fresh = "";
         const shown: Dish[] = [
-            ...fresh === "" ? [] : [{ name: fresh, short: "", foods: [], standard: [], kcal: null }],
+            ...fresh === "" ? [] : [{ name: fresh, short: "", foods: [], standard: [], kcal: null, portions: [] }],
             ...dishesFound(dishes, search.value),
         ];
         const rows: HTMLElement[] = shown.flatMap((dish: Dish): HTMLElement[] => {
@@ -329,7 +334,7 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
             detail.append(facts, error);
             parts.append(...dish.foods.map((food: string, index: number): HTMLElement => {
                 const grams: HTMLInputElement = gramsFieldOf(dish.standard[index] ?? null, food.split(";")[0],
-                    (typed: number | null): void => send(dish, dish.foods, dish.short,
+                    dish.portions[index] ?? null, (typed: number | null): void => send(dish, dish.foods, dish.short,
                         dish.standard.map((other: number | null, at: number): number | null => at === index ? typed : other)));
                 const [name, brand, store]: string[] = food.split(";");
                 const part: HTMLElement = partOf(food, grams, dish.foods.length > 1
