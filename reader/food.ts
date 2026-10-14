@@ -1298,7 +1298,9 @@ function compositionsWrite(meals: Composition[]): void {
  * Writes a meal into `Meals.md`, new or changed for good, its foods in place of those it had, at its place,
  * a new meal last; the name as typed, see {@link mealNameOf}, each food by its name, brand and store as `Foods.md`
  * holds them, cleaned only for a table, see {@link nameOf}, each once; its short title and the standard grams of its
- * foods as sent, else as the meal had them, a food new to it without.
+ * foods as sent, else as the meal had them, a food new to it without; its foods ordered by their standard grams,
+ * the most first, those without grams after them and those at 0 last, so the order needs no hand, see {@link rankOf}.
+ * - `ranked`: Its foods with their standard grams in that order.
  * - `meals`: My meals so far.
  * - `name`: Name of the meal, as a meal of mine of the name, ignoring case, already writes it.
  * - `foods`: Its foods, like `Hackfleisch;Gut & Günstig;Edeka`.
@@ -1332,13 +1334,28 @@ export function dishAdd(sent: { name?: string; foods?: string[]; short?: string;
     const standard: (number | null)[] = foods.map((line: string, index: number): number | null =>
         sent.grams !== undefined ? nutrientOf(sent.grams[index])
             : before?.standard[before.foods.indexOf(line)] ?? null);
+    const ranked: [string, number | null][] = foods.map((line: string, index: number): [string, number | null] =>
+        [line, standard[index]]).sort((first: [string, number | null], second: [string, number | null]): number =>
+        rankOf(second[1]) - rankOf(first[1]));
     const meal: Composition = {
         name: name, short: sent.short === undefined ? before?.short ?? "" : nameOf(String(sent.short)),
-        foods: foods, standard: standard,
+        foods: ranked.map(([line]: [string, number | null]): string => line),
+        standard: ranked.map(([, grams]: [string, number | null]): number | null => grams),
     };
     compositionsWrite(at === -1 ? [...meals, meal]
         : meals.map((other: Composition, index: number): Composition => index === at ? meal : other));
     return dishesRead();
+}
+
+/**
+ * Ranks a food of a meal by its standard grams, see {@link dishAdd}: the grams themselves, a food without grams below
+ * every one with grams, one at 0, which I rarely put in, below all.
+ *
+ * @param grams - Its standard grams, `null` for none set
+ * @returns Its rank, the higher the earlier
+ */
+function rankOf(grams: number | null): number {
+    return grams === null ? -1 : grams === 0 ? -2 : grams;
 }
 
 /**

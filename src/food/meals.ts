@@ -15,10 +15,11 @@
  *   only asks, as the remove of the entry dialog does, the cross turning into the plain question mark,
  *   `Really remove?` as its tooltip. A click on a line opens the meal below it: on top its name, which changes in place
  *   by a click into it, as that of a food, renaming it wherever it stands, also in every entry that holds it, see
- *   `dishRename` in `reader/food.ts`; then its foods, each with its brand and
- *   store in brackets, its grams as I ate it the last time and its `×` while the meal has more than one, each
- *   dragged up or down to another place, so the foods that matter most stand first and show in the brackets of its
- *   line, see {@link dragPut}, the order changed for good in `Meals.md` at once; right after
+ *   `dishRename` in `reader/food.ts`; then its short title, see {@link dishNameOf}; then its foods, each with
+ *   its brand and store in brackets, its standard grams, which change in place, and its `×` while the meal has more
+ *   than one, ordered by their standard grams by themselves, the most first, see `rankOf` in `reader/food.ts`, so
+ *   the foods that matter most stand first and show in the brackets of its line while it has no short title;
+ *   right after
  *   the name of the meal the small grey plus, like `Chili con Carne +`, which opens below its foods the search of my
  *   foods and of Open Food Facts by name or barcode, as the plus of a meal in an entry does, and closes it again;
  *   a food picked, a product taken into my foods first, changed for good in `Meals.md` at once, the search staying
@@ -177,61 +178,6 @@ function gramsFieldOf(grams: number | null, name: string, saved: (grams: number 
 }
 
 /**
- * Lets the line of a food of a meal opened be dragged to the place of another, see the top of this file: grabbed,
- * it fades; the line it is dragged over shows a thin line above or below it, where it would go; dropped, the meal
- * takes its foods in the new order.
- * - `before`: Whether the pointer is over the upper half of the line, so the food dragged goes before it.
- * - `marked`: Takes the thin line off the line.
- *
- * @param part - Line of the food
- * @param index - Its place in the meal, 0 for the first
- * @param moved - Takes the food from one place to another, the second counted before it is taken out
- */
-function dragPut(part: HTMLElement, index: number, moved: (from: number, to: number) => void): void {
-    const before: (event: DragEvent) => boolean = (event: DragEvent): boolean => {
-        const box: DOMRect = part.getBoundingClientRect();
-        return event.clientY < box.top + box.height / 2;
-    };
-    const marked: () => void = (): void => part.classList.remove("drop-before", "drop-after");
-    part.draggable = true;
-    part.addEventListener("dragstart", (event: DragEvent): void => {
-        event.dataTransfer?.setData("text/plain", String(index));
-        if (event.dataTransfer !== null)
-            event.dataTransfer.effectAllowed = "move";
-        part.classList.add("dragged");
-    });
-    part.addEventListener("dragend", (): void => part.classList.remove("dragged"));
-    part.addEventListener("dragover", (event: DragEvent): void => {
-        event.preventDefault();
-        part.classList.toggle("drop-before", before(event));
-        part.classList.toggle("drop-after", !before(event));
-    });
-    part.addEventListener("dragleave", marked);
-    part.addEventListener("drop", (event: DragEvent): void => {
-        event.preventDefault();
-        marked();
-        const from: number = Number(event.dataTransfer?.getData("text/plain") ?? "");
-        if (Number.isInteger(from))
-            moved(from, before(event) ? index : index + 1);
-    });
-}
-
-/**
- * Takes one food of a meal from its place to another.
- * - `foods`: The foods without the one taken.
- *
- * @param all - Foods of the meal, like `Hackfleisch;Gut & Günstig;Edeka`
- * @param from - Place of the food taken, 0 for the first
- * @param to - Place it goes to, counted before it is taken out
- * @returns The foods in their new order
- */
-function movedOf(all: string[], from: number, to: number): string[] {
-    const foods: string[] = all.filter((_food: string, index: number): boolean => index !== from);
-    foods.splice(to > from ? to - 1 : to, 0, all[from]);
-    return foods;
-}
-
-/**
  * Builds the section of my meals in the food view, see the top of this file, loading my meals,
  * and again after every meal changed or removed.
  * - `section`: The section.
@@ -351,11 +297,6 @@ export function mealsSectionOf(): HTMLElement {
                     ? removeOf(`Remove ${food.split(";")[0]}`, (): void =>
                         change(dish, dish.foods.filter((other: string): boolean => other !== food)))
                     : null);
-                if (dish.foods.length > 1)
-                    dragPut(part, index, (from: number, to: number): void => {
-                        if (to !== from && to !== from + 1)
-                            change(dish, movedOf(dish.foods, from, to));
-                    });
                 return part;
             }));
             if (adding === key) {
