@@ -8,6 +8,8 @@
    chips, small buttons and the rows of the menu one chip high, all with the text of controls and the space beside it,
    controls side by side one control gap apart, so they never touch,
    icons one icon size big, notes with lines a bit higher than my Obsidian's;
+   the tree of the scripts a step smaller than the text of controls, `--tree-text`, as Obsidian's file explorer
+   is 13 px beside its 16 px text, so the names of my notes and their headings fit on their line;
    what is picked or shown, and the main button of a dialog, a calm lighter grey with a soft line, never glaring white.
    Every size is in rem, the root font size, so that one size scales the whole page:
    125 % of the browser's 16 px, the look of Chrome's zoom at 125 %, also for the time grid and the formulas */
@@ -32,6 +34,7 @@
     --control-text: 1rem;
     --control-height: 2.875rem;
     --chip-height: 1.875rem;
+    --tree-text: 0.8125rem;
     --control-padding: 1rem;
     --control-gap: 0.625rem;
     --icon-size: 1.125rem;

@@ -202,6 +202,7 @@ function moduleNodeOf(module: NotesModule): HTMLDivElement {
  * arrow after it, which opens its menu right below it, the browser's own popover, which a pick, Escape or a click
  * beside it closes; each choice a row, the one picked in the calm grey of what is picked.
  * - `pick`: The row, a button.
+ * - `name`: The name of what is picked on it, before its arrow, see `.tree-pick` in `./notes.css`.
  * - `menu`: The menu.
  *
  * @param kind - What it picks, `module` or `chapter`, which names its anchor, see `.tree-pick` in `./notes.css`
@@ -213,9 +214,12 @@ function moduleNodeOf(module: NotesModule): HTMLDivElement {
 function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: HTMLElement) => string,
                   choose: (choice: HTMLElement) => void): [HTMLButtonElement, HTMLDivElement] {
     const pick: HTMLButtonElement = document.createElement("button");
+    const name: HTMLSpanElement = document.createElement("span");
     const menu: HTMLDivElement = document.createElement("div");
     pick.type = "button";
     pick.className = `tree-pick tree-pick-${kind}`;
+    name.className = "tree-pick-name";
+    pick.append(name);
     pick.popoverTargetElement = menu;
     menu.className = `tree-menu tree-menu-${kind}`;
     menu.popover = "auto";
@@ -256,8 +260,8 @@ function chapterShow(tree: HTMLElement, module: HTMLElement, chapter: HTMLElemen
         other.classList.toggle("picked", other === chapter);
     });
     const chapterPick: HTMLButtonElement = tree.querySelector(".tree-pick-chapter") as HTMLButtonElement;
-    (tree.querySelector(".tree-pick-module") as HTMLButtonElement).textContent = module.dataset.title ?? "";
-    chapterPick.textContent = chapter?.dataset.chapter ?? "";
+    (tree.querySelector(".tree-pick-module > .tree-pick-name") as HTMLElement).textContent = module.dataset.title ?? "";
+    (chapterPick.firstElementChild as HTMLElement).textContent = chapter?.dataset.chapter ?? "";
     chapterPick.hidden = chapter === null;
 }
 

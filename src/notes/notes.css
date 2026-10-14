@@ -8,30 +8,32 @@
 }
 
 /* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the scripts view
-   and the editor, each row in the text of controls and one chip high to click */
+   and the editor, each row in the text of the tree, see `--tree-text` in `../variants.css`, and one chip high
+   to click */
 .notes-tree {
     overflow-y: auto;
     padding: var(--gap) 0.75rem;
     border-right: 1px solid var(--line);
-    font-size: var(--control-text);
+    font-size: var(--tree-text);
     line-height: var(--chip-height);
 }
 
 /* Name of the root of the tree on top, NomSkillingmodules or NomManageplannings, a heading that never folds,
-   in the light text and a little apart from its folders, in line with their names; one control high, so it stands
-   level with the first icon of the rail, as the date of the day does */
+   in the light text of controls and a little apart from its folders, in line with their names; one control high,
+   so it stands level with the first icon of the rail, as the date of the day does */
 .tree-root {
     margin: 0 0 0.375rem;
     padding: 0 0.5rem;
-    font-size: inherit;
+    font-size: var(--control-text);
     font-weight: 600;
     line-height: var(--control-height);
 }
 
-/* Search of the tree below its root, one chip high and outlined like the search of a list, without the browser's
-   own clear cross, which is no Lucide icon; Escape or deleting the text clears it */
+/* Search of the tree below its root, one chip high and outlined like the search of a list, in the text of the tree,
+   without the browser's own clear cross, which is no Lucide icon; Escape or deleting the text clears it */
 .tree-search {
     width: 100%;
+    font-size: inherit;
     height: var(--chip-height);
     margin: 0 0 0.5rem;
     padding: 0 0.75rem;
@@ -49,8 +51,8 @@
     display: none;
 }
 
-/* Names in the tree going on below where the tree has no room, never cut, rows a little apart,
-   so their greys never touch */
+/* Names in the tree each on one line, never breaking onto a second; one longer than the tree is wide ends in dots,
+   the heading shown whole in the note beside it; rows a little apart, so their greys never touch */
 .tree-folder > summary,
 .tree-file,
 .tree-pick,
@@ -59,13 +61,15 @@
     margin: 0.125rem 0;
     padding: 0 0.5rem;
     border-radius: var(--radius);
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     cursor: pointer;
 }
 
 /* Pickers of my modules below the root, the module, then its chapter, see `pickerOf` in `tree.ts`: each a row
-   of the tree, the name picked in the light text and the grey arrow of a folder after it, turned down,
-   which opens its menu; each the anchor of its menu */
+   of the tree, the name picked in the light text and the grey arrow of a folder after it, turned down, beside it
+   on its line also where the name ends in dots, which opens its menu; each the anchor of its menu */
 .tree-pick,
 .tree-choice {
     width: 100%;
@@ -76,8 +80,18 @@
     text-align: left;
 }
 
+.tree-pick {
+    display: flex;
+}
+
+.tree-pick-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .tree-pick::after {
     content: "";
+    flex: none;
     display: inline-block;
     width: 1em;
     height: 1lh;
@@ -115,7 +129,7 @@
     color: var(--text-main);
     box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.5);
     overflow-y: auto;
-    font-size: var(--control-text);
+    font-size: var(--tree-text);
     line-height: var(--chip-height);
 }
 
