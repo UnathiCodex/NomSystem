@@ -22,7 +22,7 @@
  * as a place. A new place goes into `Rooms.md` when its name starts like the code of a room, digits and a dot,
  * see {@link roomForm}, otherwise into `Places.md`; a name is unique over both files.
  * A meeting online has one place of its own, `Online`, fixed here and in no file, see {@link onlineName},
- * which in a skill entry or box holds what I need to join and the link of the meeting, typed per entry.
+ * whose address and link I type per entry, in a skill entry or box also what I need to join.
  *
  * - `node:fs`: Reads and writes `Places.md` and `Rooms.md`.
  * - `node:path`: Gives the folder of a file.
@@ -90,23 +90,14 @@ const linkForm: RegExp = /^https?:\/\/\S+$/;
 const tableHead: number = 2;
 
 /**
- * The place of a meeting online, its name alone: offered once among my places, never a row of `Places.md`,
- * since every meeting has a link of its own. Where it asks for its meeting, in a skill entry or box, see `meeting`
- * in `categories.ts`, its link is typed per entry and written as the `ALTREP` of its `LOCATION`,
- * see {@link placeLinkOf}, and in place of an address it holds what I need to join, in the order of an address,
- * each part a fact of the meeting: its software, read from the host of its link, in place of the street, then
- * its ID and its passcode, a part left out while empty, like `Online, Teams, ID 123 456 789 012 345`;
- * elsewhere, like a call of `Talk`, it is `Online` alone.
+ * The place of a meeting online, one generic place, its name alone: offered once among my places, never a row
+ * of `Places.md`, since every meeting has an address and a link of its own. Its link is typed per entry and written
+ * as the `ALTREP` of its `LOCATION`, see {@link placeLinkOf}, and in place of an address it holds what I type,
+ * its software first, then who offers it and whatever else, like `Online, Teams, Microsoft`, and where it asks for its
+ * meeting, in a skill entry or box, see `meeting` in `categories.ts`, also its ID and its passcode, a part left out
+ * while empty, like `Online, Teams, Microsoft, ID 123 456 789 012 345`.
  */
 export const onlineName: string = "Online";
-
-/**
- * The ways I meet online, each a row of `Online` in the list of places, with the way grey beside it as a place has
- * its address, like `Online, Teams`, so the list holds one row per way and never a row per link, see
- * `categoriesRead` in `categories.ts`; the entry then writes its meeting after it, like
- * `Online, Teams, ID 123 456 789 012 345`, and the calendar shows `Online (Teams)`.
- */
-export const onlineWays: string[] = ["Teams", "Zoom", "BBB", "TUM-Live"];
 
 
 /**

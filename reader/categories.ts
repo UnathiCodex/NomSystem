@@ -10,8 +10,8 @@
  * of `Places.md`, each as a line with its address, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`,
  * see `places.ts`, and `Online`, the place of a meeting online, but in a way, which leads from one place of mine
  * to another, see {@link offlineNames}; the most used by the entries of the log first, counted by their names.
- * `Online` asks for its meeting only in `Skill`, see `meeting` of {@link Field}; in any other category, like a call
- * of `Talk`, it is a plain place.
+ * `Online` takes its address and its link typed per entry, and only in `Skill` also the ID and the passcode of its
+ * meeting, see `meeting` of {@link Field}.
  * A value offered in the code may come with steps, which the dialog shows while it is picked, and below them
  * the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
  * `Body` is my body care, showering and any care, offering `Shower` before any use; my neck routine,
@@ -37,7 +37,7 @@
  */
 
 import { entriesRead, skillName } from "./calendar.ts";
-import { labelOf, lineOf, onlineName, onlineWays, placesRead, roomsRead } from "./places.ts";
+import { labelOf, lineOf, onlineName, placesRead, roomsRead } from "./places.ts";
 import { day } from "./sources.ts";
 
 import type { Entry, EntryTexts } from "./calendar.ts";
@@ -61,9 +61,9 @@ export type FieldKey = "title" | "from" | "location";
  * - `fixed`: Whether it takes only the values offered in the code, like `Night` and `Day` of `Sleep`, and no new ones.
  * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `U-Bahn, Bus`;
  *   one when left out.
- * - `meeting`: Whether its place `Online` asks for its meeting, its link, ID and passcode, see `onlineName`
+ * - `meeting`: Whether its place `Online` asks for the ID and the passcode of its meeting too, see `onlineName`
  *   in `places.ts`, like the place of a skill entry or box, since lectures and tutorials happen on Zoom and the like;
- *   left out, `Online` is a plain place, like for a call of `Talk`, which needs no tracking.
+ *   left out, `Online` takes only its address and its link, like for a call of `Talk`.
  */
 export type Field = {
     name: string;
@@ -381,14 +381,11 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * see {@link stepsWithNoteOf}; but the categories the dialog leaves out, see {@link hiddenNames}, and the whats
  * a category no longer offers, see {@link retiredWhats}.
  * - `logs`: Log entries up to now.
- * - `own`: My places of `Places.md`.
- * - `online`: The rows of `Online`, the place of a meeting online, one per way I meet, its way as its address,
- *   like `Online, Teams`, see `onlineName` and `onlineWays` in `places.ts`.
- * - `mine`: My places and the rows of `Online`.
- * - `names`: The names of my places and `Online`, once.
- * - `places`: One list of places for every field of a place: my places and the rows of `Online`, the most used
- *   first, see {@link placeUsesOf}, the rows of `Online` together where `Online` stands, each as the line an entry
- *   writes, see `lineOf` in `places.ts`.
+ * - `mine`: My places, and `Online`, the place of a meeting online, one generic place without address,
+ *   see `onlineName` in `places.ts`.
+ * - `names`: Their names.
+ * - `places`: One list of places for every field of a place: my places and `Online`, the most used first,
+ *   see {@link placeUsesOf}, each as the line an entry writes, see `lineOf` in `places.ts`.
  * - `offline`: The same without `Online`, for the places of a way, see {@link offlineNames}.
  * - `rooms`: The rooms of the university for every field of a place, each as the line an entry writes, in the order
  *   of `Rooms.md`, none of the name of one of my places.
@@ -399,13 +396,11 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  */
 export function categoriesRead(now: string): CategoryShown[] {
     const logs: Entry[] = logsRead(now);
-    const own: Place[] = placesRead();
-    const online: Place[] = onlineWays.map((way: string): Place => ({ name: onlineName, address: way, link: "" }));
-    const mine: Place[] = [...own, ...online];
-    const names: string[] = [...own.map((place: Place): string => place.name), onlineName];
+    const mine: Place[] = [...placesRead(), { name: onlineName, address: "", link: "" }];
+    const names: string[] = mine.map((place: Place): string => place.name);
     const places: string[] = valuesOrder(placeUsesOf(logs).filter((use: string): boolean => names.includes(use)), names)
-        .flatMap((name: string): string[] => name === onlineName ? online.map(lineOf) : [lineOf(own[names.indexOf(name)])]);
-    const offline: string[] = places.filter((line: string): boolean => labelOf(line) !== onlineName);
+        .map((name: string): string => lineOf(mine[names.indexOf(name)]));
+    const offline: string[] = places.filter((line: string): boolean => line !== onlineName);
     const rooms: Place[] = roomsRead().filter((room: Place): boolean => !names.includes(room.name));
     const links: { [value: string]: string } = Object.fromEntries([...mine, ...rooms]
         .filter((place: Place): boolean => place.link !== "")

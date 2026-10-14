@@ -62,8 +62,8 @@ import type { Meal } from "./food.ts";
  * - `category`: Category picked.
  * - `title`: What picked.
  * - `location`: Place picked.
- * - `locationLink`: Link of the meeting of the place `Online` where the dialog asks for it, see `meeting`
- *   in `categories.ts`, as typed, written as the `ALTREP` of its `LOCATION`, see `placeLinkOf` in `places.ts`;
+ * - `locationLink`: Link of the place `Online`, as typed in the dialog, written as the `ALTREP` of its `LOCATION`,
+ *   see `placeLinkOf` in `places.ts`;
  *   left out for any other place, whose link the reader finds itself, and by a sender that does not know it,
  *   like the calendar after a drag, so the place keeps its link.
  * - `from`: Where a way starts.

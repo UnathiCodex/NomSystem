@@ -20,8 +20,10 @@
  * of the place, written with it as its `ALTREP`, when it has one, and nothing else: nothing opens a map by itself,
  * only a link stored with the place opens on a click.
  * A way shows its route by labels, with an arrow drawn between them, see {@link whereLinkedOf}.
- * A meeting online has its own place, `Online`, see {@link onlineName}, which in a skill entry or box holds what
- * I need to join, see {@link Meeting}, and the link I paste per entry; it shows by its name alone, like every place.
+ * A meeting online has its own place, `Online`, see {@link onlineName}, one generic place, whose address I type
+ * per entry, like `Teams, Microsoft`, and whose link I paste per entry, and which in a skill entry or box also holds
+ * the ID and the passcode I need to join, see {@link Meeting}; it shows by its name with the first part of its address
+ * in brackets, like `Online (Teams)`, see {@link shownOf}.
  *
  * - `lucide`: The arrow of a route, and the icons of Cancel and Save.
  * - `../icons.ts`: Makes the element of an icon, and shows an icon in a button.
@@ -45,25 +47,24 @@ export type Place = {
 };
 
 /**
- * What I need to join a meeting online, the parts of the address of `Online` in the order of an address,
- * each a fact of the meeting, see {@link meetingLineOf}.
+ * What `Online` holds in place of an address, see {@link meetingLineOf}: the address I type, then what I need
+ * to join a meeting.
  *
- * - `software`: Its software, in place of the street, like `Teams`, read from the host of its link,
- *   see {@link meetingSoftwareOf}, or as an older entry typed it; empty for none.
+ * - `address`: What I type as its address, its parts parted by commas as an address has them, like
+ *   `Teams, Microsoft`, its software first, then who offers it and whatever else; empty for none.
  * - `id`: Its ID, as its software writes it, like `123 456 789 012 345`, empty for none.
  * - `passcode`: Its passcode, like `Ab12Cd34`, empty for none.
  */
 export type Meeting = {
-    software: string;
+    address: string;
     id: string;
     passcode: string;
 };
 
 /**
  * The place of a meeting online, its name alone, offered once among my places and never a row of `Places.md`,
- * see `onlineName` in `reader/places.ts`: in a skill entry or box I paste its link, the link of the meeting,
- * per entry, and in place of an address it holds what I need to join, see {@link Meeting}; elsewhere, like
- * in a call of `Talk`, it is a plain place.
+ * see `onlineName` in `reader/places.ts`: picked, I type its address and paste its link per entry, and in a skill
+ * entry or box also its ID and passcode, see {@link Meeting}.
  */
 export const onlineName: string = "Online";
 
@@ -126,18 +127,19 @@ export function labelOf(line: string): string {
 }
 
 /**
- * Gives a place as the grid and the plan show it: its name, see {@link labelOf}, and for `Online` its way of meeting
- * in brackets after it, read from its line, see {@link meetingOf}, like `Online (Teams)` of
- * `Online, Teams, ID 123 456 789 012 345`, as a type stands after its skill; an older `Online` without a way alone.
+ * Gives a place as the grid and the plan show it: its name, see {@link labelOf}, and for `Online` the first part
+ * of its address in brackets after it, its software, read from its line, see {@link meetingOf}, like `Online (Teams)`
+ * of `Online, Teams, Microsoft, ID 123 456 789 012 345`, as a type stands after its skill; `Online` without address
+ * alone.
  * - `label`: Its name.
- * - `way`: Its way of meeting, empty for none.
+ * - `way`: The first part of the address of `Online`, empty for none.
  *
  * @param line - Place as an entry writes it
  * @returns Place as shown, like `Online (Teams)` or `Home Munich`
  */
 export function shownOf(line: string): string {
     const label: string = labelOf(line);
-    const way: string = label === onlineName ? meetingOf(line).software : "";
+    const way: string = label === onlineName ? meetingOf(line).address.split(",")[0].trim() : "";
     return way === "" ? label : `${label} (${way})`;
 }
 
@@ -226,54 +228,59 @@ export function whereLinkedOf(category: string, from: string, location: string, 
 }
 
 /**
- * Reads what I need to join a meeting online from the line of `Online`, see {@link meetingLineOf}: the part after
- * `ID` its ID, the part after `Passcode` its passcode, the first other part its software.
- * - `parts`: Parts of the address, after `Online`.
- * - `named`: Gives the value of the part of a name, empty for none.
+ * Reads the address of `Online` and what I need to join a meeting from its line, see {@link meetingLineOf}:
+ * the part after `ID` its ID, the part after `Passcode` its passcode, the other parts its address.
+ * - `parts`: Parts of the line, after `Online`.
+ * - `named`: Tells whether a part is the ID or the passcode.
+ * - `value`: Gives the value of the part of a name, empty for none.
  *
- * @param line - Place as an entry writes it, like `Online, Teams, ID 123 456 789 012 345`
- * @returns Its software, ID and passcode, each empty for none
+ * @param line - Place as an entry writes it, like `Online, Teams, Microsoft, ID 123 456 789 012 345`
+ * @returns Its address, like `Teams, Microsoft`, ID and passcode, each empty for none
  */
 export function meetingOf(line: string): Meeting {
     const parts: string[] = line.split(",").slice(1).map((part: string): string => part.trim());
-    const named: (name: string) => string = (name: string): string =>
+    const named: (part: string) => boolean = (part: string): boolean =>
+        Object.values(meetingNames).some((name: string): boolean => part.startsWith(`${name} `));
+    const value: (name: string) => string = (name: string): string =>
         parts.find((part: string): boolean => part.startsWith(`${name} `))?.slice(name.length + 1) ?? "";
     return {
-        software: parts.find((part: string): boolean => !Object.values(meetingNames)
-            .some((name: string): boolean => part.startsWith(`${name} `))) ?? "",
-        id: named(meetingNames.id),
-        passcode: named(meetingNames.passcode),
+        address: parts.filter((part: string): boolean => !named(part)).join(", "),
+        id: value(meetingNames.id),
+        passcode: value(meetingNames.passcode),
     };
 }
 
 /**
- * Writes the line of `Online` for a meeting, as an entry writes it into `LOCATION`: `Online`, its software,
+ * Writes the line of `Online`, as an entry writes it into `LOCATION`: `Online`, the parts of its address as typed,
  * then its ID and its passcode, each after its name, parted by commas like the parts of an address, a part left out
- * while empty, a comma typed in a part dropped, leaving a space, since a comma ends a part.
+ * while empty; a comma typed in the ID or the passcode dropped, leaving a space, since a comma ends a part.
  * - `clean`: Cleans a part as typed: a comma dropped, spaces in a row one, none at the ends.
+ * - `address`: Parts of the address, each without spaces at its ends, empty ones left out.
  * - `id`, `passcode`: ID and passcode, cleaned.
  *
- * @param meeting - Its software, ID and passcode, as typed
- * @returns Line like `Online, Teams, ID 123 456 789 012 345, Passcode Ab12Cd34`, or `Online` alone
+ * @param meeting - Its address, ID and passcode, as typed
+ * @returns Line like `Online, Teams, Microsoft, ID 123 456 789 012 345, Passcode Ab12Cd34`, or `Online` alone
  */
 export function meetingLineOf(meeting: Meeting): string {
     const clean: (text: string) => string = (text: string): string => text.replace(/[,\s]+/g, " ").trim();
+    const address: string[] = meeting.address.split(",").map((part: string): string => part.replace(/\s+/g, " ").trim());
     const id: string = clean(meeting.id);
     const passcode: string = clean(meeting.passcode);
     return [
-        onlineName, clean(meeting.software), id === "" ? "" : `${meetingNames.id} ${id}`,
+        onlineName, ...address, id === "" ? "" : `${meetingNames.id} ${id}`,
         passcode === "" ? "" : `${meetingNames.passcode} ${passcode}`,
     ].filter((part: string): boolean => part !== "").join(", ");
 }
 
 /**
- * Reads the software of a meeting from the host of its link, see {@link meetingHosts}.
+ * Reads the software of a meeting from the host of its link, see {@link meetingHosts}, which tells how its link
+ * holds its ID, see {@link meetingIdOf}.
  * - `host`: Host of the link in small letters, like `tum-conf.zoom.us`, empty for no web address.
  *
  * @param link - Link of a meeting, like `https://tum-conf.zoom.us/j/12345678901?pwd=…`
  * @returns Software like `Zoom`, empty for a host none of them has
  */
-export function meetingSoftwareOf(link: string): string {
+function meetingSoftwareOf(link: string): string {
     const host: string = /^https?:\/\/([^/?#:]+)/i.exec(link.trim())?.[1].toLowerCase() ?? "";
     return Object.entries(meetingHosts).find(([, form]: [string, RegExp]): boolean => form.test(host))?.[0] ?? "";
 }
