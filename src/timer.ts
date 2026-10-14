@@ -4,8 +4,8 @@
  * A quiet timer in the bar of the day while a session of mine runs, taking the room between the date and the trackers,
  * in a soft frame like them: what its skill entry is at the left, as the log shows it, like `Skill: NomSystemdashboard`,
  * and how long it still runs at the right, in hours and minutes, like `01h 23m`; never on a phone.
- * Where the room is too small for the whole name, like on my laptop, the module shows by its code alone,
- * like `Skill: WI0219 (VO)`, as on the phone, so the bar keeps one line, see {@link timerFit}.
+ * Where the room is too small for the whole name, like on my laptop, it is cut with an ellipsis at its end,
+ * like `Skill: WI0219_InvestitionFin…`, the time always whole; a short code would not work for every name.
  * A session is the skill entry of the moment in the log, of every type, see `reader/skill.ts`: the first button
  * of a task starts one, and a box of the plan logged is one, a lecture too; it ends where its entry ends.
  * The timer asks the reader again every minute, and hides while no session runs and once it is over.
@@ -72,36 +72,17 @@ async function timerShow(): Promise<void> {
         return;
 
     timer.replaceChildren(
-        entryPartOf("span", "session-what session-whole",
+        entryPartOf("span", "session-what",
             whatOf(skillName, shownWhatOf(skillName, session.title, session.module, session.type))),
-        entryPartOf("span", "session-what session-short",
-            whatOf(skillName, session.type === "" ? session.module : `${session.module} (${session.type})`)),
         entryPartOf("span", "session-left", [lengthOf(left)]),
     );
     timer.title = `${timeOf(new Date(session.start))} – ${timeOf(new Date(session.end))}`;
-    timerFit();
-}
-
-/**
- * Shows the whole name of the session where the timer has room for it, else its code alone, measured on the page,
- * so every name fits, the longest too, like `IN2028_BusinessAnalyticsMachineLearning (UE)`; the timer takes only
- * the room the bar has left, see `.session-timer` in `day/day.css`.
- * - `whole`: The whole name, measured while it shows.
- */
-function timerFit(): void {
-    const timer: HTMLElement = document.getElementById("session-timer") as HTMLElement;
-    const whole: HTMLElement | null = timer.querySelector(".session-whole");
-    timer.classList.remove("session-narrow");
-    if (whole !== null && whole.scrollWidth > whole.clientWidth)
-        timer.classList.add("session-narrow");
 }
 
 /**
  * Starts the timer of the day: shows it now, then every minute.
  * - `look`: Shows the timer, a failure only written to the console.
  * - {@link setInterval}: Calls a function again and again, after a number of milliseconds each time.
- * - {@link ResizeObserver}: Calls a function whenever an element changes its size, here the timer, so its name fits
- *   again when the window or the trackers beside it change.
  */
 export function timerStart(): void {
     const look: () => void = (): void => {
@@ -109,5 +90,4 @@ export function timerStart(): void {
     };
     look();
     setInterval(look, lookTime);
-    new ResizeObserver(timerFit).observe(document.getElementById("session-timer") as HTMLElement);
 }

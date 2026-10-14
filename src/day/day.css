@@ -568,17 +568,6 @@ button.box-ring.box-checked svg {
     text-overflow: ellipsis;
 }
 
-/* The whole name of the session, and where it would not fit, like on my laptop, the code alone,
-   like `Skill: WI0219 (VO)`, see `timerFit` in `timer.ts` */
-.session-short,
-.session-narrow .session-whole {
-    display: none;
-}
-
-.session-narrow .session-short {
-    display: block;
-}
-
 .session-left {
     flex: none;
     color: var(--text-time);
