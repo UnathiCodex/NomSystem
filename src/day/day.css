@@ -1579,7 +1579,8 @@ fieldset.entry-times {
 /* All lines of an entry, as high as the lines it has room for, which `day.ts` sets in units of a line: a line moved
    down by what taking a line more, like a long skill on a phone, hides as a whole, never cut in half at the bottom.
    An entry scrolled partly out of sight at the top keeps its lines in sight, 0.5rem below the top of the grid,
-   as far as the entry reaches, so a night from 01:45, scrolled to 06:00, still says `Sleep: Night` */
+   as far as the entry reaches, so a night from 01:45, scrolled to 06:00, still says `Sleep: Night`; those its rest
+   has no more room for hide as a whole from the bottom, see `linesFit` in `day.ts`, so none is ever cut at the top */
 .entry-lines {
     position: sticky;
     top: 0.5rem;

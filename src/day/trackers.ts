@@ -40,7 +40,7 @@ import { calendarTodayOf } from "../today.ts";
 import { iconOf } from "../icons.ts";
 import { Check, Minus, Plus } from "lucide";
 
-import type { Calendar, EventApi } from "fullcalendar";
+import type { Calendar } from "fullcalendar";
 import type { Nutrients } from "../food/foods.ts";
 
 
@@ -156,11 +156,6 @@ const glassMinutes: number = 5;
  * then `true`.
  */
 const neckShown: boolean = false;
-
-/**
- * What the card was loaded for last: the day and the log entries of it, so it loads again only when they change.
- */
-let seen: string = "";
 
 
 /**
@@ -356,19 +351,12 @@ async function trackersLoad(calendar: Calendar): Promise<void> {
 }
 
 /**
- * Loads the trackers again when the shown day or its log entries changed, as the calendar tells after every change.
- * - `key`: The shown day with the start, end, what and foods of each of its log entries.
+ * Loads the trackers again each time the log of the shown day was read, so they count what its file holds:
+ * an entry dragged shows at once, before the reader has written it, and the log is read again once it has.
  *
  * @param calendar - Calendar of the day
- * @param events - All events of the shown day
  */
-export function trackersSee(calendar: Calendar, events: EventApi[]): void {
-    const key: string = JSON.stringify([dayOf(calendar.view.currentStart), ...events
-        .filter((event: EventApi): boolean => event.source?.id === "log")
-        .map((event: EventApi): unknown[] => [event.id, event.startStr, event.endStr, event.title, event.extendedProps.foods])]);
-    if (key === seen)
-        return;
-    seen = key;
+export function trackersSee(calendar: Calendar): void {
     trackersLoad(calendar).catch((error: unknown): void => {
         console.error(error);
         document.getElementById("trackers")?.replaceChildren(elementOf("p", "tracker-meta", "The trackers cannot be read"));

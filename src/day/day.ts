@@ -269,7 +269,8 @@ function linesOf(info: EventDisplayInfo): number {
  * - `timeLine`: The line with the time, alone or with its place beside it.
  * - `below`: The note below the lines shown, grey, its line clamp the lines left, see `.entry-note` in `day.css`.
  * - `content`: All lines, as high as the lines the entry has room for, so a line moved down by what taking two lines
- *   is hidden as a whole and never shows cut in half at the bottom of the entry.
+ *   is hidden as a whole and never shows cut in half at the bottom of the entry; how many in `data-lines`,
+ *   fitted to the part of the entry in sight once it is on the page, see {@link linesFit}.
  *
  * @param info - Entry with its render details
  * @returns Lines of the entry for FullCalendar
@@ -324,7 +325,43 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     }
     const content: HTMLElement = entryPartOf("div", "entry-lines", shown);
     content.style.maxHeight = `${lines}lh`;
+    content.dataset.lines = String(lines);
+    requestAnimationFrame((): void => linesFit(content, gridOf(content)));
     return { domNodes: [content] };
+}
+
+/**
+ * Fits the lines of an entry to the part of it in sight: scrolled partly out of sight at the top, an entry keeps
+ * its lines 0.5rem below the top of the grid, as `.entry-lines` in `day.css` makes them stick, and those its rest
+ * has no more room for, less the space below them, hide as a whole from the bottom, so no line is ever cut
+ * at the top and `Sleep: Night` stays in sight the longest; an entry in sight keeps the lines it has room for.
+ * - `inside`: Inside of the entry, with the space above and below its lines.
+ * - `top`: Where the lines stick, 0.5rem below the top of the grid.
+ * - `bottom`: Where the space below the lines begins.
+ * - `room`: Whole lines between them.
+ *
+ * @param lines - All lines of an entry, how many it has room for in `data-lines`, see {@link entryContentOf}
+ * @param grid - Grid of the log, which scrolls the entries
+ */
+function linesFit(lines: HTMLElement, grid: HTMLElement): void {
+    const inside: HTMLElement = lines.parentElement as HTMLElement;
+    const top: number = grid.getBoundingClientRect().top + parseFloat(getComputedStyle(lines).top);
+    const bottom: number = inside.getBoundingClientRect().bottom - parseFloat(getComputedStyle(inside).paddingBottom);
+    const room: number = Math.floor((bottom - top) / parseFloat(getComputedStyle(lines).lineHeight));
+    lines.style.maxHeight = `${Math.max(0, Math.min(Number(lines.dataset.lines), room))}lh`;
+}
+
+/**
+ * The grid of the log around an element in it: the nearest box around it that scrolls.
+ *
+ * @param element - An element in the grid, like the lines of an entry
+ * @returns The grid, the whole page for an element no longer on it
+ */
+function gridOf(element: HTMLElement): HTMLElement {
+    let grid: HTMLElement = element;
+    while (grid.parentElement !== null && getComputedStyle(grid).overflowY !== "auto")
+        grid = grid.parentElement;
+    return grid;
 }
 
 /**
@@ -424,7 +461,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * for the last half hour; on a phone the buttons at the bottom switch between plan and log, see {@link phoneShow},
  * and their `+` starts a box or an entry of the shown one; while it shows today, the day moves on to the new day
  * by itself, now centred again, see `todayFollow` in `today.ts`, and while it shows another day, the icon back
- * to today follows the new day.
+ * to today follows the new day. While the grid scrolls, the lines of every entry fit to the part of it in sight,
+ * see {@link linesFit}; the calendar catches the scroll on its way down to the grid, `capture`, since it never rises.
  * - `initialView`: A time grid of the shown day, one column, the log.
  * - `headerToolbar`: None, since the date and its buttons stand above plan and log together, see {@link dayShow}.
  * - `dayHeaders`: Leaves out the name of the day above the column, which the date above says already.
@@ -454,7 +492,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `droppable`: Takes the boxes dragged from the list.
  * - `eventAllow`: Takes boxes and entries only in the time grid, not in the row of the whole day.
  * - `eventReceive`: Logs a box dropped into the log at the time of the drop, see `boxes.ts`.
- * - `eventsSet`: Tells the boxes and the trackers the entries of the shown day, after every change.
+ * - `eventsSet`: Tells the boxes the entries of the shown day, after every change.
+ * - `eventSourceSuccess`: Loads the trackers again each time the log was read, see `trackersSee` in `trackers.ts`.
  * - `eventClick`: Opens the entry by category for an entry that can be changed, see {@link entryClick}.
  * - `select`: Opens the entry by category for a range selected in the time grid.
  * - `selectAllow`: Allows selecting a time range, but not in the row of the whole day.
@@ -504,10 +543,8 @@ export function dayStart(note: boolean): void {
         droppable: true,
         eventAllow: (span: DateSpanApi): boolean => !span.allDay,
         eventReceive: (info: EventReceiveInfo): void => boxReceive(calendar, info),
-        eventsSet: (events: EventApi[]): void => {
-            boxesSee(calendar, events);
-            trackersSee(calendar, events);
-        },
+        eventsSet: (events: EventApi[]): void => boxesSee(calendar, events),
+        eventSourceSuccess: (): void => trackersSee(calendar),
         eventClick: entryClick,
         selectable: true,
         selectAllow: (span: DateSpanApi): boolean => !span.allDay,
@@ -540,6 +577,11 @@ export function dayStart(note: boolean): void {
     document.getElementById("day-back")?.addEventListener("click", (): void => calendar.prev());
     document.getElementById("day-today")?.addEventListener("click", (): void => calendar.gotoDate(calendarTodayOf()));
     document.getElementById("day-next")?.addEventListener("click", (): void => calendar.next());
+    document.getElementById("day-calendar")?.addEventListener("scroll", (event: Event): void => {
+        const grid: HTMLElement = event.target as HTMLElement;
+        for (const lines of grid.querySelectorAll<HTMLElement>(".entry-lines"))
+            linesFit(lines, grid);
+    }, { capture: true });
     document.getElementById("log-new")?.addEventListener("click", (): void => {
         entryOpenNow(calendar).catch((error: unknown): void => console.error(error));
     });
