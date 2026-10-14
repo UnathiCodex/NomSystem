@@ -93,10 +93,12 @@ function lacksOf(eaten: Eaten): string {
 /**
  * Shows the totals of a day: the number of meals, kcal, protein, carbs and fat, each with its name small above,
  * each the sum of what is known; below them a line for each kind of food or meal they leave out, like
- * `Not counted, not in my foods: Brot`, and per what my foods lack, like `Not counted, fat unknown: Gouda`.
+ * `Not counted, not in my foods: Brot`, `Not counted, no grams: Reis` for a food logged without its grams,
+ * and per what my foods lack, like `Not counted, fat unknown: Gouda`.
  * - `totals`: The totals side by side.
  * - `tiles`: Name and amount of each total.
  * - `unknown`: Names of the foods not in `Foods.md`, each once.
+ * - `weightless`: Names of my foods logged without grams, each once, which give nothing.
  * - `lacking`: Names of my foods eaten whose protein, carbs or fat is unknown, each once, by what they lack,
  *   see {@link lacksOf}, like `fat`.
  * - `lacks`: What a food lacks.
@@ -121,18 +123,22 @@ function totalsShow(day: FoodDay): void {
     }
 
     const unknown: string[] = [];
+    const weightless: string[] = [];
     const lacking: Map<string, string[]> = new Map();
     for (const meal of day.meals)
         for (const eaten of meal.foods) {
             const lacks: string = lacksOf(eaten);
             if (!eaten.known && !unknown.includes(eaten.name))
                 unknown.push(eaten.name);
+            if (eaten.known && eaten.grams === 0 && !weightless.includes(eaten.name))
+                weightless.push(eaten.name);
             if (eaten.known && lacks !== "" && !(lacking.get(lacks) ?? []).includes(eaten.name))
                 lacking.set(lacks, [...lacking.get(lacks) ?? [], eaten.name]);
         }
     const empty: number = day.meals.filter((meal: Meal): boolean => meal.foods.length === 0).length;
     const hints: string[] = [
         unknown.length > 0 ? `Not counted, not in my foods: ${unknown.join(", ")}` : "",
+        weightless.length > 0 ? `Not counted, no grams: ${weightless.join(", ")}` : "",
         ...[...lacking].map(([lacks, names]: [string, string[]]): string =>
             `Not counted, ${lacks} unknown: ${names.join(", ")}`),
         empty > 0 ? `Not counted: ${empty} ${empty === 1 ? "meal lists" : "meals list"} no foods` : "",
