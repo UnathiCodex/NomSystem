@@ -67,7 +67,7 @@ import { trackersSee } from "./trackers.ts";
 import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
-import { iconPut, plusPut } from "../icons.ts";
+import { iconOf, iconPut, plusPut } from "../icons.ts";
 import { timerStart } from "../timer.ts";
 import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from "lucide";
 import "fullcalendar/skeleton.css";
@@ -76,8 +76,9 @@ import "./day.css";
 
 import type {
     DateSelectInfo, DateSpanApi, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,
-    EventInput, EventReceiveInfo, EventSourceInput,
+    EventDragStartInfo, EventDragStopInfo, EventInput, EventReceiveInfo, EventSourceInput,
 } from "fullcalendar";
+import type { EntryFields } from "./entries.ts";
 import type { Line } from "./meal.ts";
 
 
@@ -138,15 +139,22 @@ function entryClick(info: EventClickInfo): void {
 }
 
 /**
- * Writes an entry moved or resized by dragging into its file, with its fields as they were;
- * puts it back where it was when the reader does not take the change.
- *
- * @param calendar - Calendar of the day
- * @param info - Entry after dragging, with the way back
+ * An entry dragged to the edge of the time grid or onto an arrow of the date, see {@link entryTurn}: its identifier
+ * and the days it moves, so its drop in the grid itself, which FullCalendar reports right after, is taken back,
+ * see {@link entryDrag}; `null` while none turns.
  */
-function entryDrag(calendar: Calendar, info: EventChangeInfo): void {
-    const entry: EventApi = info.event;
-    entryChange(calendar, entry.id, {
+let turning: { id: string; days: number } | null = null;
+
+/**
+ * Gives the fields of an entry as they are, at a new start and end, as the reader takes them after a drag.
+ *
+ * @param entry - The entry
+ * @param start - Its new start
+ * @param end - Its new end
+ * @returns Its fields
+ */
+function entryFieldsOf(entry: EventApi, start: Date, end: Date): EntryFields {
+    return {
         category: entry.extendedProps.category ?? "",
         title: entry.title,
         location: entry.extendedProps.location ?? "",
@@ -157,12 +165,139 @@ function entryDrag(calendar: Calendar, info: EventChangeInfo): void {
         note: entry.extendedProps.note ?? "",
         foods: entry.extendedProps.foods ?? [],
         planned: "",
-        start: entry.start as Date,
-        end: entry.end as Date,
-    }).catch((error: unknown): void => {
-        console.error(error);
+        start: start,
+        end: end,
+    };
+}
+
+/**
+ * Writes an entry moved or resized by dragging into its file, with its fields as they were;
+ * puts it back where it was when the reader does not take the change; a drop on the edge of the grid that turns it
+ * to another day, see {@link entryTurn}, it takes back, since the entry moves to that day instead.
+ *
+ * @param calendar - Calendar of the day
+ * @param info - Entry after dragging, with the way back
+ */
+function entryDrag(calendar: Calendar, info: EventChangeInfo): void {
+    const entry: EventApi = info.event;
+    if (turning?.id === entry.id) {
+        turning = null;
         info.revert();
-    });
+        return;
+    }
+    entryChange(calendar, entry.id, entryFieldsOf(entry, entry.start as Date, entry.end as Date))
+        .catch((error: unknown): void => {
+            console.error(error);
+            info.revert();
+        });
+}
+
+/**
+ * Tells whether a point of the screen lies in an element, like the strip of the day after.
+ * - `rect`: Where the element stands.
+ *
+ * @param element - The element
+ * @param x - Point from the left of the window
+ * @param y - Point from the top of the window
+ * @returns Whether it lies in it, never for an element not shown
+ */
+function pointIn(element: HTMLElement | null, x: number, y: number): boolean {
+    const rect: DOMRect | undefined = element?.getBoundingClientRect();
+    return rect !== undefined && rect.width > 0 && x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
+/**
+ * Tells to which day a point turns a dragged entry: the strip at the left of the time grid, over its times, or
+ * the arrow of the day before, a day back; the strip at its right edge or the arrow of the day after, a day on;
+ * anywhere else none, see {@link turnShow}.
+ *
+ * @param x - Point from the left of the window
+ * @param y - Point from the top of the window
+ * @returns Days, -1, 1, or 0 for none
+ */
+function turnOf(x: number, y: number): number {
+    if (pointIn(document.querySelector(".day-turn-back"), x, y) || pointIn(document.getElementById("day-back"), x, y))
+        return -1;
+    if (pointIn(document.querySelector(".day-turn-next"), x, y) || pointIn(document.getElementById("day-next"), x, y))
+        return 1;
+    return 0;
+}
+
+/**
+ * Lights the strip of the day the pointer would turn a dragged entry to, as it moves, see {@link turnOf}.
+ *
+ * @param event - Move of the pointer
+ */
+function turnNear(event: PointerEvent): void {
+    const days: number = turnOf(event.clientX, event.clientY);
+    document.querySelector(".day-turn-back")?.classList.toggle("day-turn-near", days === -1);
+    document.querySelector(".day-turn-next")?.classList.toggle("day-turn-near", days === 1);
+}
+
+/**
+ * Shows the two strips of the days before and after while an entry is dragged, as Google Calendar turns the day
+ * when an entry is pulled to its edge: one over the times at the left of the time grid, one at its right edge,
+ * each its arrow and the weekday it leads to, like `Wed`, lit while the pointer is in it, and the arrows of the date
+ * outlined, which take an entry too; hides them when the drag stops.
+ * - `grid`: Where the time grid stands.
+ * - `lane`: Where the column of the day starts, right of the times.
+ * - `back`, `next`: The strips.
+ * - `weekdayOf`: Weekday of a day some days from the shown one, like `Wed`.
+ *
+ * @param calendar - Calendar of the day
+ * @param shown - Whether to show them
+ */
+function turnShow(calendar: Calendar, shown: boolean): void {
+    const day: HTMLElement | null = document.querySelector(".day");
+    day?.classList.toggle("day-turning", shown);
+    if (!shown) {
+        document.removeEventListener("pointermove", turnNear);
+        return;
+    }
+    const grid: DOMRect = (document.getElementById("day-calendar") as HTMLElement).getBoundingClientRect();
+    const lane: number = document.querySelector("#day-calendar [role='gridcell']")?.getBoundingClientRect().left
+        ?? grid.left + 48;
+    const back: HTMLElement = document.querySelector(".day-turn-back") as HTMLElement;
+    const next: HTMLElement = document.querySelector(".day-turn-next") as HTMLElement;
+    const weekdayOf: (days: number) => string = (days: number): string => {
+        const date: Date = new Date(calendar.view.currentStart);
+        date.setDate(date.getDate() + days);
+        return date.toLocaleDateString("en-GB", { weekday: "short" });
+    };
+    back.replaceChildren(iconOf(ChevronLeft), weekdayOf(-1));
+    next.replaceChildren(iconOf(ChevronRight), weekdayOf(1));
+    Object.assign(back.style, { left: `${grid.left}px`, top: `${grid.top}px`, width: `${lane - grid.left}px`,
+        height: `${grid.height}px` });
+    Object.assign(next.style, { left: `${grid.right - (lane - grid.left)}px`, top: `${grid.top}px`,
+        width: `${lane - grid.left}px`, height: `${grid.height}px` });
+    document.addEventListener("pointermove", turnNear);
+}
+
+/**
+ * Moves an entry dropped on a strip of the day before or after, or on an arrow of the date, see {@link turnOf},
+ * to that day at the same time of day, and the day view follows it there, as Google Calendar does; an entry
+ * dropped anywhere else stays as FullCalendar moved it, see {@link entryDrag}.
+ * - `days`: Days it moves, 0 for none.
+ * - `entry`: The entry.
+ * - `start`, `end`: Its start and end on the other day.
+ *
+ * @param calendar - Calendar of the day
+ * @param info - The drag that stopped, with where the pointer was
+ */
+function entryTurn(calendar: Calendar, info: EventDragStopInfo): void {
+    const days: number = turnOf(info.jsEvent.clientX, info.jsEvent.clientY);
+    turnShow(calendar, false);
+    if (days === 0)
+        return;
+    const entry: EventApi = info.event;
+    const start: Date = new Date(entry.start as Date);
+    const end: Date = new Date((entry.end ?? entry.start) as Date);
+    start.setDate(start.getDate() + days);
+    end.setDate(end.getDate() + days);
+    turning = { id: entry.id, days: days };
+    entryChange(calendar, entry.id, entryFieldsOf(entry, start, end))
+        .then((): void => calendar.incrementDate({ days: days }))
+        .catch((error: unknown): void => console.error(error));
 }
 
 /**
@@ -331,8 +466,9 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
  * Fits the lines of an entry to the part of it in sight: scrolled partly out of sight at the top, an entry keeps
  * its lines 0.5rem below the top of the grid, as `.entry-lines` in `day.css` makes them stick, and those its rest
  * has no more room for, less the space below them, hide as a whole from the bottom, so no line is ever cut
- * at the top and `Sleep: Night` stays in sight the longest; an entry in sight keeps the lines it has room for.
- * - `inside`: Inside of the entry, with the space above and below its lines.
+ * at the top and `Sleep: Night` stays in sight the longest; an entry in sight keeps the lines it has room for;
+ * lines no longer on the page, like those of the copy FullCalendar draws while an entry is dragged, stay as they are.
+ * - `inside`: Inside of the entry, with the space above and below its lines, `null` for lines no longer on it.
  * - `top`: Where the lines stick, 0.5rem below the top of the grid.
  * - `bottom`: Where the space below the lines begins.
  * - `room`: Whole lines between them.
@@ -341,7 +477,9 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
  * @param grid - Grid of the log, which scrolls the entries
  */
 function linesFit(lines: HTMLElement, grid: HTMLElement): void {
-    const inside: HTMLElement = lines.parentElement as HTMLElement;
+    const inside: HTMLElement | null = lines.parentElement;
+    if (inside === null)
+        return;
     const top: number = grid.getBoundingClientRect().top + parseFloat(getComputedStyle(lines).top);
     const bottom: number = inside.getBoundingClientRect().bottom - parseFloat(getComputedStyle(inside).paddingBottom);
     const room: number = Math.floor((bottom - top) / parseFloat(getComputedStyle(lines).lineHeight));
@@ -486,6 +624,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `editable`: Lets entries be moved and resized, those that the reader marks `editable`.
  * - `snapDuration`: Moves, resizes and selects in steps of 15 minutes, while the grid keeps a line every 30 minutes.
  * - `eventDrop`, `eventResize`: Write a moved or resized entry back, see {@link entryDrag}.
+ * - `eventDragStart`, `eventDragStop`: Show the strips of the days before and after while an entry is dragged,
+ *   and move an entry dropped on one of them, or on an arrow of the date, to that day, see {@link entryTurn}.
  * - `droppable`: Takes the boxes dragged from the list.
  * - `eventAllow`: Takes boxes and entries only in the time grid, not in the row of the whole day.
  * - `eventReceive`: Logs a box dropped into the log at the time of the drop, see `boxes.ts`.
@@ -537,6 +677,8 @@ export function dayStart(note: boolean): void {
         snapDuration: "00:15:00",
         eventDrop: (info: EventChangeInfo): void => entryDrag(calendar, info),
         eventResize: (info: EventChangeInfo): void => entryDrag(calendar, info),
+        eventDragStart: (): void => turnShow(calendar, true),
+        eventDragStop: (info: EventDragStopInfo): void => entryTurn(calendar, info),
         droppable: true,
         eventAllow: (span: DateSpanApi): boolean => !span.allDay,
         eventReceive: (info: EventReceiveInfo): void => boxReceive(calendar, info),
@@ -560,6 +702,12 @@ export function dayStart(note: boolean): void {
 
     calendar.render();
     nowCenter(calendar);
+    document.querySelector(".day")?.append(...["day-turn day-turn-back", "day-turn day-turn-next"]
+        .map((name: string): HTMLElement => {
+            const strip: HTMLElement = document.createElement("div");
+            strip.className = name;
+            return strip;
+        }));
     iconPut(document.getElementById("day-back") as HTMLElement, ChevronLeft, "Day before");
     iconPut(document.getElementById("day-next") as HTMLElement, ChevronRight, "Day after");
     plusPut(document.getElementById("log-new") as HTMLElement, "New entry");

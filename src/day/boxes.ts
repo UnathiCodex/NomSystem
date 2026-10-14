@@ -644,6 +644,7 @@ function boxElementOf(calendar: Calendar, box: Box, index: number, carriedShown:
     const body: HTMLElement = entryPartOf("div", "box-body", boxContentOf(box, shown.day, !carriedShown));
     element.classList.toggle("box-draggable", box.state === "open");
     element.dataset.index = String(index);
+    element.dataset.id = box.id;
     element.dataset.category = box.category;
     element.dataset.title = box.title;
     element.dataset.minutes = String(box.minutes ?? boxMinutes);
@@ -794,6 +795,40 @@ export function boxReceive(calendar: Calendar, info: EventReceiveInfo): void {
 }
 
 /**
+ * Follows an open box I press, see {@link boxesStart}: once it moves, the arrow of the day after is outlined, and
+ * the box let go on that arrow is pushed to the day after, as its own arrow does, and the day view follows it there;
+ * let go anywhere else, FullCalendar takes it, like into the log.
+ * - `item`: The box pressed, `null` for a press beside an open box.
+ * - `day`: The day view, which outlines the arrow while the box moves.
+ * - `move`: Outlines the arrow once the pointer moves.
+ * - `up`: Takes the box let go.
+ *
+ * @param calendar - Calendar of the day
+ * @param down - The press
+ */
+function boxDragFollow(calendar: Calendar, down: PointerEvent): void {
+    const item: HTMLElement | null = (down.target as HTMLElement).closest<HTMLElement>(".box-draggable");
+    const day: HTMLElement | null = document.querySelector(".day");
+    if (item === null)
+        return;
+    const move: (event: PointerEvent) => void = (event: PointerEvent): void => {
+        if (Math.abs(event.clientX - down.clientX) + Math.abs(event.clientY - down.clientY) > 4)
+            day?.classList.add("day-pushing");
+    };
+    const up: (event: PointerEvent) => void = (event: PointerEvent): void => {
+        const rect: DOMRect | undefined = document.getElementById("day-next")?.getBoundingClientRect();
+        document.removeEventListener("pointermove", move);
+        day?.classList.remove("day-pushing");
+        if (rect === undefined || event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top
+            || event.clientY > rect.bottom)
+            return;
+        boxPush(item.dataset.id ?? "").then((): void => calendar.next()).catch(logFailShow);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up, { once: true });
+}
+
+/**
  * Starts the list after the router has put its HTML into the page: the open boxes become draggable into the log,
  * `+` opens the entry by category for a new box, and the list loads again whenever the entry by category
  * or the dialog of a gift idea closes.
@@ -802,6 +837,7 @@ export function boxReceive(calendar: Calendar, info: EventReceiveInfo): void {
  * - `eventData`: Entry the dragged box becomes, with its category, its title and its minutes, so the log shows it
  *   as an entry, as long as it will be, while it is dragged.
  * - `close`: Comes when a dialog closes, saved or not.
+ * A box pressed and let go on the arrow of the day after is pushed there, see {@link boxDragFollow}.
  *
  * @param calendar - Calendar of the day
  */
@@ -813,6 +849,8 @@ export function boxesStart(calendar: Calendar): void {
             category: item.dataset.category ?? "",
         }),
     });
+    document.getElementById("plan-boxes")?.addEventListener("pointerdown", (event: PointerEvent): void =>
+        boxDragFollow(calendar, event));
     plusPut(document.getElementById("plan-new") as HTMLElement, "New box");
     document.getElementById("plan-new")?.addEventListener("click", (): void => {
         boxOpenNew(calendar.view.currentStart).catch((error: unknown): void => console.error(error));

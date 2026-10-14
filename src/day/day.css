@@ -19,6 +19,41 @@
     min-height: 0;
 }
 
+/* Strips of the days before and after while an entry is dragged, see `turnShow` in `day.ts`: one over the times
+   at the left of the time grid, one at its right edge, each its arrow and the weekday it leads to, dashed and calm
+   over what lies below, lit like what is picked while the pointer is in it; the arrows of the date outlined then,
+   since they take an entry too; a box dragged outlines the arrow of the day after, which pushes it there */
+.day-turn {
+    position: fixed;
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    border: 1px dashed var(--chosen-line);
+    border-radius: var(--radius);
+    background: color-mix(in oklab, var(--background) 85%, transparent);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    pointer-events: none;
+}
+
+.day-turning .day-turn {
+    display: flex;
+}
+
+.day-turn.day-turn-near {
+    border-style: solid;
+    background: var(--chosen);
+    color: var(--text-main);
+}
+
+.day-turning .day-arrow,
+.day-pushing #day-next {
+    border-color: var(--chosen-line);
+}
+
 /* Bar of the day over the whole width, see `.day-nav` */
 .day-bar {
     display: flex;
