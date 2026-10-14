@@ -66,7 +66,6 @@ import type { CalendarSource } from "./sources.ts";
  *   like `IN2028/Kiosk Sales Standard Error`, none when the event has none.
  * - `foods`: Foods of a meal, its `X-FOOD`s in order, each a food of `Foods.md` with the grams eaten, like `Reis;150`,
  *   or without grams, like `Eier`, for its usual portion; none when the event has none.
- * - `cooked`: Identifier of the entry `Cook` a meal was cooked in, its `X-COOKED`, empty when the event has none.
  * - `pain`: My neck pain from 0 to 10 after a long neck session, its `X-PAIN`, like `5`, empty when the event has none.
  * - `planned`: Identifier of the box a log entry was logged from, see {@link plannedOf}: the `UID` of its
  *   `RELATED-TO`, like `study-13@nomsystem`, for one date of a series with that date after `#`,
@@ -115,7 +114,6 @@ export type Entry = {
     attempts: string[];
     tutors: string[];
     foods: string[];
-    cooked: string;
     pain: string;
     planned: string;
     note: string;
@@ -497,7 +495,6 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
         foods: event.component.getAllProperties("x-food")
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
-        cooked: String(event.component.getFirstPropertyValue("x-cooked") ?? ""),
         pain: String(event.component.getFirstPropertyValue("x-pain") ?? ""),
         planned: plannedOf(event.component),
         note: event.description ?? "",

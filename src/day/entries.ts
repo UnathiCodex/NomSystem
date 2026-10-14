@@ -149,18 +149,6 @@ export async function entryAdd(calendar: Calendar, fields: EntryFields): Promise
 }
 
 /**
- * Adds the meal of a cooking to the log, eaten right after it: the reader writes it with the dish and place of the cooking,
- * as long as my meals usually last, with the foods the dish held the last time, pointing to the cooking.
- *
- * @param calendar - Calendar of the day
- * @param cook - Identifier of the entry `Cook`
- * @throws {Error} - When the reader does not take the meal, like for a cooking eaten already
- */
-export async function mealAfterCookAdd(calendar: Calendar, cook: string): Promise<void> {
-    await logSend(calendar, "POST", "/api/day/eaten", { cook: cook });
-}
-
-/**
  * Changes fields and times of an entry of the log.
  *
  * @param calendar - Calendar of the day

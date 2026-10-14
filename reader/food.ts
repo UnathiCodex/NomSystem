@@ -933,17 +933,6 @@ export function foodLineAllows(line: string): boolean {
 }
 
 /**
- * Writes the what of a meal from its lines `X-FOOD`: the names of its foods in their order, parted by `, `,
- * like `Reis, Bohnen, Eier` of `Reis;150`, `Bohnen;100` and `Eier`, as the dialog of the day writes it too.
- *
- * @param foods - Lines `X-FOOD` of the meal
- * @returns What of the meal
- */
-export function mealTitleOf(foods: string[]): string {
-    return foods.map((line: string): string => lineOf(line)[0]).join(", ");
-}
-
-/**
  * Writes a name of mine as all my names are written, in one word, each word with a capital, the rest as typed,
  * like `ChiliConCarne` of `Chili con Carne` or `Käsesalat` of `käsesalat`, cleaned for a table, see {@link nameOf}.
  *

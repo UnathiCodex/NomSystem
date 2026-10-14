@@ -42,7 +42,7 @@
 import { createServer } from "node:http";
 import { json } from "node:stream/consumers";
 import {
-    boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, mealAfterCookAdd, realMinutesRead,
+    boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, realMinutesRead,
 } from "./day.ts";
 import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxUniversity } from "./boxes.ts";
 import { giftWrite } from "./gifts.ts";
@@ -132,7 +132,6 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/day/real?category=…&title=…&module=…&type=…`: Sends the minutes the last entries like a box
  *   really lasted, the latest first.
  * - `POST /api/day/log`: Adds entry of the body and sends its identifier.
- * - `POST /api/day/eaten`: Adds the meal of the entry `Cook` named in the body, right after it, and sends its identifier.
  * - `PATCH /api/day/log`: Changes entry of the body.
  * - `DELETE /api/day/log?id=…`: Removes entry of the identifier.
  * - `POST /api/day/boxes`: Adds box of the body and sends its identifier.
@@ -242,9 +241,6 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "POST" && url.pathname === "/api/day/log") {
         responseSend(response, 200, entryAdd(await json(request) as EntryNew));
-
-    } else if (request.method === "POST" && url.pathname === "/api/day/eaten") {
-        responseSend(response, 200, mealAfterCookAdd((await json(request) as { cook: string }).cook));
 
     } else if (request.method === "PATCH" && url.pathname === "/api/day/log") {
         entryEdit(await json(request) as EntryChange);

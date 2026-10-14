@@ -25,8 +25,6 @@
  *
  * A meal of the log lists its foods as lines `X-FOOD`, like `X-FOOD:Reis;150`: appended with the entry,
  * and replaced as a whole when the entry changes; the reader counts what each meal gives, see `food.ts`.
- * A meal eaten right after cooking points to its entry `Cook` with `X-COOKED:<UID of the Cook entry>`,
- * written once when the meal is added, so the dialog offers that meal only once.
  *
  * - `./boxes.ts`: Finds a box of the plan, an open one, and marks a box done or open again.
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
@@ -42,9 +40,9 @@
 
 import { boxDone, boxFind, boxOpenFind, boxReopen } from "./boxes.ts";
 import { berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryRemove, propertiesPut } from "./calendar.ts";
-import { categoryAllows, semesterFor, skillName, usualLengthRead } from "./categories.ts";
+import { categoryAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
-import { dishFoodsRead, foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
+import { foodLineAllows, foodName, mealsOf } from "./food.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, logEnding } from "./sources.ts";
 import { glassIs } from "./trackers.ts";
@@ -111,33 +109,21 @@ export type BoxLogged = {
 
 /**
  * An entry as the day gets it: an {@link Entry}, with the chapters of a skill entry, what a meal gives,
- * whether a cooking was eaten, and whether it is a glass of water.
+ * and whether it is a glass of water.
  *
  * - `chapters`: Chapters a skill entry covered, from the folders it links and from older `X-CHAPTER`s,
  *   see `chaptersOf` in `documents.ts`; none for any other entry.
  * - `kcal`: kcal of a meal that lists foods, see `food.ts`; `null` for any other entry.
  *   The day hides them on its entries for now; its dialog and its trackers show them.
  * - `estimate`: Whether those kcal hold the usual portion of a food listed without grams.
- * - `eaten`: Whether a meal of the same range points to this entry `Cook` with its `X-COOKED`.
  * - `glass`: Whether the entry is a glass of water, which the counter of the day shows instead of the time grid,
  *   see `trackers.ts`.
  */
 export type DayEntry = Entry & {
     kcal: number | null;
     estimate: boolean;
-    eaten: boolean;
     glass: boolean;
 };
-
-/**
- * Category of cooking, whose meal may follow it, see {@link mealAfterCookAdd}.
- */
-const cookName: string = "Cook";
-
-/**
- * A day in milliseconds.
- */
-const dayLength: number = 24 * 60 * 60 * 1000;
 
 /**
  * Number of the last entries like a box whose real minutes its dialog shows, see {@link realMinutesRead}.
@@ -205,11 +191,10 @@ function fieldsCheck(fields: EntryFields, foods: string[], old: Entry | Box | nu
 }
 
 /**
- * Reads the entries of the log that overlap a range, each meal with its kcal,
- * each cooking eaten and each glass of water marked, see {@link DayEntry}.
+ * Reads the entries of the log that overlap a range, each meal with its kcal
+ * and each glass of water marked, see {@link DayEntry}.
  * - `entries`: Entries of the range.
  * - `meals`: What the meals among them give, by their identifiers.
- * - `cooked`: Identifiers of the entries `Cook` the meals among them point to.
  *
  * @param start - Start of the range with offset, like `2026-07-03T00:00:00+02:00`
  * @param end - End of the range, excluded, in the same form
@@ -218,13 +203,11 @@ function fieldsCheck(fields: EntryFields, foods: string[], old: Entry | Box | nu
 export function dayEntriesRead(start: string, end: string): DayEntry[] {
     const entries: Entry[] = entriesRead(day.log, start, end);
     const meals: Map<string, Meal> = mealsOf(entries);
-    const cooked: Set<string> = new Set(entries.map((entry: Entry): string => entry.cooked));
     return entries.map((entry: Entry): DayEntry => ({
         ...entry,
         chapters: chaptersOf(entry),
         kcal: meals.get(entry.id)?.kcal ?? null,
         estimate: meals.get(entry.id)?.estimate ?? false,
-        eaten: entry.category === cookName && cooked.has(entry.id),
         glass: glassIs(entry),
     }));
 }
@@ -364,40 +347,6 @@ export function boxUndo(id: string): void {
             entryRemove(file, logged.id);
     }
     boxReopen(id);
-}
-
-/**
- * Adds the meal of a cooking to the log, eaten right after it: `Food` at the place of the entry `Cook`,
- * from the end of the cooking for as long as my meals usually last, with the foods the dish held the last time,
- * named by them, see {@link mealTitleOf}, else by the dish of the cooking,
- * and `X-COOKED` with the identifier of the entry `Cook`, so the two point to each other.
- * - `cook`: The entry `Cook`.
- * - `foods`: Lines `X-FOOD` the dish held the last time, none when no meal of it lists foods.
- * - `fields`: Fields and times of the meal.
- *
- * @param id - Identifier of the entry `Cook`
- * @returns Identifier of the new meal
- * @throws {Error} - When there is no such entry in the new system, it is no cooking, or a meal points to it already
- */
-export function mealAfterCookAdd(id: string): string {
-    const [, cook]: [string, Entry] = entryFind(day.log, id);
-    if (!cook.editable || cook.category !== cookName)
-        throw new Error(`${cook.title} is no cooking of the new system`);
-    if (entriesRead(day.log, cook.start, new Date(Date.parse(cook.end) + dayLength).toISOString())
-        .some((entry: Entry): boolean => entry.cooked === id))
-        throw new Error(`${cook.title} is eaten already`);
-
-    const start: Date = new Date(cook.end);
-    const foods: string[] = dishFoodsRead(cook.title);
-    const fields: EntryFields = {
-        category: foodName, title: foods.length > 0 ? mealTitleOf(foods) : cook.title, titleLink: "",
-        location: cook.location, locationLink: cook.locationLink, from: "", module: "", type: "", semester: "",
-        note: "",
-        start: start, end: new Date(start.getTime() + usualLengthRead(foodName, start.toISOString()) * 60 * 1000),
-    };
-    fieldsCheck(fields, foods, null);
-    return entryAppend(logFileOf(fields), fields,
-        [...foods.map((food: string): [string, string] => ["x-food", food]), ["x-cooked", id]]);
 }
 
 /**

@@ -73,7 +73,7 @@
  */
 
 import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
-import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, mealAfterCookAdd } from "./entries.ts";
+import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
 import { foodName, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import { labelOf, lineOf, placeEdit, placeOpen, placesStart } from "./places.ts";
 import {
@@ -223,11 +223,6 @@ let meal: HTMLElement[] | null = null;
  * Whether the remove button was clicked once and waits for the second click.
  */
 let removeAsked: boolean = false;
-
-/**
- * Whether the meal of a cooking is to be added right after it when the dialog saves.
- */
-let eatenAfter: boolean = false;
 
 /**
  * My neck pain from 0 to 10 picked for a long neck session, empty for none.
@@ -384,26 +379,6 @@ function valueAdd(field: Field, value: string): void {
         .forEach((other: Field): void => {
             other.values.push(value);
         });
-}
-
-/**
- * Builds the row that offers the meal of a cooking, eaten right after it: one row to pick by one tap;
- * only for a cooking of the log no meal points to yet.
- *
- * @returns Row, none for any other entry
- */
-function eatenRowOf(): HTMLElement[] {
-    if (opened.target !== "log" || chosen?.name !== cookName || opened.entry?.extendedProps.eaten === true)
-        return [];
-    return [rowOf("Meal", choicesOf({
-        search: searchOf([{ value: "eaten", text: "Eaten right after", group: "" }]),
-        picked: eatenAfter ? ["eaten"] : [],
-        many: false,
-        adding: false,
-        pick: (picked: string[]): void => {
-            eatenAfter = picked.length > 0;
-        },
-    }))];
 }
 
 /**
@@ -730,8 +705,8 @@ function asPlanned(): boolean {
  * Shows the fields of the category picked, each its rows, see {@link fieldRowsOf}, in the order of the file,
  * the same for every category, below the times and the category: what, then its place, a way where it starts
  * before its place;
- * after the place for a cooking the meal eaten right after it, see {@link eatenRowOf}, for `Body` my neck pain,
- * shown while `Neck long` is picked, see {@link painRowOf}; a meal of the log is its summary, see {@link meal}.
+ * after the place for `Body` my neck pain, shown while `Neck long` is picked, see {@link painRowOf};
+ * a meal of the log is its summary, see {@link meal}.
  * - `fields`: The fields of the category picked.
  */
 function fieldsShow(): void {
@@ -740,7 +715,7 @@ function fieldsShow(): void {
         .filter((field: Field): boolean => field.key === "title").flatMap(fieldRowsOf));
     document.getElementById("entry-more")?.replaceChildren(...fields
         .filter((field: Field): boolean => field.key !== "title").flatMap(fieldRowsOf),
-        ...eatenRowOf(), ...painRowOf());
+        ...painRowOf());
     saveAllow();
 }
 
@@ -1024,13 +999,11 @@ async function boxSave(): Promise<void> {
 
 /**
  * Sends the new or changed entry to the reader, into the log, then closes the dialog; a box goes into the plan,
- * see {@link boxSave}. A skill entry goes to the one writer of skill entries, see `skill.ts`,
- * and a cooking with its meal picked adds the meal right after it, once the cooking is written.
+ * see {@link boxSave}. A skill entry goes to the one writer of skill entries, see `skill.ts`.
  * - `fields`: Fields, note and times of the dialog.
- * - `id`: Identifier of the entry, of the new one once it is written.
  *
  * @param calendar - Calendar of the day
- * @throws {Error} - When the reader does not take the entry or the meal
+ * @throws {Error} - When the reader does not take the entry
  */
 async function entrySave(calendar: Calendar): Promise<void> {
     if (opened.target === "box") {
@@ -1038,15 +1011,12 @@ async function entrySave(calendar: Calendar): Promise<void> {
         return;
     }
     const fields: EntryFields = fieldsRead();
-    let id: string = opened.entry?.id ?? "";
     if (chosen?.name === skillName)
-        await skillSave(calendar, id, fields);
+        await skillSave(calendar, opened.entry?.id ?? "", fields);
     else if (opened.entry !== null)
         await entryChange(calendar, opened.entry.id, fields);
     else
-        id = await entryAdd(calendar, fields);
-    if (chosen?.name === cookName && eatenAfter)
-        await mealAfterCookAdd(calendar, id);
+        await entryAdd(calendar, fields);
     (document.getElementById("entry") as HTMLDialogElement).close();
 }
 
@@ -1161,7 +1131,6 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     realMiddle = null;
     (document.getElementById("entry-real") as HTMLElement).hidden = true;
     removeAsked = false;
-    eatenAfter = false;
     pain = String(opening.entry?.extendedProps.pain ?? "");
 
     (document.getElementById("entry-plan-title") as HTMLElement).textContent =

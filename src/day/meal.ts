@@ -728,7 +728,7 @@ export function mealFoods(): string[] {
 
 /**
  * Gives the summary of the meal: the names of the meals, then of the foods beside them, in the order picked,
- * parted by `, `, like `ChiliConCarne, Weißbrot`, as the reader names the meal eaten right after a cooking too.
+ * parted by `, `, like `ChiliConCarne, Weißbrot`.
  *
  * @returns Summary, empty while nothing is picked
  */

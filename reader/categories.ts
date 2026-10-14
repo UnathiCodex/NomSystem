@@ -398,23 +398,6 @@ export function categoriesRead(now: string): CategoryShown[] {
 }
 
 /**
- * Reads how long the entries of a category usually last: the median length of its entries in the log,
- * like 30 minutes for `Food`.
- * - `lengths`: Length of each entry in minutes, the shortest first.
- *
- * @param name - Name of the category, like `Food`
- * @param now - Present as ISO instant
- * @returns Minutes, 30 when the category has no entries yet
- */
-export function usualLengthRead(name: string, now: string): number {
-    const lengths: number[] = logsRead(now)
-        .filter((log: Entry): boolean => log.category === name)
-        .map((log: Entry): number => Math.round((Date.parse(log.end) - Date.parse(log.start)) / 60000))
-        .sort((first: number, second: number): number => first - second);
-    return lengths[Math.floor(lengths.length / 2)] ?? 30;
-}
-
-/**
  * Finds where the last way before an instant ended: the place of the last `Way` as it wrote it, with the address
  * it had then, like `TumMain, Arcisstraße 21, 80333 München, Deutschland`, when its name is one of my places
  * or of the rooms.
