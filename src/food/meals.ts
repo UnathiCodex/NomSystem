@@ -3,17 +3,16 @@
  *
  * My meals of `Meals.md`, each only its composition, one or more of my foods without grams, servings or variants,
  * since I prepare it a little differently every time: shared by the food view, whose section lists them above
- * my foods, and by the entry by category of the day, which picks them and brings their foods at their usual portion,
- * see `../day/meal.ts`.
+ * my foods, and by the entry by category of the day, whose search finds them above my foods, see `../day/meal.ts`.
  * - The form of a new meal: the name of the meal, which the reader writes in one word, as all my names are,
  *   like `ChiliConCarne` of `Chili con Carne`, shown below the field as I type; its foods, each its name with its brand
  *   and store in brackets and a small grey `×`, and below them the food search, which adds one;
  *   `Cancel` and `Save`, which takes no click until the meal has a name and a food.
- * - The row of a meal, the same in the section of the food view and in the list of the meals of an entry: its name,
- *   its foods in brackets after it by their names, and at the right what it gives at the usual portions.
+ * - The row of a meal in the section of the food view: its name, its foods in brackets after it by their names,
+ *   and at the right what it gave the last time I ate it, see `dishesRead` in `reader/food.ts`.
  * - The section of the food view: `Meals`, then a search field, as the foods have one, which shows only the meals
- *   whose name or foods hold what is typed, ignoring case and accents, see `../search.ts`, like `reis` finding every
- *   meal with rice; then the row of each meal; a click shows its foods below it, each with
+ *   whose name or foods hold what is typed, ignoring case and accents, see {@link dishesFound}, like `reis` finding
+ *   every meal with rice; then the row of each meal; a click shows its foods below it, each with
  *   its `×` while it has more than one, and right after its name the small grey plus, like `ChiliConCarne +`, which
  *   opens the food search below its foods and closes it again, a food picked changed for good in `Meals.md` at once;
  *   a click on the row but on its plus hides its foods again; the `×` of the meal, whose first click only asks,
@@ -54,14 +53,16 @@ type FormSetup = {
 
 
 /**
- * Writes a name of mine as the reader writes it, in one word, each word with a capital, the rest as typed,
- * like `ChiliConCarne` of `Chili con Carne`.
+ * Writes a name of mine as the reader writes it, in one word, each word with a capital, the rest as typed, a comma
+ * between two digits a point and every other comma gone, since the comma parts names, like `ChiliConCarne`
+ * of `Chili con Carne`, see `oneWordOf` in `reader/food.ts`.
  *
  * @param typed - Name as typed
  * @returns Name in one word
  */
 function oneWordOf(typed: string): string {
-    return typed.replace(/[|;]/g, " ").split(/\s+/).filter((word: string): boolean => word !== "")
+    return typed.replace(/(\d),(?=\d)/g, "$1.").replace(/[|;,]/g, " ").split(/\s+/)
+        .filter((word: string): boolean => word !== "")
         .map((word: string): string => word.charAt(0).toUpperCase() + word.slice(1)).join("");
 }
 
@@ -76,16 +77,29 @@ export function kcalTextOf(kcal: number): string {
 }
 
 /**
- * Makes the cells of the row of a meal, the same in the food view and in the list of the meals of an entry: its name
- * with its foods in brackets after it by their names alone, as a food has its brand and store, like
- * `ChiliConCarne (Hackfleisch, Kidneybohnen, Tomaten)`, going on below where the row has no room, never cut;
- * and at the right what it gives at the usual portions, like `443 kcal`; all in one colour and one size.
+ * Finds the meals whose name or foods hold every word typed, ignoring case and accents, see `../search.ts`,
+ * like `reis` finding every meal with rice; all of them for nothing typed.
+ *
+ * @param dishes - My meals
+ * @param typed - Text typed
+ * @returns The meals found, in their order
+ */
+export function dishesFound(dishes: Dish[], typed: string): Dish[] {
+    return dishes.filter((dish: Dish): boolean => matchesAll([dish.name,
+        ...dish.foods.map((line: string): string => line.split(";")[0])].join(" "), wordsOf(typed)));
+}
+
+/**
+ * Makes the cells of the row of a meal in the food view: its name with its foods in brackets after it by their names
+ * alone, as a food has its brand and store, like `ChiliConCarne (Hackfleisch, Kidneybohnen, Tomaten)`, going on below
+ * where the row has no room, never cut; and at the right what it gave the last time I ate it, like `443 kcal`;
+ * all in one colour and one size.
  * - `name`: Its name with its foods.
  *
  * @param dish - Meal of `Meals.md`
  * @returns Its name with its foods, and its kcal
  */
-export function dishCellsOf(dish: Dish): HTMLElement[] {
+function dishCellsOf(dish: Dish): HTMLElement[] {
     const name: HTMLElement = elementOf("span", "dish-name", dish.name);
     name.append(elementOf("span", "dish-parts",
         ` (${dish.foods.map((line: string): string => line.split(";")[0]).join(", ")})`));
@@ -193,12 +207,17 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
         }));
         ready();
     };
-    const search: HTMLElement = foodSearchOf((food: Food): void => {
-        if (!foods.includes(lineOfFood(food)))
-            foods.push(lineOfFood(food));
-        foodsShow();
-        foodSearchClear(search);
-    }, null);
+    const search: HTMLElement = foodSearchOf({
+        pick: (food: Food): void => {
+            if (!foods.includes(lineOfFood(food)))
+                foods.push(lineOfFood(food));
+            foodsShow();
+            foodSearchClear(search);
+        },
+        before: null,
+        products: true,
+        nothing: "Nothing found; the plus beside Foods adds a food by hand",
+    });
 
     name.type = "text";
     name.className = "dish-field";
@@ -240,7 +259,6 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
  * - `show`: Shows the meals whose name or foods hold the words typed in the search, all of them for none typed,
  *   or a hint when none does, then the form while open; the row of the meal whose foods show no button but a row
  *   that a click hides again, see `rowOf` in `../day/choices.ts`, since its plus stands inside it, right after its name.
- * - `words`: The words typed in the search.
  * - `shown`: The meals found.
  *
  * @returns The section
@@ -295,9 +313,7 @@ export function mealsSectionOf(): HTMLElement {
         show();
     };
     const show: () => void = (): void => {
-        const words: string[] = wordsOf(search.value);
-        const shown: Dish[] = dishes.filter((dish: Dish): boolean => matchesAll([dish.name,
-            ...dish.foods.map((line: string): string => line.split(";")[0])].join(" "), words));
+        const shown: Dish[] = dishesFound(dishes, search.value);
         const rows: HTMLElement[] = shown.flatMap((dish: Dish): HTMLElement[] => {
             const key: string = dish.name.toLowerCase();
             const line: HTMLElement = elementOf("div", "dish-line", "");
@@ -343,11 +359,16 @@ export function mealsSectionOf(): HTMLElement {
                 return foodRow;
             }));
             if (adding === key) {
-                const search: HTMLElement = foodSearchOf((food: Food): void => {
-                    adding = "";
-                    change(dish, [...dish.foods.filter((other: string): boolean => other !== lineOfFood(food)),
-                        lineOfFood(food)]);
-                }, null);
+                const search: HTMLElement = foodSearchOf({
+                    pick: (food: Food): void => {
+                        adding = "";
+                        change(dish, [...dish.foods.filter((other: string): boolean => other !== lineOfFood(food)),
+                            lineOfFood(food)]);
+                    },
+                    before: null,
+                    products: true,
+                    nothing: "Nothing found; the plus beside Foods adds a food by hand",
+                });
                 detail.append(search);
                 queueMicrotask((): void => search.querySelector("input")?.focus());
             }

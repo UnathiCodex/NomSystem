@@ -1,36 +1,29 @@
 /**
  * ## Meal in the entry by category
  *
- * A meal of the log, `Food`, in rows of the dialog, like every field, its meals and its foods each with its own list,
- * a menu over the dialog right under the plus that opens it, see `listOf` in `choices.ts`, so meals and foods
- * never mix:
+ * A meal of the log, `Food`, in rows of the dialog, like every field, with the fewest steps and nothing nested:
  * - Summary: what I ate, written by itself, never typed: the meals, then the foods eaten beside them, parted by `, `,
  *   like `ChiliConCarne, Weißbrot`, and after it in brackets what they give together, as a type stands after its
  *   skill, like `ChiliConCarne, Weißbrot (660 kcal)`.
- * - Meals: my meals of `Meals.md`, each only its composition, one or more of my foods, see `../food/meals.ts`.
- *   A meal picked brings its foods at their usual portion: a row with its name, its kcal and a small grey `×`,
- *   which removes it, its foods indented below it, each a row as a food beside the meals has it, so I change the grams
- *   of each, or remove one I did not eat. Its list finds my meals as I type, each in the row of a meal of the food
- *   view, see `dishCellsOf` in `../food/meals.ts`, and while no meal has the name typed, the small grey plus with that
- *   name ends it, as in every list with a search, see `choices.ts`, and turns the list into the form of a meal,
- *   see `mealFormOf` in `../food/meals.ts`, named as typed; the meal saved goes into `Meals.md` and into this meal
- *   at once.
- * - Foods: foods eaten beside the meals, like `Weißbrot` beside `ChiliConCarne`, each a row with its name, its brand
- *   and store in brackets, its grams, its kcal and a small grey `×`, which removes it, like a food I did not eat
- *   of a cooking. Its list is the food search, see `../food/search.ts`: my foods first, then those of Open Food Facts;
- *   a click on one of my foods takes it, and so does adding a product, which goes into `Foods.md` first.
- *   Its grams start at its usual portion, white like every fact, and I type over them; a field I empty counts
- *   the usual portion too; every amount is rounded and an estimate anyway, so none is marked as one.
- *   Enter in its grams opens the list again.
- * Beside the name of each, the one plus opens its list, as every plus stands right after what it adds to, and so does
- * a click on the empty row; a meal has its own plus right after its name, which adds a food to it.
- * The dialog writes each food as a line `X-FOOD`: its name, brand and store, then its grams, its usual portion when none
- * are typed, empty for a food `Foods.md` does not hold, and for a food of one of my meals the meal after them, like
- * `Hackfleisch;Gut & Günstig;Edeka;125;ChiliConCarne` or `Weißbrot;Harry;Rewe;50`, so the log keeps what the meal held
- * that day, whatever I change in `Meals.md` later; and the summary as its what, see {@link mealTitle}.
+ * - Foods: what I ate, the one plus beside its name opening one list, a menu over the dialog right under the plus,
+ *   see `listOf` in `choices.ts`, whose one search finds, as I type, my meals by their names and foods first, then my
+ *   foods, then the products of Open Food Facts by name or barcode, see `../food/search.ts`; one click takes one:
+ *   a meal brings its block, a row with its name, its kcal and a small grey `×`, which removes it, its foods indented
+ *   below it; a food of mine its row; a product goes into `Foods.md` as Open Food Facts gives it and into the meal,
+ *   no form in between. When nothing is found, one grey line says where a food by hand goes in: under Foods
+ *   in the food view. A food is a row with its name, its brand and store in brackets, its grams, its kcal and
+ *   its `×`, which removes it, like a food I did not eat of a cooking.
+ *   Its grams start empty, the cursor in them, the first of what was picked, and I type my amount, white like every
+ *   fact. An empty field counts nothing and is saved without grams; every amount is rounded and an estimate
+ *   anyway, so none is marked as one. Enter in its grams opens the list again.
+ * A meal block has its own plus right after its name, which adds a food to it, from the same search without my meals.
+ * The dialog writes each food as a line `X-FOOD`: its name, brand and store, then its grams, empty for none,
+ * and for a food of one of my meals the meal after them, like `Hackfleisch;Gut & Günstig;Edeka;125;ChiliConCarne`
+ * or `Weißbrot;Harry;Rewe;50`, so the log keeps what the meal held that day, whatever I change in `Meals.md` later;
+ * and the summary as its what, see {@link mealTitle}.
  * A meal whose summary names more than its foods, like `Bortzeit` written by hand, opens as that one meal with its
  * foods, so its name stays.
- * A cooking of the log, `Cook`, lists what went into the pot in three of these rows, Summary, Meals and Foods,
+ * A cooking of the log, `Cook`, lists what went into the pot in the same rows, Summary and Foods,
  * each food with its grams, like `Hackfleisch;Gut & Günstig;Edeka;500;ChiliConCarne`, and counts no kcal,
  * see `reader/food.ts`.
  * A meal may draw from one of my cookings of the days before it in a row of its own, see {@link cookedRowOf}:
@@ -45,19 +38,18 @@
  * - `./times.ts`: Writes the day and time of a cooking.
  * - `../skill/attempts.ts`: Gives the day of an instant.
  * - `../food/foods.ts`: Finds my foods, loads my meals, writes amounts and makes elements and buttons.
- * - `../food/meals.ts`: The row of a meal, the form of a new meal, and kcal as the page writes them.
- * - `../food/search.ts`: The food search.
- * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, their words as tooltip, and the plus
- *   with the text typed.
+ * - `../food/meals.ts`: Finds my meals for a search, and writes kcal as the page writes them.
+ * - `../food/search.ts`: The food search, and the head and lines of every list.
+ * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, their words as tooltip.
  */
 
 import { choicesOf, listOf, listOpen, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
-import { amountOf, bracketsWatch, buttonOf, dishesLoad, elementOf, foodNameOf, foodsFind } from "../food/foods.ts";
-import { dishCellsOf, kcalTextOf, mealFormOf } from "../food/meals.ts";
-import { foodSearchClear, foodSearchOf } from "../food/search.ts";
-import { crossPut, plusPut, plusTypedPut } from "../icons.ts";
+import { bracketsWatch, buttonOf, dishesLoad, elementOf, foodNameOf, foodsFind } from "../food/foods.ts";
+import { dishesFound, kcalTextOf } from "../food/meals.ts";
+import { foodSearchClear, foodSearchOf, listHeadOf, listLineOf } from "../food/search.ts";
+import { crossPut, plusPut } from "../icons.ts";
 
 import type { Choice } from "./choices.ts";
 import type { Dish, Food, FoodsFound } from "../food/foods.ts";
@@ -67,8 +59,8 @@ import type { Dish, Food, FoodsFound } from "../food/foods.ts";
  * A food picked, beside the meals or as part of one.
  *
  * - `name`, `brand`, `store`: Name of the food in `Foods.md`, its brand and the store I bought it in,
- *   like `Skyr natur`, `K-Classic` and `Kaufland`; brand and store empty in a line written before foods had them.
- * - `grams`: Grams as typed, like `150` or `7,5`; empty for its usual portion.
+ *   like `Skyr natur`, `K-Classic` and `Kaufland`; brand and store empty where none is known.
+ * - `grams`: Grams as typed, like `150` or `7,5`; empty for none, which counts nothing.
  * - `fromCooking`: Whether it came with the cooking the meal draws from, see {@link drawnShow}.
  */
 type FoodPick = {
@@ -152,6 +144,11 @@ export const cookName: string = "Cook";
 const cookingDays: number = 3;
 
 /**
+ * The one grey line of a search of the dialog that finds nothing, since a food by hand goes in only in the food view.
+ */
+const nothingFound: string = "Nothing found; a food by hand goes in under Foods in the food view";
+
+/**
  * My cookings of the days before the meal that list foods, the nearest first, see {@link cookingsLoad}.
  */
 let cookings: Cooking[] = [];
@@ -168,7 +165,7 @@ let cooked: string = "";
 let mine: Map<string, Food> = new Map();
 
 /**
- * My meals of `Meals.md`, loaded when the meal was built, with every meal added since.
+ * My meals of `Meals.md`, loaded when the meal was built.
  */
 let dishes: Dish[] = [];
 
@@ -183,49 +180,34 @@ let meals: MealPick[] = [];
 let picks: FoodPick[] = [];
 
 /**
- * Text of the summary, and grey beside it the kcal of the whole meal.
+ * Place of the summary.
  */
-let summary: HTMLElement = document.createElement("span");
+let summaryLine: HTMLElement = document.createElement("span");
 
 /**
- * Line below the meals, which opens their list.
- */
-let mealsLine: HTMLButtonElement = document.createElement("button");
-
-/**
- * Line below the foods beside the meals, which opens their list.
+ * The plus beside the name `Foods`, which opens the list.
  */
 let foodsLine: HTMLButtonElement = document.createElement("button");
 
 /**
- * Place of the rows of the meals picked.
- */
-let mealsRows: HTMLElement = document.createElement("div");
-
-/**
- * Place of the rows of the foods picked.
+ * Place of the blocks of the meals picked, then of the rows of the foods picked beside them.
  */
 let foodsRows: HTMLElement = document.createElement("div");
 
 /**
- * List of the meals, with its search field, or the form of a meal in its place.
- */
-let mealsBox: HTMLElement = document.createElement("div");
-
-/**
- * The food search in the list of the foods, emptied as the list opens.
+ * The search in the list of the row `Foods`, emptied as the list opens.
  */
 let foodsSearch: HTMLElement = document.createElement("div");
 
 /**
- * Closes the list of the meals.
- */
-let mealsClose: () => void = (): void => {};
-
-/**
- * Closes the list of the foods.
+ * Closes the list of the row `Foods`.
  */
 let foodsClose: () => void = (): void => {};
+
+/**
+ * The field of the grams of each food picked, as its row shows it, so the cursor finds the food just picked.
+ */
+let gramsFields: WeakMap<FoodPick, HTMLInputElement> = new WeakMap();
 
 
 /**
@@ -255,11 +237,21 @@ function mineAdd(food: Food): void {
  * Makes a food picked of a line `X-FOOD`, see {@link lineOf}.
  *
  * @param read - Line in its parts
- * @param grams - Grams the food picked gets, empty for its usual portion
+ * @param grams - Grams the food picked gets, empty for none
  * @returns The food picked
  */
 function pickOf(read: Line, grams: string): FoodPick {
     return { name: read.name, brand: read.brand, store: read.store, grams: grams };
+}
+
+/**
+ * Makes a food picked newly, its grams empty, which I type.
+ *
+ * @param food - Food, of `Foods.md` or of a meal
+ * @returns The food picked
+ */
+function pickNewOf(food: { name: string; brand: string; store: string }): FoodPick {
+    return { name: food.name, brand: food.brand, store: food.store, grams: "" };
 }
 
 /**
@@ -284,7 +276,7 @@ function gramsIs(part: string): boolean {
 
 /**
  * Turns a line `X-FOOD` into its parts, as the reader reads it: one of today names its food's name, brand and store,
- * then its grams, empty for a food `Foods.md` does not hold, and for the food of one of my meals the meal, like
+ * then its grams, empty for none, and for the food of one of my meals the meal, like
  * `Skyr natur;K-Classic;Kaufland;150` or `Hackfleisch;Gut & Günstig;Edeka;125;ChiliConCarne`, told by its second part
  * being no grams and its fourth grams or empty; a food of a meal of `Meals.md` only its name, brand and store, like
  * `Hackfleisch;Gut & Günstig;Edeka`; an older line names its food alone, its grams after it, and for the food of a meal
@@ -318,27 +310,15 @@ function numberOf(text: string): number | null {
 }
 
 /**
- * Writes grams to one decimal at most, as `X-FOOD` and the fields take them, like `62.5` or `125`.
- *
- * @param grams - Grams
- * @returns Text
- */
-function gramsTextOf(grams: number): string {
-    return String(Math.round(grams * 10) / 10);
-}
-
-/**
- * Tells what a food picked gives: its grams, or its usual portion when none are typed, times its kcal per 100 g.
- * - `food`: The food in `Foods.md`, `undefined` for one it does not hold.
- * - `counted`: Grams counted.
+ * Tells what a food picked gives: its grams times its kcal per 100 g; nothing without grams.
+ * - `counted`: Grams counted, 0 for none.
  *
  * @param pick - Food picked
- * @returns kcal; 0 for a food not in `Foods.md` or grams that are no number
+ * @returns kcal; 0 for a food not in `Foods.md`, no grams or grams that are no number
  */
 function kcalOf(pick: FoodPick): number {
-    const food: Food | undefined = foodOf(pick);
-    const counted: number = numberOf(pick.grams) ?? food?.portion ?? 0;
-    return Number.isFinite(counted) ? counted / 100 * (food?.kcal ?? 0) : 0;
+    const counted: number = numberOf(pick.grams) ?? 0;
+    return Number.isFinite(counted) ? counted / 100 * (foodOf(pick)?.kcal ?? 0) : 0;
 }
 
 /**
@@ -352,25 +332,22 @@ function mealKcalOf(meal: MealPick): number {
 }
 
 /**
- * Makes the small field of the grams of a food with `g` after it, starting at the grams typed, else at the usual
- * portion, which a click selects so I type over it; grey in it only once I empty it, the usual portion it then counts;
- * marking itself invalid while its text is no number above 0, so the dialog does not send it.
+ * Makes the small field of the grams of a food with `g` after it, starting at the grams given, which a click selects
+ * so I type over them, empty for none; marking itself invalid while its text is no number above 0, so the dialog does
+ * not send it.
  *
  * @param value - Grams as typed, empty for none
- * @param empty - What it counts while empty, the usual portion
  * @param name - Words for screen readers, like `Grams of Brot`
  * @param typed - Takes the text typed
  * @returns The field with its unit, and the text field itself
  */
-function gramsFieldOf(value: string, empty: string, name: string,
-                      typed: (text: string) => void): [HTMLElement, HTMLInputElement] {
+function gramsFieldOf(value: string, name: string, typed: (text: string) => void): [HTMLElement, HTMLInputElement] {
     const label: HTMLElement = elementOf("label", "meal-grams", "");
     const input: HTMLInputElement = document.createElement("input");
     input.type = "text";
     input.inputMode = "decimal";
     input.autocomplete = "off";
-    input.value = value !== "" ? value : empty;
-    input.placeholder = empty;
+    input.value = value;
     input.addEventListener("focus", (): void => input.select());
     input.setAttribute("aria-label", name);
     input.addEventListener("input", (): void => {
@@ -383,8 +360,8 @@ function gramsFieldOf(value: string, empty: string, name: string,
 }
 
 /**
- * Tells whether the list of the foods is closed, see `listOpen` in `choices.ts`.
- * - `box`: The list, the menu holding the food search.
+ * Tells whether the list of the row `Foods` is closed, see `listOpen` in `choices.ts`.
+ * - `box`: The list, the menu holding the search.
  *
  * @returns Whether it is closed
  */
@@ -412,8 +389,8 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void): HTML
     const food: Food | undefined = foodOf(pick);
     const name: HTMLElement = foodNameOf("meal-name", pick.name, pick.brand, pick.store);
     const kcal: HTMLElement = elementOf("span", "meal-kcal", food === undefined ? "" : kcalTextOf(kcalOf(pick)));
-    const [grams, input]: [HTMLElement, HTMLInputElement] = gramsFieldOf(pick.grams,
-        food === undefined ? "" : amountOf(food.portion, 0), `Grams of ${pick.name}`, (text: string): void => {
+    const [grams, input]: [HTMLElement, HTMLInputElement] = gramsFieldOf(pick.grams, `Grams of ${pick.name}`,
+        (text: string): void => {
             pick.grams = text;
             kcal.textContent = food === undefined ? "" : kcalTextOf(kcalOf(pick));
             typed();
@@ -430,26 +407,41 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void): HTML
         if (foodsClosed())
             foodsLine.click();
     });
+    gramsFields.set(pick, input);
     crossPut(remove, `Remove ${pick.name}`);
     row.append(name, grams, kcal, remove);
     return row;
 }
 
 /**
+ * Puts the cursor into the grams of foods just picked: the first of them whose grams are empty, since those I type
+ * the first time, else the first of them.
+ *
+ * @param picked - Foods just picked, in their order
+ */
+function gramsFocus(picked: FoodPick[]): void {
+    const first: FoodPick | undefined = picked.find((pick: FoodPick): boolean => pick.grams === "") ?? picked[0];
+    if (first !== undefined)
+        gramsFields.get(first)?.focus();
+}
+
+/**
  * Builds the rows of a meal picked, as a chapter of a skill entry has its documents: its row, its name with the one
  * plus right after it, like `ChiliConCarne +`, its kcal and a small grey `×`, which removes it; below it its parts,
  * indented with a thin grey line at their left, see `.meal-parts` in `day.css`: its foods, each a row of a food,
- * see {@link foodRowOf}. The plus, `Add a food to ChiliConCarne` as its tooltip, opens the food search as a menu
- * of its own right under the meal, like every list, see `listOf` in `choices.ts`, which a click on the plus again,
- * Escape or a click beside it closes; a food picked goes into this meal of this entry only, never into `Meals.md`,
- * and closes it. The meal goes with its last food.
- * - `name`: Its name with the plus.
+ * see {@link foodRowOf}. The plus, `Add a food to ChiliConCarne` as its tooltip, opens the search of my foods and
+ * of Open Food Facts as a menu of its own right under the meal, like every list, see `listOf` in `choices.ts`, which
+ * a click on the plus again, Escape or a click beside it closes; a food picked goes into this meal of this entry only,
+ * its grams empty, see {@link pickNewOf}, never into `Meals.md`, and closes it.
+ * The meal goes with its last food.
+ * - `row`: Its row.
  * - `kcal`: Cell of its kcal.
  * - `remove`: Its `×`.
- * - `parts`: Its foods, indented, holding the menu of the food search too, which takes no room among them.
+ * - `name`: Its name with the plus.
+ * - `parts`: Its foods, indented, holding the menu of the search too, which takes no room among them.
  * - `plus`: The plus that adds a food to it.
- * - `box`: The menu with the food search.
- * - `search`: The food search.
+ * - `box`: The menu with the search.
+ * - `search`: The search.
  * - `close`: Closes the menu.
  *
  * @param meal - Meal picked
@@ -468,14 +460,23 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
     const parts: HTMLElement = elementOf("div", "meal-parts", "");
     const plus: HTMLButtonElement = document.createElement("button");
     const box: HTMLElement = elementOf("div", "picker-box meal-box", "");
-    const search: HTMLElement = foodSearchOf((food: Food): void => {
-        mineAdd(food);
-        if (!meal.foods.some((other: FoodPick): boolean => keyOf(other) === keyOf(food)))
-            meal.foods.push({ name: food.name, brand: food.brand, store: food.store, grams: "" });
-        close();
-        rowsShow(changed);
-        changed();
-    }, null);
+    const search: HTMLElement = foodSearchOf({
+        pick: (food: Food): void => {
+            mineAdd(food);
+            let pick: FoodPick | undefined = meal.foods.find((other: FoodPick): boolean => keyOf(other) === keyOf(food));
+            if (pick === undefined) {
+                pick = pickNewOf(food);
+                meal.foods.push(pick);
+            }
+            close();
+            rowsShow(changed);
+            changed();
+            gramsFocus([pick]);
+        },
+        before: null,
+        products: true,
+        nothing: nothingFound,
+    });
     const close: () => void = listOf(parts, plus, box, (): void => {
         foodSearchClear(search);
         search.querySelector("input")?.focus();
@@ -501,141 +502,96 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
 
 /**
  * Shows the summary, see {@link mealTitle}, and after it the kcal of the whole meal in brackets, as a type stands
- * after its skill, like `ChiliConCarne, Weißbrot (660 kcal)`, white like the summary; nothing while nothing is picked.
+ * after its skill, like `ChiliConCarne, Weißbrot (660 kcal)`, white like the summary, nothing while nothing is picked.
  * - `total`: kcal of the meals and the foods beside them.
+ * - `text`: The summary with its kcal.
  */
 function summaryShow(): void {
     const total: number = meals.reduce((sum: number, meal: MealPick): number => sum + mealKcalOf(meal), 0)
         + picks.reduce((sum: number, pick: FoodPick): number => sum + kcalOf(pick), 0);
-    summary.replaceChildren(mealTitle());
+    const text: HTMLElement = elementOf("span", "meal-summary", mealTitle());
     if (meals.length > 0 || picks.length > 0)
-        summary.append(elementOf("span", "meal-total", ` (${kcalTextOf(total)})`));
+        text.append(elementOf("span", "meal-total", ` (${kcalTextOf(total)})`));
+    summaryLine.replaceChildren(text);
 }
 
 /**
- * Shows the rows of the meals and of the foods picked, then the summary.
+ * Shows the blocks of the meals picked, then the rows of the foods beside them, then the summary.
  *
  * @param changed - Tells the dialog that the meal changed
  */
 function rowsShow(changed: () => void): void {
-    mealsRows.replaceChildren(...meals.flatMap((meal: MealPick): HTMLElement[] => mealRowsOf(meal, changed)));
-    foodsRows.replaceChildren(...picks.map((pick: FoodPick): HTMLElement => foodRowOf(pick, (): void => {
-        summaryShow();
-        changed();
-    }, (): void => {
-        picks = picks.filter((other: FoodPick): boolean => other !== pick);
-        rowsShow(changed);
-        changed();
-    })));
+    foodsRows.replaceChildren(...meals.flatMap((meal: MealPick): HTMLElement[] => mealRowsOf(meal, changed)),
+        ...picks.map((pick: FoodPick): HTMLElement => foodRowOf(pick, (): void => {
+            summaryShow();
+            changed();
+        }, (): void => {
+            picks = picks.filter((other: FoodPick): boolean => other !== pick);
+            rowsShow(changed);
+            changed();
+        })));
     summaryShow();
 }
 
 /**
- * Picks a food from the search of the foods as one more food, unless it is picked already; then closes the list
- * and puts the cursor into the field of its grams.
- * - `pick`: The food as picked, with its name, brand and store and no grams yet.
- * - `same`: Whether a food picked is this one, by name, brand and store, ignoring case.
- * - `index`: Place of the food among the foods picked.
+ * Picks a food from the search as one more food beside the meals, unless it is picked already, its grams empty,
+ * see {@link pickNewOf}; then closes the list and puts the cursor into its grams.
+ * - `pick`: The food picked.
  *
- * @param food - Food picked or just added to `Foods.md`
+ * @param food - Food picked, or a product just added to `Foods.md`
  * @param changed - Tells the dialog that the meal changed
  */
 function foodPick(food: Food, changed: () => void): void {
-    const pick: FoodPick = { name: food.name, brand: food.brand, store: food.store, grams: "" };
     mineAdd(food);
-    const same: (other: FoodPick) => boolean = (other: FoodPick): boolean => keyOf(other) === keyOf(food);
-    let index: number = picks.findIndex(same);
-    if (index === -1)
-        index = picks.push(pick) - 1;
+    let pick: FoodPick | undefined = picks.find((other: FoodPick): boolean => keyOf(other) === keyOf(food));
+    if (pick === undefined) {
+        pick = pickNewOf(food);
+        picks.push(pick);
+    }
     rowsShow(changed);
     changed();
     foodsClose();
-    foodsRows.querySelectorAll<HTMLInputElement>(".meal-grams input")[index]?.focus();
+    gramsFocus([pick]);
 }
 
 /**
- * Picks one of my meals with its foods at their usual portion, unless it is picked already; then closes the list.
+ * Picks one of my meals with its foods, each with its grams empty, see {@link pickNewOf}, unless it is picked already; then closes the list and puts the cursor into the grams of its foods, see
+ * {@link gramsFocus}.
+ * - `meal`: The meal picked.
  *
  * @param dish - Meal of `Meals.md`
  * @param changed - Tells the dialog that the meal changed
  */
 function dishPick(dish: Dish, changed: () => void): void {
-    if (!meals.some((meal: MealPick): boolean => meal.name.toLowerCase() === dish.name.toLowerCase())) {
-        meals.push({ name: dish.name, foods: dish.foods.map((line: string): FoodPick => pickOf(lineOf(line), "")) });
+    let meal: MealPick | undefined = meals.find((other: MealPick): boolean =>
+        other.name.toLowerCase() === dish.name.toLowerCase());
+    if (meal === undefined) {
+        meal = { name: dish.name, foods: dish.foods.map((line: string): FoodPick => pickNewOf(lineOf(line))) };
+        meals.push(meal);
         rowsShow(changed);
         changed();
     }
-    mealsClose();
+    foodsClose();
+    gramsFocus(meal.foods);
 }
 
 /**
- * Turns the list of the meals into the form of a new meal, see `mealFormOf` in `../food/meals.ts`, named as typed;
- * saved, it goes into this meal at once, cancelled, the list shows again.
- * - `form`: The form.
+ * Builds my meals as the search of the row `Foods` shows them above my foods, as the food view lists them, see
+ * `../food/meals.ts`: the head `Per meal` and `kcal`, then the line of each meal whose name or foods hold the words
+ * typed, see `dishesFound` there, its name and what it gave the last time I ate it; a click picks it, see
+ * {@link dishPick}; nothing while none is found.
+ * - `found`: The meals found.
  *
- * @param name - Name typed, empty for none
+ * @param query - The search as typed
  * @param changed - Tells the dialog that the meal changed
+ * @returns The head and the lines of the meals found
  */
-function formShow(name: string, changed: () => void): void {
-    const form: HTMLElement = mealFormOf({
-        name: name,
-        saved: (sent: Dish[], saved: string): void => {
-            dishes = sent;
-            const found: Dish | undefined = dishes.find((one: Dish): boolean => one.name.toLowerCase() === saved);
-            if (found !== undefined)
-                dishPick(found, changed);
-        },
-        cancelled: (): void => mealsListShow(changed),
-    });
-    mealsBox.replaceChildren(form);
-    form.querySelector("input")?.focus();
-}
-
-/**
- * Shows the list of the meals in its box, as every list with a search, see `choices.ts`: the search field, my meals
- * whose name holds what is typed, ignoring case and spaces, each in the row of a meal, see `dishCellsOf`
- * in `../food/meals.ts`, and while no meal has the name typed, the small grey plus with that name, `New meal`
- * its tooltip, which turns the list into the form of a meal named so; Enter picks the first meal found, else does
- * what the plus does.
- * - `input`: The search field.
- * - `list`: The meals found.
- * - `plus`: The plus with the name typed.
- * - `listShow`: Shows the meals found for what is typed, and the plus while none has that name.
- *
- * @param changed - Tells the dialog that the meal changed
- */
-function mealsListShow(changed: () => void): void {
-    const input: HTMLInputElement = document.createElement("input");
-    const list: HTMLElement = elementOf("div", "picker-list", "");
-    const plus: HTMLButtonElement = buttonOf("picker-new", "", (): void => formShow(input.value.trim(), changed));
-    bracketsWatch(list);
-    const listShow: () => void = (): void => {
-        const typed: string = input.value.trim();
-        const key: string = typed.replace(/\s+/g, "").toLowerCase();
-        const found: Dish[] = dishes.filter((dish: Dish): boolean => dish.name.toLowerCase().includes(key));
-        list.replaceChildren(...found.map((dish: Dish): HTMLElement => {
-            const button: HTMLButtonElement = buttonOf("dish-row", "", (): void => dishPick(dish, changed));
-            button.append(...dishCellsOf(dish));
-            return button;
-        }));
-        plus.hidden = typed === "" || found.some((dish: Dish): boolean => dish.name.toLowerCase() === key);
-        plusTypedPut(plus, typed);
-    };
-    input.type = "search";
-    input.className = "picker-search";
-    input.placeholder = "Search or add a meal";
-    input.autocomplete = "off";
-    input.addEventListener("input", listShow);
-    input.addEventListener("keydown", (event: KeyboardEvent): void => {
-        if (event.key !== "Enter")
-            return;
-        event.preventDefault();
-        (list.querySelector("button") ?? (plus.hidden ? null : plus))?.click();
-    });
-    plus.title = "New meal";
-    listShow();
-    mealsBox.replaceChildren(input, list, plus);
-    input.focus();
+function dishLinesOf(query: string, changed: () => void): HTMLElement[] {
+    const found: Dish[] = dishesFound(dishes, query);
+    if (found.length === 0)
+        return [];
+    return [listHeadOf("Per meal"), ...found.map((dish: Dish): HTMLElement =>
+        listLineOf(elementOf("span", "food-name", dish.name), dish.kcal, (): void => dishPick(dish, changed), null)[0])];
 }
 
 /**
@@ -760,35 +716,33 @@ export function mealCooked(): string {
 }
 
 /**
- * Builds a row with its picker, like the meals or the foods: its name with the line beside it, the one plus that
- * opens the list, a menu over the dialog, see `listOf` in `choices.ts`, then the rows picked.
+ * Builds the row `Foods` with its picker: its name with the plus beside it that opens the list, a menu over the
+ * dialog, see `listOf` in `choices.ts`, then the blocks and rows picked.
  * - `picker`: Rows and list.
  * - `row`: The row.
  * - `close`: Closes the list.
  *
- * @param name - Name of the row, like `Meals`
- * @param line - The line
- * @param rows - Place of the rows picked
+ * @param line - The plus
+ * @param rows - Place of the blocks and rows picked
  * @param box - The list
  * @param opened - Comes once the list is open
- * @param closed - Comes once the list is closed
  * @returns The row and what closes its list
  */
-function pickerRowOf(name: string, line: HTMLButtonElement, rows: HTMLElement, box: HTMLElement, opened: () => void,
-                     closed: () => void): [HTMLElement, () => void] {
+function foodsRowOf(line: HTMLButtonElement, rows: HTMLElement, box: HTMLElement, opened: () => void):
+    [HTMLElement, () => void] {
     const picker: HTMLElement = elementOf("div", "meal picker", "");
     line.classList.add("picker-line");
-    const close: () => void = listOf(picker, line, box, opened, closed);
+    const close: () => void = listOf(picker, line, box, opened, (): void => {});
     picker.append(rows, box);
-    const row: HTMLElement = rowOf(name, picker);
+    const row: HTMLElement = rowOf("Foods", picker);
     row.querySelector(".entry-name")?.append(line);
     return [row, close];
 }
 
 /**
  * Builds the meal, see the top of this file, with the foods it lists already, after loading my foods and my meals:
- * the rows of its summary, its meals and its foods. The lines `X-FOOD` of a meal go to its meal, by the meal
- * they carry; a meal whose summary names more than its foods, like `Bortzeit`, takes all its foods as that one meal.
+ * the rows of its summary and its foods. The lines `X-FOOD` of a meal go to its meal, by the meal they carry; a meal
+ * whose summary names more than its foods, like `Bortzeit`, takes all its foods as that one meal.
  * - `found`: All my foods, as the search finds them for an empty text.
  * - `mealsMine`: My meals of `Meals.md`.
  * - `cooks`: My cookings of the days before a meal, none for a cooking.
@@ -796,20 +750,20 @@ function pickerRowOf(name: string, line: HTMLButtonElement, rows: HTMLElement, b
  * - `drawnLines`: The lines of the cooking the meal draws from, none for none.
  * - `brought`: Keys of the foods of that cooking beside its meals, whose lines came with it.
  * - `broughtMeals`: Names of the meals of that cooking, which came with it.
- * - `foodsBox`: The list of the foods, with the food search.
- * - `mealsRow`, `foodsRow`: The rows of the meals and of the foods.
+ * - `foodsBox`: The list of the row `Foods`, with its search.
+ * - `foodsRow`: The row `Foods`.
  *
  * @param lines - Lines `X-FOOD` of the meal, like `Skyr natur;K-Classic;Kaufland;150`; none for a new meal
  * @param title - Summary of the meal written before, like `ChiliConCarne, Brot`; empty for a new meal
  * @param changed - Tells the dialog that the meal changed
  * @param drawing - The cooking a meal draws from and its start, see {@link Drawing}; `null` for a cooking,
- *   which shows its summary, its meals and its foods, and draws from no cooking
- * @returns The rows of summary, meals and foods, to put into the dialog in place of the summary
+ *   which shows its summary and its foods, and draws from no cooking
+ * @returns The rows of summary and foods, to put into the dialog in place of the summary
  * @throws {Error} - When the reader cannot answer
  */
 export async function mealOf(lines: string[], title: string, changed: () => void, drawing: Drawing | null):
     Promise<HTMLElement[]> {
-    const [found, mealsMine, cooks]: [FoodsFound, Dish[], Cooking[]] = await Promise.all([foodsFind("", 1),
+    const [found, mealsMine, cooks]: [FoodsFound, Dish[], Cooking[]] = await Promise.all([foodsFind("", 1, false),
         dishesLoad(), drawing === null ? Promise.resolve([]) : cookingsLoad(drawing.start)]);
     dishes = mealsMine;
     cookings = cooks;
@@ -845,49 +799,41 @@ export async function mealOf(lines: string[], title: string, changed: () => void
         meal.fromCooking = broughtMeals.has(meal.name);
     });
 
-    summary = elementOf("span", "meal-summary", "");
-    mealsLine = document.createElement("button");
+    summaryLine = elementOf("span", "meal-line", "");
+    gramsFields = new WeakMap();
     foodsLine = document.createElement("button");
-    plusPut(mealsLine, "Add a meal");
-    plusPut(foodsLine, "Add a food");
-    mealsRows = elementOf("div", "meal-rows", "");
+    plusPut(foodsLine, "Add a meal or a food");
     foodsRows = elementOf("div", "meal-rows", "");
-    bracketsWatch(mealsRows);
     bracketsWatch(foodsRows);
-    mealsBox = elementOf("div", "picker-box meal-box", "");
-    foodsSearch = foodSearchOf((food: Food): void => foodPick(food, changed), null);
+    foodsSearch = foodSearchOf({
+        pick: (food: Food): void => foodPick(food, changed),
+        before: (query: string): HTMLElement[] => dishLinesOf(query, changed),
+        products: true,
+        nothing: nothingFound,
+    });
     const foodsBox: HTMLElement = elementOf("div", "picker-box meal-box", "");
     foodsBox.append(foodsSearch);
-    const [mealsRow, closeMeals]: [HTMLElement, () => void] = pickerRowOf("Meals", mealsLine, mealsRows, mealsBox,
-        (): void => mealsListShow(changed), (): void => mealsBox.replaceChildren());
-    const [foodsRow, closeFoods]: [HTMLElement, () => void] = pickerRowOf("Foods", foodsLine, foodsRows, foodsBox,
-        (): void => {
-            foodSearchClear(foodsSearch);
-            foodsSearch.querySelector("input")?.focus();
-        }, (): void => {});
-    mealsClose = closeMeals;
+    const [foodsRow, closeFoods]: [HTMLElement, () => void] = foodsRowOf(foodsLine, foodsRows, foodsBox, (): void => {
+        foodSearchClear(foodsSearch);
+        foodsSearch.querySelector("input")?.focus();
+    });
     foodsClose = closeFoods;
     rowsShow(changed);
     if (drawing === null)
-        return [rowOf("Summary", summary), mealsRow, foodsRow];
-    return [rowOf("Summary", summary), cookedRowOf(changed), mealsRow, foodsRow];
+        return [rowOf("Summary", summaryLine), foodsRow];
+    return [rowOf("Summary", summaryLine), cookedRowOf(changed), foodsRow];
 }
 
 /**
  * Writes a food picked as a line `X-FOOD`: its name, brand and store, then its grams typed, a decimal comma
- * as a point, else its usual portion, empty for a food `Foods.md` does not hold, parted by `;`,
- * like `Skyr natur;K-Classic;Kaufland;150`, so every line says which product it was and how much.
- * - `portion`: Its usual portion, `undefined` for an unknown food.
- * - `grams`: Its grams as written.
+ * as a point, empty for none, parted by `;`, like `Skyr natur;K-Classic;Kaufland;150`, so every line says which
+ * product it was and how much.
  *
  * @param pick - Food picked
  * @returns The line, without a meal
  */
 function lineTextOf(pick: FoodPick): string {
-    const portion: number | undefined = foodOf(pick)?.portion;
-    const grams: string = pick.grams !== "" ? pick.grams.replace(",", ".")
-        : portion === undefined ? "" : gramsTextOf(portion);
-    return `${pick.name};${pick.brand};${pick.store};${grams}`;
+    return `${pick.name};${pick.brand};${pick.store};${pick.grams.replace(",", ".")}`;
 }
 
 /**

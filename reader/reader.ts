@@ -173,11 +173,11 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/skill/entry`: Writes skill entry of the body into the log.
  * - `PATCH /api/skill/entry`: Changes skill entry of the body, adding its new attempts.
  * - `GET /api/skill/session`: Sends the session running now, or `null`.
- * - `GET /api/food/search?q=…&page=…`: Sends my foods for a name or barcode, the most eaten first,
- *   then a page of those of Open Food Facts.
+ * - `GET /api/food/search?q=…&page=…&products=…`: Sends my foods for a name or barcode, the most eaten first,
+ *   then a page of those of Open Food Facts, none for `products=0`.
  * - `POST /api/food/foods`: Adds food of the body to `Foods.md` and sends it as written.
  * - `GET /api/food/day?date=…`: Sends the meals of the date with what they give.
- * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each with its foods.
+ * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each with its foods and what it gave.
  * - `POST /api/food/meals`: Writes the meal of the body, its name and foods, into `Meals.md`, new or changed,
  *   and sends all my meals.
  * - `DELETE /api/food/meals?meal=…`: Removes the meal from `Meals.md` and sends all my meals.
@@ -361,7 +361,7 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "GET" && url.pathname === "/api/food/search") {
         responseSend(response, 200, await foodsFind(url.searchParams.get("q") ?? "",
-            Number(url.searchParams.get("page") ?? "1")));
+            Number(url.searchParams.get("page") ?? "1"), url.searchParams.get("products") !== "0"));
 
     } else if (request.method === "POST" && url.pathname === "/api/food/foods") {
         responseSend(response, 200, foodAdd(await json(request) as Food));

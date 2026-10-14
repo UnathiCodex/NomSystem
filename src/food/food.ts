@@ -8,12 +8,13 @@
  * of kcal, protein, carbs and fat, all alike, without goals, so the log stays a log, not calorie control;
  * then each meal of the log: its start, linking to the day in the day view,
  * what and where, and its kcal, below it each of its foods with its grams and kcal.
- * A food listed without grams counts its usual portion; every amount is rounded and an estimate anyway,
+ * A food listed without grams counts nothing; every amount is rounded and an estimate anyway,
  * so none is marked as one. A food not in `Foods.md` and a meal that lists no foods count nothing,
  * and a line below the totals says so; so does a nutrient a food does not know, the totals adding what is known,
  * like `Not counted, fat unknown: Gouda`.
  * My meals: each only its foods, and new meals, above my foods, see `meals.ts`.
- * My foods: the food search, which finds mine first, then those of Open Food Facts, and adds new ones, see `search.ts`.
+ * My foods: the food search, which finds mine first, then those of Open Food Facts, adds a product with a click,
+ * and a food by hand by the plus beside the name `Foods`, see `search.ts`.
  * It opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today it moves on
  * with it; only a link like `/food?date=2026-10-10` opens on that day, see `today.ts`.
  *
@@ -302,7 +303,12 @@ export function foodStart(): void {
     today.addEventListener("click", (): void => dayOpen(calendarTodayOf()));
     bracketsWatch(document.getElementById("food-meals") as HTMLElement);
     document.getElementById("food-dishes")?.append(mealsSectionOf());
-    const search: HTMLElement = foodSearchOf(null, null);
+    const search: HTMLElement = foodSearchOf({
+        pick: null,
+        before: null,
+        products: true,
+        nothing: "Nothing found; the plus beside Foods adds a food by hand",
+    });
     const plus: HTMLButtonElement = buttonOf("", "", (): void => foodNewShow(search));
     plusPut(plus, "New food");
     document.getElementById("food-foods-heading")?.append(plus);

@@ -136,7 +136,7 @@ type NeckWeek = {
  * - `sleep`: My sleep, which the card leaves out for now.
  * - `glasses`: My glasses of water and of every other drink, in the order I drank them.
  * - `neck`: My neck routine in the seven days up to the day.
- * - `food`: What my meals gave, `estimate` when one of them counts a usual portion, and the number of my meals.
+ * - `food`: What my meals gave, `estimate` when one of them counts grams guessed, and the number of my meals.
  */
 export type Trackers = {
     settings: TrackerSettings;

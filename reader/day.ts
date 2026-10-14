@@ -125,7 +125,7 @@ export type BoxLogged = {
  *   see `chaptersOf` in `documents.ts`; none for any other entry.
  * - `kcal`: kcal of a meal that lists foods, see `food.ts`; `null` for any other entry.
  *   The day hides them on its entries for now; its dialog and its trackers show them.
- * - `estimate`: Whether those kcal hold the usual portion of a food listed without grams.
+ * - `estimate`: Whether those kcal hold grams guessed, marked by `~`, see `food.ts`.
  * - `glass`: Whether the entry is a glass of water, which the counter of the day shows instead of the time grid,
  *   see `trackers.ts`.
  */

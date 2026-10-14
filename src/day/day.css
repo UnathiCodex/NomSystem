@@ -1421,8 +1421,8 @@ fieldset.entry-times {
     width: 100%;
 }
 
-/* A meal of the log in its three rows: its summary as plain text, its kcal beside it; then its meals and its foods,
-   each its line, the rows picked below it, a bit smaller than the fields, and its list under them;
+/* A meal of the log in its rows: its summary as plain text, its kcal beside it; then its foods, its line beside
+   its name, the meals and foods picked below it, a bit smaller than the fields, and its list under them;
    no room taken while nothing is picked */
 .meal-summary {
     overflow-wrap: anywhere;
@@ -1449,7 +1449,7 @@ fieldset.entry-times {
     display: none;
 }
 
-/* The one plus right after what it adds to, never on a line of its own: beside the name of a field, like `Meals +`
+/* The one plus right after what it adds to, never on a line of its own: beside the name of a field, like `Foods +`
    or `Chapter +`, or after a value, like `ChiliConCarne +` or a chapter's plus that adds a document to it, a little
    apart, see `lineMove` in `choices.ts`; its box one line of its text high and at the top of its line, so its icon stands
    exactly in the middle of the line, also after a name going on over two lines; its padding above and below,
@@ -1536,7 +1536,7 @@ fieldset.entry-times {
 }
 
 /* Grams of a food: a small field with `g` after it, a space apart as `313 kcal` writes its unit, white as the kcal,
-   like every fact, its usual portion in it at first, which I type over */
+   like every fact, which I type */
 .meal-grams {
     display: flex;
     align-items: center;
@@ -1559,8 +1559,8 @@ fieldset.entry-times {
     font-variant-numeric: tabular-nums;
 }
 
-/* Food search in the list of the foods or in the form of a new meal, see `.picker-box`: its field one chip high,
-   as the search of every list; its results only name, kcal and portion */
+/* Food search in the list of the foods or of a meal, see `.picker-box`: its field one chip high, as the search
+   of every list */
 .meal-box .food-search {
     display: flex;
     flex-direction: column;
@@ -1574,14 +1574,6 @@ fieldset.entry-times {
     padding: 0 0.75rem;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-}
-
-.meal-box .food-row {
-    grid-template-columns: minmax(0, 1fr) 3.5rem 4rem;
-}
-
-.meal-box .food-macro {
-    display: none;
 }
 
 /* Group of choices, like Due today, small and grey above its first one, a row of its own */
@@ -1968,15 +1960,5 @@ svg.route-arrow {
         flex: none;
         width: calc(4ch + 0.3125rem);
         padding: 0 0.0625rem 0 0.25rem;
-    }
-
-    /* A food found in the list of the foods on a phone: its name and its kcal only, so its brand and store fit
-       on their line; its portion shows in the field of its grams once it is picked */
-    .meal-box .food-row {
-        grid-template-columns: minmax(0, 1fr) 2.75rem;
-    }
-
-    .meal-box .food-row > :last-child {
-        display: none;
     }
 }

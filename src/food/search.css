@@ -1,6 +1,6 @@
-/* Food search: its field, then the foods found in columns, mine first, then those
-   of Open Food Facts with how many of how many and More, the form to add one below its row;
-   the same look in the food view and in the entry by category of the day */
+/* Food search and every list of meals or foods: the field of the search, then a small grey head and one flat line
+   per meal or food, mine first, then those of Open Food Facts with how many of how many and More; the same look
+   in the food view and in the entry by category of the day */
 /* Field of the search one control high, across the foods, without the browser's own clear cross, which is no Lucide
    icon, as every search field of the page; Escape or deleting the text clears it; the same for the search of my meals
    in the food view, see `mealsSectionOf` in `meals.ts` */
@@ -20,13 +20,25 @@
     display: none;
 }
 
-/* Row of a food in its columns: name, kcal, protein, carbs, fat and portion, the numbers just as wide as they need,
-   so the name has the room; at least one chip high, higher for a product with its pack below its name or a name
-   going on below, its numbers then on the line of the name, never between its lines; a grey lighter under the pointer
-   where a click does something */
+/* Line of a meal or a food in a list, see `listLineOf` in `search.ts`: its row, then the room of a small grey `×`,
+   which every line keeps, so the numbers of all lists stand in one column */
+.food-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 1.5rem;
+    align-items: center;
+}
+
+.food-item > .cross-quiet {
+    justify-content: center;
+}
+
+/* Row of a meal or a food, flat: its name, then its kcal as a bare number, just as wide as five digits, so the name
+   has the room; at least one chip high, higher for a product with its pack below its name or a name going on below,
+   its number then on the line of the name, never between its lines; a grey lighter under the pointer where a click
+   does something */
 .food-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) repeat(4, 3.5rem) 4rem;
+    grid-template-columns: minmax(0, 1fr) 4rem;
     gap: 0.5rem;
     align-items: baseline;
     width: 100%;
@@ -35,6 +47,7 @@
     border: 0;
     border-radius: var(--radius);
     background: none;
+    color: var(--text-main);
     font-size: var(--text-size);
     text-align: left;
 }
@@ -56,14 +69,14 @@ button.food-row {
     color: var(--text-muted);
 }
 
-/* Name of a food with its brand and store in brackets, see `foodNameOf` in `foods.ts`: going on below where the row
-   has no room, never cut with dots, here, in the food view and the dialogs */
+/* Name of a meal or a food with its brand and store in brackets, see `foodNameOf` in `foods.ts`: going on below where
+   the row has no room, never cut with dots, here, in the food view and the dialogs */
 .food-name {
     overflow-wrap: break-word;
 }
 
 /* What stands in brackets after a name, the brand and store of a food or the foods of a meal, grey, in the size
-   of the name, since it only tells which one it is or what is in it: the one grey of the page beside white facts */
+   of the name, since it only tells which one it is: the one grey of the page beside white facts */
 .food-brand,
 .dish-parts {
     color: var(--text-muted);
@@ -75,16 +88,63 @@ button.food-row {
     display: block;
 }
 
-/* Values at the right of their columns, every digit equally wide, so the columns align;
-   `none` of a product without serving grey */
+/* Numbers at the right of their column, every digit equally wide, so the columns align */
 .food-value {
     text-align: right;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
 
-.food-value-none {
+/* Head of a list small and grey: what a number is per, and `kcal`, the unit of every number below; only as high
+   as its words */
+.food-columns {
+    min-height: 0;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
+}
+
+/* Field of a change in place, like the name of a food or of a meal, one chip high, outlined */
+.food-field-text {
+    width: 100%;
+    height: var(--chip-height);
+    padding: 0 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--text-main);
+    font: inherit;
+}
+
+/* The cross and the check of a change in place, as a dialog ends: square, one chip high, outlined, an icon in the
+   middle, the check in the calm grey of what is picked; a grey lighter under the pointer */
+.food-buttons {
+    display: inline-flex;
+    flex: none;
+    gap: var(--control-gap);
+}
+
+.food-buttons button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--chip-height);
+    height: var(--chip-height);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+.food-buttons button:hover {
+    background: var(--fill);
+}
+
+.food-buttons .food-save {
+    border-color: var(--chosen-line);
+    background: var(--chosen);
 }
 
 /* Below the products how many of how many, small and grey, More at the right */
@@ -121,13 +181,6 @@ button.food-row {
     cursor: default;
 }
 
-/* Head of the columns small and grey */
-.food-columns {
-    margin-top: 0.75rem;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-}
-
 /* Line between my foods and the products of Open Food Facts, thin and in the grey of every line, in place of a name
    above each group, so the two stay apart without words */
 .food-divider {
@@ -136,21 +189,21 @@ button.food-row {
     border-top: 1px solid var(--line);
 }
 
-/* Hint for a group without foods, or when the foods cannot be read */
+/* The one hint of a search that finds nothing, or when the foods cannot be read */
 .food-results .food-none {
     margin: 0.25rem 0 0;
     padding: 0 0.75rem;
     color: var(--text-muted);
 }
 
-/* Form to add a food, below its row: its fields side by side, each its name small and grey above it,
-   then the buttons; a grey line around */
+/* Form of a food by hand at the top of the results: its fields side by side, each its name small and grey above it,
+   then the cross and the check; a grey line around */
 .food-form {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
     gap: var(--control-gap);
-    margin: 0.25rem 0 0.5rem;
+    margin: 0.75rem 0 0.5rem;
     padding: 0.75rem;
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -164,15 +217,9 @@ button.food-row {
     color: var(--text-muted);
 }
 
-/* Field of a number one chip high, as wide as a few digits; the name taking the rest of the line */
+/* Field of a number as wide as a few digits; the name taking the rest of the line */
 .food-field input {
     width: 4.5rem;
-    height: var(--chip-height);
-    padding: 0 0.5rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--background);
-    color: var(--text-main);
 }
 
 .food-field-name {
@@ -189,35 +236,14 @@ button.food-row {
     width: 8rem;
 }
 
-/* Buttons of the form one chip high and at least as wide, outlined, an icon in the middle,
-   a grey lighter under the pointer */
-.food-form button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: var(--chip-height);
-    min-height: var(--chip-height);
-    padding: 0;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--background);
-    cursor: pointer;
-}
-
-/* A grey lighter under the pointer on every button of the search */
-button.food-row:hover,
-.food-form button:hover {
+/* A grey lighter under the pointer on every row a click does something on */
+button.food-row:hover {
     background: var(--fill);
 }
 
-/* Add in the calm grey of what is picked, as the main buttons of the panels */
-.food-form .food-add {
-    border-color: var(--chosen-line);
-    background: var(--chosen);
-}
-
-/* Hint that the reader did not take the food, on a line of its own */
+/* Hint that the reader did not take a food or a name, on a line of its own */
 .food-error {
     flex-basis: 100%;
     margin: 0;
+    color: var(--text-muted);
 }

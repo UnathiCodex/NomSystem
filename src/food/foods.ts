@@ -2,10 +2,10 @@
  * ## Foods
  *
  * Finds foods through the reader, mine first, then on Open Food Facts, page by page, sends new foods to `Foods.md`,
- * loads my meals of `Meals.md`, sends new and changed ones and removes them,
- * loads the meals of a day with what they give, writes amounts as the page shows them, and makes the elements
- * and buttons of both, the names of foods with their brackets kept alike in a list: for the food view and the entry
- * by category of the day alike.
+ * loads my meals of `Meals.md`, sends new and changed ones and removes them, loads the meals of a day with what
+ * they give, writes amounts as the page shows them,
+ * and makes the elements and buttons of both, the names of foods with their brackets kept alike in a list:
+ * for the food view and the entry by category of the day alike.
  */
 
 
@@ -41,28 +41,20 @@ export type Totals = {
 };
 
 /**
- * A food, one row of `Foods.md`: its {@link Nutrients} per 100 g with its name, portion, barcode, brand and store.
+ * A food, one row of `Foods.md`, or a product of Open Food Facts as it would go there: its {@link Nutrients}
+ * per 100 g with its name, barcode, brand, store and pack.
  *
- * - `name`: Name, by which a meal lists it, like `Reis` of `X-FOOD:Reis;150`.
- * - `portion`: Usual portion in grams, which counts when a meal lists the food without grams.
+ * - `name`: Name, by which a meal lists it, like `Reis` of `X-FOOD:Reis;Golden Sun;Lidl;150`.
  * - `barcode`: Open Food Facts barcode it came from, empty for a food added by hand.
  * - `brand`: Its first brand, like `Milbona`, empty when none is known.
  * - `store`: The first store that sells it, like `Lidl`, empty when none is known.
+ * - `pack`: Size of its pack as sold, like `450 g`, empty when none is known.
  */
 export type Food = Nutrients & {
     name: string;
-    portion: number;
     barcode: string;
     brand: string;
     store: string;
-};
-
-/**
- * A product of Open Food Facts as a {@link Food} to add, its portion the serving its maker gives, 0 when it gives none.
- *
- * - `pack`: Size of the pack as sold, like `450 g`, empty when none is known.
- */
-export type Product = Food & {
     pack: string;
 };
 
@@ -70,15 +62,16 @@ export type Product = Food & {
  * What a search finds, as the reader sends it.
  *
  * - `foods`: My foods found, the most eaten first; all of them for an empty search; of every brand.
- * - `products`: Products of Open Food Facts on the page asked for, of the brand picked, that are not among my foods,
- *   the best match first; none for a search of only a few letters; `null` when Open Food Facts cannot be reached.
+ * - `products`: Products of Open Food Facts on the page asked for that are not among my foods, each as it would go
+ *   into `Foods.md`, the best match first; none for a search of only a few letters or of my foods only;
+ *   `null` when Open Food Facts cannot be reached.
  * - `total`: Number of products of Open Food Facts the search matches; a lower bound, like 10,000, when not `exact`.
  * - `exact`: Whether `total` is exact.
  * - `more`: Whether a page after the one asked for holds more products.
  */
 export type FoodsFound = {
     foods: Food[];
-    products: Product[] | null;
+    products: Food[] | null;
     total: number;
     exact: boolean;
     more: boolean;
@@ -90,8 +83,8 @@ export type FoodsFound = {
  * - `name`: Name of the food, as the meal lists it, like `Skyr natur`.
  * - `brand`, `store`: Its brand and the store I bought it in, like `K-Classic` and `Kaufland`; empty where the line
  *   names none.
- * - `grams`: Grams eaten as the meal lists them, else the usual portion of the food.
- * - `estimate`: Whether the grams are the usual portion, because the meal lists none.
+ * - `grams`: Grams eaten as the meal lists them, 0 for none, which count nothing.
+ * - `estimate`: Whether the grams are guessed, marked by `~`.
  * - `known`: Whether `Foods.md` holds the food; an unknown food gives nothing.
  * - `meal`: The meal of mine it belongs to in this entry, like `ChiliConCarne`; empty for a food eaten by itself.
  */
@@ -113,7 +106,7 @@ export type Eaten = Nutrients & {
  * - `title`: What I ate, like `Reis-Bohnen-Eier`.
  * - `location`: Where, like `HomeMunich`, empty when it has none.
  * - `foods`: Its foods with what each gives, none when it lists none.
- * - `estimate`: Whether one of its foods counts its usual portion.
+ * - `estimate`: Whether one of its foods counts grams guessed.
  */
 export type Meal = Totals & {
     id: string;
@@ -125,15 +118,19 @@ export type Meal = Totals & {
 };
 
 /**
- * A meal of mine, as the reader sends it from `Meals.md`: only its composition, one or more of my foods without grams.
+ * A meal of mine, as the reader sends it from `Meals.md`: only its composition, one or more of my foods without grams,
+ * with what it gave.
  *
  * - `name`: Name of the meal, in one word, like `ChiliConCarne`.
  * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order.
- * - `kcal`: What it gives with each food at its usual portion.
+ * - `grams`: Grams of each of its foods as I ate them the last time, `null` for a food not eaten then; for a meal never
+ *   eaten, the grams I logged each food with last, `null` for one never logged with grams.
+ * - `kcal`: What it gave the last time I ate it; for a meal never eaten, what its foods give at those grams.
  */
 export type Dish = {
     name: string;
     foods: string[];
+    grams: (number | null)[];
     kcal: number;
 };
 
@@ -141,7 +138,7 @@ export type Dish = {
  * The meals of a day with what they give together, as the reader sends them.
  *
  * - `meals`: Meals of the day, in the order of their starts.
- * - `estimate`: Whether a food of a meal counts its usual portion.
+ * - `estimate`: Whether a food of a meal counts grams guessed.
  */
 export type FoodDay = Totals & {
     meals: Meal[];
@@ -150,15 +147,17 @@ export type FoodDay = Totals & {
 
 
 /**
- * Finds foods by a name or a barcode: my foods first, then a page of the products of Open Food Facts.
+ * Finds foods by a name or a barcode: my foods first, then, where asked, a page of the products of Open Food Facts.
  *
  * @param query - Search as typed, like `ric` or `20112745`; empty for all my foods
  * @param page - Page of the products, 1 for the first
+ * @param products - Whether Open Food Facts is asked too; not for a meal of mine, which takes only my foods
  * @returns Foods found
  * @throws {Error} - When the reader cannot answer
  */
-export async function foodsFind(query: string, page: number): Promise<FoodsFound> {
-    const response: Response = await fetch(`/api/food/search?q=${encodeURIComponent(query)}&page=${page}`);
+export async function foodsFind(query: string, page: number, products: boolean): Promise<FoodsFound> {
+    const response: Response = await fetch(
+        `/api/food/search?q=${encodeURIComponent(query)}&page=${page}&products=${products ? 1 : 0}`);
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
     return await response.json() as FoodsFound;
@@ -167,7 +166,7 @@ export async function foodsFind(query: string, page: number): Promise<FoodsFound
 /**
  * Loads my meals of `Meals.md` from the reader, in the order of the file.
  *
- * @returns My meals, each with its foods
+ * @returns My meals, each with its foods and what it gave
  * @throws {Error} - When the reader cannot answer
  */
 export async function dishesLoad(): Promise<Dish[]> {
@@ -184,7 +183,7 @@ export async function dishesLoad(): Promise<Dish[]> {
  * @param name - Name of the meal
  * @param foods - Its foods by name, brand and store, like `Hackfleisch;Gut & Günstig;Edeka`
  * @returns All my meals after
- * @throws {Error} - When the reader does not take the meal, like one of a single food
+ * @throws {Error} - When the reader does not take the meal, like one without name or food
  */
 export async function dishSend(name: string, foods: string[]): Promise<Dish[]> {
     const response: Response = await fetch("/api/food/meals", {
@@ -210,11 +209,14 @@ export async function dishDelete(name: string): Promise<Dish[]> {
 }
 
 /**
- * Sends a new food to the reader, which adds it to `Foods.md` with its brand and store.
+ * Sends a new food to the reader, which adds it to `Foods.md`: a product of Open Food Facts as it gives it,
+ * or a food typed by hand.
  *
- * @param food - Food to add, picked from Open Food Facts with its brand and store, or typed by hand without
- * @returns The food as the reader wrote it, its name cleaned and its numbers rounded
- * @throws {Error} - When the reader does not take the food, like for a name another food has
+ * @param food - Food to add
+ * @returns The food as the reader wrote it, its name cleaned and its numbers rounded; for a product that is one of my
+ *   foods already, like the same beans in a bigger can, that food
+ * @throws {Error} - When the reader does not take the food, like a food by hand with the name, brand and store
+ *   of one of mine
  */
 export async function foodSend(food: Food): Promise<Food> {
     const response: Response = await fetch("/api/food/foods", { method: "POST", body: JSON.stringify(food) });
