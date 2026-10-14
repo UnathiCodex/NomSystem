@@ -303,15 +303,22 @@ function hintOf(text: string): HTMLParagraphElement {
  * while I type every skill and module folder that holds the words, the skills of the semester first.
  * Each shows the whole name of its folder, as there is room, like `IN2028_BusinessAnalyticsMachineLearning`,
  * a project like `WokFlow`, and is picked by its name, a module its code, like `IN2028`.
- * - `choices`: Every skill and module, the skills of the semester first, each its name as value, the name of its
- *   folder as text.
+ * My modules of the university stand apart from my projects of programming, each under its small grey head,
+ * `Modules` and `Projects`, a thin line between them, as the sections of the food search, see `.picker-group`
+ * in `day.css`; a module known by its code, letters then digits, like `IN2028` or `MGT1372`.
+ * - `module`: Whether a skill is a module of the university.
+ * - `choices`: Every skill and module, the modules first, the skills of the semester first in each, each its name
+ *   as value, the name of its folder as text, its kind as group.
  * - `shown`: Skills the search looks through.
  *
  * @returns Search for the picker
  */
 function moduleSearchOf(): (text: string) => Promise<Choice[]> {
-    const choices: Choice[] = [...skilling.skills, ...skilling.otherModules].map((name: string): Choice =>
-        ({ value: name, text: skilling.folders[name] ?? name, group: "" }));
+    const module: (name: string) => boolean = (name: string): boolean => /^[A-Z]{2,4}\d{3,6}$/.test(name);
+    const named: string[] = [...skilling.skills, ...skilling.otherModules];
+    const choices: Choice[] = [...named.filter(module), ...named.filter((name: string): boolean => !module(name))]
+        .map((name: string): Choice =>
+            ({ value: name, text: skilling.folders[name] ?? name, group: module(name) ? "Modules" : "Projects" }));
     return async (text: string): Promise<Choice[]> => {
         const shown: Choice[] = text.trim() !== "" ? choices : choices.filter((choice: Choice): boolean =>
             choice.value === picks.module || skilling.skills.includes(choice.value));

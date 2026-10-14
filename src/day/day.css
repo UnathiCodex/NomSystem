@@ -1277,10 +1277,12 @@ fieldset.entry-times {
     flex: 0 1 auto;
 }
 
-/* Search field of a list, one chip high and outlined, like `Search or add a place` */
+/* Search field of a list, one chip high and outlined, like `Search or add a place`, with room above and below it,
+   as the search of the foods */
 .panel .picker-search {
     flex: none;
     height: var(--chip-height);
+    margin: 0.375rem 0;
     padding: 0 0.75rem;
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -1599,6 +1601,14 @@ fieldset.entry-times {
     padding: 0.25rem 0.75rem 0;
     font-size: 0.75rem;
     color: var(--text-muted);
+}
+
+/* A group after another stands apart from it by a thin line above its head, like my modules and my projects in the
+   list of a skill, as the sections of the food search, see `.food-divider` in `../food/search.css` */
+.picker-list > * + .picker-group {
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
 }
 
 /* Name of a field of a panel, small and grey, `--name-width` wide, see `.panel` */
