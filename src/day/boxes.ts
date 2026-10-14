@@ -4,7 +4,7 @@
  * The plan of the shown day as a calm list of boxes beside the log, which is my one calendar, see `reader/boxes.ts`:
  * its birthdays and holidays at the top, each with my gift idea for it below, when I have one, see `gifts.ts`,
  * and a line below them, then the boxes one after another like the stations of the day, as real as the log:
- * those with an expected time by their time, like my lectures, a cancelled one faded in its place, then those with
+ * those with an expected time by their time, like my lectures, a cancelled one in its place, then those with
  * a deadline, then those without either, then tomorrow's suggested study sessions, dashed, see `suggestions.ts`,
  * and the cancelled boxes without time last; on today below them the boxes carried along, see below.
  * Every box has the same lines, open or done: its category in bold with a colon and what,
@@ -29,12 +29,14 @@
  * see below; when the reader does not log a box dropped or tapped, a hint says so above the list until it loads again.
  * Everything undoes with one click: the check of a done box takes it back to open, removing its log entry
  * unless that holds what I added since, see `boxUndo` in `entries.ts`, and the arrow back of a skipped box.
- * A done box keeps exactly the lines it had open, only greyed with the check in its ring; its real time and length
- * the log shows.
+ * Every box is as bright as every other, open, done or cancelled, on today as on a day that is over, so a day
+ * before looks like today; only its ring tells its state, see {@link ringOf}. A done box keeps exactly the lines
+ * it had open, with the check in its ring; its real time and length the log shows.
  * An open box that can be changed is skipped, cancelled, with one tap on its cross, or pushed to the next day
  * with one tap on its arrow, which shows under the pointer; a skipped box stays in its file, see `reader/boxes.ts`,
- * and shows greyed, never struck through, at the end of the list, where one tap on its arrow back takes it back.
- * A box neither done nor cancelled stays greyed on its day once that is over, without its arrow, and is carried
+ * and shows with its cross in its ring, never struck through, at the end of the list, where one tap on its arrow back
+ * takes it back.
+ * A box neither done nor cancelled stays on its day once that is over, without its arrow, and is carried
  * along on today: below the list of today, under `Carried along`, each with its day, like `Mon, 12.10.2026 · 00h 45m`,
  * the earliest first, see `boxesCarried` in `reader/boxes.ts`, until I do it, dragged into the log or with its ring,
  * or cancel it with its cross; a click on it changes it, like its day. It never moves into the next days by itself.
@@ -299,7 +301,7 @@ async function carriedFetch(day: string): Promise<Box[]> {
 }
 
 /**
- * Tells whether the day of an open box is over, so it stays greyed on its day and is carried along to today,
+ * Tells whether the day of an open box is over, so it has no arrow on its day and is carried along to today,
  * see the top of this file: it lies before today's calendar date, for a box with a deadline the day of its deadline.
  *
  * @param box - The box
@@ -307,19 +309,6 @@ async function carriedFetch(day: string): Promise<Box[]> {
  */
 function overIs(box: Box): boolean {
     return box.state === "open" && box.day < calendarTodayOf();
-}
-
-/**
- * Gives the classes of a box: `box` and its state, like `box-open`,
- * and `box-over`, greyed, for an open box whose day is over, see {@link overIs}, but in the list carried along,
- * where it is still to do.
- *
- * @param box - The box
- * @param carriedShown - Whether it shows in the list carried along, else on a day it belongs to
- * @returns Classes like `box box-open box-over`
- */
-function boxClassOf(box: Box, carriedShown: boolean): string {
-    return `box box-${box.state}${overIs(box) && !carriedShown ? " box-over" : ""}`;
 }
 
 /**
@@ -651,7 +640,7 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
  * @returns The box
  */
 function boxElementOf(calendar: Calendar, box: Box, index: number, carriedShown: boolean): HTMLElement {
-    const element: HTMLElement = entryPartOf("div", boxClassOf(box, carriedShown), []);
+    const element: HTMLElement = entryPartOf("div", "box", []);
     const body: HTMLElement = entryPartOf("div", "box-body", boxContentOf(box, shown.day, !carriedShown));
     element.classList.toggle("box-draggable", box.state === "open");
     element.dataset.index = String(index);
