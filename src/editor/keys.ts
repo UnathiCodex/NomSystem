@@ -8,6 +8,8 @@
  * - Tab moves a list item one step in, Shift+Tab one step out, always with its sub-points and further lines,
  *   see {@link itemIndent}; outside a list Tab writes a tab where the cursor is, on several lines picked it moves
  *   them all one step in, and Shift+Tab one step out.
+ * - Alt+Up and Alt+Down move the line of the cursor, or the lines picked, one line up or down; a list item goes
+ *   with its sub-points and further lines past the item before or after it, see {@link itemMove}.
  *
  * - `@codemirror/state`, `@codemirror/view`: The text with its cursor, and the keys.
  * - `@codemirror/commands`: CodeMirror's own commands: a tab at the cursor, indenting lines.
@@ -115,8 +117,72 @@ function itemIndent(inward: boolean): Command {
 }
 
 /**
- * Keys of a Markdown file, see the top of this file; Tab and Shift+Tab try the list item first, then the key goes on
- * to the next command, CodeMirror's own.
+ * Swaps two blocks of whole lines that stand right below each other, like a list item and the one before it,
+ * and moves the cursor or what is picked along with the block it stands in.
+ * - `upper`, `lower`: The text of the two blocks.
+ *
+ * @param view - The editor
+ * @param from - Start of the first line of the upper block
+ * @param middle - Start of the first line of the lower block
+ * @param to - End of the last line of the lower block
+ * @param inLower - Whether the cursor stands in the lower block, which then moves up, else in the upper one
+ */
+function blocksSwap(view: EditorView, from: number, middle: number, to: number, inLower: boolean): void {
+    const upper: string = view.state.sliceDoc(from, middle - view.state.lineBreak.length);
+    const lower: string = view.state.sliceDoc(middle, to);
+    const shift: number = inLower ? -(upper.length + view.state.lineBreak.length) : lower.length + view.state.lineBreak.length;
+    view.dispatch({
+        changes: { from: from, to: to, insert: lower + view.state.lineBreak + upper },
+        selection: EditorSelection.create(view.state.selection.ranges.map((range: SelectionRange): SelectionRange =>
+            EditorSelection.range(range.anchor + shift, range.head + shift)), view.state.selection.mainIndex),
+        scrollIntoView: true,
+        userEvent: "move.line",
+    });
+}
+
+/**
+ * Moves a list item one up, Alt+Up, or down, Alt+Down, with its sub-points and further lines, past the item before
+ * or after it in its list, with that item's own sub-points; the first or last item of its list moves one line,
+ * still with its sub-points. Outside a list, and on lines picked beyond one item, it leaves the key to CodeMirror's
+ * own Move line up or down, which moves the lines of the cursor or picked one line, as Obsidian does.
+ * - `item`: The list item of the cursor.
+ * - `first`, `last`: The first and the last line of the item.
+ * - `sibling`: The item before or after it in its list, `null` for none.
+ * - `line`: The line it moves past where it has no such item.
+ *
+ * @param down - Whether it moves down, else up
+ * @returns The command
+ */
+function itemMove(down: boolean): Command {
+    return (view: EditorView): boolean => {
+        const item: SyntaxNode | null = itemAt(view.state);
+        if (item === null || view.state.readOnly)
+            return false;
+
+        const first: Line = view.state.doc.lineAt(item.from);
+        const last: Line = view.state.doc.lineAt(item.to);
+        const sibling: SyntaxNode | null = down ? item.nextSibling : item.prevSibling;
+        if (sibling?.name === "ListItem") {
+            if (down)
+                blocksSwap(view, first.from, view.state.doc.lineAt(sibling.from).from, view.state.doc.lineAt(sibling.to).to, false);
+            else
+                blocksSwap(view, view.state.doc.lineAt(sibling.from).from, first.from, last.to, true);
+            return true;
+        }
+        if (down ? last.number === view.state.doc.lines : first.number === 1)
+            return true;
+        const line: Line = view.state.doc.line(down ? last.number + 1 : first.number - 1);
+        if (down)
+            blocksSwap(view, first.from, line.from, line.to, false);
+        else
+            blocksSwap(view, line.from, first.from, last.to, true);
+        return true;
+    };
+}
+
+/**
+ * Keys of a Markdown file, see the top of this file; Tab and Shift+Tab, Alt+Up and Alt+Down try the list item first,
+ * then the key goes on to the next command, CodeMirror's own.
  */
 export const markdownKeys: Extension = Prec.high(keymap.of([
     { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
@@ -124,4 +190,6 @@ export const markdownKeys: Extension = Prec.high(keymap.of([
     { key: "Backspace", run: deleteMarkupBackward },
     { key: "Tab", run: itemIndent(true), shift: itemIndent(false) },
     { key: "Tab", run: insertTab, shift: indentLess },
+    { key: "Alt-ArrowUp", run: itemMove(false) },
+    { key: "Alt-ArrowDown", run: itemMove(true) },
 ]));
