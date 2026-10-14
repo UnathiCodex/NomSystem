@@ -110,6 +110,9 @@ export type ChoicesSetup = {
  * - `hint`: Shown in place of the line while there are no values to offer at all, like `No chapters yet`;
  *   left out, the field then has no row of its own, only the rows of the values picked, the first named by it.
  * - `change`: Takes the values picked after each pick and each value taken back, in their order.
+ * - `nested`: Whether the rows stand inside the value above them, like the documents of a chapter: indented and grey,
+ *   without a name at the left, the values picked first, then the line of the list, which shows the name of the field
+ *   while empty, like `Documents`; false when left out.
  */
 export type AddedSetup = {
     choices: Choice[];
@@ -119,6 +122,7 @@ export type AddedSetup = {
     noun: string;
     hint?: HTMLElement;
     change: (values: string[]) => void;
+    nested?: boolean;
 };
 
 /**
@@ -485,8 +489,12 @@ export function addedRowOf(name: string, text: string, remove: () => void): HTML
  * the value as a row of its own below, see {@link addedRowOf}; opening the list again adds the next one.
  * The list offers the values not picked yet, and has no row while every value is picked; while there are none
  * at all, a hint stands in place of its line, or without hint the field has no row of its own.
+ * Nested inside the value above, see `nested` of {@link AddedSetup}, the values come first and the line of the list
+ * last, indented and grey, so a chapter and its documents read as one.
  * - `offered`: Values the list offers.
+ * - `nested`: Whether the rows stand inside the value above them.
  * - `head`: The row of the field, with the line of the list or the hint, none without either.
+ * - `added`: The rows of the values picked.
  *
  * @param name - Name of the field, like `Chapters`
  * @param setup - How the rows are built
@@ -494,22 +502,26 @@ export function addedRowOf(name: string, text: string, remove: () => void): HTML
  */
 export function addedRowsOf(name: string, setup: AddedSetup): HTMLDivElement[] {
     const offered: Choice[] = setup.choices.filter((choice: Choice): boolean => !setup.picked.includes(choice.value));
-    let head: HTMLDivElement[] = setup.hint === undefined || setup.choices.length > 0 ? [] : [rowOf(name, setup.hint)];
+    const nested: boolean = setup.nested ?? false;
+    let head: HTMLDivElement[] = setup.hint === undefined || setup.choices.length > 0 ? []
+        : [rowOf(nested ? "" : name, setup.hint)];
     if (offered.length > 0)
-        head = [rowOf(name, choicesOf({
+        head = [rowOf(nested ? "" : name, choicesOf({
             search: setup.grouped ? groupedSearchOf(offered) : searchOf(offered), picked: [], many: false,
-            adding: false, noun: setup.noun,
+            adding: false, noun: setup.noun, empty: nested ? name : undefined,
             pick: (values: string[]): void => {
                 if (values.length > 0)
                     setup.change([...setup.picked, values[0]]);
             },
         }))];
-    return [
-        ...head,
-        ...setup.picked.map((value: string, index: number): HTMLDivElement =>
-            addedRowOf(head.length === 0 && index === 0 ? name : "", setup.textOf(value), (): void =>
-                setup.change(setup.picked.filter((other: string): boolean => other !== value)))),
-    ];
+    const added: HTMLDivElement[] = setup.picked.map((value: string, index: number): HTMLDivElement =>
+        addedRowOf(!nested && head.length === 0 && index === 0 ? name : "", setup.textOf(value), (): void =>
+            setup.change(setup.picked.filter((other: string): boolean => other !== value))));
+    if (!nested)
+        return [...head, ...added];
+    const rows: HTMLDivElement[] = [...added, ...head];
+    rows.forEach((row: HTMLDivElement): void => row.classList.add("panel-nested"));
+    return rows;
 }
 
 /**

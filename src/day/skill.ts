@@ -601,8 +601,9 @@ function tasksOf(changed: () => void): HTMLElement[] {
 /**
  * Builds the rows of the chapters of my system the entry belongs to and of its documents, in plan and log,
  * one chapter after another, see the top of this file, once a skill is picked: each chapter picked its row
- * `Chapter` with a small × that takes it back, see `addedRowOf` in `choices.ts`, and for my own learning below it
- * its documents, the notes of that chapter, see {@link documentRowsOf}; for a type the documents of its material
+ * `Chapter` with a small × that takes it back, see `addedRowOf` in `choices.ts`, and for my own learning right below
+ * it, indented and grey, its documents, the notes of that chapter, each with its ×, then the grey line `Documents`
+ * that adds one, see {@link documentRowsOf}; for a type the documents of its material
  * once a chapter is picked, or while the entry has some, below all chapters; then an empty row `Chapter` to add
  * the next one, while the module has chapters left, by the names of their folders. A chapter keeps the name it has
  * in the entry, also once its folder has another name. Taking back a chapter of my own learning takes back
@@ -631,14 +632,14 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
             again();
         }),
         ...(own ? documentRowsOf(documentChoicesOf(chapter), picks.documents.filter((path: string): boolean =>
-            chapterOfDocument(path) === chapter), again) : []),
+            chapterOfDocument(path) === chapter), again, true) : []),
     ]);
     const loose: string[] = picks.documents.filter((path: string): boolean =>
         !picks.chapters.includes(chapterOfDocument(path)));
     if (own)
-        rows.push(...documentRowsOf([], loose, again));
+        rows.push(...documentRowsOf([], loose, again, false));
     else if (picks.chapters.length > 0 || picks.documents.length > 0)
-        rows.push(...documentRowsOf(documentChoicesOf(""), picks.documents, again));
+        rows.push(...documentRowsOf(documentChoicesOf(""), picks.documents, again, false));
     if (offered.length > 0)
         rows.push(rowOf("Chapter", choicesOf({
             search: searchOf(offered), picked: [], many: false, adding: false, noun: "chapter",
@@ -654,17 +655,19 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
  * Builds the rows of documents, see `addedRowsOf` in `choices.ts`: the Documents list of what it offers, see
  * {@link documentChoicesOf}, and a row per document picked of it, the name of its file, see {@link fileNameOf};
  * no list while it offers nothing, like for a chapter without notes, and a hint below when a document picked
- * is in the module no more, which the reader could not find by its fingerprint either.
+ * is in the module no more, which the reader could not find by its fingerprint either. Inside a chapter they stand
+ * indented and grey below it, see `nested` in `choices.ts`.
  * - `rows`: The rows of the list and of the documents picked.
  *
  * @param choices - Documents the list offers, none for no list
  * @param shown - Documents picked that these rows show, a part of all documents picked
  * @param again - Shows the fields again and tells the dialog
+ * @param nested - Whether they stand inside the chapter above them
  * @returns The rows, none for neither documents offered nor picked
  */
-function documentRowsOf(choices: Choice[], shown: string[], again: () => void): HTMLElement[] {
+function documentRowsOf(choices: Choice[], shown: string[], again: () => void, nested: boolean): HTMLElement[] {
     const rows: HTMLElement[] = addedRowsOf("Documents", {
-        choices: choices, picked: shown, textOf: fileNameOf, grouped: true, noun: "document",
+        choices: choices, picked: shown, textOf: fileNameOf, grouped: true, noun: "document", nested: nested,
         change: (values: string[]): void => {
             picks.documents = [...picks.documents.filter((path: string): boolean => !shown.includes(path)), ...values];
             again();
