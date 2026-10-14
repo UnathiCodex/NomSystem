@@ -21,7 +21,8 @@
  * then the grams I ate, each part parted by `;`, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150`, so the log tells
  * which product it was, see {@link lineOf}; a line written before foods had brand and store names its food alone,
  * like `X-FOOD:Reis;150`, and one without grams, like `X-FOOD:Eier`, counts the usual portion of its food,
- * an estimate.
+ * an estimate. A cooking, `Cook`, lists its foods without grams, like `X-FOOD:Skyr natur;K-Classic;Kaufland`,
+ * which count nothing.
  * Grams guessed, not weighed, like those Claude reads from a photo of a meal, carry `~`, like `X-FOOD:Döner;~400`,
  * and count as an estimate too, since a guess from a photo is about a third off (Fridolfsson 2025).
  * A food of one of my meals carries the meal, its servings eaten and its variant after its grams,
@@ -276,7 +277,8 @@ const fileHead: string[] = [
     "",
     "My foods: kcal, protein, carbs and fat per 100 g, the usual portion in grams, the Open Food Facts barcode,",
     "and the brand and the store, so the same name of two shops never mixes up.",
-    "A meal in the log lists a food by its name, like `X-FOOD:Reis;150` for 150 g, or `X-FOOD:Reis` for its portion.",
+    "A meal in the log lists a food by its name, brand and store, then the grams I ate, like",
+    "`X-FOOD:Skyr natur;K-Classic;Kaufland;150`; a cooking lists its foods without grams.",
     "",
     ...tableHeadOf(),
 ];
@@ -537,21 +539,26 @@ function foodOfLine(read: Line, mine: Map<string, Food>): Food | undefined {
 /**
  * Cuts a line `X-FOOD` of today into its four parts: its food's name, brand and store, then its grams,
  * like `Skyr natur;K-Classic;Kaufland;150` or `Reis;;;80` of a food without brand and store, told by its last part
- * being grams and its second none.
+ * being grams and its second none; a cooking's line of three parts, without grams, like
+ * `Skyr natur;K-Classic;Kaufland`, told by neither its second nor its third part being grams, gets empty grams.
  *
  * @param line - Value of the line
  * @returns Its four parts, `null` for a line written before foods had brand and store
  */
 function partsOf(line: string): string[] | null {
     const parts: string[] = line.split(";").map((part: string): string => part.trim());
-    return parts.length === 4 && !gramsPart.test(parts[1]) && gramsPart.test(parts[3]) ? parts : null;
+    if (parts.length === 4 && !gramsPart.test(parts[1]) && gramsPart.test(parts[3]))
+        return parts;
+    if (parts.length === 3 && !gramsPart.test(parts[1]) && !gramsPart.test(parts[2]))
+        return [...parts, ""];
+    return null;
 }
 
 /**
  * Reads a line `X-FOOD`: one of today by its four parts, see {@link partsOf}, an older one by {@link foodLine},
  * which names its food alone.
  * - `parts`: Parts of a line of today, `null` for an older one.
- * - `grams`: Its grams cut into `~` and number.
+ * - `grams`: Its grams cut into `~` and number, `null` for a cooking's line without them.
  * - `old`: An older line cut into its parts, `null` when it is none.
  *
  * @param line - Value of the line, like `Skyr natur;K-Classic;Kaufland;150` or `Reis;150`
@@ -560,8 +567,11 @@ function partsOf(line: string): string[] | null {
 function lineOf(line: string): Line {
     const parts: string[] | null = partsOf(line);
     if (parts !== null) {
-        const grams: RegExpExecArray = gramsPart.exec(parts[3]) as RegExpExecArray;
-        return { name: parts[0], brand: parts[1], store: parts[2], grams: numberOf(grams[2]), guessed: grams[1] !== undefined };
+        const grams: RegExpExecArray | null = gramsPart.exec(parts[3]);
+        return {
+            name: parts[0], brand: parts[1], store: parts[2],
+            grams: grams === null ? null : numberOf(grams[2]), guessed: grams?.[1] !== undefined,
+        };
     }
     const old: RegExpExecArray | null = foodLine.exec(line.trim());
     return {
@@ -996,7 +1006,8 @@ export function mealsOf(entries: Entry[]): Map<string, Meal> {
 
 /**
  * Tells whether a line `X-FOOD` sent to be written is well formed: one of today, see {@link partsOf}, a name,
- * brand and store without `|`, like `Skyr natur;K-Classic;Kaufland;150`, and grams above 0; or an older one,
+ * brand and store without `|`, like `Skyr natur;K-Classic;Kaufland;150`, and grams above 0, a cooking's
+ * without grams; or an older one,
  * see {@link foodLine}, a name without `;` and `|`, then grams above 0 when given, like `Reis;150` or `Eier`,
  * and for a food of a meal the meal, servings above 0 and maybe its variant, like `Hackfleisch;62.5;ChiliConCarne;0.5`.
  * Whether `Foods.md` holds the food is not asked, so a meal keeps a food that left `Foods.md` when it is moved.
@@ -1011,7 +1022,8 @@ export function foodLineAllows(line: string): boolean {
     const read: Line = lineOf(line);
     const parts: string[] | null = partsOf(line);
     if (parts !== null)
-        return read.name !== "" && !parts.some((part: string): boolean => part.includes("|")) && (read.grams ?? 0) > 0;
+        return read.name !== "" && !parts.some((part: string): boolean => part.includes("|"))
+            && (read.grams === null || read.grams > 0);
     const old: RegExpExecArray | null = foodLine.exec(line.trim());
     return old !== null && read.name !== "" && !/[;|]/.test(read.name) && (read.grams === null || read.grams > 0)
         && (old[5] === undefined || numberOf(old[5]) > 0);

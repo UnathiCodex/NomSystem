@@ -25,10 +25,10 @@
  *
  * A meal of the log lists its foods as lines `X-FOOD`, like `X-FOOD:Skyr natur · K-Classic · Kaufland;150`: appended
  * with the entry, and replaced as a whole when the entry changes; the reader counts what each meal gives, see `food.ts`.
- * A cooking, `Cook`, lists what went into the pot the same way, which counts no kcal; a meal drawn from it holds
- * `X-COOKED:<UID of the Cook entry>` and the foods it drew with their grams, so each keeps its foods in its own lines
- * and the meal what it was that day, whatever the cooking becomes later; a link only ever points back in time,
- * see {@link cookedCheck}.
+ * A cooking, `Cook`, lists what went into the pot without grams, like `X-FOOD:Hackfleisch;Gut & Günstig;Edeka`,
+ * which counts nothing; a meal drawn from it holds `X-COOKED:<UID of the Cook entry>` and the foods it ate with their
+ * grams, so each keeps its foods in its own lines and the meal what it was that day, whatever the cooking becomes
+ * later; a link only ever points back in time, see {@link cookedCheck}.
  *
  * - `./boxes.ts`: Finds a box of the plan, an open one, and marks a box done or open again.
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
