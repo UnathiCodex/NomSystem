@@ -12,8 +12,13 @@
  * The name of the root stands on top as a heading that never folds, its folders right below it, so nothing lies
  * deeper than it needs. Folders come first, all closed but those on the way to the file or note shown; while none is
  * shown, the first module opens, as the scripts view always opened it.
+ * Below the name a search filters the tree as I type, as every list of the page has one, see {@link searchStart}.
  * The look of the tree is in `./notes.css`.
+ *
+ * - `../search.ts`: Compares a typed text with the paths of the files and notes, as every search of the page does.
  */
+
+import { matchesAll, wordsOf } from "../search.ts";
 
 
 /**
@@ -140,6 +145,7 @@ function fileNodeOf(node: FileNode): HTMLElement {
     }
     const name: HTMLSpanElement = document.createElement("span");
     name.className = "tree-file tree-closed";
+    name.dataset.path = node.path;
     name.title = "Only Markdown and .ics files of the three folders of my new system open";
     name.textContent = node.name;
     return name;
@@ -212,16 +218,72 @@ export function treeMark(tree: HTMLElement, shown: string): HTMLElement | null {
 }
 
 /**
+ * Starts the search of the tree: as I type, only the files and notes whose path holds each typed word show,
+ * like `2028 regression` the notes of `IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis`, every folder
+ * on the way to them open, the outline of the note shown and the hint `No chapters yet` hidden; the folders open before
+ * the search open again once it is empty. Enter opens the first file or note shown, as a click on it does,
+ * Escape empties the search.
+ * - `opened`: The folders open before the search, `null` while nothing is typed.
+ * - `show`: Shows the tree for the typed text.
+ * - `searched`: The files and notes of the tree, without the headings of the outline.
+ *
+ * @param tree - The tree
+ * @param search - Its search field
+ */
+function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
+    let opened: Set<HTMLDetailsElement> | null = null;
+    const searched: () => HTMLElement[] = (): HTMLElement[] => [...tree.querySelectorAll<HTMLElement>(".tree-file")]
+        .filter((file: HTMLElement): boolean => file.closest(".tree-outline") === null);
+    const show: () => void = (): void => {
+        const words: string[] = wordsOf(search.value);
+        const folders: HTMLDetailsElement[] = [...tree.querySelectorAll<HTMLDetailsElement>("details.tree-folder")]
+            .filter((folder: HTMLDetailsElement): boolean => folder.closest(".tree-outline") === null);
+        if (words.length === 0) {
+            tree.querySelectorAll(".tree-unfound").forEach((element: Element): void => element.classList.remove("tree-unfound"));
+            if (opened !== null)
+                folders.forEach((folder: HTMLDetailsElement): void => {
+                    folder.open = opened?.has(folder) ?? false;
+                });
+            opened = null;
+            return;
+        }
+        opened ??= new Set(folders.filter((folder: HTMLDetailsElement): boolean => folder.open));
+        searched().forEach((file: HTMLElement): void => {
+            file.classList.toggle("tree-unfound", !matchesAll(file.dataset.path ?? file.textContent ?? "", words));
+        });
+        tree.querySelectorAll(".tree-outline, .tree-none").forEach((element: Element): void => element.classList.add("tree-unfound"));
+        folders.forEach((folder: HTMLDetailsElement): void => {
+            const found: boolean = [...folder.querySelectorAll<HTMLElement>(".tree-file:not(.tree-unfound)")]
+                .some((file: HTMLElement): boolean => file.closest(".tree-outline") === null);
+            folder.classList.toggle("tree-unfound", !found);
+            if (found)
+                folder.open = true;
+        });
+    };
+    search.addEventListener("input", show);
+    search.addEventListener("keydown", (event: KeyboardEvent): void => {
+        if (event.key === "Enter")
+            searched().find((file: HTMLElement): boolean =>
+                file instanceof HTMLAnchorElement && !file.classList.contains("tree-unfound"))?.click();
+        else if (event.key === "Escape") {
+            search.value = "";
+            show();
+        }
+    });
+}
+
+/**
  * A root of the tree, an area of its own in the rail: the modules of the semester or my new system.
  */
 export type TreeRoot = "NomSkillingmodules" | "NomManageplannings";
 
 /**
- * Loads one root of the tree from the reader and shows it, see the top of this file: its name as a heading, its
- * folders below, the file or note shown marked, see {@link treeMark}; in the modules, while none is shown, the module
- * asked for stands open, scrolled into sight, like the module of a skill entry clicked in the day,
- * see `../skill/links.ts`, else the first module.
+ * Loads one root of the tree from the reader and shows it, see the top of this file: its name as a heading, its search,
+ * see {@link searchStart}, its folders below, the file or note shown marked, see {@link treeMark}; in the modules,
+ * while none is shown, the module asked for stands open, scrolled into sight, like the module of a skill entry clicked
+ * in the day, see `../skill/links.ts`, else the first module.
  * - `heading`: The name of the root on top.
+ * - `search`: The search of the tree, below it.
  * - `entries`: Its folders and files.
  * - `asked`: The folder of the module asked for, `null` for none.
  *
@@ -236,10 +298,16 @@ export async function treeShow(tree: HTMLElement, root: TreeRoot, shown: string,
     const heading: HTMLHeadingElement = document.createElement("h2");
     heading.className = "tree-root";
     heading.textContent = root;
+    const search: HTMLInputElement = document.createElement("input");
+    search.type = "search";
+    search.className = "tree-search";
+    search.placeholder = "Search";
+    search.autocomplete = "off";
     const entries: HTMLElement[] = root === "NomManageplannings"
         ? (await readerAsk<FileNode[]>("/api/edit/tree")).map(fileNodeOf)
         : (await readerAsk<NotesModule[]>("/api/notes/modules")).map(moduleNodeOf);
-    tree.replaceChildren(heading, ...entries);
+    tree.replaceChildren(heading, search, ...entries);
+    searchStart(tree, search);
     if (treeMark(tree, shown) !== null || root === "NomManageplannings")
         return;
     const asked: HTMLDetailsElement | null = module === "" ? null

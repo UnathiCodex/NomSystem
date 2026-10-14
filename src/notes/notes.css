@@ -28,6 +28,27 @@
     line-height: var(--control-height);
 }
 
+/* Search of the tree below its root, one chip high and outlined like the search of a list, without the browser's
+   own clear cross, which is no Lucide icon; Escape or deleting the text clears it */
+.tree-search {
+    width: 100%;
+    height: var(--chip-height);
+    margin: 0 0 0.5rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+}
+
+.tree-search::-webkit-search-cancel-button {
+    display: none;
+}
+
+/* What the search of the tree does not find, hidden while it searches */
+.notes-tree .tree-unfound {
+    display: none;
+}
+
 /* Names in the tree on one line, cut with an ellipsis, rows a little apart, so their greys never touch */
 .tree-folder > summary,
 .tree-file {

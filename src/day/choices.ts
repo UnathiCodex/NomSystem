@@ -25,10 +25,12 @@
  *
  * - `../icons.ts`: Puts the icon of every + of the page before the words of `+ New …`, and the cross into the button
  *   that takes a value back.
+ * - `../search.ts`: Compares a typed text with the values, as every search of the page does.
  * - `lucide`: The icons plus and cross.
  */
 
 import { iconPut, iconWordsOf } from "../icons.ts";
+import { matchesAll, searchTextOf, wordsOf } from "../search.ts";
 import { Plus, X } from "lucide";
 
 
@@ -152,27 +154,6 @@ export function choiceOf(value: string): Choice {
 }
 
 /**
- * Writes a text as the search compares it: in small letters and without accents, so `munchen` finds `München`.
- * - {@link String#normalize}: With `NFD`, parts a letter like `ü` into `u` and its accent, which is then dropped.
- *
- * @param text - Text, like `München`
- * @returns Text like `munchen`
- */
-function searchTextOf(text: string): string {
-    return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase();
-}
-
-/**
- * Splits a typed text into the words the search compares.
- *
- * @param text - Typed text, like `Mensa Garch`
- * @returns Words like `mensa`, `garch`
- */
-function wordsOf(text: string): string[] {
-    return searchTextOf(text).split(/\s+/).filter((word: string): boolean => word !== "");
-}
-
-/**
  * Builds the search of a list of my own: the choices whose text holds each word of the typed text, in their order.
  * - `words`: Words of the typed text, as the search compares them.
  *
@@ -182,8 +163,7 @@ function wordsOf(text: string): string[] {
 export function searchOf(choices: Choice[]): (text: string) => Promise<Choice[]> {
     return async (text: string): Promise<Choice[]> => {
         const words: string[] = wordsOf(text);
-        return choices.filter((choice: Choice): boolean =>
-            words.every((word: string): boolean => searchTextOf(choice.text).includes(word)));
+        return choices.filter((choice: Choice): boolean => matchesAll(choice.text, words));
     };
 }
 
@@ -199,8 +179,7 @@ export function searchOf(choices: Choice[]): (text: string) => Promise<Choice[]>
 export function groupedSearchOf(choices: Choice[]): (text: string) => Promise<Choice[]> {
     return async (text: string): Promise<Choice[]> => {
         const words: string[] = wordsOf(text);
-        return choices.filter((choice: Choice): boolean =>
-            words.every((word: string): boolean => searchTextOf(`${choice.group} ${choice.text}`).includes(word)));
+        return choices.filter((choice: Choice): boolean => matchesAll(`${choice.group} ${choice.text}`, words));
     };
 }
 
