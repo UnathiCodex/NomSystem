@@ -38,21 +38,20 @@
  * - `./choices.ts`: Rows of the dialog, the lists that open right under them, and the picker of a cooking.
  * - `./times.ts`: Writes the day and time of a cooking.
  * - `../skill/attempts.ts`: Gives the day of an instant.
- * - `../food/foods.ts`: Finds my foods, loads my meals, writes amounts and makes elements.
+ * - `../food/foods.ts`: Finds my foods, loads my meals, writes amounts and makes elements and buttons.
  * - `../food/meals.ts`: The row of a meal, the form of a new meal, and kcal as the page writes them.
  * - `../food/search.ts`: The food search.
- * - `../icons.ts`: Puts the icons into the buttons, their words as tooltip, or the typed text after the plus.
- * - `lucide`: The icons remove and add.
+ * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, their words as tooltip, and the plus
+ *   with the text typed.
  */
 
 import { choicesOf, listOf, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
-import { amountOf, dishesLoad, elementOf, foodsFind } from "../food/foods.ts";
+import { amountOf, buttonOf, dishesLoad, elementOf, foodsFind } from "../food/foods.ts";
 import { dishCellsOf, kcalTextOf, mealFormOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf } from "../food/search.ts";
-import { iconOf, iconPut, iconWordsOf } from "../icons.ts";
-import { Plus, X } from "lucide";
+import { crossPut, plusPut, plusTake, plusTypedPut } from "../icons.ts";
 
 import type { Choice } from "./choices.ts";
 import type { Dish, Food, FoodsFound } from "../food/foods.ts";
@@ -345,23 +344,6 @@ function mealKcalOf(meal: MealPick): number {
 }
 
 /**
- * Makes a button that does not send the form of the dialog around it.
- *
- * @param className - Class, empty for none
- * @param text - Text, empty for none
- * @param click - What a click does
- * @returns Button
- */
-function buttonOf(className: string, text: string, click: () => void): HTMLButtonElement {
-    const button: HTMLButtonElement = document.createElement("button");
-    button.type = "button";
-    button.className = className;
-    button.textContent = text;
-    button.addEventListener("click", click);
-    return button;
-}
-
-/**
  * Makes the small field of the grams of a food with `g` after it, its usual portion grey in it while empty,
  * marking itself invalid while its text is no number above 0, so the dialog does not send it.
  *
@@ -425,7 +407,7 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void): HTML
             kcal.textContent = food === undefined ? "" : kcalTextOf(kcalOf(pick));
             typed();
         });
-    const remove: HTMLButtonElement = buttonOf("cross-quiet", "", removed);
+    const remove: HTMLButtonElement = buttonOf("", "", removed);
 
     if (place.length > 0)
         name.append(elementOf("span", "food-brand", ` (${place.join(", ")})`));
@@ -439,7 +421,7 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void): HTML
         if (foodsClosed())
             foodsLine.click();
     });
-    iconPut(remove, X, `Remove ${pick.name}`);
+    crossPut(remove, `Remove ${pick.name}`);
     row.append(name, grams, kcal, remove);
     return row;
 }
@@ -457,13 +439,13 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void): HTML
 function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
     const row: HTMLElement = elementOf("div", "meal-row", "");
     const kcal: HTMLElement = elementOf("span", "meal-kcal", kcalTextOf(mealKcalOf(meal)));
-    const remove: HTMLButtonElement = buttonOf("cross-quiet", "", (): void => {
+    const remove: HTMLButtonElement = buttonOf("", "", (): void => {
         meals = meals.filter((other: MealPick): boolean => other !== meal);
         rowsShow(changed);
         changed();
     });
 
-    iconPut(remove, X, `Remove ${meal.name}`);
+    crossPut(remove, `Remove ${meal.name}`);
     row.append(elementOf("span", "meal-name", meal.name), elementOf("span", "", ""), kcal, remove);
     return [row, ...meal.foods.map((pick: FoodPick): HTMLElement => {
         const part: HTMLElement = foodRowOf(pick, (): void => {
@@ -495,17 +477,21 @@ function summaryShow(): void {
 }
 
 /**
- * Shows the lines of the meals and the foods below their rows: while some are picked, the small grey plus of every
- * list that adds one more, `Add a meal` or `Add a food` as its tooltip, see `.picker-line.picker-empty` in `day.css`;
- * nothing while none is, so the empty row opens its list like every empty field.
+ * Shows the lines of the meals and the foods below their rows: while some are picked, the one plus of every list
+ * that adds one more, see `plusPut` in `../icons.ts`, `Add a meal` or `Add a food` as its tooltip; nothing while none
+ * is, so the empty row opens its list like every empty field.
  */
 function linesShow(): void {
-    mealsLine.replaceChildren(...meals.length === 0 ? [] : [iconOf(Plus)]);
-    mealsLine.title = meals.length === 0 ? "" : "Add a meal";
     mealsLine.classList.add("picker-empty");
-    foodsLine.replaceChildren(...picks.length === 0 ? [] : [iconOf(Plus)]);
-    foodsLine.title = picks.length === 0 ? "" : "Add a food";
     foodsLine.classList.add("picker-empty");
+    if (meals.length > 0)
+        plusPut(mealsLine, "Add a meal");
+    else
+        plusTake(mealsLine);
+    if (picks.length > 0)
+        plusPut(foodsLine, "Add a food");
+    else
+        plusTake(foodsLine);
 }
 
 /**
@@ -615,7 +601,7 @@ function mealsListShow(changed: () => void): void {
             return button;
         }));
         plus.hidden = typed === "" || found.some((dish: Dish): boolean => dish.name.toLowerCase() === key);
-        plus.replaceChildren(...iconWordsOf(Plus, `“${typed}”`));
+        plusTypedPut(plus, typed);
     };
     input.type = "search";
     input.className = "picker-search";
@@ -716,7 +702,7 @@ function cookedRowOf(changed: () => void): HTMLElement {
         many: false,
         adding: false,
         empty: "Draw from a cooking",
-        emptyIcon: Plus,
+        plus: true,
         textOf: textOf,
         pick: (picked: string[]): void => {
             if ((picked[0] ?? "") === cooked)

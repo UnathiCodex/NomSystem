@@ -220,10 +220,10 @@ textarea {
     }
 }
 
-/* A small grey plus without border that adds one more, as the plus of every list in the dialogs, see
-   `.picker-line.picker-empty` in `day/day.css`, and a small grey cross without border that removes, like a value
-   picked or a meal; both lighter under the pointer, their icons a little smaller than those of buttons, so they stay
-   quiet beside their text */
+/* The one plus that adds one more and the one cross that takes a value back, wherever they stand, like for a meal,
+   a food, a chapter, a type or a document, see `plusPut` and `crossPut` in `icons.ts`: small and grey, without
+   border, lighter under the pointer, their icons a little smaller than those of buttons, so they stay quiet beside
+   their text */
 .plus-quiet {
     display: inline-flex;
     align-items: center;

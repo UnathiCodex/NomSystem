@@ -82,7 +82,7 @@ import {
 import { dateOf, dateParse, dateTextOf, lengthOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut } from "../icons.ts";
-import { Check, CircleQuestionMark, Copy, Pencil, Plus, Trash, X } from "lucide";
+import { Check, CircleQuestionMark, Copy, Pencil, Trash, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
@@ -705,7 +705,7 @@ function manyRowsOf(field: Field): HTMLElement[] {
     if (offered.length > 0)
         rows.push(rowOf(picked.length === 0 ? field.name : "", choicesOf({
             search: searchOf(offered), picked: [], many: false, adding: false, noun: "means of transport",
-            ...(picked.length === 0 ? {} : { empty: "Add a means of transport", emptyIcon: Plus }),
+            ...(picked.length === 0 ? {} : { empty: "Add a means of transport", plus: true }),
             pick: (chosen: string[]): void => change([...picked, ...chosen]),
         })));
     return rows;

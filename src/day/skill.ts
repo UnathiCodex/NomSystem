@@ -47,7 +47,6 @@
  *   writes days out and sends skill entries.
  * - `../today.ts`: Gives today's calendar date, for the tasks due.
  * - `../skill/links.ts`: Shows what a skill entry is and a link of it by its name.
- * - `lucide`: The plus that adds a type.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
@@ -57,7 +56,6 @@ import {
 } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { linkElementOf, skillTitleElementOf } from "../skill/links.ts";
-import { Plus } from "lucide";
 
 import type { Calendar } from "fullcalendar";
 import type { Choice } from "./choices.ts";
@@ -651,7 +649,7 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
     if (offered.length > 0)
         rows.push(rowOf(picks.chapters.length === 0 ? "Chapter" : "", choicesOf({
             search: searchOf(offered), picked: [], many: false, adding: false, noun: "chapter",
-            ...(picks.chapters.length === 0 ? {} : { empty: "Add a chapter", emptyIcon: Plus }),
+            ...(picks.chapters.length === 0 ? {} : { empty: "Add a chapter", plus: true }),
             pick: (values: string[]): void => {
                 picks.chapters = [...picks.chapters, ...values];
                 again();
@@ -718,7 +716,7 @@ function picksShow(shown: SkillShown): void {
         }),
         choicesOf({
             search: searchOf([noType, ...skilling.types].map(choiceOf)), picked: picks.type === "" ? [] : [picks.type],
-            many: false, adding: false, noun: "type", locked: asPlanned, empty: "Add a type", emptyIcon: Plus,
+            many: false, adding: false, noun: "type", locked: asPlanned, empty: "Add a type", plus: true,
             pick: (values: string[]): void => {
                 picks.type = values[0] === noType ? "" : values[0] ?? "";
                 again();

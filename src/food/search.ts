@@ -21,15 +21,15 @@
  * so a meal lists only foods of `Foods.md`; there rows of its own may stand above my foods, like the meals eaten before,
  * built anew for each search. Nothing in the search is a form or sends one, so it can stand inside the form of a dialog.
  *
- * - `./foods.ts`: Finds foods, sends new foods, writes amounts and makes elements.
- * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
- * - `lucide`: The icons add, cancel and new.
+ * - `./foods.ts`: Finds foods, sends new foods, writes amounts and makes elements and buttons.
+ * - `../icons.ts`: Puts icons into the buttons, their words as tooltip, and the one plus with the text typed.
+ * - `lucide`: The icons add and cancel.
  * - `./search.css`: Look of the search, the same wherever it stands.
  */
 
-import { amountOf, elementOf, foodSend, foodsFind } from "./foods.ts";
-import { iconPut, iconWordsOf } from "../icons.ts";
-import { Check, Plus, X } from "lucide";
+import { amountOf, buttonOf, elementOf, foodSend, foodsFind } from "./foods.ts";
+import { iconPut, plusTypedPut } from "../icons.ts";
+import { Check, X } from "lucide";
 import "./search.css";
 
 import type { Food, FoodsFound, Product } from "./foods.ts";
@@ -98,29 +98,12 @@ const searches: WeakMap<HTMLElement, Search> = new WeakMap();
 
 
 /**
- * Makes a button that does not send a form, also inside one.
- *
- * @param className - Class, empty for none
- * @param text - Text of the button
- * @param click - What a click does
- * @returns Button
- */
-function buttonOf(className: string, text: string, click: () => void): HTMLButtonElement {
-    const button: HTMLButtonElement = document.createElement("button");
-    button.type = "button";
-    button.className = className;
-    button.textContent = text;
-    button.addEventListener("click", click);
-    return button;
-}
-
-/**
  * Builds the cells of the row of a food: its name with its brand and store grey in brackets after it, like
  * `Skyr natur (K-Classic, Kaufland)`, below it small the pack of a product, like `Pack 450 g`, then its values
  * per 100 g and its portion, `none` for a product without serving, the numbers in columns; protein, carbs and fat
  * with the class `food-macro`, so a narrow place, like a meal, can leave them out.
  * - `title`: Name, and below it the pack.
- * - `name`: Name with its brand and store; cut with an ellipsis when too long, whole when pointed at.
+ * - `name`: Name with its brand and store, whole, going on below where too long.
  * - `place`: Brand and store, those known.
  *
  * @param food - Food or product
@@ -133,7 +116,6 @@ function cellsOf(food: Food, pack: string): HTMLElement[] {
     const place: string[] = [food.brand, food.store].filter((part: string): boolean => part !== "");
     if (place.length > 0)
         name.append(elementOf("span", "food-brand", ` (${place.join(", ")})`));
-    name.title = name.textContent ?? "";
     title.append(name);
     if (pack !== "")
         title.append(elementOf("span", "food-pack", `Pack ${pack}`));
@@ -310,7 +292,7 @@ function resultsShow(search: Search): void {
         const newFood: HTMLButtonElement = buttonOf("picker-new", "", (): void => formShow(newFood, {
             name: query, kcal: 0, protein: 0, carbs: 0, fat: 0, portion: portionUsual, barcode: "", brand: "", store: "",
         }, true, added));
-        newFood.replaceChildren(...iconWordsOf(Plus, `“${query}”`));
+        plusTypedPut(newFood, query);
         newFood.title = "Own food by hand, when nothing is found";
         rows.push(newFood);
     }

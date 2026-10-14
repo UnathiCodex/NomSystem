@@ -3,8 +3,8 @@
  *
  * Finds foods through the reader, mine first, then on Open Food Facts, page by page, sends new foods to `Foods.md`,
  * loads my meals of `Meals.md`, sends new and changed ones and removes them,
- * loads the meals of a day with what they give, and writes amounts as the page shows them:
- * for the food view and the entry by category of the day alike.
+ * loads the meals of a day with what they give, writes amounts as the page shows them, and makes the elements
+ * and buttons of both: for the food view and the entry by category of the day alike.
  */
 
 
@@ -240,4 +240,21 @@ export function elementOf(tag: string, className: string, text: string): HTMLEle
     element.className = className;
     element.textContent = text;
     return element;
+}
+
+/**
+ * Makes a button that does not send a form, also inside one, like the form of the dialog of an entry.
+ *
+ * @param className - Class, empty for none
+ * @param text - Text, empty for none
+ * @param click - What a click does
+ * @returns Button
+ */
+export function buttonOf(className: string, text: string, click: () => void): HTMLButtonElement {
+    const button: HTMLButtonElement = document.createElement("button");
+    button.type = "button";
+    button.className = className;
+    button.textContent = text;
+    button.addEventListener("click", click);
+    return button;
 }

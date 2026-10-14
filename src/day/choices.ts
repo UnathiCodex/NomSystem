@@ -25,17 +25,13 @@
  * A value wider than its row goes on below, never cut, a long name broken where its parts meet,
  * see {@link breakableOf}.
  *
- * - `../icons.ts`: Puts the icon of every + of the page before the typed text it adds, and the cross into the button
- *   that takes a value back.
+ * - `../icons.ts`: Puts the one plus into a line that adds, or before the typed text it adds, and the one `×`
+ *   into the button that takes a value back.
  * - `../search.ts`: Compares a typed text with the values, as every search of the page does.
- * - `lucide`: The icons plus and cross.
  */
 
-import { iconPut, iconWordsOf } from "../icons.ts";
+import { crossPut, plusPut, plusTake, plusTypedPut } from "../icons.ts";
 import { matchesAll, searchTextOf, wordsOf } from "../search.ts";
-import { Plus, X } from "lucide";
-
-import type { IconNode } from "lucide";
 
 
 /**
@@ -86,8 +82,8 @@ export type Choice = {
  * - `below`: Elements below the line and above the list, like the address of a place; none when left out.
  * - `locked`: Whether the value stays as picked, its line opening no list, `As planned` as its tooltip, like the summary
  *   of an entry of the log logged from a box of the plan; open when left out.
- * - `emptyIcon`: Icon the line shows in place of `empty` while nothing is picked, small and grey, `empty` then its
- *   tooltip, like the plus that adds a document to a chapter; words when left out.
+ * - `plus`: Whether the line shows the one plus in place of `empty` while nothing is picked, see `plusPut`
+ *   in `../icons.ts`, `empty` then its tooltip, like the plus that adds a document to a chapter; words when left out.
  * - `textOf`: Text of a value picked before its list ever opened, like the name and day of a cooking
  *   of its identifier; the value itself when left out.
  */
@@ -103,7 +99,7 @@ export type ChoicesSetup = {
     aside?: HTMLElement[];
     below?: HTMLElement[];
     locked?: boolean;
-    emptyIcon?: IconNode;
+    plus?: boolean;
     textOf?: (value: string) => string;
 };
 
@@ -327,11 +323,12 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     const lineShow: () => void = (): void => {
         const text: string = chosen.map((value: string): string => texts.get(value) ?? setup.textOf?.(value) ?? value)
             .join(", ");
-        if (text === "" && setup.emptyIcon !== undefined) {
-            iconPut(line, setup.emptyIcon, setup.empty ?? "");
+        if (text === "" && setup.plus === true) {
+            plusPut(line, setup.empty ?? "");
             line.classList.add("picker-empty");
             return;
         }
+        plusTake(line);
         line.textContent = text === "" ? setup.empty ?? "" : breakableOf(text);
         line.title = setup.locked ? "As planned" : text;
         line.classList.toggle("picker-empty", text === "");
@@ -374,7 +371,7 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
         }));
         newButton.hidden = text === "" || found.some((choice: Choice): boolean =>
             searchTextOf(choice.value) === searchTextOf(text) || searchTextOf(choice.text) === searchTextOf(text));
-        newButton.replaceChildren(...iconWordsOf(Plus, `“${text}”`));
+        plusTypedPut(newButton, text);
     };
     const typedPick: (value: string) => void = (value: string): void => {
         input.value = "";
@@ -489,8 +486,7 @@ export function addedRowOf(name: string, text: string, remove: () => void): HTML
     shown.textContent = breakableOf(text);
     shown.title = text;
     button.type = "button";
-    button.className = "cross-quiet";
-    iconPut(button, X, `Remove ${text}`);
+    crossPut(button, `Remove ${text}`);
     button.addEventListener("click", remove);
     value.append(shown, button);
     return rowOf(name, value);
@@ -522,7 +518,7 @@ export function addedRowsOf(name: string, setup: AddedSetup): HTMLDivElement[] {
         head = [rowOf(nested ? "" : name, choicesOf({
             search: setup.grouped ? groupedSearchOf(offered) : searchOf(offered), picked: [], many: false,
             adding: false, noun: setup.noun, empty: nested ? `Add a ${setup.noun}` : undefined,
-            emptyIcon: nested ? Plus : undefined,
+            plus: nested,
             pick: (values: string[]): void => {
                 if (values.length > 0)
                     setup.change([...setup.picked, values[0]]);

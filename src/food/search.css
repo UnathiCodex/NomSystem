@@ -17,11 +17,12 @@
     display: none;
 }
 
-/* Row of a food in its columns: name, kcal, protein, carbs, fat and portion; at least one chip high,
-   higher for a product with its pack below its name; a grey lighter under the pointer where a click does something */
+/* Row of a food in its columns: name, kcal, protein, carbs, fat and portion, the numbers just as wide as they need,
+   so the name has the room; at least one chip high, higher for a product with its pack below its name or a name
+   going on below; a grey lighter under the pointer where a click does something */
 .food-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) repeat(4, 4.25rem) 4.75rem;
+    grid-template-columns: minmax(0, 1fr) repeat(4, 3.5rem) 4rem;
     gap: 0.5rem;
     align-items: center;
     width: 100%;
@@ -51,11 +52,9 @@ button.food-row {
     color: var(--text-muted);
 }
 
-/* Name of a food on one line, cut with an ellipsis instead of wrapping; the brand of a product grey */
+/* Name of a food whole, with its brand and store grey after it, going on below where too long, never cut */
 .food-name {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: break-word;
 }
 
 .food-brand {

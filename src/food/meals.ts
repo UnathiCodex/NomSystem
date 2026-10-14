@@ -17,17 +17,17 @@
  *   the cross turning into a question mark, `Really remove?` as its tooltip. At the end of the meals, a list without
  *   a search, the small grey plus of a new meal, see `.plus-quiet` in `base.css`, which turns into the form.
  *
- * - `./foods.ts`: Loads my foods and meals, sends and removes meals, writes amounts and makes elements.
+ * - `./foods.ts`: Loads my foods and meals, sends and removes meals, writes amounts and makes elements and buttons.
  * - `./search.ts`: The food search, which adds a food to a meal.
- * - `../icons.ts`: Puts the icons into the buttons, their words as tooltip.
- * - `lucide`: The icons remove, ask and add.
+ * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, and the question mark, their words as tooltip.
+ * - `lucide`: The icon ask.
  * - `./meals.css`: Look of the form and of the section.
  */
 
-import { amountOf, dishDelete, dishesLoad, dishSend, elementOf } from "./foods.ts";
+import { amountOf, buttonOf, dishDelete, dishesLoad, dishSend, elementOf } from "./foods.ts";
 import { foodSearchClear, foodSearchOf } from "./search.ts";
-import { iconPut } from "../icons.ts";
-import { CircleQuestionMark, Plus, X } from "lucide";
+import { crossPut, iconPut, plusPut } from "../icons.ts";
+import { CircleQuestionMark } from "lucide";
 import "./meals.css";
 
 import type { Dish, Food } from "./foods.ts";
@@ -114,24 +114,7 @@ function foodNameOf(line: string): HTMLElement {
 }
 
 /**
- * Makes a button that does not send the form of a dialog around it.
- *
- * @param className - Class, empty for none
- * @param text - Text, empty for none
- * @param click - What a click does
- * @returns Button
- */
-function buttonOf(className: string, text: string, click: () => void): HTMLButtonElement {
-    const button: HTMLButtonElement = document.createElement("button");
-    button.type = "button";
-    button.className = className;
-    button.textContent = text;
-    button.addEventListener("click", click);
-    return button;
-}
-
-/**
- * Makes the small grey plus of every list that adds one more, see `.plus-quiet` in `base.css`, its words as tooltip.
+ * Makes the one plus of every list that adds one more, see `plusPut` in `../icons.ts`, its words as tooltip.
  * - `button`: The +.
  *
  * @param words - What it adds, like `New meal`
@@ -139,13 +122,13 @@ function buttonOf(className: string, text: string, click: () => void): HTMLButto
  * @returns The +
  */
 function plusOf(words: string, click: () => void): HTMLButtonElement {
-    const button: HTMLButtonElement = buttonOf("plus-quiet", "", click);
-    iconPut(button, Plus, words);
+    const button: HTMLButtonElement = buttonOf("", "", click);
+    plusPut(button, words);
     return button;
 }
 
 /**
- * Makes the small grey `×` of a meal or of a food, see `.cross-quiet` in `base.css`, its words as tooltip.
+ * Makes the one `×` of every list that takes a value back, see `crossPut` in `../icons.ts`, its words as tooltip.
  * - `button`: The ×.
  *
  * @param words - What it removes, like `Remove Hackfleisch`
@@ -153,8 +136,8 @@ function plusOf(words: string, click: () => void): HTMLButtonElement {
  * @returns The ×
  */
 function removeOf(words: string, click: () => void): HTMLButtonElement {
-    const button: HTMLButtonElement = buttonOf("cross-quiet", "", click);
-    iconPut(button, X, words);
+    const button: HTMLButtonElement = buttonOf("", "", click);
+    crossPut(button, words);
     return button;
 }
 

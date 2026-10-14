@@ -169,19 +169,13 @@
     cursor: default;
 }
 
-/* Phone: a meal on two lines, its name and kcal on the first, its foods below them */
+/* Phone: a meal on one line, its name and its kcal; its foods show once it is picked or open */
 @media (max-width: 900px) {
     .dish-row {
         grid-template-columns: minmax(0, 1fr) auto;
-        row-gap: 0;
     }
 
     .dish-parts {
-        grid-row: 2;
-        grid-column: 1 / -1;
-    }
-
-    .dish-row[aria-expanded="true"] .dish-parts {
         display: none;
     }
 }
