@@ -17,7 +17,7 @@
  * a homework sheet I worked on, or study, solving the tasks of my notes, of any module of `NomSkillingmodules`,
  * also one of another semester I attend: `CATEGORIES:Skill`, its `SUMMARY` the name of the folder of its module
  * with its type in round brackets, linking the folder as `ALTREP`, without `X-MODULE` and `X-TYPE`,
- * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028 Business Analytics Machine Learning (VO)`,
  * see `documents.ts`; or a block of work on a project of the semester, see `activeSkills` in `sources.ts`,
  * which behaves like a module without chapters and tasks, named by its folder, like `SUMMARY:WokFlow`;
  * the type may stay empty for any skill, like my own learning. Below them, each only when there is one:
@@ -81,7 +81,7 @@ import {
 import { semesterFor, skillName, skillTypes } from "./categories.ts";
 import { logFileOf } from "./day.ts";
 import {
-    chaptersOf, documentLinksOf, linksLostRead, linksOf, skillTitleOf, titleOf,
+    chaptersOf, documentLinksOf, linksLostRead, linksOf, skillFolderOf, skillLabelOf, titleOf,
 } from "./documents.ts";
 import {
     codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead, papersRead,
@@ -272,9 +272,12 @@ export type SkillModule = {
  *   a module by its code, like `IN2028`, a project by its folder name, like `WokFlow`.
  * - `otherModules`: The other module folders by their codes, like `IN0024`, for the search of the Skill picker,
  *   which reaches every module.
- * - `folders`: The whole name of the folder of each of them by its name, which the Skill picker shows,
- *   like `IN2028_BusinessAnalyticsMachineLearning` for `IN2028`, or `WokFlow` for a project, see `skillTitleOf`
+ * - `labels`: The name of each of them as a summary names it, airy, by its name, which the Skill picker shows,
+ *   like `IN2028 Business Analytics Machine Learning` for `IN2028`, or `WokFlow` for a project, see `skillLabelOf`
  *   in `documents.ts`.
+ * - `paths`: The folder of each of them from `NomWorkspace` by its name, which a skill entry links as the `ALTREP`
+ *   of its `SUMMARY` and the dialog shows grey below the skill picked, like
+ *   `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, see `skillFolderOf` in `documents.ts`.
  * - `skips`: Reasons to pick when skipping a task.
  * - `types`: Types of a skill entry, like `VO`.
  * - `efforts`: Efforts to rate an attempt with, the lowest first.
@@ -284,7 +287,8 @@ export type Skilling = {
     modules: SkillModule[];
     skills: string[];
     otherModules: string[];
-    folders: { [name: string]: string };
+    labels: { [name: string]: string };
+    paths: { [name: string]: string };
     skips: string[];
     types: string[];
     efforts: Effort[];
@@ -370,7 +374,7 @@ export type EffortNew = {
  *
  * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, `HU`, empty for none, like my own learning or a project.
- * - `title`: What its skill entry is, as written, like `IN2028_BusinessAnalyticsMachineLearning (HU)`.
+ * - `title`: What its skill entry is, as written, like `IN2028 Business Analytics Machine Learning (HU)`.
  * - `start`, `end`: Start and end of its skill entry, as ISO instants; the timer counts down to its end.
  */
 export type Session = {
@@ -961,8 +965,10 @@ export function skillingRead(): Skilling {
         moduleFoldersRead().filter((name: string): boolean => !activeModules.includes(name)).map(codeOf);
     return {
         modules: modules, skills: skills, otherModules: others,
-        folders: Object.fromEntries([...skills, ...others].map((name: string): [string, string] =>
-            [name, skillTitleOf(name, "")])),
+        labels: Object.fromEntries([...skills, ...others].map((name: string): [string, string] =>
+            [name, skillLabelOf(name)])),
+        paths: Object.fromEntries([...skills, ...others].map((name: string): [string, string] =>
+            [name, skillFolderOf(name) ?? ""])),
         skips: skips, types: skillTypes, efforts: efforts, lost: linksLostRead(),
     };
 }
@@ -1093,7 +1099,7 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
 /**
  * Writes a new skill entry into the log, into the log of its skill, see `logFileOf` in `day.ts`, from the entry
  * by category: `CATEGORIES` is `Skill`, `SUMMARY` its module and type with the folder of its skill as `ALTREP`,
- * like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `titleOf` in `documents.ts`, its place and note,
+ * like `IN2028 Business Analytics Machine Learning (VO)`, see `titleOf` in `documents.ts`, its place and note,
  * the documents it used, see `linksOf` in `documents.ts`, one `X-CHAPTER` per chapter,
  * see {@link chaptersWith}, one `X-ATTEMPT` per attempt, and the box it is logged from, which is done then.
  * - `tasks`: Tasks of the modules of the semester.

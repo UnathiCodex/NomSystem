@@ -597,7 +597,7 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
 
 /**
  * Reads the series of a skill box, see the top of this file: the boxes of the plan of the same `SUMMARY`, like
- * `IN2028_BusinessAnalyticsMachineLearning (VO)`, by date, whatever their state, each with its plan file.
+ * `IN2028 Business Analytics Machine Learning (VO)`, by date, whatever their state, each with its plan file.
  * - `entries`: Every entry of the plan.
  *
  * @param title - `SUMMARY` of the series
@@ -615,7 +615,7 @@ function seriesOf(title: string): Entry[] {
  * one more than the highest number of the boxes of its series before its day, `1` for the first.
  * - `before`: Numbers of the boxes of its series before it, `NONE` left out.
  *
- * @param title - `SUMMARY` of the new box, like `IN2028_BusinessAnalyticsMachineLearning (VO)`
+ * @param title - `SUMMARY` of the new box, like `IN2028 Business Analytics Machine Learning (VO)`
  * @param date - Its day, like `2026-10-20`
  * @returns The number, like `4`
  */

@@ -252,20 +252,22 @@ export function whatOf(category: string, what: string): (string | Node)[] {
 
 /**
  * Gives what an entry or a box shows as its what, see {@link whatOf}: a skill entry or box by its what as its file
- * writes it, the name of the folder of its skill and its type in brackets, like
- * `IN0004_EinfuehrungRechnerarchitektur (VO)`, so it reads as the file and the folder in the file manager do;
- * on a phone by its code alone with its type, like `IN0004 (VO)`, so it stays short there, and so does an older entry
- * whose what does not start with the folder of its skill; a project by its name, like `WokFlow`; one without skill
- * and type, like an older entry, and any other entry or box by its what as written.
+ * writes it, its skill airy and its type in brackets, like `IN0004 Einfuehrung Rechnerarchitektur (VO)`, see
+ * `skillTitleOf` in `reader/documents.ts`, or as an entry before wrote it, by the folder of its skill, like
+ * `IN0004_EinfuehrungRechnerarchitektur (VO)`; on a phone by its code alone with its type, like `IN0004 (VO)`, so it
+ * stays short there, and so does an older entry whose what does not start with the code of its skill; a project by its
+ * name, like `WokFlow`; one without skill and type, like an older entry, and any other entry or box by its what
+ * as written.
  *
  * @param category - Its category, like `Skill`
- * @param title - Its what as written, its `SUMMARY`, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
+ * @param title - Its what as written, its `SUMMARY`, like `IN0004 Einfuehrung Rechnerarchitektur (VO)`
  * @param module - Its skill, like `IN0004`, empty for none
  * @param type - Its type, like `VO`, empty for none
- * @returns What it shows, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
+ * @returns What it shows, like `IN0004 Einfuehrung Rechnerarchitektur (VO)`
  */
 export function shownWhatOf(category: string, title: string, module: string, type: string): string {
-    if (category !== skillName || (module === "" && type === "") || (!phone && title.startsWith(`${module}_`)))
+    if (category !== skillName || (module === "" && type === "")
+        || (!phone && [`${module} `, `${module}_`].some((start: string): boolean => title.startsWith(start))))
         return title;
     return type === "" ? module : `${module} (${type})`;
 }

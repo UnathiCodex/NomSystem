@@ -5,10 +5,11 @@
  * of a lecture, a sheet or the notes of a chapter, its paths from `NomWorkspace`;
  * each link only points to more, the entry states its facts itself, see `calendar.ts`, like the chapters
  * of my system it belongs to, one `X-CHAPTER` each, like `X-CHAPTER:02_LogisticPoissonRegression`.
- * Its `SUMMARY` is the name of the folder of its skill, with its type
- * in round brackets at the end when it has one, and links that folder as its `ALTREP`, see {@link skillTitleOf},
- * like `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
- * my own learning without brackets, a project like
+ * Its `SUMMARY` names its skill airy, a module by its code and the words of its title, see {@link skillLabelOf},
+ * with its type in round brackets at the end when it has one, and links the folder of the skill as its `ALTREP`,
+ * see {@link skillTitleOf}, like
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028 Business Analytics Machine Learning (VO)`,
+ * my own learning without brackets, a project by its folder name, like
  * `SUMMARY;ALTREP="NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow":WokFlow`.
  * Every real document a skill entry used is one `ATTACH` holding just its path, see `Link` in `calendar.ts`,
  * as many as it used, in the same form for every kind: a lecture its slides, like
@@ -26,7 +27,7 @@
  * The folder of a module in an `ATTACH` of an older entry counts no more and goes once the entry changes too.
  * The reader checks every link of the whole log when it starts and every night at 04:00, see {@link linksCheckStart}:
  * a module folder that is gone, like after a rename, is found again by the code of the entry's module,
- * see `moduleFolderOf` in `notes.ts`, and its `SUMMARY` names the folder found; a document whose path no longer leads
+ * see `moduleFolderOf` in `notes.ts`, and its `SUMMARY` names the module of the folder found; a document whose path no longer leads
  * to a file, like after a rename or a move into another folder of the module, is looked for by its fingerprint
  * among the module's documents, and a chapter by the name of its folder in the module folder found or its drafts.
  * Each repair goes into the entry, every other line of the file as it is, and into the reader's console, with the old
@@ -84,7 +85,7 @@ type Fingerprint = {
  * A link of a skill entry the reader could not repair, as the skill view lists it.
  *
  * - `day`: Day its entry started in Berlin time, like `2026-10-13`.
- * - `skill`: What its entry was, like `IN2028_BusinessAnalyticsMachineLearning (VO)`.
+ * - `skill`: What its entry was, like `IN2028 Business Analytics Machine Learning (VO)`.
  * - `path`: Path of the link from the folder of the entry's skill when it lies in it,
  *   like `VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`, else from `NomWorkspace`.
  */
@@ -182,18 +183,42 @@ function skillFolderNameOf(code: string): string {
 }
 
 /**
- * Names a skill entry as its `SUMMARY` says it, see the top of this file: the name of the folder of its skill,
- * with its type in round brackets when it has one; a skill without folder by its name alone; an entry without skill
- * by its type in brackets alone, like `(VO)`, or not at all.
- * - `name`: Name of the folder of the skill, see {@link skillFolderNameOf}.
+ * Names a skill airy, as a summary names it: a module its code, then the words of its title parted by spaces,
+ * like `IN2028 Business Analytics Machine Learning` of the folder `IN2028_BusinessAnalyticsMachineLearning`
+ * or `IN0004 Einfuehrung Rechnerarchitektur` of `IN0004_EinfuehrungRechnerarchitektur`, so a summary reads with room
+ * as my other names do; a project by the name of its folder as it is, one name, like `NomSystemdashboard`
+ * or `WokFlow`; a skill without folder by its name alone. A word starts at a capital after a small letter or a digit,
+ * and at the last capital of a run before a small letter, like `IT Security` of `ITSecurity`.
+ * - `folder`: Folder of the skill, see {@link skillFolderOf}, `undefined` for none.
+ * - `name`: Name of the folder, see {@link skillFolderNameOf}.
+ * - `parts`: Code and title of the name of a module folder, `null` for a project.
+ *
+ * @param code - Name of the skill, like `IN2028` or `WokFlow`, empty for none
+ * @returns Name like `IN2028 Business Analytics Machine Learning` or `WokFlow`, empty for no skill
+ */
+export function skillLabelOf(code: string): string {
+    const folder: string | undefined = skillFolderOf(code);
+    const name: string = skillFolderNameOf(code);
+    const parts: RegExpExecArray | null = folder !== undefined && moduleIs(folder) ? /^([^_]+)_(.+)$/.exec(name) : null;
+    if (parts === null)
+        return name;
+    return `${parts[1]} ${parts[2].replace(/_/g, " ").replace(/(\p{Ll}|\d)(?=\p{Lu})/gu, "$1 ")
+        .replace(/(\p{Lu})(?=\p{Lu}\p{Ll})/gu, "$1 ")}`;
+}
+
+/**
+ * Names a skill entry as its `SUMMARY` says it, see the top of this file: its skill airy, see {@link skillLabelOf},
+ * with its type in round brackets when it has one; an entry without skill by its type in brackets alone,
+ * like `(VO)`, or not at all.
+ * - `name`: Name of the skill, see {@link skillLabelOf}.
  *
  * @param code - Name of the skill, like `IN2028` or `WokFlow`
  * @param type - Its type, like `VO`, empty for none, like my own learning
- * @returns What it is, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, `IN2028_BusinessAnalyticsMachineLearning`
- *   or `WokFlow`, empty for neither skill nor type
+ * @returns What it is, like `IN2028 Business Analytics Machine Learning (VO)`,
+ *   `IN2028 Business Analytics Machine Learning` or `WokFlow`, empty for neither skill nor type
  */
 export function skillTitleOf(code: string, type: string): string {
-    const name: string = skillFolderNameOf(code);
+    const name: string = skillLabelOf(code);
     if (type === "")
         return name;
     return name === "" ? `(${type})` : `${name} (${type})`;
@@ -205,7 +230,7 @@ export function skillTitleOf(code: string, type: string): string {
  * for any other its what as sent, without link.
  *
  * @param fields - Category, what, skill and type of the entry or the box, as sent
- * @returns `SUMMARY` and `ALTREP`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`
+ * @returns `SUMMARY` and `ALTREP`, like `IN2028 Business Analytics Machine Learning (VO)`
  *   and `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, or `Planungen` and an empty link
  */
 export function titleOf(fields: { category: string; title: string; module: string; type: string }): [string, string] {
@@ -385,7 +410,7 @@ function linksRepairOf(entry: Entry): [Link[], Link[]] {
  * @param entry - Skill entry of the log
  * @param path - Path of its link that leads nowhere, from `NomWorkspace`
  * @returns The lost link with its entry's day and skill, like `2026-10-13`,
- *   `IN2028_BusinessAnalyticsMachineLearning (VO)`, `VO_…/04_Old.pdf`
+ *   `IN2028 Business Analytics Machine Learning (VO)`, `VO_…/04_Old.pdf`
  */
 function lostOf(entry: Entry, path: string): LinkLost {
     const parts: string[] = path.split("/");
@@ -399,7 +424,7 @@ function lostOf(entry: Entry, path: string): LinkLost {
 
 /**
  * Prints a repair of a link of a skill entry into the reader's console, like `Repaired a link
- * of IN2028_BusinessAnalyticsMachineLearning (VO) on 2026-10-13 at 14:00: NomSkillingmodules/IN2028_…/04_Old.pdf
+ * of IN2028 Business Analytics Machine Learning (VO) on 2026-10-13 at 14:00: NomSkillingmodules/IN2028_…/04_Old.pdf
  * is now NomSkillingmodules/IN2028_…/04_New.pdf`.
  *
  * @param entry - Skill entry of the log, as it was
@@ -498,7 +523,7 @@ export function linksCheckStart(): void {
 /**
  * Gives the links the last check could not repair, see {@link linksCheck}.
  *
- * @returns Lost links in the order of their entries, like `2026-10-13`, `IN2028_BusinessAnalyticsMachineLearning (VO)`,
+ * @returns Lost links in the order of their entries, like `2026-10-13`, `IN2028 Business Analytics Machine Learning (VO)`,
  *   `VO_…/04_Old.pdf`
  */
 export function linksLostRead(): LinkLost[] {

@@ -188,8 +188,10 @@ export type Paper = {
  * - `skills`: The skills of the semester in their order, for the Skill picker: a module by its code, like `IN2028`,
  *   a project by its folder name, like `WokFlow`.
  * - `otherModules`: The other module folders by their codes, like `IN0024`, for the search of the Skill picker.
- * - `folders`: The whole name of the folder of each of them by its name, which the Skill picker shows,
- *   like `IN2028_BusinessAnalyticsMachineLearning` for `IN2028`.
+ * - `labels`: The name of each of them as a summary names it, airy, which the Skill picker shows,
+ *   like `IN2028 Business Analytics Machine Learning` for `IN2028`.
+ * - `paths`: The folder of each of them from `NomWorkspace`, which a skill entry links, shown grey below the skill
+ *   picked, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
  * - `skips`: Reasons to pick when skipping a task.
  * - `types`: Types of a skill entry, like `VO`.
  * - `efforts`: Efforts to rate an attempt with, the lowest first.
@@ -199,7 +201,8 @@ export type Skilling = {
     modules: SkillModule[];
     skills: string[];
     otherModules: string[];
-    folders: { [name: string]: string };
+    labels: { [name: string]: string };
+    paths: { [name: string]: string };
     skips: string[];
     types: string[];
     efforts: Effort[];
@@ -221,7 +224,7 @@ export type Link = {
  * A link of a skill entry the reader could not repair, as the skill view lists it.
  *
  * - `day`: Day its entry started, like `2026-10-13`.
- * - `skill`: What its entry was, like `IN2028_BusinessAnalyticsMachineLearning (VO)`.
+ * - `skill`: What its entry was, like `IN2028 Business Analytics Machine Learning (VO)`.
  * - `path`: Path of the link from the folder of its skill, like `VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`,
  *   or from `NomWorkspace` when it lies outside it.
  */

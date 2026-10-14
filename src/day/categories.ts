@@ -18,7 +18,7 @@
  * pointing to it.
  * `Skill` is a skill and a type or none side by side, like `IN2028` and `VO` or the project `WokFlow`, in plan and log,
  * written by the reader as the folder of its skill with the type in brackets, like
- * `IN2028_BusinessAnalyticsMachineLearning (VO)`, its place and its semester; in the log also
+ * `IN2028 Business Analytics Machine Learning (VO)`, its place and its semester; in the log also
  * its chapters, documents and attempts at tasks, each with its result and my effort, see `skill.ts`.
  * Every entry can carry a free note, typed like start and end.
  * The categories come in the order the reader gives them, by their importance for my life, without `Drink`, since
@@ -1031,7 +1031,7 @@ function categoryShow(): void {
 
 /**
  * Reads what the entry was, its `SUMMARY`: nothing for a skill entry, which the reader names itself
- * from its skill and type, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `reader/documents.ts`,
+ * from its skill and type, like `IN2028 Business Analytics Machine Learning (VO)`, see `reader/documents.ts`,
  * a meal of the log with foods their names, see {@link mealTitle};
  * else what is picked, like `Night` of `Sleep`, or the name of a category without the field `title`.
  *

@@ -902,6 +902,14 @@ button.box-ring.box-checked svg {
     content: ")";
 }
 
+/* The folder of the skill picked on a line of its own below skill and type, as close below them as an address
+   below its place, see `skillPathOf` in `skill.ts` */
+.panel-pair .entry-address {
+    order: 1;
+    flex-basis: 100%;
+    margin-top: calc(0.125rem - 0.375rem);
+}
+
 /* The copy and the bin apart from the others, at the left, the copy alone there while the bin is hidden */
 .panel-buttons .panel-remove,
 .panel-buttons .panel-duplicate:has(+ .panel-remove[hidden]) {
@@ -1091,8 +1099,8 @@ fieldset.entry-times {
 }
 
 /* Address of the place picked below its name, small and grey, like `Burg-Eltz-Weg, 81375 München, Deutschland`,
-   going on below where it is wider than its row; a click opens its link, underlined under the pointer,
-   when it has one */
+   and so the folder of the skill picked, see `skillPathOf` in `skill.ts`, going on below where it is wider than
+   its row; a click opens its link, underlined under the pointer, when it has one */
 .entry-address {
     display: block;
     margin-top: 0.125rem;
@@ -1125,25 +1133,6 @@ fieldset.entry-times {
 
 .entry-pencil:hover {
     color: var(--text-main);
-}
-
-/* Links of a skill entry being changed, one after the other: the folder of its skill by its grey name,
-   its document underlined thin in the white of the text, which a click opens in a new tab, see `skill/links.ts` */
-.entry-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem var(--control-gap);
-    color: var(--text-muted);
-}
-
-.entry-links a.skill-link {
-    color: var(--text-main);
-    text-decoration-color: var(--line);
-    text-underline-offset: 0.2em;
-}
-
-.entry-links a.skill-link:hover {
-    text-decoration-color: currentcolor;
 }
 
 /* Skill session being changed: its attempts, one per line, grey, in place of the fields */

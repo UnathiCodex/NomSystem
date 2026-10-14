@@ -4,7 +4,7 @@
  * The dashboard's own picker, in place of the browser's drop-downs, for every field of a dialog that picks:
  * categories, places, summaries, ways to travel, skills, types, chapters, documents, semesters, tasks and efforts.
  * A field is one row of its dialog: its name at the left, then one line showing its value, like
- * `IN2028_BusinessAnalyticsMachineLearning (VO)`, empty without one, no dash and no placeholder; a click anywhere
+ * `IN2028 Business Analytics Machine Learning (VO)`, empty without one, no dash and no placeholder; a click anywhere
  * on the row opens its list as a menu of its own over the dialog, right under the line, never covering it, the rows
  * of the dialog staying where they are, see {@link listOf}; only one list is open at a time, and Esc or a click
  * beside it closes it.

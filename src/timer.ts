@@ -25,7 +25,7 @@ import { skillName } from "./skill/attempts.ts";
  *
  * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, `HU`, empty for none, like my own learning or a project.
- * - `title`: What its skill entry is as written, like `IN2028_BusinessAnalyticsMachineLearning (HU)`.
+ * - `title`: What its skill entry is as written, like `IN2028 Business Analytics Machine Learning (HU)`.
  * - `start`, `end`: Start and end of its skill entry, as ISO instants.
  */
 type Session = {

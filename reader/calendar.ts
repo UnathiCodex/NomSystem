@@ -37,8 +37,8 @@ import type { CalendarSource } from "./sources.ts";
  * - `id`: Identifier of the event, its `UID`, like `b8f1e81f-15b4-460e-910d-ef6b1b3d09b3@nomsystem`;
  *   all occurrences of a series share it, like those of a birthday.
  * - `category`: Category of the entry, its `CATEGORIES`, like `Way`; empty for an entry without one, like a birthday.
- * - `title`: Summary of the entry, what it was, like `U-Bahn`, for a skill entry the name of the folder of its skill
- *   with its type in round brackets, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see {@link skillPartsOf};
+ * - `title`: Summary of the entry, what it was, like `U-Bahn`, for a skill entry its skill airy
+ *   with its type in round brackets, like `IN2028 Business Analytics Machine Learning (VO)`, see {@link skillPartsOf};
  *   empty for an entry without `SUMMARY`.
  * - `titleLink`: Link of what it was, the standard parameter `ALTREP` of its `SUMMARY`: for a skill entry the folder
  *   of its skill from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
@@ -313,30 +313,32 @@ export const skillName: string = "Skill";
 
 
 /**
- * Reads the skill and the type of a skill entry from its `SUMMARY`, the name of the folder of its skill with its type
- * in round brackets at the end when it has one, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, my own learning
- * without brackets, like `IN2028_BusinessAnalyticsMachineLearning`: its skill is the code of a module, the part
- * of the name before the first `_`, like `IN2028`, or all of it for a project, a skill whose folder, the `ALTREP`
- * of the `SUMMARY`, lies outside `NomSkillingmodules`, like `WokFlow`. An older `SUMMARY` without brackets
- * but with a space, like `IN2028 VO`, has its skill and type parted at the first space. A skill entry carries
- * no `X-MODULE` and no `X-TYPE`; those lines of an older entry count no more and go once its `SUMMARY` changes,
- * see {@link textsPut}. An entry without skill has only its type in brackets, like `(VO)`, or no `SUMMARY`.
+ * Reads the skill and the type of a skill entry from its `SUMMARY`, its skill airy with its type in round brackets
+ * at the end when it has one, like `IN2028 Business Analytics Machine Learning (VO)`, my own learning without brackets,
+ * like `IN2028 Business Analytics Machine Learning`, see `skillTitleOf` in `documents.ts`: its skill is the code
+ * of a module, the part before the first space, like `IN2028`, or all of it for a project, a skill whose folder,
+ * the `ALTREP` of the `SUMMARY`, lies outside `NomSkillingmodules`, like `WokFlow`. An entry written before
+ * the summary was airy names the folder of its module, its code before the first `_`, like
+ * `IN2028 Business Analytics Machine Learning (VO)`; an older one without brackets has its code and a type of two
+ * capitals parted by one space, like `IN2028 VO`. A skill entry carries no `X-MODULE` and no `X-TYPE`; those lines
+ * of an older entry count no more and go once its `SUMMARY` changes, see {@link textsPut}. An entry without skill
+ * has only its type in brackets, like `(VO)`, or no `SUMMARY`.
  * - `bracketed`: Name and type of a `SUMMARY` with a type in brackets, `null` for none.
- * - `space`: Place of the first space, -1 for none.
- * - `name`: Name of the folder of the skill.
+ * - `older`: Code and type of an older `SUMMARY` like `IN2028 VO`, `null` for none.
+ * - `name`: Name of the skill as written.
  *
- * @param summary - `SUMMARY` of a skill entry, like `IN2028_BusinessAnalyticsMachineLearning (VO)`
+ * @param summary - `SUMMARY` of a skill entry, like `IN2028 Business Analytics Machine Learning (VO)`
  * @param link - Its `ALTREP`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, empty for none
  * @returns Skill and type, like `IN2028` and `VO`, or `WokFlow` and an empty type
  */
 function skillPartsOf(summary: string, link: string): [string, string] {
     const bracketed: RegExpExecArray | null = /^(.*?) ?\((\w+)\)$/.exec(summary);
-    const space: number = summary.indexOf(" ");
-    if (bracketed === null && space !== -1)
-        return [summary.slice(0, space), summary.slice(space + 1)];
+    const older: RegExpExecArray | null = /^(\S+) ([A-Z]{2})$/.exec(summary);
+    if (bracketed === null && older !== null)
+        return [older[1], older[2]];
     const name: string = bracketed?.[1] ?? summary;
     const project: boolean = link !== "" && !link.startsWith(`${modulesFolder}/`);
-    return [project ? name : name.split("_")[0], bracketed?.[2] ?? ""];
+    return [project ? name : name.split(/[_ ]/)[0], bracketed?.[2] ?? ""];
 }
 
 /**
@@ -1189,7 +1191,7 @@ function propertyOf(name: string, value: string | ICAL.Time | Link): ICAL.Proper
  * as the standard parameter `ALTREP`, when it has one, like
  * `LOCATION;ALTREP="https://nav.tum.de/room/0509.EG.980":Audimax 0509.EG.980\, Arcisstraße 21\, 80333 München…`,
  * and its `SUMMARY` with its link the same way, like the folder of a skill,
- * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`;
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028 Business Analytics Machine Learning (VO)`;
  * every other one as its text.
  *
  * @param name - Name of the property, like `location`
