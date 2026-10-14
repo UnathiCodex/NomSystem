@@ -4,7 +4,7 @@
  * Reads my foods from `Foods.md`, finds foods by a name or a barcode, mine first, then on Open Food Facts,
  * page by page, adds new foods to `Foods.md`, keeps my meals in `Meals.md`, reads the meals of a day from the log
  * with what they give.
- * `Meals.md` holds my meals, each only its composition, two or more of my foods without grams, servings or variants,
+ * `Meals.md` holds my meals, each only its composition, one or more of my foods without grams, servings or variants,
  * since I prepare it a little differently every time: one Markdown table with one row per food of a meal, the meal,
  * the food, its brand and its store; an entry brings them at their usual portion, which I change there.
  * A meal is named as all my names are, in one word without spaces, each word with a capital, like `ChiliConCarne`
@@ -200,7 +200,7 @@ export type Meal = Totals & {
 };
 
 /**
- * A meal of mine, as `Meals.md` holds it: only its composition, two or more of my foods without grams.
+ * A meal of mine, as `Meals.md` holds it: only its composition, one or more of my foods without grams.
  *
  * - `name`: Name of the meal, like `ChiliConCarne`; unique, without spaces, `|` and `;`.
  * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order;
@@ -1078,7 +1078,7 @@ function dishesWrite(dishes: Dish[]): void {
  *
  * @param sent - Name and foods as the page sends them
  * @returns All my meals
- * @throws {Error} - When the name is empty, it holds fewer than two foods, or `Meals.md` lies outside the new system
+ * @throws {Error} - When the name is empty, it holds no food, or `Meals.md` lies outside the new system
  */
 export function dishAdd(sent: { name?: string; foods?: string[] }): Dish[] {
     const meals: Dish[] = dishesRead();
@@ -1091,7 +1091,7 @@ export function dishAdd(sent: { name?: string; foods?: string[] }): Dish[] {
     }))].filter((line: string): boolean => !line.startsWith(";"));
     if (name === "")
         throw new Error("No name of a meal");
-    if (foods.length < 2)
+    if (foods.length === 0)
         throw new Error(`No foods of a meal: ${JSON.stringify(sent.foods)}`);
     if (!writeAllowed(food.meals))
         throw new Error(`No writing outside the new system: ${food.meals}`);

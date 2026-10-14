@@ -123,7 +123,7 @@ export type Meal = Totals & {
 };
 
 /**
- * A meal of mine, as the reader sends it from `Meals.md`: only its composition, two or more of my foods without grams.
+ * A meal of mine, as the reader sends it from `Meals.md`: only its composition, one or more of my foods without grams.
  *
  * - `name`: Name of the meal, in one word, like `ChiliConCarne`.
  * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order.

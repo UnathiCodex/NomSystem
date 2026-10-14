@@ -1,18 +1,18 @@
 /**
  * ## Meals
  *
- * My meals of `Meals.md`, each only its composition, two or more of my foods without grams, servings or variants,
+ * My meals of `Meals.md`, each only its composition, one or more of my foods without grams, servings or variants,
  * since I prepare it a little differently every time: shared by the food view, whose section lists them above
  * my foods, and by the entry by category of the day, which picks them and brings their foods at their usual portion,
  * see `../day/meal.ts`.
  * - The form of a new meal: the name of the meal, which the reader writes in one word, as all my names are,
  *   like `ChiliConCarne` of `Chili con Carne`, shown below the field as I type; its foods, each its name with its brand
  *   and store in brackets and a small grey `×`, and below them the food search, which adds one;
- *   `Cancel` and `Save`, which takes no click until the meal has a name and two foods.
+ *   `Cancel` and `Save`, which takes no click until the meal has a name and a food.
  * - The row of a meal, the same in the section of the food view and in the list of the meals of an entry: its name,
  *   its foods in brackets after it by their names, and at the right what it gives at the usual portions.
  * - The section of the food view: `Meals`, then the row of each meal; a click shows its foods below it, each with
- *   its `×` while it has more than two, and right after its name the small grey plus, like `ChiliConCarne +`, which
+ *   its `×` while it has more than one, and right after its name the small grey plus, like `ChiliConCarne +`, which
  *   opens the food search below its foods and closes it again, a food picked changed for good in `Meals.md` at once;
  *   a click on the row but on its plus hides its foods again; the `×` of the meal, whose first click only asks,
  *   as the remove of the entry dialog does,
@@ -146,9 +146,9 @@ function removeOf(words: string, click: () => void): HTMLButtonElement {
  * - `name`: Field of the name of the meal, `Name of the meal` grey in it while empty.
  * - `written`: The name in one word, as the reader writes it, below the field.
  * - `rows`: Rows of the foods.
- * - `hint`, `error`: Hint while it holds fewer than two foods, and that the reader did not take it.
+ * - `error`: Hint that the reader did not take it.
  * - `save`: The button `Save`.
- * - `ready`: Lets `Save` take clicks once the meal has a name and two foods.
+ * - `ready`: Lets `Save` take clicks once the meal has a name and a food.
  * - `foodsShow`: Shows the rows of the foods.
  * - `search`: The food search, which adds a food.
  *
@@ -162,8 +162,7 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
     const written: HTMLElement = elementOf("p", "dish-hint", "");
     const rows: HTMLElement = elementOf("div", "dish-foods", "");
     bracketsWatch(rows);
-    const hint: HTMLElement = elementOf("p", "dish-hint", "A meal holds two foods or more; add them below");
-    const error: HTMLElement = elementOf("p", "dish-hint", "Not saved: it needs a name and two foods");
+    const error: HTMLElement = elementOf("p", "dish-hint", "Not saved: it needs a name and a food");
     const buttons: HTMLElement = elementOf("div", "dish-buttons", "");
     const save: HTMLButtonElement = buttonOf("dish-save", "Save meal", (): void => {
         save.disabled = true;
@@ -178,8 +177,7 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
     const ready: () => void = (): void => {
         written.textContent = oneWordOf(name.value) === name.value.trim() || name.value.trim() === ""
             ? "" : `Saved as ${oneWordOf(name.value)}`;
-        hint.hidden = foods.length >= 2;
-        save.disabled = name.value.trim() === "" || foods.length < 2;
+        save.disabled = name.value.trim() === "" || foods.length === 0;
     };
     const foodsShow: () => void = (): void => {
         rows.replaceChildren(...foods.map((line: string): HTMLElement => {
@@ -215,7 +213,7 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
     });
     error.hidden = true;
     buttons.append(buttonOf("", "Cancel", setup.cancelled), save);
-    form.append(name, written, rows, hint, search, error, buttons);
+    form.append(name, written, rows, search, error, buttons);
     foodsShow();
     return form;
 }
@@ -327,7 +325,7 @@ export function mealsSectionOf(): HTMLElement {
             const detail: HTMLElement = elementOf("div", "dish-detail", "");
             detail.append(...dish.foods.map((food: string): HTMLElement => {
                 const foodRow: HTMLElement = elementOf("div", "dish-food", "");
-                foodRow.append(lineNameOf(food), ...dish.foods.length > 2
+                foodRow.append(lineNameOf(food), ...dish.foods.length > 1
                     ? [removeOf(`Remove ${food.split(";")[0]}`, (): void =>
                         change(dish, dish.foods.filter((other: string): boolean => other !== food)))]
                     : []);

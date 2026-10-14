@@ -52,11 +52,15 @@
     overflow-wrap: break-word;
 }
 
-/* The plus right after the name of the meal whose foods show, which adds one more, a little apart from it and
-   in the middle of its line, as after the name of a meal in the entry by category */
+/* The plus right after the name of the meal whose foods show, which adds one more, a little apart from it, one line
+   high and at the top of its line, so it stands exactly in the middle, as after the name of a meal in the entry
+   by category, see `day/day.css` */
 .dish-name .plus-quiet {
-    margin-left: 0.5rem;
-    vertical-align: middle;
+    height: calc(1lh + 0.5rem);
+    margin: -0.25rem 0 -0.25rem 0.5rem;
+    padding: 0.25rem 0;
+    font: inherit;
+    vertical-align: top;
 }
 
 .dish-row[aria-expanded="true"] .dish-parts {
@@ -90,7 +94,7 @@
     border-radius: var(--radius);
 }
 
-/* Hints small and grey, like the name as it is written or that a meal holds two foods */
+/* Hints small and grey, like the name as it is written or that the reader did not take the meal */
 .dish-hint {
     margin: 0;
     font-size: 0.8125rem;

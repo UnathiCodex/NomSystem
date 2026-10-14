@@ -6,7 +6,7 @@
  * never mix:
  * - Summary: what I ate, written by itself, never typed: the meals, then the foods eaten beside them, parted by `, `,
  *   like `ChiliConCarne, Weißbrot`, and beside it what they give together, like `660 kcal`.
- * - Meals: my meals of `Meals.md`, each only its composition, two or more of my foods, see `../food/meals.ts`.
+ * - Meals: my meals of `Meals.md`, each only its composition, one or more of my foods, see `../food/meals.ts`.
  *   A meal picked brings its foods at their usual portion: a row with its name, its kcal and a small grey `×`,
  *   which removes it, its foods indented below it, each a row as a food beside the meals has it, so I change the grams
  *   of each, or remove one I did not eat. Its list finds my meals as I type, each in the row of a meal of the food
@@ -29,10 +29,12 @@
  * that day, whatever I change in `Meals.md` later; and the summary as its what, see {@link mealTitle}.
  * A meal whose summary names more than its foods, like `Bortzeit` written by hand, opens as that one meal with its
  * foods, so its name stays.
- * A cooking of the log, `Cook`, lists what went into the pot in two of these rows, Summary and Foods, each food with
- * its grams, like `Hackfleisch;Gut & Günstig;Edeka;500`, and counts no kcal, see `reader/food.ts`.
+ * A cooking of the log, `Cook`, lists what went into the pot in three of these rows, Summary, Meals and Foods,
+ * each food with its grams, like `Hackfleisch;Gut & Günstig;Edeka;500;ChiliConCarne`, and counts no kcal,
+ * see `reader/food.ts`.
  * A meal may draw from one of my cookings of the days before it in a row of its own, see {@link cookedRowOf}:
- * its foods come along with their grams of the pot, which I type over with what I ate, no total for the pot,
+ * its meals and foods come along, each food with its grams of the pot, which I type over with what I ate,
+ * no total for the pot,
  * and the meal writes `X-COOKED` with the cooking's identifier and its foods with their grams as its own lines,
  * so meal and cooking each keep their foods, see {@link mealCooked}.
  * A meal eaten out, where nothing can be weighed, I log by photo through Claude, who writes its entry through the reader;
@@ -124,10 +126,12 @@ export type Drawing = {
  *
  * - `name`: Name of the meal, like `ChiliConCarne`.
  * - `foods`: Its foods with their grams.
+ * - `fromCooking`: Whether it came with the cooking the meal draws from, see {@link drawnShow}.
  */
 type MealPick = {
     name: string;
     foods: FoodPick[];
+    fromCooking?: boolean;
 };
 
 
@@ -670,22 +674,39 @@ function cookingTextOf(cooking: Cooking): string {
 }
 
 /**
- * Puts the foods of the cooking the meal draws from first among its foods, in place of those it brought before,
+ * Puts the meals and foods of the cooking the meal draws from first among its meals and foods, in place of those
+ * it brought before,
  * each with the grams it had among the foods already, else its grams of the pot, all of it, which I type over
  * with what I ate in its row; none while no cooking is picked.
  * - `cooking`: The cooking picked, `undefined` for none.
- * - `before`: Grams typed of each food so far, by its key.
- * - `drawn`: The foods of the cooking.
+ * - `before`: Grams typed of each food so far, of the meals and beside them, by its key.
+ * - `drawnMeals`: The meals of the cooking, each with its foods.
+ * - `drawn`: The foods of the cooking beside its meals.
  *
  * @param changed - Tells the dialog that the meal changed
  */
 function drawnShow(changed: () => void): void {
     const cooking: Cooking | undefined = cookings.find((one: Cooking): boolean => one.id === cooked);
-    const before: Map<string, string> = new Map(picks.map((pick: FoodPick): [string, string] => [keyOf(pick), pick.grams]));
-    const drawn: FoodPick[] = (cooking?.foods ?? []).map((line: string): FoodPick => {
+    const before: Map<string, string> = new Map([...meals.flatMap((meal: MealPick): FoodPick[] => meal.foods), ...picks]
+        .map((pick: FoodPick): [string, string] => [keyOf(pick), pick.grams]));
+    const drawnMeals: MealPick[] = [];
+    const drawn: FoodPick[] = [];
+    (cooking?.foods ?? []).forEach((line: string): void => {
         const read: Line = lineOf(line);
-        return { ...pickOf(read, before.get(keyOf(read)) ?? read.grams), fromCooking: true };
+        const pick: FoodPick = { ...pickOf(read, before.get(keyOf(read)) ?? read.grams), fromCooking: true };
+        if (read.meal === "") {
+            drawn.push(pick);
+            return;
+        }
+        let meal: MealPick | undefined = drawnMeals.find((one: MealPick): boolean => one.name === read.meal);
+        if (meal === undefined) {
+            meal = { name: read.meal, foods: [], fromCooking: true };
+            drawnMeals.push(meal);
+        }
+        meal.foods.push(pick);
     });
+    meals = [...drawnMeals, ...meals.filter((meal: MealPick): boolean =>
+        meal.fromCooking !== true && !drawnMeals.some((other: MealPick): boolean => other.name === meal.name))];
     picks = [...drawn, ...picks.filter((pick: FoodPick): boolean =>
         pick.fromCooking !== true && !drawn.some((other: FoodPick): boolean => keyOf(other) === keyOf(pick)))];
     rowsShow(changed);
@@ -771,7 +792,9 @@ function pickerRowOf(name: string, line: HTMLButtonElement, rows: HTMLElement, b
  * - `mealsMine`: My meals of `Meals.md`.
  * - `cooks`: My cookings of the days before a meal, none for a cooking.
  * - `last`: The meal the lines so far went to.
- * - `brought`: Keys of the foods of the cooking the meal draws from, whose lines came with it.
+ * - `drawnLines`: The lines of the cooking the meal draws from, none for none.
+ * - `brought`: Keys of the foods of that cooking beside its meals, whose lines came with it.
+ * - `broughtMeals`: Names of the meals of that cooking, which came with it.
  * - `foodsBox`: The list of the foods, with the food search.
  * - `mealsRow`, `foodsRow`: The rows of the meals and of the foods.
  *
@@ -779,7 +802,7 @@ function pickerRowOf(name: string, line: HTMLButtonElement, rows: HTMLElement, b
  * @param title - Summary of the meal written before, like `ChiliConCarne, Brot`; empty for a new meal
  * @param changed - Tells the dialog that the meal changed
  * @param drawing - The cooking a meal draws from and its start, see {@link Drawing}; `null` for a cooking,
- *   which shows only its summary and its foods
+ *   which shows its summary, its meals and its foods, and draws from no cooking
  * @returns The rows of summary, meals and foods, to put into the dialog in place of the summary
  * @throws {Error} - When the reader cannot answer
  */
@@ -811,10 +834,14 @@ export async function mealOf(lines: string[], title: string, changed: () => void
         meals = [{ name: title.trim(), foods: picks }];
         picks = [];
     }
-    const brought: Set<string> = new Set((cookings.find((one: Cooking): boolean => one.id === cooked)?.foods ?? [])
-        .map((line: string): string => keyOf(lineOf(line))));
+    const drawnLines: Line[] = (cookings.find((one: Cooking): boolean => one.id === cooked)?.foods ?? []).map(lineOf);
+    const brought: Set<string> = new Set(drawnLines.filter((read: Line): boolean => read.meal === "").map(keyOf));
+    const broughtMeals: Set<string> = new Set(drawnLines.map((read: Line): string => read.meal));
     picks.forEach((pick: FoodPick): void => {
         pick.fromCooking = brought.has(keyOf(pick));
+    });
+    meals.forEach((meal: MealPick): void => {
+        meal.fromCooking = broughtMeals.has(meal.name);
     });
 
     summary = elementOf("span", "meal-summary", "");
@@ -841,7 +868,7 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     foodsClose = closeFoods;
     rowsShow(changed);
     if (drawing === null)
-        return [rowOf("Summary", summary), foodsRow];
+        return [rowOf("Summary", summary), mealsRow, foodsRow];
     return [rowOf("Summary", summary), cookedRowOf(changed), mealsRow, foodsRow];
 }
 

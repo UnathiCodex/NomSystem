@@ -1451,12 +1451,17 @@ fieldset.entry-times {
 
 /* The one plus right after what it adds to, never on a line of its own: beside the name of a field, like `Meals +`
    or `Chapter +`, or after a value, like `ChiliConCarne +` or a chapter's plus that adds a document to it, a little
-   apart and in the middle of the line, see `lineMove` in `choices.ts` */
+   apart, see `lineMove` in `choices.ts`; its box one line of its text high and at the top of its line, so its icon stands
+   exactly in the middle of the line, also after a name going on over two lines; its padding above and below,
+   taken back by its margins, makes it easier to hit without moving the line */
 .entry-name .picker-line,
 .picker-added-text .picker-line,
 .meal-name .plus-quiet {
-    margin-left: 0.5rem;
-    vertical-align: middle;
+    height: calc(1lh + 0.5rem);
+    margin: -0.25rem 0 -0.25rem 0.5rem;
+    padding: 0.25rem 0;
+    font: inherit;
+    vertical-align: top;
 }
 
 /* A row that keeps only the list of a plus moved away, see `lineMove` in `choices.ts`: no room of the dialog,

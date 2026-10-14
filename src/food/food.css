@@ -91,15 +91,19 @@ body:has(> .food) {
 }
 
 /* Name of my meals and of my foods, in the text of controls, the one plus right after it, which adds one,
-   as beside Plan and Log */
+   as beside Plan and Log, one line high and at the top of its line, so it stands exactly in the middle,
+   as beside the name of a field, see `day/day.css` */
 .food-heading {
     font-size: var(--control-text);
     line-height: var(--chip-height);
 }
 
 .food-heading .plus-quiet {
-    margin-left: 0.5rem;
-    vertical-align: middle;
+    height: calc(1lh + 0.5rem);
+    margin: -0.25rem 0 -0.25rem 0.5rem;
+    padding: 0.25rem 0;
+    font: inherit;
+    vertical-align: top;
 }
 
 /* Totals of the day side by side, each its name small and grey above its amount;
