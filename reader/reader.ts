@@ -58,7 +58,7 @@ import {
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
 import {
-    dishAdd, dishesRead, dishRemove, foodAdd, foodChange, foodDayRead, foodRemove, foodsFind, gramsRead,
+    dishAdd, dishesRead, dishRemove, dishRename, foodAdd, foodChange, foodDayRead, foodRemove, foodsFind, gramsRead,
 } from "./food.ts";
 import { trackersRead } from "./trackers.ts";
 import { deviceReport } from "./devices.ts";
@@ -183,6 +183,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each with its foods and what it gave.
  * - `POST /api/food/meals`: Writes the meal of the body, its name and foods, into `Meals.md`, new or changed,
  *   and sends all my meals.
+ * - `PATCH /api/food/meals`: Renames the meal of the body, its old name and its new one, wherever it stands, and sends
+ *   all my meals.
  * - `DELETE /api/food/meals?meal=…`: Removes the meal from `Meals.md` and sends all my meals.
  * - `POST /api/devices`: Writes what the device of the body shows of the page into `Devices.md`.
  * - Any other address: Hands request to the page.
@@ -388,6 +390,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "POST" && url.pathname === "/api/food/meals") {
         responseSend(response, 200, dishAdd(await json(request) as { name?: string; foods?: string[] }));
+
+    } else if (request.method === "PATCH" && url.pathname === "/api/food/meals") {
+        responseSend(response, 200, dishRename(await json(request) as { old?: string; name?: string }));
 
     } else if (request.method === "DELETE" && url.pathname === "/api/food/meals") {
         responseSend(response, 200, dishRemove(url.searchParams.get("meal") ?? ""));

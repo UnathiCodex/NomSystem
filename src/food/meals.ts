@@ -13,7 +13,9 @@
  *   whose name or foods hold what is typed, ignoring case and accents, see {@link dishesFound}, like `reis` finding
  *   every meal with rice; then the head and the line of each meal, the small grey `×` at its end, whose first click
  *   only asks, as the remove of the entry dialog does, the cross turning into the plain question mark,
- *   `Really remove?` as its tooltip. A click on a line opens the meal below it: its foods, each with its brand and
+ *   `Really remove?` as its tooltip. A click on a line opens the meal below it: on top its name, which changes in place
+ *   by a click into it, as that of a food, renaming it wherever it stands, also in every entry that holds it, see
+ *   `dishRename` in `reader/food.ts`; then its foods, each with its brand and
  *   store in brackets, its grams as I ate it the last time and its `×` while the meal has more than one, each
  *   dragged up or down to another place, so the foods that matter most stand first and show in the brackets of its
  *   line, see {@link dragPut}, the order changed for good in `Meals.md` at once; right after
@@ -32,8 +34,10 @@
  * - `./meals.css`: Look of the section and of a meal opened.
  */
 
-import { amountOf, bracketsWatch, buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodNameOf } from "./foods.ts";
-import { foodSearchOf, listHeadOf, listLineOf } from "./search.ts";
+import {
+    amountOf, bracketsWatch, buttonOf, dishDelete, dishesLoad, dishRename, dishSend, elementOf, foodNameOf,
+} from "./foods.ts";
+import { foodSearchOf, inlineFieldOf, listHeadOf, listLineOf } from "./search.ts";
 import { crossPut, iconPut, plusPut, QuestionMark } from "../icons.ts";
 import { matchesAll, wordsOf } from "../search.ts";
 import "./meals.css";
@@ -280,6 +284,24 @@ export function mealsSectionOf(): HTMLElement {
                     toggle(key);
             });
             const detail: HTMLElement = elementOf("div", "food-detail", "");
+            const facts: HTMLElement = elementOf("div", "food-facts", "");
+            const error: HTMLElement = elementOf("p", "food-error",
+                "Not changed: it needs a name, and no other meal of mine may have it");
+            const rename: HTMLInputElement = inlineFieldOf(dish.name, "Name", (): void => {
+                detail.inert = true;
+                dishRename(dish.name, rename.value).then((meals: Dish[]): void => {
+                    dishes = meals;
+                    open = mealNameOf(rename.value).toLowerCase();
+                    show();
+                }).catch((reason: unknown): void => {
+                    console.error(reason);
+                    error.hidden = false;
+                    detail.inert = false;
+                });
+            });
+            facts.append(elementOf("span", "food-fact", "Name"), rename);
+            error.hidden = true;
+            detail.append(facts, error);
             detail.append(...dish.foods.map((food: string, index: number): HTMLElement => {
                 const part: HTMLElement = partOf(food, dish.grams[index] ?? null, dish.foods.length > 1
                     ? removeOf(`Remove ${food.split(";")[0]}`, (): void =>

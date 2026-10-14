@@ -203,6 +203,23 @@ export async function dishSend(name: string, foods: string[]): Promise<Dish[]> {
 }
 
 /**
+ * Renames a meal through the reader wherever it stands, in `Meals.md` and in every entry that holds it.
+ *
+ * @param old - Name of the meal
+ * @param name - Its new name as typed
+ * @returns All my meals after
+ * @throws {Error} - When the reader does not take the name, like an empty one or that of another meal of mine
+ */
+export async function dishRename(old: string, name: string): Promise<Dish[]> {
+    const response: Response = await fetch("/api/food/meals", {
+        method: "PATCH", body: JSON.stringify({ old: old, name: name }),
+    });
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as Dish[];
+}
+
+/**
  * Removes a meal through the reader from `Meals.md`.
  *
  * @param name - Name of the meal

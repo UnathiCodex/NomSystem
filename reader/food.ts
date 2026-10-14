@@ -1335,6 +1335,58 @@ export function dishAdd(sent: { name?: string; foods?: string[] }): Dish[] {
 }
 
 /**
+ * Renames a meal of mine wherever it stands, so every entry still shows it under its new name: first, in every entry
+ * of the log that holds it, past and to come, the meal of its lines `X-FOOD`, like `Chili con Carne` of
+ * `Hackfleisch;Gut & Günstig;Edeka;125;Chili con Carne`, and its name in the summary, every other part of the summary
+ * staying as it is; then its rows of `Meals.md`, every other line staying as it is, so one stopped in between
+ * finishes when sent again. A name sent without change writes nothing.
+ * - `meals`: My meals.
+ * - `found`: The meal renamed.
+ * - `typed`: Its new name, see {@link mealNameOf}.
+ * - `same`: Whether a name is the old one, ignoring case.
+ *
+ * @param sent - The old name of the meal and its new one, as the page sends them
+ * @returns All my meals after, each with what it gave, see {@link dishesRead}
+ * @throws {Error} - When `Meals.md` holds no such meal, the new name is empty or that of another meal of mine,
+ *   ignoring case, or a file lies outside the new system
+ */
+export function dishRename(sent: { old?: string; name?: string }): Dish[] {
+    const meals: Composition[] = compositionsRead();
+    const same: (name: string) => boolean = (name: string): boolean =>
+        name.trim().toLowerCase() === String(sent.old ?? "").trim().toLowerCase();
+    const found: Composition | undefined = meals.find((meal: Composition): boolean => same(meal.name));
+    const typed: string = mealNameOf(String(sent.name ?? ""));
+    if (found === undefined)
+        throw new Error(`No meal of mine: ${String(sent.old)}`);
+    if (typed === "" || meals.some((meal: Composition): boolean =>
+        meal !== found && meal.name.toLowerCase() === typed.toLowerCase()))
+        throw new Error(`No new name of a meal: ${typed}`);
+    if (typed === found.name)
+        return dishesRead();
+    if (!writeAllowed(food.meals))
+        throw new Error(`No writing outside the new system: ${food.meals}`);
+
+    entriesRead(food.log, "1970-01-01T00:00:00Z", logEnd)
+        .filter((entry: Entry): boolean => entry.foods.some((line: string): boolean => same(line.split(";")[4] ?? "")))
+        .forEach((entry: Entry): void => {
+            const file: string | undefined = entryLookup(food.log, entry.id)?.[0];
+            if (file === undefined)
+                return;
+            propertiesPut(file, entry.id, [
+                ["x-food", entry.foods.map((line: string): string => {
+                    const parts: string[] = line.split(";");
+                    return parts.length > 4 && same(parts[4]) ? [...parts.slice(0, 4), typed].join(";") : line;
+                })],
+                ["summary", [entry.title.split(", ")
+                    .map((part: string): string => same(part) ? typed : part).join(", ")]],
+            ]);
+        });
+    compositionsWrite(meals.map((meal: Composition): Composition =>
+        meal === found ? { name: typed, foods: meal.foods } : meal));
+    return dishesRead();
+}
+
+/**
  * Removes a meal from `Meals.md`, ignoring case, every other meal staying as it is.
  *
  * @param name - Name of the meal

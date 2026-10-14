@@ -214,7 +214,8 @@ export function editFieldOf(value: string, words: string, saved: () => void, can
 }
 
 /**
- * Makes a value of a food of mine that changes in place, its name, brand or store: its text as plain as every value
+ * Makes a value that changes in place, like the name, brand or store of a food of mine or the name of a meal of mine,
+ * see `../food/meals.ts`: its text as plain as every value
  * beside it, no frame, a click puts the cursor into it, see `.food-inline` in `search.css`; Enter or leaving it saves
  * a change, Escape takes the change back.
  * - `input`: The value.
@@ -224,7 +225,7 @@ export function editFieldOf(value: string, words: string, saved: () => void, can
  * @param saved - Sends the change, after a change only
  * @returns The value
  */
-function inlineFieldOf(value: string, words: string, saved: () => void): HTMLInputElement {
+export function inlineFieldOf(value: string, words: string, saved: () => void): HTMLInputElement {
     const input: HTMLInputElement = document.createElement("input");
     input.type = "text";
     input.className = "food-inline";
