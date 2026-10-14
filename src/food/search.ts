@@ -459,9 +459,10 @@ function firstPick(search: Search): void {
 }
 
 /**
- * Makes the one plus of a new food in a search that picks, last among my foods, like `+ New food “Döner”`, while
+ * Makes the one plus of a new food in every search of my foods, last among them, like `+ New food “Döner”`, while
  * the text typed is no food of mine, nor a barcode: a click opens the form of a food by hand at the top of the
- * results, named as typed, see {@link newFormShow}, the food saved there picked at once.
+ * results, named as typed, see {@link newFormShow}, the food saved there picked at once where foods are picked,
+ * else shown among my foods.
  * - `plus`: The plus.
  *
  * @param search - The search
@@ -470,7 +471,7 @@ function firstPick(search: Search): void {
  * @returns The plus, none where it is not offered
  */
 function newFoodOf(search: Search, query: string, mine: Food[]): HTMLElement[] {
-    if (search.setup.pick === null || query === "" || /^\d{8,14}$/.test(query)
+    if (query === "" || /^\d{8,14}$/.test(query)
         || mine.some((food: Food): boolean => food.name.toLowerCase() === query.toLowerCase()))
         return [];
     const plus: HTMLButtonElement = buttonOf("picker-new", "", (): void => newFormShow(search, null));
