@@ -5,16 +5,17 @@
  * a field where a few letters or a barcode find my foods first, the most eaten first, and below them, where asked,
  * the products of Open Food Facts, a page of them at a time, `More` loading the next page, beside it how many it shows
  * of how many the search matches, like `8 of 54`; in an entry my meals above my foods, see {@link SearchSetup}.
+ * Its sections stand apart at a glance, a thin grey line between them, each its name small and grey above it,
+ * `My meals`, `My foods` and `Open Food Facts`, with the unit of its numbers at the right, see {@link listHeadOf}.
  * It searches once the typing pauses, so a word asks only once; an empty field lists all my foods. That nothing
  * is found it says in one grey line, only for the text as it stands, once its answer is in, never for a text typed
  * before, like a barcode typed digit by digit, whose first digits find nothing.
  * I search the food alone, like `räucherlachs`: Open Food Facts searches the names of its products, and a word of
  * a brand or a shop only ranks them, it filters nothing, so the brand and store of a product stand beside its name.
- * Every list of meals or foods looks alike, wherever it stands: a small grey head, `Per meal` or `Per 100 g` and
- * `kcal`, then one flat line per meal or food, its name, a food's brand and store in brackets after it, like
- * `Gouda (Milbona, Lidl)`, so the same name of two shops never mixes up, and its kcal as a bare number, the head
- * naming the unit once, see {@link listHeadOf} and {@link listLineOf}; a product also its pack small and grey below
- * its name, like `Pack 450 g`, which tells products apart.
+ * Every list of meals or foods looks alike, wherever it stands: one flat line per meal or food, nothing in it
+ * but its name, a food's brand and store in brackets after it, like `Gouda (Milbona, Lidl)`, so the same name of two
+ * shops never mixes up, and its kcal as a bare number, a meal's whole, a food's per 100 g, the head of its section
+ * naming the unit once, see {@link listLineOf}.
  * A click on a product adds it to my foods as Open Food Facts gives it, no form in between, see `foodSend`
  * in `foods.ts`, and takes it like one of mine. Where a food is wanted, like in an entry, a click on one of my foods
  * picks it. A food found nowhere goes in by hand only in the food view, by the plus beside the name `Foods`,
@@ -39,15 +40,15 @@ import type { Food, FoodsFound } from "./foods.ts";
  * What a search does, where it stands.
  *
  * - `pick`: Takes a food picked or added, like into an entry; `null` where no food is wanted, like in the food view.
- * - `before`: Builds the lines to show above my foods for the search as typed, like my meals in an entry with their
- *   head; `null` for none.
+ * - `meals`: Builds the lines of my meals to show above my foods for the search as typed, see `listLineOf`,
+ *   in an entry; `null` for none.
  * - `products`: Whether it finds products of Open Food Facts too; not for a meal of the food view, which takes only
  *   my foods.
  * - `nothing`: The one grey line when a search of some letters finds nothing, like where a food by hand goes in.
  */
 export type SearchSetup = {
     pick: ((food: Food) => void) | null;
-    before: ((query: string) => HTMLElement[]) | null;
+    meals: ((query: string) => HTMLElement[]) | null;
     products: boolean;
     nothing: string;
 };
@@ -91,18 +92,19 @@ const searches: WeakMap<HTMLElement, Search> = new WeakMap();
 
 
 /**
- * Makes the head of a list of meals or foods, small and grey, in the columns of its lines, see {@link listLineOf}:
- * what one number is per, like `Per 100 g` or `Per meal`, and `kcal`, the unit of every number below, named once.
+ * Makes the head of a list or a section of meals or foods, small and grey, in the columns of its lines, see
+ * {@link listLineOf}: its name, like `My foods`, and the unit of every number below, named once, like `kcal / 100 g`.
  * - `line`: The line of the head.
  * - `head`: The head itself, in the columns of a row.
  *
- * @param per - What a number is per, like `Per 100 g`
+ * @param name - Name of the list or section, like `My meals`
+ * @param unit - Unit of its numbers, like `kcal`
  * @returns The line of the head
  */
-export function listHeadOf(per: string): HTMLElement {
+export function listHeadOf(name: string, unit: string): HTMLElement {
     const line: HTMLElement = elementOf("div", "food-item", "");
     const head: HTMLElement = elementOf("div", "food-row food-columns", "");
-    head.append(elementOf("span", "", per), elementOf("span", "food-value", "kcal"));
+    head.append(elementOf("span", "", name), elementOf("span", "food-value", unit));
     line.append(head);
     return line;
 }
@@ -185,23 +187,6 @@ export function editFieldOf(value: string, words: string, saved: () => void, can
 }
 
 /**
- * Makes the name of a food in its line: its name with its brand and store in brackets, see `foodNameOf`
- * in `foods.ts`, and for a product of Open Food Facts below it, small and grey, its pack, like `Pack 450 g`.
- * - `title`: Name, and below it the pack.
- *
- * @param food - Food or product
- * @param product - Whether it is a product of Open Food Facts, whose pack shows
- * @returns The name
- */
-function titleOf(food: Food, product: boolean): HTMLElement {
-    const title: HTMLElement = elementOf("span", "food-title", "");
-    title.append(foodNameOf("food-name", food.name, food.brand, food.store));
-    if (product && food.pack !== "")
-        title.append(elementOf("span", "food-pack", `Pack ${food.pack}`));
-    return title;
-}
-
-/**
  * Builds the line of a food of mine: a click picks it where foods are picked.
  *
  * @param search - The search
@@ -210,7 +195,8 @@ function titleOf(food: Food, product: boolean): HTMLElement {
  */
 function mineLineOf(search: Search, food: Food): HTMLElement {
     const pick: ((food: Food) => void) | null = search.setup.pick;
-    return listLineOf(titleOf(food, false), food.kcal, pick === null ? null : (): void => pick(food), null)[0];
+    return listLineOf(foodNameOf("food-name", food.name, food.brand, food.store), food.kcal,
+        pick === null ? null : (): void => pick(food), null)[0];
 }
 
 /**
@@ -224,7 +210,8 @@ function mineLineOf(search: Search, food: Food): HTMLElement {
  * @returns Its line
  */
 function productLineOf(search: Search, product: Food): HTMLElement {
-    const [line, row]: [HTMLElement, HTMLElement] = listLineOf(titleOf(product, true), product.kcal, (): void => {
+    const [line, row]: [HTMLElement, HTMLElement] = listLineOf(
+        foodNameOf("food-name", product.name, product.brand, product.store), product.kcal, (): void => {
         row.inert = true;
         foodSend(product).then(addedOf(search)).catch((reason: unknown): void => {
             console.error(reason);
@@ -236,36 +223,42 @@ function productLineOf(search: Search, product: Food): HTMLElement {
 }
 
 /**
- * Shows what the search found: the lines above my foods, see {@link SearchSetup}, the head of the foods, my foods,
+ * Shows what the search found in its sections, each its head, see {@link listHeadOf}, a thin grey line between them,
+ * those that found nothing left out: my meals, where the search shows them, see {@link SearchSetup}; my foods;
  * then, for a search of some letters, the products of Open Food Facts of every page loaded, how many of how many,
- * like `8 of 54`, and `More` while a next page holds more; that Open Food Facts cannot be reached, where asked;
+ * like `8 of 54`, and `More` while a next page holds more, or that Open Food Facts cannot be reached;
  * one grey line when nothing is found at all.
  * - `found`: What the search found.
  * - `query`: The search as typed.
+ * - `meals`: Lines of my meals found.
  * - `products`: Products shown.
- * - `rows`: Lines of the results, the line between my foods and the products, and the hints.
+ * - `sections`: The sections that found something, each its head and its lines.
  *
  * @param search - The search
  */
 function resultsShow(search: Search): void {
     const found: FoodsFound = search.found ?? { foods: [], products: [], total: 0, exact: true, more: false };
     const query: string = search.input.value.trim();
+    const meals: HTMLElement[] = search.setup.meals?.(query) ?? [];
     const products: Food[] = query === "" ? [] : found.products ?? [];
-    const rows: HTMLElement[] = [...search.setup.before?.(query) ?? []];
+    const sections: HTMLElement[][] = [];
 
-    if (found.foods.length > 0 || products.length > 0)
-        rows.push(listHeadOf("Per 100 g"));
-    rows.push(...found.foods.map((food: Food): HTMLElement => mineLineOf(search, food)));
-    if (found.foods.length > 0 && products.length > 0)
-        rows.push(elementOf("hr", "food-divider", ""));
-    rows.push(...products.map((product: Food): HTMLElement => productLineOf(search, product)));
+    if (meals.length > 0)
+        sections.push([listHeadOf("My meals", "kcal"), ...meals]);
+    if (found.foods.length > 0)
+        sections.push([listHeadOf("My foods", "kcal / 100 g"),
+            ...found.foods.map((food: Food): HTMLElement => mineLineOf(search, food))]);
     if (products.length > 0)
-        rows.push(moreOf(search, products.length, found));
-    if (query !== "" && found.products === null)
-        rows.push(elementOf("p", "food-none food-nothing", "Open Food Facts cannot be reached"));
-    if (rows.length === 0)
-        rows.push(elementOf("p", "food-none food-nothing", query === "" ? "No foods yet" : search.setup.nothing));
-    search.results.replaceChildren(...rows);
+        sections.push([listHeadOf("Open Food Facts", "kcal / 100 g"),
+            ...products.map((product: Food): HTMLElement => productLineOf(search, product)),
+            moreOf(search, products.length, found)]);
+    else if (query !== "" && found.products === null)
+        sections.push([listHeadOf("Open Food Facts", ""),
+            elementOf("p", "food-none food-nothing", "Open Food Facts cannot be reached")]);
+    search.results.replaceChildren(...sections.length === 0
+        ? [elementOf("p", "food-none food-nothing", query === "" ? "No foods yet" : search.setup.nothing)]
+        : sections.flatMap((section: HTMLElement[], index: number): HTMLElement[] =>
+            index === 0 ? section : [elementOf("hr", "food-divider", ""), ...section]));
 }
 
 /**
@@ -458,7 +451,7 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
     let waiting: number = 0;
 
     search.input.type = "search";
-    search.input.placeholder = setup.before === null ? "Search foods or a barcode" : "Search meals, foods or a barcode";
+    search.input.placeholder = setup.meals === null ? "Search foods or a barcode" : "Search meals, foods or a barcode";
     search.input.autocomplete = "off";
     search.input.addEventListener("input", (): void => {
         clearTimeout(waiting);
@@ -480,7 +473,7 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
 }
 
 /**
- * Empties the field of a search and shows what an empty search finds, with the lines above my foods built anew,
+ * Empties the field of a search and shows what an empty search finds, with my meals found anew,
  * like each time the list of an entry opens.
  *
  * @param element - The search, as {@link foodSearchOf} built it

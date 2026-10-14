@@ -305,7 +305,7 @@ export function foodStart(): void {
     document.getElementById("food-dishes")?.append(mealsSectionOf());
     const search: HTMLElement = foodSearchOf({
         pick: null,
-        before: null,
+        meals: null,
         products: true,
         nothing: "Nothing found; the plus beside Foods adds a food by hand",
     });

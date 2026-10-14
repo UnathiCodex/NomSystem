@@ -48,7 +48,7 @@ import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { bracketsWatch, buttonOf, dishesLoad, elementOf, foodNameOf, foodsFind } from "../food/foods.ts";
 import { dishesFound, kcalTextOf } from "../food/meals.ts";
-import { foodSearchClear, foodSearchOf, listHeadOf, listLineOf } from "../food/search.ts";
+import { foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
 import { crossPut, plusPut } from "../icons.ts";
 
 import type { Choice } from "./choices.ts";
@@ -473,7 +473,7 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
             changed();
             gramsFocus([pick]);
         },
-        before: null,
+        meals: null,
         products: true,
         nothing: nothingFound,
     });
@@ -576,22 +576,17 @@ function dishPick(dish: Dish, changed: () => void): void {
 }
 
 /**
- * Builds my meals as the search of the row `Foods` shows them above my foods, as the food view lists them, see
- * `../food/meals.ts`: the head `Per meal` and `kcal`, then the line of each meal whose name or foods hold the words
- * typed, see `dishesFound` there, its name and what it gave the last time I ate it; a click picks it, see
- * {@link dishPick}; nothing while none is found.
- * - `found`: The meals found.
+ * Builds my meals as the search of the row `Foods` shows them above my foods, see `../food/search.ts`: the line
+ * of each meal whose name or foods hold the words typed, see `dishesFound` in `../food/meals.ts`, its name and what
+ * it gave the last time I ate it; a click picks it, see {@link dishPick}.
  *
  * @param query - The search as typed
  * @param changed - Tells the dialog that the meal changed
- * @returns The head and the lines of the meals found
+ * @returns The lines of the meals found
  */
 function dishLinesOf(query: string, changed: () => void): HTMLElement[] {
-    const found: Dish[] = dishesFound(dishes, query);
-    if (found.length === 0)
-        return [];
-    return [listHeadOf("Per meal"), ...found.map((dish: Dish): HTMLElement =>
-        listLineOf(elementOf("span", "food-name", dish.name), dish.kcal, (): void => dishPick(dish, changed), null)[0])];
+    return dishesFound(dishes, query).map((dish: Dish): HTMLElement =>
+        listLineOf(elementOf("span", "food-name", dish.name), dish.kcal, (): void => dishPick(dish, changed), null)[0]);
 }
 
 /**
@@ -807,7 +802,7 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     bracketsWatch(foodsRows);
     foodsSearch = foodSearchOf({
         pick: (food: Food): void => foodPick(food, changed),
-        before: (query: string): HTMLElement[] => dishLinesOf(query, changed),
+        meals: (query: string): HTMLElement[] => dishLinesOf(query, changed),
         products: true,
         nothing: nothingFound,
     });

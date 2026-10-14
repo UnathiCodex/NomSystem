@@ -214,7 +214,7 @@ export function mealFormOf(setup: FormSetup): HTMLElement {
             foodsShow();
             foodSearchClear(search);
         },
-        before: null,
+        meals: null,
         products: true,
         nothing: "Nothing found; the plus beside Foods adds a food by hand",
     });
@@ -365,7 +365,7 @@ export function mealsSectionOf(): HTMLElement {
                         change(dish, [...dish.foods.filter((other: string): boolean => other !== lineOfFood(food)),
                             lineOfFood(food)]);
                     },
-                    before: null,
+                    meals: null,
                     products: true,
                     nothing: "Nothing found; the plus beside Foods adds a food by hand",
                 });
