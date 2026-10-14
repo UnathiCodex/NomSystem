@@ -80,7 +80,7 @@ import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import {
-    labelOf, lineOf, meetingIdOf, meetingLineOf, meetingOf, meetingSoftwareOf, onlineName, placeEdit, placeOpen,
+    labelOf, lineOf, meetingIdOf, meetingLineOf, meetingOf, meetingSoftwareOf, onlineName, placeEdit, placeOpen, shownOf,
     placesStart,
 } from "./places.ts";
 import {
@@ -491,7 +491,7 @@ function addressOf(line: string): string {
 
 /**
  * Gives the place offered in a field that the place picked is, by its name, as its field offers it: my place
- * of `Places.md`, or `Online`.
+ * of `Places.md`, or the row of `Online` of its way of meeting, see `shownOf` in `places.ts`.
  *
  * @param field - Field of a place, like `From`
  * @returns The line of my place, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, or `Online`,
@@ -499,7 +499,7 @@ function addressOf(line: string): string {
  */
 function mineOf(field: Field): string | undefined {
     const line: string = values[field.key];
-    return line === "" ? undefined : field.values.find((value: string): boolean => labelOf(value) === labelOf(line));
+    return line === "" ? undefined : field.values.find((value: string): boolean => shownOf(value) === shownOf(line));
 }
 
 /**
@@ -786,7 +786,7 @@ function fieldRowsOf(field: Field): HTMLElement[] {
         locked: field.key === "title" && asPlanned(),
         pick: (picked: string[]): void => {
             const line: string = picked[0] ?? "";
-            values[field.key] = field.key !== "title" && line !== "" && labelOf(line) === labelOf(values[field.key])
+            values[field.key] = field.key !== "title" && line !== "" && shownOf(line) === shownOf(values[field.key])
                 ? values[field.key] : line;
             if (line !== "")
                 valueAdd(field, line);
