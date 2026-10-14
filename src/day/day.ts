@@ -480,8 +480,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `blockEventInnerClass`: Adds the class `entry-inner` to the inside of the entries,
  *   so `day.css` sets the size of their lines and cuts them at the edge of the entry instead of letting them stick out,
  *   and `entry-inner-short` to the inside of short ones, which takes away the space above and below their one line
- *   and keeps it 0.9rem high, and `entry-inner-middle` to the inside of those with room for two lines,
- *   of 45 minutes, which centres their two lines in the entry, see {@link linesOf}.
+ *   and keeps it 0.9rem high, and `entry-inner-middle` to the inside of those with room for one line or two,
+ *   of half an hour or 45 minutes, which centres their lines in the entry, see {@link linesOf}.
  * - `eventSources`: The log, see {@link logSourceOf}.
  * - `editable`: Lets entries be moved and resized, those that the reader marks `editable`.
  * - `snapDuration`: Moves, resizes and selects in steps of 15 minutes, while the grid keeps a line every 30 minutes.
@@ -530,7 +530,7 @@ export function dayStart(note: boolean): void {
         blockEventInnerClass: (info: EventDisplayInfo): string => {
             if (info.isShort)
                 return "entry-inner entry-inner-short";
-            return linesOf(info) === 2 ? "entry-inner entry-inner-middle" : "entry-inner";
+            return linesOf(info) <= 2 ? "entry-inner entry-inner-middle" : "entry-inner";
         },
         eventSources: [logSourceOf()],
         editable: true,

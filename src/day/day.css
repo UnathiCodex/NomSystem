@@ -1637,8 +1637,9 @@ fieldset.entry-times {
     line-height: 1.2;
 }
 
-/* Inside of an entry with room for two lines, of 45 minutes: its two lines centred in the entry, without the space
-   above and below them; `safe` keeps a what taking a line more at the top, its last line hidden below */
+/* Inside of an entry with room for one line or two, of half an hour or 45 minutes: its lines centred in the entry,
+   without the space above and below them, so the line of half an hour stands in its middle; `safe` keeps a what
+   taking a line more at the top, its last line hidden below */
 .entry-inner-middle {
     display: flex;
     flex-direction: column;
