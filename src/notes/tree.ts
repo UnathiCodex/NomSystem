@@ -3,17 +3,22 @@
  *
  * The tree on the left of the scripts view, see `./notes.ts`, and of the editor, see `../editor/editor.ts`,
  * as Obsidian's file explorer, of one of two roots at a time, each an area of its own in the rail:
- * - `NomSkillingmodules`, the book, the modules of the semester, each folding its chapters, of its folder and of its
- *   drafts together, with their notes, which open in the scripts view to read; my module notes are written only
+ * - `NomSkillingmodules`, the book, the modules of the semester, one at a time, since I learn one module at a time:
+ *   right below the name of the root the module picked, then its chapter picked, of its folder and of its drafts
+ *   together, each a picker whose menu comes down below it, see {@link pickerOf}, then the notes of that chapter
+ *   as a plain list, nothing folding, which open in the scripts view to read; my module notes are written only
  *   through their drafts, whose pencil opens them in the editor;
  * - `NomManageplannings`, the open folder, my new system, as the reader lists it, without my old system
  *   `NomSystemprevious`, see `reader/files.ts`: a Markdown file, like `Foods.md`, opens in the editor to edit,
  *   an `.ics` file as its plain text to read, any other file shows faint and opens not.
- * The name of the root stands on top as a heading that never folds, its folders right below it, so nothing lies
- * deeper than it needs. Folders come first, all closed but those on the way to the file or note shown; while none is
- * shown, the first module opens, as the scripts view always opened it.
- * Below the name a search filters the tree as I type, as every list of the page has one, see {@link searchStart}.
- * The look of the tree is in `./notes.css`.
+ * The name of the root stands on top as a heading that never folds, so nothing lies deeper than it needs.
+ * Of my modules the module and chapter of the note shown are picked; while none is shown, the module asked for,
+ * else the first, with its first chapter. Of my new system its folders stand right below, folders first,
+ * all closed but those on the way to the file shown.
+ * A search filters the tree as I type, as every list of the page has one, of my modules only the module picked,
+ * see {@link searchStart}.
+ * The tree is as wide as its longest name, which goes on below where one is wider still, never cut;
+ * its look is in `./notes.css`.
  *
  * - `../search.ts`: Compares a typed text with the paths of the files and notes, as every search of the page does.
  */
@@ -152,24 +157,28 @@ function fileNodeOf(node: FileNode): HTMLElement {
 }
 
 /**
- * Makes a module of the semester: a folder by its name, like `IN2028_BusinessAnalyticsMachineLearning`,
- * the name of its folder as data, so it can be opened, see {@link treeShow}, its chapters in it, each folding
- * its notes, which link to the scripts view, named without `.md` as in Obsidian;
+ * Makes a module of the semester, shown once it is picked, see {@link chapterShow}: the name of its folder
+ * and its name as data, so it can be picked, see {@link treeShow}, its chapters in it, each shown once it is picked,
+ * its notes a plain list, which link to the scripts view, named without `.md` as in Obsidian;
  * a module without chapter notes holds a calm `No chapters yet`, as the skill view says it.
- * - `folder`: Folder of the module.
- * - `chapter`: Folder of a chapter.
+ * - `element`: The module.
+ * - `group`: A chapter.
  * - `link`: Link of a note.
  * - `none`: The hint for a module without chapters.
  *
  * @param module - Module with its chapters and their notes
- * @returns Its folder
+ * @returns The module
  */
-function moduleNodeOf(module: NotesModule): HTMLDetailsElement {
-    const folder: HTMLDetailsElement = folderOf(module.title);
-    folder.dataset.module = module.name;
-    folder.lastElementChild?.append(...module.chapters.map((chapter: Chapter): HTMLDetailsElement => {
-        const chapterFolder: HTMLDetailsElement = folderOf(chapter.title);
-        chapterFolder.lastElementChild?.append(...chapter.notes.map((note: NoteEntry): HTMLAnchorElement => {
+function moduleNodeOf(module: NotesModule): HTMLDivElement {
+    const element: HTMLDivElement = document.createElement("div");
+    element.className = "tree-module";
+    element.dataset.module = module.name;
+    element.dataset.title = module.title;
+    element.append(...module.chapters.map((chapter: Chapter): HTMLDivElement => {
+        const group: HTMLDivElement = document.createElement("div");
+        group.className = "tree-chapter";
+        group.dataset.chapter = chapter.title;
+        group.append(...chapter.notes.map((note: NoteEntry): HTMLAnchorElement => {
             const link: HTMLAnchorElement = document.createElement("a");
             link.className = "tree-file";
             link.dataset.path = note.path;
@@ -177,22 +186,87 @@ function moduleNodeOf(module: NotesModule): HTMLDetailsElement {
             link.textContent = note.name.replace(/\.md$/i, "");
             return link;
         }));
-        return chapterFolder;
+        return group;
     }));
     if (module.chapters.length === 0) {
         const none: HTMLParagraphElement = document.createElement("p");
         none.className = "tree-none";
         none.textContent = "No chapters yet";
-        folder.lastElementChild?.append(none);
+        element.append(none);
     }
-    return folder;
+    return element;
 }
 
 /**
- * Marks the file or note shown in the tree, and no other: opens every folder on the way to it and scrolls the tree
- * to it.
+ * Makes a picker of the tree of my modules, see the top of this file: a row, the name of what is picked with a grey
+ * arrow after it, which opens its menu right below it, the browser's own popover, which a pick, Escape or a click
+ * beside it closes; each choice a row, the one picked in the calm grey of what is picked.
+ * - `pick`: The row, a button.
+ * - `menu`: The menu.
+ *
+ * @param kind - What it picks, `module` or `chapter`, which names its anchor, see `.tree-pick` in `./notes.css`
+ * @param choices - Gives what it may pick: the modules, or the chapters of the module picked
+ * @param nameOf - Gives the name of a choice, like `01_RegressionAnalysis`
+ * @param choose - Shows the choice picked
+ * @returns The row and its menu
+ */
+function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: HTMLElement) => string,
+                  choose: (choice: HTMLElement) => void): [HTMLButtonElement, HTMLDivElement] {
+    const pick: HTMLButtonElement = document.createElement("button");
+    const menu: HTMLDivElement = document.createElement("div");
+    pick.type = "button";
+    pick.className = `tree-pick tree-pick-${kind}`;
+    pick.popoverTargetElement = menu;
+    menu.className = `tree-menu tree-menu-${kind}`;
+    menu.popover = "auto";
+    menu.addEventListener("beforetoggle", (event: ToggleEvent): void => {
+        if (event.newState !== "open")
+            return;
+        menu.replaceChildren(...choices().map((choice: HTMLElement): HTMLButtonElement => {
+            const row: HTMLButtonElement = document.createElement("button");
+            row.type = "button";
+            row.className = "tree-choice";
+            row.classList.toggle("picked", choice.classList.contains("picked"));
+            row.textContent = nameOf(choice);
+            row.addEventListener("click", (): void => {
+                menu.hidePopover();
+                choose(choice);
+            });
+            return row;
+        }));
+    });
+    return [pick, menu];
+}
+
+/**
+ * Shows one chapter of one module in the tree of my modules, see the top of this file: their names in their pickers,
+ * the notes of that chapter below, both marked `picked`, every other module and chapter hidden, see `./notes.css`;
+ * a module without chapters shows its hint `No chapters yet` and no picker of chapters.
+ * - `chapterPick`: The picker of the chapter.
+ *
+ * @param tree - The tree
+ * @param module - The module, see {@link moduleNodeOf}
+ * @param chapter - A chapter of it, `null` for a module without chapters
+ */
+function chapterShow(tree: HTMLElement, module: HTMLElement, chapter: HTMLElement | null): void {
+    tree.querySelectorAll<HTMLElement>(".tree-module").forEach((other: HTMLElement): void => {
+        other.classList.toggle("picked", other === module);
+    });
+    module.querySelectorAll<HTMLElement>(".tree-chapter").forEach((other: HTMLElement): void => {
+        other.classList.toggle("picked", other === chapter);
+    });
+    const chapterPick: HTMLButtonElement = tree.querySelector(".tree-pick-chapter") as HTMLButtonElement;
+    (tree.querySelector(".tree-pick-module") as HTMLButtonElement).textContent = module.dataset.title ?? "";
+    chapterPick.textContent = chapter?.dataset.chapter ?? "";
+    chapterPick.hidden = chapter === null;
+}
+
+/**
+ * Marks the file or note shown in the tree, and no other: picks the module and chapter of a note, see
+ * {@link chapterShow}, opens every folder on the way to a file and scrolls the tree to it.
  * - {@link CSS.escape}: Writes a path so it can stand inside a selector.
  * - `link`: Entry of the file or note shown, `null` while it is not in the tree.
+ * - `module`: The module of a note, `null` for a file of my new system.
  * - `folder`: A folder on the way to it, from the nearest one up to its root.
  *
  * @param tree - The tree
@@ -208,6 +282,9 @@ export function treeMark(tree: HTMLElement, shown: string): HTMLElement | null {
         return null;
 
     link.classList.add("shown");
+    const module: HTMLElement | null = link.closest(".tree-module");
+    if (module !== null)
+        chapterShow(tree, module, link.closest(".tree-chapter"));
     let folder: HTMLDetailsElement | null = link.closest("details");
     while (folder !== null) {
         folder.open = true;
@@ -219,25 +296,31 @@ export function treeMark(tree: HTMLElement, shown: string): HTMLElement | null {
 
 /**
  * Starts the search of the tree: as I type, only the files and notes whose path holds each typed word show,
- * like `2028 regression` the notes of `IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis`, every folder
- * on the way to them open, the outline of the note shown and the hint `No chapters yet` hidden; the folders open before
- * the search open again once it is empty. Enter opens the first file or note shown, as a click on it does,
- * Escape empties the search.
+ * of my modules only those of the module picked, of every chapter of it, like `regression` the notes
+ * of `01_RegressionAnalysis` and `02_LogisticPoissonRegression`, of my new system every folder on the way to them open;
+ * the outline of the note shown and the hint `No chapters yet` hidden; the folders open before the search open again
+ * once it is empty, and only the chapter picked shows again. Enter opens the first file or note shown, as a click on it
+ * does, Escape empties the search.
  * - `opened`: The folders open before the search, `null` while nothing is typed.
- * - `show`: Shows the tree for the typed text.
- * - `searched`: The files and notes of the tree, without the headings of the outline.
+ * - `scope`: Where it searches: the module picked, else the whole tree.
+ * - `show`: Shows the tree for the typed text, `tree-searching` on the tree while something is typed,
+ *   so every chapter of the module picked shows, see `./notes.css`.
+ * - `searched`: The files and notes searched, without the headings of the outline.
  *
  * @param tree - The tree
  * @param search - Its search field
  */
 function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
     let opened: Set<HTMLDetailsElement> | null = null;
-    const searched: () => HTMLElement[] = (): HTMLElement[] => [...tree.querySelectorAll<HTMLElement>(".tree-file")]
+    const scope: () => HTMLElement = (): HTMLElement =>
+        tree.querySelector<HTMLElement>(".tree-module.picked") ?? tree;
+    const searched: () => HTMLElement[] = (): HTMLElement[] => [...scope().querySelectorAll<HTMLElement>(".tree-file")]
         .filter((file: HTMLElement): boolean => file.closest(".tree-outline") === null);
     const show: () => void = (): void => {
         const words: string[] = wordsOf(search.value);
         const folders: HTMLDetailsElement[] = [...tree.querySelectorAll<HTMLDetailsElement>("details.tree-folder")]
             .filter((folder: HTMLDetailsElement): boolean => folder.closest(".tree-outline") === null);
+        tree.classList.toggle("tree-searching", words.length > 0);
         if (words.length === 0) {
             tree.querySelectorAll(".tree-unfound").forEach((element: Element): void => element.classList.remove("tree-unfound"));
             if (opened !== null)
@@ -259,6 +342,9 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
             if (found)
                 folder.open = true;
         });
+        scope().querySelectorAll<HTMLElement>(".tree-chapter").forEach((chapter: HTMLElement): void => {
+            chapter.classList.toggle("tree-unfound", chapter.querySelector(".tree-file:not(.tree-unfound)") === null);
+        });
     };
     search.addEventListener("input", show);
     search.addEventListener("keydown", (event: KeyboardEvent): void => {
@@ -278,14 +364,19 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
 export type TreeRoot = "NomSkillingmodules" | "NomManageplannings";
 
 /**
- * Loads one root of the tree from the reader and shows it, see the top of this file: its name as a heading, its search,
- * see {@link searchStart}, its folders below, the file or note shown marked, see {@link treeMark}; in the modules,
- * while none is shown, the module asked for stands open, scrolled into sight, like the module of a skill entry clicked
- * in the day, see `../skill/links.ts`, else the first module.
+ * Loads one root of the tree from the reader and shows it, see the top of this file: its name as a heading,
+ * of my modules the pickers of module and chapter, see {@link pickerOf}, its search, see {@link searchStart},
+ * its folders or notes below, the file or note shown marked, see {@link treeMark}; in the modules, while none is shown,
+ * the module asked for is picked, like the module of a skill entry clicked in the day, see `../skill/links.ts`,
+ * else the first module, with its first chapter.
  * - `heading`: The name of the root on top.
- * - `search`: The search of the tree, below it.
- * - `entries`: Its folders and files.
- * - `asked`: The folder of the module asked for, `null` for none.
+ * - `search`: The search of the tree, below the pickers.
+ * - `modules`: Of my modules the modules, each with its chapters and notes, see {@link moduleNodeOf}.
+ * - `choose`: Picks a module or a chapter: shows it, see {@link chapterShow}, and empties the search;
+ *   a module with the chapter of the note shown, if it holds the note, else with its first chapter.
+ * - `modulePick`, `chapterPick`: The pickers of module and chapter, each with its menu.
+ * - `entries`: Of my new system its folders and files.
+ * - `asked`: The module asked for, `null` for none.
  *
  * @param tree - Place of the tree
  * @param root - The root to show
@@ -303,15 +394,34 @@ export async function treeShow(tree: HTMLElement, root: TreeRoot, shown: string,
     search.className = "tree-search";
     search.placeholder = "Search";
     search.autocomplete = "off";
-    const entries: HTMLElement[] = root === "NomManageplannings"
-        ? (await readerAsk<FileNode[]>("/api/edit/tree")).map(fileNodeOf)
-        : (await readerAsk<NotesModule[]>("/api/notes/modules")).map(moduleNodeOf);
-    tree.replaceChildren(heading, search, ...entries);
-    searchStart(tree, search);
-    if (treeMark(tree, shown) !== null || root === "NomManageplannings")
+    if (root === "NomManageplannings") {
+        const entries: HTMLElement[] = (await readerAsk<FileNode[]>("/api/edit/tree")).map(fileNodeOf);
+        tree.replaceChildren(heading, search, ...entries);
+        searchStart(tree, search);
+        treeMark(tree, shown);
         return;
-    const asked: HTMLDetailsElement | null = module === "" ? null
-        : tree.querySelector<HTMLDetailsElement>(`details[data-module="${CSS.escape(module)}"]`);
-    (asked ?? tree.querySelector<HTMLDetailsElement>(":scope > details"))?.setAttribute("open", "");
-    asked?.scrollIntoView({ block: "nearest" });
+    }
+
+    const modules: HTMLDivElement[] = (await readerAsk<NotesModule[]>("/api/notes/modules")).map(moduleNodeOf);
+    const choose: (choice: HTMLElement) => void = (choice: HTMLElement): void => {
+        const picked: HTMLElement = choice.closest(".tree-module") as HTMLElement;
+        const chapter: HTMLElement | null = choice !== picked ? choice
+            : picked.querySelector(".tree-file.shown")?.closest<HTMLElement>(".tree-chapter")
+                ?? picked.querySelector(".tree-chapter");
+        chapterShow(tree, picked, chapter);
+        search.value = "";
+        search.dispatchEvent(new Event("input"));
+    };
+    const modulePick: [HTMLButtonElement, HTMLDivElement] = pickerOf("module", (): HTMLElement[] => modules,
+        (choice: HTMLElement): string => choice.dataset.title ?? "", choose);
+    const chapterPick: [HTMLButtonElement, HTMLDivElement] = pickerOf("chapter", (): HTMLElement[] =>
+        [...tree.querySelectorAll<HTMLElement>(".tree-module.picked > .tree-chapter")],
+        (choice: HTMLElement): string => choice.dataset.chapter ?? "", choose);
+    tree.replaceChildren(heading, ...modulePick, ...chapterPick, search, ...modules);
+    searchStart(tree, search);
+    if (treeMark(tree, shown) !== null || modules.length === 0)
+        return;
+    const asked: HTMLDivElement | undefined = modules.find((element: HTMLDivElement): boolean =>
+        element.dataset.module === module);
+    choose(asked ?? modules[0]);
 }

@@ -49,17 +49,109 @@
     display: none;
 }
 
-/* Names in the tree on one line, cut with an ellipsis, rows a little apart, so their greys never touch */
+/* Names in the tree going on below where the tree has no room, never cut, rows a little apart,
+   so their greys never touch */
 .tree-folder > summary,
-.tree-file {
+.tree-file,
+.tree-pick,
+.tree-choice {
     display: block;
-    overflow: hidden;
     margin: 0.125rem 0;
     padding: 0 0.5rem;
     border-radius: var(--radius);
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
     cursor: pointer;
+}
+
+/* Pickers of my modules below the root, the module, then its chapter, see `pickerOf` in `tree.ts`: each a row
+   of the tree, the name picked in the light text and the grey arrow of a folder after it, turned down,
+   which opens its menu; each the anchor of its menu */
+.tree-pick,
+.tree-choice {
+    width: 100%;
+    border: 0;
+    background: none;
+    color: var(--text-main);
+    font: inherit;
+    text-align: left;
+}
+
+.tree-pick::after {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1lh;
+    margin-left: 0.25rem;
+    vertical-align: top;
+    background: var(--text-muted);
+    mask: var(--fold-icon) center / 0.875em no-repeat;
+}
+
+.tree-pick-module {
+    anchor-name: --tree-module;
+}
+
+.tree-pick-chapter {
+    anchor-name: --tree-chapter;
+}
+
+/* Menu of a picker right under it and as wide as the tree, as the menus of the dialogs: the page's background,
+   a grey line and a soft shadow; its rows those of the tree, the one picked in the calm grey of what is picked;
+   it scrolls where the room below is short */
+.tree-menu {
+    position: fixed;
+    inset: auto;
+    top: calc(anchor(bottom) + 0.25rem);
+    bottom: var(--gap);
+    left: anchor(left);
+    width: anchor-size(width);
+    height: fit-content;
+    max-height: stretch;
+    margin: 0;
+    padding: 0.375rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--text-main);
+    box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.5);
+    overflow-y: auto;
+    font-size: var(--control-text);
+    line-height: var(--chip-height);
+}
+
+.tree-menu-module {
+    position-anchor: --tree-module;
+}
+
+.tree-menu-chapter {
+    position-anchor: --tree-chapter;
+}
+
+.tree-menu .tree-choice:first-child {
+    margin-top: 0;
+}
+
+.tree-menu .tree-choice:last-child {
+    margin-bottom: 0;
+}
+
+.tree-choice.picked {
+    background: var(--chosen);
+}
+
+/* Of my modules only the module and chapter picked, see `chapterShow` in `tree.ts`; while I search, every chapter
+   of the module picked, see `searchStart`; the notes in line with the names of the pickers */
+.tree-module:not(.picked),
+.tree-chapter:not(.picked) {
+    display: none;
+}
+
+.tree-searching .tree-chapter:not(.tree-unfound) {
+    display: block;
+}
+
+.tree-chapter > .tree-file {
+    padding-left: 0.5rem;
 }
 
 /* Folder name with a grey arrow before it, turned down while open */
@@ -121,7 +213,9 @@
 
 /* Entry under the pointer one grey lighter; the note or file shown in the calm grey of what is picked */
 .tree-folder > summary:hover,
-.tree-file:hover {
+.tree-file:hover,
+.tree-pick:hover,
+.tree-choice:hover {
     background: var(--fill);
 }
 
