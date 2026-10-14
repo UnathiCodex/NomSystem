@@ -504,12 +504,6 @@ const quarterHour: number = 15 * 60 * 1000;
  */
 const sessionPause: number = 30 * 60 * 1000;
 
-/**
- * Types of skill entries I pace myself, whose sessions run a timer: homework, `HU`, and no type, my own learning,
- * theory and tasks together, like `IN2028`, or work on a project, like `WokFlow`; a lecture, an exercise
- * or a tutorial keeps the pace of its room.
- */
-const pacedTypes: string[] = ["HU", ""];
 
 /**
  * Heading of a task, `## Task. <name>`, or `## Task. <name> (cold)` for a cold task:
@@ -1314,7 +1308,8 @@ export function tutorAdd(task: string): void {
 /**
  * Reads the session running now, for the timer of the day: the skill entry of the moment, of any module,
  * the last one of the log that started before now and ended at most {@link sessionPause} ago, as the buttons of a task
- * write into it, see {@link attemptAdd}; only when it is of a type I pace myself, see {@link pacedTypes}.
+ * write into it, see {@link attemptAdd}, of every type, a lecture as my own learning, so the timer of the day
+ * always shows the session I am in.
  * - `now`: The moment.
  * - `open`: The skill entry of the moment.
  *
@@ -1324,7 +1319,7 @@ export function sessionRead(): Session | null {
     const now: Date = new Date();
     const open: Entry | undefined = skillEntriesRead(new Date(now.getTime() - sessionPause).toISOString(), now.toISOString())
         .at(-1);
-    if (open === undefined || !pacedTypes.includes(open.type))
+    if (open === undefined)
         return null;
     return {
         module: open.module, type: open.type, title: open.title,
