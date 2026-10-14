@@ -75,6 +75,8 @@ export type SearchSetup = {
  * - `enter`: Whether Enter waits for the results of the text typed, to take the first, see {@link firstPick}.
  * - `asking`: Key of my food whose `×` asked `Really remove?`, empty for none.
  * - `reveal`: Whether the food open goes into sight once shown, as after a click on it in a meal, see {@link foodShow}.
+ * - `added`: Keys of the foods I added in the food view since it opened, the last first, which stay on top until
+ *   the page loads anew, so I mend what came wrong right away, see {@link addedOf}.
  */
 type Search = {
     input: HTMLInputElement;
@@ -88,6 +90,7 @@ type Search = {
     enter: boolean;
     asking: string;
     reveal: boolean;
+    added: string[];
 };
 
 /**
@@ -301,7 +304,9 @@ function detailOf(search: Search, food: Food): HTMLElement {
             name: text("name"), brand: text("brand"), store: text("store"), portion: portion,
             ...own ? { protein: protein, carbs: carbs, fat: fat, pack: text("pack") } : {},
         }).then((): void => {
-            search.open = keyOf({ ...food, name: text("name"), brand: text("brand"), store: text("store") });
+            const renamed: string = keyOf({ ...food, name: text("name"), brand: text("brand"), store: text("store") });
+            search.added = search.added.map((key: string): string => key === keyOf(food) ? renamed : key);
+            search.open = renamed;
             resultsLoad(search, 1);
         }).catch((reason: unknown): void => {
             console.error(reason);
@@ -454,15 +459,16 @@ const shownFoods: number = 10;
 
 /**
  * Shows what the search found in its sections, each its head, see {@link listHeadOf}, a thin grey line between them,
- * those that found nothing left out: my meals, where the search shows them, see {@link SearchSetup}; my foods, while
- * nothing is typed only the most eaten, see {@link shownFoods}, and the one open, with a grey line how many more
- * a search finds;
+ * those that found nothing left out: my meals, where the search shows them, see {@link SearchSetup}; while nothing
+ * is typed the foods I just added, the last first, see {@link addedOf}; my foods, while nothing is typed only the most
+ * eaten but those just added, see {@link shownFoods}, and the one open, with a grey line how many more a search finds;
  * then, for a search of some letters, the products of Open Food Facts of every page loaded, how many of how many,
  * like `8 of 54`, and `More` while a next page holds more, or that Open Food Facts cannot be reached;
  * one grey line when nothing is found at all.
  * - `found`: What the search found.
  * - `query`: The search as typed.
  * - `meals`: Lines of my meals found.
+ * - `fresh`: The foods just added, while nothing is typed.
  * - `listed`: My foods listed.
  * - `more`: How many of my foods only a search lists.
  * - `products`: Products shown.
@@ -480,18 +486,24 @@ function resultsShow(search: Search): void {
         return;
     }
     const meals: HTMLElement[] = search.setup.meals?.(query) ?? [];
-    const listed: Food[] = query !== "" ? found.foods : found.foods.filter((food: Food, index: number): boolean =>
+    const fresh: Food[] = query !== "" ? [] : search.added.flatMap((key: string): Food[] =>
+        found.foods.filter((food: Food): boolean => keyOf(food) === key));
+    const rest: Food[] = found.foods.filter((food: Food): boolean => !fresh.includes(food));
+    const listed: Food[] = query !== "" ? rest : rest.filter((food: Food, index: number): boolean =>
         index < shownFoods || keyOf(food) === search.open);
-    const more: number = found.foods.length - listed.length;
+    const more: number = rest.length - listed.length;
     const products: Product[] = query === "" ? [] : found.products ?? [];
     const sections: HTMLElement[][] = [];
 
     if (meals.length > 0)
         sections.push([listHeadOf("My meals", "kcal / meal"), ...meals]);
-    const fresh: HTMLElement[] = newFoodOf(search, query, found.foods);
-    if (found.foods.length > 0 || fresh.length > 0)
+    const plus: HTMLElement[] = newFoodOf(search, query, found.foods);
+    if (fresh.length > 0)
+        sections.push([listHeadOf("Just added", "kcal / 100 g"),
+            ...fresh.flatMap((food: Food): HTMLElement[] => mineLinesOf(search, food))]);
+    if (listed.length > 0 || plus.length > 0)
         sections.push([listHeadOf("My foods", "kcal / 100 g"),
-            ...listed.flatMap((food: Food): HTMLElement[] => mineLinesOf(search, food)), ...fresh,
+            ...listed.flatMap((food: Food): HTMLElement[] => mineLinesOf(search, food)), ...plus,
             ...more > 0 ? [elementOf("p", "food-none food-nothing", `${more} more by searching`)] : []]);
     if (products.length > 0)
         sections.push([listHeadOf("Open Food Facts", "kcal / 100 g"),
@@ -552,9 +564,10 @@ function newFoodOf(search: Search, query: string, mine: Food[]): HTMLElement[] {
 }
 
 /**
- * Gives what a search does with a food once the reader wrote it: clears the text typed, so the list shows all my
- * foods again, the new one among them, closed, and I am out of the search, see {@link foodSearchClear}; and picks it
- * where foods are picked.
+ * Gives what a search does with a food once the reader wrote it: clears the text typed, so the list shows my foods
+ * again, and I am out of the search, see {@link foodSearchClear}; where foods are picked it picks it, in the food view
+ * it puts it on top under `Just added`, open, so I mend at once what came wrong from Open Food Facts or my typing,
+ * see {@link resultsShow}.
  *
  * @param search - The search
  * @returns Takes the food written
@@ -562,7 +575,9 @@ function newFoodOf(search: Search, query: string, mine: Food[]): HTMLElement[] {
 function addedOf(search: Search): (food: Food) => void {
     return (food: Food): void => {
         search.input.value = "";
-        search.open = "";
+        search.open = search.setup.pick === null ? keyOf(food) : "";
+        if (search.setup.pick === null)
+            search.added = [keyOf(food), ...search.added.filter((key: string): boolean => key !== keyOf(food))];
         resultsLoad(search, 1);
         search.setup.pick?.(food);
     };
@@ -775,6 +790,7 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
         enter: false,
         asking: "",
         reveal: false,
+        added: [],
     };
     let waiting: number = 0;
 
