@@ -126,6 +126,22 @@ export function labelOf(line: string): string {
 }
 
 /**
+ * Gives a place as the grid and the plan show it: its name, see {@link labelOf}, and for `Online` its way of meeting
+ * in brackets after it, read from its line, see {@link meetingOf}, like `Online (Teams)` of
+ * `Online, Teams, ID 123 456 789 012 345`, as a type stands after its skill; an older `Online` without a way alone.
+ * - `label`: Its name.
+ * - `way`: Its way of meeting, empty for none.
+ *
+ * @param line - Place as an entry writes it
+ * @returns Place as shown, like `Online (Teams)` or `Home Munich`
+ */
+export function shownOf(line: string): string {
+    const label: string = labelOf(line);
+    const way: string = label === onlineName ? meetingOf(line).software : "";
+    return way === "" ? label : `${label} (${way})`;
+}
+
+/**
  * Category of ways, whose place shows as the route, see {@link whereOf}.
  */
 export const wayName: string = "Way";
@@ -145,7 +161,7 @@ export const wayName: string = "Way";
  */
 export function whereOf(category: string, from: string, location: string): string {
     const start: string = labelOf(from);
-    const goal: string = labelOf(location);
+    const goal: string = shownOf(location);
     if (category !== wayName || (start === "" && goal === ""))
         return goal;
     return `${start} -> ${goal}`.trim();
@@ -202,7 +218,7 @@ function routeArrowOf(): SVGElement {
  */
 export function whereLinkedOf(category: string, from: string, location: string, link: string): (string | Node)[] {
     const start: string = labelOf(from);
-    const goal: string = labelOf(location);
+    const goal: string = shownOf(location);
     const place: (string | Node)[] = goal === "" ? [] : [link === "" ? goal : placeAnchorOf(goal, link)];
     if (category !== wayName || (start === "" && goal === ""))
         return place;

@@ -100,6 +100,14 @@ const tableHead: number = 2;
  */
 export const onlineName: string = "Online";
 
+/**
+ * The ways I meet online, each a row of `Online` in the list of places, with the way grey beside it as a place has
+ * its address, like `Online, Teams`, so the list holds one row per way and never a row per link, see
+ * `categoriesRead` in `categories.ts`; the entry then writes its meeting after it, like
+ * `Online, Teams, ID 123 456 789 012 345`, and the calendar shows `Online (Teams)`.
+ */
+export const onlineWays: string[] = ["Teams", "Zoom", "BBB", "TUM-Live"];
+
 
 /**
  * Cleans a text for a cell of `Places.md`: `|` and line breaks become spaces, spaces in a row one, none at the ends.

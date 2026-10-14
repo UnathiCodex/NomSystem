@@ -36,7 +36,7 @@
  */
 
 import { entriesRead, skillName } from "./calendar.ts";
-import { labelOf, lineOf, onlineName, placesRead, roomsRead } from "./places.ts";
+import { labelOf, lineOf, onlineName, onlineWays, placesRead, roomsRead } from "./places.ts";
 import { day } from "./sources.ts";
 
 import type { Entry, EntryTexts } from "./calendar.ts";
@@ -379,10 +379,14 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * see {@link stepsWithNoteOf}; but the categories the dialog leaves out, see {@link hiddenNames}, and the whats
  * a category no longer offers, see {@link retiredWhats}.
  * - `logs`: Log entries up to now.
- * - `mine`: My places, and `Online`, the place of a meeting online, without address, see `onlineName` in `places.ts`.
- * - `names`: Their names.
- * - `places`: One list of places for every field of a place: my places and `Online`, the most used first,
- *   see {@link placeUsesOf}, each as the line an entry writes, see `lineOf` in `places.ts`.
+ * - `own`: My places of `Places.md`.
+ * - `online`: The rows of `Online`, the place of a meeting online, one per way I meet, its way as its address,
+ *   like `Online, Teams`, see `onlineName` and `onlineWays` in `places.ts`.
+ * - `mine`: My places and the rows of `Online`.
+ * - `names`: The names of my places and `Online`, once.
+ * - `places`: One list of places for every field of a place: my places and the rows of `Online`, the most used
+ *   first, see {@link placeUsesOf}, the rows of `Online` together where `Online` stands, each as the line an entry
+ *   writes, see `lineOf` in `places.ts`.
  * - `offline`: The same without `Online`, for the places of a way, see {@link offlineNames}.
  * - `rooms`: The rooms of the university for every field of a place, each as the line an entry writes, in the order
  *   of `Rooms.md`, none of the name of one of my places.
@@ -393,11 +397,13 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  */
 export function categoriesRead(now: string): CategoryShown[] {
     const logs: Entry[] = logsRead(now);
-    const mine: Place[] = [...placesRead(), { name: onlineName, address: "", link: "" }];
-    const names: string[] = mine.map((place: Place): string => place.name);
+    const own: Place[] = placesRead();
+    const online: Place[] = onlineWays.map((way: string): Place => ({ name: onlineName, address: way, link: "" }));
+    const mine: Place[] = [...own, ...online];
+    const names: string[] = [...own.map((place: Place): string => place.name), onlineName];
     const places: string[] = valuesOrder(placeUsesOf(logs).filter((use: string): boolean => names.includes(use)), names)
-        .map((name: string): string => lineOf(mine[names.indexOf(name)]));
-    const offline: string[] = places.filter((line: string): boolean => line !== onlineName);
+        .flatMap((name: string): string[] => name === onlineName ? online.map(lineOf) : [lineOf(own[names.indexOf(name)])]);
+    const offline: string[] = places.filter((line: string): boolean => labelOf(line) !== onlineName);
     const rooms: Place[] = roomsRead().filter((room: Place): boolean => !names.includes(room.name));
     const links: { [value: string]: string } = Object.fromEntries([...mine, ...rooms]
         .filter((place: Place): boolean => place.link !== "")
