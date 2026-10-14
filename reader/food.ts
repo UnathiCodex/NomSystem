@@ -13,7 +13,8 @@
  * without spaces, each word with a capital, like `ChiliConCarne` of `Chili con Carne`.
  * `Foods.md` is one Markdown table with one row per food: its name, kcal, protein, carbs and fat per 100 g,
  * its usual portion in grams, the Open Food Facts barcode it came from, and its brand and store, like `Milbona`
- * and `Lidl`, so the same name of two shops never mixes up; barcode, brand and store empty for a food added by hand.
+ * and `Lidl`, so the same name of two shops never mixes up; the barcode empty for a food added by hand, while every
+ * food added has its brand and store, typed where Open Food Facts knows none, so all foods are written alike.
  * A row written before brand and store were kept has neither, and the table gets their columns with the next food.
  * A meal is a log entry of the category `Food`: `SUMMARY` what I ate, its foods parted by `, `,
  * like `Reis, Bohnen, Eier`, `LOCATION` where, and one line `X-FOOD` per food, its name in `Foods.md`
@@ -70,8 +71,8 @@ export type Nutrients = {
  * - `name`: Name, by which a meal lists it, like `Reis` of `X-FOOD:Reis;150`; unique, without `|` and `;`.
  * - `portion`: Usual portion in grams, which counts when a meal lists the food without grams.
  * - `barcode`: Open Food Facts barcode it came from, like `20112745`; empty for a food added by hand.
- * - `brand`: Its first brand, like `Milbona`, empty when none is known.
- * - `store`: The first store that sells it, like `Lidl`, empty when none is known.
+ * - `brand`: Its brand, like `Milbona`, empty only in a row written before every food had one.
+ * - `store`: The store I bought it in, like `Lidl`, empty only in a row written before every food had one.
  */
 export type Food = Nutrients & {
     name: string;
@@ -774,8 +775,9 @@ export function brandRemove(sent: string): string[] {
  *
  * @param sent - Food as the page sends it, picked from Open Food Facts with its brand and store, or typed by hand
  * @returns The food as written
- * @throws {Error} - When the name is empty or another food has it, ignoring case, a value is no number of 0 or more,
- *   the portion not more than 0, the barcode not only digits, or `Foods.md` lies outside the new system or holds no table
+ * @throws {Error} - When the name is empty or another food has it, ignoring case, the brand or the store is empty,
+ *   a value is no number of 0 or more, the portion not more than 0, the barcode not only digits,
+ *   or `Foods.md` lies outside the new system or holds no table
  */
 export function foodAdd(sent: Food): Food {
     const values: unknown[] = [sent.kcal, sent.protein, sent.carbs, sent.fat, sent.portion];
@@ -795,6 +797,8 @@ export function foodAdd(sent: Food): Food {
     };
     if (added.name === "" || foodsRead().some((mine: Food): boolean => mine.name.toLowerCase() === added.name.toLowerCase()))
         throw new Error(`No new name of a food: ${added.name}`);
+    if (added.brand === "" || added.store === "")
+        throw new Error(`No brand or store of a food: ${JSON.stringify(sent)}`);
     if (added.portion === 0)
         throw new Error(`No portion of a food: ${JSON.stringify(sent)}`);
     if (!/^\d*$/.test(added.barcode))

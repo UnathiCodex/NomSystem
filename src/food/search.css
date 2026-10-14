@@ -244,6 +244,11 @@ button.food-row {
     width: 100%;
 }
 
+/* Field of a brand or a store, as wide as a usual one, like `Gut & Günstig` */
+.food-field-word input {
+    width: 8rem;
+}
+
 /* Buttons of the form one chip high and at least as wide, outlined, an icon in the middle,
    a grey lighter under the pointer */
 .food-form button {

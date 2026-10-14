@@ -81,11 +81,17 @@ const pause: number = 300;
 
 /**
  * Fields of the form to add a food: the name shown and the value of the food it fills.
- * A product of Open Food Facts brings its values, so its form asks only for name and portion.
  */
 const fields: [string, keyof Food][] = [
-    ["Name", "name"], ["kcal", "kcal"], ["Protein", "protein"], ["Carbs", "carbs"], ["Fat", "fat"], ["Portion g", "portion"],
+    ["Name", "name"], ["Brand", "brand"], ["Store", "store"], ["kcal", "kcal"], ["Protein", "protein"], ["Carbs", "carbs"],
+    ["Fat", "fat"], ["Portion g", "portion"],
 ];
+
+/**
+ * Values the form asks for every food, a product of Open Food Facts too, which brings the rest: its name, its brand
+ * and the store I bought it in, so every food has all three, like `Skyr natur · K-Classic · Kaufland`, and its portion.
+ */
+const asked: (keyof Food)[] = ["name", "brand", "store", "portion"];
 
 /**
  * Portion of a product without serving that the form to add it starts with, in grams.
@@ -177,7 +183,8 @@ function numberRead(text: string): number {
 
 /**
  * Opens the form to add a food below a row or below the + of an own food by hand, in place of any form open before:
- * name and portion prefilled from the food given, for a food by hand also its values per 100 g, empty where 0.
+ * name, brand, store and portion prefilled from the food given, empty where it has none, for a food by hand also
+ * its values per 100 g, empty where 0, see {@link asked}.
  * Add, its check, or Enter in a field, sends the food with its brand and store; Cancel, its cross, or Escape in a field,
  * closes the form. When the reader does not take the food, like for a name another food has,
  * the form stays open and says so.
@@ -197,7 +204,8 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
     after.parentElement?.querySelector(".food-form")?.remove();
     const form: HTMLElement = elementOf("div", "food-form", "");
     const inputs: Map<keyof Food, HTMLInputElement> = new Map();
-    const error: HTMLElement = elementOf("p", "food-error", "Not saved: it needs a new name, numbers, and a portion above 0");
+    const error: HTMLElement = elementOf("p", "food-error",
+        "Not saved: it needs a new name, a brand and a store, numbers, and a portion above 0");
     const value: (key: keyof Food) => string = (key: keyof Food): string =>
         inputs.get(key)?.value.trim() ?? String(food[key]);
     const add: () => void = (): void => {
@@ -205,7 +213,7 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
         foodSend({
             name: value("name"), kcal: numberRead(value("kcal")), protein: numberRead(value("protein")),
             carbs: numberRead(value("carbs")), fat: numberRead(value("fat")), portion: numberRead(value("portion")),
-            barcode: food.barcode, brand: food.brand, store: food.store,
+            barcode: food.barcode, brand: value("brand"), store: value("store"),
         }).then(added).catch((reason: unknown): void => {
             console.error(reason);
             error.hidden = false;
@@ -214,14 +222,16 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
     };
 
     fields
-        .filter(([, key]: [string, keyof Food]): boolean => byHand || key === "name" || key === "portion")
+        .filter(([, key]: [string, keyof Food]): boolean => byHand || asked.includes(key))
         .forEach(([name, key]: [string, keyof Food]): void => {
-            const label: HTMLElement = elementOf("label", key === "name" ? "food-field food-field-name" : "food-field", name);
+            const word: boolean = typeof food[key] === "string";
+            const label: HTMLElement = elementOf("label",
+                key === "name" ? "food-field food-field-name" : word ? "food-field food-field-word" : "food-field", name);
             const input: HTMLInputElement = document.createElement("input");
             input.type = "text";
             input.autocomplete = "off";
-            input.inputMode = key === "name" ? "text" : "decimal";
-            input.value = key === "name" || food[key] !== 0 ? String(food[key]) : "";
+            input.inputMode = word ? "text" : "decimal";
+            input.value = food[key] === 0 ? "" : String(food[key]);
             input.addEventListener("keydown", (event: KeyboardEvent): void => {
                 if (event.key === "Enter") {
                     event.preventDefault();
