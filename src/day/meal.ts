@@ -655,10 +655,10 @@ export async function mealsNewSend(): Promise<void> {
 
 /**
  * Builds my meals as the search of the row `Foods` shows them above my foods, see `../food/search.ts`: while the text
- * typed is no meal of mine nor of this entry, first the one plus with it, `+ New meal “Chili con Carne”`, see
- * {@link mealNew}; then the line of each meal whose name or foods hold the words typed, see `dishesFound` in
- * `../food/meals.ts`, its name with its first foods in brackets, see `dishNameOf` there, and what it gave the last time
- * I ate it; a click picks it, see {@link dishPick}.
+ * typed is no meal of mine nor of this entry, nor a barcode, first the one plus with it,
+ * `+ New meal “Chili con Carne”`, see {@link mealNew}; then the line of each meal whose name or foods hold the words
+ * typed, see `dishesFound` in `../food/meals.ts`, its name with its first foods in brackets, see `dishNameOf` there,
+ * and what it gave the last time I ate it; a click picks it, see {@link dishPick}.
  * - `name`: The text typed as the name of a meal.
  * - `lines`: Lines of the meals found.
  * - `plus`: The plus of a new meal.
@@ -671,7 +671,7 @@ function dishLinesOf(query: string, changed: () => void): HTMLElement[] {
     const name: string = mealNameOf(query);
     const lines: HTMLElement[] = dishesFound(dishes, query).map((dish: Dish): HTMLElement =>
         listLineOf(dishNameOf(dish), dish.kcal, (): void => dishPick(dish, changed), null)[0]);
-    if (name === "" || [...dishes, ...meals].some((meal: Dish | MealPick): boolean =>
+    if (name === "" || /^\d{8,14}$/.test(name) || [...dishes, ...meals].some((meal: Dish | MealPick): boolean =>
         meal.name.toLowerCase() === name.toLowerCase()))
         return lines;
     const plus: HTMLButtonElement = buttonOf("picker-new", "", (): void => mealNew(name, changed));
