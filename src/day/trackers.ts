@@ -277,8 +277,8 @@ function foodOf(trackers: Trackers, day: string): HTMLElement {
 
 /**
  * Builds the sleep: how long the night of the day lasted, the sleep I woke up from that morning, in hours
- * and minutes, each two digits, like `07h 30m`, or `08h 00m` on the hour; while no night is logged its format
- * `00h 00m` faint, as a placeholder names it, so no dash stands there and the frame keeps its width.
+ * and minutes, each two digits, like `07h 30m`, or `08h 00m` on the hour; while no night is logged `00h 00m`,
+ * in the colour of the text like the water's `0.00 l`, so no dash stands there and the frame keeps its width.
  * - `night`: The night of the day, `null` for none.
  * - `length`: How long it lasted as shown, see `lengthOf` in `times.ts`.
  *
@@ -288,9 +288,7 @@ function foodOf(trackers: Trackers, day: string): HTMLElement {
 function sleepOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const night: Night | null = trackers.sleep.night;
-    const length: HTMLElement = night === null
-        ? elementOf("span", "tracker-value tracker-empty", lengthOf(0))
-        : elementOf("span", "tracker-value", lengthOf(night.minutes));
+    const length: HTMLElement = elementOf("span", "tracker-value", lengthOf(night === null ? 0 : night.minutes));
     row.append(elementOf("span", "tracker-name", "Sleep"), length);
     return row;
 }
