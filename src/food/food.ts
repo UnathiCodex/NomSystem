@@ -141,8 +141,9 @@ function totalsShow(day: FoodDay): void {
 
 /**
  * Builds the line of a food of a meal: its name, its brand and store in brackets after it, those it has,
- * as everywhere, like `Reis (Golden Sun, Lidl)`, its grams and its kcal; a food not in `Foods.md` without kcal,
- * since the hint below the totals names it, see {@link totalsShow}.
+ * as everywhere, like `Reis (Golden Sun, Lidl)`, and its grams in the column of numbers, where its meal has its kcal,
+ * since a meal has no grams of its own; a food not in `Foods.md` is named by the hint below the totals,
+ * see {@link totalsShow}.
  * - `name`: Name of the food, see `foodNameOf` in `./foods.ts`.
  *
  * @param eaten - Food with what it gives
@@ -155,14 +156,14 @@ function eatenLineOf(eaten: Eaten): HTMLElement {
         elementOf("span", "", ""),
         name,
         elementOf("span", "food-grams", eaten.grams > 0 ? amountTextOf(eaten.grams, "g") : ""),
-        elementOf("span", "food-kcal", eaten.known ? amountTextOf(eaten.kcal, "kcal") : ""),
     );
     return line;
 }
 
 /**
- * Builds the lines of a meal: its start, linking to its day in the day view, what and where, and its kcal,
- * none when it lists no foods, since then it counts nothing; below it a line per food, or a hint when it lists none.
+ * Builds the lines of a meal: its start, linking to its day in the day view, what and where, and its kcal in the column
+ * of numbers, none when it lists no foods, since then it counts nothing; below it a line per food with its grams
+ * in that column, or a hint when it lists none.
  * - `head`: Line of the meal itself.
  * - `start`: Its start, like `13:00`.
  * - `what`: What I ate, then where.
@@ -179,7 +180,7 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
     start.textContent = new Date(meal.start).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     if (meal.location !== "")
         what.append(elementOf("span", "food-place", ` · ${labelOf(meal.location)}`));
-    head.append(start, what, elementOf("span", "", ""),
+    head.append(start, what,
         elementOf("span", "food-kcal", meal.foods.length > 0 ? amountTextOf(meal.kcal, "kcal") : ""));
 
     const lines: HTMLElement[] = meal.foods.map(eatenLineOf);

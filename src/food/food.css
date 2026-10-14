@@ -1,7 +1,6 @@
 /* Food, in the scheme of the day: the bar of the shown day over the whole width, then the day and my meals and foods
-   side by side where both fit, else one below the other, beside the areas at the left edge; the day at least 30rem
-   and my meals and foods at least 30rem, the day taking three parts of every width beyond, they one, so the foods
-   of a meal keep their brackets on their line;
+   side by side where both fit, else one below the other, beside the areas at the left edge; the day 32rem wide,
+   its numbers close to its names, my meals and foods all the rest, so their rows stay flat, on one line;
    the page itself scrolls, no box of its own, so the wheel, a swipe, the keys and the scrollbar all scroll it,
    on a computer and on a phone alike */
 .food {
@@ -15,11 +14,11 @@
 }
 
 /* The day's totals and meals a step from the rail's buttons, not right beside them, as the date bar's framed arrows
-   may stand, nor as far in as the date; kept so; the step comes on top of the day's 30rem, so its columns keep
+   may stand, nor as far in as the date; kept so; the step comes on top of the day's 32rem, so its columns keep
    their room */
 .food-day {
     --food-indent: calc(2 * var(--gap));
-    flex: 3 1 calc(30rem + var(--food-indent));
+    flex: 0 1 calc(32rem + var(--food-indent));
     min-width: 0;
     padding-left: var(--food-indent);
 }
@@ -144,15 +143,16 @@ body:has(> .food) {
     line-height: 1.25;
 }
 
-/* Meals below the totals, every line in the same columns: start, what, grams and kcal; the foods of a meal indented
-   under its name, so each meal reads as one block, their brackets below their names where one has no room */
+/* Meals below the totals, every line in the same columns: start, what, and one column of numbers, a meal's kcal and
+   its foods' grams, since a meal has no grams; the foods of a meal indented under its name, so each meal reads as
+   one block, their brackets below their names where one has no room */
 #food-meals {
     margin-top: var(--gap);
 }
 
 .food-line {
     display: grid;
-    grid-template-columns: 3.5rem minmax(0, 1fr) 5.5rem 6.5rem;
+    grid-template-columns: 3.5rem minmax(0, 1fr) 6.5rem;
     gap: 0.75rem;
     align-items: baseline;
     padding: 0.125rem 0;
@@ -206,7 +206,7 @@ body:has(> .food) {
     color: var(--text-muted);
 }
 
-/* Grams and kcal at the right of their columns, every digit equally wide, so the columns align */
+/* Grams and kcal at the right of their column, every digit equally wide, so the numbers align */
 .food-grams,
 .food-kcal {
     text-align: right;
