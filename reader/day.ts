@@ -23,7 +23,7 @@
  *
  * The dialog of a box shows how long the last entries like it really lasted, see {@link realMinutesRead}.
  *
- * A meal of the log lists its foods as lines `X-FOOD`, like `X-FOOD:Skyr natur · K-Classic · Kaufland;150`: appended
+ * A meal of the log lists its foods as lines `X-FOOD`, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150`: appended
  * with the entry, and replaced as a whole when the entry changes; the reader counts what each meal gives, see `food.ts`.
  * A cooking, `Cook`, lists what went into the pot the same way, like `X-FOOD:Hackfleisch;Gut & Günstig;Edeka;500`,
  * which counts nothing; a meal drawn from it holds `X-COOKED:<UID of the Cook entry>` and the foods it ate with their
@@ -35,8 +35,7 @@
  * - `./categories.ts`: Tells whether the fields of an entry fit its category, and names the category of skill entries.
  * - `./documents.ts`: Writes what a skill entry was, linking the folder of its skill, gives its chapters,
  *   and the log an entry belongs into.
- * - `./food.ts`: Tells what meals give, whether a line `X-FOOD` is well formed, what a dish held the last time,
- *   and how a meal is named by its foods.
+ * - `./food.ts`: Tells what meals give and whether a line `X-FOOD` is well formed.
  * - `./sources.ts`: Names every folder and file the reader reads.
  * - `./trackers.ts`: Tells whether an entry is a glass of water.
  */
@@ -67,7 +66,7 @@ import type { Meal } from "./food.ts";
  * - `semester`: Semester of a skill entry, like `2026W`, the semester of its day when empty, see `semesterFor`
  *   in `categories.ts`; empty for any other entry.
  * - `note`: Free note.
- * - `foods`: Foods of a meal, its lines `X-FOOD` like `Reis;150`, none for any other entry.
+ * - `foods`: Foods of a meal or a cooking, its lines `X-FOOD` like `Reis;Golden Sun;Lidl;150`, none for any other entry.
  * - `planned`: Identifier of the box a new log entry is logged from, see `entryIdOf` in `calendar.ts`,
  *   written as its `RELATED-TO`, empty for none; written only when the entry is added.
  * - `pain`: My neck pain from 0 to 10 after `Neck long`, its `X-PAIN`, like `5`, empty for none;

@@ -11,7 +11,7 @@
  * A food listed without grams counts its usual portion; every amount is rounded and an estimate anyway,
  * so none is marked as one. A food not in `Foods.md` and a meal that lists no foods count nothing,
  * and a line below the totals says so.
- * My meals: each with its variants, and new meals and variants, above my foods, see `meals.ts`.
+ * My meals: each only its foods, and new meals, above my foods, see `meals.ts`.
  * My foods: the food search, which finds mine first, then those of Open Food Facts, and adds new ones, see `search.ts`.
  * It opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today it moves on
  * with it; only a link like `/food?date=2026-10-10` opens on that day, see `today.ts`.

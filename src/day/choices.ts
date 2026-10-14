@@ -490,7 +490,7 @@ export function addedRowOf(name: string, text: string, remove: () => void): HTML
     shown.textContent = breakableOf(text);
     shown.title = text;
     button.type = "button";
-    button.className = "picker-added-remove";
+    button.className = "cross-quiet";
     iconPut(button, X, `Remove ${text}`);
     button.addEventListener("click", remove);
     value.append(shown, button);

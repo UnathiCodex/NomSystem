@@ -2,7 +2,7 @@
  * ## Foods
  *
  * Finds foods through the reader, mine first, then on Open Food Facts, page by page, sends new foods to `Foods.md`,
- * loads my meals of `Meals.md`, sends new variants of them and removes them,
+ * loads my meals of `Meals.md`, sends new and changed ones and removes them,
  * loads the meals of a day with what they give, and writes amounts as the page shows them:
  * for the food view and the entry by category of the day alike.
  */
@@ -102,30 +102,16 @@ export type Meal = Nutrients & {
 };
 
 /**
- * A variant of a meal of mine, as the reader sends it: its foods for the whole of it and the servings it gives.
- *
- * - `label`: Name of the variant, its day and maybe a note, like `09.10.2026 · MitMais`.
- * - `servings`: Servings the whole gives, like 4 for a pot.
- * - `foods`: Its foods as lines of a food and its grams for the whole, like `Hackfleisch;500`, or without grams
- *   for the usual portion.
- * - `kcal`: kcal of one serving.
- */
-export type Variant = {
-    label: string;
-    servings: number;
-    foods: string[];
-    kcal: number;
-};
-
-/**
- * A meal of mine, as the reader sends it from `Meals.md`: two or more of my foods, in its variants.
+ * A meal of mine, as the reader sends it from `Meals.md`: only its composition, two or more of my foods without grams.
  *
  * - `name`: Name of the meal, in one word, like `ChiliConCarne`.
- * - `variants`: Its variants, the latest added last.
+ * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order.
+ * - `kcal`: What it gives with each food at its usual portion.
  */
 export type Dish = {
     name: string;
-    variants: Variant[];
+    foods: string[];
+    kcal: number;
 };
 
 /**
@@ -158,7 +144,7 @@ export async function foodsFind(query: string, page: number): Promise<FoodsFound
 /**
  * Loads my meals of `Meals.md` from the reader, in the order of the file.
  *
- * @returns My meals, each in its variants
+ * @returns My meals, each with its foods
  * @throws {Error} - When the reader cannot answer
  */
 export async function dishesLoad(): Promise<Dish[]> {
@@ -169,19 +155,17 @@ export async function dishesLoad(): Promise<Dish[]> {
 }
 
 /**
- * Sends a new variant of a meal to the reader, which adds it to `Meals.md`, a new meal with it when none has its name;
- * the reader writes the name in one word, like `ChiliConCarne` of `Chili con Carne`.
+ * Sends a meal to the reader, new or changed for good, which writes it into `Meals.md`; the reader writes the name
+ * in one word, like `ChiliConCarne` of `Chili con Carne`.
  *
- * @param name - Name of the meal, like `ChiliConCarne`
- * @param note - Note of the variant, like `mit Mais`, empty for none
- * @param servings - Servings the whole gives, 1 or more
- * @param foods - Its foods, each a food and its grams for the whole, like `Hackfleisch;500`, or a food alone
- * @returns All my meals after, the new variant with them
- * @throws {Error} - When the reader does not take the variant, like one of a single food
+ * @param name - Name of the meal
+ * @param foods - Its foods by name, brand and store, like `Hackfleisch;Gut & Günstig;Edeka`
+ * @returns All my meals after
+ * @throws {Error} - When the reader does not take the meal, like one of a single food
  */
-export async function dishSend(name: string, note: string, servings: number, foods: string[]): Promise<Dish[]> {
+export async function dishSend(name: string, foods: string[]): Promise<Dish[]> {
     const response: Response = await fetch("/api/food/meals", {
-        method: "POST", body: JSON.stringify({ name: name, note: note, servings: servings, foods: foods }),
+        method: "POST", body: JSON.stringify({ name: name, foods: foods }),
     });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
@@ -189,16 +173,14 @@ export async function dishSend(name: string, note: string, servings: number, foo
 }
 
 /**
- * Removes a variant of a meal through the reader from `Meals.md`, the meal with its last variant.
+ * Removes a meal through the reader from `Meals.md`.
  *
- * @param name - Name of the meal, like `ChiliConCarne`
- * @param label - Name of the variant, like `09.10.2026 · MitMais`
+ * @param name - Name of the meal
  * @returns All my meals after
- * @throws {Error} - When the reader does not remove the variant
+ * @throws {Error} - When the reader does not remove the meal
  */
-export async function dishDelete(name: string, label: string): Promise<Dish[]> {
-    const response: Response = await fetch(`/api/food/meals?meal=${encodeURIComponent(name)}`
-        + `&variant=${encodeURIComponent(label)}`, { method: "DELETE" });
+export async function dishDelete(name: string): Promise<Dish[]> {
+    const response: Response = await fetch(`/api/food/meals?meal=${encodeURIComponent(name)}`, { method: "DELETE" });
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
     return await response.json() as Dish[];

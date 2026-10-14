@@ -1314,7 +1314,7 @@ fieldset.entry-times {
 
 /* A value picked of a field of several values in its own row below the field, like a chapter or the name of the file
    of a document, see `addedRowsOf` in `choices.ts`: its text going on below where it is wider than its row,
-   a small grey × at the right, lighter under the pointer, which takes it back */
+   the small grey × at the right, see `.cross-quiet` in `base.css`, which takes it back */
 .picker-added {
     display: flex;
     align-items: baseline;
@@ -1328,26 +1328,9 @@ fieldset.entry-times {
     overflow-wrap: anywhere;
 }
 
-.picker-added-remove {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    padding: 0 0.25rem;
-    border: 0;
-    background: none;
-    color: var(--text-muted);
-    font: inherit;
-    cursor: pointer;
-}
-
-.picker-added-remove:hover {
-    color: var(--text-main);
-}
-
-/* The pencil beside a name and the cross of a value picked a little smaller than the icons of buttons, so they stay
-   quiet beside their text */
-.entry-pencil svg.lucide,
-.picker-added-remove svg.lucide {
+/* The pencil beside a name a little smaller than the icons of buttons, so it stays quiet beside its text,
+   as the cross of a value picked */
+.entry-pencil svg.lucide {
     width: 0.9375rem;
     height: 0.9375rem;
 }
@@ -1431,7 +1414,8 @@ fieldset.entry-times {
     align-self: flex-start;
 }
 
-/* Row of a meal or a food: its name, its portions or grams, its kcal and its small grey `×`, see `.picker-added-remove` */
+/* Row of a meal or a food: its name, the grams of a food, its kcal and its small grey `×`, see `.cross-quiet`
+   in `base.css`; the foods of a meal indented below its row, so they read as its parts */
 .meal-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 6.5rem 6rem auto;
@@ -1440,49 +1424,22 @@ fieldset.entry-times {
     font-size: 0.875rem;
 }
 
+.meal-part {
+    padding-left: 1.25rem;
+}
+
 .meal-name {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
-/* Brand and store of a food grey after its name, like ` · K-Classic · Kaufland`, and the mark of an unknown food */
-.meal-label,
+/* Mark of a food `Foods.md` does not hold, grey after its name, like its brand and store, see `.food-brand` */
 .meal-unknown {
     color: var(--text-muted);
 }
 
-/* Name of a meal picked with its chevron before it, grey, which shows or hides its foods; plain text, not a chip */
-.meal-row .meal-dish-toggle {
-    display: inline-flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 0.375rem;
-    width: auto;
-    min-width: 0;
-    height: auto;
-    border: 0;
-    border-radius: 0;
-    background: none;
-    color: var(--text-main);
-    font: inherit;
-    text-align: left;
-}
-
-.meal-dish-toggle svg.lucide {
-    width: 1rem;
-    height: 1rem;
-    color: var(--text-muted);
-}
-
-/* Foods of a meal picked with their grams of one portion, small and grey below its row, in line with its name */
-.meal-dish-foods {
-    margin: -0.125rem 0 0.125rem 1.375rem;
-    font-size: 0.8125rem;
-    color: var(--text-muted);
-}
-
-/* Grams of a food or portions of a meal: a small field with its unit after it, what it counts grey while empty */
+/* Grams of a food: a small field with `g` after it, its usual portion grey while empty */
 .meal-grams {
     display: flex;
     align-items: center;
@@ -1508,8 +1465,7 @@ fieldset.entry-times {
 }
 
 /* Food search in the list of the foods or in the form of a new meal, see `.picker-box`: its field one chip high,
-   as the search of every list, the chips of the brands right below it; its results only name, kcal and portion;
-   while a food is replaced, which one above them */
+   as the search of every list; its results only name, kcal and portion */
 .meal-box .food-search {
     display: flex;
     flex-direction: column;
@@ -1864,6 +1820,29 @@ svg.route-arrow {
         max-width: none;
         margin: auto 0 0;
         border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    /* A meal or a food of the entry by category on a phone: its name whole on a line of its own, its grams, kcal
+       and × below it, closer together, the foods of a meal indented less and the field of the grams narrower,
+       just wide enough for four digits, so nothing shrinks to nothing */
+    .meal-row {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 0.125rem 0.5rem;
+    }
+
+    .meal-row .meal-name {
+        grid-column: 1 / -1;
+        white-space: normal;
+    }
+
+    .meal-part {
+        padding-left: 0.75rem;
+    }
+
+    .panel .meal-grams input {
+        flex: none;
+        width: calc(4ch + 0.75rem);
+        padding: 0 0.375rem;
     }
 
 }

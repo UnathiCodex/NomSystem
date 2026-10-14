@@ -58,7 +58,7 @@ import {
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
 import {
-    dishAdd, dishesRead, dishFoodsRead, dishRemove, foodAdd, foodDayRead, foodsFind,
+    dishAdd, dishesRead, dishRemove, foodAdd, foodDayRead, foodsFind,
 } from "./food.ts";
 import { trackersRead } from "./trackers.ts";
 import { deviceReport } from "./devices.ts";
@@ -175,11 +175,10 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   then a page of those of Open Food Facts.
  * - `POST /api/food/foods`: Adds food of the body to `Foods.md` and sends it as written.
  * - `GET /api/food/day?date=…`: Sends the meals of the date with what they give.
- * - `GET /api/food/dish?title=…`: Sends the lines `X-FOOD` of the last meal of the dish.
- * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each in its variants with their foods and servings.
- * - `POST /api/food/meals`: Adds the variant of the body, its meal, note, servings and foods, to `Meals.md`,
- *   a new meal with it when none has its name, and sends all my meals.
- * - `DELETE /api/food/meals?meal=…&variant=…`: Removes the variant of the meal from `Meals.md` and sends all my meals.
+ * - `GET /api/food/meals`: Sends my meals of `Meals.md`, each with its foods.
+ * - `POST /api/food/meals`: Writes the meal of the body, its name and foods, into `Meals.md`, new or changed,
+ *   and sends all my meals.
+ * - `DELETE /api/food/meals?meal=…`: Removes the meal from `Meals.md` and sends all my meals.
  * - `POST /api/devices`: Writes what the device of the body shows of the page into `Devices.md`.
  * - Any other address: Hands request to the page.
  *
@@ -363,18 +362,14 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
     } else if (request.method === "GET" && url.pathname === "/api/food/day") {
         responseSend(response, 200, foodDayRead(date));
 
-    } else if (request.method === "GET" && url.pathname === "/api/food/dish") {
-        responseSend(response, 200, dishFoodsRead(url.searchParams.get("title") ?? ""));
-
     } else if (request.method === "GET" && url.pathname === "/api/food/meals") {
         responseSend(response, 200, dishesRead());
 
     } else if (request.method === "POST" && url.pathname === "/api/food/meals") {
-        responseSend(response, 200, dishAdd(await json(request) as { name?: string; note?: string; servings?: number;
-            foods?: string[]; }));
+        responseSend(response, 200, dishAdd(await json(request) as { name?: string; foods?: string[] }));
 
     } else if (request.method === "DELETE" && url.pathname === "/api/food/meals") {
-        responseSend(response, 200, dishRemove(url.searchParams.get("meal") ?? "", url.searchParams.get("variant") ?? ""));
+        responseSend(response, 200, dishRemove(url.searchParams.get("meal") ?? ""));
 
     } else {
         page.middlewares(request, response);
