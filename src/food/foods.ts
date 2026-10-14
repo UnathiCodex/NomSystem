@@ -1,8 +1,7 @@
 /**
  * ## Foods
  *
- * Finds foods through the reader, mine first, then on Open Food Facts, of a brand when one is picked and page by page,
- * loads the brands of the search, sends new ones and removes them, sends new foods to `Foods.md`,
+ * Finds foods through the reader, mine first, then on Open Food Facts, page by page, sends new foods to `Foods.md`,
  * loads my meals of `Meals.md`, sends new variants of them and removes them,
  * loads the meals of a day with what they give, and writes amounts as the page shows them:
  * for the food view and the entry by category of the day alike.
@@ -145,14 +144,12 @@ export type FoodDay = Nutrients & {
  * Finds foods by a name or a barcode: my foods first, then a page of the products of Open Food Facts.
  *
  * @param query - Search as typed, like `ric` or `20112745`; empty for all my foods
- * @param brand - Brand picked, like `Edeka`, empty for every brand
  * @param page - Page of the products, 1 for the first
  * @returns Foods found
  * @throws {Error} - When the reader cannot answer
  */
-export async function foodsFind(query: string, brand: string, page: number): Promise<FoodsFound> {
-    const response: Response = await fetch(`/api/food/search?q=${encodeURIComponent(query)}`
-        + `&brand=${encodeURIComponent(brand)}&page=${page}`);
+export async function foodsFind(query: string, page: number): Promise<FoodsFound> {
+    const response: Response = await fetch(`/api/food/search?q=${encodeURIComponent(query)}&page=${page}`);
     if (!response.ok)
         throw new Error(`Reader answered ${response.status}`);
     return await response.json() as FoodsFound;
@@ -208,48 +205,7 @@ export async function dishDelete(name: string, label: string): Promise<Dish[]> {
 }
 
 /**
- * Loads the brands the search offers as chips from the reader, Edeka first.
- *
- * @returns Brands, the first first
- * @throws {Error} - When the reader cannot answer
- */
-export async function brandsLoad(): Promise<string[]> {
-    const response: Response = await fetch("/api/food/brands");
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as string[];
-}
-
-/**
- * Sends a new brand to the reader, which adds it to `Brands.md` unless it holds it.
- *
- * @param name - Brand as typed, like `Spar`
- * @returns All brands after, the first first
- * @throws {Error} - When the reader does not take the brand, like an empty one
- */
-export async function brandSend(name: string): Promise<string[]> {
-    const response: Response = await fetch("/api/food/brands", { method: "POST", body: JSON.stringify({ name: name }) });
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as string[];
-}
-
-/**
- * Removes a brand through the reader from `Brands.md`.
- *
- * @param name - Brand as its chip shows it, like `Lidl`
- * @returns The brands left, the first first
- * @throws {Error} - When the reader does not remove the brand
- */
-export async function brandDelete(name: string): Promise<string[]> {
-    const response: Response = await fetch(`/api/food/brands?name=${encodeURIComponent(name)}`, { method: "DELETE" });
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as string[];
-}
-
-/**
- * Sends a new food to the reader, which adds it to `Foods.md` with its brand and store, and its brand to `Brands.md`.
+ * Sends a new food to the reader, which adds it to `Foods.md` with its brand and store.
  *
  * @param food - Food to add, picked from Open Food Facts with its brand and store, or typed by hand without
  * @returns The food as the reader wrote it, its name cleaned and its numbers rounded

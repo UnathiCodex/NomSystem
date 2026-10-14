@@ -873,7 +873,7 @@ function pickerRowOf(name: string, line: HTMLButtonElement, rows: HTMLElement, b
  */
 export async function mealOf(lines: string[], title: string, changed: () => void, drawing: Drawing | null):
     Promise<HTMLElement[]> {
-    const [found, mealsMine, cooks]: [FoodsFound, Dish[], Cooking[]] = await Promise.all([foodsFind("", "", 1),
+    const [found, mealsMine, cooks]: [FoodsFound, Dish[], Cooking[]] = await Promise.all([foodsFind("", 1),
         dishesLoad(), drawing === null ? Promise.resolve([]) : cookingsLoad(drawing.start)]);
     dishes = mealsMine;
     cookings = cooks;

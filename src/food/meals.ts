@@ -301,7 +301,7 @@ export function mealsSectionOf(): HTMLElement {
     let form: HTMLElement | null = null;
 
     const load: () => void = (): void => {
-        Promise.all([dishesLoad(), foodsFind("", "", 1)]).then(([meals, found]: [Dish[], FoodsFound]): void => {
+        Promise.all([dishesLoad(), foodsFind("", 1)]).then(([meals, found]: [Dish[], FoodsFound]): void => {
             dishes = meals;
             mine = new Map(found.foods.map((food: Food): [string, Food] => [food.name.toLowerCase(), food]));
             show();

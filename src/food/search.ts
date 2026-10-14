@@ -6,29 +6,27 @@
  * and below them the products of Open Food Facts, a page of them at a time, `More` loading the next page,
  * beside it how many it shows of how many the search matches, like `8 of 54`.
  * It searches once the typing pauses, so a word asks only once; an empty field lists all my foods.
- * Below the field the brands as chips: `All brands`, then those of `Brands.md`, Edeka first, then the square + of the
- * page, see `.chip-button` in `base.css`, `Brand` as its tooltip, which takes any brand typed; a chip picked shows only products of its brand, my foods stay all,
- * and carries `×`, which removes its brand from `Brands.md`.
- * Each food shows kcal, protein, carbs and fat per 100 g and its usual portion, its brand after its name and below it
- * small its store, like `Gouda · Milbona` over `Lidl`, so the same name of two shops never mixes up; a product also
- * its pack, like `Pack 450 g · Lidl`, and as portion the serving its maker gives, `none` when it gives none.
+ * I search the food alone, like `räucherlachs`: Open Food Facts searches the names of its products, and a word of
+ * a brand or a shop only ranks them, it filters nothing, so the brand and store of a product stand beside its name.
+ * Each food shows kcal, protein, carbs and fat per 100 g and its usual portion, its brand and store grey in brackets
+ * after its name, like `Gouda (Milbona, Lidl)`, so the same name of two shops never mixes up; a product also
+ * its pack below it, like `Pack 450 g`, and as portion the serving its maker gives, `none` when it gives none.
  * A click on a product opens a short form below it to add it to my foods, with a name of my own and its portion,
  * both prefilled, 100 g for a product without serving, its name with its brand after it when one of my foods has
- * its name already; it goes into `Foods.md` with its brand and store, and its brand into `Brands.md`,
- * a chip from then on.
+ * its name already; it goes into `Foods.md` with its brand and store.
  * The square + at the end, `Own food by hand, when nothing is found` as its tooltip, for a food found nowhere,
  * opens one to add it with its values per 100 g typed.
  * Where a food is wanted, like in a meal, a click on one of my foods picks it, and so does adding one,
  * so a meal lists only foods of `Foods.md`; there rows of its own may stand above my foods, like the meals eaten before,
  * built anew for each search. Nothing in the search is a form or sends one, so it can stand inside the form of a dialog.
  *
- * - `./foods.ts`: Finds foods, loads and sends brands, sends new foods, writes amounts and makes elements.
+ * - `./foods.ts`: Finds foods, sends new foods, writes amounts and makes elements.
  * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
  * - `lucide`: The icons add, cancel and new.
  * - `./search.css`: Look of the search, the same wherever it stands.
  */
 
-import { amountOf, brandDelete, brandSend, brandsLoad, elementOf, foodSend, foodsFind } from "./foods.ts";
+import { amountOf, elementOf, foodSend, foodsFind } from "./foods.ts";
 import { iconPut } from "../icons.ts";
 import { Check, Plus, X } from "lucide";
 import "./search.css";
@@ -51,24 +49,18 @@ type Before = ((query: string) => HTMLElement[]) | null;
  * One search on the page, with what it shows.
  *
  * - `input`: Field of the search.
- * - `chips`: Place of the chips of the brands, below the field.
- * - `results`: Place of the results, below the chips.
+ * - `results`: Place of the results, below the field.
  * - `pick`: Takes a food picked or added, `null` where no food is wanted.
  * - `before`: Builds the rows above my foods, `null` for none.
- * - `brands`: Brands offered as chips, the first first.
- * - `brand`: Brand picked, empty for every brand.
  * - `page`: Last page of products shown, 1 for the first.
  * - `found`: What the search found, with the products of every page shown; `null` before its first answer.
  * - `asked`: Number of the last search asked, so a late answer never covers a newer one.
  */
 type Search = {
     input: HTMLInputElement;
-    chips: HTMLElement;
     results: HTMLElement;
     pick: Pick;
     before: Before;
-    brands: string[];
-    brand: string;
     page: number;
     found: FoodsFound | null;
     asked: number;
@@ -256,142 +248,12 @@ function formShow(after: HTMLElement, food: Food, byHand: boolean, added: (food:
 }
 
 /**
- * Shows the chips of the brands: `All brands`, each brand, the one picked in the grey of what is picked,
- * and the + of a brand, which turns into a field for a brand to add, see {@link brandType}.
- * A click on a chip picks its brand and searches again from the first page; the chip of a brand picked carries `×`,
- * which removes its brand, see {@link brandRemove}.
- * - `chipOf`: Makes the chip of a brand, empty for every brand.
- * - `add`: The + of a brand.
- *
- * @param search - The search
- */
-function chipsShow(search: Search): void {
-    const chipOf: (brand: string) => HTMLElement = (brand: string): HTMLElement => {
-        if (brand !== "" && brand === search.brand)
-            return pickedChipOf(search, brand);
-        const chip: HTMLButtonElement = buttonOf(brand === search.brand ? "food-chip food-chip-on" : "food-chip",
-            brand === "" ? "All brands" : brand, (): void => {
-                search.brand = brand;
-                chipsShow(search);
-                resultsLoad(search, 1);
-            });
-        chip.setAttribute("aria-pressed", String(brand === search.brand));
-        return chip;
-    };
-    const add: HTMLButtonElement = buttonOf("chip-button", "", (): void => brandType(search, add));
-    iconPut(add, Plus, "Brand");
-    search.chips.replaceChildren(chipOf(""), ...search.brands.map(chipOf), add);
-}
-
-/**
- * Makes the chip of the brand picked: its name in the grey of what is picked and `×`, which removes the brand.
- * - `chip`: The chip, holding its name and `×`.
- * - `remove`: The button `×`.
- *
- * @param search - The search
- * @param brand - The brand picked, like `Lidl`
- * @returns The chip
- */
-function pickedChipOf(search: Search, brand: string): HTMLElement {
-    const chip: HTMLElement = elementOf("span", "food-chip food-chip-on", brand);
-    const remove: HTMLButtonElement = buttonOf("food-chip-remove", "", (): void => brandRemove(search, brand, remove));
-    iconPut(remove, X, `Remove the brand ${brand}`);
-    chip.append(remove);
-    return chip;
-}
-
-/**
- * Removes a brand from `Brands.md`, then shows every brand again and searches again from the first page;
- * its `×` takes no second click meanwhile. A product of the brand added later brings it back.
- *
- * @param search - The search
- * @param brand - The brand, like `Lidl`
- * @param remove - Its button `×`
- */
-function brandRemove(search: Search, brand: string, remove: HTMLButtonElement): void {
-    remove.disabled = true;
-    brandDelete(brand).then((brands: string[]): void => {
-        search.brands = brands;
-        search.brand = "";
-        chipsShow(search);
-        resultsLoad(search, 1);
-    }).catch((error: unknown): void => {
-        console.error(error);
-        remove.disabled = false;
-    });
-}
-
-/**
- * Turns the + of a brand into a field for a brand, any one, like `Spar`: Enter sends it to `Brands.md`,
- * then picks it and searches again, so it stays a chip from then on; Escape, or leaving the field empty,
- * turns it back into the chip. When the reader does not take the brand, the field stays and is marked invalid.
- * - `field`: The field, in place of the chip.
- * - `typed`: The brand typed, without spaces at its ends.
- *
- * @param search - The search
- * @param chip - The + of a brand
- */
-function brandType(search: Search, chip: HTMLElement): void {
-    const field: HTMLInputElement = document.createElement("input");
-    field.type = "text";
-    field.className = "food-chip-field";
-    field.placeholder = "Brand";
-    field.autocomplete = "off";
-    field.setAttribute("aria-label", "Brand to add");
-    field.addEventListener("keydown", (event: KeyboardEvent): void => {
-        const typed: string = field.value.trim();
-        if (event.key === "Escape") {
-            event.preventDefault();
-            event.stopPropagation();
-            chipsShow(search);
-        } else if (event.key === "Enter") {
-            event.preventDefault();
-            if (typed === "")
-                return;
-            field.disabled = true;
-            brandSend(typed).then((brands: string[]): void => {
-                search.brands = brands;
-                search.brand = brands.find((brand: string): boolean => brand.toLowerCase() === typed.toLowerCase())
-                    ?? brands.at(-1) ?? "";
-                chipsShow(search);
-                resultsLoad(search, 1);
-            }).catch((error: unknown): void => {
-                console.error(error);
-                field.disabled = false;
-                field.setAttribute("aria-invalid", "true");
-            });
-        }
-    });
-    field.addEventListener("blur", (): void => {
-        if (field.value.trim() === "" && field.isConnected)
-            chipsShow(search);
-    });
-    chip.replaceWith(field);
-    field.focus();
-}
-
-/**
- * Loads the brands of the chips again and shows them, like after a product added brought its brand,
- * unless a brand is being typed into the field of the + of a brand, which would go with the chips shown anew.
- *
- * @param search - The search
- */
-function brandsShow(search: Search): void {
-    brandsLoad().then((brands: string[]): void => {
-        search.brands = brands;
-        if (search.chips.querySelector(".food-chip-field") === null)
-            chipsShow(search);
-    }).catch((error: unknown): void => console.error(error));
-}
-
-/**
  * Shows what the search found: the rows above my foods, see {@link Before}, the head of the columns, my foods,
  * then, for a search of some letters,
- * the products of Open Food Facts of every page loaded, under the brand picked, how many of how many,
+ * the products of Open Food Facts of every page loaded, how many of how many,
  * like `8 of 54`, `More` while a next page holds more, and the + of an own food by hand at the end.
  * Where `pick` takes foods, a click on one of mine picks it; a click on a product opens the form to add it.
- * A food once added is searched for by its name, so it shows among my foods, and picked;
- * the chips load again, for the brand it brought.
+ * A food once added is searched for by its name, so it shows among my foods, and picked.
  * - `found`: What the search found.
  * - `query`: The search as typed.
  * - `added`: Takes a food once the reader wrote it.
@@ -407,7 +269,6 @@ function resultsShow(search: Search): void {
     const added: (food: Food) => void = (food: Food): void => {
         search.input.value = food.name;
         resultsLoad(search, 1);
-        brandsShow(search);
         search.pick?.(food);
     };
     const rows: HTMLElement[] = [...search.before?.(query) ?? [], headOf(), elementOf("p", "food-group", "My foods")];
@@ -424,12 +285,11 @@ function resultsShow(search: Search): void {
 
     if (query !== "") {
         const products: Product[] = found.products ?? [];
-        rows.push(elementOf("p", "food-group", search.brand === "" ? "Open Food Facts" : `Open Food Facts · ${search.brand}`));
+        rows.push(elementOf("p", "food-group", "Open Food Facts"));
         if (found.products === null)
             rows.push(elementOf("p", "food-none", "Open Food Facts cannot be reached"));
         else if (products.length === 0)
-            rows.push(elementOf("p", "food-none", search.brand === "" ? "No products: type more letters"
-                : `No products of ${search.brand}: type more letters, or pick All brands`));
+            rows.push(elementOf("p", "food-none", "No products: type more letters"));
         rows.push(...products.map((product: Product): HTMLElement => {
             const taken: boolean = found.foods.some((food: Food): boolean =>
                 food.name.toLowerCase() === product.name.toLowerCase());
@@ -469,7 +329,7 @@ function moreOf(search: Search, shown: number, found: FoodsFound): HTMLElement {
     line.append(elementOf("span", "", `${amountOf(shown, 0)} of ${amountOf(Math.max(found.total, shown), 0)}`
         + `${found.exact ? "" : "+"}`));
     if (found.more) {
-        const more: HTMLButtonElement = buttonOf("food-chip", "More", (): void => {
+        const more: HTMLButtonElement = buttonOf("food-more-button", "More", (): void => {
             more.disabled = true;
             resultsLoad(search, search.page + 1);
         });
@@ -491,7 +351,7 @@ function moreOf(search: Search, shown: number, found: FoodsFound): HTMLElement {
 function resultsLoad(search: Search, page: number): void {
     const asked: number = ++search.asked;
     const before: FoodsFound | null = search.found;
-    foodsFind(search.input.value.trim(), search.brand, page).then((found: FoodsFound): void => {
+    foodsFind(search.input.value.trim(), page).then((found: FoodsFound): void => {
         if (asked !== search.asked)
             return;
         search.page = page;
@@ -509,10 +369,10 @@ function resultsLoad(search: Search, page: number): void {
 }
 
 /**
- * Builds the food search, see the top of this file, showing all my foods at first, and the chips once loaded.
+ * Builds the food search, see the top of this file, showing all my foods at first.
  * Typing searches from the first page once it pauses for {@link pause}; Enter searches at once,
  * without sending a form around it.
- * - `element`: Field, chips and results.
+ * - `element`: Field and results.
  * - `search`: The search with what it shows.
  * - `waiting`: Timer of the search waiting for the pause, 0 for none.
  *
@@ -524,12 +384,9 @@ export function foodSearchOf(pick: Pick, before: Before): HTMLElement {
     const element: HTMLElement = elementOf("div", "food-search", "");
     const search: Search = {
         input: document.createElement("input"),
-        chips: elementOf("div", "food-chips", ""),
         results: elementOf("div", "food-results", ""),
         pick: pick,
         before: before,
-        brands: [],
-        brand: "",
         page: 1,
         found: null,
         asked: 0,
@@ -550,10 +407,8 @@ export function foodSearchOf(pick: Pick, before: Before): HTMLElement {
         clearTimeout(waiting);
         resultsLoad(search, 1);
     });
-    element.append(search.input, search.chips, search.results);
+    element.append(search.input, search.results);
     searches.set(element, search);
-    chipsShow(search);
-    brandsShow(search);
     resultsLoad(search, 1);
     return element;
 }

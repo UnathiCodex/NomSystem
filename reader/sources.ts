@@ -81,7 +81,7 @@ export const metaRoot: string = join(calendarRoot, "Meta");
 export const diaryRoot: string = join(manageRoot, "NomFrequencediary");
 
 /**
- * Folder of my data, `NomMetainformations`: my foods, `Foods.md`, the brands of the food search, `Brands.md`,
+ * Folder of my data, `NomMetainformations`: my foods, `Foods.md`,
  * my meals, `Meals.md`, my places, `Places.md`, the rooms of the university, `Rooms.md`, and my devices, `Devices.md`.
  */
 export const dataRoot: string = join(manageRoot, "NomMetainformations");
@@ -311,8 +311,6 @@ export const trackerLog: CalendarSource[] = [{ folder: calendarRoot, ending: log
  *
  * - `foods`: My foods, `Foods.md` in {@link dataRoot}, one Markdown table with one row per food,
  *   which the reader writes as I add foods, see `food.ts`.
- * - `brands`: Brands the food search offers as chips, `Brands.md` in {@link dataRoot}, one per line,
- *   which the reader writes as I add brands or products, see `food.ts`.
  * - `meals`: My meals, `Meals.md` in {@link dataRoot}, one Markdown table with one row per food of a meal,
  *   which the reader writes as I add meals, see `food.ts`.
  * - `log`: Log of the new system, where each meal is an entry of the category `Food` listing its foods,
@@ -322,7 +320,6 @@ export const trackerLog: CalendarSource[] = [{ folder: calendarRoot, ending: log
  */
 export type FoodSources = {
     foods: string;
-    brands: string;
     meals: string;
     log: CalendarSource[];
     search: string;
@@ -334,7 +331,6 @@ export type FoodSources = {
  */
 export const food: FoodSources = {
     foods: join(dataRoot, "Foods.md"),
-    brands: join(dataRoot, "Brands.md"),
     meals: join(dataRoot, "Meals.md"),
     log: [{ folder: calendarRoot, ending: logEnding }],
     search: "https://search.openfoodfacts.org/search",

@@ -1525,11 +1525,6 @@ fieldset.entry-times {
     border-radius: var(--radius);
 }
 
-.meal-box .food-chips {
-    flex: none;
-    margin-top: 0;
-}
-
 .meal-box .food-row {
     grid-template-columns: minmax(0, 1fr) 4.25rem 4.75rem;
 }

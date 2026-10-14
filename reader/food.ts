@@ -2,8 +2,8 @@
  * ## Food
  *
  * Reads my foods from `Foods.md`, finds foods by a name or a barcode, mine first, then on Open Food Facts,
- * of one brand when one is picked and page by page, adds new foods to `Foods.md`, keeps the brands of the search
- * in `Brands.md`, keeps my meals in `Meals.md`, reads the meals of a day from the log with what they give,
+ * page by page, adds new foods to `Foods.md`, keeps my meals in `Meals.md`, reads the meals of a day from the log
+ * with what they give,
  * and the foods a dish held the last time.
  * `Meals.md` holds my meals, each made of two or more of my foods, like `ChiliConCarne` of `Hackfleisch`,
  * `Kidneybohnen` and `Tomaten`, in variants, as I made it each time: a variant named by its day and maybe a note,
@@ -32,16 +32,13 @@
  * A product of Open Food Facts is a pack as sold, its values per 100 g, with the size of the pack, like `450 g`,
  * and the serving its maker gives, like 36 g, which only the product itself tells, not the search,
  * so the reader asks for the serving of each product found and keeps it.
- * `Brands.md` lists the brands the search offers as chips, one per line, like `- Edeka`, Edeka first, since I shop
- * there most; the reader adds the brand of every product I add and every brand I add by hand,
- * and removes a brand I remove, which a product of it added later brings back.
  * Open Food Facts is asked anonymously: a request carries the search and the name of the dashboard,
  * never my email or my name.
  *
- * - `node:fs`: Reads and writes `Foods.md`, `Brands.md` and `Meals.md`.
- * - `node:path`: Gives the folder of `Foods.md`, `Brands.md` and `Meals.md`.
+ * - `node:fs`: Reads and writes `Foods.md` and `Meals.md`.
+ * - `node:path`: Gives the folder of `Foods.md` and `Meals.md`.
  * - `./calendar.ts`: Reads the log and gives the day of an instant in Berlin time.
- * - `./sources.ts`: Names `Foods.md`, `Brands.md`, the log and the addresses of Open Food Facts,
+ * - `./sources.ts`: Names `Foods.md`, `Meals.md`, the log and the addresses of Open Food Facts,
  *   and tells which files the reader may write.
  */
 
@@ -99,8 +96,8 @@ export type Product = Food & {
  * What a search finds.
  *
  * - `foods`: My foods whose name holds the search, ignoring case, or whose barcode it is, the most eaten first,
- *   equal ones alphabetical; all of them for an empty search; the brand picked does not narrow them.
- * - `products`: Products of Open Food Facts on the page asked for, of the brand picked, that are not among my foods,
+ *   equal ones alphabetical; all of them for an empty search.
+ * - `products`: Products of Open Food Facts on the page asked for that are not among my foods,
  *   the best match first; none for a search shorter than {@link searchLength};
  *   `null` when Open Food Facts cannot be reached.
  * - `total`: Number of products of Open Food Facts the search matches, my foods among them;
@@ -289,27 +286,6 @@ const fileHead: string[] = [
 const tableHead: number = 2;
 
 /**
- * Text a new `Brands.md` starts with: its title, and what it holds.
- */
-const brandsHead: string[] = [
-    "# Brands",
-    "",
-    "Brands the food search offers as chips, one per line, the first first.",
-    "The dashboard adds the brand of every product I add from Open Food Facts and every brand I add by hand.",
-    "",
-];
-
-/**
- * Brands the search offers while `Brands.md` does not exist: Edeka, where I shop most.
- */
-const brandsFirst: string[] = ["Edeka"];
-
-/**
- * Line of a brand in `Brands.md`, like `- Edeka`.
- */
-const brandLine: RegExp = /^- +(.+?)\s*$/;
-
-/**
  * Text a new `Meals.md` starts with: its title, what it holds, and the head of its table.
  */
 const mealsHead: string[] = [
@@ -418,8 +394,7 @@ function nameOf(name: string): string {
 }
 
 /**
- * Cleans a brand for `Brands.md` and the search: as a name, see {@link nameOf}, and without quotes and backslashes,
- * which would end the brand in the search early.
+ * Cleans a brand or a store for `Foods.md`: as a name, see {@link nameOf}, and without quotes and backslashes.
  *
  * @param brand - Brand as typed or as Open Food Facts writes it, like ` Gut & Günstig`
  * @returns Clean brand, like `Gut & Günstig`
@@ -592,18 +567,16 @@ function usesRead(): Map<string, number> {
 
 /**
  * Builds the address that asks Open Food Facts for a search:
- * for a barcode its product, else a page of the products whose names match, in {@link searchLanguages},
- * of the brand when one is given, like `gouda brands:"Edeka"`, which a brand only typed after the name would not narrow.
+ * for a barcode its product, else a page of the products whose names match, in {@link searchLanguages}.
  *
  * @param query - Name or barcode
- * @param brand - Clean brand, see {@link brandOf}, empty for every brand
  * @param page - Page, 1 for the first
  * @returns Address with the fields to send
  */
-function addressOf(query: string, brand: string, page: number): URL {
+function addressOf(query: string, page: number): URL {
     const address: URL = new URL(barcode.test(query) ? `${food.product}${query}` : food.search);
     if (!barcode.test(query)) {
-        address.searchParams.set("q", brand === "" ? query : `${query} brands:"${brand}"`);
+        address.searchParams.set("q", query);
         address.searchParams.set("langs", searchLanguages);
         address.searchParams.set("page_size", String(pageSize));
         address.searchParams.set("page", String(page));
@@ -700,13 +673,12 @@ async function servingsFill(products: Product[]): Promise<Product[]> {
  * - `products`: Those that can count.
  *
  * @param query - Name or barcode
- * @param brand - Clean brand, see {@link brandOf}, empty for every brand
  * @param page - Page, 1 for the first
  * @returns The page of products
  * @throws {Error} - When Open Food Facts does not answer in time or answers with an error
  */
-async function productsAsk(query: string, brand: string, page: number): Promise<ProductsPage> {
-    const response: Response = await fetch(addressOf(query, brand, page), {
+async function productsAsk(query: string, page: number): Promise<ProductsPage> {
+    const response: Response = await fetch(addressOf(query, page), {
         headers: { "User-Agent": agent },
         signal: AbortSignal.timeout(answerTime),
     });
@@ -728,7 +700,7 @@ async function productsAsk(query: string, brand: string, page: number): Promise<
 
 /**
  * Finds foods by a name or a barcode, see {@link FoodsFound}: my foods first, then a page of the products
- * of Open Food Facts, of the brand when one is given, each with its serving, see {@link servingsFill}.
+ * of Open Food Facts, each with its serving, see {@link servingsFill}.
  * The one search for foods, of the food view and of the entry by category of the day.
  * - `query`: Search without spaces at its ends, in small letters.
  * - `mine`: My foods.
@@ -738,11 +710,10 @@ async function productsAsk(query: string, brand: string, page: number): Promise<
  * - `found`: The page of products found.
  *
  * @param text - Search as typed, like `ric` or `20112745`
- * @param brand - Brand as picked, like `Edeka`, empty for every brand
  * @param page - Page of the products, 1 for the first; anything else that is no whole number above 0 counts as 1
  * @returns Foods found
  */
-export async function foodsFind(text: string, brand: string, page: number): Promise<FoodsFound> {
+export async function foodsFind(text: string, page: number): Promise<FoodsFound> {
     const query: string = text.trim().toLowerCase();
     const mine: Food[] = foodsRead();
     const uses: Map<string, number> = usesRead();
@@ -756,7 +727,7 @@ export async function foodsFind(text: string, brand: string, page: number): Prom
         return { foods: foods, products: [], ...none };
 
     try {
-        const found: ProductsPage = await productsAsk(query, brandOf(brand), Number.isInteger(page) && page > 0 ? page : 1);
+        const found: ProductsPage = await productsAsk(query, Number.isInteger(page) && page > 0 ? page : 1);
         const products: Product[] = await servingsFill(found.products.filter((product: Product): boolean =>
             !mine.some((candidate: Food): boolean => candidate.barcode === product.barcode)));
         return { foods: foods, products: products, total: found.total, exact: found.exact, more: found.more };
@@ -767,85 +738,9 @@ export async function foodsFind(text: string, brand: string, page: number): Prom
 }
 
 /**
- * Reads the brands the search offers as chips: the lines of `Brands.md` like `- Edeka`, in their order,
- * see {@link brandLine}; {@link brandsFirst} while it does not exist.
- *
- * @returns Brands, the first first
- */
-export function brandsRead(): string[] {
-    if (!existsSync(food.brands))
-        return [...brandsFirst];
-
-    return readFileSync(food.brands, "utf8").split("\n")
-        .map((line: string): string => brandOf(brandLine.exec(line)?.[1] ?? ""))
-        .filter((brand: string): boolean => brand !== "");
-}
-
-/**
- * Adds a brand to `Brands.md` after its last brand, every other line staying as it is, unless it holds the brand
- * already, ignoring case; creates `Brands.md` with its head and {@link brandsFirst} when it does not exist yet.
- * - `brand`: The brand cleaned, see {@link brandOf}.
- * - `brands`: The brands before.
- * - `lines`: Lines of `Brands.md`.
- * - `last`: Index of its last brand, -1 for none.
- *
- * @param sent - Brand as typed or of a product added, like `Spar`
- * @returns The brands after, the first first
- * @throws {Error} - When the brand is empty, or `Brands.md` lies outside the new system
- */
-export function brandAdd(sent: string): string[] {
-    const brand: string = brandOf(String(sent ?? ""));
-    const brands: string[] = brandsRead();
-    if (brand === "")
-        throw new Error(`No brand: ${sent}`);
-    if (brands.some((known: string): boolean => known.toLowerCase() === brand.toLowerCase()))
-        return brands;
-    if (!writeAllowed(food.brands))
-        throw new Error(`No writing outside the new system: ${food.brands}`);
-
-    const lines: string[] = existsSync(food.brands)
-        ? readFileSync(food.brands, "utf8").split("\n")
-        : [...brandsHead, ...brandsFirst.map((first: string): string => `- ${first}`), ""];
-    const last: number = lines.findLastIndex((line: string): boolean => brandLine.test(line));
-    lines.splice(last === -1 ? lines.length : last + 1, 0, `- ${brand}`);
-    mkdirSync(dirname(food.brands), { recursive: true });
-    writeFileSync(food.brands, lines.join("\n"));
-    return [...brands, brand];
-}
-
-/**
- * Removes a brand from `Brands.md`, ignoring case, every other line staying as it is; writes `Brands.md`
- * with its head and {@link brandsFirst} but the brand when it does not exist yet.
- * - `brand`: The brand in small letters, cleaned, see {@link brandOf}.
- * - `lines`: Lines of `Brands.md`.
- * - `kept`: The lines but those of the brand.
- *
- * @param sent - Brand as the chip shows it, like `Lidl`
- * @returns The brands after, the first first
- * @throws {Error} - When the brand is empty, or `Brands.md` lies outside the new system
- */
-export function brandRemove(sent: string): string[] {
-    const brand: string = brandOf(String(sent ?? "")).toLowerCase();
-    if (brand === "")
-        throw new Error(`No brand: ${sent}`);
-    if (!writeAllowed(food.brands))
-        throw new Error(`No writing outside the new system: ${food.brands}`);
-
-    const lines: string[] = existsSync(food.brands)
-        ? readFileSync(food.brands, "utf8").split("\n")
-        : [...brandsHead, ...brandsFirst.map((first: string): string => `- ${first}`), ""];
-    const kept: string[] = lines.filter((line: string): boolean =>
-        brandOf(brandLine.exec(line)?.[1] ?? "").toLowerCase() !== brand);
-    mkdirSync(dirname(food.brands), { recursive: true });
-    writeFileSync(food.brands, kept.join("\n"));
-    return brandsRead();
-}
-
-/**
  * Adds a food to `Foods.md` as the last row of its table, with its brand and store, every other line staying as it is,
  * but a head of the table without their columns, which gets them, see {@link tableHeadOf};
- * creates `Foods.md` with its head, see {@link fileHead}, when it does not exist yet;
- * then adds the brand of a product to `Brands.md`, so the search offers it as a chip, see {@link brandAdd}.
+ * creates `Foods.md` with its head, see {@link fileHead}, when it does not exist yet.
  * Cleans the name, see {@link nameOf}, and rounds the numbers, see {@link roundOf}.
  * A value typed that is no number comes as `null`, since JSON has no `NaN`, and is refused like any other non-number.
  * - `values`: Values of the food as sent, each to be a number of 0 or more.
@@ -900,8 +795,6 @@ export function foodAdd(sent: Food): Food {
         lines.splice(header, tableHead, ...tableHeadOf());
     mkdirSync(dirname(food.foods), { recursive: true });
     writeFileSync(food.foods, lines.join("\n"));
-    if (added.brand !== "")
-        brandAdd(added.brand);
     return added;
 }
 
