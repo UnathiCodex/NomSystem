@@ -50,7 +50,7 @@ import "../notes/notes.css";
 import "./editor.css";
 
 import type { Extension } from "@codemirror/state";
-import type { ViewUpdate } from "@codemirror/view";
+import type { Rect, ViewUpdate } from "@codemirror/view";
 import type { LanguageSupport } from "@codemirror/language";
 import type { Links } from "./preview.ts";
 
@@ -202,6 +202,8 @@ function keyDown(event: KeyboardEvent): void {
  * - `indentUnit`: Indents with a tab, as my notes do.
  * - `lineWrapping`: Wraps long lines at the reading width, as the scripts view does, so I see where a line overflows.
  * - `darkTheme`: Draws cursor and selection for a dark page.
+ * - `scrollMargins`: Keeps the cursor below the head with the name and the save button, which stays on top
+ *   while the file scrolls, so moving up never hides the cursor under it.
  * - `updateListener`: Shows whether the file has unsaved changes after each change of the text.
  *
  * @param opened - The file
@@ -218,6 +220,8 @@ function extensionsOf(opened: Opened): Extension[] {
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
         EditorView.lineWrapping,
         EditorView.darkTheme.of(true),
+        EditorView.scrollMargins.of((): Partial<Rect> =>
+            ({ top: (document.getElementById("editor-head") as HTMLElement).offsetHeight })),
         ...(opened.markdown ? [livePreview(opened.links)] : []),
         ...(/\.ics$/i.test(path) ? [icsLook()] : []),
         EditorView.updateListener.of((update: ViewUpdate): void => {

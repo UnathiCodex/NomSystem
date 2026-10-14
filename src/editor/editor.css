@@ -28,7 +28,9 @@
     color: var(--reading-text);
 }
 
-/* Head above the note: its name, the notice and the save button in a row, on top while the note scrolls below it */
+/* Head above the note: its name, the notice and the save button in a row, on top while the note scrolls below it;
+   its ground reaching out left and right of the page, so the markup a line shows left of its text, like `##`,
+   hides under it too */
 .editor-head {
     position: sticky;
     top: 0;
@@ -38,6 +40,8 @@
     gap: var(--gap);
     padding: 2rem 0 1rem;
     background: var(--background);
+    box-shadow: 0 0 0 100vmax var(--background);
+    clip-path: inset(0 -100vmax);
 }
 
 /* Name of the note as the title of the scripts view, cut with an ellipsis */
