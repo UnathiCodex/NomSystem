@@ -13,8 +13,9 @@
  *   no form in between. While the text typed is no meal of mine, the first row of my meals is the one plus with it,
  *   `+ New meal “Chili con Carne”`, which puts an empty block of a new meal of that name into the entry and opens its
  *   own search at once, see {@link mealNew}; its first food puts it into `Meals.md` as its composition, at once,
- *   saved or not, and every food added or removed changes it there, see {@link freshSend}. When nothing is found, one grey line says where a food by hand goes in:
- *   under Foods in the food view. A food is a row with its name, its brand and store in brackets, its grams, its kcal
+ *   saved or not, and every food added or removed changes it there, see {@link freshSend}. Last among my foods
+ *   stands `+ New food “Linsensuppe”`, which opens the form of a food by hand named as typed; when nothing is found,
+ *   like a barcode Open Food Facts does not know, one grey line says so. A food is a row with its name, its brand and store in brackets, its grams, its kcal
  *   and its `×`, which removes it, like a food I did not eat of a cooking.
  *   Its grams start at those I logged it with last in an entry of the same category, `Food` or `Cook`, see
  *   `gramsRead` in `reader/food.ts`, white like every fact, which I type over; the first time ever, they start empty,
@@ -162,9 +163,10 @@ export const cookName: string = "Cook";
 const cookingDays: number = 3;
 
 /**
- * The one grey line of a search of the dialog that finds nothing, since a food by hand goes in only in the food view.
+ * The one grey line of a search of the dialog that finds nothing, like a barcode Open Food Facts does not know;
+ * a food by hand goes in by `+ New food` with its name typed, see `newFoodOf` in `../food/search.ts`.
  */
-const nothingFound: string = "Nothing found; a food by hand goes in under Foods in the food view";
+const nothingFound: string = "Nothing found";
 
 /**
  * My cookings of the days before the meal that list foods, the nearest first, see {@link cookingsLoad}.

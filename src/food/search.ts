@@ -416,7 +416,8 @@ function resultsShow(search: Search): void {
         sections.push([listHeadOf("Open Food Facts", ""),
             elementOf("p", "food-none food-nothing", "Open Food Facts cannot be reached")]);
     search.results.replaceChildren(...sections.length === 0
-        ? [elementOf("p", "food-none food-nothing", query === "" ? "No foods yet" : search.setup.nothing)]
+        ? [elementOf("p", "food-none food-nothing", query !== "" ? search.setup.nothing
+            : search.setup.meals === null ? "No foods yet" : "No meals or foods yet")]
         : sections.flatMap((section: HTMLElement[], index: number): HTMLElement[] =>
             index === 0 ? section : [elementOf("hr", "food-divider", ""), ...section]));
     search.shown = query;
