@@ -4,7 +4,7 @@
  * Finds foods through the reader, mine first, then on Open Food Facts, of a brand when one is picked and page by page,
  * loads the brands of the search, sends new ones and removes them, sends new foods to `Foods.md`,
  * loads my meals of `Meals.md`, sends new variants of them and removes them,
- * loads the meals of a day with what they give, and writes amounts as the page shows them:
+ * loads the meals of a day with what they give, and writes amounts and the labels of foods as the page shows them:
  * for the food view and the entry by category of the day alike.
  */
 
@@ -287,6 +287,17 @@ export async function foodDayLoad(day: string): Promise<FoodDay> {
  */
 export function amountOf(value: number, digits: number): string {
     return value.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+/**
+ * Writes the label of a food as the page shows it: its name, brand and store parted by ` · `, those it has,
+ * like `Skyr natur · K-Classic · Kaufland`.
+ *
+ * @param food - Food with its name, brand and store
+ * @returns Label, the name alone for a food without brand and store
+ */
+export function labelOf(food: { name: string; brand: string; store: string }): string {
+    return [food.name, food.brand, food.store].filter((part: string): boolean => part !== "").join(" · ");
 }
 
 /**

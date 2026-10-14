@@ -87,6 +87,8 @@ export type Choice = {
  *   of an entry of the log logged from a box of the plan; open when left out.
  * - `emptyIcon`: Icon the line shows in place of `empty` while nothing is picked, small and grey, `empty` then its
  *   tooltip, like the plus that adds a document to a chapter; words when left out.
+ * - `textOf`: Text of a value picked before its list ever opened, like the name and day of a cooking
+ *   of its identifier; the value itself when left out.
  */
 export type ChoicesSetup = {
     search: (text: string) => Promise<Choice[]>;
@@ -101,6 +103,7 @@ export type ChoicesSetup = {
     below?: HTMLElement[];
     locked?: boolean;
     emptyIcon?: IconNode;
+    textOf?: (value: string) => string;
 };
 
 /**
@@ -322,7 +325,8 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     let close: () => void = (): void => {};
 
     const lineShow: () => void = (): void => {
-        const text: string = chosen.map((value: string): string => texts.get(value) ?? value).join(", ");
+        const text: string = chosen.map((value: string): string => texts.get(value) ?? setup.textOf?.(value) ?? value)
+            .join(", ");
         if (text === "" && setup.emptyIcon !== undefined) {
             iconPut(line, setup.emptyIcon, setup.empty ?? "");
             line.classList.add("picker-empty");

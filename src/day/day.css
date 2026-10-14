@@ -1453,6 +1453,8 @@ fieldset.entry-times {
     text-overflow: ellipsis;
 }
 
+/* Brand and store of a food grey after its name, like ` · K-Classic · Kaufland`, and the mark of an unknown food */
+.meal-label,
 .meal-unknown {
     color: var(--text-muted);
 }

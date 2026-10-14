@@ -23,13 +23,16 @@
  *
  * The dialog of a box shows how long the last entries like it really lasted, see {@link realMinutesRead}.
  *
- * A meal of the log lists its foods as lines `X-FOOD`, like `X-FOOD:Reis;150`: appended with the entry,
- * and replaced as a whole when the entry changes; the reader counts what each meal gives, see `food.ts`.
+ * A meal of the log lists its foods as lines `X-FOOD`, like `X-FOOD:Skyr natur · K-Classic · Kaufland;150`: appended
+ * with the entry, and replaced as a whole when the entry changes; the reader counts what each meal gives, see `food.ts`.
+ * A cooking, `Cook`, lists what went into the pot the same way, which counts no kcal; a meal drawn from it holds
+ * `X-COOKED:<UID of the Cook entry>` and the foods it drew with their grams, so each keeps its foods in its own lines
+ * and the meal what it was that day, whatever the cooking becomes later; a link only ever points back in time,
+ * see {@link cookedCheck}.
  *
  * - `./boxes.ts`: Finds a box of the plan, an open one, and marks a box done or open again.
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
- * - `./categories.ts`: Tells whether the fields of an entry fit its category, how long a meal usually lasts,
- *   and names the category of skill entries.
+ * - `./categories.ts`: Tells whether the fields of an entry fit its category, and names the category of skill entries.
  * - `./documents.ts`: Writes what a skill entry was, linking the folder of its skill, gives its chapters,
  *   and the log an entry belongs into.
  * - `./food.ts`: Tells what meals give, whether a line `X-FOOD` is well formed, what a dish held the last time,
@@ -69,6 +72,8 @@ import type { Meal } from "./food.ts";
  *   written as its `RELATED-TO`, empty for none; written only when the entry is added.
  * - `pain`: My neck pain from 0 to 10 after `Neck long`, its `X-PAIN`, like `5`, empty for none;
  *   left out by a sender that does not know it, like the calendar after a drag, so it stays as it is.
+ * - `cooked`: For a meal drawn from a cooking, its `X-COOKED`, the identifier of the cooking, empty for none;
+ *   left out by a sender that does not know it, so it stays as it is, see {@link cookedCheck}.
  * - `start`: Start as ISO instant.
  * - `end`: End as ISO instant, after the start.
  */
@@ -84,6 +89,7 @@ export type EntryNew = {
     foods: string[];
     planned: string;
     pain?: string;
+    cooked?: string;
     start: string;
     end: string;
 };
@@ -130,7 +136,10 @@ export type DayEntry = Entry & {
  */
 const realCount: number = 3;
 
-
+/**
+ * Category of cooking, which lists what went into the pot like a meal, but counts no kcal.
+ */
+const cookName: string = "Cook";
 
 /**
  * Gives the log an entry belongs into, see the top of this file: the log of its skill for a skill entry,
@@ -184,7 +193,7 @@ function fieldsCheck(fields: EntryFields, foods: string[], old: Entry | Box | nu
             : fields.title === old.title);
     if (!(kept || categoryAllows(fields)))
         throw new Error(`No log entry ${fields.category} ${fields.title}`);
-    if (foods.length > 0 && !(fields.category === foodName && foods.every(foodLineAllows)))
+    if (foods.length > 0 && !([foodName, cookName].includes(fields.category) && foods.every(foodLineAllows)))
         throw new Error(`No foods ${foods.join(", ")} for ${fields.title}`);
     if (!(fields.start < fields.end))
         throw new Error(`${fields.title} needs an end after its start`);
@@ -224,6 +233,28 @@ function painCheck(pain: string): void {
 }
 
 /**
+ * Checks the cooking a meal draws from, as the dialog sends it: empty for none, else the identifier of an entry
+ * `Cook` of the log that starts before the meal; only a meal draws, and a link only ever points back in time,
+ * so every day stays as it was once I close it.
+ * - `cooking`: The entry of the cooking.
+ *
+ * @param category - Category of the entry, like `Food`
+ * @param start - Start of the entry
+ * @param cooked - Identifier of the cooking, empty for none
+ * @throws {Error} - When an entry other than a meal draws, or the cooking is no entry `Cook` of the log
+ *   that starts before the meal
+ */
+function cookedCheck(category: string, start: Date, cooked: string): void {
+    if (cooked === "")
+        return;
+    if (category !== foodName)
+        throw new Error(`Only a meal draws from a cooking: ${category}`);
+    const cooking: Entry = entryFind(day.log, cooked)[1];
+    if (cooking.category !== cookName || Date.parse(cooking.start) >= start.getTime())
+        throw new Error(`No cooking before the meal: ${cooked}`);
+}
+
+/**
  * Reads how long the last entries of the log like a box really lasted, the latest first, so I anchor the expected
  * minutes of a box on what really happened, not on a hope, since plans run long (Buehler 1994): the last three
  * entries up to now with the same category and the same what, or for `Skill` the same module
@@ -251,9 +282,11 @@ export function realMinutesRead(category: string, title: string, module: string,
 /**
  * Adds an entry to the log, into the log it belongs into, see {@link logFileOf}, a meal with one line `X-FOOD`
  * per food, see {@link fieldsCheck}; an entry logged from a box with its `RELATED-TO`, after which the box is done;
- * a long neck session with my pain as `X-PAIN`, see {@link painCheck}.
+ * a long neck session with my pain as `X-PAIN`, see {@link painCheck}; a meal drawn from a cooking with its
+ * `X-COOKED`, see {@link cookedCheck}.
  * - `pain`: My pain, empty for none.
- * - `own`: Properties of my own beyond the fields: the foods, the box and the pain.
+ * - `cooked`: Identifier of the cooking a meal draws from, empty for none.
+ * - `own`: Properties of my own beyond the fields: the foods, the box, the pain and the cooking.
  * - `id`: Identifier of the new entry.
  *
  * @param entry - Entry as the entry by category or the counter of glasses sends it
@@ -268,11 +301,15 @@ export function entryAdd(entry: EntryNew): string {
 
     const pain: string = entry.pain ?? "";
     painCheck(pain);
+    const cooked: string = entry.cooked ?? "";
+    cookedCheck(fields.category, fields.start, cooked);
     const own: [string, string | Link][] = entry.foods.map((food: string): [string, string] => ["x-food", food]);
     if (entry.planned !== "")
         own.push(["related-to", entry.planned]);
     if (pain !== "")
         own.push(["x-pain", pain]);
+    if (cooked !== "")
+        own.push(["x-cooked", cooked]);
     const id: string = entryAppend(logFileOf(fields), fields, own);
     if (entry.planned !== "")
         boxDone(entry.planned);
@@ -351,8 +388,8 @@ export function boxUndo(id: string): void {
 
 /**
  * Changes fields, foods, pain and times of an entry of the log, see {@link fieldsCheck}:
- * changed foods replace all lines `X-FOOD` of the entry first, a changed pain its `X-PAIN`,
- * then its fields and times change.
+ * changed foods replace all lines `X-FOOD` of the entry first, a changed pain its `X-PAIN`, a changed cooking
+ * of a meal its `X-COOKED`, see {@link cookedCheck}, then its fields and times change.
  * The entry moves into the log it belongs into now when that is another file, see {@link logFileOf}.
  *
  * @param change - Changed entry as the dialogs or the calendar send it, the calendar with the foods as they were
@@ -367,10 +404,13 @@ export function entryEdit(change: EntryChange): void {
     const fields: EntryFields = fieldsOf(change, entry);
     fieldsCheck(fields, change.foods, entry);
     painCheck(change.pain ?? "");
+    cookedCheck(fields.category, fields.start, change.cooked ?? entry.cooked);
     if (change.foods.join("\n") !== entry.foods.join("\n"))
         propertiesPut(file, entry.id, [["x-food", change.foods]]);
     if (change.pain !== undefined && change.pain !== entry.pain)
         propertiesPut(file, entry.id, [["x-pain", change.pain === "" ? [] : [change.pain]]]);
+    if (change.cooked !== undefined && change.cooked !== entry.cooked)
+        propertiesPut(file, entry.id, [["x-cooked", change.cooked === "" ? [] : [change.cooked]]]);
     entryChange(file, entry, fields, logFileOf(fields));
 }
 

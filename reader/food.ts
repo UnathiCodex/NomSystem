@@ -17,9 +17,11 @@
  * food added has its brand and store, typed where Open Food Facts knows none, so all foods are written alike.
  * A row written before brand and store were kept has neither, and the table gets their columns with the next food.
  * A meal is a log entry of the category `Food`: `SUMMARY` what I ate, its foods parted by `, `,
- * like `Reis, Bohnen, Eier`, `LOCATION` where, and one line `X-FOOD` per food, its name in `Foods.md`
- * with the grams I ate, like `X-FOOD:Reis;150`, or without grams, like `X-FOOD:Eier`, when I could not weigh it,
- * as in a restaurant: then the food counts its usual portion, and what it gives is an estimate.
+ * like `Reis, Bohnen, Eier`, `LOCATION` where, and one line `X-FOOD` per food: its name, brand and store in `Foods.md`,
+ * then the grams I ate, each part parted by `;`, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150`, so the log tells
+ * which product it was, see {@link lineOf}; a line written before foods had brand and store names its food alone,
+ * like `X-FOOD:Reis;150`, and one without grams, like `X-FOOD:Eier`, counts the usual portion of its food,
+ * an estimate.
  * Grams guessed, not weighed, like those Claude reads from a photo of a meal, carry `~`, like `X-FOOD:Döner;~400`,
  * and count as an estimate too, since a guess from a photo is about a third off (Fridolfsson 2025).
  * A food of one of my meals carries the meal, its servings eaten and its variant after its grams,
@@ -139,6 +141,23 @@ export type Eaten = Nutrients & {
     grams: number;
     estimate: boolean;
     known: boolean;
+};
+
+/**
+ * A line `X-FOOD` as read, see {@link lineOf}.
+ *
+ * - `name`: Name of its food, like `Skyr natur`.
+ * - `brand`, `store`: Brand of its food and the store I bought it in, like `K-Classic` and `Kaufland`;
+ *   empty in a line written before foods had them.
+ * - `grams`: Grams it gives, `null` for none.
+ * - `guessed`: Whether its grams are guessed, not weighed, marked by `~`, like `~400`.
+ */
+type Line = {
+    name: string;
+    brand: string;
+    store: string;
+    grams: number | null;
+    guessed: boolean;
 };
 
 /**
@@ -303,12 +322,18 @@ const mealsHead: string[] = [
 ];
 
 /**
- * Line `X-FOOD` of a meal: the name of a food, then `;` and the grams when given, `~` before grams guessed,
- * then for a food of one of my meals `;` with the meal, `;` with its servings eaten and maybe `;` with its variant,
- * like `Reis;150`, `Milch;200.5`, `Döner;~400`, `Eier` or `Hackfleisch;62.5;ChiliConCarne;0.5;09.10.2026`.
+ * Line `X-FOOD` written before foods had brand and store, which names its food alone: the name of a food, then `;`
+ * and the grams when given, `~` before grams guessed, then for a food of one of my meals `;` with the meal,
+ * `;` with its servings eaten and maybe `;` with its variant, like `Reis;150`, `Milch;200.5`, `Döner;~400`, `Eier`
+ * or `Hackfleisch;62.5;ChiliConCarne;0.5;09.10.2026`; see {@link lineOf} for the line of today.
  */
 const foodLine: RegExp =
     /^([^;]+?)(?:;\s*(~)?\s*(\d+(?:[.,]\d+)?))?(?:;\s*([^;|]+?)\s*;\s*(\d+(?:[.,]\d+)?)(?:\s*;\s*([^;|]*?))?)?\s*$/;
+
+/**
+ * Grams as a part of a line `X-FOOD`, `~` before grams guessed, like `150`, `200.5` or `~400`.
+ */
+const gramsPart: RegExp = /^(~)?\s*(\d+(?:[.,]\d+)?)$/;
 
 /**
  * Barcode, as a search may be one: 8 to 14 digits, like `20112745` or `4316268460989`.
@@ -460,51 +485,104 @@ function mealsRead(start: string, end: string): Entry[] {
 }
 
 /**
- * Reads my foods by their names in small letters, as a meal finds them, see {@link foodsRead}.
+ * Writes the label of a food as the page shows it: its name, brand and store parted by ` · `, those it has,
+ * like `Skyr natur · K-Classic · Kaufland`.
  *
- * @returns Foods by their names in small letters
+ * @param food - Food with its name, brand and store
+ * @returns Label, like `Skyr natur · K-Classic · Kaufland`, the name alone for a food without brand and store
  */
-function foodsByNameRead(): Map<string, Food> {
-    return new Map(foodsRead().map((row: Food): [string, Food] => [row.name.toLowerCase(), row]));
+export function labelOf(food: { name: string; brand: string; store: string }): string {
+    return [food.name, food.brand, food.store].filter((part: string): boolean => part !== "").join(" · ");
 }
 
 /**
- * Splits a line `X-FOOD` into the name of its food and its grams, see {@link foodLine}.
- * - `parts`: The line cut into name and grams.
+ * Writes the key of a food, by which a line `X-FOOD` finds it among my foods: its name, brand and store
+ * parted by `;`, in small letters, like `skyr natur;k-classic;kaufland`.
  *
- * @param line - Value of the line, like `Reis;150`
- * @returns Name, and grams or `null` when the line gives none
+ * @param food - Food or line with its name, brand and store
+ * @returns Key
  */
-function lineOf(line: string): [string, number | null] {
-    const parts: RegExpExecArray | null = foodLine.exec(line.trim());
-    if (parts === null)
-        return [line, null];
-    return [parts[1].trim(), parts[3] === undefined ? null : numberOf(parts[3])];
+function keyOf(food: { name: string; brand: string; store: string }): string {
+    return `${food.name};${food.brand};${food.store}`.toLowerCase();
 }
 
 /**
- * Tells whether a line `X-FOOD` gives grams guessed, not weighed, marked by `~`, see {@link foodLine}.
+ * Reads my foods by their keys, see {@link keyOf}, and by their names alone in small letters, for a line written
+ * before foods had brand and store, the first food of a name.
+ * - `mine`: My foods by key and by name.
  *
- * @param line - Value of the line, like `Döner;~400`
- * @returns Whether its grams are guessed
+ * @returns Foods by their keys and names
  */
-function guessedIs(line: string): boolean {
-    return foodLine.exec(line.trim())?.[2] !== undefined;
+function foodsByKeyRead(): Map<string, Food> {
+    const mine: Map<string, Food> = new Map();
+    foodsRead().forEach((row: Food): void => {
+        mine.set(keyOf(row), row);
+        if (!mine.has(row.name.toLowerCase()))
+            mine.set(row.name.toLowerCase(), row);
+    });
+    return mine;
+}
+
+/**
+ * Finds the food of a line among my foods: by its name, brand and store, a line without both by its name alone.
+ *
+ * @param read - Line as read, see {@link lineOf}
+ * @param mine - My foods by their keys and names, see {@link foodsByKeyRead}
+ * @returns The food, `undefined` when `Foods.md` holds none
+ */
+function foodOfLine(read: Line, mine: Map<string, Food>): Food | undefined {
+    return mine.get(keyOf(read)) ?? (read.brand === "" && read.store === "" ? mine.get(read.name.toLowerCase()) : undefined);
+}
+
+/**
+ * Cuts a line `X-FOOD` of today into its four parts: its food's name, brand and store, then its grams,
+ * like `Skyr natur;K-Classic;Kaufland;150` or `Reis;;;80` of a food without brand and store, told by its last part
+ * being grams and its second none.
+ *
+ * @param line - Value of the line
+ * @returns Its four parts, `null` for a line written before foods had brand and store
+ */
+function partsOf(line: string): string[] | null {
+    const parts: string[] = line.split(";").map((part: string): string => part.trim());
+    return parts.length === 4 && !gramsPart.test(parts[1]) && gramsPart.test(parts[3]) ? parts : null;
+}
+
+/**
+ * Reads a line `X-FOOD`: one of today by its four parts, see {@link partsOf}, an older one by {@link foodLine},
+ * which names its food alone.
+ * - `parts`: Parts of a line of today, `null` for an older one.
+ * - `grams`: Its grams cut into `~` and number.
+ * - `old`: An older line cut into its parts, `null` when it is none.
+ *
+ * @param line - Value of the line, like `Skyr natur;K-Classic;Kaufland;150` or `Reis;150`
+ * @returns The line as read
+ */
+function lineOf(line: string): Line {
+    const parts: string[] | null = partsOf(line);
+    if (parts !== null) {
+        const grams: RegExpExecArray = gramsPart.exec(parts[3]) as RegExpExecArray;
+        return { name: parts[0], brand: parts[1], store: parts[2], grams: numberOf(grams[2]), guessed: grams[1] !== undefined };
+    }
+    const old: RegExpExecArray | null = foodLine.exec(line.trim());
+    return {
+        name: old === null ? line.trim() : old[1].trim(), brand: "", store: "",
+        grams: old?.[3] === undefined ? null : numberOf(old[3]), guessed: old?.[2] !== undefined,
+    };
 }
 
 /**
  * Counts how often each food was eaten: the lines `X-FOOD` of the meals in the log up to now.
- * - `uses`: Number of lines by the name of their food in small letters.
+ * - `uses`: Number of lines by the key of their food, see {@link keyOf}.
  *
- * @returns Number of lines by the name of their food in small letters
+ * @returns Number of lines by the key of their food
  */
 function usesRead(): Map<string, number> {
     const uses: Map<string, number> = new Map();
     mealsRead("1970-01-01T00:00:00Z", new Date().toISOString())
         .flatMap((meal: Entry): string[] => meal.foods)
         .forEach((line: string): void => {
-            const name: string = lineOf(line)[0].toLowerCase();
-            uses.set(name, (uses.get(name) ?? 0) + 1);
+            const key: string = keyOf(lineOf(line));
+            uses.set(key, (uses.get(key) ?? 0) + 1);
         });
     return uses;
 }
@@ -666,9 +744,9 @@ export async function foodsFind(text: string, brand: string, page: number): Prom
     const mine: Food[] = foodsRead();
     const uses: Map<string, number> = usesRead();
     const foods: Food[] = mine
-        .filter((candidate: Food): boolean => candidate.name.toLowerCase().includes(query) || candidate.barcode === query)
+        .filter((candidate: Food): boolean => labelOf(candidate).toLowerCase().includes(query) || candidate.barcode === query)
         .sort((first: Food, second: Food): number =>
-            (uses.get(second.name.toLowerCase()) ?? 0) - (uses.get(first.name.toLowerCase()) ?? 0)
+            (uses.get(keyOf(second)) ?? 0) - (uses.get(keyOf(first)) ?? 0)
             || first.name.localeCompare(second.name));
     const none: Omit<FoodsFound, "foods" | "products"> = { total: 0, exact: true, more: false };
     if (query.length < searchLength)
@@ -775,7 +853,8 @@ export function brandRemove(sent: string): string[] {
  *
  * @param sent - Food as the page sends it, picked from Open Food Facts with its brand and store, or typed by hand
  * @returns The food as written
- * @throws {Error} - When the name is empty or another food has it, ignoring case, the brand or the store is empty,
+ * @throws {Error} - When the name is empty or another food has its name, brand and store, ignoring case,
+ *   the brand or the store is empty,
  *   a value is no number of 0 or more, the portion not more than 0, the barcode not only digits,
  *   or `Foods.md` lies outside the new system or holds no table
  */
@@ -795,8 +874,8 @@ export function foodAdd(sent: Food): Food {
         brand: brandOf(String(sent.brand ?? "")),
         store: brandOf(String(sent.store ?? "")),
     };
-    if (added.name === "" || foodsRead().some((mine: Food): boolean => mine.name.toLowerCase() === added.name.toLowerCase()))
-        throw new Error(`No new name of a food: ${added.name}`);
+    if (added.name === "" || foodsRead().some((mine: Food): boolean => keyOf(mine) === keyOf(added)))
+        throw new Error(`No new food: ${labelOf(added)}`);
     if (added.brand === "" || added.store === "")
         throw new Error(`No brand or store of a food: ${JSON.stringify(sent)}`);
     if (added.portion === 0)
@@ -836,23 +915,24 @@ function sumOf(parts: Nutrients[]): Nutrients {
 }
 
 /**
- * Turns a line `X-FOOD` of a meal into what its food gives, see {@link Eaten}.
- * - `name`, `written`: Name of the food and the grams the line gives, `null` for none.
- * - `known`: The food in `Foods.md`, `undefined` when it holds none of the name.
+ * Turns a line `X-FOOD` of a meal into what its food gives, see {@link Eaten}, named by its label,
+ * see {@link labelOf}.
+ * - `read`: The line as read, see {@link lineOf}.
+ * - `known`: The food in `Foods.md`, `undefined` when it holds none, see {@link foodOfLine}.
  * - `grams`: Grams that count.
  * - `share`: Share of 100 g eaten, 0 for an unknown food.
  *
- * @param line - Line like `Reis;150`
- * @param mine - My foods by their names in small letters
+ * @param line - Line like `Skyr natur;K-Classic;Kaufland;150` or `Reis;150`
+ * @param mine - My foods by their keys and names, see {@link foodsByKeyRead}
  * @returns The food with what it gives
  */
 function eatenOf(line: string, mine: Map<string, Food>): Eaten {
-    const [name, written]: [string, number | null] = lineOf(line);
-    const known: Food | undefined = mine.get(name.toLowerCase());
-    const grams: number = written ?? known?.portion ?? 0;
+    const read: Line = lineOf(line);
+    const known: Food | undefined = foodOfLine(read, mine);
+    const grams: number = read.grams ?? known?.portion ?? 0;
     const share: number = known === undefined ? 0 : grams / 100;
     return {
-        name: name, grams: grams, estimate: written === null || guessedIs(line), known: known !== undefined,
+        name: labelOf(read), grams: grams, estimate: read.grams === null || read.guessed, known: known !== undefined,
         kcal: share * (known?.kcal ?? 0), protein: share * (known?.protein ?? 0),
         carbs: share * (known?.carbs ?? 0), fat: share * (known?.fat ?? 0),
     };
@@ -863,7 +943,7 @@ function eatenOf(line: string, mine: Map<string, Food>): Eaten {
  * - `foods`: Its foods with what each gives.
  *
  * @param entry - Log entry of the category `Food`
- * @param mine - My foods by their names in small letters
+ * @param mine - My foods by their keys and names, see {@link foodsByKeyRead}
  * @returns Meal with what it gives
  */
 function mealOf(entry: Entry, mine: Map<string, Food>): Meal {
@@ -879,7 +959,7 @@ function mealOf(entry: Entry, mine: Map<string, Food>): Meal {
  * in Berlin time, from 00:00 to 00:00, read from noon the day before to noon the day after, which holds the whole day.
  * A food counts its grams, or its usual portion when the meal lists none; a food not in `Foods.md` counts nothing.
  * - `noon`: Noon of the day in UTC, in milliseconds.
- * - `mine`: My foods by their names in small letters.
+ * - `mine`: My foods by their keys and names, see {@link foodsByKeyRead}.
  * - `meals`: Meals of the day with what they give.
  *
  * @param date - Day like `2026-10-10`
@@ -891,7 +971,7 @@ export function foodDayRead(date: string): FoodDay {
         throw new Error(`No date ${date}`);
 
     const noon: number = new Date(`${date}T12:00:00Z`).getTime();
-    const mine: Map<string, Food> = foodsByNameRead();
+    const mine: Map<string, Food> = foodsByKeyRead();
     const meals: Meal[] = mealsRead(new Date(noon - dayLength).toISOString(), new Date(noon + dayLength).toISOString())
         .filter((entry: Entry): boolean => berlinDateOf(new Date(entry.start)) === date)
         .sort((first: Entry, second: Entry): number => first.start.localeCompare(second.start))
@@ -902,34 +982,39 @@ export function foodDayRead(date: string): FoodDay {
 /**
  * Gives what the meals among entries give, counted as {@link foodDayRead} counts them, for the entries of the day view:
  * each entry of the category `Food` that lists foods.
- * - `mine`: My foods by their names in small letters.
+ * - `mine`: My foods by their keys and names, see {@link foodsByKeyRead}.
  *
  * @param entries - Entries, like those of a day
  * @returns {@link Meal} of each entry that is one, by the identifier of the entry
  */
 export function mealsOf(entries: Entry[]): Map<string, Meal> {
-    const mine: Map<string, Food> = foodsByNameRead();
+    const mine: Map<string, Food> = foodsByKeyRead();
     return new Map(entries
         .filter((entry: Entry): boolean => entry.category === foodName && entry.foods.length > 0)
         .map((entry: Entry): [string, Meal] => [entry.id, mealOf(entry, mine)]));
 }
 
 /**
- * Tells whether a line `X-FOOD` sent to be written is well formed, see {@link foodLine}:
- * a name without `;` and `|`, then grams above 0 when given, like `Reis;150` or `Eier`,
+ * Tells whether a line `X-FOOD` sent to be written is well formed: one of today, see {@link partsOf}, a name,
+ * brand and store without `|`, like `Skyr natur;K-Classic;Kaufland;150`, and grams above 0; or an older one,
+ * see {@link foodLine}, a name without `;` and `|`, then grams above 0 when given, like `Reis;150` or `Eier`,
  * and for a food of a meal the meal, servings above 0 and maybe its variant, like `Hackfleisch;62.5;ChiliConCarne;0.5`.
  * Whether `Foods.md` holds the food is not asked, so a meal keeps a food that left `Foods.md` when it is moved.
- * - `parts`: The line cut into its parts, `null` when it is none.
- * - `name`, `grams`: Name of the food and the grams the line gives, `null` for none.
+ * - `read`: The line as read, see {@link lineOf}.
+ * - `parts`: A line of today cut into its four parts, `null` for an older one.
+ * - `old`: An older line cut into its parts, `null` when it is none.
  *
  * @param line - Line as the page sends it
  * @returns Whether the line may be written
  */
 export function foodLineAllows(line: string): boolean {
-    const parts: RegExpExecArray | null = foodLine.exec(line.trim());
-    const [name, grams]: [string, number | null] = lineOf(line);
-    return parts !== null && name !== "" && !/[;|]/.test(name) && (grams === null || grams > 0)
-        && (parts[5] === undefined || numberOf(parts[5]) > 0);
+    const read: Line = lineOf(line);
+    const parts: string[] | null = partsOf(line);
+    if (parts !== null)
+        return read.name !== "" && !parts.some((part: string): boolean => part.includes("|")) && (read.grams ?? 0) > 0;
+    const old: RegExpExecArray | null = foodLine.exec(line.trim());
+    return old !== null && read.name !== "" && !/[;|]/.test(read.name) && (read.grams === null || read.grams > 0)
+        && (old[5] === undefined || numberOf(old[5]) > 0);
 }
 
 /**
@@ -949,7 +1034,7 @@ function oneWordOf(typed: string): string {
  * its servings, a food and its grams; the rows of a variant together, its servings those of its first row,
  * the meals in the order of their first rows, the variants of a meal in the order of theirs, ignoring case;
  * a row without meal, variant or food stays out; each variant with the kcal of one serving.
- * - `mine`: My foods by their names in small letters.
+ * - `mine`: My foods by their keys and names, see {@link foodsByKeyRead}.
  * - `dishes`: The meals by their names in small letters.
  * - `cells`: Cells of a row, without the empty texts before its first `|` and after its last.
  *
@@ -959,7 +1044,7 @@ export function dishesRead(): Dish[] {
     if (!existsSync(food.meals))
         return [];
 
-    const mine: Map<string, Food> = foodsByNameRead();
+    const mine: Map<string, Food> = foodsByKeyRead();
     const dishes: Map<string, Dish> = new Map();
     readFileSync(food.meals, "utf8").split("\n")
         .filter((line: string): boolean => line.startsWith("|"))
@@ -1037,8 +1122,8 @@ export function dishAdd(sent: { name?: string; note?: string; servings?: number;
     if (last === -1)
         throw new Error(`No table in ${food.meals}`);
     lines.splice(after + 1, 0, ...foods.map((line: string): string => {
-        const [food, grams]: [string, number | null] = lineOf(line);
-        return `| ${name} | ${label} | ${roundOf(servings, 1)} | ${food} | ${grams === null ? "" : roundOf(grams, 1)} |`;
+        const read: Line = lineOf(line);
+        return `| ${name} | ${label} | ${roundOf(servings, 1)} | ${read.name} | ${read.grams === null ? "" : roundOf(read.grams, 1)} |`;
     }));
     mkdirSync(dirname(food.meals), { recursive: true });
     writeFileSync(food.meals, lines.join("\n"));

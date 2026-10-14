@@ -74,7 +74,7 @@
 
 import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
-import { foodName, mealFoods, mealOf, mealTitle } from "./meal.ts";
+import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import { labelOf, lineOf, placeEdit, placeOpen, placesStart } from "./places.ts";
 import {
     skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPlaceShow, skillSave, skillSemesterOf,
@@ -174,11 +174,6 @@ type EntryOpening = {
 };
 
 /**
- * Category of cooking, which offers the meal eaten right after it, and whose what is a dish, as a meal's is.
- */
-export const cookName: string = "Cook";
-
-/**
  * Category and what of my long neck session, which I rate my neck pain with, see {@link painRowOf}.
  */
 const neckLong: [string, string] = ["Body", "Neck long"];
@@ -214,8 +209,9 @@ let opened: EntryOpening = {
 let chosen: Category | null = null;
 
 /**
- * The rows of a meal of the log in place of its summary: its summary, written by itself, its meals and its foods,
- * see `meal.ts`, while `Food` is picked for the log; `null` for every other category, whose summary is a plain field.
+ * The rows of a meal or a cooking of the log in place of its summary: its summary, written by itself, and its foods,
+ * a meal also the cooking it draws from and its meals, see `meal.ts`, while `Food` or `Cook` is picked for the log;
+ * `null` for every other category, whose summary is a plain field.
  */
 let meal: HTMLElement[] | null = null;
 
@@ -288,12 +284,12 @@ function valuesRead(): { [key in FieldKey]: string } {
 }
 
 /**
- * Tells whether the dialog lists foods: those of a meal of the log, see `meal.ts`.
+ * Tells whether the dialog lists foods: those of a meal or a cooking of the log, see `meal.ts`.
  *
- * @returns Whether `Food` is picked for the log and holds a food
+ * @returns Whether `Food` or `Cook` is picked for the log and holds a food
  */
 function foodsListed(): boolean {
-    return chosen?.name === foodName && opened.target === "log" && mealFoods().length > 0;
+    return [foodName, cookName].includes(chosen?.name ?? "") && opened.target === "log" && mealFoods().length > 0;
 }
 
 /**
@@ -767,10 +763,11 @@ async function categoryPick(category: Category | null): Promise<void> {
     const starts: boolean = category?.fields.some((field: Field): boolean => field.key === "from") ?? false;
     if (starts && opened.entry === null && values.from === "")
         values.from = await wayEndLoad();
-    if (category?.name === foodName && opened.target === "log") {
-        const changing: boolean = opened.category === foodName;
+    if ((category?.name === foodName || category?.name === cookName) && opened.target === "log") {
+        const changing: boolean = opened.category === category.name;
         const built: HTMLElement[] = await mealOf(changing ? opened.foods : [], changing ? opened.values.title : "",
-            saveAllow);
+            saveAllow, category.name === cookName ? null
+                : { cooked: changing ? String(opened.entry?.extendedProps.cooked ?? "") : "", start: startRead() });
         if (chosen !== category)
             return;
         meal = built;
@@ -922,7 +919,8 @@ function fieldsRead(): EntryFields {
         category: texts.category, title: texts.title, location: texts.location, from: texts.from,
         module: texts.module, type: texts.type,
         semester: chosen?.name === skillName ? skillSemesterOf(dayOf(start)) : "", note: texts.note,
-        foods: chosen?.name === foodName ? mealFoods() : [],
+        foods: [foodName, cookName].includes(chosen?.name ?? "") ? mealFoods() : [],
+        cooked: chosen?.name === foodName ? mealCooked() : "",
         planned: opened.entry === null ? opened.plan?.id ?? "" : "",
         pain: neckLongPicked() ? pain : "",
         start: start,

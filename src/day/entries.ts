@@ -31,6 +31,8 @@ import type { Calendar } from "fullcalendar";
  *   the reader writes it only for a new entry.
  * - `pain`: My neck pain from 0 to 10 after `Neck long`, `X-PAIN`, empty for none; left out, it stays as it is,
  *   like after a drag.
+ * - `cooked`: For a meal drawn from a cooking, the identifier of that entry `Cook`, `X-COOKED`, empty for none;
+ *   left out, it stays as it is, like after a drag.
  * - `start`: Start of the entry.
  * - `end`: End of the entry, after the start.
  */
@@ -46,6 +48,7 @@ export type EntryFields = {
     foods: string[];
     planned: string;
     pain?: string;
+    cooked?: string;
     start: Date;
     end: Date;
 };
