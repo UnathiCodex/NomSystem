@@ -179,8 +179,9 @@ body:has(> .food) {
     border-left: 1px solid var(--line);
 }
 
-/* Start of an entry, small and grey, and its place after it, a grey line above it, apart from the entry before;
-   in the column of numbers, white as every fact, what the whole entry gives where it holds more than one thing */
+/* Start of an entry in grey and its place after it, a grey line above it, apart from the entry before; in the column
+   of numbers, white as every fact, what the whole entry gives where it holds more than one thing; in the text
+   of the lines below, so the total reads as plainly as theirs */
 .food-entry {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 6.5rem;
@@ -189,15 +190,15 @@ body:has(> .food) {
     padding-top: 0.625rem;
     border-top: 1px solid var(--line);
     color: var(--text-muted);
-    font-size: 0.75rem;
+    font-size: var(--control-text);
 }
 
 .food-entry > .food-kcal {
     color: var(--text-main);
 }
 
-/* What an entry holds at its top in the text of controls: a meal of mine, or a food eaten by itself with its grams
-   after its brackets, white like every fact */
+/* What an entry holds at its top in the text of controls: a meal of mine, or a food eaten by itself as a meal
+   of that one food */
 .food-meal {
     font-size: var(--control-text);
 }

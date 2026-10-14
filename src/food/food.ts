@@ -160,7 +160,7 @@ function partLineOf(eaten: Eaten): HTMLElement {
  * of numbers, none when it gives nothing known.
  * - `line`: The line.
  *
- * @param what - What, like the name of a meal, or a food by itself with its brand, store and grams
+ * @param what - What, like the name of a meal or of a food eaten by itself
  * @param kcal - Its kcal, `null` for none known
  * @returns The line
  */
@@ -171,18 +171,17 @@ function itemLineOf(what: HTMLElement, kcal: number | null): HTMLElement {
 }
 
 /**
- * Builds the lines of an entry: its start small and grey above it, linking to its day in the day view, so no column
- * of times takes room beside the names, and where, and at the right what the whole entry gives, when it holds more
- * than one meal or food, like `654 kcal` for ChiliConCarne with bread; then each meal of mine it holds by its name
- * and its kcal, its foods
- * below it with their grams, see {@link partLineOf}, and each food eaten by itself in one line, its brand and store,
- * its grams and its kcal, like bread beside a meal or an apple alone, so a food never stands under a meal it does not
- * belong to, nor twice; an older entry whose summary names more than its foods, like `Bortzeit`, stands as one meal
- * of that name; an entry without foods stands by its summary with a hint.
+ * Builds the lines of an entry: its start in grey above it, linking to its day in the day view, so no column of times
+ * takes room beside the names, and where, and at the right what the whole entry gives, when it holds more than one
+ * meal or food, like `654 kcal` for ChiliConCarne with bread; then everything it holds in one shape: a name with its
+ * kcal, and below it its foods with their grams, see {@link partLineOf}: each meal of mine with its foods, and each food
+ * eaten by itself as a meal of that one food, like bread beside the chili or an apple alone, so a food never stands
+ * under a meal it does not belong to; an older entry whose summary names more than its foods, like `Bortzeit`, stands
+ * as one meal of that name; an entry without foods stands by its summary with a hint.
  * - `entry`: Line of its start and place, and of its kcal.
  * - `when`: Its start and place.
  * - `meals`: Foods of each meal of mine, by the name of the meal, in the order of the lines.
- * - `alone`: Foods eaten by themselves.
+ * - `alone`: Foods eaten by themselves, each shown as a meal of that one food.
  * - `kcalOf`: kcal of foods together, `null` while none is known.
  *
  * @param meal - Entry with what it gives
@@ -224,12 +223,8 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
         entry,
         ...[...meals].flatMap(([name, foods]: [string, Eaten[]]): HTMLElement[] =>
             [itemLineOf(elementOf("span", "food-what", name), kcalOf(foods)), ...foods.map(partLineOf)]),
-        ...alone.map((eaten: Eaten): HTMLElement => {
-            const what: HTMLElement = foodNameOf("food-what", eaten.name, eaten.brand, eaten.store);
-            if (eaten.grams > 0)
-                what.append(elementOf("span", "food-alone-grams", ` ${amountTextOf(eaten.grams, "g")}`));
-            return itemLineOf(what, kcalOf([eaten]));
-        }),
+        ...alone.flatMap((eaten: Eaten): HTMLElement[] =>
+            [itemLineOf(elementOf("span", "food-what", eaten.name), kcalOf([eaten])), partLineOf(eaten)]),
     ];
 }
 
