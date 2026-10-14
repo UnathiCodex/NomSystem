@@ -384,39 +384,39 @@ function mealKcalOf(meal: MealPick): number {
 }
 
 /**
- * Turns pieces typed into the grams of a food into its grams, by the grams of one piece I keep with the food,
- * see `piece` in `../food/foods.ts`: `2 St` of a Semmel of 50 g becomes `100`, and `2 Stk`, `2 Stück` and `2x` alike;
- * any other text, and pieces of a food without the grams of a piece, stay as they are.
- * - `typed`: The number of pieces typed and their word, `null` for no pieces.
+ * Turns portions typed into the grams of a food into its grams, by the grams of its portion I keep with the food,
+ * see `portion` in `../food/foods.ts`: `2x` of oil of 30 g becomes `60`, and `2 St`, `2 Stk` and `2 Stück` alike,
+ * as for a Semmel of 50 g; any other text, and portions of a food without a portion, stay as they are.
+ * - `typed`: The number of portions typed and their word, `null` for no portions.
  *
- * @param text - Grams or pieces as typed
- * @param piece - Grams of one piece of the food, `null` for none kept
- * @returns Grams as text, like `100`, or the text as it was
+ * @param text - Grams or portions as typed
+ * @param portion - Grams of the portion of the food, `null` for none kept
+ * @returns Grams as text, like `60`, or the text as it was
  */
-function piecesOf(text: string, piece: number | null): string {
+function portionsOf(text: string, portion: number | null): string {
     const typed: RegExpExecArray | null = /^(\d+(?:[.,]\d+)?)\s*(st|stk|stück|x)\.?$/i.exec(text.trim());
-    return typed === null || piece === null ? text : gramsTextOf(Number(typed[1].replace(",", ".")) * piece);
+    return typed === null || portion === null ? text : gramsTextOf(Number(typed[1].replace(",", ".")) * portion);
 }
 
 /**
  * Makes the small field of the grams of a food with `g` after it, starting at the grams given, which a click selects
- * so I type over them, empty for none; pieces typed, like `2 St`, become grams once I leave the field or press Enter,
- * see {@link piecesOf}; marking itself invalid while its text is no number of 0 or more, so the dialog does not send
+ * so I type over them, empty for none; portions typed, like `2x`, become grams once I leave the field or press Enter,
+ * see {@link portionsOf}; marking itself invalid while its text is no number of 0 or more, so the dialog does not send
  * it; 0 is a food I did not put in this time, which the entry leaves out, see {@link mealFoods}.
- * - `pieces`: Turns pieces in the field into grams and tells of the change.
+ * - `portions`: Turns portions in the field into grams and tells of the change.
  *
  * @param value - Grams as typed, empty for none
  * @param name - Words for screen readers, like `Grams of Brot`
- * @param piece - Grams of one piece of the food, `null` for none kept
+ * @param portion - Grams of the portion of the food, `null` for none kept
  * @param typed - Takes the text typed
- * @returns The field with its unit, the text field itself, and what turns its pieces into grams
+ * @returns The field with its unit, the text field itself, and what turns its portions into grams
  */
-function gramsFieldOf(value: string, name: string, piece: number | null, typed: (text: string) => void):
+function gramsFieldOf(value: string, name: string, portion: number | null, typed: (text: string) => void):
     [HTMLElement, HTMLInputElement, () => void] {
     const label: HTMLElement = elementOf("label", "meal-grams", "");
     const input: HTMLInputElement = document.createElement("input");
-    const pieces: () => void = (): void => {
-        const grams: string = piecesOf(input.value, piece);
+    const portions: () => void = (): void => {
+        const grams: string = portionsOf(input.value, portion);
         if (grams === input.value)
             return;
         input.value = grams;
@@ -430,13 +430,13 @@ function gramsFieldOf(value: string, name: string, piece: number | null, typed: 
     input.setAttribute("aria-label", name);
     input.addEventListener("input", (): void => {
         const number: number | null = numberOf(input.value.trim());
-        input.setCustomValidity(number === null || number >= 0 || piecesOf(input.value, piece) !== input.value ? ""
-            : "A number of 0 or more, pieces like 2 St, or empty");
+        input.setCustomValidity(number === null || number >= 0 || portionsOf(input.value, portion) !== input.value ? ""
+            : "A number of 0 or more, portions like 2x, or empty");
         typed(input.value.trim());
     });
-    input.addEventListener("change", pieces);
+    input.addEventListener("change", portions);
     label.append(input, " g");
-    return [label, input, pieces];
+    return [label, input, portions];
 }
 
 /**
@@ -474,8 +474,8 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void, again
     const kcalTextFor: () => string = (): string =>
         food === undefined || pick.grams.trim() === "" ? "" : kcalTextOf(kcalOf(pick));
     const kcal: HTMLElement = elementOf("span", "meal-kcal", kcalTextFor());
-    const [grams, input, pieces]: [HTMLElement, HTMLInputElement, () => void] = gramsFieldOf(pick.grams,
-        `Grams of ${pick.name}`, food?.piece ?? null, (text: string): void => {
+    const [grams, input, portions]: [HTMLElement, HTMLInputElement, () => void] = gramsFieldOf(pick.grams,
+        `Grams of ${pick.name}`, food?.portion ?? null, (text: string): void => {
             pick.grams = text;
             kcal.textContent = kcalTextFor();
             typed();
@@ -489,7 +489,7 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void, again
         if (event.key !== "Enter")
             return;
         event.preventDefault();
-        pieces();
+        portions();
         again();
     });
     gramsFields.set(pick, input);

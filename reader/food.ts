@@ -95,8 +95,8 @@ export type Totals = {
  * - `store`: The store I bought it in, like `Lidl`, empty when none is known.
  * - `pack`: Size of its pack as sold, like `450 g` or `140 g (7 x 20 g)`, empty when none is known,
  *   like for a food added by hand.
- * - `piece`: Grams of one piece, like 50 of a Semmel, for a food I eat in pieces, so an entry takes `2 St` as 100 g;
- *   `null` for none.
+ * - `portion`: Grams I typically take at once, like 50 of a Semmel, one piece, or 30 of oil, two tablespoons, so an
+ *   entry takes `2x` or `2 St` as twice that; `null` for none.
  */
 export type Food = Nutrients & {
     name: string;
@@ -104,7 +104,7 @@ export type Food = Nutrients & {
     brand: string;
     store: string;
     pack: string;
-    piece: number | null;
+    portion: number | null;
 };
 
 /**
@@ -157,7 +157,7 @@ type ProductsPage = {
  * - `protein`, `carbs`, `fat`: Its nutrients per 100 g as typed, `null` for one unknown; taken only for a food I made
  *   by hand, without barcode, and only while unknown, see {@link foodChange}.
  * - `pack`: Size of its pack as typed, for a food by hand.
- * - `piece`: Grams of one piece as typed, `null` for none.
+ * - `portion`: Grams of its portion as typed, `null` for none.
  */
 export type FoodChanged = {
     old: { name: string; brand: string; store: string };
@@ -168,7 +168,7 @@ export type FoodChanged = {
     carbs?: number | null;
     fat?: number | null;
     pack?: string;
-    piece?: number | null;
+    portion?: number | null;
 };
 
 /**
@@ -313,7 +313,7 @@ export const foodName: string = "Food";
  */
 function tableHeadOf(): string[] {
     return [
-        "| Food | kcal | Protein | Carbs | Fat | Piece | Barcode | Brand | Store | Pack |",
+        "| Food | kcal | Protein | Carbs | Fat | Portion | Barcode | Brand | Store | Pack |",
         "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |",
     ];
 }
@@ -326,8 +326,8 @@ const fileHead: string[] = [
     "# Foods",
     "",
     "My foods: kcal, protein, carbs and fat per 100 g, the Open Food Facts barcode, the brand and the store,",
-    "so the same name of two shops never mixes up, and the size of the pack as sold; Piece is the grams of one piece,",
-    "like 50 of a Semmel, for a food I eat in pieces.",
+    "so the same name of two shops never mixes up, and the size of the pack as sold; Portion is the grams I typically",
+    "take at once, like 50 of a Semmel, one piece, or 30 of oil, two tablespoons.",
     "A meal in the log lists a food by its name, brand and store, then the grams I ate, like",
     "`X-FOOD:Skyr natur;K-Classic;Kaufland;150`; a cooking lists what went into the pot the same way.",
     "",
@@ -566,7 +566,8 @@ function cellsOf(line: string): string[] {
 
 /**
  * Reads my foods, the rows of the table of `Foods.md`: its lines starting with `|`, after the head of the table,
- * as they are, the column `Piece` the grams of one piece, once called `Portion`. kcal that cannot be read counts as 0;
+ * as they are, the column `Portion` the grams I typically take at once, called `Piece` for a while. kcal that cannot be
+ * read counts as 0;
  * a nutrient empty or unreadable
  * is unknown, `null`, never 0, see {@link nutrientOf}; a row without a name stays out.
  *
@@ -584,7 +585,7 @@ function foodsRead(): Food[] {
         .map((cells: string[]): Food => ({
             name: cells[0], kcal: numberOf(cells[1]), protein: nutrientOf(cells[2]), carbs: nutrientOf(cells[3]),
             fat: nutrientOf(cells[4]), barcode: cells[6] ?? "", brand: cells[7] ?? "", store: cells[8] ?? "",
-            pack: cells[9] ?? "", piece: nutrientOf(cells[5]),
+            pack: cells[9] ?? "", portion: nutrientOf(cells[5]),
         }));
 }
 
@@ -807,7 +808,7 @@ function productOf(sent: ProductSent): Product | null {
         brand: brandOf(firstOf(sent.brands)),
         store: brandOf(firstOf(sent.stores)),
         pack: packOf(sent.quantity),
-        piece: null,
+        portion: null,
     };
 }
 
@@ -888,22 +889,22 @@ export async function foodsFind(text: string, page: number, products: boolean): 
 }
 
 /**
- * Writes a food as a row of the table of `Foods.md`, an unknown nutrient an empty cell, never 0, and the grams of one
- * piece in the column `Piece`, empty for none, see the top of this file.
+ * Writes a food as a row of the table of `Foods.md`, an unknown nutrient an empty cell, never 0, and the grams of its
+ * portion in the column `Portion`, empty for none, see the top of this file.
  * - `cells`: Its values in the order of the columns, see {@link tableHeadOf}.
  *
  * @param food - Food as written
  * @returns Row like `| Gouda | 356 | 25 |  |  |  | 4056489012345 | Milbona | Lidl | 400 g |`
  */
 function rowOf(food: Food): string {
-    const cells: (string | number | null)[] = [food.name, food.kcal, food.protein, food.carbs, food.fat, food.piece,
+    const cells: (string | number | null)[] = [food.name, food.kcal, food.protein, food.carbs, food.fat, food.portion,
         food.barcode, food.brand, food.store, food.pack];
     return `| ${cells.map((cell: string | number | null): string => String(cell ?? "")).join(" | ")} |`;
 }
 
 /**
  * Gives the head of the table of `Foods.md` the columns of today, see {@link tableHeadOf}, like a table written before
- * packs were kept, or with `Portion` where `Piece` stands now, so the rows written since stand under their names.
+ * packs were kept, or with `Piece` where `Portion` stands now, so the rows written since stand under their names.
  *
  * @param lines - Lines of `Foods.md`, changed in place
  * @param header - Index of the header of its table
@@ -950,7 +951,7 @@ export function foodAdd(sent: Food): Food {
         brand: brandOf(String(sent.brand ?? "")),
         store: brandOf(String(sent.store ?? "")),
         pack: nameOf(String(sent.pack ?? "")),
-        piece: amount(sent.piece) && Number(sent.piece) > 0 ? roundOf(Number(sent.piece), 1) : null,
+        portion: amount(sent.portion) && Number(sent.portion) > 0 ? roundOf(Number(sent.portion), 1) : null,
     };
     if (added.name === "")
         throw new Error(`No name of a food: ${JSON.stringify(sent)}`);
@@ -1003,7 +1004,7 @@ function lineRenamed(line: string, old: string, renamed: { name: string; brand: 
  * `Foods.md`, every other line staying as it is, so one stopped in between finishes when sent again; with its row
  * for a food I made by hand, without barcode, its protein, carbs and fat where they are still unknown, each set once
  * and then fixed, as its kcal from the start, so nothing known is changed by mistake, and its pack; those of Open Food
- * Facts stay as they came; and the grams of one piece of any food. A food sent without change writes nothing.
+ * Facts stay as they came; and the grams of the portion of any food. A food sent without change writes nothing.
  * - `old`: Key of the food, see {@link keyOf}.
  * - `renamed`: Its new name, brand and store, cleaned.
  * - `mine`: My foods.
@@ -1039,7 +1040,7 @@ export function foodChange(sent: FoodChanged): Food {
         throw new Error(`No new name of a food: ${labelOf(renamed)}`);
     const amount: (value: unknown) => boolean = (value: unknown): boolean => typeof value === "number" && value >= 0;
     const own: boolean = found.barcode === "";
-    if (![sent.protein, sent.carbs, sent.fat, sent.piece].every((value: unknown): boolean =>
+    if (![sent.protein, sent.carbs, sent.fat, sent.portion].every((value: unknown): boolean =>
         value === undefined || value === null || amount(value)))
         throw new Error(`No numbers of a food: ${JSON.stringify(sent)}`);
     const settled: (known: number | null, typed: number | null | undefined) => number | null =
@@ -1052,8 +1053,8 @@ export function foodChange(sent: FoodChanged): Food {
             fat: settled(found.fat, sent.fat),
         }),
         pack: own && sent.pack !== undefined ? nameOf(String(sent.pack)) : found.pack,
-        piece: sent.piece === undefined ? found.piece
-            : sent.piece === null || sent.piece === 0 ? null : roundOf(sent.piece, 1),
+        portion: sent.portion === undefined ? found.portion
+            : sent.portion === null || sent.portion === 0 ? null : roundOf(sent.portion, 1),
     };
     if (rowOf(changed) === rowOf(found))
         return found;

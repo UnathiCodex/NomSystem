@@ -49,8 +49,8 @@ export type Totals = {
  * - `brand`: Its first brand, like `Milbona`, empty when none is known.
  * - `store`: The first store that sells it, like `Lidl`, empty when none is known.
  * - `pack`: Size of its pack as sold, like `450 g`, empty when none is known.
- * - `piece`: Grams of one piece, like 50 of a Semmel, for a food I eat in pieces, so an entry takes `2 St` as 100 g;
- *   `null` for none.
+ * - `portion`: Grams I typically take at once, like 50 of a Semmel, one piece, or 30 of oil, two tablespoons, so an
+ *   entry takes `2x` or `2 St` as twice that; `null` for none.
  */
 export type Food = Nutrients & {
     name: string;
@@ -58,12 +58,12 @@ export type Food = Nutrients & {
     brand: string;
     store: string;
     pack: string;
-    piece: number | null;
+    portion: number | null;
 };
 
 /**
  * What changes of a food of mine, as typed, see {@link foodChange}: its name, brand and store always; for a food
- * I made by hand a nutrient per 100 g still unknown, which once known stays, and its pack; the grams of one piece
+ * I made by hand a nutrient per 100 g still unknown, which once known stays, and its pack; the grams of the portion
  * of any food, `null` for none.
  */
 export type FoodChanges = {
@@ -74,7 +74,7 @@ export type FoodChanges = {
     carbs?: number | null;
     fat?: number | null;
     pack?: string;
-    piece?: number | null;
+    portion?: number | null;
 };
 
 /**
