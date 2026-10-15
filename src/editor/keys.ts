@@ -70,7 +70,7 @@ const pointContinue: Command = (view: EditorView): boolean => {
  * - `first`: The first line of the item, with its `-` or number.
  * - `blank`: Whether the line of the cursor holds nothing but the room of a further line, as Shift+Enter leaves it;
  *   the item is then that of the line above.
- * - `point`: Its tabs, its `-` or number, the number alone and the `.` or `)` after it; `null` for no point.
+ * - `point`: Its tabs, then its `-`, or its number and the `.` or `)` after it; `null` for no point.
  * - `insert`: What the line of the new point begins with.
  *
  * @param view - The editor
@@ -86,10 +86,10 @@ const furtherContinue: Command = (view: EditorView): boolean => {
         return false;
 
     const first: Line = view.state.doc.lineAt(item.from);
-    const point: RegExpExecArray | null = /^([ \t]*)(?:[-*+]|(\d+)([.)]))[ \t]/.exec(first.text);
+    const point: RegExpExecArray | null = /^([ \t]*)(?:([-*+])|(\d+)([.)]))[ \t]/.exec(first.text);
     if (point === null)
         return false;
-    const insert: string = point[1] + (point[2] === undefined ? first.text.trim()[0] : `${Number(point[2]) + 1}${point[3]}`) + " ";
+    const insert: string = `${point[1]}${point[2] ?? `${Number(point[3]) + 1}${point[4]}`} `;
     view.dispatch({
         changes: blank ? { from: line.from, to: line.to, insert: insert }
             : { from: range.head, insert: view.state.lineBreak + insert },
@@ -178,6 +178,7 @@ function itemIndent(inward: boolean): Command {
  * Swaps two blocks of whole lines that stand right below each other, like a list item and the one before it,
  * and moves the cursor or what is picked along with the block it stands in.
  * - `upper`, `lower`: The text of the two blocks.
+ * - `shift`: How far the cursor moves with its block.
  *
  * @param view - The editor
  * @param from - Start of the first line of the upper block
@@ -318,8 +319,8 @@ function lineDown(command: Command): Command {
 }
 
 /**
- * Keys of a Markdown file, see the top of this file; Tab and Shift+Tab, Alt+Up and Alt+Down try the list item first,
- * then the key goes on to the next command, CodeMirror's own.
+ * Keys of a Markdown file, see the top of this file; Enter, Tab and Shift+Tab, Alt+Up and Alt+Down try the list item
+ * first, then the key goes on to the next command, CodeMirror's own.
  */
 export const markdownKeys: Extension = Prec.high(keymap.of([
     { key: "Enter", run: furtherContinue },
