@@ -202,7 +202,8 @@
     }
 }
 
-/* Chapter, open at first, its name and numbers on its line, the grey fold arrow before it */
+/* Chapter, open at first, its name and numbers on its line, the grey fold arrow before it, light under the pointer,
+   softly, as everything turns lighter, see `../base.css`, so the line shows that a click folds it */
 .skill-chapter > summary {
     padding: 0.5rem 0;
     list-style: none;
@@ -219,11 +220,16 @@
     background: var(--text-muted);
     mask: var(--fold-icon) center / 0.875em no-repeat;
     rotate: -90deg;
-    transition: rotate 100ms ease-in-out;
+    transition: rotate 100ms ease-in-out, background-color 150ms;
 }
 
 .skill-chapter[open] > summary::before {
     rotate: 0deg;
+}
+
+.skill-chapter > summary:hover::before {
+    background: var(--text-main);
+    transition: rotate 100ms ease-in-out, background-color 150ms 100ms;
 }
 
 /* Exam of the module, grey below its head, and the section that comes next */
@@ -270,7 +276,7 @@
 }
 
 /* Section of a chapter, closed at first: its line like a task's with the fold arrow before it, centred on the name,
-   its tasks indented below it once open */
+   light under the pointer as the arrow of a chapter, its tasks indented below it once open */
 .skill-section > summary {
     list-style: none;
     cursor: pointer;
@@ -290,11 +296,16 @@
     background: var(--text-muted);
     mask: var(--fold-icon) center / 0.875em no-repeat;
     rotate: -90deg;
-    transition: rotate 100ms ease-in-out;
+    transition: rotate 100ms ease-in-out, background-color 150ms;
 }
 
 .skill-section[open] > summary::before {
     rotate: 0deg;
+}
+
+.skill-section > summary:hover::before {
+    background: var(--text-main);
+    transition: rotate 100ms ease-in-out, background-color 150ms 100ms;
 }
 
 .skill-section-tasks {
