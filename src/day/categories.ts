@@ -632,14 +632,14 @@ function partsShown(field: Field): boolean {
 
 /**
  * Shows the rows of the places anew, after the parts of a field opened or closed, the first part focused
- * while they show, so I type at once.
+ * while they show, so I type at once, found by the key of their field, see {@link partsOf}.
  *
  * @param field - Field of the place, like `Place`
  */
 function partsShow(field: Field): void {
     placesShow();
     if (partsShown(field))
-        document.querySelector<HTMLInputElement>("#entry .field-parts input")?.focus();
+        document.querySelector<HTMLInputElement>(`#entry .field-parts[data-field="${field.key}"] input`)?.focus();
 }
 
 /**
@@ -696,14 +696,18 @@ function partOf(name: string, input: HTMLInputElement): HTMLLabelElement {
  * Builds the parts of the place picked in a field, as the foods of a meal and the documents of a chapter stand:
  * indented under the place with a thin grey line at their left, see `.field-parts` in `day.css`: for my place its name,
  * then for my place and for `Online` alike three parts in place of an address and the link last,
- * see {@link minePartsOf} and {@link onlinePartsOf}.
+ * see {@link minePartsOf} and {@link onlinePartsOf}; they carry the key of their field, like `location`, so the dialog
+ * finds them apart from those of another place and from the link of the summary.
+ * - `element`: The parts.
  *
  * @param field - Field of the place, like `Place`
  * @param parts - Pencil and address of the place, see {@link placePartsOf}
  * @returns The parts
  */
 function partsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]): HTMLElement {
-    return onlinePicked(field) ? onlinePartsOf(field, parts) : minePartsOf(field, parts);
+    const element: HTMLElement = onlinePicked(field) ? onlinePartsOf(field, parts) : minePartsOf(field, parts);
+    element.dataset.field = field.key;
+    return element;
 }
 
 /**
