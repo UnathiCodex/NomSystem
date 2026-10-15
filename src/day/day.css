@@ -1966,9 +1966,18 @@ svg.route-arrow {
     }
 
     /* Buttons of a panel in one row across, the square ones beside those with words, which share the rest equally,
-       each its word on one line, a little smaller, so `Edit plan` keeps room inside its frame */
+       each its word on one line, a little smaller, so `Edit plan` keeps room inside its frame; always in sight
+       at the bottom of the dialog, under the thumb, while its rows scroll above them, like the foods of a long meal:
+       on the background of the dialog, so a row scrolled under them hides behind them, 0.5rem of it above the buttons,
+       the rest of their room above them as before, and the dialog's own room below them */
     .panel-buttons {
+        position: sticky;
+        bottom: -0.5rem;
         flex-wrap: nowrap;
+        margin-top: 0.25rem;
+        margin-bottom: -0.5rem;
+        padding-block: 0.5rem;
+        background: var(--background);
     }
 
     .panel-buttons button:not(:has(svg)) {
@@ -1980,28 +1989,9 @@ svg.route-arrow {
         font-size: 0.875rem;
     }
 
-    /* The buttons of a dialog on a phone always in sight at its bottom, under the thumb, while its rows scroll above
-       them, like the foods of a long meal: on the background of the dialog, so a row scrolled under them hides
-       behind them, 0.5rem of it above the buttons, the rest of their room above them as before, and the dialog's own
-       room below them */
-    .panel-buttons {
-        position: sticky;
-        bottom: -0.5rem;
-        margin-top: 0.25rem;
-        padding-block: 0.5rem;
-        margin-bottom: -0.5rem;
-        background: var(--background);
-    }
-
-    /* A field I type in stays above those buttons when the keyboard opens and the dialog scrolls it into sight,
-       like the note at the bottom: the dialog keeps the height of the buttons, one control and their room above
-       and below, free at its bottom for what it scrolls to */
-    .panel {
-        scroll-padding-bottom: calc(var(--control-height) + 1rem);
-    }
-
     /* A box on a phone: its lines take the whole width beside the ring, and its buttons, which show without
-       a pointer, go into a row of their own below them, at the right */
+       a pointer, go into a row of their own below them, at the right, 0.75rem apart, so a tap between two of them
+       goes to neither, see below */
     .box {
         flex-wrap: wrap;
         row-gap: 0.5rem;
@@ -2012,12 +2002,13 @@ svg.route-arrow {
     }
 
     .box-actions {
+        gap: 0.75rem;
         margin-left: auto;
     }
 
     /* The ring and the buttons of a box on a phone as they look, but a finger's width to hit: the ring, which logs
        the box with one tap, takes a tap 0.75rem around it, as far as the lines beside it, and each button 0.375rem
-       around it, the buttons 0.75rem apart, so a tap between two of them goes to neither */
+       around it */
     button.box-ring,
     .box-action {
         position: relative;
@@ -2032,10 +2023,6 @@ svg.route-arrow {
 
     .box-action::after {
         inset: -0.375rem;
-    }
-
-    .box-actions {
-        gap: 0.75rem;
     }
 
     /* The place of a box on a phone on a line of its own below its time, whole, without the dot */
@@ -2057,7 +2044,9 @@ svg.route-arrow {
 
     /* A panel on a phone rises from the bottom over the whole width, a little closer to the screen's edges; its rows,
        in every dialog alike, each its name small and grey above its value, so the value takes the whole width
-       instead of two thirds beside the name */
+       instead of two thirds beside the name; a field I type in, like the note at the bottom, stays above its buttons
+       when the keyboard opens and the panel scrolls it into sight: the height of the buttons, one control and their
+       room above and below, kept free at its bottom for what it scrolls to, see `.panel-buttons` */
     .panel {
         --value-start: calc(var(--row-padding) + 1px);
         width: 100%;
@@ -2065,6 +2054,7 @@ svg.route-arrow {
         margin: auto 0 0;
         padding: 0.5rem;
         border-radius: var(--radius) var(--radius) 0 0;
+        scroll-padding-bottom: calc(var(--control-height) + 1rem);
     }
 
     .panel-field {
