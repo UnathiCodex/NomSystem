@@ -23,6 +23,9 @@
  * refused when the file changed on the disk since it was read, and asks before leaving with changes unsaved, also
  * for another file of the tree; the button turns the calm grey of a main button while there are changes, and beside it
  * stands when it saved last, like `Saved 20:41`, or what went wrong.
+ * A phone shows one thing at a time, as the day shows plan or log: the file, or the tree over it while the button
+ * of the tree at the bottom is pressed, see {@link phoneShow}; the name of the file then scrolls away with it,
+ * and the button of the tree, the notice and the save button stand at the bottom, see `./editor.css`.
  *
  * - `@codemirror/state`, `@codemirror/view`: The editor, CodeMirror 6, the engine of Obsidian's editor.
  * - `@codemirror/commands`: Undo, redo and the usual keys, Tab indenting a line.
@@ -35,7 +38,8 @@
  * - `./preview.ts`: Shows the Markdown as in the scripts view, folds its sections and scrolls to a heading.
  * - `./tasks.ts`: Shows the rows of the tasks of a note.
  * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked, and the outline of a note.
- * - `lucide`, `../icons.ts`: The check of the save button.
+ * - `../day/choices.ts`: Marks where the long name of a file may go on below, on a phone.
+ * - `lucide`, `../icons.ts`: The check of the save button and the tree of the button that shows the tree on a phone.
  * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images, and of the tree.
  * - `./editor.css`: Look of the editor.
  */
@@ -53,7 +57,8 @@ import { headingShow, linksSet, livePreview, solutionsFold } from "./preview.ts"
 import { taskRows, tasksLoad } from "./tasks.ts";
 import { outlineShow, treeShow } from "../notes/tree.ts";
 import { timeOf } from "../day/times.ts";
-import { Check } from "lucide";
+import { breakableOf } from "../day/choices.ts";
+import { Check, ListTree } from "lucide";
 import { iconPut } from "../icons.ts";
 import "../notes/notes.css";
 import "./editor.css";
@@ -151,6 +156,23 @@ let outlineTree: HTMLElement | null = null;
  */
 let outlineWait: number = 0;
 
+/**
+ * Whether the page shows on a phone, a screen as narrow as the phone layout of the stylesheets, which shows
+ * one thing at a time, see {@link phoneShow}.
+ */
+const phone: boolean = matchMedia("(max-width: 900px)").matches;
+
+
+/**
+ * Shows on a phone the file or the tree over it, see `.editor` in `./editor.css`, the button of the tree pressed
+ * while the tree is shown; a computer shows both side by side anyway.
+ *
+ * @param shown - What to show, `file` or `tree`
+ */
+function phoneShow(shown: "file" | "tree"): void {
+    (document.getElementById("editor") as HTMLElement).dataset.shown = shown;
+    document.getElementById("editor-tree")?.setAttribute("aria-pressed", String(shown === "tree"));
+}
 
 /**
  * Shows whether the file has changes not yet saved: the save button in the calm grey of a main button while it has,
@@ -228,7 +250,8 @@ function keyDown(event: KeyboardEvent): void {
  * - `lineWrapping`: Wraps long lines at the reading width, as the scripts view does, so I see where a line overflows.
  * - `darkTheme`: Draws cursor and selection for a dark page.
  * - `scrollMargins`: Keeps the cursor below the head with the name and the save button, which stays on top
- *   while the file scrolls, so moving up never hides the cursor under it.
+ *   while the file scrolls, so moving up never hides the cursor under it; on a phone the name scrolls away
+ *   with the file, and the bar at the bottom stands below the file, so the cursor needs no margin there.
  * - `taskRows`: The rows of the tasks of a note, once loaded, see `./tasks.ts`.
  * - `updateListener`: Shows whether the file has unsaved changes after each change of the text, and builds the outline
  *   of a note anew once the typing rests.
@@ -248,7 +271,7 @@ function extensionsOf(opened: Opened): Extension[] {
         EditorView.lineWrapping,
         EditorView.darkTheme.of(true),
         EditorView.scrollMargins.of((): Partial<Rect> =>
-            ({ top: (document.getElementById("editor-head") as HTMLElement).offsetHeight })),
+            ({ top: phone ? 0 : (document.getElementById("editor-head") as HTMLElement).offsetHeight })),
         ...(opened.markdown ? [livePreview(opened.links), taskRows] : []),
         ...(/\.ics$/i.test(path) ? [icsLook()] : []),
         EditorView.updateListener.of((update: ViewUpdate): void => {
@@ -291,16 +314,22 @@ async function openedRead(file: string): Promise<Opened | null> {
 }
 
 /**
- * Scrolls the note shown to the heading of the address, see `headingShow` in `./preview.ts`, or to its top.
+ * Scrolls the note shown to the heading of the address, see `headingShow` in `./preview.ts`, or to its top;
+ * on a phone, where the name of the note scrolls away with it, to its very top, so its name stays in sight.
+ * - `heading`: The heading of the address, empty for none.
  */
 function addressHeadingShow(): void {
-    headingShow(view, decodeURIComponent(location.hash.slice(1)));
+    const heading: string = decodeURIComponent(location.hash.slice(1));
+    if (phone && heading === "")
+        (document.querySelector(".editor-file") as HTMLElement).scrollTop = 0;
+    else
+        headingShow(view, heading);
 }
 
 /**
  * Scrolls to a heading of the note shown on a click on a link to it in the tree, like in its outline, without loading
- * the page again, and keeps it in the address and the history of the browser; links to other notes, and clicks
- * with a key held, act as usual.
+ * the page again, and keeps it in the address and the history of the browser; on a phone it shows the note in place
+ * of the tree first, see {@link phoneShow}; links to other notes, and clicks with a key held, act as usual.
  * - {@link History#pushState}: Writes the address as a new step of the history, for the back button.
  * - `link`: The link clicked, `null` for none.
  * - `address`: Its address.
@@ -317,6 +346,7 @@ function treeClick(event: MouseEvent): void {
         return;
     event.preventDefault();
     window.history.pushState(null, "", address);
+    phoneShow("file");
     addressHeadingShow();
 }
 
@@ -329,10 +359,14 @@ function treeClick(event: MouseEvent): void {
  * be read shows a hint instead, and so does the editor while it shows no file.
  * A note of my modules gets the rows of its tasks, see `./tasks.ts`, its outline in the tree, and scrolls to the
  * heading of the address, also when the back or forward button of the browser changes it.
+ * A phone shows the file, or the tree while no file is named, and the button of the tree switches between them,
+ * off while there is no file to go back to, see {@link phoneShow}; the name of the file may go on below between
+ * its parts there, see `breakableOf` in `../day/choices.ts`.
  * - `address`: The parameters of the address.
  * - `file`: Path of the file of my new system, empty for a note.
  * - `plannings`: Whether the editor shows my new system, for one of its files or at `/plannings`; else my modules.
  * - `tree`: Place of the tree, and `shown` the tree once it is shown.
+ * - `treeButton`: The button that shows the tree on a phone.
  * - `opened`: The file read.
  * - `text`: Element of the text, with the look of the notes for Markdown, else of plain text.
  * - `beforeunload`: Comes before the page closes or loads again, also for another file of the tree;
@@ -345,13 +379,19 @@ export async function editorStart(): Promise<void> {
     const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
     const plannings: boolean = file !== "" || location.pathname === "/plannings";
     const tree: HTMLElement = document.getElementById("notes-tree") as HTMLElement;
+    const treeButton: HTMLButtonElement = document.getElementById("editor-tree") as HTMLButtonElement;
     path = file !== "" ? file : address.get("path") ?? "";
     saveAddress = file !== "" ? "/api/edit/file" : "/api/edit/note";
+    phoneShow(path === "" ? "tree" : "file");
+    iconPut(treeButton, ListTree, "Tree");
+    treeButton.disabled = path === "";
+    treeButton.addEventListener("click", (): void =>
+        phoneShow(treeButton.getAttribute("aria-pressed") === "true" ? "file" : "tree"));
     const shown: Promise<void> = treeShow(tree, plannings ? "NomManageplannings" : "NomSkillingmodules", path,
         address.get("module") ?? "");
     shown.catch((error: unknown): void => console.error(error));
     (document.getElementById("editor-title") as HTMLElement).textContent =
-        path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";
+        breakableOf(path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "");
     const opened: Opened | null = path === "" ? null : await openedRead(file);
     if (opened === null) {
         save.hidden = true;

@@ -1,6 +1,7 @@
 <!-- Editor: the tree on the left, the file on the right, a draft note or a file of my new system as its text,
-     its Markdown shown as in the notes away from the cursor, saved exactly as edited -->
-<div class="editor">
+     its Markdown shown as in the notes away from the cursor, saved exactly as edited; on a phone the file alone,
+     the tree over it while I ask for it, see `data-shown` in editor.ts -->
+<div class="editor" id="editor">
     <!-- Tree of NomManageplannings for a file of my new system and at /plannings, of NomSkillingmodules for a draft,
          see notes/tree.ts -->
     <nav class="notes-tree" id="notes-tree"></nav>
@@ -10,11 +11,15 @@
         <!-- Page of the file as wide as the room beside the tree, with little room left and right -->
         <div class="editor-page">
             <!-- Head: name of the file, whether its changes are saved, and the save button;
-                 stays on top while scrolling -->
+                 stays on top while scrolling; on a phone only the name, which scrolls away with the file, while the bar
+                 with the rest stands at the bottom, under the thumb, the button that shows the tree first -->
             <div class="editor-head" id="editor-head">
                 <h1 class="editor-title" id="editor-title"></h1>
-                <span class="editor-state" id="editor-state"></span>
-                <button type="button" class="editor-save" id="editor-save"></button>
+                <div class="editor-bar">
+                    <button type="button" class="editor-tree" id="editor-tree" aria-pressed="false"></button>
+                    <span class="editor-state" id="editor-state"></span>
+                    <button type="button" class="editor-save" id="editor-save"></button>
+                </div>
             </div>
 
             <!-- Text of the file, CodeMirror inside; `markdown` gives the rendered pieces of a Markdown file the look
