@@ -2062,6 +2062,17 @@ svg.route-arrow {
         row-gap: 0.25rem;
     }
 
+    /* The result of a task picked for a session on a phone below the task, as the value of a row stands below its
+       name, so the name of the task keeps the whole width instead of two fifths, like `Unbiased Mean Check` on one
+       line, and where I got stuck or why I skipped below the result */
+    .skill-result {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .skill-result-detail {
+        grid-column: 1;
+    }
+
     /* The days and times of a dialog on a phone where they stand, but a finger high to hit: each field takes a tap
        0.375rem above and below its text, which takes no room of the row, so the end below the start keeps its place
        and a tap between the two goes to the end */
