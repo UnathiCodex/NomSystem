@@ -633,6 +633,12 @@
         text-indent: -1em;
     }
 
+    /* The name of a block of the outline on a phone, which leads to its heading, taking a tap over the whole height
+       of its row, so a tap above or below its letters never folds the block instead, which only its arrow does */
+    .tree-outline .tree-folder > summary > .tree-file {
+        padding-block: 0.5625rem;
+    }
+
     /* The menu of a picker of the tree on a phone rising from the bottom over the whole width, as a list of a dialog
        does, since the tree leaves no room beside it, never higher than the screen leaves room for */
     .tree-menu {

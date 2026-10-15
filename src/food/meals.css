@@ -50,7 +50,8 @@
 /* Phone: a meal opened with each name small and grey above its value, as every value of a food, see `search.css`;
    each food its grams first, as a recipe writes them, like `150 g Hackfleisch gemischt zum Braten`, as in the entry
    by category on a phone, the field of the grams just wide enough for four digits, so the name keeps the rest
-   of the line, never breaking within a word, like `Tomatenm` and `ark` in a narrow column beside `Foods` */
+   of the line, never breaking within a word, like `Tomatenm` and `ark` in a narrow column beside `Foods`;
+   the field taking a tap 0.25rem left of its digits too, a finger wide, which takes no room of its line */
 @media (max-width: 900px) {
     .dish-list .food-facts {
         grid-template-columns: minmax(0, 1fr);
@@ -65,6 +66,8 @@
     }
 
     .dish-foods .food-inline-grams {
-        width: 4ch;
+        width: calc(4ch + 0.25rem);
+        margin-left: -0.25rem;
+        padding-left: 0.25rem;
     }
 }
