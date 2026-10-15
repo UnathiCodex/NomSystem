@@ -1020,6 +1020,19 @@ button.box-ring.box-checked svg {
     cursor: default;
 }
 
+/* Under a pointer that hovers, a button of a panel turns one grey lighter, as the arrows of the day and every outlined
+   button do, like the cross or the bin, and `Save` one grey lighter than its calm grey, `--chosen-over`, while it can
+   send; not on a phone, where a tap would leave a button lit */
+@media (hover: hover) {
+    .panel-buttons button:not(.panel-main):hover {
+        background: var(--fill);
+    }
+
+    .panel-buttons .panel-main:enabled:hover {
+        background: var(--chosen-over);
+    }
+}
+
 /* Month to pick a day from: 34rem wide, so its days are easy to hit */
 .month-panel {
     width: min(34rem, calc(100vw - 2 * var(--gap)));
