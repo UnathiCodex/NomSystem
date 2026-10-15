@@ -17,7 +17,7 @@
  *   `[[Note#Heading|Text]]` as their text; the markup of the piece the cursor touches shows.
  * - Line breaks `<br>` and break opportunities `<wbr>` drawn as in the scripts view, so `<br><wbr>` at the end of a line
  *   leaves an empty line below it; as their text while the cursor touches them.
- * - Task boxes `[ ]` and `[x]` as the boxes of the scripts view, as written on the line of the cursor.
+ * - Task boxes `[ ]` and `[x]` as the boxes of the scripts view, which a click ticks, as written on the line of the cursor.
  * - Formulas `$…$` and `$$…$$` rendered as in the scripts view, as their TeX while the cursor touches them;
  *   a formula `$$…$$` being edited shows rendered below its TeX, as in Obsidian.
  * - Images `![[Image.svg|300]]` shown; tables, callouts `> [!note] Title`, code blocks and HTML blocks like `<table>`
@@ -387,7 +387,8 @@ class ImageWidget extends WidgetType {
 }
 
 /**
- * Task box of a list item, as the scripts view shows it: a box that cannot be ticked here.
+ * Task box of a list item, as the scripts view shows it, which a click ticks or unticks, as in Obsidian: `[ ]` becomes
+ * `[x]` and back, the cursor staying where it is; in a file to read only it cannot be ticked.
  */
 class TaskBoxWidget extends WidgetType {
     /**
@@ -408,21 +409,27 @@ class TaskBoxWidget extends WidgetType {
     }
 
     /**
-     * Shows the box, as marked writes it for the scripts view.
+     * Shows the box, as marked writes it for the scripts view; a click writes `x` or a space between its brackets.
+     * - `pos`: Start of the box in the text, its `[`.
      */
-    toDOM(): HTMLElement {
+    toDOM(view: EditorView): HTMLElement {
         const box: HTMLInputElement = document.createElement("input");
         box.type = "checkbox";
-        box.disabled = true;
+        box.disabled = view.state.readOnly;
         box.checked = this.done;
+        box.addEventListener("mousedown", (event: MouseEvent): void => {
+            event.preventDefault();
+            const pos: number = view.posAtDOM(box);
+            view.dispatch({ changes: { from: pos + 1, to: pos + 2, insert: this.done ? " " : "x" }, userEvent: "input" });
+        });
         return box;
     }
 
     /**
-     * Lets a click reach the editor, which puts the cursor at the box, so it shows as text.
+     * Keeps a click on the box from the editor, which would put the cursor there: the box ticks itself.
      */
     override ignoreEvent(): boolean {
-        return false;
+        return true;
     }
 }
 
