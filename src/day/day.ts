@@ -87,12 +87,17 @@ import type { Line } from "./meal.ts";
  * and once the line of an hour label, see `.slot-label` in `day.css`, and a line of a taller entry 1.05rem,
  * its text of 0.75rem at a line height of 1.4, see `.entry-inner`; so a line fills 15.75 minutes,
  * and the space of 0.5rem above its first line and 0.25rem below its last, 0.75rem, fills 11.25 minutes,
- * see {@link linesOf}: an entry of half an hour has room for one line, (30 - 11.25) / 15.75 = 1.19,
- * one of an hour for three, (60 - 11.25) / 15.75 = 3.1; a short one, as low as `eventShortHeight` in {@link dayStart}
- * or lower, has no space above and below its one line, 0.9rem high at a line height of 1.2,
- * so a quarter hour, 1rem high, holds it.
+ * see {@link linesOf}; a short one, as low as `eventShortHeight` in {@link dayStart} or lower, has no space above
+ * and below its one line, 0.9rem high at a line height of 1.2, so a quarter hour, 1rem high, holds it.
  */
 const lineMinutes: number = 15.75;
+
+/**
+ * Minutes of the time grid an entry loses to its edge and to the gap below it, about 4 px of the 80 px of an hour,
+ * see {@link linesOf}: an entry of an hour holds 76 px, too little for three lines with their space above and below,
+ * 78 px, so its third line, its place, never showed.
+ */
+const edgeMinutes: number = 3;
 
 /**
  * Shows the daily note of a day, like `2026-10-12`, with my gratitude and my points about the day;
@@ -331,16 +336,20 @@ function dishOf(event: EventApi): string[] {
 }
 
 /**
- * Lines an entry of the time grid has room for, its shown part less the space of 0.75rem above and below its lines,
- * see {@link lineMinutes}: an entry of a quarter hour or half an hour has room for one line,
- * (30 - 11.25) / 15.75 = 1.19, one of 45 minutes for two, (45 - 11.25) / 15.75 = 2.14, one of an hour for three,
- * and a Sleep from 23:00 to 07:00 on 12 October, shown from 23:00 to 24:00, for (60 - 11.25) / 15.75 = 3,
- * not 29 for its whole 8 hours.
+ * Lines an entry of the time grid has room for, its shown part less what its edge takes, see {@link edgeMinutes}:
+ * three lines or more with the space of 0.75rem above and below them, see {@link lineMinutes}, like an hour and
+ * a quarter, (75 - 3 - 11.25) / 15.75 = 3.86, three; else at most two, centred without that space, see
+ * `entry-inner-middle` in {@link dayStart}: half an hour one, (30 - 3) / 15.75 = 1.7, 45 minutes two,
+ * (45 - 3) / 15.75 = 2.67, and an hour two too, its place beside its time, like `00:00 – 01:00 · Home Munich`,
+ * since three would need its space; a Sleep from 23:00 to 07:00 on 12 October, shown from 23:00 to 24:00,
+ * counts that hour, not its whole 8 hours.
  * A short entry, see `eventShortHeight` in {@link dayStart}, has room for one line, its space above and below left out.
  * - `start`, `end`: Start and end of the entry.
  * - `day`: Midnight of the shown day, where the grid starts.
  * - `top`, `bottom`: Start and end of the entry cut to the grid, from 00:00 to 24:00 of the shown day,
  *   like 23:00 to 24:00 for that Sleep.
+ * - `minutes`: Minutes of its shown part its lines may fill, its edge left out.
+ * - `spaced`: Lines with the space above and below them.
  *
  * @param info - Entry of the time grid with its render details
  * @returns Lines, at least 1
@@ -354,7 +363,9 @@ function linesOf(info: EventDisplayInfo): number {
         Math.min(end.getTime(), new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).getTime());
     if (info.isShort)
         return 1;
-    return Math.max(1, Math.floor(((bottom - top) / (60 * 1000) - 11.25) / lineMinutes));
+    const minutes: number = (bottom - top) / (60 * 1000) - edgeMinutes;
+    const spaced: number = Math.floor((minutes - 11.25) / lineMinutes);
+    return spaced >= 3 ? spaced : Math.max(1, Math.min(2, Math.floor(minutes / lineMinutes)));
 }
 
 /**
@@ -371,7 +382,7 @@ function linesOf(info: EventDisplayInfo): number {
  *   like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO) · 16:00 – 16:30 · 8120.01.101 (Audimax im Galileo)`;
  *   where an entry is narrower than what and its time, as on a phone, what stays whole and its time moves
  *   onto a next line, which the entry hides, and only what wider than the whole entry ends with an ellipsis.
- * - An entry with room for two lines, of 45 minutes, shows what on its first line and start and end on its second
+ * - An entry with room for two lines, of 45 minutes or an hour, shows what on its first line and start and end on its second
  *   with its place after a dot, like `16:00 – 16:45 · 8120.01.101 (Audimax im Galileo)`, both lines centred
  *   in the entry, see `entry-inner-middle` in {@link dayStart}.
  * - An entry with room for three lines or more shows what, start and end and its place on lines of their own
@@ -619,7 +630,7 @@ async function noteStart(calendar: Calendar): Promise<void> {
  *   so `day.css` sets the size of their lines and cuts them at the edge of the entry instead of letting them stick out,
  *   and `entry-inner-short` to the inside of short ones, which takes away the space above and below their one line
  *   and keeps it 0.9rem high, and `entry-inner-middle` to the inside of those with room for one line or two,
- *   of half an hour or 45 minutes, which centres their lines in the entry, see {@link linesOf}.
+ *   of half an hour to an hour, which centres their lines in the entry, see {@link linesOf}.
  * - `eventSources`: The log, see {@link logSourceOf}.
  * - `editable`: Lets entries be moved and resized, those that the reader marks `editable`.
  * - `snapDuration`: Moves, resizes and selects in steps of 15 minutes, while the grid keeps a line every 30 minutes.
