@@ -213,7 +213,7 @@
     width: 1.125rem;
     height: 1lh;
     vertical-align: top;
-    background: rgb(128 128 128);
+    background: var(--reading-callout);
     mask: var(--fold-icon) center / 1.125rem no-repeat;
     cursor: pointer;
     transition: rotate 100ms ease-in-out;
