@@ -243,4 +243,72 @@ body:has(> .food) {
     .food {
         padding: var(--gap);
     }
+
+    /* The bar of the day on a phone as the day has it there, see `day/day.css`: the arrows at the edges of the screen,
+       plain, without frame, the date in the middle, the weekday small and grey above it, like `Wed` over
+       `14.10.2026`, and the icon back to today right beside the date, taking no room of the bar, so the date stays
+       in the middle */
+    .food-bar {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+    }
+
+    .food-arrow {
+        border-color: transparent;
+        background: none;
+    }
+
+    .food-day-title {
+        text-align: center;
+        font-size: 1.0625rem;
+        line-height: 1.2;
+        anchor-name: --food-date;
+    }
+
+    .food-weekday,
+    #food-date {
+        display: block;
+    }
+
+    .food-weekday {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .food-weekday::after {
+        content: none;
+    }
+
+    .food-today {
+        position: absolute;
+        position-anchor: --food-date;
+        top: anchor(center);
+        left: anchor(right);
+        min-height: var(--control-height);
+        translate: 0 -50%;
+    }
+
+    /* The day on a phone over the whole width, no step in from the rail's buttons, since a phone has no rail;
+       its column of numbers only as wide as each number, like `50 g`, standing at its right anyway, so the names
+       keep the rest of the line and a food like `Kidney Bohnen dunkelrot` needs fewer lines */
+    .food-day {
+        padding-left: 0;
+    }
+
+    .food-line,
+    .food-entry {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    /* The totals of the day on a phone always in the same two lines, whatever the width of the screen: the meals
+       and their energy on the first, protein, carbs and fat below them, in three columns */
+    .food-totals {
+        display: grid;
+        grid-template-columns: repeat(3, auto);
+        justify-content: start;
+    }
+
+    .food-total:nth-child(2) {
+        grid-column: span 2;
+    }
 }
