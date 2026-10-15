@@ -76,7 +76,7 @@ import "fullcalendar/themes/forma/theme.css";
 import "./day.css";
 
 import type {
-    DateSelectInfo, DateSpanApi, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,
+    DateSelectInfo, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,
     EventDragStartInfo, EventDragStopInfo, EventInput, EventReceiveInfo, EventResizeStartInfo, EventSourceInput,
 } from "fullcalendar";
 import type { EntryFields } from "./entries.ts";
@@ -139,8 +139,8 @@ function logSourceOf(): EventSourceInput {
 }
 
 /**
- * Opens the entry by category to change a clicked entry; one that cannot be changed, like an occurrence of a series
- * or an entry of the whole day, stays as it is.
+ * Opens the entry by category to change a clicked entry; one that cannot be changed, like an occurrence of a series,
+ * stays as it is.
  * - `startEditable`: Whether the entry can be changed, the field `editable` of the reader.
  *
  * @param info - Clicked entry
@@ -458,7 +458,7 @@ function selectionIs(info: EventDisplayInfo): boolean {
  * a way its route, see `whereOf` in `places.ts`; a place with a link opens it on a click, see `whereLinkedOf`.
  * What is never cut and the time never cut; only the place gives way where a line is too narrow,
  * cut with an ellipsis, see `day.css`.
- * An entry of the whole day shows only what it was, the range being selected only its start and end,
+ * The range being selected shows only its start and end,
  * like `15:00 – 16:00`, see {@link selectionIs}.
  * - An entry with room for one line, of a quarter hour or half an hour, see {@link linesOf}, shows what,
  *   then its start and end, then its place, parted by a middle dot with space on both sides, which `day.css` draws,
@@ -519,8 +519,6 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     const start: Date = info.event.start as Date;
     const end: Date = info.event.end ?? start;
 
-    if (info.event.allDay)
-        return { domNodes: [entryPartOf("div", "entry-title", whatOf(category, what))] };
     const time: string = `${timeOf(start)} – ${timeOf(end)}`;
     const lines: number = linesOf(info);
     const whole: (string | Node)[] = whatOf(category, breakableOf(what));
@@ -698,6 +696,7 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `initialView`: A time grid of the shown day, one column, the log.
  * - `headerToolbar`: None, since the date and its buttons stand above plan and log together, see {@link dayShow}.
  * - `dayHeaders`: Leaves out the name of the day above the column, which the date above says already.
+ * - `allDaySlot`: Leaves out the row of the whole day above the grid, since no entry of my log lasts a whole day.
  * - `slotHeaderInnerClass`: Adds the class `slot-label` to the hour labels,
  *   so `day.css` sets their size and with it the height of the slots.
  * - `slotHeaderFormat`: Writes the hours in 24-hour form, like `14:00`; the entries write their times themselves.
@@ -730,7 +729,6 @@ async function noteStart(calendar: Calendar): Promise<void> {
  *   scroll the grid at its edges meanwhile, see {@link edgeScrollStart}.
  * - `eventResizeStart`, `eventResizeStop`: Scroll the grid at its edges while an entry is resized.
  * - `droppable`: Takes the boxes dragged from the list.
- * - `eventAllow`: Takes boxes and entries only in the time grid, not in the row of the whole day.
  * - `eventReceive`: Logs a box dropped into the log at the time of the drop, see `boxes.ts`.
  * - `eventsSet`: Tells the boxes the entries of the shown day, after every change.
  * - `eventSourceSuccess`: Loads the trackers again each time the log was read, see `trackersSee` in `trackers.ts`.
@@ -740,7 +738,6 @@ async function noteStart(calendar: Calendar): Promise<void> {
  *   an entry, like an hour of food during a workshop, showed only in the free strip beside it.
  * - `select`: Opens the entry by category for a range selected in the time grid, and lets go of the range at once,
  *   so it never stays in the log as if it were an entry once the dialog is closed, also with `Esc`.
- * - `selectAllow`: Allows selecting a time range, but not in the row of the whole day.
  * - `selectLongPressDelay`: Starts a selection on a phone after a short press of 300 ms, in place of FullCalendar's
  *   long press of a second, so a finger presses into the time grid and pulls the range down over the time,
  *   as in Google Calendar; a swipe moves at once, so it scrolls the grid, and once the grid scrolled FullCalendar
@@ -769,7 +766,7 @@ export function dayStart(note: boolean): void {
         height: "100%",
         headerToolbar: false,
         dayHeaders: false,
-        allDayText: "",
+        allDaySlot: false,
         slotHeaderFormat: { hour: "2-digit", minute: "2-digit", hour12: false },
         slotHeaderInnerClass: "slot-label",
         eventContent: entryContentOf,
@@ -799,14 +796,12 @@ export function dayStart(note: boolean): void {
         eventResizeStart: (info: EventResizeStartInfo): void => edgeScrollStart(info.el, info.jsEvent),
         eventResizeStop: (): void => edgeScrollEnd?.(),
         droppable: true,
-        eventAllow: (span: DateSpanApi): boolean => !span.allDay,
         eventReceive: (info: EventReceiveInfo): void => boxReceive(calendar, info),
         eventsSet: (events: EventApi[]): void => boxesSee(calendar, events),
         eventSourceSuccess: (): void => trackersSee(calendar),
         eventClick: entryClick,
         selectable: true,
         selectMirror: true,
-        selectAllow: (span: DateSpanApi): boolean => !span.allDay,
         selectLongPressDelay: 300,
         select: (info: DateSelectInfo): void => {
             calendar.unselect();

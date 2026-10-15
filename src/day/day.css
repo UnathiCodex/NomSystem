@@ -557,8 +557,7 @@ button.box-ring.box-checked svg {
    a free strip stays to select a new entry, like Sleep from 23:00 ending 1rem left of the glass marks;
    the theme ends them 2.5 % before it, 1 px in a narrow column. The theme puts that margin on the layer
    of the entries and on the layer of an entry being dragged or of a range being selected, each a child of the column
-   and the parent of the parent of an entry; the glass marks lie beside these layers and keep the edge, and the row
-   of the whole day, whose entries lie one level deeper, keeps the theme's margin */
+   and the parent of the parent of an entry; the glass marks lie beside these layers and keep the edge */
 .day-calendar [role="gridcell"] > :has(> * > .entry) {
     margin-inline-end: 1rem;
 }
@@ -1817,13 +1816,6 @@ fieldset.entry-times {
     overflow: hidden;
     white-space: normal;
     color: var(--text-muted);
-}
-
-/* What of an entry of the whole day, cut at the edge of the entry */
-.entry-title {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
 }
 
 /* First line of an entry or a box in bold as a whole, category and what, so the log and the boxes scan fast,
