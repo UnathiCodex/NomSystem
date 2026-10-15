@@ -406,9 +406,9 @@
     /* The editor on a phone one thing at a time, as the day shows plan or log: the file over the whole screen, never
        the tree beside it, which widened the page beyond the screen; the tree over the file while the button of the tree
        is pressed, see `phoneShow` in `editor.ts`, so both keep where they were scrolled to; both end above the bar
-       at the bottom, its height `--bar-height`, one control and its room above and below */
+       at the bottom, its height `--bar-height`, one control and a gap above and below it, as the switch of the day */
     .editor {
-        --bar-height: calc(var(--control-height) + 0.5rem + var(--gap));
+        --bar-height: calc(var(--control-height) + 2 * var(--gap));
         grid-template-columns: minmax(0, 1fr);
         padding-bottom: var(--bar-height);
     }
@@ -472,7 +472,7 @@
         display: flex;
         align-items: center;
         gap: var(--control-gap);
-        padding: 0.5rem var(--gap) var(--gap);
+        padding: var(--gap);
         background: var(--background);
     }
 
