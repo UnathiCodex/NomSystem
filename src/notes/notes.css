@@ -9,11 +9,15 @@
 
 /* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the editor, the scripts
    view, each row in the text of the tree, see `--tree-text` in `../variants.css`, and one chip high
-   to click; the anchor of the menus of its pickers, which open beside it */
+   to click; the anchor of the menus of its pickers, which open beside it.
+   Its framed rows, the search and the grey of the note shown or under the pointer, one gap beside the rail's
+   buttons, their names a step in from them, `--content-indent`, as every text without a frame of its own,
+   the room left of a name in a row `--tree-row-padding` */
 .notes-tree {
+    --tree-row-padding: calc(var(--content-indent) - var(--gap));
     anchor-name: --tree;
     overflow-y: auto;
-    padding: var(--gap) 0.75rem;
+    padding: var(--gap) 0.75rem var(--gap) var(--gap);
     border-right: 1px solid var(--line);
     font-size: var(--tree-text);
     line-height: var(--chip-height);
@@ -24,7 +28,7 @@
    so it stands level with the first icon of the rail, as the date of the day does */
 .tree-root {
     margin: 0 0 0.375rem;
-    padding: 0 0.5rem;
+    padding: 0 var(--tree-row-padding);
     font-size: var(--control-text);
     font-weight: 600;
     line-height: var(--control-height);
@@ -60,7 +64,7 @@
 .tree-choice {
     display: block;
     margin: 0.125rem 0;
-    padding: 0 0.5rem;
+    padding: 0 var(--tree-row-padding);
     border-radius: var(--radius);
     white-space: nowrap;
     overflow: hidden;
@@ -114,9 +118,11 @@
 
 /* Menu of a picker right beside the tree, over the note, its first row level with the picker, so it opens next to
    what I clicked and the tree stays in sight; as wide as its longest name, so no name is cut, as the menus of
-   the dialogs: the page's background, a grey line and a soft shadow; its rows those of the tree, the one picked
-   in the calm grey of what is picked; it scrolls where the room below is short */
+   the dialogs: the page's background, a grey line and a soft shadow; its rows those of the tree, with the little room
+   of a menu left of their names, the one picked in the calm grey of what is picked; it scrolls where the room below
+   is short */
 .tree-menu {
+    --tree-row-padding: 0.5rem;
     position: fixed;
     inset: auto;
     top: calc(anchor(top) - 0.375rem - 1px);
@@ -169,7 +175,7 @@
 }
 
 .tree-chapter > .tree-file {
-    padding-left: 0.5rem;
+    padding-left: var(--tree-row-padding);
 }
 
 /* Folder name with a grey arrow before it, turned down while open */
@@ -193,16 +199,16 @@
     rotate: 0deg;
 }
 
-/* Entries of a folder indented, a grey guide line beside them, as in Obsidian */
+/* Entries of a folder indented, a grey guide line beside them under the folder's arrow, as in Obsidian */
 .tree-children {
-    margin-left: 0.75rem;
+    margin-left: calc(var(--tree-row-padding) + 0.25rem);
     padding-left: 0.25rem;
     border-left: 2px solid var(--guide);
 }
 
 /* Note name in line with the folder names after their arrow */
 .tree-file {
-    padding-left: calc(0.5rem + 1em);
+    padding-left: calc(var(--tree-row-padding) + 1em);
     color: var(--text-main);
     text-decoration: none;
 }
@@ -210,7 +216,7 @@
 /* A module without chapter notes says so, calm and grey, in line with the names of the menu */
 .tree-none {
     margin: 0.125rem 0;
-    padding: 0 0.5rem;
+    padding: 0 var(--tree-row-padding);
     color: var(--text-muted);
 }
 
