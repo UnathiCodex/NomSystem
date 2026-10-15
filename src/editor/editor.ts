@@ -16,9 +16,10 @@
  * The address names a file of my new system by its path in the tree, like `/edit?file=NomMetainformations/Foods.md`,
  * and a draft by its path in the scripts view, like
  * `/edit?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
- * Saves only with its button `Save` or Ctrl+S, never by itself, refused when the file changed on the disk since
- * it was read, and asks before leaving with changes unsaved, also for another file of the tree; the button turns
- * the calm grey of a main button while there are changes, and a notice says only what went wrong.
+ * Saves only with its button, a check as the save of the dialogs, its tooltip `Save`, or Ctrl+S, never by itself,
+ * refused when the file changed on the disk since it was read, and asks before leaving with changes unsaved, also
+ * for another file of the tree; the button turns the calm grey of a main button while there are changes, and beside it
+ * stands when it saved last, like `Saved 20:41`, or what went wrong.
  *
  * - `@codemirror/state`, `@codemirror/view`: The editor, CodeMirror 6, the engine of Obsidian's editor.
  * - `@codemirror/commands`: Undo, redo and the usual keys, Tab indenting a line.
@@ -30,6 +31,7 @@
  * - `./syntax.ts`: Obsidian syntax for the Markdown parser.
  * - `./preview.ts`: Shows the Markdown as in the scripts view.
  * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked.
+ * - `lucide`, `../icons.ts`: The check of the save button.
  * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images, and of the tree.
  * - `./editor.css`: Look of the editor.
  */
@@ -46,6 +48,8 @@ import { obsidianSyntax } from "./syntax.ts";
 import { livePreview, solutionsFold } from "./preview.ts";
 import { treeShow } from "../notes/tree.ts";
 import { timeOf } from "../day/times.ts";
+import { Check } from "lucide";
+import { iconPut } from "../icons.ts";
 import "../notes/notes.css";
 import "./editor.css";
 
@@ -133,7 +137,7 @@ let view: EditorView;
 
 
 /**
- * Shows whether the file has changes not yet saved: the button `Save` in the calm grey of a main button while it has,
+ * Shows whether the file has changes not yet saved: the save button in the calm grey of a main button while it has,
  * and beside it a notice when something went wrong, like `Not saved`, or for a file to read only.
  * - {@link EditorState#sliceDoc}: Gives the text, its lines joined by the line break of the file.
  *
@@ -301,7 +305,7 @@ export async function editorStart(): Promise<void> {
     });
     if (opened.markdown)
         solutionsFold(view);
-    save.textContent = "Save";
+    iconPut(save, Check, "Save");
     save.addEventListener("click", noteSave);
     save.hidden = view.state.readOnly;
     if (!view.state.readOnly)

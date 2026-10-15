@@ -64,15 +64,19 @@
     font-size: var(--control-text);
 }
 
-/* Button `Save` one control high, outlined, as the buttons of the dialogs;
+/* Save button with its check, square, one control high, outlined, as the save of the dialogs;
    in the calm grey of a main button while the note has unsaved changes */
 .editor-save {
-    min-height: var(--control-height);
-    padding: 0 var(--control-padding);
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-height);
+    height: var(--control-height);
+    padding: 0;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--background);
-    font-size: var(--control-text);
     cursor: pointer;
 }
 
