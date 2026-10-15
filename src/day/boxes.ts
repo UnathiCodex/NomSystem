@@ -89,9 +89,9 @@ export type BoxState = "open" | "done" | "dropped" | "university";
 
 /**
  * Types of skill boxes that carry their number in their series and that the university may cancel: lectures,
- * exercises, tutorials and sheets.
+ * exercises, central exercises, tutorials and sheets.
  */
-const numberedTypes: string[] = ["VO", "UE", "TU", "HU"];
+const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
 
 /**
  * A phone, a screen as narrow as the phone layout of the stylesheets, as in `main.ts`, which shows a skill by its code

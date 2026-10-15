@@ -98,9 +98,10 @@ import type { Entry, EntryFields, EntryTexts, Link, TodoFields } from "./calenda
 export type BoxState = "open" | "done" | "dropped" | "university";
 
 /**
- * Types of skill boxes that carry their number in their series: lectures, exercises, tutorials and sheets.
+ * Types of skill boxes that carry their number in their series: lectures, exercises, central exercises, tutorials
+ * and sheets.
  */
-const numberedTypes: string[] = ["VO", "UE", "TU", "HU"];
+const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
 
 /**
  * A box, as the page shows it.

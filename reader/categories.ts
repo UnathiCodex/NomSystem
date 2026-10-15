@@ -165,11 +165,12 @@ export { skillName };
 /**
  * Types of a skill entry, each written in round brackets after its skill in its `SUMMARY`,
  * like `IN2028 Business Analytics Machine Learning (VO)`; a type names only a fixed form I take part in: `VO` a lecture,
- * `UE` an exercise, `TU` a tutorial, `HU` a homework sheet, `FA` an exam and `PR` a practical course.
+ * `UE` an exercise, `ZU` a central exercise, `TU` a tutorial, `HU` a homework sheet, `FA` an exam
+ * and `PR` a practical course.
  * My own learning, theory and tasks together, has no type, like `Skill: IN2028_BusinessAnalyticsMachineLearning`,
  * as a project, `Skill: WokFlow`.
  */
-export const skillTypes: string[] = ["VO", "UE", "TU", "HU", "FA", "PR"];
+export const skillTypes: string[] = ["VO", "UE", "ZU", "TU", "HU", "FA", "PR"];
 
 /**
  * Semester of a skill entry, its `X-SEMESTER`, like `2026W` or `2027S`: the year it begins in, then `W` for a winter,
