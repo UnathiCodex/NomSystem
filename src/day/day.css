@@ -1933,6 +1933,38 @@ svg.route-arrow {
         content: none;
     }
 
+    /* The month on a phone with its days a finger high, its six weeks and the names of the days 15rem high,
+       in place of a grid 1.8 times as wide as high, see `aspectRatio` in `month.ts`, whose days were hardly higher
+       than their number; its arrows as small as they look, but taking a tap 0.5rem above and below them */
+    .month-calendar > div {
+        height: 15rem;
+    }
+
+    /* The month and year above the days on a phone in the size of the date above plan and log, and its arrows half
+       a gap from them and a little closer together, their icons still well apart inside their buttons, so the longest,
+       like `September 2026`, keeps one line beside its four arrows */
+    .month-head {
+        gap: 0.5rem;
+    }
+
+    .month-head .day-title {
+        font-size: 1.0625rem;
+    }
+
+    .month-buttons {
+        gap: 0.125rem;
+    }
+
+    .month-buttons button {
+        position: relative;
+    }
+
+    .month-buttons button::after {
+        content: "";
+        position: absolute;
+        inset: -0.5rem 0;
+    }
+
     /* Buttons of a panel in one row across, the square ones beside those with words, which share the rest equally,
        each its word on one line, a little smaller, so `Edit plan` keeps room inside its frame */
     .panel-buttons {
