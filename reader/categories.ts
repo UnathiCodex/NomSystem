@@ -18,6 +18,8 @@
  * `Neck short` and `Neck long`, is no what of it any more, also where the log holds it, see {@link retiredWhats}.
  * A dish, the what of `Food` and `Cook`, names its foods parted by `, `, like `Reis, Bohnen, Eier`.
  * `Shopping` is what I buy, its what as I type it, like `Brot, Milch`, its place the shop, like `Edeka Center Hadern`.
+ * `Event` is what I go to that is no skill, like an evening at a company, its what as I type it, its place where it is,
+ * which I add with its address and link like any place of mine.
  * `Sleep` takes only two whats, `Night` and `Day`, a nap, see {@link sleepWhats}, and no new ones,
  * so the sleep tracker tells a nap from a night, see `trackers.ts`; `Way` takes only my means of transport,
  * see {@link transports}.
@@ -249,6 +251,7 @@ const categories: Category[] = [
         ],
     },
     categoryOf("Talk"),
+    categoryOf("Event"),
     categoryOf("Drink"),
     categoryOf("Watch"),
     categoryOf("Game"),
