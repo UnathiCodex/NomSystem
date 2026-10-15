@@ -125,6 +125,20 @@ button.food-row {
     align-items: baseline;
 }
 
+/* The `×` of a food of a meal opened on the line of its name, its icon level with the small letters, as an icon
+   beside a word stands and as the `×` of a food in the dialogs, see `.meal-row` in `../day/day.css`, in the middle
+   of its room, as the `×` of every list, see `.food-item` */
+.food-part > .cross-quiet {
+    display: block;
+    line-height: inherit;
+    text-align: center;
+}
+
+.food-part > .cross-quiet svg.lucide {
+    display: inline-block;
+    vertical-align: middle;
+}
+
 /* The values of a food opened in two columns, as the parts of a dialog: each its name small and grey, then its value
    or its field; a value that does not change, like the protein set once when the food was made, as high as a field
    beside it, its line below it unseen, so every row stands as far from the next */
