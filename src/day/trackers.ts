@@ -9,7 +9,7 @@
  *   one glass of water, at the time of the tap on the shown day, `−` takes the last glass of water back;
  *   every other drink, like `Kaffee`, counts as one glass too. A day still to come takes no glasses.
  * - Food: the kcal of the day's meals, a total without goal, and in brackets after it the number of the meals,
- *   like `1,850 kcal (3 meals)`, so a meal missing shows, linking to the day in the food view.
+ *   like `1,850 kcal (3 meals)`, so a meal missing shows; no link, since the button of the food view is beside it.
  * - Neck: two tiles over the seven days up to the day: on how many of my study days I did
  *   a neck routine, short or long, like `2 / 5` over `short · study days`, a check from two thirds of them on,
  *   since about two thirds of the sessions already gave the large effects (Chen 2018), and on how many days a long
@@ -252,21 +252,17 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
 
 /**
  * Builds the food: the kcal of the day's meals, rounded and so never marked as an estimate, and in brackets the number
- * of the meals, like `1,850 kcal (3 meals)` or `0 kcal (0 meals)`, linking to the day in the food view.
+ * of the meals, like `1,850 kcal (3 meals)` or `0 kcal (0 meals)`.
  * - `food`: What the meals gave.
  *
  * @param trackers - Trackers of the day
- * @param day - The shown day, like `2026-10-10`
  * @returns Row of the food
  */
-function foodOf(trackers: Trackers, day: string): HTMLElement {
+function foodOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
-    const link: HTMLAnchorElement = document.createElement("a");
     const food: Totals & { estimate: boolean; meals: number } = trackers.food;
-    link.className = "tracker-link";
-    link.href = `/food?date=${day}`;
-    link.textContent = `${amountOf(food.kcal, 0)} kcal (${food.meals} ${food.meals === 1 ? "meal" : "meals"})`;
-    row.append(elementOf("span", "tracker-name", "Food"), link);
+    row.append(elementOf("span", "tracker-name", "Food"), elementOf("span", "tracker-value food-kcal",
+        `${amountOf(food.kcal, 0)} kcal (${food.meals} ${food.meals === 1 ? "meal" : "meals"})`));
     return row;
 }
 
@@ -347,7 +343,7 @@ async function trackersLoad(calendar: Calendar): Promise<void> {
     if (day !== dayOf(calendar.view.currentStart))
         return;
     document.getElementById("trackers")?.replaceChildren(sleepOf(trackers), waterOf(calendar, trackers, day),
-        foodOf(trackers, day), ...(neckShown ? [neckOf(trackers)] : []));
+        foodOf(trackers), ...(neckShown ? [neckOf(trackers)] : []));
 }
 
 /**
