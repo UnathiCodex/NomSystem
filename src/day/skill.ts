@@ -43,7 +43,7 @@
  * in the log, and the dialog writes it itself as a box with its chapters and documents.
  *
  * - `./choices.ts`: Pickers, each one line in a row with its name, two side by side in one row, and the rows
- *   of a field of several values.
+ *   of a field of several values; marks where a long name may go on over a next line.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due and what a module offers, groups the tasks,
  *   writes days out and sends skill entries.
  * - `../today.ts`: Gives today's calendar date, for the tasks due.
@@ -52,7 +52,7 @@
  */
 
 import {
-    addedRowOf, addedRowsOf, addRowOf, choiceOf, choicesOf, lineMove, pairOf, rowOf, searchOf,
+    addedRowOf, addedRowsOf, addRowOf, breakableOf, choiceOf, choicesOf, lineMove, pairOf, rowOf, searchOf,
 } from "./choices.ts";
 import {
     dayTextOf, groupsOf, moduleLoad, semesterOf, skillEntrySend, skillingLoad,
@@ -268,7 +268,9 @@ function documentPathsOf(links: Link[]): string[] {
  * its entry links as the `ALTREP` of its `SUMMARY`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
  * for a module a link that opens the module in the scripts view in a new tab, underlined under the pointer, for
  * a project, which the scripts view has not, its path alone, like `NomManageplannings/NomFrequencediary`; none while
- * no skill is picked.
+ * no skill is picked. Where it is wider than its row, as on a phone, it goes on below after a `/`, after a `_`
+ * or between the words of a name, like `NomSkillingmodules/IN2028_Business` and `AnalyticsMachineLearning`,
+ * never within a word, see {@link breakableOf}.
  * - `path`: The folder of the skill picked, empty for none.
  * - `address`: Its line.
  *
@@ -278,7 +280,7 @@ function skillPathOf(): HTMLElement[] {
     const path: string = skilling.paths[picks.module] ?? "";
     const address: HTMLAnchorElement = document.createElement("a");
     address.className = "entry-address";
-    address.textContent = path;
+    address.textContent = breakableOf(path).replaceAll("/", "/\u200b");
     if (path.startsWith(`${modulesFolder}/`)) {
         address.href = `/scripts?module=${encodeURIComponent(path.slice(modulesFolder.length + 1))}`;
         address.target = "_blank";
