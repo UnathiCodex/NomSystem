@@ -226,6 +226,20 @@
     cursor: grab;
 }
 
+/* Under a pointer that hovers, a box turns one grey lighter, fading in over 150 ms after 100 ms and back over 150 ms
+   as soon as the pointer leaves, as an entry of the log, so the plan answers the pointer as the log does; its ring
+   and its buttons have no ground of their own, so they lie on it, see `.box-ring` and `.box-action` */
+@media (hover: hover) {
+    .box {
+        transition: background-color 150ms;
+    }
+
+    .box:hover {
+        background: var(--fill);
+        transition: background-color 150ms 100ms;
+    }
+}
+
 /* Lines of a box: what it is, then grey its time and length and its place, never cut: a line wider than the box
    goes on below, broken where a word ends, where the parts of a long name meet, like `IN0004_Einfuehrung`
    and `Rechnerarchitektur`, see `breakableOf` in `choices.ts`, or within a part still too long;
@@ -285,7 +299,7 @@
 /* Ring of a box, as high as its first line: for an open box a button, an empty ring in the grey of the plan
    like the circle of a to-do, lighter under the pointer with its check showing, which logs the box as expected;
    for a done box a button too, its grey check, see `.box-checked`; for a cancelled box its grey mark without edge,
-   the landmark or the cross, see `ringOf` in `boxes.ts`;
+   the landmark or the cross, see `ringOf` in `boxes.ts`; without a ground of its own, so it lies on its box;
    `.box .box-ring svg` wins over the size of icons in `base.css`, being more exact */
 .box-ring {
     display: inline-flex;
@@ -298,7 +312,7 @@
     padding: 0;
     border: 1px solid transparent;
     border-radius: 999px;
-    background: var(--background);
+    background: none;
     color: var(--text-muted);
 }
 
@@ -362,9 +376,10 @@ button.box-ring.box-checked svg {
     border-color: var(--plan);
 }
 
-/* Buttons at the right of a box, small and round, grey, lighter under the pointer: push and skip, take back,
-   or plan and dismiss a suggestion. They always show, but for the arrow that pushes a box: with a pointer that hovers,
-   it shows only while the pointer is over its box or a button of it has the focus, so the list stays calm */
+/* Buttons at the right of a box, small and round, grey, without a ground of their own, so they lie on their box,
+   lighter under the pointer: push and skip, take back, or plan and dismiss a suggestion. They always show, but for
+   the arrow that pushes a box: with a pointer that hovers, it shows only while the pointer is over its box or a button
+   of it has the focus, so the list stays calm */
 .box-actions {
     display: flex;
     flex: none;
@@ -380,7 +395,7 @@ button.box-ring.box-checked svg {
     padding: 0;
     border: 1px solid var(--line);
     border-radius: 999px;
-    background: var(--background);
+    background: none;
     color: var(--text-muted);
     cursor: pointer;
 }
