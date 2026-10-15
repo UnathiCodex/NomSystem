@@ -46,3 +46,25 @@
     text-decoration: underline;
     text-decoration-color: var(--text-muted);
 }
+
+/* Phone: a meal opened with each name small and grey above its value, as every value of a food, see `search.css`;
+   each food its grams first, as a recipe writes them, like `150 g Hackfleisch gemischt zum Braten`, as in the entry
+   by category on a phone, the field of the grams just wide enough for four digits, so the name keeps the rest
+   of the line, never breaking within a word, like `Tomatenm` and `ark` in a narrow column beside `Foods` */
+@media (max-width: 900px) {
+    .dish-list .food-facts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dish-foods .food-part {
+        grid-template-columns: auto minmax(0, 1fr) 1.5rem;
+    }
+
+    .dish-foods .food-grams {
+        order: -1;
+    }
+
+    .dish-foods .food-inline-grams {
+        width: 4ch;
+    }
+}
