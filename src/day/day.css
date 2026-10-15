@@ -1449,6 +1449,18 @@ fieldset.entry-times {
     overflow-wrap: anywhere;
 }
 
+/* The × of a value picked, which has no text of its own, on the line of its text, its icon level with the small
+   letters, as an icon beside a word stands and as the × of a food, see `.meal-row`, not above them */
+.picker-added > .cross-quiet {
+    display: block;
+    line-height: inherit;
+}
+
+.picker-added > .cross-quiet svg.lucide {
+    display: inline-block;
+    vertical-align: middle;
+}
+
 /* The pencil beside a name a little smaller than the icons of buttons, so it stays quiet beside its text,
    as the cross of a value picked */
 .entry-pencil svg.lucide {
