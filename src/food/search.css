@@ -218,6 +218,12 @@ button.food-row {
     color: var(--text-main);
 }
 
+/* The check under the pointer one grey lighter than its calm grey, `--chosen-over`, as `Save` of a dialog,
+   never darker */
+.food-buttons .food-save:hover {
+    background: var(--chosen-over);
+}
+
 /* Below the products how many of how many, small and grey, More at the right */
 .food-more {
     display: flex;
