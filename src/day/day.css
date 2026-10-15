@@ -2033,6 +2033,20 @@ svg.route-arrow {
         row-gap: 0.25rem;
     }
 
+    /* Skill and type on a phone while the type is still its plus: the plus on the first line of the skill, right after
+       it, or at the right end of that line where a long name, like `IN2028 Business Analytics Machine Learning`,
+       goes on below, never on a line of its own; the folder below both, as before. A type picked, like `(VO)`, still
+       goes below the name where the line has no room for both */
+    .panel-pair:has(> .picker:last-child .picker-empty) {
+        display: grid;
+        grid-template-columns: minmax(0, max-content) auto;
+        justify-content: start;
+    }
+
+    .panel-pair:has(> .picker:last-child .picker-empty) .entry-address {
+        grid-column: 1 / -1;
+    }
+
     /* A list on a phone rises from the bottom over the whole width, like the dialog itself, never higher than
        the screen leaves room for, above the keyboard while one is open, see `interactive-widget` in `index.html` */
     .picker-box {
