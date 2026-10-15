@@ -418,7 +418,8 @@ button.box-ring.box-checked svg {
 }
 
 /* Calendar in the greys of the page, its text in the size of the page, which the theme sets in px;
-   the month to pick a day from in the same greys */
+   the month to pick a day from in the same greys; a range being selected shows as an entry in front of the others,
+   see `.entry-selection`, so the theme's grey for it, which lay behind the entries, stays transparent */
 .day-calendar {
     flex: 1;
     min-height: 0;
@@ -437,7 +438,7 @@ button.box-ring.box-checked svg {
     --fc-forma-primary-over: color-mix(in oklab, var(--chosen) 85%, var(--text-main));
     --fc-forma-primary-down: color-mix(in oklab, var(--chosen) 75%, var(--text-main));
     --fc-forma-primary-foreground: var(--text-main);
-    --fc-forma-highlight: color-mix(in oklab, var(--log) 22%, transparent);
+    --fc-forma-highlight: transparent;
     --fc-forma-faint: color-mix(in oklab, var(--text-main) 3%, transparent);
     --fc-forma-muted: color-mix(in oklab, var(--text-main) 6%, transparent);
     --fc-forma-strong: color-mix(in oklab, var(--text-main) 10%, transparent);
@@ -545,11 +546,18 @@ button.box-ring.box-checked svg {
     }
 }
 
+/* The range being selected, drawn as an entry in front of the others, see `selectMirror` in `day.ts`: in the calm grey
+   of what is picked, so it stands out over an entry it lies on, like 15:00 to 16:00 over a workshop from 13:00
+   to 18:45; also under the pointer, being as exact as `.entry:hover` and coming after it */
+.entry.entry-selection {
+    background-color: var(--chosen);
+}
+
 /* Entries of the time grid end 1rem before the right edge of the column, as in Google Calendar, so beside each one
    a free strip stays to select a new entry, like Sleep from 23:00 ending 1rem left of the glass marks;
    the theme ends them 2.5 % before it, 1 px in a narrow column. The theme puts that margin on the layer
-   of the entries and on the layer of an entry being dragged, each a child of the column and the parent of the parent
-   of an entry; the glass marks and the selection lie beside these layers and keep the edge, and the row
+   of the entries and on the layer of an entry being dragged or of a range being selected, each a child of the column
+   and the parent of the parent of an entry; the glass marks lie beside these layers and keep the edge, and the row
    of the whole day, whose entries lie one level deeper, keeps the theme's margin */
 .day-calendar [role="gridcell"] > :has(> * > .entry) {
     margin-inline-end: 1rem;

@@ -10,7 +10,8 @@
  * A box goes into the log at its real time by dragging it there, or as expected with one tap on its ring.
  * The log is written by category: `+` below the time grid opens the entry by category for the last half hour,
  * a range selected in the time grid for that range, on a phone by a short press into the grid and pulling it down
- * over the time, as in Google Calendar; a click on an entry changes it.
+ * over the time, as in Google Calendar, the range shown meanwhile as an entry with its start and end in front
+ * of the others; a click on an entry changes it.
  * Entries are moved and resized by dragging, and the reader writes them back into their files.
  * Entries look as Google Calendar shows them: what first, then the time, then the place, in one size, the time a light
  * grey, and a taller one its note below, see {@link entryContentOf};
@@ -439,13 +440,26 @@ function linesOf(info: EventDisplayInfo): number {
 }
 
 /**
+ * Tells whether an entry of the time grid is the range being selected, which FullCalendar draws as an entry in front
+ * of the others, see `selectMirror` in {@link dayStart}: the only one without category and what, since every entry
+ * of the log and every box dragged into it has one of them.
+ *
+ * @param info - Entry of the time grid with its render details
+ * @returns Whether it is the range being selected
+ */
+function selectionIs(info: EventDisplayInfo): boolean {
+    return info.isMirror && info.event.title === "" && (info.event.extendedProps.category ?? "") === "";
+}
+
+/**
  * Content of an entry of the log, as Google Calendar shows one: what first in bold, see {@link whatOf}, then its time
  * in normal weight and the light grey of a time, then its place lighter still; a dish lists its foods,
  * see {@link dishOf}, parted by commas. Every entry shows its place by its label alone, its address hidden,
  * a way its route, see `whereOf` in `places.ts`; a place with a link opens it on a click, see `whereLinkedOf`.
  * What is never cut and the time never cut; only the place gives way where a line is too narrow,
  * cut with an ellipsis, see `day.css`.
- * An entry of the whole day shows only what it was.
+ * An entry of the whole day shows only what it was, the range being selected only its start and end,
+ * like `15:00 – 16:00`, see {@link selectionIs}.
  * - An entry with room for one line, of a quarter hour or half an hour, see {@link linesOf}, shows what,
  *   then its start and end, then its place, parted by a middle dot with space on both sides, which `day.css` draws,
  *   never by commas, since names hold commas,
@@ -511,7 +525,9 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     const lines: number = linesOf(info);
     const whole: (string | Node)[] = whatOf(category, breakableOf(what));
     let shown: HTMLElement[];
-    if (lines < 2) {
+    if (selectionIs(info))
+        shown = [entryPartOf("div", "entry-time", [time])];
+    else if (lines < 2) {
         const line: HTMLElement = entryPartOf("div", "entry-line", [
             entryPartOf("span", "entry-what", whatOf(category, what)),
             entryPartOf("span", "entry-time entry-parted", [time]),
@@ -695,7 +711,9 @@ async function noteStart(calendar: Calendar): Promise<void> {
  *   so a shorter one, like ten minutes of my neck routine, still shows its line whole.
  * - `eventColor`: Edges the entries in the grey of the log from `variants.css`.
  * - `blockEventClass`: Adds the class `entry` to the entries,
- *   so `day.css` fills them in grey and only their edge keeps the grey of the log.
+ *   so `day.css` fills them in grey and only their edge keeps the grey of the log,
+ *   and `entry-selection` to the range being selected, see {@link selectionIs}, which it fills in the calm grey
+ *   of what is picked.
  * - `blockEventInnerClass`: Adds the class `entry-inner` to the inside of the entries,
  *   so `day.css` sets the size of their lines and cuts them at the edge of the entry instead of letting them stick out,
  *   and `entry-inner-short` to the inside of short ones, which takes away the space above and below their one line
@@ -717,7 +735,11 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `eventsSet`: Tells the boxes the entries of the shown day, after every change.
  * - `eventSourceSuccess`: Loads the trackers again each time the log was read, see `trackersSee` in `trackers.ts`.
  * - `eventClick`: Opens the entry by category for an entry that can be changed, see {@link entryClick}.
- * - `select`: Opens the entry by category for a range selected in the time grid.
+ * - `selectMirror`: Draws the range being selected as an entry in front of the others, with its start and end,
+ *   see {@link entryContentOf}; FullCalendar's own grey of a selection lies behind the entries, so a range over
+ *   an entry, like an hour of food during a workshop, showed only in the free strip beside it.
+ * - `select`: Opens the entry by category for a range selected in the time grid, and lets go of the range at once,
+ *   so it never stays in the log as if it were an entry once the dialog is closed, also with `Esc`.
  * - `selectAllow`: Allows selecting a time range, but not in the row of the whole day.
  * - `selectLongPressDelay`: Starts a selection on a phone after a short press of 300 ms, in place of FullCalendar's
  *   long press of a second, so a finger presses into the time grid and pulls the range down over the time,
@@ -754,7 +776,7 @@ export function dayStart(note: boolean): void {
         eventShortHeight: 39,
         eventMinHeight: 20,
         eventColor: "var(--log)",
-        blockEventClass: "entry",
+        blockEventClass: (info: EventDisplayInfo): string => selectionIs(info) ? "entry entry-selection" : "entry",
         blockEventInnerClass: (info: EventDisplayInfo): string => {
             if (info.isShort)
                 return "entry-inner entry-inner-short";
@@ -783,9 +805,11 @@ export function dayStart(note: boolean): void {
         eventSourceSuccess: (): void => trackersSee(calendar),
         eventClick: entryClick,
         selectable: true,
+        selectMirror: true,
         selectAllow: (span: DateSpanApi): boolean => !span.allDay,
         selectLongPressDelay: 300,
         select: (info: DateSelectInfo): void => {
+            calendar.unselect();
             entryOpen(info.start, info.end).catch((error: unknown): void => console.error(error));
         },
         slotEventOverlap: !phone,
