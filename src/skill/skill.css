@@ -351,4 +351,20 @@
     .skill-notice {
         overflow-wrap: anywhere;
     }
+
+    /* The name of a task, of a module and of the section that comes next on a phone as they look, but a finger high
+       to hit, each taking a tap 0.5rem above and below it, in the room of its row, never over the name of another */
+    li.skill-task > a.skill-name,
+    .skill-title,
+    .skill-next {
+        position: relative;
+    }
+
+    li.skill-task > a.skill-name::after,
+    .skill-title::after,
+    .skill-next::after {
+        content: "";
+        position: absolute;
+        inset: -0.5rem 0;
+    }
 }
