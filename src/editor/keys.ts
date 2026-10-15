@@ -14,17 +14,20 @@
  * - Ctrl+B and Ctrl+I make the text picked bold or italic, `**…**` and `*…*`, or take it back;
  *   with nothing picked the word at the cursor, see {@link markupToggle}.
  * - Ctrl+D takes away the line of the cursor, or the lines picked, as Obsidian's Delete paragraph.
+ * - Arrow Down goes past a folded heading or point in one step, see {@link lineDown}.
  *
  * - `@codemirror/state`, `@codemirror/view`: The text with its cursor, and the keys.
- * - `@codemirror/commands`: CodeMirror's own commands: a tab at the cursor, indenting lines, deleting lines.
- * - `@codemirror/language`: The syntax tree of the note, which tells where a list item begins and ends.
+ * - `@codemirror/commands`: CodeMirror's own commands: a tab at the cursor, indenting lines, deleting lines,
+ *   moving a line down.
+ * - `@codemirror/language`: The syntax tree of the note, which tells where a list item begins and ends,
+ *   and what is folded.
  * - `@codemirror/lang-markdown`: Continues a list on Enter and takes its markup away on Backspace.
  */
 
 import { EditorSelection, Prec, Transaction } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
-import { deleteLine, indentLess, indentMore, insertTab } from "@codemirror/commands";
-import { syntaxTree } from "@codemirror/language";
+import { cursorLineDown, deleteLine, indentLess, indentMore, insertTab, selectLineDown } from "@codemirror/commands";
+import { foldedRanges, syntaxTree } from "@codemirror/language";
 import { deleteMarkupBackward, insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
 
 import type { ChangeSpec, EditorState, Extension, Line, SelectionRange, StateCommand } from "@codemirror/state";
@@ -290,6 +293,31 @@ function markupToggle(mark: string): Command {
 }
 
 /**
+ * Moves the cursor a line down, Arrow Down, or picks up to there, Shift+Arrow Down, by CodeMirror's own command,
+ * but past a folded heading or point in one step: CodeMirror's step ends first at the end of what is folded,
+ * which stands on the same line, so a first Arrow Down seemed to do nothing.
+ * - `line`: The line the cursor stood on.
+ * - `folded`: Whether the step ended at the end of what that line folds.
+ *
+ * @param command - CodeMirror's command, `cursorLineDown` or `selectLineDown`
+ * @returns The command
+ */
+function lineDown(command: Command): Command {
+    return (view: EditorView): boolean => {
+        const line: Line = view.state.doc.lineAt(view.state.selection.main.head);
+        if (!command(view))
+            return false;
+        let folded: boolean = false;
+        foldedRanges(view.state).between(line.to, line.to, (from: number, to: number): void => {
+            folded ||= from === line.to && to === view.state.selection.main.head;
+        });
+        if (folded)
+            command(view);
+        return true;
+    };
+}
+
+/**
  * Keys of a Markdown file, see the top of this file; Tab and Shift+Tab, Alt+Up and Alt+Down try the list item first,
  * then the key goes on to the next command, CodeMirror's own.
  */
@@ -305,4 +333,5 @@ export const markdownKeys: Extension = Prec.high(keymap.of([
     { key: "Mod-b", run: markupToggle("**") },
     { key: "Mod-i", run: markupToggle("*") },
     { key: "Mod-d", run: deleteLine },
+    { key: "ArrowDown", run: lineDown(cursorLineDown), shift: lineDown(selectLineDown) },
 ]));
