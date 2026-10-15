@@ -364,6 +364,13 @@ button.food-row:hover {
         margin-top: 0.5rem;
     }
 
+    /* A line of a list on a phone with its number only as wide as itself, like `380`, since it stands at the right
+       anyway, as the numbers of the day in the food view, so the name keeps the rest of the line and a food like
+       `Hackfleisch gemischt zum Braten` needs fewer lines */
+    .food-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
     /* A value to type in on a phone where it stands, but a finger high to hit: its field takes a tap 0.75rem above its
        text, over the lower half of its name, which takes no room of its row, so nothing moves */
     .food-facts .food-inline {
