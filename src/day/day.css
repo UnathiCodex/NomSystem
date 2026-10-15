@@ -1686,6 +1686,23 @@ fieldset.entry-times {
     border-top: 1px solid var(--line);
 }
 
+/* On a computer the head of a group as far from its first line and from the line between two groups as the head of
+   a section of the food search, see `.food-columns` and `.food-divider` in `../food/search.css`, so it stands farther
+   from its first line than two lines from each other, and that line as long as there, from where the names start
+   to where the numbers end; a phone spaces the values of its lists by rules of its own, see the end of this file */
+@media (min-width: 901px) {
+    .picker-group {
+        width: auto;
+        margin-inline: 0.75rem;
+        padding: 0.25rem 0 1rem;
+    }
+
+    .picker-list > * + .picker-group {
+        margin-top: 0.75rem;
+        padding-top: 1.375rem;
+    }
+}
+
 /* Name of a field of a panel, small and grey, `--name-width` wide, see `.panel` */
 .entry-name {
     font-size: 0.75rem;
