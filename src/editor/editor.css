@@ -29,6 +29,8 @@
 }
 
 /* Head above the note: its name, the notice and the save button in a row, on top while the note scrolls below it;
+   one control high inside its room, as high as the save button also where it hides, like for a file to read only,
+   so the name and the text stand at the same height in every file and nothing moves when I switch between them;
    its ground reaching out left and right of the page, so the markup a line shows left of its text, like `##`,
    hides under it too */
 .editor-head {
@@ -38,6 +40,8 @@
     display: flex;
     align-items: center;
     gap: var(--gap);
+    box-sizing: content-box;
+    min-height: var(--control-height);
     padding: 2rem 0 1rem;
     background: var(--background);
     box-shadow: 0 0 0 100vmax var(--background);
