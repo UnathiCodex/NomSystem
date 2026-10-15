@@ -448,6 +448,13 @@
         white-space: normal;
     }
 
+    /* The markup `##` of a heading on the line of the cursor on a phone before its text, as Obsidian shows it,
+       not left of it, where the narrow room beside the file cut it at the edge of the screen */
+    .editor-text :is(h1, h2, h3, h4, h5, h6) .cm-hanging {
+        position: static;
+        transform: none;
+    }
+
     /* The bar on a phone at the bottom of the screen, under the thumb, above the keyboard while one is open, as
        the switch of plan and log on the day: the button of the tree at the left, in the calm grey of what is picked
        while the tree is shown, the save button at the right, the notice between them, hidden while the tree is shown,
