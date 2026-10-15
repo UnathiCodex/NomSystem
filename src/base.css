@@ -303,6 +303,14 @@ textarea {
     outline-offset: 2px;
 }
 
+/* The line around a button or a link without corners of its own, like a value of a dialog, the + beside Log after
+   a dialog closed with Escape, or the pencil of a place, slightly rounded, as every frame of the page, never square;
+   `:where` around all of it lets a button with corners of its own, like `Save` or the − and + of the water,
+   keep them */
+:where(button:focus-visible, a:focus-visible, summary:focus-visible) {
+    border-radius: 0.25rem;
+}
+
 /* Icons of buttons one icon size big, never squeezed; `icons.ts` gives each its class `lucide` */
 svg.lucide {
     flex: none;
