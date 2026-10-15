@@ -493,23 +493,34 @@ class BlockWidget extends WidgetType {
      */
     readonly below: string;
 
-    constructor(markdown: string, links: Links, belowHeading: boolean, below: string) {
+    /**
+     * Length of their lines in the note, with their indentation, from the start of the first line to the end of the last.
+     */
+    readonly length: number;
+
+    constructor(markdown: string, links: Links, belowHeading: boolean, below: string, length: number) {
         super();
         this.markdown = markdown;
         this.links = links;
         this.belowHeading = belowHeading;
         this.below = below;
+        this.length = length;
     }
 
     /**
      * Tells whether other blocks look the same, so the rendered ones stay.
      */
     override eq(other: BlockWidget): boolean {
-        return other.markdown === this.markdown && other.belowHeading === this.belowHeading && other.below === this.below;
+        return other.markdown === this.markdown && other.belowHeading === this.belowHeading && other.below === this.below
+            && other.length === this.length;
     }
 
     /**
      * Renders the blocks; once an image of them is loaded, the editor measures its lines again.
+     * A click on a link of them follows it, see {@link addressFollow}; any other click puts the cursor at the place
+     * of their text I clicked, see {@link blockPlaceOf}, so they show as text with the cursor there, ready to type.
+     * - `from`: Start of their first line.
+     * - `link`: The link clicked, `null` for none.
      */
     toDOM(view: EditorView): HTMLElement {
         const block: HTMLDivElement = document.createElement("div");
@@ -527,14 +538,33 @@ class BlockWidget extends WidgetType {
                 link.classList.add("is-unresolved");
         });
         mathRender(block);
+        block.addEventListener("mousedown", (event: MouseEvent): void => {
+            if (event.button !== 0)
+                return;
+            event.preventDefault();
+            if ((event.target as Element).closest("a") !== null)
+                return;
+            const from: number = view.posAtDOM(block);
+            view.focus();
+            view.dispatch({ selection: { anchor: blockPlaceOf(view, from, from + this.length, event) } });
+        });
+        block.addEventListener("click", (event: MouseEvent): void => {
+            const link: HTMLAnchorElement | null = (event.target as Element).closest("a");
+            if (link === null)
+                return;
+            event.preventDefault();
+            addressFollow(view, link.dataset.link === undefined ? link.getAttribute("href") ?? ""
+                : `${link.dataset.link}#${link.dataset.heading ?? ""}`, this.links);
+        });
         return block;
     }
 
     /**
-     * Lets a click reach the editor, which puts the cursor into the block, so it shows as text.
+     * Keeps clicks in the blocks from the editor, which would put the cursor at their start or end:
+     * the blocks place the cursor themselves.
      */
     override ignoreEvent(): boolean {
-        return false;
+        return true;
     }
 }
 
@@ -547,6 +577,82 @@ class BlockWidget extends WidgetType {
  */
 function fileAddressOf(path: string): string {
     return `/api/notes/file?path=${encodeURIComponent(path)}`;
+}
+
+/**
+ * Finds the place in the text of rendered blocks that a click hit, see {@link BlockWidget}: in a table the cell
+ * clicked, see {@link cellPlaceOf}; elsewhere, like in a code block, the letter clicked, found by the text around it;
+ * else the end of the blocks, after a code block's closing fence, so typing never breaks it.
+ * - {@link Document#caretPositionFromPoint}: Gives the text and the letter under the pointer.
+ * - `caret`: The letter clicked, `null` beside any text.
+ * - `cell`: The cell of a table clicked, `null` for none.
+ * - `text`: The text around the letter clicked, empty for none.
+ * - `at`: Where that text stands in the lines of the blocks, -1 for nowhere.
+ *
+ * @param view - The editor
+ * @param from - Start of the first line of the blocks
+ * @param to - End of their last line
+ * @param event - The click
+ * @returns The place for the cursor
+ */
+function blockPlaceOf(view: EditorView, from: number, to: number, event: MouseEvent): number {
+    const caret: CaretPosition | null = document.caretPositionFromPoint(event.clientX, event.clientY);
+    const cell: HTMLTableCellElement | null = (event.target as Element).closest("td, th");
+    if (cell !== null)
+        return cellPlaceOf(view, from, to, cell, caret);
+
+    const text: string = caret?.offsetNode.nodeType === Node.TEXT_NODE ? caret.offsetNode.textContent ?? "" : "";
+    const at: number = text.trim() === "" ? -1 : view.state.sliceDoc(from, to).indexOf(text);
+    return at === -1 ? to : from + at + (caret?.offset ?? 0);
+}
+
+/**
+ * Finds the place in the text of a table for a click on one of its cells: its row is a line of the table, the line
+ * of `-` under the head left out, the tables of the blocks being their runs of lines that begin with `|`; in the row
+ * the text of the cell, after its `|`, at the letter clicked where the cell's text holds it as it is, like a number,
+ * else at its start, like for a formula.
+ * - `table`: The table of the cell, and `tables` all tables of the blocks.
+ * - `first`, `last`: Numbers of the first and the last line of the blocks.
+ * - `runs`: First line of each run of lines that begin with `|`, the tables in the text.
+ * - `row`: Number of the cell's row in its table, the head being 0.
+ * - `line`: The line of that row.
+ * - `bars`: How many `|` stand before the cell's text so far, escaped ones like in `[[…\|…]]` not counted.
+ * - `start`: Start of the cell's text in its line.
+ * - `text`, `at`: The text around the letter clicked, and where it stands in the cell's text, -1 for nowhere.
+ *
+ * @param view - The editor
+ * @param from - Start of the first line of the blocks
+ * @param to - End of their last line
+ * @param cell - The cell clicked
+ * @param caret - The letter clicked, `null` beside any text
+ * @returns The place for the cursor
+ */
+function cellPlaceOf(view: EditorView, from: number, to: number, cell: HTMLTableCellElement,
+                     caret: CaretPosition | null): number {
+    const table: HTMLTableElement = cell.closest("table") as HTMLTableElement;
+    const tables: HTMLTableElement[] = [...(table.closest(".cm-rendered")?.querySelectorAll("table") ?? [])];
+    const first: number = view.state.doc.lineAt(from).number;
+    const last: number = view.state.doc.lineAt(to).number;
+    const runs: number[] = [];
+    for (let number: number = first; number <= last; number++)
+        if (/^[ \t>]*\|/.test(view.state.doc.line(number).text)
+            && (number === first || !/^[ \t>]*\|/.test(view.state.doc.line(number - 1).text)))
+            runs.push(number);
+    const row: number = [...table.rows].indexOf(cell.parentElement as HTMLTableRowElement);
+    if (runs[tables.indexOf(table)] === undefined || row === -1)
+        return to;
+
+    const line: Line = view.state.doc.line(Math.min(runs[tables.indexOf(table)] + row + (row > 0 ? 1 : 0), last));
+    let bars: number = 0;
+    let start: number = line.length;
+    for (let index: number = 0; index < line.length; index++)
+        if (line.text[index] === "|" && line.text[index - 1] !== "\\" && bars++ === cell.cellIndex) {
+            start = index + 1 + (/^[ \t]*/.exec(line.text.slice(index + 1))?.[0].length ?? 0);
+            break;
+        }
+    const text: string = caret?.offsetNode.nodeType === Node.TEXT_NODE ? caret.offsetNode.textContent ?? "" : "";
+    const at: number = text.trim() === "" ? -1 : line.text.slice(start).split(/(?<!\\)\|/)[0].indexOf(text);
+    return line.from + start + (at === -1 ? 0 : at + (caret?.offset ?? 0));
 }
 
 /**
@@ -991,7 +1097,7 @@ function blockLook(look: Look, node: SyntaxNode): boolean {
     const markdown: string = look.state.sliceDoc(from, to);
     const indentation: RegExp = new RegExp(`^${/^[ \t]*/.exec(markdown)?.[0] ?? ""}`, "gm");
     const belowHeading: boolean = /Heading/.test(node.prevSibling?.name ?? "");
-    const block: BlockWidget = new BlockWidget(markdown.replace(indentation, ""), look.links, belowHeading, below);
+    const block: BlockWidget = new BlockWidget(markdown.replace(indentation, ""), look.links, belowHeading, below, to - from);
     look.decorations.push(Decoration.replace({ widget: block, block: true }).range(from, to));
     return false;
 }
@@ -1199,10 +1305,6 @@ function linkAt(state: EditorState, pos: number): SyntaxNode | null {
  * any other file opens in a new tab at the place after `#`, like a PDF at its page with `#page=10`,
  * and so does an address of the web; a link that leads nowhere does nothing.
  * - `url`: The address of a Markdown link or an address written as it is.
- * - `address`: The link as written, like `01_01_SampleMeanStandardError#Theorem. Central Limit Theorem`.
- * - `hash`: Where its `#` stands, -1 for none.
- * - `target`, `heading`: The link to a file before `#`, empty for the note itself, and the place in it after `#`.
- * - `path`: The file it leads to, as the reader found it, `null` for none.
  *
  * @param view - The editor
  * @param node - The link, see {@link linkAt}
@@ -1210,9 +1312,23 @@ function linkAt(state: EditorState, pos: number): SyntaxNode | null {
  */
 function linkFollow(view: EditorView, node: SyntaxNode, links: Links): void {
     const url: SyntaxNode | null = node.name === "URL" ? node : node.getChild("URL");
-    const address: string = node.name === "WikiLink"
+    addressFollow(view, node.name === "WikiLink"
         ? /^\[\[([^\]|\\]*)/.exec(view.state.sliceDoc(node.from, node.to))?.[1] ?? ""
-        : url === null ? "" : view.state.sliceDoc(url.from, url.to).replace(/^<|>$/g, "");
+        : url === null ? "" : view.state.sliceDoc(url.from, url.to).replace(/^<|>$/g, ""), links);
+}
+
+/**
+ * Follows a link by its address as written, see {@link linkFollow}.
+ * - `hash`: Where its `#` stands, -1 for none.
+ * - `target`, `heading`: The link to a file before `#`, empty for the note itself, and the place in it after `#`.
+ * - `path`: The file it leads to, as the reader found it, `null` for none.
+ *
+ * @param view - The editor
+ * @param address - The link as written, like `01_01_SampleMeanStandardError#Theorem. Central Limit Theorem`
+ *   or `https://…`
+ * @param links - Files the links of the note lead to
+ */
+function addressFollow(view: EditorView, address: string, links: Links): void {
     if (externalRule.test(address)) {
         window.open(address, "_blank", "noopener");
         return;
