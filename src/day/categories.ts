@@ -475,16 +475,24 @@ function fixedValueOf(field: Field, value: string): string {
 
 /**
  * Makes the choice of a value of a field: a place by its name, see `labelOf` in `places.ts`, its address grey
- * beside it in the list, any other value as it is.
+ * beside it in the list, `Online` the names of its parts, see {@link onlineDetail}; any other value as it is.
  *
  * @param field - Field of the value, like `Place`
  * @param value - Value, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland` or `Bahn`
  * @returns Choice, like one showing `TUM Innenstadt`
  */
 function fieldChoiceOf(field: Field, value: string): Choice {
-    return field.key === "title" ? choiceOf(value)
-        : { value: value, text: labelOf(value), group: "", detail: addressOf(value) };
+    return field.key === "title" ? choiceOf(value) : {
+        value: value, text: labelOf(value), group: "",
+        detail: labelOf(value) === onlineName ? onlineDetail : addressOf(value),
+    };
 }
+
+/**
+ * What `Online` shows grey beside it in the list of a place, in place of an address, see {@link fieldChoiceOf}:
+ * the names of its parts, as {@link onlinePartsOf} shows them, so I see what I type for it.
+ */
+const onlineDetail: string = "Software, Provider, Passcode, Link";
 
 /**
  * Gives the address of a place as an entry writes it, the part after its name.
@@ -925,7 +933,8 @@ function watchRowOf(field: Field): HTMLElement {
  * again keeps, with its pencil beside it and its address below it, see {@link placePartsOf}; a summary with the steps
  * of the value picked below it, see {@link stepsShow}. A meal of the log has its summary, its meals and its foods
  * in place of the summary, see {@link meal}. A place shows its parts below it, see {@link partsOf}, once added and
- * as `Online` is picked, or by its pencil, and hides them as another place is picked; `Online` picked anew starts
+ * as `Online` is picked, or by its pencil, and hides them as another place is picked; `Online` picked while the parts
+ * of my place show, or a place added, shows its own parts in place of theirs; `Online` picked anew starts
  * without link, as a new meeting.
  * - `place`: Pencil and address of a place, `null` for any other field.
  * - `steps`: Place of the steps of the field.
@@ -978,7 +987,7 @@ function fieldRowsOf(field: Field): HTMLElement[] {
             stepsShow(steps, field);
             document.getElementById("entry-pain")?.toggleAttribute("hidden", !neckLongPicked());
             saveAllow();
-            if (partsShown(field) !== shown)
+            if (partsShown(field) !== shown || (shown && labelOf(line) !== before))
                 partsShow(field);
         },
     }))];
