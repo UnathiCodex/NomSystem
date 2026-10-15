@@ -490,9 +490,10 @@ function fieldChoiceOf(field: Field, value: string): Choice {
 
 /**
  * What `Online` shows grey beside it in the list of a place, in place of an address, see {@link fieldChoiceOf}:
- * the names of its parts, as {@link onlinePartsOf} shows them, so I see what I type for it.
+ * the names of its parts, as {@link onlinePartsOf} shows them, so I see what I type for it; without its link,
+ * as my places show their address without theirs.
  */
-const onlineDetail: string = "Software, Provider, Passcode, Link";
+const onlineDetail: string = "Software, Provider, Passcode";
 
 /**
  * Gives the address of a place as an entry writes it, the part after its name.
