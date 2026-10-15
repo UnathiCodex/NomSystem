@@ -18,14 +18,17 @@
  * A search filters the tree as I type, as every list of the page has one, of my modules only the module picked,
  * see {@link searchStart}.
  * Under the note shown stands its outline, as Obsidian's outline, see {@link outlineShow}.
- * The tree is as wide as its longest name, which goes on below where one is wider still, never cut;
- * its look is in `./notes.css`.
+ * Each name stands on one line, one too long for it ending in dots; on a phone, whose tree is narrower than
+ * a computer's, a name goes on below between its parts instead, like `IN2028_BusinessAnalytics` and `MachineLearning`,
+ * see `breakableOf` in `../day/choices.ts`; its look is in `./notes.css`.
  *
  * - `../search.ts`: Compares a typed text with the paths of the files and notes, as every search of the page does.
+ * - `../day/choices.ts`: Marks where a long name may go on below.
  * - `./markdown.ts`, `./math.ts`: Render the headings of the outline, their formulas as in the note.
  */
 
 import { matchesAll, wordsOf } from "../search.ts";
+import { breakableOf } from "../day/choices.ts";
 import { inlineHtmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
 
@@ -94,7 +97,7 @@ export function folderOf(name: string): HTMLDetailsElement {
     const summary: HTMLElement = document.createElement("summary");
     const children: HTMLDivElement = document.createElement("div");
     folder.className = "tree-folder";
-    summary.textContent = name;
+    summary.textContent = breakableOf(name);
     children.className = "tree-children";
     folder.append(summary, children);
     return folder;
@@ -149,14 +152,14 @@ function fileNodeOf(node: FileNode): HTMLElement {
         link.className = "tree-file";
         link.dataset.path = node.path;
         link.href = `/edit?file=${encodeURIComponent(node.path)}`;
-        link.textContent = node.name;
+        link.textContent = breakableOf(node.name);
         return link;
     }
     const name: HTMLSpanElement = document.createElement("span");
     name.className = "tree-file tree-closed";
     name.dataset.path = node.path;
     name.title = "Only Markdown and .ics files of the three folders of my new system open";
-    name.textContent = node.name;
+    name.textContent = breakableOf(node.name);
     return name;
 }
 
@@ -187,7 +190,7 @@ function moduleNodeOf(module: NotesModule): HTMLDivElement {
             link.className = "tree-file";
             link.dataset.path = note.path;
             link.href = noteAddressOf(note.path, "");
-            link.textContent = note.name.replace(/\.md$/i, "");
+            link.textContent = breakableOf(note.name.replace(/\.md$/i, ""));
             return link;
         }));
         return group;
@@ -235,7 +238,7 @@ function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: H
             row.type = "button";
             row.className = "tree-choice";
             row.classList.toggle("picked", choice.classList.contains("picked"));
-            row.textContent = nameOf(choice);
+            row.textContent = breakableOf(nameOf(choice));
             row.addEventListener("click", (): void => {
                 menu.hidePopover();
                 choose(choice);
@@ -264,8 +267,9 @@ function chapterShow(tree: HTMLElement, module: HTMLElement, chapter: HTMLElemen
         other.classList.toggle("picked", other === chapter);
     });
     const chapterPick: HTMLButtonElement = tree.querySelector(".tree-pick-chapter") as HTMLButtonElement;
-    (tree.querySelector(".tree-pick-module > .tree-pick-name") as HTMLElement).textContent = module.dataset.title ?? "";
-    (chapterPick.firstElementChild as HTMLElement).textContent = chapter?.dataset.chapter ?? "";
+    (tree.querySelector(".tree-pick-module > .tree-pick-name") as HTMLElement).textContent =
+        breakableOf(module.dataset.title ?? "");
+    (chapterPick.firstElementChild as HTMLElement).textContent = breakableOf(chapter?.dataset.chapter ?? "");
     chapterPick.hidden = chapter === null;
 }
 

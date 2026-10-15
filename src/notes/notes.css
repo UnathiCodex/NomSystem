@@ -604,6 +604,46 @@
     .notes-note {
         padding: var(--gap);
     }
+
+    /* The tree on a phone, over the whole screen, see `../editor/editor.css`, and the menus of its pickers: each row
+       a finger high, its name whole, going on below between the parts of a long name, like `IN2028_BusinessAnalytics`
+       and `MachineLearning`, see `breakableOf` in `../day/choices.ts`, never ending in dots, since the screen is
+       narrower than the tree of a computer; the search as high as a row */
+    .notes-tree,
+    .tree-menu {
+        line-height: 1.4;
+    }
+
+    .tree-folder > summary,
+    .tree-file,
+    .tree-pick,
+    .tree-choice,
+    .tree-none {
+        padding-block: 0.5625rem;
+        white-space: normal;
+    }
+
+    .tree-search {
+        height: 2.25rem;
+    }
+
+    /* A folder's name going on below on a phone in line with its first line after the arrow, not below the arrow */
+    .tree-folder > summary {
+        padding-left: calc(var(--tree-row-padding) + 1em);
+        text-indent: -1em;
+    }
+
+    /* The menu of a picker of the tree on a phone rising from the bottom over the whole width, as a list of a dialog
+       does, since the tree leaves no room beside it, never higher than the screen leaves room for */
+    .tree-menu {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: auto;
+        max-height: calc(100dvh - 4rem);
+        border-radius: var(--radius) var(--radius) 0 0;
+    }
 }
 
 /* A due task as a card, see cardSet in notes.ts: every other block, the task's heading and its source line hidden;
