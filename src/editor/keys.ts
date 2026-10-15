@@ -3,7 +3,8 @@
  *
  * The keys of a Markdown file in the editor, as in Obsidian, see `./editor.ts`; they go before CodeMirror's usual keys:
  * - Enter continues a list, a task list or a quote on the next line, and on an empty item ends the list, one level
- *   at a time; Shift+Enter goes on in the same point on the next line, see {@link pointContinue};
+ *   at a time; on a further line of a point it starts the next point too, see {@link furtherContinue};
+ *   Shift+Enter goes on in the same point on the next line, see {@link pointContinue};
  *   Backspace right after the `-` of an item or the `>` of a quote takes it away.
  * - Tab moves a list item one step in, Shift+Tab one step out, always with its sub-points and further lines,
  *   see {@link itemIndent}; outside a list Tab writes a tab where the cursor is, on several lines picked it moves
@@ -55,23 +56,74 @@ const pointContinue: Command = (view: EditorView): boolean => {
 };
 
 /**
- * Finds the list item the cursor stands in, or the lines picked, when they lie on its lines: the innermost item
- * around the start of the text of the first line, so a further line of a point or a sub-point is found too.
- * - `line`: First line of what is picked.
- * - `last`: Last line of what is picked.
+ * Starts the next point with Enter on a further line of a point, the lines written below its text, see
+ * {@link pointContinue}, as Enter does on the line of its `-`, as Obsidian does: the new line takes the point's tabs
+ * and its `-`, or its number counted on, like `2.` after `1.`, and what stood right of the cursor; an empty further
+ * line becomes the new point itself, so no empty line stays behind. Anywhere else it leaves the key to the next,
+ * CodeMirror's Markdown, which continues a list from the line of a `-`.
+ * - `range`: The cursor.
+ * - `line`: Its line.
+ * - `item`: The list item it stands in, `null` outside a list.
+ * - `first`: The first line of the item, with its `-` or number.
+ * - `blank`: Whether the line of the cursor holds nothing but the room of a further line, as Shift+Enter leaves it;
+ *   the item is then that of the line above.
+ * - `point`: Its tabs, its `-` or number, the number alone and the `.` or `)` after it; `null` for no point.
+ * - `insert`: What the line of the new point begins with.
+ *
+ * @param view - The editor
+ * @returns Whether it took the key
+ */
+const furtherContinue: Command = (view: EditorView): boolean => {
+    const range: SelectionRange = view.state.selection.main;
+    const line: Line = view.state.doc.lineAt(range.head);
+    const blank: boolean = line.length > 0 && line.text.trim() === "";
+    const item: SyntaxNode | null = !range.empty ? null
+        : blank && line.number > 1 ? itemOf(view.state, view.state.doc.line(line.number - 1)) : itemAt(view.state);
+    if (item === null || view.state.doc.lineAt(item.from).number === line.number)
+        return false;
+
+    const first: Line = view.state.doc.lineAt(item.from);
+    const point: RegExpExecArray | null = /^([ \t]*)(?:[-*+]|(\d+)([.)]))[ \t]/.exec(first.text);
+    if (point === null)
+        return false;
+    const insert: string = point[1] + (point[2] === undefined ? first.text.trim()[0] : `${Number(point[2]) + 1}${point[3]}`) + " ";
+    view.dispatch({
+        changes: blank ? { from: line.from, to: line.to, insert: insert }
+            : { from: range.head, insert: view.state.lineBreak + insert },
+        selection: { anchor: blank ? line.from + insert.length : range.head + view.state.lineBreak.length + insert.length },
+        scrollIntoView: true,
+        userEvent: "input",
+    });
+    return true;
+};
+
+/**
+ * Finds the list item a line stands in: the innermost item around the start of its text, so a further line of a point
+ * or a sub-point is found too.
  * - `node`: A piece of syntax around the start of the text, from the innermost outwards.
+ *
+ * @param state - Text
+ * @param line - The line
+ * @returns The item, `ListItem`, `null` outside a list
+ */
+function itemOf(state: EditorState, line: Line): SyntaxNode | null {
+    for (let node: SyntaxNode | null = syntaxTree(state).resolveInner(line.from + (/^[ \t]*/.exec(line.text)?.[0].length ?? 0), 1);
+         node !== null; node = node.parent)
+        if (node.name === "ListItem")
+            return node;
+    return null;
+}
+
+/**
+ * Finds the list item the cursor stands in, or the lines picked, when they lie on its lines, see {@link itemOf}.
+ * - `item`: The item of the first line of what is picked.
  *
  * @param state - Text and cursor
  * @returns The item, `ListItem`, `null` outside a list or when the lines picked reach beyond it
  */
 function itemAt(state: EditorState): SyntaxNode | null {
-    const line: Line = state.doc.lineAt(state.selection.main.from);
-    const last: Line = state.doc.lineAt(state.selection.main.to);
-    for (let node: SyntaxNode | null = syntaxTree(state).resolveInner(line.from + (/^[ \t]*/.exec(line.text)?.[0].length ?? 0), 1);
-         node !== null; node = node.parent)
-        if (node.name === "ListItem")
-            return last.to <= state.doc.lineAt(node.to).to ? node : null;
-    return null;
+    const item: SyntaxNode | null = itemOf(state, state.doc.lineAt(state.selection.main.from));
+    return item !== null && state.selection.main.to <= state.doc.lineAt(item.to).to ? item : null;
 }
 
 /**
@@ -242,6 +294,7 @@ function markupToggle(mark: string): Command {
  * then the key goes on to the next command, CodeMirror's own.
  */
 export const markdownKeys: Extension = Prec.high(keymap.of([
+    { key: "Enter", run: furtherContinue },
     { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
     { key: "Shift-Enter", run: pointContinue },
     { key: "Backspace", run: deleteMarkupBackward },
