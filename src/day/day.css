@@ -1896,9 +1896,21 @@ svg.route-arrow {
     }
 
     /* The date on a phone only as wide as itself, since the arrows stand at the edges, so the bar never grows wider
-       than the screen */
+       than the screen; it stands in the middle of the screen, between the arrows, and the icon back to today stands
+       right beside it without taking room of the bar, so it never pushes the date off the middle: placed
+       at the right of the date, level with its middle, see `anchor-name`; one control high, so a thumb hits it */
     #day-title {
         min-width: 0;
+        anchor-name: --day-date;
+    }
+
+    .day-nav .day-today {
+        position: absolute;
+        position-anchor: --day-date;
+        top: anchor(center);
+        left: anchor(right);
+        min-height: var(--control-height);
+        translate: 0 -50%;
     }
 
     .day-nav .day-title {
