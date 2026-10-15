@@ -598,24 +598,11 @@
     padding-top: 0;
 }
 
-/* Phone: menu above the note, a third of the screen high, the note with little room around it */
+/* Phone: the card of a task over the whole screen, from its text down to its Solution and its row, with little room
+   around it, a gap, as the plan of the day */
 @media (max-width: 900px) {
-    .notes {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: minmax(0, 35dvh) minmax(0, 1fr);
-    }
-
-    .notes-tree {
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
-    }
-
     .notes-note {
         padding: var(--gap);
-    }
-
-    .notes-page {
-        padding: 0;
     }
 }
 
