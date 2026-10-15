@@ -438,6 +438,8 @@ class TaskBoxWidget extends WidgetType {
         box.checked = this.done;
         box.addEventListener("mousedown", (event: MouseEvent): void => {
             event.preventDefault();
+            if (view.state.readOnly)
+                return;
             const pos: number = view.posAtDOM(box);
             view.dispatch({ changes: { from: pos + 1, to: pos + 2, insert: this.done ? " " : "x" }, userEvent: "input" });
         });
