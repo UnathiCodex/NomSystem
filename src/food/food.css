@@ -84,6 +84,16 @@ body:has(> .food) {
     content: ",";
 }
 
+/* On a computer the date as wide as its widest, like `Mon, 19.10.2026`, its text in the middle, as the date of the day,
+   see `#day-title` in `day/day.css`, so the arrow after it stays in place from day to day and stands where the day
+   has it; a phone puts the weekday above the date in the middle of the bar, see the end of this file */
+@media (min-width: 901px) {
+    .food-day-title {
+        min-width: 9.25em;
+        text-align: center;
+    }
+}
+
 /* Icon back to today beside the date: small, without frame, grey, lighter under the pointer; on today faded and off */
 .food-today {
     display: inline-flex;
