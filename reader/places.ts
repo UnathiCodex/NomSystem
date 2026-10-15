@@ -80,9 +80,10 @@ const roomHead: string[] = ["| Room | Address | Link |", "|---|---|---|"];
 const roomForm: RegExp = /^\d+\./;
 
 /**
- * A link of a place, a web address without spaces, like `https://nav.tum.de/room/0509.EG.980`.
+ * A link typed, of a place or of what an entry was, see `titleOf` in `documents.ts`: a web address without spaces,
+ * like `https://nav.tum.de/room/0509.EG.980`.
  */
-const linkForm: RegExp = /^https?:\/\/\S+$/;
+export const linkForm: RegExp = /^https?:\/\/\S+$/;
 
 /**
  * Lines of the table of `Places.md` before its rows: the header and the line below it.

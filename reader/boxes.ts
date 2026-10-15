@@ -185,6 +185,8 @@ export type PlanDay = {
  *   it writes from its skill and type, see `titleOf` in `documents.ts`.
  * - `locationLink`: Link of the meeting of the place `Online`, as typed, written as the `ALTREP` of its `LOCATION`;
  *   left out for any other place, as for an entry of the log, see `EntryNew` in `day.ts`.
+ * - `titleLink`: Link typed for what it is, like the page of an event, written as the `ALTREP` of its `SUMMARY`;
+ *   left out by a sender that does not know it, as for an entry of the log, see `EntryNew` in `day.ts`.
  * - `semester`: Semester of a skill box, like `2026W`, the semester of its day when empty, see `semesterFor`
  *   in `categories.ts`; empty for any other box.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
@@ -198,6 +200,7 @@ export type PlanDay = {
  */
 export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink"> & {
     locationLink?: string;
+    titleLink?: string;
     day: string;
     time: string;
     minutes: number | null;
@@ -586,7 +589,7 @@ function boxLinksPut(file: string, id: string, box: BoxNew, old: Entry | null): 
  * @throws {Error} - When the link typed for `Online` is no web address
  */
 function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
-    const [title, titleLink]: [string, string] = titleOf(box);
+    const [title, titleLink]: [string, string] = titleOf(box, old);
     return {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
         locationLink: placeLinkOf(box.location, box.locationLink, old), from: box.from,
@@ -644,7 +647,7 @@ export function boxAdd(box: BoxNew): string {
     const id: string = todoAppend(file, todoFieldsOf(box, null));
     boxLinksPut(file, id, box, null);
     if (box.category === skillName && numberedTypes.includes(box.type))
-        propertiesPut(file, id, [["x-number", [numberNextOf(titleOf(box)[0], box.day)]]]);
+        propertiesPut(file, id, [["x-number", [numberNextOf(titleOf(box, null)[0], box.day)]]]);
     return id;
 }
 
@@ -717,7 +720,7 @@ export function boxEdit(change: BoxChange): void {
     if (change.time === "" || change.minutes === null)
         throw new Error(`${entry.title} is an event of the plan and keeps its time and its duration`);
     const start: Date = new Date(change.time);
-    const [title, titleLink]: [string, string] = titleOf(change);
+    const [title, titleLink]: [string, string] = titleOf(change, entry);
     const fields: EntryFields = {
         category: change.category, title: title, titleLink: titleLink, location: change.location,
         locationLink: placeLinkOf(change.location, change.locationLink, entry), from: change.from,

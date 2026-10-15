@@ -1121,7 +1121,7 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
     const plan: Box | null = entry.planned === "" ? null : boxOpenFind(entry.planned);
     skillEntryCheck(entry, values, plan?.chapters ?? [], plan?.type ?? "");
 
-    const [title, titleLink]: [string, string] = titleOf({ ...entry, category: skillName, title: "" });
+    const [title, titleLink]: [string, string] = titleOf({ ...entry, category: skillName, title: "" }, null);
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: entry.location,
         locationLink: placeLinkOf(entry.location, entry.locationLink, plan), from: "",
@@ -1178,7 +1178,7 @@ export function skillEntryEdit(change: SkillEntryChange): void {
         ["attach", linksOf(change.module, change.documents, old.links)],
         ["x-attempt", values],
     ]);
-    const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" });
+    const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" }, null);
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: change.location,
         locationLink: placeLinkOf(change.location, change.locationLink, old), from: "",
@@ -1232,7 +1232,7 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
             own.push(["related-to", plan.id]);
         const start: Date = new Date(quarter.getTime() - quarterHour);
         const [title, titleLink]: [string, string] =
-            titleOf({ category: skillName, title: "", module: module, type: type });
+            titleOf({ category: skillName, title: "", module: module, type: type }, null);
         const fields: EntryFields = {
             category: skillName, title: title, titleLink: titleLink, location: plan?.location ?? "",
             locationLink: plan?.locationLink ?? "", from: "",

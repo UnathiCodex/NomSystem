@@ -63,6 +63,8 @@ import {
     activeModules, draftsFolder, moduleIs, modulesFolder, projectOf, skillFileOf, skillLog, vault, yearFileOf,
 } from "./sources.ts";
 
+import { linkForm } from "./places.ts";
+
 import type { Stats } from "node:fs";
 import type { Entry, EntryFields, Link } from "./calendar.ts";
 import type { NotesFile } from "./notes.ts";
@@ -226,17 +228,31 @@ export function skillTitleOf(code: string, type: string): string {
 
 /**
  * Gives what an entry or a box was as it is written, its `SUMMARY` and the `ALTREP` of it: for a skill entry
- * its skill and type, see {@link skillTitleOf}, linking the folder of its skill, see {@link skillFolderOf};
- * for any other its what as sent, without link.
+ * its skill and type, see {@link skillTitleOf}, linking the folder of its skill, see {@link skillFolderOf}, which
+ * tells a module from a project, see `skillPartsOf` in `calendar.ts`, so no link is typed for it; for any other
+ * its what as sent with the link typed for it, like the page of an event, a web address, see `linkForm`
+ * in `places.ts`, or, from a sender that knows no typed link, like the calendar after a drag, the link it had
+ * in the entry or box it comes from while it is the same what, else none.
+ * - `link`: The link typed, without spaces at its ends.
  *
- * @param fields - Category, what, skill and type of the entry or the box, as sent
+ * @param fields - Category, what, the link typed for it, skill and type of the entry or the box, as sent;
+ *   the link `undefined` from a sender that knows none
+ * @param from - The entry or box it comes from, like the entry being changed or the box a log entry is logged from,
+ *   `null` for none
  * @returns `SUMMARY` and `ALTREP`, like `IN2028 Business Analytics Machine Learning (VO)`
  *   and `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, or `Planungen` and an empty link
+ * @throws {Error} - When the link typed is no web address
  */
-export function titleOf(fields: { category: string; title: string; module: string; type: string }): [string, string] {
-    if (fields.category !== skillName)
-        return [fields.title, ""];
-    return [skillTitleOf(fields.module, fields.type), skillFolderOf(fields.module) ?? ""];
+export function titleOf(fields: { category: string; title: string; titleLink?: string; module: string; type: string },
+                        from: { title: string; titleLink: string } | null): [string, string] {
+    if (fields.category === skillName)
+        return [skillTitleOf(fields.module, fields.type), skillFolderOf(fields.module) ?? ""];
+    if (fields.titleLink === undefined)
+        return [fields.title, from !== null && from.title === fields.title ? from.titleLink : ""];
+    const link: string = fields.titleLink.trim();
+    if (link !== "" && !linkForm.test(link))
+        throw new Error(`No link of ${fields.title}: ${link}`);
+    return [fields.title, link];
 }
 
 /**

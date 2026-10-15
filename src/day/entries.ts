@@ -18,6 +18,8 @@ import type { Calendar } from "fullcalendar";
  *
  * - `category`: Category picked, `CATEGORIES`.
  * - `title`: What picked, `SUMMARY`.
+ * - `titleLink`: Link of what it was, as typed or pasted below its summary, the `ALTREP` of its `SUMMARY`, like the page
+ *   of an event; left out for a skill entry, whose link the reader writes, and after a drag, so it keeps its link.
  * - `location`: Place picked, `LOCATION`.
  * - `locationLink`: Link of the place `Online`, as typed or pasted, the `ALTREP` of its `LOCATION`; left out for any
  *   other place, whose link the reader finds itself, and after a drag, so the place keeps its link.
@@ -41,6 +43,7 @@ import type { Calendar } from "fullcalendar";
 export type EntryFields = {
     category: string;
     title: string;
+    titleLink?: string;
     location: string;
     locationLink?: string;
     from: string;
@@ -59,8 +62,8 @@ export type EntryFields = {
 /**
  * Fields of a box of the plan to send; an empty field is not written.
  *
- * - `category`, `title`, `location`, `locationLink`, `from`, `module`, `type`, `semester`, `note`: As those
- *   of {@link EntryFields}.
+ * - `category`, `title`, `titleLink`, `location`, `locationLink`, `from`, `module`, `type`, `semester`, `note`:
+ *   As those of {@link EntryFields}.
  * - `day`: Day of the box, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time on its day, `null` for none and for a box with a deadline.
  * - `minutes`: Expected duration in minutes, `null` for none.
@@ -72,6 +75,7 @@ export type EntryFields = {
 export type BoxFields = {
     category: string;
     title: string;
+    titleLink?: string;
     location: string;
     locationLink?: string;
     from: string;

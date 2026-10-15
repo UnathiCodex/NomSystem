@@ -61,6 +61,9 @@ import type { Meal } from "./food.ts";
  *
  * - `category`: Category picked.
  * - `title`: What picked.
+ * - `titleLink`: Link typed for what it was, like the page of an event, written as the `ALTREP` of its `SUMMARY`,
+ *   see `titleOf` in `documents.ts`; left out by a sender that does not know it, like the calendar after a drag,
+ *   so what it was keeps its link; none for a skill entry, whose link the reader writes, the folder of its skill.
  * - `location`: Place picked.
  * - `locationLink`: Link of the place `Online`, as typed in the dialog, written as the `ALTREP` of its `LOCATION`,
  *   see `placeLinkOf` in `places.ts`;
@@ -85,6 +88,7 @@ import type { Meal } from "./food.ts";
 export type EntryNew = {
     category: string;
     title: string;
+    titleLink?: string;
     location: string;
     locationLink?: string;
     from: string;
@@ -170,8 +174,9 @@ export function logFileOf(fields: { category: string; module: string; start: Dat
  * @returns Fields and times
  * @throws {Error} - When the link typed for `Online` is no web address
  */
-function fieldsOf(entry: EntryNew, from: { location: string; locationLink: string } | null): EntryFields {
-    const [title, titleLink]: [string, string] = titleOf(entry);
+function fieldsOf(entry: EntryNew,
+                  from: { title: string; titleLink: string; location: string; locationLink: string } | null): EntryFields {
+    const [title, titleLink]: [string, string] = titleOf(entry, from);
     return {
         category: entry.category, title: title, titleLink: titleLink, location: entry.location,
         locationLink: placeLinkOf(entry.location, entry.locationLink, from), from: entry.from,
@@ -392,7 +397,7 @@ export function boxLog(logged: BoxLogged): string {
         throw new Error(`${box.title} has no category; the dialog logs it`);
 
     const skill: boolean = box.category === skillName;
-    const [title, titleLink]: [string, string] = titleOf(box);
+    const [title, titleLink]: [string, string] = titleOf({ ...box, titleLink: undefined }, box);
     const fields: EntryFields = {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
         locationLink: box.locationLink, from: box.from, module: box.module, type: box.type,

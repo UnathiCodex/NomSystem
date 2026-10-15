@@ -28,6 +28,10 @@
  * the typed text can be added as a new value with `+ New summary` at the end of the list, which is then picked,
  * the one way to write a new summary or another one in place of the one picked, but to the summary of `Sleep`
  * and `Way`, which take no new ones.
+ * Every summary but that of `Skill` has a pencil `✎` beside it, as a place has, which shows below it its link to type,
+ * like the page of an event, written as the `ALTREP` of its `SUMMARY` and shown small and grey below the summary,
+ * opening it, see {@link summaryPartsOf}; the summary of `Skill` links the folder of its skill, which the reader
+ * writes, since it tells a module from a project.
  * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first,
  * each by its name, like `TUM Innenstadt`, its address grey beside it in the list; a picked one is written with its address,
  * as one line, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`; its row shows its name with a pencil `✎`
@@ -70,7 +74,7 @@
  *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
  * - `../icons.ts`: Shows the icons of the copy, the bin and its question, Cancel and Save in their buttons,
- *   and the pencil of a place; makes the plain question mark of the bin.
+ *   and the pencil of a place and of a summary; makes the plain question mark of the bin.
  * - `lucide`: The icons of the copy, the bin, Cancel, Save and the pencil.
  * - `fullcalendar`: Calendar that shows the entries.
  */
@@ -158,6 +162,8 @@ type EntryTarget = "log" | "box";
  * - `minutes`: Expected duration of a box in minutes, `null` for none and for an entry of the log.
  * - `category`: Category picked already, else `null`.
  * - `values`: Values picked already, by the field they write into.
+ * - `titleLink`: Link of what it was, the `ALTREP` of its `SUMMARY`, as the entry, the box or the box to log has it,
+ *   or the one it is a copy of, for a skill entry the folder of its skill; empty for none.
  * - `locationLink`: Link of its place, its `ALTREP`, as the entry, the box or the box to log has it,
  *   or the one it is a copy of; empty for none.
  * - `note`: Note of the entry.
@@ -176,6 +182,7 @@ type EntryOpening = {
     minutes: number | null;
     category: string | null;
     values: { [key in FieldKey]: string };
+    titleLink: string;
     locationLink: string;
     note: string;
     foods: string[];
@@ -212,8 +219,8 @@ let values: { [key in FieldKey]: string } = { title: "", from: "", location: "" 
  */
 let opened: EntryOpening = {
     target: "log", start: new Date(), end: new Date(), time: null, minutes: null, category: null,
-    values: { title: "", from: "", location: "" }, locationLink: "", note: "", foods: [], skill: skillNone, plan: null,
-    entry: null, box: null,
+    values: { title: "", from: "", location: "" }, titleLink: "", locationLink: "", note: "", foods: [], skill: skillNone,
+    plan: null, entry: null, box: null,
 };
 
 /**
@@ -232,6 +239,24 @@ let partsOpen: FieldKey | null = null;
  * Line of the place just added, see {@link placeAdd}, so picking it shows its parts; empty for none.
  */
 let addedLine: string = "";
+
+/**
+ * Link of what the entry or the box was, typed below its summary by its pencil, see {@link summaryPartsOf},
+ * written as the `ALTREP` of its `SUMMARY`, like the page of an event; empty for none and for a skill entry,
+ * whose link the reader writes, the folder of its skill.
+ */
+let summaryLink: string = "";
+
+/**
+ * Whether the summary shows its link to type below it, opened and closed by its pencil, see {@link summaryPartsOf}.
+ */
+let summaryOpen: boolean = false;
+
+/**
+ * Pencil beside the summary and its link below it as shown, see {@link summaryPartsOf}; `null` while no summary
+ * shows them, like that of a skill entry, which is its skill and type.
+ */
+let summaryShown: [HTMLButtonElement, HTMLAnchorElement] | null = null;
 
 /**
  * Category picked, `null` before picking.
@@ -325,10 +350,12 @@ function foodsListed(): boolean {
 /**
  * Allows saving once a category is picked: every other field may stay empty, but the times, which the browser
  * asks for before it sends the form; a skill entry may stay without skill, and a task picked without result
- * is left out, see `skill.ts`.
+ * is left out, see `skill.ts`. Called on every change of the fields, it also shows the pencil and the link
+ * of the summary as it now is, see {@link summaryPartsShow}.
  */
 function saveAllow(): void {
     (document.getElementById("entry-save") as HTMLButtonElement).disabled = chosen === null;
+    summaryPartsShow();
     realShow().catch((error: unknown): void => console.error(error));
 }
 
@@ -612,7 +639,7 @@ function partsShown(field: Field): boolean {
 function partsShow(field: Field): void {
     placesShow();
     if (partsShown(field))
-        document.querySelector<HTMLInputElement>("#entry .place-parts input")?.focus();
+        document.querySelector<HTMLInputElement>("#entry .field-parts input")?.focus();
 }
 
 /**
@@ -658,7 +685,7 @@ function partFieldOf(type: string, value: string, name: string): HTMLInputElemen
 function partOf(name: string, input: HTMLInputElement): HTMLLabelElement {
     const part: HTMLLabelElement = document.createElement("label");
     const label: HTMLSpanElement = document.createElement("span");
-    part.className = "place-part";
+    part.className = "field-part";
     label.className = "entry-name";
     label.textContent = name;
     part.append(label, input);
@@ -667,7 +694,7 @@ function partOf(name: string, input: HTMLInputElement): HTMLLabelElement {
 
 /**
  * Builds the parts of the place picked in a field, as the foods of a meal and the documents of a chapter stand:
- * indented under the place with a thin grey line at their left, see `.place-parts` in `day.css`: for my place its name,
+ * indented under the place with a thin grey line at their left, see `.field-parts` in `day.css`: for my place its name,
  * then for my place and for `Online` alike three parts in place of an address and the link last,
  * see {@link minePartsOf} and {@link onlinePartsOf}.
  *
@@ -754,7 +781,7 @@ function minePartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]
             if (!renamed)
                 return;
             placesShow();
-            document.querySelector<HTMLInputElement>(`#entry .place-parts input[aria-label="${typing}"]`)?.focus();
+            document.querySelector<HTMLInputElement>(`#entry .field-parts input[aria-label="${typing}"]`)?.focus();
         }).catch((error: unknown): void => {
             console.error(error);
             hint.hidden = false;
@@ -771,7 +798,7 @@ function minePartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]
     for (const part of [name, address, postcode, land, link])
         part.addEventListener("change", write);
     const element: HTMLElement = document.createElement("div");
-    element.className = "place-parts";
+    element.className = "field-parts";
     element.append(partOf("Name", name), partOf("Address", address), partOf("Postcode", postcode),
         partOf("Country", land), partOf("Link", link), hint);
     return element;
@@ -819,10 +846,85 @@ function onlinePartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElemen
         write();
     });
     const element: HTMLElement = document.createElement("div");
-    element.className = "place-parts";
+    element.className = "field-parts";
     element.append(partOf("Software", software), partOf("Provider", provider), partOf("Passcode", passcode),
         partOf("Link", link));
     return element;
+}
+
+/**
+ * Shows the link of what the entry or the box was below its summary, small and grey, as a link that opens
+ * in a new tab, like the address of a place, see {@link placePartsShow}: the link itself, like the page of an event;
+ * nothing while it has none; the pencil beside the summary while the summary names something, see {@link titleRead}.
+ * - `pencil`, `link`: Pencil and link of the summary as shown.
+ */
+function summaryPartsShow(): void {
+    if (summaryShown === null)
+        return;
+    const [pencil, link]: [HTMLButtonElement, HTMLAnchorElement] = summaryShown;
+    link.textContent = summaryLink;
+    if (summaryLink !== "")
+        link.href = summaryLink;
+    else
+        link.removeAttribute("href");
+    link.hidden = summaryLink === "";
+    pencil.hidden = titleRead(valuesRead().title) === "";
+}
+
+/**
+ * Makes the link of what the entry or the box was, as a place has its parts, see {@link placePartsOf}: the pencil
+ * beside its summary, which shows and hides the link to type, the link below the summary, see {@link summaryPartsShow},
+ * and below that the link to type, one part `Link` indented with the grey line at its left, see {@link partOf},
+ * empty until I type or paste one, like the page of an event; it goes along when the entry is saved,
+ * see {@link textsRead}. Every summary has them but that of a skill entry, whose link is the folder of its skill,
+ * see `skillPathOf` in `skill.ts`.
+ * - `pencil`: The pencil, `✎`.
+ * - `link`: The link below the summary.
+ * - `field`: The field of the link to type.
+ * - `parts`: The part holding it, shown while the pencil opened it, see {@link summaryOpen}.
+ *
+ * @returns Pencil, link and the part to type it, to put beside and below the summary
+ */
+function summaryPartsOf(): [HTMLButtonElement, HTMLAnchorElement, HTMLElement] {
+    const pencil: HTMLButtonElement = document.createElement("button");
+    const link: HTMLAnchorElement = document.createElement("a");
+    const field: HTMLInputElement = partFieldOf("url", summaryLink, "Link of the summary");
+    const parts: HTMLElement = document.createElement("div");
+    pencil.type = "button";
+    pencil.className = "entry-pencil";
+    iconPut(pencil, Pencil, "Change the link");
+    link.className = "entry-address";
+    link.target = "_blank";
+    link.rel = "noopener";
+    parts.className = "field-parts";
+    parts.append(partOf("Link", field));
+    parts.hidden = !summaryOpen;
+    pencil.addEventListener("click", (): void => {
+        summaryOpen = !summaryOpen;
+        parts.hidden = !summaryOpen;
+        if (summaryOpen)
+            field.focus();
+    });
+    field.addEventListener("input", (): void => {
+        summaryLink = field.value.trim();
+        summaryPartsShow();
+    });
+    summaryShown = [pencil, link];
+    summaryPartsShow();
+    return [pencil, link, parts];
+}
+
+/**
+ * Puts the link of a meal or a cooking beside and below its summary, which `meal.ts` writes by itself from its foods,
+ * see {@link summaryPartsOf}: the pencil right after the summary, the link and the part to type it below it.
+ * - `value`: The summary with its link.
+ *
+ * @param row - The row of the summary, see `mealOf` in `meal.ts`
+ */
+function mealLinkPut(row: HTMLElement): void {
+    const value: HTMLDivElement = document.createElement("div");
+    value.append(row.lastElementChild as HTMLElement, ...summaryPartsOf());
+    row.append(value);
 }
 
 /**
@@ -887,11 +989,13 @@ function watchPartsOf(summary: string): [string, string] {
  * Builds the summary of a `Watch` as two pickers side by side, as the skill and its type of a skill entry, see
  * `pairOf` in `choices.ts`: what I watched, the object, like `Lex Fridman`, and after it in brackets where, like
  * `YouTube`, each offering what my earlier entries wrote and taking a new one with its plus; the summary written
- * `Lex Fridman (YouTube)`, the platform alone while no what is picked, as older entries wrote it.
+ * `Lex Fridman (YouTube)`, the platform alone while no what is picked, as older entries wrote it; the pencil after both,
+ * the link below both, like the video watched, see {@link summaryPartsOf}.
  * - `parts`: What and platform of each summary offered.
  * - `what`, `where`: The two parts picked.
  * - `write`: Writes the summary of the two parts.
  * - `offered`: The parts of one kind that the summaries offer, each once, in their order.
+ * - `pencil`, `link`, `linkParts`: Pencil, link and the part to type it of the summary.
  *
  * @param field - The summary of `Watch`
  * @returns Its row
@@ -906,9 +1010,11 @@ function watchRowOf(field: Field): HTMLElement {
     const offered: (index: number) => Choice[] = (index: number): Choice[] =>
         [...new Set(parts.map((part: [string, string]): string => part[index]).filter((part: string): boolean =>
             part !== ""))].map(choiceOf);
+    const [pencil, link, linkParts]: [HTMLButtonElement, HTMLAnchorElement, HTMLElement] = summaryPartsOf();
     return rowOf(field.name, pairOf(
         choicesOf({
             search: searchOf(offered(0)), picked: what === "" ? [] : [what], many: false, adding: true, noun: "title",
+            below: [link, linkParts],
             pick: (picked: string[]): void => {
                 what = picked[0] ?? "";
                 write();
@@ -916,7 +1022,7 @@ function watchRowOf(field: Field): HTMLElement {
         }),
         choicesOf({
             search: searchOf(offered(1)), picked: where === "" ? [] : [where], many: false, adding: true,
-            noun: "platform", empty: "Add a platform", plus: true,
+            noun: "platform", empty: "Add a platform", plus: true, aside: [pencil],
             pick: (picked: string[]): void => {
                 where = picked[0] ?? "";
                 write();
@@ -933,11 +1039,13 @@ function watchRowOf(field: Field): HTMLElement {
  * A place shows by its name, once, however often it was used and whatever address an entry kept, which a place picked
  * again keeps, with its pencil beside it and its address below it, see {@link placePartsOf}; a summary with the steps
  * of the value picked below it, see {@link stepsShow}. A meal of the log has its summary, its meals and its foods
- * in place of the summary, see {@link meal}. A place shows its parts below it, see {@link partsOf}, once added and
+ * in place of the summary, see {@link meal}. A summary has its pencil beside it and its link below it,
+ * see {@link summaryPartsOf}. A place shows its parts below it, see {@link partsOf}, once added and
  * as `Online` is picked, or by its pencil, and hides them as another place is picked; `Online` picked while the parts
  * of my place show, or a place added, shows its own parts in place of theirs; `Online` picked anew starts
  * without link, as a new meeting.
  * - `place`: Pencil and address of a place, `null` for any other field.
+ * - `summary`: Pencil, link and the part to type it of a summary, see {@link summaryPartsOf}, none for a place.
  * - `steps`: Place of the steps of the field.
  * - `shown`: Whether the place shows its parts, see {@link partsShown}.
  *
@@ -952,6 +1060,7 @@ function fieldRowsOf(field: Field): HTMLElement[] {
     if (field.key === "title" && field.many === true && !asPlanned())
         return [manyRowOf(field)];
     const place: [HTMLButtonElement, HTMLAnchorElement] | null = field.key === "title" ? null : placePartsOf(field);
+    const summary: HTMLElement[] = field.key === "title" ? summaryPartsOf() : [];
     const steps: HTMLElement = document.createElement("ul");
     const shown: boolean = partsShown(field);
     steps.className = "entry-steps";
@@ -964,8 +1073,8 @@ function fieldRowsOf(field: Field): HTMLElement[] {
         adding: !field.fixed,
         add: field.key === "title" ? undefined : (name: string): Promise<string | null> => placeAdd(field, name),
         noun: field.key === "title" ? "summary" : "place",
-        aside: place !== null ? [place[0]] : [],
-        below: place === null ? [steps] : [place[1], ...shown ? [partsOf(field, place)] : []],
+        aside: place !== null ? [place[0]] : summary.slice(0, 1),
+        below: place === null ? [...summary.slice(1), steps] : [place[1], ...shown ? [partsOf(field, place)] : []],
         locked: field.key === "title" && asPlanned(),
         pick: (picked: string[]): void => {
             const line: string = picked[0] ?? "";
@@ -999,17 +1108,21 @@ function fieldRowsOf(field: Field): HTMLElement[] {
  * one line of the row, the values picked concatenated as one summary, parted by `, `, like `U-Bahn, Bus`, which is
  * also how the entry writes them; its list, a menu, takes a value or takes it back by a click, in the order picked,
  * and stays open for the next, see `many` in `choices.ts`; while none is picked, the small grey plus beside the name
- * of the row, `Summary +`, `Add a means of transport` as its tooltip, see `besideName` in `choices.ts`.
+ * of the row, `Summary +`, `Add a means of transport` as its tooltip, see `besideName` in `choices.ts`; its pencil
+ * beside it and its link below it, see {@link summaryPartsOf}.
  * - `picked`: The values picked, in their order.
+ * - `pencil`, `link`, `linkParts`: Pencil, link and the part to type it of the summary.
  *
  * @param field - Field of several values, like the summary of `Way`
  * @returns Its row
  */
 function manyRowOf(field: Field): HTMLElement {
     const picked: string[] = values[field.key] === "" ? [] : values[field.key].split(", ");
+    const [pencil, link, linkParts]: [HTMLButtonElement, HTMLAnchorElement, HTMLElement] = summaryPartsOf();
     return rowOf(field.name, choicesOf({
         search: searchOf(field.values.map(choiceOf)), picked: picked, many: true, adding: false,
         noun: "means of transport", empty: "Add a means of transport", plus: true, besideName: true,
+        aside: [pencil], below: [link, linkParts],
         pick: (chosen: string[]): void => {
             values[field.key] = chosen.join(", ");
             saveAllow();
@@ -1074,8 +1187,9 @@ async function wayEndLoad(): Promise<string> {
 }
 
 /**
- * Picks a category: shows its fields, keeping the places picked under the category before, and an older value
- * of a field that takes only its values as that field writes it, see {@link fixedValueOf}.
+ * Picks a category: shows its fields, keeping the places picked under the category before, but not its summary
+ * with its link, and an older value of a field that takes only its values as that field writes it,
+ * see {@link fixedValueOf}.
  * A new entry of a category with the field `from` starts where the last way ended.
  * `Food` in the log shows its summary, its meals and its foods in place of the summary, with those of the meal being
  * changed, see `meal.ts`, built before its fields show, unless another category was picked meanwhile;
@@ -1083,13 +1197,16 @@ async function wayEndLoad(): Promise<string> {
  * after them,
  * see `skill.ts`.
  * - `changing`: Whether the dialog changes a meal, whose foods and what the meal starts with.
- * - `built`: The rows of the meal.
+ * - `built`: The rows of the meal, its summary with its link, see {@link mealLinkPut}.
  *
  * @param category - Category to pick, or `null` for none yet
  * @throws {Error} - When the reader gives no valid answer
  */
 async function categoryPick(category: Category | null): Promise<void> {
     values = chosen === null ? { ...opened.values } : { ...valuesRead(), title: "" };
+    if (chosen !== null)
+        summaryLink = "";
+    summaryShown = null;
     chosen = category;
     (category?.fields ?? []).forEach((field: Field): void => {
         values[field.key] = (field.many === true ? values[field.key].split(", ") : [values[field.key]])
@@ -1118,6 +1235,7 @@ async function categoryPick(category: Category | null): Promise<void> {
         if (chosen !== category)
             return;
         meal = built;
+        mealLinkPut(built[0]);
     }
     fieldsShow();
 }
@@ -1172,7 +1290,7 @@ function titleRead(picked: string): string {
  * - `skill`: Skill and type of a skill entry, empty for any other entry.
  * - `links`: Chapters and documents of a skill entry, none for any other entry.
  *
- * @returns Category, what, place with the link of `Online`, where a way starts, module, type, semester, note,
+ * @returns Category, what with its link, see {@link summaryLink}, place with the link of `Online`, where a way starts, module, type, semester, note,
  *   chapters and documents, as a box of the day the dialog opened with, without time, duration and deadline;
  *   the semester of a skill entry as picked, else of that day
  */
@@ -1185,6 +1303,7 @@ function textsRead(): BoxFields {
     return {
         category: chosen?.name ?? "",
         title: titleRead(picked.title),
+        titleLink: chosen?.name === skillName ? undefined : summaryLink,
         location: picked.location,
         locationLink: online ? onlineLink : undefined,
         from: picked.from,
@@ -1266,7 +1385,8 @@ function fieldsRead(): EntryFields {
     const end: Date = endRead(start);
     const texts: BoxFields = textsRead();
     return {
-        category: texts.category, title: texts.title, location: texts.location, locationLink: texts.locationLink,
+        category: texts.category, title: texts.title, titleLink: texts.titleLink, location: texts.location,
+        locationLink: texts.locationLink,
         from: texts.from, module: texts.module, type: texts.type,
         semester: chosen?.name === skillName ? skillSemesterOf(dayOf(start)) : "", note: texts.note,
         foods: [foodName, cookName].includes(chosen?.name ?? "") ? mealFoods() : [],
@@ -1475,6 +1595,8 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     categories = await categoriesLoad();
     opened = opening;
     onlineLink = labelOf(opening.values.location) === onlineName ? opening.locationLink : "";
+    summaryLink = opening.category === skillName ? "" : opening.titleLink;
+    summaryOpen = false;
     partsOpen = null;
     addedLine = "";
     chosen = null;
@@ -1516,8 +1638,8 @@ async function entryShow(opening: EntryOpening): Promise<void> {
 export async function entryOpen(start: Date, end: Date): Promise<void> {
     await entryShow({
         target: "log", start: start, end: end, time: null, minutes: null, category: null,
-        values: { title: "", from: "", location: "" }, locationLink: "", note: "", foods: [], skill: skillNone,
-        plan: null, entry: null, box: null,
+        values: { title: "", from: "", location: "" }, titleLink: "", locationLink: "", note: "", foods: [],
+        skill: skillNone, plan: null, entry: null, box: null,
     });
 }
 
@@ -1556,7 +1678,7 @@ export async function entryOpenFromBox(box: Box, start: Date, end: Date): Promis
         values: planned
             ? { title: box.title, from: box.from, location: box.location }
             : { title: "", from: "", location: "" },
-        locationLink: planned ? box.locationLink : "", note: "", foods: [],
+        titleLink: planned ? box.titleLink : "", locationLink: planned ? box.locationLink : "", note: "", foods: [],
         skill: {
             ...skillNone, module: box.module, type: box.type, semester: box.semester, chapters: box.chapters,
             links: box.links,
@@ -1574,8 +1696,8 @@ export async function entryOpenFromBox(box: Box, start: Date, end: Date): Promis
 export async function boxOpenNew(day: Date): Promise<void> {
     await entryShow({
         target: "box", start: day, end: day, time: null, minutes: null, category: null,
-        values: { title: "", from: "", location: "" }, locationLink: "", note: "", foods: [], skill: skillNone,
-        plan: null, entry: null, box: null,
+        values: { title: "", from: "", location: "" }, titleLink: "", locationLink: "", note: "", foods: [],
+        skill: skillNone, plan: null, entry: null, box: null,
     });
 }
 
@@ -1592,7 +1714,7 @@ export async function boxOpenNew(day: Date): Promise<void> {
 export async function boxOpenSuggestion(day: Date, module: string, type: string, minutes: number): Promise<void> {
     await entryShow({
         target: "box", start: day, end: day, time: null, minutes: minutes, category: skillName,
-        values: { title: "", from: "", location: "" }, locationLink: "", note: "", foods: [],
+        values: { title: "", from: "", location: "" }, titleLink: "", locationLink: "", note: "", foods: [],
         skill: { ...skillNone, module: module, type: type }, plan: null, entry: null, box: null,
     });
 }
@@ -1610,8 +1732,8 @@ export async function boxOpenEdit(box: Box): Promise<void> {
     await entryShow({
         target: "box", start: day, end: day, time: box.time === "" ? null : day, minutes: box.minutes,
         category: box.category === "" ? null : box.category,
-        values: { title: box.title, from: box.from, location: box.location }, locationLink: box.locationLink,
-        note: box.note, foods: [],
+        values: { title: box.title, from: box.from, location: box.location }, titleLink: box.titleLink,
+        locationLink: box.locationLink, note: box.note, foods: [],
         skill: {
             ...skillNone, module: box.module, type: box.type, semester: box.semester, chapters: box.chapters,
             links: box.links,
@@ -1634,7 +1756,8 @@ export async function entryOpenEdit(entry: EventApi): Promise<void> {
         target: "log", start: entry.start as Date, end: entry.end as Date, time: null, minutes: null,
         category: props.category ?? null,
         values: { title: entry.title, from: props.from ?? "", location: props.location ?? "" },
-        locationLink: props.locationLink ?? "", note: props.note ?? "", foods: entry.extendedProps.foods ?? [],
+        titleLink: props.titleLink ?? "", locationLink: props.locationLink ?? "", note: props.note ?? "",
+        foods: entry.extendedProps.foods ?? [],
         skill: {
             module: props.module ?? "", type: props.type ?? "", semester: props.semester ?? "", title: entry.title,
             titleLink: props.titleLink ?? "",
