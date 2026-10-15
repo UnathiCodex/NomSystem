@@ -546,8 +546,10 @@ class BlockWidget extends WidgetType {
 
     /**
      * Renders the blocks; once an image of them is loaded, the editor measures its lines again.
-     * A click on a link of them follows it, see {@link addressFollow}; any other click puts the cursor at the place
-     * of their text I clicked, see {@link blockPlaceOf}, so they show as text with the cursor there, ready to type.
+     * A click on a link of them follows it, see {@link addressFollow}, a click on the title of a callout that folds
+     * opens or closes it, as in the scripts view, and the editor measures its lines again; any other click puts
+     * the cursor at the place of their text I clicked, see {@link blockPlaceOf}, so they show as text with the cursor
+     * there, ready to type.
      * - `from`: Start of their first line.
      * - `link`: The link clicked, `null` for none.
      */
@@ -571,12 +573,13 @@ class BlockWidget extends WidgetType {
             if (event.button !== 0)
                 return;
             event.preventDefault();
-            if ((event.target as Element).closest("a") !== null)
+            if ((event.target as Element).closest("a, summary") !== null)
                 return;
             const from: number = view.posAtDOM(block);
             view.focus();
             view.dispatch({ selection: { anchor: blockPlaceOf(view, from, from + this.length, event) } });
         });
+        block.addEventListener("toggle", (): void => view.requestMeasure(), true);
         block.addEventListener("click", (event: MouseEvent): void => {
             const link: HTMLAnchorElement | null = (event.target as Element).closest("a");
             if (link === null)
