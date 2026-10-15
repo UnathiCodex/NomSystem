@@ -1067,7 +1067,8 @@ button.box-ring.box-checked svg {
     gap: 0.25rem;
 }
 
-/* Arrows of the month: flat, without frame, one chip high, grey, a grey lighter under the pointer */
+/* Arrows of the month: flat, without frame, one chip high and as round as every small square button, see `.chip-button`
+   in `base.css`, grey, a grey lighter under the pointer */
 .month-buttons button {
     display: inline-flex;
     align-items: center;
@@ -1076,7 +1077,7 @@ button.box-ring.box-checked svg {
     height: var(--chip-height);
     padding: 0;
     border: 0;
-    border-radius: var(--radius);
+    border-radius: var(--chip-radius);
     background: none;
     color: var(--text-muted);
     cursor: pointer;

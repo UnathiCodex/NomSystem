@@ -183,7 +183,7 @@ body {
     height: var(--chip-height);
     padding: 0;
     border: 1px solid var(--line);
-    border-radius: 0.5rem;
+    border-radius: var(--chip-radius);
     background: var(--background);
     color: var(--text-main);
     cursor: pointer;

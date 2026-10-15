@@ -6,6 +6,8 @@
    notes in the greys of my Obsidian's dark theme with my accent #969696, and in its reading width;
    controls and lines sized for my 4K monitor: buttons and fields one control high,
    chips, small buttons and the rows of the menu one chip high, all with the text of controls and the space beside it,
+   a small square button, like the − and + of the water or the arrows of the month, a little less round,
+   `--chip-radius`, so it looks as round as a big one,
    controls side by side one control gap apart, so they never touch,
    icons one icon size big, notes with lines a bit higher than my Obsidian's;
    the tree of the scripts a step smaller than the text of controls, `--tree-text`, as Obsidian's file explorer
@@ -49,6 +51,7 @@
     --content-indent: calc(2 * var(--gap));
     --slot-margin: 0.5rem;
     --radius: 0.75rem;
+    --chip-radius: 0.5rem;
     --note-width: 18rem;
     --tree-width: 24rem;
     --reading-width: 45rem;

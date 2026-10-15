@@ -194,8 +194,9 @@ button.food-row {
 
 /* The cross and the check of a form inside a list, like that of a new food or meal: small and flat, as modern
    layouts keep the buttons of a form inside a page, while a dialog ends with its big ones: one chip high, no frame,
-   the cross grey and plain, the check on the calm grey of what is picked, both a grey lighter under the pointer;
-   well apart from the last value above them */
+   as round as every small square button, see `.chip-button` in `../base.css`, the cross grey and plain, the check
+   on the calm grey of what is picked, both a grey lighter under the pointer; well apart from the last value above
+   them */
 .food-buttons {
     display: inline-flex;
     flex: none;
@@ -211,7 +212,7 @@ button.food-row {
     height: var(--chip-height);
     padding: 0;
     border: 0;
-    border-radius: var(--radius);
+    border-radius: var(--chip-radius);
     background: none;
     color: var(--text-muted);
     cursor: pointer;
