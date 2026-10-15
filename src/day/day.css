@@ -1993,6 +1993,13 @@ svg.route-arrow {
         background: var(--background);
     }
 
+    /* A field I type in stays above those buttons when the keyboard opens and the dialog scrolls it into sight,
+       like the note at the bottom: the dialog keeps the height of the buttons, one control and their room above
+       and below, free at its bottom for what it scrolls to */
+    .panel {
+        scroll-padding-bottom: calc(var(--control-height) + 1rem);
+    }
+
     /* A box on a phone: its lines take the whole width beside the ring, and its buttons, which show without
        a pointer, go into a row of their own below them, at the right */
     .box {
