@@ -347,7 +347,8 @@
         text-align: left;
     }
 
-    /* A link not found on a phone going on below where its path is too long for the line, never over its edge */
+    /* A link not found on a phone going on below where its path is too long for the line, never over its edge,
+       between the parts of its path, see `lostOf` in `skill.ts`, or within a part still too long */
     .skill-notice {
         overflow-wrap: anywhere;
     }
