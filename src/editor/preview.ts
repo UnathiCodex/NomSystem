@@ -25,6 +25,11 @@
  *   of their lines, as Obsidian shows a callout.
  * - Spacers `⠀` (U+2800) and invisible characters like the soft hyphen blank, as in the scripts view;
  *   on the line of the cursor as faint dots, so I see where they stand.
+ * - Each heading folds its section, up to the next heading of its level or higher, by a click on its arrow after its
+ *   text, as in the scripts view, and each list item with sub-points folds them and its further lines by its arrow
+ *   left of its bullet, shown under the pointer, as in Obsidian; one click folds, one click unfolds,
+ *   see {@link FoldWidget}; a solution, the section under `#### Solution`, comes folded, see {@link solutionsFold},
+ *   so I try a task before I see its solution.
  * A click on a rendered piece puts the cursor there, so it shows as text; while the editor is not focused,
  * like before the first click, the whole note shows rendered.
  * A click on a rendered link follows it, as in Obsidian, and so does a click with Ctrl held on a link shown as text,
@@ -35,7 +40,9 @@
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold the text and the cursor, draw the text with decorations and widgets,
  *   and put lines into elements with block wrappers.
- * - `@codemirror/language`: Gives the syntax tree of the note, read with `./syntax.ts`.
+ * - `@codemirror/language`: Gives the syntax tree of the note, read with `./syntax.ts`, and folds its sections,
+ *   as CodeMirror's Markdown finds them: a heading's up to the next heading of its level or higher,
+ *   a list item's from the end of its first line.
  * - `@lezer/highlight`: Gives pieces of the syntax the classes of their look, see `./editor.css`.
  * - `../notes/math.ts`: Renders formulas as the scripts view does.
  * - `../notes/markdown.ts`: Renders tables, callouts, code blocks and HTML blocks as the scripts view does.
@@ -43,8 +50,10 @@
  */
 
 import { RangeSet, StateEffect, StateField } from "@codemirror/state";
-import { BlockWrapper, Decoration, EditorView, WidgetType } from "@codemirror/view";
-import { syntaxHighlighting, syntaxTree } from "@codemirror/language";
+import { BlockWrapper, Decoration, EditorView, WidgetType, keymap } from "@codemirror/view";
+import {
+    codeFolding, foldable, foldedRanges, foldEffect, foldKeymap, syntaxHighlighting, syntaxTree, unfoldEffect,
+} from "@codemirror/language";
 import { tagHighlighter, tags } from "@lezer/highlight";
 import { mathRender } from "../notes/math.ts";
 import { htmlOf } from "../notes/markdown.ts";
@@ -130,6 +139,11 @@ const externalRule: RegExp = /^[a-z][a-z\d+.-]*:/i;
 const headingRule: RegExp = /^#{1,6}[ \t]+(.*?)[ \t]*$/;
 
 /**
+ * Heading of a solution, like `#### Solution` or `#### Solution (own, unchecked)`, as the scripts view folds it.
+ */
+const solutionRule: RegExp = /^####[ \t]+Solution\b/;
+
+/**
  * Spacers `⠀` and invisible format characters, like the soft hyphen and the zero-width space.
  */
 const invisibleRule: RegExp = /[\u2800\p{Cf}]/gu;
@@ -205,6 +219,57 @@ const highlighter: Highlighter = tagHighlighter([
     { tag: tags.processingInstruction, class: "cm-mark" },
 ]);
 
+
+/**
+ * Fold arrow of a heading or a list item, see the top of this file: down while open, turned right while folded;
+ * a click on it folds or unfolds, see {@link foldToggle}, and leaves the cursor where it is.
+ */
+class FoldWidget extends WidgetType {
+    /**
+     * Whether it belongs to a list item, else to a heading.
+     */
+    readonly item: boolean;
+
+    /**
+     * Whether what it folds is folded.
+     */
+    readonly folded: boolean;
+
+    constructor(item: boolean, folded: boolean) {
+        super();
+        this.item = item;
+        this.folded = folded;
+    }
+
+    /**
+     * Tells whether another arrow looks the same, so the drawn one stays.
+     */
+    override eq(other: FoldWidget): boolean {
+        return other.item === this.item && other.folded === this.folded;
+    }
+
+    /**
+     * Draws the arrow, its words for screen readers and as tooltip, which folds or unfolds on a click.
+     */
+    toDOM(view: EditorView): HTMLElement {
+        const arrow: HTMLSpanElement = document.createElement("span");
+        arrow.className = `cm-fold ${this.item ? "cm-fold-item" : "cm-fold-heading"}${this.folded ? " cm-folded" : ""}`;
+        arrow.title = this.folded ? "Unfold" : "Fold";
+        arrow.setAttribute("aria-label", arrow.title);
+        arrow.addEventListener("mousedown", (event: MouseEvent): void => {
+            event.preventDefault();
+            foldToggle(view, view.posAtDOM(arrow));
+        });
+        return arrow;
+    }
+
+    /**
+     * Keeps a click on the arrow from the editor, which would put the cursor there.
+     */
+    override ignoreEvent(): boolean {
+        return true;
+    }
+}
 
 /**
  * Formula rendered by MathJax, as the scripts view renders it: `$…$` within the line, `$$…$$` on its own.
@@ -590,8 +655,31 @@ function wrap(look: Look, node: SyntaxNode, tagName: string, attributes: { [name
 }
 
 /**
+ * Puts the fold arrow of a heading after its text, or of a list item at the start of its line, from where `./editor.css`
+ * moves it left of its bullet, when the line folds something, see {@link FoldWidget}.
+ * - {@link foldable}: Gives what a line folds, by CodeMirror's Markdown, `null` for nothing.
+ * - {@link foldedRanges}: The parts of the note folded now.
+ * - `folded`: Whether the line's section is folded now.
+ *
+ * @param look - Look being built
+ * @param line - Line of the heading or the list item
+ * @param item - Whether it is a list item, else a heading
+ */
+function foldLook(look: Look, line: Line, item: boolean): void {
+    if (foldable(look.state, line.from, line.to) === null)
+        return;
+
+    let folded: boolean = false;
+    foldedRanges(look.state).between(line.to, line.to, (from: number): void => {
+        folded ||= from === line.to;
+    });
+    look.decorations.push(Decoration.widget({ widget: new FoldWidget(item, folded), side: item ? -1 : 1 })
+        .range(item ? line.from : line.to));
+}
+
+/**
  * Heading `##`: its line in an `h2`, as the scripts view draws it, its `##` hidden,
- * on the line of the cursor shown left of the text, which keeps its place.
+ * on the line of the cursor shown left of the text, which keeps its place; its fold arrow after its text.
  *
  * @param look - Look being built
  * @param node - Heading, like `ATXHeading2`
@@ -605,6 +693,7 @@ function headingLook(look: Look, node: SyntaxNode): boolean {
         look.decorations.push(hanging.range(mark.from, markEndOf(look, mark)));
     else if (mark !== null)
         hide(look, mark.from, markEndOf(look, mark));
+    foldLook(look, line, false);
     return true;
 }
 
@@ -725,7 +814,8 @@ function listLook(look: Look, node: SyntaxNode): boolean {
 
 /**
  * List item: its lines in an `li`, which draws its bullet or number as in the scripts view;
- * while the cursor is on its first line, without them, as its marker shows there as written, see {@link listMarkLook}.
+ * while the cursor is on its first line, without them, as its marker shows there as written, see {@link listMarkLook};
+ * its fold arrow left of its bullet when it has sub-points, which folds them with its further lines.
  *
  * @param look - Look being built
  * @param node - `ListItem`
@@ -734,6 +824,8 @@ function listLook(look: Look, node: SyntaxNode): boolean {
 function itemLook(look: Look, node: SyntaxNode): boolean {
     const line: Line = look.state.doc.lineAt(node.from);
     wrap(look, node, "li", touched(look, line.from, line.to) ? { class: "cm-source" } : {});
+    if (node.getChild("BulletList") !== null || node.getChild("OrderedList") !== null)
+        foldLook(look, line, true);
     return true;
 }
 
@@ -1021,8 +1113,50 @@ function drawingOf(state: EditorState, links: Links): Drawing {
 }
 
 /**
- * Scrolls the note to a heading, so it stands right below the head of the editor, or to its top when the heading
- * is empty or the note has none of that text.
+ * Folds what the line of a place folds, see {@link foldLook}, or unfolds it when it is folded.
+ * - `line`: The line, of a heading or a list item.
+ * - `folded`: What of it is folded, `null` while nothing is.
+ * - `range`: What it folds.
+ *
+ * @param view - The editor
+ * @param pos - A place on the line, like that of its fold arrow
+ */
+function foldToggle(view: EditorView, pos: number): void {
+    const line: Line = view.state.doc.lineAt(pos);
+    let folded: { from: number; to: number } | null = null;
+    foldedRanges(view.state).between(line.to, line.to, (from: number, to: number): void => {
+        if (from === line.to)
+            folded = { from: from, to: to };
+    });
+    const range: { from: number; to: number } | null = folded ?? foldable(view.state, line.from, line.to);
+    if (range !== null)
+        view.dispatch({ effects: (folded === null ? foldEffect : unfoldEffect).of(range) });
+}
+
+/**
+ * Folds every solution of the note, the section under each heading `#### Solution…`, as the scripts view shows
+ * it at first, so I try a task before I see its solution.
+ * - `ranges`: The sections of the solutions.
+ *
+ * @param view - The editor
+ */
+export function solutionsFold(view: EditorView): void {
+    const ranges: { from: number; to: number }[] = [];
+    for (let number: number = 1; number <= view.state.doc.lines; number++) {
+        const line: Line = view.state.doc.line(number);
+        const range: { from: number; to: number } | null = solutionRule.test(line.text)
+            ? foldable(view.state, line.from, line.to) : null;
+        if (range !== null)
+            ranges.push(range);
+    }
+    view.dispatch({ effects: ranges.map((range: { from: number; to: number }): StateEffect<{ from: number; to: number }> =>
+        foldEffect.of(range)) });
+}
+
+/**
+ * Scrolls the note to a heading, so it stands right below the head of the editor, unfolding what folds it away,
+ * or to its top when the heading is empty or the note has none of that text.
+ * - `unfolds`: Unfolding what folds the heading away.
  * - `line`: The line of the heading, `undefined` for none.
  *
  * @param view - The editor
@@ -1030,10 +1164,14 @@ function drawingOf(state: EditorState, links: Links): Drawing {
  */
 export function headingShow(view: EditorView, heading: string): void {
     let line: Line | undefined;
+    const unfolds: StateEffect<{ from: number; to: number }>[] = [];
     for (let number: number = 1; heading !== "" && line === undefined && number <= view.state.doc.lines; number++)
         if (headingRule.exec(view.state.doc.line(number).text)?.[1] === heading)
             line = view.state.doc.line(number);
-    view.dispatch({ effects: EditorView.scrollIntoView(line?.from ?? 0, { y: "start" }) });
+    foldedRanges(view.state).between(line?.from ?? 0, line?.from ?? 0, (from: number, to: number): void => {
+        unfolds.push(unfoldEffect.of({ from: from, to: to }));
+    });
+    view.dispatch({ effects: [...unfolds, EditorView.scrollIntoView(line?.from ?? 0, { y: "start" })] });
 }
 
 /**
@@ -1120,12 +1258,14 @@ function linkClicked(event: MouseEvent, view: EditorView, links: Links): boolean
 
 /**
  * Live preview of a note, see the top of this file: its look, built again when the text, the cursor,
- * the focus or the syntax tree changes, and the classes of its syntax.
+ * the focus, the syntax tree or what is folded changes, and the classes of its syntax.
  * - {@link StateField}: Holds the look; only a field may hide line breaks, like those inside a table.
  * - {@link EditorView.decorations}, {@link EditorView.blockWrappers}: Take the decorations and elements of the look.
  * - {@link EditorView.focusChangeEffect}: Tells {@link focused} when the editor gets or loses the focus.
  * - {@link EditorView.domEventHandlers}: Follow a link clicked, see {@link linkClicked}, before the editor
  *   puts the cursor there.
+ * - {@link codeFolding}: Holds what is folded, without the `…` CodeMirror puts in place of it, since the arrow
+ *   turned right tells it; {@link foldKeymap} folds and unfolds by keys too, like Ctrl+Shift+[ and Ctrl+Shift+].
  *
  * @param links - Files the links of the note lead to, as the reader found them
  * @returns Extension for the editor
@@ -1137,6 +1277,7 @@ export function livePreview(links: Links): Extension {
             transaction.docChanged || transaction.selection !== undefined
                 || transaction.state.field(focused) !== transaction.startState.field(focused)
                 || syntaxTree(transaction.state) !== syntaxTree(transaction.startState)
+                || foldedRanges(transaction.state) !== foldedRanges(transaction.startState)
                 ? drawingOf(transaction.state, links)
                 : drawing,
         provide: (field: StateField<Drawing>): Extension => [
@@ -1146,6 +1287,8 @@ export function livePreview(links: Links): Extension {
     });
     return [
         focused,
+        codeFolding({ placeholderDOM: (): HTMLElement => document.createElement("span") }),
+        keymap.of(foldKeymap),
         look,
         EditorView.focusChangeEffect.of((_state: EditorState, focusing: boolean): StateEffect<boolean> => focusChange.of(focusing)),
         EditorView.domEventHandlers({

@@ -184,6 +184,48 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Fold arrow, see `./preview.ts`: Lucide's chevron in the grey of callout titles, as the arrow of a block of the scripts
+   view, turned right while folded; a heading's after its text, a step apart, always shown, as in the scripts view */
+.editor-text .cm-fold {
+    display: inline-block;
+    width: 1.125rem;
+    height: 1lh;
+    vertical-align: top;
+    background: rgb(128 128 128);
+    mask: var(--fold-icon) center / 1.125rem no-repeat;
+    cursor: pointer;
+    transition: rotate 100ms ease-in-out;
+}
+
+.editor-text .cm-fold.cm-folded {
+    rotate: -90deg;
+}
+
+.editor-text .cm-fold-heading {
+    margin-left: 0.25rem;
+}
+
+/* A list item's arrow left of its bullet or number, as in Obsidian, without taking room from its text: shown softly
+   while the pointer is on the item's line, and always while folded */
+.editor-text .cm-fold-item {
+    position: absolute;
+    left: -2.25em;
+    width: 1em;
+    mask-size: 1em;
+    opacity: 0;
+    transition: opacity 150ms, rotate 100ms ease-in-out;
+}
+
+.editor-text ol > li > .cm-line > .cm-fold-item {
+    left: calc(-1.5em - 3ch);
+}
+
+.editor-text .cm-line:hover > .cm-fold-item,
+.editor-text .cm-fold-item.cm-folded {
+    opacity: 1;
+    transition: opacity 150ms 100ms, rotate 100ms ease-in-out;
+}
+
 /* Bold semibold and italic, as in the scripts view, struck text struck through */
 .editor-text .cm-strong {
     font-weight: 600;

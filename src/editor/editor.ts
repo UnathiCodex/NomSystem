@@ -43,7 +43,7 @@ import { GFM } from "@lezer/markdown";
 import { icsLook } from "./ics.ts";
 import { markdownKeys } from "./keys.ts";
 import { obsidianSyntax } from "./syntax.ts";
-import { livePreview } from "./preview.ts";
+import { livePreview, solutionsFold } from "./preview.ts";
 import { treeShow } from "../notes/tree.ts";
 import { timeOf } from "../day/times.ts";
 import "../notes/notes.css";
@@ -260,9 +260,9 @@ async function openedRead(file: string): Promise<Opened | null> {
 /**
  * Starts the editor after the router has put its HTML into the page: shows the tree on the left, that of my new system
  * for one of its files and at `/plannings`, that of the modules for a draft, see `../notes/tree.ts`,
- * reads the file the address names and shows it to edit, with the save button, Ctrl+S, and a question
- * before leaving with changes unsaved; a file to read only says so, a file that cannot be read shows a hint instead,
- * and so does the editor while it shows no file.
+ * reads the file the address names and shows it to edit, its solutions folded, see `./preview.ts`, with the save
+ * button, Ctrl+S, and a question before leaving with changes unsaved; a file to read only says so, a file that cannot
+ * be read shows a hint instead, and so does the editor while it shows no file.
  * - `address`: The parameters of the address.
  * - `file`: Path of the file of my new system, empty for a note.
  * - `plannings`: Whether the editor shows my new system, for one of its files or at `/plannings`; else a draft.
@@ -299,6 +299,8 @@ export async function editorStart(): Promise<void> {
         parent: text,
         state: EditorState.create({ doc: opened.text, extensions: extensionsOf(opened) }),
     });
+    if (opened.markdown)
+        solutionsFold(view);
     save.textContent = "Save";
     save.addEventListener("click", noteSave);
     save.hidden = view.state.readOnly;
