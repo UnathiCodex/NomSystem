@@ -1948,6 +1948,19 @@ svg.route-arrow {
         font-size: 0.875rem;
     }
 
+    /* The buttons of a dialog on a phone always in sight at its bottom, under the thumb, while its rows scroll above
+       them, like the foods of a long meal: on the background of the dialog, so a row scrolled under them hides
+       behind them, 0.5rem of it above the buttons, the rest of their room above them as before, and the dialog's own
+       room below them */
+    .panel-buttons {
+        position: sticky;
+        bottom: -0.5rem;
+        margin-top: 0.25rem;
+        padding-block: 0.5rem;
+        margin-bottom: -0.5rem;
+        background: var(--background);
+    }
+
     /* A box on a phone: its lines take the whole width beside the ring, and its buttons, which show without
        a pointer, go into a row of their own below them, at the right */
     .box {
