@@ -1,13 +1,13 @@
 /**
  * ## Tree
  *
- * The tree on the left of the scripts view, see `./notes.ts`, and of the editor, see `../editor/editor.ts`,
+ * The tree on the left of the editor, see `../editor/editor.ts`, which is the scripts view too,
  * as Obsidian's file explorer, of one of two roots at a time, each an area of its own in the rail:
  * - `NomSkillingmodules`, the book, the modules of the semester, one at a time, since I learn one module at a time:
  *   right below the name of the root the module picked, then its chapter picked, of its folder and of its drafts
  *   together, each a picker whose menu comes down below it, see {@link pickerOf}, then the notes of that chapter
- *   as a plain list, nothing folding, which open in the scripts view to read; my module notes are written only
- *   through their drafts, whose pencil opens them in the editor;
+ *   as a plain list, nothing folding, which open in the scripts view to write; of my modules the reader writes only
+ *   the drafts;
  * - `NomManageplannings`, the open folder, my new system, as the reader lists it, without my old system
  *   `NomSystemprevious`, see `reader/files.ts`: a Markdown file, like `Foods.md`, opens in the editor to edit,
  *   an `.ics` file as its plain text to read, any other file shows faint and opens not.
@@ -17,13 +17,17 @@
  * all closed but those on the way to the file shown.
  * A search filters the tree as I type, as every list of the page has one, of my modules only the module picked,
  * see {@link searchStart}.
+ * Under the note shown stands its outline, as Obsidian's outline, see {@link outlineShow}.
  * The tree is as wide as its longest name, which goes on below where one is wider still, never cut;
  * its look is in `./notes.css`.
  *
  * - `../search.ts`: Compares a typed text with the paths of the files and notes, as every search of the page does.
+ * - `./markdown.ts`, `./math.ts`: Render the headings of the outline, their formulas as in the note.
  */
 
 import { matchesAll, wordsOf } from "../search.ts";
+import { inlineHtmlOf } from "./markdown.ts";
+import { mathRender } from "./math.ts";
 
 
 /**
@@ -360,6 +364,68 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
             show();
         }
     });
+}
+
+/**
+ * Puts the outline of the note shown under its entry in the tree, as Obsidian's outline: each heading `##` in order,
+ * linking to it, each task under the block above it that is no task, like `Definition. Standard Error of the Mean`,
+ * which then folds its tasks by its arrow and still links to its heading by its name; tasks named without `Task.`,
+ * formulas rendered as in the note. A block without tasks below it stays a plain link, and so does a task without
+ * such a block above it; a cold task, named also without `(cold)`, stands alone, at the end of its section.
+ * The outline put before goes; a block I folded in it stays folded.
+ * - `entry`: Entry of the note in the tree, `null` while it is none, like a note of a module not of the semester.
+ * - `folded`: Names of the blocks folded in the outline before.
+ * - `outline`: The outline.
+ * - `block`: Link of the last block that is no task, until its first task makes it a folder.
+ * - `tasks`: Place of the tasks below that block, the outline itself before the first block.
+ * - `heading`: Text of a heading `##` as written, `undefined` for a line that is none.
+ * - `link`: Link to a heading, its text rendered.
+ *
+ * @param tree - The tree
+ * @param path - Path of the note shown
+ * @param text - Text of the note
+ */
+export function outlineShow(tree: HTMLElement, path: string, text: string): void {
+    const entry: HTMLElement | null = tree.querySelector(`.tree-file.shown[data-path="${CSS.escape(path)}"]`);
+    const folded: string[] = [...tree.querySelectorAll<HTMLDetailsElement>(".tree-outline details.tree-folder:not([open])")]
+        .map((folder: HTMLDetailsElement): string => folder.querySelector<HTMLElement>(".tree-file")?.dataset.heading ?? "");
+    tree.querySelectorAll(".tree-outline").forEach((outline: Element): void => outline.remove());
+    if (entry === null)
+        return;
+
+    const outline: HTMLDivElement = document.createElement("div");
+    let block: HTMLAnchorElement | null = null;
+    let tasks: HTMLElement = outline;
+    outline.className = "tree-children tree-outline";
+    for (const line of text.split(/\r?\n/)) {
+        const heading: string | undefined = /^##[ \t]+(.+?)[ \t]*$/.exec(line)?.[1];
+        if (heading === undefined)
+            continue;
+        const link: HTMLAnchorElement = document.createElement("a");
+        link.className = "tree-file";
+        link.href = noteAddressOf(path, heading);
+        link.dataset.heading = heading;
+        link.innerHTML = inlineHtmlOf(heading.replace(/^Task\.\s*/, "").replace(/[ \t]*\(cold\)$/, ""));
+        if (!heading.startsWith("Task. ")) {
+            outline.append(link);
+            block = link;
+            tasks = outline;
+        } else if (/\(cold\)$/.test(heading)) {
+            outline.append(link);
+        } else {
+            if (block !== null) {
+                const folder: HTMLDetailsElement = folderOf("");
+                folder.open = !folded.includes(block.dataset.heading ?? "");
+                block.replaceWith(folder);
+                folder.firstElementChild?.replaceChildren(block);
+                tasks = folder.lastElementChild as HTMLElement;
+                block = null;
+            }
+            tasks.append(link);
+        }
+    }
+    mathRender(outline);
+    entry.after(outline);
 }
 
 /**

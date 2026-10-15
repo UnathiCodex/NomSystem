@@ -1,50 +1,38 @@
 /**
- * ## Scripts
+ * ## Card
  *
- * The tree of `NomSkillingmodules` on the left, see `tree.ts`, and on the right the chosen note of my modules,
- * rendered like Obsidian, read only; a draft opens in the editor by its pencil, see `../editor/editor.ts`.
- * Under the shown note in the tree stands its outline, as Obsidian's outline.
- * The reader gives the modules, each with the chapters of its folder and of its drafts together.
- * Paths are those of the reader: from `NomSkillingmodules`, or with `Drafts/` before for the drafts.
- * A note opens from the tree or from a link in a note, without loading the page again; a link may also lead
- * to a note of a module not in the tree. Its links lead to notes and files of the same module, as the reader
- * resolved them, a draft's also to the files of its module, like the lecture's slides; a PDF opens at the page
- * its link names, like `#page=10`, and a link that leads nowhere is faded and dotted, its tooltip naming what it
- * looked for.
+ * A due task of the skill view as a card, see `../skill/skill.ts`, at `/scripts?path=…&card=1#Task. …`:
+ * its note rendered like Obsidian, read only, but only the task's text shows, see {@link cardSet}, then the question
+ * which type it is and why, its solution, folded, opening one step per click, see {@link stepsPut}, its row with
+ * the buttons for the next attempt, and a link to the whole note in the scripts view, which is the editor,
+ * always writing, see `../editor/editor.ts`; this card is the one view that only reads a note.
+ * Its links lead to notes and files of the same module, as the reader resolved them, a draft's also to the files
+ * of its module, like the lecture's slides; a note opens in the scripts view, a PDF at the page its link names,
+ * like `#page=10`, and a link that leads nowhere is faded and dotted, its tooltip naming what it looked for.
  * Images and embedded notes come from the reader, and the formulas are rendered last.
- * Here I read and solve: each block under a heading `##` folds by a click on its heading, and under the heading
- * of each task of the semester stands its row: when it is due, its history, the buttons for the next attempt,
- * the copy icon for my tutor, and right after an attempt the tap for my effort on it; a theory block has the copy
- * icon alone. A solution opens one step per click, see {@link stepsPut}.
+ * Under the heading of each task of the semester stands its row: when it is due, its history, the buttons for the next
+ * attempt, the copy icon for my tutor, and right after an attempt the tap for my effort on it.
  * A cold task, its heading ending with `(cold)`, shows a grey label beside its heading in place of `(cold)`,
  * like `cold · 2 done · 1 right`.
- * The address keeps the shown note and heading,
- * like `/scripts?path=MA0902_…/05_07_TrigonometrischeFunktionen.md#…`, so a reload and the back button
- * of the browser stay on it.
  *
  * - `./markdown.ts`: Turns the Markdown of a note into HTML, with Obsidian's syntax.
  * - `./math.ts`: Renders the formulas, as Obsidian does.
- * - `./tree.ts`: Shows the tree of the modules, marks the note shown in it, makes the folders of the outline
- *   and builds the address of a note.
+ * - `./tree.ts`: Builds the address of a note in the scripts view.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due.
  * - `../today.ts`: Gives today's calendar date, for when a task is due.
  * - `../skill/task.ts`: Builds the row of a task with its buttons, the label of a cold task, and the copy icon.
  * - `./tutor.ts`: Writes the text for my tutor about a task or a theory block, which its copy icon puts
  *   on the clipboard.
- * - `lucide`: The pencil beside the name of a draft.
- * - `../icons.ts`: Puts the pencil into its link.
- * - `./notes.css`: Look of the tree and of the notes.
+ * - `./notes.css`: Look of the notes.
  */
 
 import { htmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
-import { folderOf, noteAddressOf, treeMark, treeShow } from "./tree.ts";
+import { noteAddressOf } from "./tree.ts";
 import { skillingLoad } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { coldLabelOf, taskRowOf, tutorCopyOf } from "../skill/task.ts";
 import { theoryTextOf, tutorTextOf } from "./tutor.ts";
-import { Pencil } from "lucide";
-import { iconPut } from "../icons.ts";
 import "./notes.css";
 
 import type { SkillModule, SkillTask, Skilling } from "../skill/attempts.ts";
@@ -72,11 +60,6 @@ const embedDepth: number = 3;
  * End of the heading of a cold task, `(cold)` with the space before it, like in `Task. Kiosk Chain Review (cold)`.
  */
 const coldMark: RegExp = /[ \t]*\(cold\)$/;
-
-/**
- * Path of the note shown, empty before the first.
- */
-let shownPath: string = "";
 
 
 /**
@@ -112,72 +95,6 @@ async function readerAsk<T>(address: string): Promise<T> {
  */
 function noteRead(path: string): Promise<LinkedNote> {
     return readerAsk<LinkedNote>(`/api/notes/note?path=${encodeURIComponent(path)}`);
-}
-
-/**
- * Builds the outline of the shown note, as Obsidian's outline: each heading `##` in order, linking to it,
- * each task under the block above it that is no task, like `Definition. Standard Error of the Mean`,
- * which then folds its tasks by its arrow and still links to its heading by its name;
- * tasks named without `Task.`, formulas as rendered in the note.
- * A block without tasks below it stays a plain link, and so does a task without such a block above it;
- * a cold task, named also without `(cold)`, stands alone, at the end of its section.
- * - `block`: Link of the last block that is no task, until its first task makes it a folder.
- * - `tasks`: Place of the tasks below that block, the outline itself before the first block.
- * - `link`: Link to a heading, with copies of the heading's text and formulas, without the label of a cold task.
- *
- * @returns Outline, to stand under the shown note in the tree
- */
-function outlineOf(): HTMLDivElement {
-    const outline: HTMLDivElement = document.createElement("div");
-    let block: HTMLAnchorElement | null = null;
-    let tasks: HTMLElement = outline;
-    outline.className = "tree-children tree-outline";
-    document.querySelectorAll<HTMLElement>("#notes-text > .fold > summary > h2").forEach((heading: HTMLElement): void => {
-        const text: string = heading.dataset.heading ?? "";
-        const link: HTMLAnchorElement = document.createElement("a");
-        link.className = "tree-file";
-        link.href = noteAddressOf(shownPath, text);
-        link.append(...[...heading.childNodes]
-            .filter((node: Node): boolean => !(node instanceof Element && node.classList.contains("task-cold")))
-            .map((node: Node): Node => node.cloneNode(true)));
-        if (!text.startsWith("Task. ")) {
-            outline.append(link);
-            block = link;
-            tasks = outline;
-            return;
-        }
-
-        if (link.firstChild?.nodeType === Node.TEXT_NODE)
-            link.firstChild.textContent = (link.firstChild.textContent ?? "").replace(/^Task\.\s*/, "");
-        if (coldMark.test(text)) {
-            if (link.lastChild?.nodeType === Node.TEXT_NODE)
-                link.lastChild.textContent = (link.lastChild.textContent ?? "").replace(coldMark, "");
-            outline.append(link);
-            return;
-        }
-        if (block !== null) {
-            const folder: HTMLDetailsElement = folderOf("");
-            folder.open = true;
-            block.replaceWith(folder);
-            folder.firstElementChild?.replaceChildren(block);
-            tasks = folder.lastElementChild as HTMLElement;
-            block = null;
-        }
-        tasks.append(link);
-    });
-    return outline;
-}
-
-/**
- * Marks the shown note in the tree, see `treeMark` in `tree.ts`, when it is a note of a module of the semester,
- * and puts its outline under it; a note of another module leaves the tree unmarked.
- * - `file`: Entry of the shown note in the tree, `null` while it is none.
- */
-function noteMark(): void {
-    const tree: HTMLElement = document.getElementById("notes-tree") as HTMLElement;
-    tree.querySelectorAll(".tree-outline").forEach((outline: Element): void => outline.remove());
-    const file: HTMLElement | null = treeMark(tree, shownPath);
-    file?.after(outlineOf());
 }
 
 /**
@@ -292,9 +209,6 @@ async function linksResolve(element: HTMLElement, note: LinkedNote, depth: numbe
  */
 async function tasksShow(path: string, note: string): Promise<void> {
     const skilling: Skilling = await skillingLoad();
-    if (path !== shownPath)
-        return;
-
     const tasks: SkillTask[] = skilling.modules.flatMap((module: SkillModule): SkillTask[] => module.tasks)
         .filter((task: SkillTask): boolean => task.note === path);
     const today: string = calendarTodayOf();
@@ -418,76 +332,51 @@ function headingShow(heading: string): void {
 }
 
 /**
- * Shows a note: its name as title, as Obsidian does, for a draft with the pencil that opens it in the editor beside it,
- * its text rendered with links, images, embeds and formulas,
- * then the rows of its tasks; then scrolls to the heading and marks the note in the tree, see {@link noteMark}.
- * The note shown already only scrolls.
- * A note asked for while another still loads wins; a note whose tasks cannot be read shows without their rows.
+ * Shows the note of a card: its text rendered with links, images, embeds and formulas, then the rows of its tasks;
+ * then the card of the task, see {@link cardSet}, scrolled to its top. A note whose tasks cannot be read shows
+ * without their rows.
  *
  * @param path - Path of the note
- * @param heading - Heading to scroll to, empty for the top
+ * @param heading - Heading of the task
  * @throws {Error} - When the reader cannot read the note
  */
 async function noteShow(path: string, heading: string): Promise<void> {
-    if (path === shownPath) {
-        cardSet(heading);
-        headingShow(heading);
-        return;
-    }
-
-    shownPath = path;
     const note: LinkedNote = await noteRead(path);
-    if (path !== shownPath)
-        return;
-
     const text: HTMLElement = document.getElementById("notes-text") as HTMLElement;
-    const edit: HTMLAnchorElement = document.getElementById("notes-edit") as HTMLAnchorElement;
-    (document.getElementById("notes-title") as HTMLElement).textContent = path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";
-    edit.href = `/edit?path=${encodeURIComponent(path)}`;
-    edit.hidden = !path.startsWith("Drafts/");
     text.innerHTML = htmlOf(note.text);
     await linksResolve(text, note, 0);
     mathRender(text);
     stepsPut(text);
     await tasksShow(path, note.text).catch((error: unknown): void => console.error(error));
-    cardSet(heading);
+    cardSet(path, heading);
     headingShow(heading);
-    noteMark();
 }
 
 /**
- * Shows a task as a card when the address asks for it with `card`, like `/scripts?path=…&card=1#Task. …`,
- * as the due tasks of the skill view open: only the task's text, without its heading, its source and the rest
- * of the note, since a heading or the theory around it gives the method away, while choosing the method
- * is what mixed practice trains (Rohrer 2020); below the text the question which type it is and why,
- * then its solution, folded, and its row with the buttons, and a link to the whole note.
- * Without `card` the note shows whole again.
- * - `card`: Whether the address asks for a card.
- * - `notes`: The scripts view, marked as a card for `notes.css`.
- * - `fold`: Fold of the task.
+ * Shows the task as a card, as the due tasks of the skill view open: only the task's text, without its heading,
+ * its source and the rest of the note, since a heading or the theory around it gives the method away, while choosing
+ * the method is what mixed practice trains (Rohrer 2020); below the text the question which type it is and why,
+ * then its solution, folded, and its row with the buttons, and a link to the whole note in the scripts view.
+ * When the note holds no such task any more, the whole note shows.
+ * - `notes`: The view, marked as a card for `notes.css`.
+ * - `fold`: Fold of the task, `null` when the note holds none of its heading.
  * - `prompt`: The question with the link to the whole note.
  *
+ * @param path - Path of the note
  * @param heading - Heading of the task as written
  */
-function cardSet(heading: string): void {
-    const card: boolean = new URLSearchParams(location.search).has("card");
+function cardSet(path: string, heading: string): void {
     const notes: HTMLElement = document.querySelector(".notes") as HTMLElement;
     const text: HTMLElement = document.getElementById("notes-text") as HTMLElement;
-    text.querySelectorAll(".card-task").forEach((task: Element): void => task.classList.remove("card-task"));
-    text.querySelectorAll(".card-prompt").forEach((prompt: Element): void => prompt.remove());
-    let fold: HTMLElement | null = null;
-    if (card) {
-        const target: HTMLElement | undefined = [...text.querySelectorAll<HTMLElement>(":scope > .fold > summary > h2")]
-            .find((element: HTMLElement): boolean => element.dataset.heading === heading);
-        fold = target?.closest<HTMLElement>(".fold") ?? null;
-    }
+    const fold: HTMLElement | null = [...text.querySelectorAll<HTMLElement>(":scope > .fold > summary > h2")]
+        .find((element: HTMLElement): boolean => element.dataset.heading === heading)?.closest<HTMLElement>(".fold") ?? null;
     notes.classList.toggle("notes-card", fold !== null);
     if (fold === null)
         return;
 
     const prompt: HTMLElement = document.createElement("p");
     const whole: HTMLAnchorElement = document.createElement("a");
-    whole.href = noteAddressOf(shownPath, heading);
+    whole.href = noteAddressOf(path, heading);
     whole.textContent = "Whole note";
     prompt.className = "card-prompt";
     prompt.append("Which type is this, and why? Say it before you solve. ", whole);
@@ -496,58 +385,13 @@ function cardSet(heading: string): void {
 }
 
 /**
- * Shows the note the address names, like `/scripts?path=…#Heading`, or a hint when it cannot be read.
- */
-function addressShow(): void {
-    const path: string | null = new URLSearchParams(location.search).get("path");
-    if (path === null)
-        return;
-
-    noteShow(path, decodeURIComponent(location.hash.slice(1))).catch((error: unknown): void => {
-        console.error(error);
-        shownPath = "";
-        (document.getElementById("notes-text") as HTMLElement).innerHTML = `<p class="notes-none">This note cannot be read</p>`;
-    });
-}
-
-/**
- * Opens a note from a click on a link to it, in the tree or in a note, without loading the page again,
- * and keeps it in the address and the history of the browser. Other links, and clicks with a key held, act as usual.
- * - {@link History#pushState}: Writes the address as a new step of the history, for the back button.
- *
- * @param event - Click inside the scripts view
- */
-function linkClick(event: MouseEvent): void {
-    const link: HTMLAnchorElement | null = (event.target as Element).closest("a[href]");
-    if (link === null || link.target === "_blank" || event.ctrlKey || event.metaKey || event.shiftKey)
-        return;
-
-    const address: URL = new URL(link.href);
-    if (address.origin !== location.origin || address.pathname !== "/scripts")
-        return;
-
-    event.preventDefault();
-    history.pushState(null, "", address);
-    addressShow();
-}
-
-
-/**
- * Starts the scripts view after the router has put its HTML into the page:
- * puts the pencil into its link, shows the tree of the modules, see `tree.ts`, then the note of the address;
- * an address naming a module, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning` from a skill entry,
- * opens that module in the tree.
- * - `address`: The parameters of the address.
- * - `popstate`: Comes when the back or forward button of the browser changes the address.
- *
- * @throws {Error} - When the reader cannot read the tree
+ * Starts the card after the router has put its HTML into the page: shows the note the address names, like
+ * `/scripts?path=…&card=1#Task. …`, as the card of its task, see {@link noteShow}, or a hint when it cannot be read.
  */
 export async function notesStart(): Promise<void> {
-    const address: URLSearchParams = new URLSearchParams(location.search);
-    await treeShow(document.getElementById("notes-tree") as HTMLElement, "NomSkillingmodules", address.get("path") ?? "",
-        address.get("module") ?? "");
-    iconPut(document.getElementById("notes-edit") as HTMLElement, Pencil, "Edit");
-    (document.querySelector(".notes") as HTMLElement).addEventListener("click", linkClick);
-    window.addEventListener("popstate", addressShow);
-    addressShow();
+    await noteShow(new URLSearchParams(location.search).get("path") ?? "", decodeURIComponent(location.hash.slice(1)))
+        .catch((error: unknown): void => {
+            console.error(error);
+            (document.getElementById("notes-text") as HTMLElement).innerHTML = `<p class="notes-none">This note cannot be read</p>`;
+        });
 }

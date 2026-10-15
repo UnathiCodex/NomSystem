@@ -3,8 +3,8 @@
  *
  * What the views show of one task: when it is due, and its history folded behind a small button
  * that opens all its attempts, each with its day and time, its part, its result, my effort, where I got stuck
- * or why I skipped, and a link to the day; in the scripts view, under the heading of the task, its row with the buttons
- * for the next attempt.
+ * or why I skipped, and a link to the day; in the scripts view and in a card, under the heading of the task, its row
+ * with the buttons for the next attempt.
  * The buttons write into the skill entry of the moment, through the reader's one writer of attempts:
  * Right and Wrong at once; Stuck opens one short field for where I got stuck, Enter writes it;
  * Skip offers the reasons to pick, with a field for my own words, which Enter writes without a reason.
@@ -377,12 +377,13 @@ function checkOf(): HTMLElement {
  * @param efforts - Efforts to pick after an attempt, the lowest first
  * @param today - Today like `2026-10-10`
  * @param tutor - Gives the text for my tutor, which the copy icon puts on the clipboard
- * @param solution - Fold of the task's solution, `null` when it has none
+ * @param solution - Fold of the task's solution, `null` when it has none: whether it is open, and a `toggle` when that
+ *   changes, like the fold of a card, or as the editor draws the row anew on each fold, see `../editor/tasks.ts`
  * @param written - Shows the task again once an attempt or an effort is written
  * @returns Row
  */
 export function taskRowOf(task: SkillTask, skips: string[], efforts: Effort[], today: string, tutor: () => string,
-                          solution: HTMLDetailsElement | null, written: () => Promise<void>): HTMLElement {
+                          solution: (EventTarget & { open: boolean }) | null, written: () => Promise<void>): HTMLElement {
 
     const row: HTMLElement = elementOf("div", "task-row", "");
     const buttons: HTMLElement = elementOf("div", "task-buttons", "");

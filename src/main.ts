@@ -3,11 +3,12 @@
  *
  * Opens one area of the life system beside the areas named in `index.html`, each shown by its icon there,
  * by the address:
- * the scripts, my notes of my modules, at `/scripts`, my new system at `/plannings`, the skill area at `/skill`,
- * the food area at `/food`, the editor of my drafts and of the files of my new system at `/edit`, the day everywhere
- * else; an older address of the scripts, `/notes`, opens them too and becomes `/scripts`.
+ * the scripts, my notes of my modules in the editor, always writing, at `/scripts`, a due task of the skill area
+ * as a card at `/scripts?…&card=1`, my new system at `/plannings`, the skill area at `/skill`, the food area at `/food`,
+ * the editor of the files of my new system at `/edit`, the day everywhere else; older addresses of the scripts,
+ * `/notes` and a draft at `/edit?path=…`, open them too and become `/scripts`.
  * The editor shows a file of my new system under the link of `/plannings`, which opens the editor without a file,
- * and a draft under that of `/scripts`, see `editor/editor.ts`.
+ * and a note of my modules under that of `/scripts`, see `editor/editor.ts`.
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the scripts no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
@@ -22,11 +23,11 @@
  *   `./editor/editor.html?raw`: Html of day, scripts, skill, food and editor as text,
  *   packed into the built code by Vite.
  * - `./day/day.ts`: Shows the log of a day, my one calendar, with the boxes of its plan beside it.
- * - `./notes/notes.ts`: Shows the scripts, the modules of the semester and their notes, rendered like Obsidian.
+ * - `./notes/notes.ts`: Shows a due task as a card, its text alone, rendered like Obsidian.
  * - `./skill/skill.ts`: Shows my tasks, due ones first, and records my attempts.
  * - `./food/food.ts`: Shows what I ate on a day with its totals, and my foods.
- * - `./editor/editor.ts`: Edits a draft note or a Markdown file of my new system as its text, its Markdown shown
- *   as in the scripts, saved exactly as edited, with the tree of my new system on the left.
+ * - `./editor/editor.ts`: Edits a note of my modules or a Markdown file of my new system as its text, its Markdown
+ *   shown as in Obsidian's live preview, saved exactly as edited, with the tree of its root on the left.
  * - {@link History#replaceState}: Turns an older address of the scripts into `/scripts`, without loading
  *   the page again.
  */
@@ -59,12 +60,12 @@ function deviceReport(): void {
 let deviceWait: number = 0;
 
 const phone: boolean = matchMedia("(max-width: 900px)").matches;
-if (location.pathname === "/notes")
+const address: URLSearchParams = new URLSearchParams(location.search);
+if (location.pathname === "/notes" || (location.pathname === "/edit" && address.has("path")))
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
 const areas: string[] = phone ? [] : ["/scripts", "/plannings", "/skill", "/food", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
-const marked: string =
-    area !== "/edit" ? area : new URLSearchParams(location.search).has("file") ? "/plannings" : "/scripts";
+const marked: string = area === "/edit" ? "/plannings" : area;
 document.querySelector(`.areas a[href="${marked}"]`)?.setAttribute("aria-current", "page");
 deviceReport();
 addEventListener("resize", (): void => {
@@ -72,7 +73,7 @@ addEventListener("resize", (): void => {
     deviceWait = window.setTimeout(deviceReport, 1000);
 });
 
-if (area === "/scripts") {
+if (area === "/scripts" && address.has("card")) {
     const notes: { notesStart: () => Promise<void> } = await import("./notes/notes.ts");
     document.body.insertAdjacentHTML("beforeend", notesHtml);
     await notes.notesStart();
@@ -84,7 +85,7 @@ if (area === "/scripts") {
     const food: { foodStart: () => void } = await import("./food/food.ts");
     document.body.insertAdjacentHTML("beforeend", foodHtml);
     food.foodStart();
-} else if (area === "/edit" || area === "/plannings") {
+} else if (area === "/scripts" || area === "/edit" || area === "/plannings") {
     const editor: { editorStart: () => Promise<void> } = await import("./editor/editor.ts");
     document.body.insertAdjacentHTML("beforeend", editorHtml);
     await editor.editorStart();

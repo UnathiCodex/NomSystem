@@ -52,7 +52,7 @@
 import { RangeSet, StateEffect, StateField } from "@codemirror/state";
 import { BlockWrapper, Decoration, EditorView, WidgetType, keymap } from "@codemirror/view";
 import {
-    codeFolding, foldable, foldedRanges, foldEffect, foldKeymap, syntaxHighlighting, syntaxTree, unfoldEffect,
+    codeFolding, foldable, foldedRanges, foldEffect, foldKeymap, forceParsing, syntaxHighlighting, syntaxTree, unfoldEffect,
 } from "@codemirror/language";
 import { tagHighlighter, tags } from "@lezer/highlight";
 import { mathRender } from "../notes/math.ts";
@@ -750,14 +750,17 @@ function linesMark(look: Look, from: number, to: number, line: Decoration): void
  * @param node - Piece of syntax, like a `ListItem`
  * @param tagName - Element, like `li`
  * @param attributes - Attributes of the element, like a class
+ * @param to - Where the lines put into it end, the end of the piece unless told: a heading's right after the start of
+ *   its line, so the row of a task after it, see `./tasks.ts`, stands outside it, in the text of the note
  */
-function wrap(look: Look, node: SyntaxNode, tagName: string, attributes: { [name: string]: string } = {}): void {
+function wrap(look: Look, node: SyntaxNode, tagName: string, attributes: { [name: string]: string } = {},
+              to: number = node.to): void {
     let depth: number = 0;
     for (let parent: SyntaxNode | null = node.parent; parent !== null; parent = parent.parent)
         if (wrapped.includes(parent.name))
             depth++;
     look.wrappers.push(BlockWrapper.create({ tagName: tagName, attributes: attributes, rank: 100 - depth })
-        .range(look.state.doc.lineAt(node.from).from, node.to));
+        .range(look.state.doc.lineAt(node.from).from, to));
 }
 
 /**
@@ -794,7 +797,7 @@ function foldLook(look: Look, line: Line, item: boolean): void {
 function headingLook(look: Look, node: SyntaxNode): boolean {
     const line: Line = look.state.doc.lineAt(node.from);
     const mark: SyntaxNode | null = node.getChild("HeaderMark");
-    wrap(look, node, `h${node.name.slice(-1)}`);
+    wrap(look, node, `h${node.name.slice(-1)}`, {}, line.from + 1);
     if (mark !== null && touched(look, line.from, line.to))
         look.decorations.push(hanging.range(mark.from, markEndOf(look, mark)));
     else if (mark !== null)
@@ -1241,12 +1244,15 @@ function foldToggle(view: EditorView, pos: number): void {
 
 /**
  * Folds every solution of the note, the section under each heading `#### Solution…`, as the scripts view shows
- * it at first, so I try a task before I see its solution.
+ * it at first, so I try a task before I see its solution; the whole note read first, as the editor reads at first
+ * only what it shows.
+ * - {@link forceParsing}: Reads the syntax of the note up to its end, for at most a second.
  * - `ranges`: The sections of the solutions.
  *
  * @param view - The editor
  */
 export function solutionsFold(view: EditorView): void {
+    forceParsing(view, view.state.doc.length, 1000);
     const ranges: { from: number; to: number }[] = [];
     for (let number: number = 1; number <= view.state.doc.lines; number++) {
         const line: Line = view.state.doc.line(number);

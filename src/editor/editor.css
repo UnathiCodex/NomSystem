@@ -1,5 +1,5 @@
-/* Editor: the tree on the left, the file on the right, filling the screen beside the areas, as the scripts view,
-   whose tree it shares, see `../notes/notes.css` */
+/* Editor, the scripts view too: the tree on the left, see `../notes/notes.css`, the file on the right, filling
+   the screen beside the areas */
 .editor {
     display: grid;
     grid-template-columns: var(--tree-width) minmax(0, 1fr);

@@ -1,14 +1,14 @@
-/* Notes: menu on the left, the note on the right, filling the screen beside the areas */
+/* Card of a due task: the note filling the screen beside the areas, see `notes.ts` */
 .notes {
     display: grid;
-    grid-template-columns: var(--tree-width) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
 }
 
-/* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the scripts view
-   and the editor, each row in the text of the tree, see `--tree-text` in `../variants.css`, and one chip high
+/* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the editor, the scripts
+   view, each row in the text of the tree, see `--tree-text` in `../variants.css`, and one chip high
    to click; the anchor of the menus of its pickers, which open beside it */
 .notes-tree {
     anchor-name: --tree;
@@ -268,40 +268,7 @@
     color: var(--reading-text);
 }
 
-/* Name of the note above it, as Obsidian's inline title */
-.notes-title {
-    margin: 0 0 0.5em;
-    font-size: 1.618em;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.015em;
-}
-
-/* Name of the note with the pencil of a draft beside it */
-.notes-head {
-    display: flex;
-    gap: var(--gap);
-}
-
-/* Pencil opening a draft in the editor: one chip high and as wide, outlined and round, its icon grey in the middle,
-   a grey lighter under the pointer */
-.notes-edit {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: var(--chip-height);
-    height: var(--chip-height);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    color: var(--text-muted);
-}
-
-.notes-edit:hover {
-    background: var(--fill);
-}
-
-/* Hint while no note is shown or when it cannot be read */
+/* Hint when the note cannot be read */
 .notes-none {
     color: var(--text-muted);
 }
@@ -645,18 +612,12 @@
     }
 }
 
-/* A due task as a card, see cardSet in notes.ts: the menu, the name of the note, every other block, the task's heading
-   and its source line hidden; its text, then the question, its solution and its row with the buttons last */
-.notes-card .notes-tree,
-.notes-card .notes-head,
+/* A due task as a card, see cardSet in notes.ts: every other block, the task's heading and its source line hidden;
+   its text, then the question, its solution and its row with the buttons last */
 .notes-card #notes-text > :not(.card-task),
 .notes-card .card-task > summary,
 .notes-card .card-task > .fold-content > blockquote {
     display: none;
-}
-
-.notes.notes-card {
-    grid-template-columns: minmax(0, 1fr);
 }
 
 .notes-card .card-task > .fold-content {

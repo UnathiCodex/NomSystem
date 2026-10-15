@@ -1,19 +1,9 @@
-<!-- Scripts: the tree of NomSkillingmodules on the left, the chosen note on the right, read only -->
+<!-- Card: a due task of the skill view, its note rendered and only the task's text shown, read only, see notes.ts -->
 <div class="notes">
-    <!-- Tree of NomSkillingmodules, see tree.ts; the outline of the shown note under it -->
-    <nav class="notes-tree" id="notes-tree"></nav>
-
-    <!-- Chosen note, rendered like Obsidian in a calm reading width, scrolls alone -->
+    <!-- The note, rendered like Obsidian in a calm reading width, scrolls alone -->
     <article class="notes-note" id="notes-note">
         <div class="notes-page">
-            <!-- Name of the note, and for a draft the pencil that opens it in the editor -->
-            <div class="notes-head">
-                <h1 class="notes-title" id="notes-title"></h1>
-                <a class="notes-edit" id="notes-edit" hidden></a>
-            </div>
-            <div class="markdown" id="notes-text">
-                <p class="notes-none">Choose a note or a file on the left</p>
-            </div>
+            <div class="markdown" id="notes-text"></div>
         </div>
     </article>
 </div>

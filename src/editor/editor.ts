@@ -1,21 +1,24 @@
 /**
  * ## Editor
  *
- * Edits a draft note or a Markdown file of my new system as its text, its Markdown shown as in the scripts view
- * away from the cursor, see `./preview.ts`.
+ * Edits a note of my modules or a Markdown file of my new system as its text, its Markdown shown as in Obsidian's
+ * live preview away from the cursor, see `./preview.ts`. The scripts view, `/scripts`, is this editor, always writing,
+ * with no view beside it to read only; a due task of the skill view opens as a card, see `../notes/notes.ts`.
  * It edits the text of the file itself: saving writes exactly the edited text, nothing reformatted,
  * tabs, spacers `⠀` and soft hyphens, spaces at the ends of lines and the line breaks of the file as they were.
  * Of my modules the reader writes only the unchecked drafts and keeps each change as a diff, so the AI learns my style
- * from my corrections; any other note opens to read only.
- * On the left the tree of one root, see `../notes/tree.ts`: `NomManageplannings` for a file of my new system and
- * at `/plannings`, `NomSkillingmodules` for a draft; in `NomManageplannings` a click on a Markdown file of the three folders of my new system, like `Foods.md`,
- * `Places.md` or a daily note, opens it here to edit, saved back into its file without a diff; an `.ics` file opens
- * as its plain text, to read only, each block of it drawn one step in and its entries apart, see `./ics.ts`;
- * any other file shows in the tree, faint, and opens not.
- * A note of `NomSkillingmodules` opens in the scripts view, a draft from there by its pencil here.
- * The address names a file of my new system by its path in the tree, like `/edit?file=NomMetainformations/Foods.md`,
- * and a draft by its path in the scripts view, like
- * `/edit?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
+ * from my corrections; any other note of my modules opens to read only.
+ * On the left the tree of one root, see `../notes/tree.ts`: `NomSkillingmodules` at `/scripts`, the outline of the note
+ * under it, built anew as I write, whose headings scroll the note to them without loading the page again;
+ * `NomManageplannings` for a file of my new system and at `/plannings`, where a click on a Markdown file of the three
+ * folders of my new system, like `Foods.md`, `Places.md` or a daily note, opens it here to edit, saved back into its
+ * file without a diff; an `.ics` file opens as its plain text, to read only, each block of it drawn one step in and its
+ * entries apart, see `./ics.ts`; any other file shows in the tree, faint, and opens not.
+ * A note of my modules shows the rows of its tasks under their headings, see `./tasks.ts`.
+ * The address names a note by its path in the scripts view and the heading to scroll to, like
+ * `/scripts?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md#…`,
+ * so a reload and the back button of the browser stay on it, and a file of my new system by its path in the tree,
+ * like `/edit?file=NomMetainformations/Foods.md`.
  * Saves only with its button, a check as the save of the dialogs, its tooltip `Save`, or Ctrl+S, never by itself,
  * refused when the file changed on the disk since it was read, and asks before leaving with changes unsaved, also
  * for another file of the tree; the button turns the calm grey of a main button while there are changes, and beside it
@@ -29,8 +32,9 @@
  * - `./ics.ts`: Shows an `.ics` file with its blocks one step in and its entries apart.
  * - `./keys.ts`: The keys of a Markdown file as in Obsidian, like Enter continuing a list.
  * - `./syntax.ts`: Obsidian syntax for the Markdown parser.
- * - `./preview.ts`: Shows the Markdown as in the scripts view.
- * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked.
+ * - `./preview.ts`: Shows the Markdown as in the scripts view, folds its sections and scrolls to a heading.
+ * - `./tasks.ts`: Shows the rows of the tasks of a note.
+ * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked, and the outline of a note.
  * - `lucide`, `../icons.ts`: The check of the save button.
  * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images, and of the tree.
  * - `./editor.css`: Look of the editor.
@@ -45,8 +49,9 @@ import { GFM } from "@lezer/markdown";
 import { icsLook } from "./ics.ts";
 import { markdownKeys } from "./keys.ts";
 import { obsidianSyntax } from "./syntax.ts";
-import { livePreview, solutionsFold } from "./preview.ts";
-import { treeShow } from "../notes/tree.ts";
+import { headingShow, livePreview, solutionsFold } from "./preview.ts";
+import { taskRows, tasksLoad } from "./tasks.ts";
+import { outlineShow, treeShow } from "../notes/tree.ts";
 import { timeOf } from "../day/times.ts";
 import { Check } from "lucide";
 import { iconPut } from "../icons.ts";
@@ -135,6 +140,17 @@ let saving: boolean = false;
  */
 let view: EditorView;
 
+/**
+ * The tree of my modules, while the editor shows a note of them, for its outline; `null` for a file of my new system.
+ */
+let outlineTree: HTMLElement | null = null;
+
+/**
+ * Waiting rebuild of the outline after a change of the text, so typing builds it anew once, half a second after
+ * it rests.
+ */
+let outlineWait: number = 0;
+
 
 /**
  * Shows whether the file has changes not yet saved: the save button in the calm grey of a main button while it has,
@@ -208,7 +224,9 @@ function keyDown(event: KeyboardEvent): void {
  * - `darkTheme`: Draws cursor and selection for a dark page.
  * - `scrollMargins`: Keeps the cursor below the head with the name and the save button, which stays on top
  *   while the file scrolls, so moving up never hides the cursor under it.
- * - `updateListener`: Shows whether the file has unsaved changes after each change of the text.
+ * - `taskRows`: The rows of the tasks of a note, once loaded, see `./tasks.ts`.
+ * - `updateListener`: Shows whether the file has unsaved changes after each change of the text, and builds the outline
+ *   of a note anew once the typing rests.
  *
  * @param opened - The file
  * @returns Extensions
@@ -226,11 +244,17 @@ function extensionsOf(opened: Opened): Extension[] {
         EditorView.darkTheme.of(true),
         EditorView.scrollMargins.of((): Partial<Rect> =>
             ({ top: (document.getElementById("editor-head") as HTMLElement).offsetHeight })),
-        ...(opened.markdown ? [livePreview(opened.links)] : []),
+        ...(opened.markdown ? [livePreview(opened.links), taskRows] : []),
         ...(/\.ics$/i.test(path) ? [icsLook()] : []),
         EditorView.updateListener.of((update: ViewUpdate): void => {
-            if (update.docChanged)
-                stateShow("");
+            if (!update.docChanged)
+                return;
+            stateShow("");
+            clearTimeout(outlineWait);
+            outlineWait = window.setTimeout((): void => {
+                if (outlineTree !== null)
+                    outlineShow(outlineTree, path, view.state.sliceDoc());
+            }, 500);
         }),
     ];
 }
@@ -262,29 +286,65 @@ async function openedRead(file: string): Promise<Opened | null> {
 }
 
 /**
+ * Scrolls the note shown to the heading of the address, see `headingShow` in `./preview.ts`, or to its top.
+ */
+function addressHeadingShow(): void {
+    headingShow(view, decodeURIComponent(location.hash.slice(1)));
+}
+
+/**
+ * Scrolls to a heading of the note shown on a click on a link to it in the tree, like in its outline, without loading
+ * the page again, and keeps it in the address and the history of the browser; links to other notes, and clicks
+ * with a key held, act as usual.
+ * - {@link History#pushState}: Writes the address as a new step of the history, for the back button.
+ * - `link`: The link clicked, `null` for none.
+ * - `address`: Its address.
+ *
+ * @param event - Click inside the tree
+ */
+function treeClick(event: MouseEvent): void {
+    const link: HTMLAnchorElement | null = (event.target as Element).closest("a[href]");
+    if (link === null || event.ctrlKey || event.metaKey || event.shiftKey)
+        return;
+
+    const address: URL = new URL(link.href);
+    if (address.pathname !== "/scripts" || address.searchParams.get("path") !== path)
+        return;
+    event.preventDefault();
+    window.history.pushState(null, "", address);
+    addressHeadingShow();
+}
+
+/**
  * Starts the editor after the router has put its HTML into the page: shows the tree on the left, that of my new system
- * for one of its files and at `/plannings`, that of the modules for a draft, see `../notes/tree.ts`,
+ * for one of its files and at `/plannings`, else that of my modules, the module of the address picked while no note
+ * is shown, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning` from a skill entry, see `../notes/tree.ts`;
  * reads the file the address names and shows it to edit, its solutions folded, see `./preview.ts`, with the save
  * button, Ctrl+S, and a question before leaving with changes unsaved; a file to read only says so, a file that cannot
  * be read shows a hint instead, and so does the editor while it shows no file.
+ * A note of my modules gets the rows of its tasks, see `./tasks.ts`, its outline in the tree, and scrolls to the
+ * heading of the address, also when the back or forward button of the browser changes it.
  * - `address`: The parameters of the address.
  * - `file`: Path of the file of my new system, empty for a note.
- * - `plannings`: Whether the editor shows my new system, for one of its files or at `/plannings`; else a draft.
+ * - `plannings`: Whether the editor shows my new system, for one of its files or at `/plannings`; else my modules.
+ * - `tree`: Place of the tree, and `shown` the tree once it is shown.
  * - `opened`: The file read.
  * - `text`: Element of the text, with the look of the notes for Markdown, else of plain text.
  * - `beforeunload`: Comes before the page closes or loads again, also for another file of the tree;
  *   `preventDefault` makes the browser ask.
+ * - `popstate`: Comes when the back or forward button of the browser changes the address.
  */
 export async function editorStart(): Promise<void> {
     const address: URLSearchParams = new URLSearchParams(location.search);
     const file: string = address.get("file") ?? "";
     const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
     const plannings: boolean = file !== "" || location.pathname === "/plannings";
+    const tree: HTMLElement = document.getElementById("notes-tree") as HTMLElement;
     path = file !== "" ? file : address.get("path") ?? "";
     saveAddress = file !== "" ? "/api/edit/file" : "/api/edit/note";
-    treeShow(document.getElementById("notes-tree") as HTMLElement,
-        plannings ? "NomManageplannings" : "NomSkillingmodules", path, "")
-        .catch((error: unknown): void => console.error(error));
+    const shown: Promise<void> = treeShow(tree, plannings ? "NomManageplannings" : "NomSkillingmodules", path,
+        address.get("module") ?? "");
+    shown.catch((error: unknown): void => console.error(error));
     (document.getElementById("editor-title") as HTMLElement).textContent =
         path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";
     const opened: Opened | null = path === "" ? null : await openedRead(file);
@@ -317,4 +377,15 @@ export async function editorStart(): Promise<void> {
         if (view.state.sliceDoc() !== saved)
             event.preventDefault();
     });
+    if (plannings || !opened.markdown)
+        return;
+
+    tasksLoad(view, path).catch((error: unknown): void => console.error(error));
+    addressHeadingShow();
+    shown.then((): void => {
+        outlineTree = tree;
+        outlineShow(tree, path, view.state.sliceDoc());
+    }).catch((error: unknown): void => console.error(error));
+    tree.addEventListener("click", treeClick);
+    window.addEventListener("popstate", addressHeadingShow);
 }

@@ -452,3 +452,15 @@ const markdown: Marked = new Marked({
 export function htmlOf(note: string): string {
     return DOMPurify.sanitize(markdown.parse(note, { async: false }));
 }
+
+/**
+ * Turns a line of Markdown into clean HTML within a line, like the text of a heading for the outline:
+ * its formulas, links, bold and italic, no block around it.
+ * - {@link Marked#parseInline}: Turns Markdown within a line into HTML, with `async: false` directly as text.
+ *
+ * @param text - Text, like `Definition. Variance of $\bar{X}$`
+ * @returns HTML of the text
+ */
+export function inlineHtmlOf(text: string): string {
+    return DOMPurify.sanitize(markdown.parseInline(text, { async: false }));
+}
