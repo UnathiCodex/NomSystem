@@ -1274,6 +1274,18 @@ fieldset.entry-times {
     content: "\200b";
 }
 
+/* On a computer a row without a value, like `Cooked +` or `Chapter +` with its plus beside its name, or the summary
+   of a Food without foods, holds one empty line of a value, a space of no width, as an empty line does, so it is as
+   high as a row with a value, its name on the same line, and all rows stand equally apart; a phone puts the value
+   below the name, where an empty line would only take room */
+@media (min-width: 901px) {
+    .picker-head:empty::before,
+    .meal-summary:empty::before,
+    .meal:has(> .meal-rows:empty)::before {
+        content: "\200b";
+    }
+}
+
 /* The line that opened the open list and its row, the anchors of its menu, see `listOf` in `choices.ts` */
 .list-line {
     anchor-name: --list-line;
