@@ -578,8 +578,10 @@
     text-underline-offset: 0.2em;
 }
 
-/* Link out of my modules with Obsidian's arrow out of a box after it, not the links of the row of a task */
-.markdown a[href]:not(.internal-link, .task-row a) {
+/* Link out of my modules with Obsidian's arrow out of a box after it, also in the editor, see `../editor/preview.ts`,
+   not the links of the row of a task */
+.markdown a[href]:not(.internal-link, .task-row a),
+.markdown .cm-external {
     padding-right: 0.9em;
     background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23888888' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M14 9 L3 9 3 29 23 29 23 18 M18 4 L28 4 28 14 M28 4 L14 18'/></svg>") right 0.25em / 0.825em no-repeat;
 }

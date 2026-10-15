@@ -265,6 +265,13 @@
     color: var(--reading-text);
 }
 
+/* A link that leads nowhere faded, see `../notes/notes.css`, and dotted below, as a link of the scripts view,
+   a quiet mark that a source is broken */
+.editor-text .is-unresolved {
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2em;
+}
+
 /* Code within a line on a grey ground in a font of fixed width, with its room around it, as in the scripts view;
    code blocks on grey line by line, their code without a ground of its own */
 .editor-text .cm-monospace,

@@ -174,14 +174,15 @@ const hanging: Decoration = Decoration.mark({ class: "cm-hanging" });
 const spacerMark: Decoration = Decoration.mark({ class: "cm-spacer" });
 
 /**
- * Link that leads nowhere, faded as in the scripts view.
- */
-const unresolved: Decoration = Decoration.mark({ class: "is-unresolved" });
-
-/**
  * Text of a rendered link, which a click follows, see {@link linkClicked}.
  */
 const followable: Decoration = Decoration.mark({ class: "cm-follow" });
+
+/**
+ * Text of a rendered link out of my modules, like `https://…`, which a click opens in a new tab, with Obsidian's arrow
+ * out of a box after it, as in the scripts view, see `../notes/notes.css`.
+ */
+const external: Decoration = Decoration.mark({ class: "cm-follow cm-external" });
 
 /**
  * Line of a code block being edited.
@@ -850,7 +851,11 @@ function markupLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * Markdown link `[Text](Address)`: only its text while the cursor does not touch it, which a click follows.
+ * Markdown link `[Text](Address)`: only its text while the cursor does not touch it, which a click follows,
+ * a link out of my modules with an arrow after it, one that leads nowhere faded, see {@link unresolvedOf}.
+ * - `url`: Its address, `null` for brackets without one.
+ * - `address`: The address as written, without `<` and `>`.
+ * - `target`: The file it leads to, before `#`, as the reader lists it.
  * Brackets without an address, like the `[!note]` of a callout, are no link, as in the scripts view, and stay as written.
  *
  * @param look - Look being built
@@ -859,18 +864,24 @@ function markupLook(look: Look, node: SyntaxNode): boolean {
  */
 function linkLook(look: Look, node: SyntaxNode): boolean {
     const marks: SyntaxNode[] = node.getChildren("LinkMark");
-    if (node.getChild("URL") !== null && marks.length >= 2 && !touched(look, node.from, node.to)) {
-        hide(look, node.from, marks[0].to);
-        hide(look, marks[1].from, node.to);
-        if (marks[0].to < marks[1].from)
-            look.decorations.push(followable.range(marks[0].to, marks[1].from));
-    }
+    const url: SyntaxNode | null = node.getChild("URL");
+    if (url === null || marks.length < 2 || touched(look, node.from, node.to))
+        return true;
+
+    const address: string = look.state.sliceDoc(url.from, url.to).replace(/^<|>$/g, "");
+    const target: string = address.split("#")[0].trim();
+    hide(look, node.from, marks[0].to);
+    hide(look, marks[1].from, node.to);
+    if (marks[0].to < marks[1].from)
+        look.decorations.push((externalRule.test(address) ? external
+            : look.links[target] === null ? unresolvedOf(target) : followable).range(marks[0].to, marks[1].from));
     return true;
 }
 
 /**
  * Address of the web written as it is, like `https://…`, which GitHub's Markdown takes as a link:
- * followed by a click while the cursor does not touch it; the address of a Markdown link is hidden there anyway.
+ * followed by a click while the cursor does not touch it, with an arrow after it as a link out of my modules;
+ * the address of a Markdown link is hidden there anyway.
  *
  * @param look - Look being built
  * @param node - Address, `URL`
@@ -878,7 +889,7 @@ function linkLook(look: Look, node: SyntaxNode): boolean {
  */
 function urlLook(look: Look, node: SyntaxNode): boolean {
     if (node.parent?.name !== "Link" && node.parent?.name !== "Image" && !touched(look, node.from, node.to))
-        look.decorations.push(followable.range(node.from, node.to));
+        look.decorations.push(external.range(node.from, node.to));
     return false;
 }
 
@@ -913,8 +924,19 @@ function wikiLinkLook(look: Look, node: SyntaxNode): boolean {
     hide(look, node.from, shownFrom);
     hide(look, shownTo, node.to);
     if (shownFrom < shownTo)
-        look.decorations.push((path === null ? unresolved : followable).range(shownFrom, shownTo));
+        look.decorations.push((path === null ? unresolvedOf(target) : followable).range(shownFrom, shownTo));
     return false;
+}
+
+/**
+ * Text of a link that leads nowhere: faded and dotted below, as in the scripts view, its tooltip naming what it
+ * looked for, so a broken source stands out, and no click follows it.
+ *
+ * @param target - What the link looked for, like `VO_UniversityLectureLessons/TUM_2025W/04_….pdf`
+ * @returns Its look
+ */
+function unresolvedOf(target: string): Decoration {
+    return Decoration.mark({ class: "is-unresolved", attributes: { title: `Leads nowhere: ${target}` } });
 }
 
 /**
