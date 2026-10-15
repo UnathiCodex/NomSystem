@@ -85,6 +85,18 @@
     background: var(--chosen);
 }
 
+/* Under a pointer that hovers, the save button one grey lighter, as the buttons of the dialogs, see `.panel-buttons`
+   in `../day/day.css`: from the page's grey, or from its calm grey while the note has unsaved changes */
+@media (hover: hover) {
+    .editor-save:hover {
+        background: var(--fill);
+    }
+
+    .editor-save.unsaved:hover {
+        background: var(--chosen-over);
+    }
+}
+
 /* Text in the font and lines of the scripts view, without a frame when focused and without room around the lines;
    `.editor-text .cm-editor` wins over CodeMirror's own look, being more exact */
 .editor-text .cm-editor.cm-focused {
