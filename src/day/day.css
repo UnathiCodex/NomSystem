@@ -1999,6 +1999,14 @@ svg.route-arrow {
         translate: 0 -50%;
     }
 
+    /* The icon back to today on a phone a finger wide to hit, its tap reaching 0.625rem right of it, where nothing
+       stands, never over the date at its left, which opens the month */
+    .day-nav .day-today::after {
+        content: "";
+        position: absolute;
+        inset: 0 -0.625rem 0 0;
+    }
+
     .day-nav .day-title {
         text-align: center;
         font-size: 1.0625rem;

@@ -363,4 +363,59 @@ button.food-row:hover {
     .food-facts > .food-fact:not(:first-child) {
         margin-top: 0.5rem;
     }
+
+    /* A value to type in on a phone where it stands, but a finger high to hit: its field takes a tap 0.75rem above its
+       text, over the lower half of its name, which takes no room of its row, so nothing moves */
+    .food-facts .food-inline {
+        padding-top: 0.75rem;
+        margin-top: -0.75rem;
+    }
+
+    /* The small × of a line in the food view on a phone as it looks, but a finger's width to hit: as high as its line,
+       its icon still in the middle, and reaching into the room right of the list; the × of a food of a meal opened
+       0.75rem above and below it, where the next food stands farther */
+    .food .food-item > .cross-quiet,
+    .food .food-part > .cross-quiet {
+        position: relative;
+    }
+
+    .food .food-item > .cross-quiet {
+        align-self: stretch;
+    }
+
+    .food .food-item > .cross-quiet::after,
+    .food .food-part > .cross-quiet::after {
+        content: "";
+        position: absolute;
+        inset: 0 -0.625rem 0 -0.125rem;
+    }
+
+    .food .food-part > .cross-quiet::after {
+        inset: -0.75rem -0.625rem -0.75rem -0.125rem;
+    }
+
+    /* The cross and the check of a form, More and the plus after the name of a meal opened on a phone as they look,
+       but a finger's width to hit, each taking a tap a little around it, the cross and the check up to the middle
+       of the room between them */
+    .food-buttons button,
+    .food-more-button,
+    .dish-list .food-name .plus-quiet {
+        position: relative;
+    }
+
+    .food-buttons button::after,
+    .food-more-button::after,
+    .dish-list .food-name .plus-quiet::after {
+        content: "";
+        position: absolute;
+        inset: -0.3125rem -0.1875rem;
+    }
+
+    .food-more-button::after {
+        inset: -0.3125rem 0;
+    }
+
+    .dish-list .food-name .plus-quiet::after {
+        inset: -0.375rem -0.75rem;
+    }
 }
