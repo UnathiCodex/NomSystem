@@ -184,3 +184,25 @@ details.task-history a {
 .task-unjudged .task-hint {
     display: inline;
 }
+
+/* Phone: the buttons of a task as they look, but a finger high to hit, each taking a tap 0.25rem above and below it,
+   which the room between two lines of buttons leaves free; the copy for my tutor 0.25rem beside it too */
+@media (max-width: 900px) {
+    .task-row button,
+    .steps-buttons button,
+    .task-history > summary {
+        position: relative;
+    }
+
+    .task-row button::after,
+    .steps-buttons button::after,
+    .task-history > summary::after {
+        content: "";
+        position: absolute;
+        inset: -0.25rem 0;
+    }
+
+    .task-row button.task-tutor::after {
+        inset: -0.25rem;
+    }
+}
