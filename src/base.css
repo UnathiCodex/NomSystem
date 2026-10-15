@@ -96,7 +96,8 @@
 
 /* Whole page: one screen high, the area fills it, right beside the areas at the left edge, so its content stands
    a gap from them, by the area's own padding, as far as the areas from the edge; in Noto Sans, the one served
-   with the page first, else the one installed, as on my Kubuntu */
+   with the page first, else the one installed, as on my Kubuntu; the line under a link, like a name in Skill under
+   the pointer, a fifth of a letter below its text, clear of letters like g and y, the same for every link */
 body {
     display: flex;
     flex-direction: column;
@@ -106,6 +107,7 @@ body {
     font-family: "Noto Sans Variable", "Noto Sans", sans-serif;
     font-size: var(--text-size);
     line-height: 1.5;
+    text-underline-offset: 0.2em;
     background: var(--background);
     color: var(--text-main);
 }

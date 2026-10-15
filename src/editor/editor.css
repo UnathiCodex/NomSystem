@@ -291,7 +291,6 @@
    a quiet mark that a source is broken */
 .editor-text .is-unresolved {
     text-decoration: underline dotted;
-    text-underline-offset: 0.2em;
 }
 
 /* Code within a line on a grey ground in a font of fixed width, with its room around it, as in the scripts view;

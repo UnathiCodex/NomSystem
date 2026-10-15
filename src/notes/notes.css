@@ -575,7 +575,6 @@
 /* A link that leads nowhere also dotted below, a quiet mark that a source is broken */
 .markdown a.is-unresolved {
     text-decoration: underline dotted;
-    text-underline-offset: 0.2em;
 }
 
 /* Link out of my modules with Obsidian's arrow out of a box after it, also in the editor, see `../editor/preview.ts`,

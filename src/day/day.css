@@ -1205,7 +1205,6 @@ fieldset.entry-times {
 
 .entry-address[href]:hover {
     text-decoration: underline;
-    text-underline-offset: 0.2em;
 }
 
 /* Pencil right beside a name, of a place or a summary, the Lucide pencil small and grey, lighter under the pointer */
