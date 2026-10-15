@@ -76,7 +76,7 @@ import "./day.css";
 
 import type {
     DateSelectInfo, DateSpanApi, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,
-    EventDragStartInfo, EventDragStopInfo, EventInput, EventReceiveInfo, EventSourceInput,
+    EventDragStartInfo, EventDragStopInfo, EventInput, EventReceiveInfo, EventResizeStartInfo, EventSourceInput,
 } from "fullcalendar";
 import type { EntryFields } from "./entries.ts";
 import type { Line } from "./meal.ts";
@@ -141,6 +141,70 @@ function logSourceOf(): EventSourceInput {
 function entryClick(info: EventClickInfo): void {
     if (info.event.startEditable === true)
         entryOpenEdit(info.event).catch((error: unknown): void => console.error(error));
+}
+
+/**
+ * Pixels per second the time grid scrolls at most while an entry is dragged to its top or bottom edge, see
+ * {@link edgeScrollStart}: a whole day of 24 hours, 1,920 px, in about a second, so an entry dragged up from the
+ * evening reaches 00:00 in one go.
+ */
+const edgeSpeed: number = 2000;
+
+/**
+ * Ends the scrolling of the time grid at its edges, see {@link edgeScrollStart}; `null` while no entry is dragged.
+ */
+let edgeScrollEnd: (() => void) | null = null;
+
+/**
+ * Scrolls the time grid while an entry is dragged or resized and the pointer stands near its top or bottom edge,
+ * within 4rem of it or beyond, the nearer the faster, up to {@link edgeSpeed}, as Google Calendar does; and moves
+ * the entry along with every scroll, also one of the wheel, by telling FullCalendar that the pointer moved where it
+ * stands, so the entry stays under it and stops at 00:00 when the grid reaches its top. FullCalendar's own scrolling
+ * stays off, see `dragScroll` in {@link dayStart}, since it kept the scroll of the start and threw a scroll
+ * of the wheel back, like from 00:00 to 15:00. It ends with the drag, see {@link edgeScrollEnd}.
+ * - `grid`: The grid that scrolls.
+ * - `x`, `y`: Where the pointer stands.
+ * - `last`: Time of the frame before.
+ * - `frame`: The frame asked for next.
+ * - `follow`: Tells FullCalendar the pointer moved where it stands.
+ * - `move`: Keeps where the pointer stands.
+ * - `step`: Scrolls the grid by the time since the frame before, while the pointer is near an edge.
+ *
+ * @param entry - The entry dragged
+ * @param pointer - Where the drag started
+ */
+function edgeScrollStart(entry: HTMLElement, pointer: MouseEvent): void {
+    const grid: HTMLElement = gridOf(entry);
+    let x: number = pointer.clientX;
+    let y: number = pointer.clientY;
+    let last: number = performance.now();
+    let frame: number = 0;
+    const follow: () => void = (): void => {
+        document.dispatchEvent(new MouseEvent("mousemove", { clientX: x, clientY: y, bubbles: true, buttons: 1 }));
+    };
+    const move: (event: PointerEvent) => void = (event: PointerEvent): void => {
+        x = event.clientX;
+        y = event.clientY;
+    };
+    const step: (now: number) => void = (now: number): void => {
+        const rect: DOMRect = grid.getBoundingClientRect();
+        const zone: number = 4 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const depth: number = x < rect.left || x > rect.right ? 0
+            : Math.min(zone, Math.max(0, rect.top + zone - y)) - Math.min(zone, Math.max(0, y - rect.bottom + zone));
+        grid.scrollTop -= Math.sign(depth) * edgeSpeed * (depth / zone) ** 2 * (now - last) / 1000;
+        last = now;
+        frame = requestAnimationFrame(step);
+    };
+    edgeScrollEnd?.();
+    grid.addEventListener("scroll", follow);
+    document.addEventListener("pointermove", move);
+    frame = requestAnimationFrame(step);
+    edgeScrollEnd = (): void => {
+        cancelAnimationFrame(frame);
+        grid.removeEventListener("scroll", follow);
+        document.removeEventListener("pointermove", move);
+        edgeScrollEnd = null;
+    };
 }
 
 /**
@@ -635,8 +699,12 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `editable`: Lets entries be moved and resized, those that the reader marks `editable`.
  * - `snapDuration`: Moves, resizes and selects in steps of 15 minutes, while the grid keeps a line every 30 minutes.
  * - `eventDrop`, `eventResize`: Write a moved or resized entry back, see {@link entryDrag}.
+ * - `dragScroll`: Turns FullCalendar's own scrolling at the edges off, which threw a scroll of the wheel back,
+ *   see {@link edgeScrollStart}.
  * - `eventDragStart`, `eventDragStop`: Show the strips of the days before and after while an entry is dragged,
- *   and move an entry dropped on one of them, or on an arrow of the date, to that day, see {@link entryTurn}.
+ *   and move an entry dropped on one of them, or on an arrow of the date, to that day, see {@link entryTurn};
+ *   scroll the grid at its edges meanwhile, see {@link edgeScrollStart}.
+ * - `eventResizeStart`, `eventResizeStop`: Scroll the grid at its edges while an entry is resized.
  * - `droppable`: Takes the boxes dragged from the list.
  * - `eventAllow`: Takes boxes and entries only in the time grid, not in the row of the whole day.
  * - `eventReceive`: Logs a box dropped into the log at the time of the drop, see `boxes.ts`.
@@ -688,8 +756,17 @@ export function dayStart(note: boolean): void {
         snapDuration: "00:15:00",
         eventDrop: (info: EventChangeInfo): void => entryDrag(calendar, info),
         eventResize: (info: EventChangeInfo): void => entryDrag(calendar, info),
-        eventDragStart: (): void => turnShow(calendar, true),
-        eventDragStop: (info: EventDragStopInfo): void => entryTurn(calendar, info),
+        dragScroll: false,
+        eventDragStart: (info: EventDragStartInfo): void => {
+            turnShow(calendar, true);
+            edgeScrollStart(info.el, info.jsEvent);
+        },
+        eventDragStop: (info: EventDragStopInfo): void => {
+            edgeScrollEnd?.();
+            entryTurn(calendar, info);
+        },
+        eventResizeStart: (info: EventResizeStartInfo): void => edgeScrollStart(info.el, info.jsEvent),
+        eventResizeStop: (): void => edgeScrollEnd?.(),
         droppable: true,
         eventAllow: (span: DateSpanApi): boolean => !span.allDay,
         eventReceive: (info: EventReceiveInfo): void => boxReceive(calendar, info),
