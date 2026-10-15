@@ -311,6 +311,17 @@ textarea {
     border-radius: 0.25rem;
 }
 
+/* Text selected anywhere, like a point of my gratitude or a name in Skill, in the calm grey of what is picked, as
+   in the editor, see `.cm-selectionBackground` in `editor/editor.css`, and a ticked box of a list in a note in the soft
+   line's grey of what is picked with its light check, never the browser's blue */
+::selection {
+    background: var(--chosen);
+}
+
+:root {
+    accent-color: var(--chosen-line);
+}
+
 /* Icons of buttons one icon size big, never squeezed; `icons.ts` gives each its class `lucide` */
 svg.lucide {
     flex: none;
