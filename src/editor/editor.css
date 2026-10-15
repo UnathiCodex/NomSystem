@@ -448,6 +448,12 @@
         white-space: normal;
     }
 
+    /* The first heading of a file on a phone right below its name, without the room above a heading, as a computer
+       shows a file at first, where that room lies under the head; one heading below another keeps it */
+    .editor-text .cm-content > :is(h1, h2):first-child > .cm-line {
+        padding-top: 0;
+    }
+
     /* The markup `##` of a heading on the line of the cursor on a phone before its text, as Obsidian shows it,
        not left of it, where the narrow room beside the file cut it at the edge of the screen */
     .editor-text :is(h1, h2, h3, h4, h5, h6) .cm-hanging {
