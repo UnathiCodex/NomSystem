@@ -64,6 +64,12 @@
     font-size: var(--control-text);
 }
 
+/* Without a file, its name empty, the notice, like `Choose a file on the left`, stands where the name of a file stands,
+   at the left of the page, not alone at its right edge */
+.editor-title:empty {
+    display: none;
+}
+
 /* Save button with its check, square, one control high, outlined, as the save of the dialogs;
    in the calm grey of a main button while the note has unsaved changes */
 .editor-save {
