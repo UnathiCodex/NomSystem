@@ -714,8 +714,11 @@ button.box-ring.box-checked svg {
     white-space: nowrap;
 }
 
-/* What the meals of the day gave, linking to the food view, a line under the pointer */
+/* What the meals of the day gave, linking to the food view, a line under the pointer; at least as wide as
+   `1,816 kcal (3 meals)`, every digit equally wide, so the Food tracker keeps one width from day to day, also on a day
+   without meals, and Sleep and Water beside it, with the − and + of the water, never move */
 .tracker-link {
+    min-width: 9.4em;
     color: var(--text-main);
     text-decoration: none;
     font-variant-numeric: tabular-nums;
