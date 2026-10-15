@@ -163,6 +163,12 @@ body {
     .areas {
         display: none;
     }
+
+    /* A swipe down at the top of the log never pulls the page to load it again, as Chrome does in a tab, which would
+       lose what I am typing: the page itself never scrolls on a phone, so it takes no swipe passed on by the log */
+    html {
+        overscroll-behavior-y: none;
+    }
 }
 
 /* A small button one chip high and as wide, with an icon in place of its word, which is its tooltip, the same
