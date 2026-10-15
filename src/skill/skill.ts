@@ -38,6 +38,8 @@
  * - `../today.ts`: Gives today's calendar date, for when a task is due and whether an entry of the plan
  *   is still to come.
  * - `../day/times.ts`: Writes the time of an entry of the plan, as the day does.
+ * - `../day/choices.ts`: Marks where the name of a module or a section may go on over a next line, as on a phone,
+ *   like `IN0004_Einfuehrung` and `Rechnerarchitektur`, never within a word.
  * - `./task.ts`: Tells when a task is due.
  * - `../notes/math.ts`: Renders the formulas as the scripts view does, loaded only when there is one.
  * - `./skill.css`: Look of the skill view.
@@ -46,6 +48,7 @@
 import { dayTextOf, skillingLoad } from "./attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { timeOf } from "../day/times.ts";
+import { breakableOf } from "../day/choices.ts";
 import { stateTextOf } from "./task.ts";
 import "./skill.css";
 
@@ -204,7 +207,8 @@ function sectionOf(section: SkillSection, tasks: SkillTask[], today: string): HT
     if (cold !== undefined && stateTextOf(cold, today) !== "")
         state += ` · ${stateTextOf(cold, today)}`;
     fold.className = "skill-section";
-    summary.append(linkOf("skill-name", section.title, noteAddressOf(section.note, "")), elementOf("span", "skill-state", state));
+    summary.append(linkOf("skill-name", breakableOf(section.title), noteAddressOf(section.note, "")),
+        elementOf("span", "skill-state", state));
     list.append(...own.map((task: SkillTask): HTMLElement => taskLineOf(task, stateTextOf(task, today), false)));
     fold.append(summary, list);
     return fold;
@@ -381,7 +385,8 @@ function moduleElementOf(module: SkillModule, today: string): HTMLElement {
     const name: HTMLElement = elementOf("h2", "", "");
 
     section.id = `module-${module.code}`;
-    name.append(linkOf("skill-title", module.title, `/scripts?module=${encodeURIComponent(module.title)}`));
+    name.append(linkOf("skill-title", breakableOf(module.title),
+        `/scripts?module=${encodeURIComponent(module.title)}`));
     head.append(name);
     if (module.tasks.length > 0)
         head.append(elementOf("span", "skill-ready", `Ready ${readyOf(module, module.sections)} / ${module.sections.length}`));
@@ -443,7 +448,7 @@ function examsOf(modules: SkillModule[], today: string): HTMLElement {
         day.append(elementOf("span", "skill-exam-estimated", module.exam.estimated ? "≈" : ""), dayTextOf(module.exam.day, true));
         row.append(
             day,
-            elementOf("span", "skill-exam-module", module.title),
+            elementOf("span", "skill-exam-module", breakableOf(module.title)),
             elementOf("span", "skill-exam-left", daysLeftOf(module.exam.day, today)),
             elementOf("span", "skill-exam-ready", module.tasks.length > 0
                 ? `Ready ${readyOf(module, module.sections)} / ${module.sections.length}` : "No chapters yet"),

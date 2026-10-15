@@ -311,4 +311,33 @@
     .skill-section > summary .skill-name {
         flex: 1 0 calc(100% - 2rem);
     }
+
+    /* An exam on a phone in lines instead of four columns, which a phone has no room for, so nothing stands over
+       its edge: its day and the days left on the first, its module on the whole second, going on below where it is
+       too long, never cut, how ready I am below it */
+    .skill-exams {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .skill-exam-row {
+        grid-template-columns: minmax(0, 1fr) max-content;
+        column-gap: var(--gap);
+        row-gap: 0.25rem;
+    }
+
+    .skill-exam-module {
+        grid-area: 2 / 1 / 3 / -1;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .skill-exam-ready {
+        grid-area: 3 / 1 / 4 / -1;
+        text-align: left;
+    }
+
+    /* A link not found on a phone going on below where its path is too long for the line, never over its edge */
+    .skill-notice {
+        overflow-wrap: anywhere;
+    }
 }
