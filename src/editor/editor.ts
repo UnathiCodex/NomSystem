@@ -49,7 +49,7 @@ import { GFM } from "@lezer/markdown";
 import { icsLook } from "./ics.ts";
 import { markdownKeys } from "./keys.ts";
 import { obsidianSyntax } from "./syntax.ts";
-import { headingShow, livePreview, solutionsFold } from "./preview.ts";
+import { headingShow, linksSet, livePreview, solutionsFold } from "./preview.ts";
 import { taskRows, tasksLoad } from "./tasks.ts";
 import { outlineShow, treeShow } from "../notes/tree.ts";
 import { timeOf } from "../day/times.ts";
@@ -168,8 +168,10 @@ function stateShow(notice: string): void {
 /**
  * Saves the file: sends its text to the reader with the text it had when read or saved last;
  * the reader writes it when the file has not changed since, a draft with its change as a diff;
- * then says so beside the button with the time, like `Saved 20:41`, until the next change.
+ * then says so beside the button with the time, like `Saved 20:41`, until the next change,
+ * and a note takes the files its links lead to anew, so a link written since works, see `./preview.ts`.
  * Does nothing while a save is on its way, when nothing changed, or for a file to read only.
+ * - `reread`: The note read anew with its links, `null` for a file of my new system or when it cannot be read.
  */
 async function noteSave(): Promise<void> {
     const text: string = view.state.sliceDoc();
@@ -186,6 +188,9 @@ async function noteSave(): Promise<void> {
         if (response.ok) {
             saved = text;
             stateShow(`Saved ${timeOf(new Date())}`);
+            const reread: Opened | null = saveAddress === "/api/edit/note" ? await openedRead("") : null;
+            if (reread !== null)
+                linksSet(view, reread.links);
         } else if (response.status === 409) {
             stateShow("Not saved: it changed on the disk, reload it");
         } else {

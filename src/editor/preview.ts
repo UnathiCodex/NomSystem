@@ -35,8 +35,8 @@
  * A click on a rendered link follows it, as in Obsidian, and so does a click with Ctrl held on a link shown as text,
  * see {@link linkFollow}: a note opens in the scripts view at its heading, a heading of the same note scrolls into
  * sight, any other file, like a PDF at its page, and an address of the web open in a new tab.
- * Links resolve as the reader found them when the note was read: a link that leads nowhere fades and leads nowhere,
- * a link or image written since shows once the note is read again.
+ * Links resolve as the reader found them when the note was read or saved last, see {@link linksSet}: a link that leads
+ * nowhere fades and leads nowhere, a link or image written since works once the note is saved.
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold the text and the cursor, draw the text with decorations and widgets,
  *   and put lines into elements with block wrappers.
@@ -203,6 +203,25 @@ const focused: StateField<boolean> = StateField.define<boolean>({
             if (effect.is(focusChange))
                 return effect.value;
         return value;
+    },
+});
+
+/**
+ * Effect of the reader having found the files the links of the note lead to anew, see {@link linksSet}.
+ */
+const linksFound: StateEffectType<Links> = StateEffect.define<Links>();
+
+/**
+ * Files the links of the note lead to, as the reader found them when the note was read or saved last;
+ * none at first, see {@link livePreview}.
+ */
+const linkTargets: StateField<Links> = StateField.define<Links>({
+    create: (): Links => ({}),
+    update: (links: Links, transaction: Transaction): Links => {
+        for (const effect of transaction.effects)
+            if (effect.is(linksFound))
+                return effect.value;
+        return links;
     },
 });
 
@@ -519,7 +538,7 @@ class BlockWidget extends WidgetType {
      */
     override eq(other: BlockWidget): boolean {
         return other.markdown === this.markdown && other.belowHeading === this.belowHeading && other.below === this.below
-            && other.length === this.length;
+            && other.length === this.length && other.links === this.links;
     }
 
     /**
@@ -1214,12 +1233,13 @@ function spacersLook(look: Look): void {
  * - {@link Tree#iterate}: Goes through the pieces of syntax in the order of the text, into a piece while told to.
  * - {@link Decoration.set}, {@link BlockWrapper.set}: Sort the decorations and elements by their place.
  *
- * @param state - Text, cursor and syntax tree of the note
- * @param links - Files the links of the note lead to
+ * @param state - Text, cursor, syntax tree and links of the note
  * @returns Look of the note
  */
-function drawingOf(state: EditorState, links: Links): Drawing {
-    const look: Look = { state: state, links: links, focused: state.field(focused), decorations: [], wrappers: [], rendered: [] };
+function drawingOf(state: EditorState): Drawing {
+    const look: Look = {
+        state: state, links: state.field(linkTargets), focused: state.field(focused), decorations: [], wrappers: [], rendered: [],
+    };
     syntaxTree(state).iterate({
         enter: (node: SyntaxNodeRef): boolean => looks[node.name]?.(look, node.node) ?? true,
     });
@@ -1368,10 +1388,9 @@ function addressFollow(view: EditorView, address: string, links: Links): void {
  *
  * @param event - Mouse button taken down, `mousedown`, or a click, `click`
  * @param view - The editor
- * @param links - Files the links of the note lead to
  * @returns Whether it was a click on a link, which the editor then leaves alone
  */
-function linkClicked(event: MouseEvent, view: EditorView, links: Links): boolean {
+function linkClicked(event: MouseEvent, view: EditorView): boolean {
     if (event.button !== 0 || (!(event.target as Element).closest(".cm-follow") && !event.ctrlKey && !event.metaKey))
         return false;
 
@@ -1381,13 +1400,24 @@ function linkClicked(event: MouseEvent, view: EditorView, links: Links): boolean
         return false;
     event.preventDefault();
     if (event.type === "click")
-        linkFollow(view, node, links);
+        linkFollow(view, node, view.state.field(linkTargets));
     return true;
 }
 
 /**
+ * Takes the files the links of the note lead to anew, as the reader found them for the note just saved,
+ * so a link written since works and one that leads nowhere fades.
+ *
+ * @param view - The editor
+ * @param links - Files the links of the note lead to
+ */
+export function linksSet(view: EditorView, links: Links): void {
+    view.dispatch({ effects: linksFound.of(links) });
+}
+
+/**
  * Live preview of a note, see the top of this file: its look, built again when the text, the cursor,
- * the focus, the syntax tree or what is folded changes, and the classes of its syntax.
+ * the focus, the syntax tree, what is folded or the files its links lead to change, and the classes of its syntax.
  * - {@link StateField}: Holds the look; only a field may hide line breaks, like those inside a table.
  * - {@link EditorView.decorations}, {@link EditorView.blockWrappers}: Take the decorations and elements of the look.
  * - {@link EditorView.focusChangeEffect}: Tells {@link focused} when the editor gets or loses the focus.
@@ -1396,18 +1426,19 @@ function linkClicked(event: MouseEvent, view: EditorView, links: Links): boolean
  * - {@link codeFolding}: Holds what is folded, without the `…` CodeMirror puts in place of it, since the arrow
  *   turned right tells it; {@link foldKeymap} folds and unfolds by keys too, like Ctrl+Shift+[ and Ctrl+Shift+].
  *
- * @param links - Files the links of the note lead to, as the reader found them
+ * @param links - Files the links of the note lead to, as the reader found them when it was read
  * @returns Extension for the editor
  */
 export function livePreview(links: Links): Extension {
     const look: StateField<Drawing> = StateField.define<Drawing>({
-        create: (state: EditorState): Drawing => drawingOf(state, links),
+        create: (state: EditorState): Drawing => drawingOf(state),
         update: (drawing: Drawing, transaction: Transaction): Drawing =>
             transaction.docChanged || transaction.selection !== undefined
                 || transaction.state.field(focused) !== transaction.startState.field(focused)
                 || syntaxTree(transaction.state) !== syntaxTree(transaction.startState)
                 || foldedRanges(transaction.state) !== foldedRanges(transaction.startState)
-                ? drawingOf(transaction.state, links)
+                || transaction.state.field(linkTargets) !== transaction.startState.field(linkTargets)
+                ? drawingOf(transaction.state)
                 : drawing,
         provide: (field: StateField<Drawing>): Extension => [
             EditorView.decorations.from(field, (drawing: Drawing): DecorationSet => drawing.decorations),
@@ -1416,14 +1447,12 @@ export function livePreview(links: Links): Extension {
     });
     return [
         focused,
+        linkTargets.init((): Links => links),
         codeFolding({ placeholderDOM: (): HTMLElement => document.createElement("span") }),
         keymap.of(foldKeymap),
         look,
         EditorView.focusChangeEffect.of((_state: EditorState, focusing: boolean): StateEffect<boolean> => focusChange.of(focusing)),
-        EditorView.domEventHandlers({
-            mousedown: (event: MouseEvent, view: EditorView): boolean => linkClicked(event, view, links),
-            click: (event: MouseEvent, view: EditorView): boolean => linkClicked(event, view, links),
-        }),
+        EditorView.domEventHandlers({ mousedown: linkClicked, click: linkClicked }),
         syntaxHighlighting(highlighter),
     ];
 }
