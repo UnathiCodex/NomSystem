@@ -369,6 +369,8 @@ function treeClick(event: MouseEvent): void {
  * - `treeButton`: The button that shows the tree on a phone.
  * - `opened`: The file read.
  * - `text`: Element of the text, with the look of the notes for Markdown, else of plain text.
+ * - `pointerdown`: Comes when a finger touches the save button on a phone; `preventDefault` keeps the cursor
+ *   in the text, so the keyboard stays open and I write on after saving.
  * - `beforeunload`: Comes before the page closes or loads again, also for another file of the tree;
  *   `preventDefault` makes the browser ask.
  * - `popstate`: Comes when the back or forward button of the browser changes the address.
@@ -412,6 +414,8 @@ export async function editorStart(): Promise<void> {
         solutionsFold(view);
     iconPut(save, Check, "Save");
     save.addEventListener("click", noteSave);
+    if (phone)
+        save.addEventListener("pointerdown", (event: PointerEvent): void => event.preventDefault());
     save.hidden = view.state.readOnly;
     if (!view.state.readOnly)
         stateShow("");
