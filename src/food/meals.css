@@ -6,16 +6,19 @@
 }
 
 /* Name of a meal with its short title grey in brackets, see `dishNameOf` in `meals.ts`, wherever a meal stands:
-   the brackets one piece beside the name, keeping the space before them, never going below, whatever the brackets
-   of the foods in the same list do, see `bracketsWatch` in `foods.ts`; the name going on below only where it alone
-   has no room, the brackets then left out, see `shortFit` in `meals.ts` */
+   always one line, the brackets one piece beside the name, keeping the space before them, never going below, whatever
+   the brackets of the foods in the same list do, see `bracketsWatch` in `foods.ts`; the name cut with a white …
+   only where it alone has no room, like `Pasta mit Ricotta Tomaten und P…` on a phone, the brackets then left out,
+   see `dishFit` in `meals.ts` */
 .dish-name {
     display: flex;
-    align-items: flex-start;
 }
 
 .dish-name > :first-child {
     min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .dish-name > .food-brand {

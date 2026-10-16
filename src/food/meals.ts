@@ -73,73 +73,100 @@ export function kcalTextOf(kcal: number): string {
 }
 
 /**
- * Puts the short title of a meal into its brackets as far as the line of its name has room, see {@link dishNameOf}:
- * whole where it fits, else cut after the last letter that fits, with `…` right before the closing bracket,
- * like `Chilli con Carne (Tomaten, Hackfl…)`, a comma or space before the cut left out, like `(Tomaten…)`;
- * no brackets where not one letter fits beside the name, like a long name on a phone, which then goes on below.
- * - `fits`: Whether the brackets stand beside the name on its one line.
- * - `cut`: The short title cut after a number of letters, with `…`.
+ * Writes a text cut after a number of letters, with `…` right after the last, a comma or space before the cut
+ * left out, like `Tomaten…` for `Tomaten, Hackfleisch` cut after 8 letters.
+ *
+ * @param text - Text, like `Tomaten, Hackfleisch`
+ * @param letters - Letters it keeps
+ * @returns The text cut
+ */
+function cutOf(text: string, letters: number): string {
+    return `${text.slice(0, letters).replace(/[\s,]+$/, "")}…`;
+}
+
+/**
+ * Writes a text cut after the most letters that fit, see {@link cutOf}, and leaves it so.
  * - `low`, `high`: Fewest and most letters that may fit, closer each time until they meet at the most that fit.
  *
- * @param line - Name of the meal with its brackets
- * @param brackets - Its brackets
- * @param short - Its short title, like `Tomaten, Hackfleisch, Bohnen`
+ * @param text - Text, like `Tomaten, Hackfleisch, Bohnen`
+ * @param put - Writes the text cut where it stands
+ * @param fits - Whether what is written fits
+ * @returns The most letters that fit, 0 where not one does
  */
-function shortFit(line: HTMLElement, brackets: HTMLElement, short: string): void {
-    const fits: () => boolean = (): boolean => line.scrollWidth <= line.clientWidth
-        && (line.firstElementChild as HTMLElement).offsetHeight <= brackets.offsetHeight;
-    const cut: (letters: number) => string = (letters: number): string =>
-        `${short.slice(0, letters).replace(/[\s,]+$/, "")}…`;
-    brackets.hidden = false;
-    brackets.textContent = ` (${short})`;
-    if (fits())
-        return;
+function lettersFit(text: string, put: (cut: string) => void, fits: () => boolean): number {
     let low: number = 0;
-    let high: number = short.length - 1;
+    let high: number = text.length - 1;
     while (low < high) {
         const middle: number = Math.ceil((low + high) / 2);
-        brackets.textContent = ` (${cut(middle)})`;
+        put(cutOf(text, middle));
         if (fits())
             low = middle;
         else
             high = middle - 1;
     }
-    brackets.textContent = ` (${cut(low)})`;
-    brackets.hidden = low === 0 || !fits();
+    put(cutOf(text, low));
+    return low;
+}
+
+/**
+ * Fits the name of a meal and its short title into the one line of its name, see {@link dishNameOf}: both whole
+ * where they fit, else the short title cut after the last letter that fits, with `…` right before the closing
+ * bracket, like `Chilli con Carne (Tomaten, Hac…)`, see {@link lettersFit}; where not one letter fits beside the name,
+ * like a long name on a phone, no brackets, and the name cut the same way with a white `…` where even it alone has
+ * no room, like `Pasta mit Ricotta Tomaten und P…`.
+ * - `fits`: Whether the name stands whole, not cut by the brackets or the end of the line.
+ *
+ * @param name - Name of the meal, white
+ * @param brackets - Its brackets
+ * @param dish - The meal
+ */
+function dishFit(name: HTMLElement, brackets: HTMLElement, dish: Dish): void {
+    const fits: () => boolean = (): boolean => name.scrollWidth <= name.clientWidth;
+    name.textContent = dish.name;
+    brackets.textContent = ` (${dish.short})`;
+    brackets.hidden = dish.short === "";
+    if (fits())
+        return;
+    if (dish.short !== ""
+        && lettersFit(dish.short, (cut: string): void => { brackets.textContent = ` (${cut})`; }, fits) > 0 && fits())
+        return;
+    brackets.hidden = true;
+    if (!fits())
+        lettersFit(dish.name, (cut: string): void => { name.textContent = cut; }, fits);
 }
 
 /**
  * Makes the name of a meal as every list of meals shows it, always on one line: its name, then grey in brackets
  * its short title, as a food has its brand and store in brackets,
- * like `Chilli con Carne (Tomaten, Hackfleisch, Bohnen)`, cut where the line has no room, see {@link shortFit},
+ * like `Chilli con Carne (Tomaten, Hackfleisch, Bohnen)`, cut where the line has no room, see {@link dishFit},
  * again whenever the line gets narrower or wider, and once the font of the page has loaded, which changes the room
  * it takes; a meal without a short title shows its name alone.
- * - `name`: The name with its short title.
- * - `brackets`: Its short title in brackets.
+ * - `line`: The name with its short title.
+ * - `name`: The name itself, white.
+ * - `brackets`: Its short title in brackets, hidden for none.
  * - `width`: Width of the line when last fitted, so a change of its height alone fits nothing.
- * - `fit`: Fits the short title into the line.
+ * - `fit`: Fits name and short title into the line.
  *
  * @param dish - Meal of `Meals.md`
- * @returns The name
+ * @returns The name with its short title
  */
 export function dishNameOf(dish: Dish): HTMLElement {
-    const name: HTMLElement = elementOf("span", "food-name dish-name", "");
-    name.append(elementOf("span", "", dish.name));
-    if (dish.short === "")
-        return name;
+    const line: HTMLElement = elementOf("span", "food-name dish-name", "");
+    const name: HTMLElement = elementOf("span", "", dish.name);
     const brackets: HTMLElement = elementOf("span", "food-brand", "");
-    name.append(brackets);
+    brackets.hidden = dish.short === "";
+    line.append(name, brackets);
     let width: number = -1;
-    const fit: () => void = (): void => shortFit(name, brackets, dish.short);
+    const fit: () => void = (): void => dishFit(name, brackets, dish);
     new ResizeObserver((entries: ResizeObserverEntry[]): void => {
         const now: number = entries[0]?.contentRect.width ?? width;
         if (now === width)
             return;
         width = now;
         fit();
-    }).observe(name);
+    }).observe(line);
     document.fonts.ready.then(fit).catch((error: unknown): void => console.error(error));
-    return name;
+    return line;
 }
 
 /**
