@@ -14,9 +14,8 @@
  * it has one; then what it is about, each of its chapters and documents on a line of its own with a bullet,
  * by the last part of its path, like `02_LogisticPoissonRegression` and `04_LogisticPoissonRegression.pdf`, none
  * for a lecture, whose topic is not known before; a line without anything to say is left out.
- * An open box pushed three times or more asks after its time `smaller or skip?`, like `01h 15m · smaller or skip?`,
- * since a task I keep pushing is often too big or no longer wanted, and a click on it opens it to cut it;
- * no line counts the pushes.
+ * No line counts the pushes or asks about them: a box goes on as often as I push it, and one I no longer want
+ * I skip myself.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
  * and on the day of its deadline always, done or not, and looks like every other box, its deadline in place
  * of its time and how near it is after its length, like `Deadline Fri, 23.10.2026, 12:00 · 02h 00m · in 3 days`;
@@ -377,22 +376,14 @@ function nearOf(box: Box, day: string): string {
 }
 
 /**
- * Pushes after which an open box asks whether to make it smaller or drop it.
- */
-const pushesAsking: number = 3;
-
-/**
  * Writes the parts of the line of the time and length of a box, the second of its three lines,
  * see {@link boxContentOf}, which a middle dot parts,
  * the same whether it is open or done, since the log shows its real time: its own day when it is carried along
  * to a later day, like `Mon, 12.10.2026`, its expected start and end, or its deadline, like
  * `Deadline Fri, 23.10.2026, 12:00`, see {@link deadlineTextOf}, its expected duration where no end shows it,
  * after a deadline or alone, like `01h 15m`, see `lengthOf` in `times.ts`, how near its deadline is while it is open,
- * see {@link nearOf}, and from {@link pushesAsking} pushes on, while it is open, the question `smaller or skip?`,
- * like `01h 15m · smaller or skip?`, never how often it was pushed; a box carried along leaves out how near
- * its deadline is; that a box was cancelled or pushed away shows its mark in the place of its ring,
- * see {@link ringOf}.
- * - `asking`: The question whether to make it smaller or skip it, empty while it does not ask.
+ * see {@link nearOf}, never how often it was pushed; a box carried along leaves out how near its deadline is;
+ * that a box was cancelled or pushed away shows its mark in the place of its ring, see {@link ringOf}.
  * - `near`: How near its deadline is, empty for a box without, one not open, or one carried along.
  * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
  * - `start`: Its expected start, `null` for none.
@@ -405,7 +396,6 @@ const pushesAsking: number = 3;
  * @returns The parts of the line, in order, none when there is nothing to write
  */
 function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
-    const asking: string = box.pushed.length >= pushesAsking && box.state === "open" ? "smaller or skip?" : "";
     const near: string = !nearShown || box.deadline === "" || box.state !== "open" ? "" : nearOf(box, day);
     const over: string = box.state === "open" && box.deadline === "" && box.day < day ? dayTextOf(box.day, true) : "";
     const start: Date | null = box.time === "" ? null : new Date(box.time);
@@ -416,7 +406,7 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
         when = deadlineTextOf(box);
     const length: string =
         box.minutes === null || (start !== null && box.deadline === "") ? "" : lengthOf(box.minutes);
-    return [over, when, length, near, asking].filter((part: string): boolean => part !== "");
+    return [over, when, length, near].filter((part: string): boolean => part !== "");
 }
 
 /**
