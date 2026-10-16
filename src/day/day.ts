@@ -60,7 +60,7 @@ import themePlugin from "fullcalendar/themes/forma";
 import englishLocale from "fullcalendar/locales/en-gb";
 import { entryChange } from "./entries.ts";
 import { categoriesStart, entryOpen, entryOpenEdit, entryOpenNow } from "./categories.ts";
-import { boxesSee, boxesStart, boxReceive, entryPartOf, shownWhatOf, whatOf } from "./boxes.ts";
+import { boxesAgain, boxesSee, boxesStart, boxReceive, entryPartOf, shownWhatOf, whatOf } from "./boxes.ts";
 import { breakableOf } from "./choices.ts";
 import { monthStart } from "./month.ts";
 import { giftsStart } from "./gifts.ts";
@@ -627,6 +627,24 @@ function nowCenter(calendar: Calendar): void {
 }
 
 /**
+ * Loads the shown day again, as it lies in the files now, whenever the page becomes visible, like when I come back
+ * to the app on my phone, see `todayFollow` in `today.ts`: its log, with its trackers, see `eventSourceSuccess`
+ * in {@link dayStart}, its plan and its note; never while a dialog is open or I type in a field, like a point of my
+ * note, so nothing typed gets lost.
+ * - `typing`: Whether the focus stands in a field to type in.
+ *
+ * @param calendar - Calendar of the day
+ */
+function dayAgain(calendar: Calendar): void {
+    const typing: boolean = document.activeElement?.matches("input, textarea, [contenteditable='true']") ?? false;
+    if (typing || document.querySelector("dialog[open]") !== null)
+        return;
+    calendar.refetchEvents();
+    boxesAgain(calendar);
+    dayNoteShow(dayOf(calendar.view.currentStart));
+}
+
+/**
  * Loads the daily note with `import()`, its Markdown renderer with it, starts my gratitude and my points
  * about the day, and shows them for the shown day and from then on for every day shown, see {@link dayShow}.
  * `evening.ts` comes first, since it loads `note.ts` too, which is then at hand at once.
@@ -657,7 +675,7 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * the day in place of the arrows, see `swipe.ts`; it shows the daily note, see
  * {@link noteStart}, and the timer of a session, see `timer.ts`; while it shows today, the day moves on to the new day
  * by itself, now centred again, see `todayFollow` in `today.ts`, and while it shows another day, the icon back
- * to today follows the new day. While the grid scrolls, the lines of every entry fit to the part of it in sight,
+ * to today follows the new day; a day the page stays on when it becomes visible loads again, see {@link dayAgain}. While the grid scrolls, the lines of every entry fit to the part of it in sight,
  * see {@link linesFit}; the calendar catches the scroll on its way down to the grid, `capture`, since it never rises.
  * - `initialView`: A time grid of the shown day, one column, the log.
  * - `headerToolbar`: None, since the date and its buttons stand above plan and log together, see {@link dayShow}.
@@ -821,7 +839,7 @@ export function dayStart(): void {
     todayFollow((): string => dayOf(calendar.view.currentStart), (day: string): void => {
         calendar.gotoDate(day);
         nowCenter(calendar);
-    }, (): void => todayButtonShow(dayOf(calendar.view.currentStart)));
+    }, (): void => todayButtonShow(dayOf(calendar.view.currentStart)), (): void => dayAgain(calendar));
     giftsStart();
     timesStart();
     noteStart(calendar).catch((error: unknown): void => console.error(error));

@@ -798,6 +798,16 @@ export function boxesSee(calendar: Calendar, events: EventApi[]): void {
     if (key === seen)
         return;
     seen = key;
+    boxesAgain(calendar);
+}
+
+/**
+ * Loads the list of the shown day again, as its plan lies in the files now, like when I come back to the page;
+ * says so in the list when the reader cannot answer.
+ *
+ * @param calendar - Calendar of the day
+ */
+export function boxesAgain(calendar: Calendar): void {
     boxesLoad(calendar).catch((error: unknown): void => {
         console.error(error);
         document.getElementById("plan-boxes")?.replaceChildren(entryPartOf("p", "plan-none", ["The plan cannot be read"]));
