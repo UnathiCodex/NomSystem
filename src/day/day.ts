@@ -82,6 +82,7 @@ import "fullcalendar/themes/forma/theme.css";
 import "./day.css";
 import "./search.css";
 import "./month.css";
+import "./trackers.css";
 
 import type {
     DateSelectInfo, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,

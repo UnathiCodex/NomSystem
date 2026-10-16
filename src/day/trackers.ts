@@ -163,7 +163,7 @@ const neckShown: boolean = false;
 
 
 /**
- * Makes the check of a goal met, small and grey, see the class `tracker-check` in `day.css`.
+ * Makes the check of a goal met, small and grey, see the class `tracker-check` in `trackers.css`.
  *
  * @returns Icon of the check
  */
@@ -208,7 +208,7 @@ async function glassAdd(calendar: Calendar): Promise<void> {
 
 /**
  * Makes the name and the value of a tracker, its name small and grey above its value, like `Sleep` over `07h 30m`,
- * see `.tracker-row` in `day.css`.
+ * see `.tracker-row` in `trackers.css`.
  *
  * @param name - Name of the tracker, like `Sleep`
  * @param value - Its value as shown, like `07h 30m`
