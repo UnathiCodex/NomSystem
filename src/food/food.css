@@ -43,69 +43,20 @@ body:has(> .food) {
     min-height: 100dvh;
 }
 
-/* Bar of the day as the day has it: the date between its arrows at the left end, the icon back to today beside it */
+/* Bar of the day as the day has it, see `.day-bar` in `../base.css`, over the whole width */
 .food-bar {
-    display: flex;
     flex: 1 1 100%;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--control-gap);
 }
 
-/* Arrows one control high and square, outlined, a grey lighter under the pointer */
-.food-arrow {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: var(--control-height);
-    min-height: var(--control-height);
-    padding: 0;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--background);
-    cursor: pointer;
-}
-
-.food-arrow:hover {
-    background: var(--fill);
-}
-
-/* Weekday and date in the size of the day's date, light, on one line, a comma between them, every digit equally wide;
-   as wide as the widest, like `Mon, 19.10.2026`, its text in the middle, as the date of the day, see `#day-title`
-   in `day/day.css`, so the arrow after it stays in place from day to day and stands where the day has it */
+/* The date on one line, every digit equally wide, as wide as the widest, like `Mon, 19.10.2026`, its text
+   in the middle, as the date of the day, see `#day-title` in `day/day.css`, so the arrow after it stays in place
+   from day to day and stands where the day has it */
 .food-day-title {
     min-width: 9.25em;
-    margin: 0;
     white-space: nowrap;
     padding: 0.25rem var(--control-gap);
-    font-size: 1.25rem;
-    font-weight: 400;
     font-variant-numeric: tabular-nums;
     text-align: center;
-}
-
-.food-weekday::after {
-    content: ",";
-}
-
-/* Icon back to today beside the date: small, without frame, grey, lighter under the pointer; on today faded and off */
-.food-today {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem;
-    border: 0;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-}
-
-.food-today:enabled:hover {
-    color: var(--text-main);
-}
-
-.food-today:disabled {
-    opacity: 0.4;
-    cursor: default;
 }
 
 /* Name of my meals and of my foods, in the text of controls, the one plus right after it, which adds one,
@@ -248,56 +199,10 @@ body:has(> .food) {
         padding: var(--gap);
     }
 
-    /* The bar of the day on a phone as the day has it there, see `day/day.css`: the arrows at the edges of the screen,
-       plain, without frame, the date in the middle, the weekday small and grey above it, like `Wed` over
-       `14.10.2026`, and the icon back to today right beside the date, taking no room of the bar, so the date stays
-       in the middle */
-    .food-bar {
-        flex-wrap: nowrap;
-        justify-content: space-between;
-    }
-
-    .food-arrow {
-        border-color: transparent;
-        background: none;
-    }
-
+    /* The date of the bar on a phone only as wide as itself, as on the day, see `.day-bar` in `../base.css` */
     .food-day-title {
         min-width: 0;
-        font-size: 1.0625rem;
-        line-height: 1.2;
-        anchor-name: --food-date;
-    }
-
-    .food-weekday,
-    #food-date {
-        display: block;
-    }
-
-    .food-weekday {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-    }
-
-    .food-weekday::after {
-        content: none;
-    }
-
-    .food-today {
-        position: absolute;
-        position-anchor: --food-date;
-        top: anchor(center);
-        left: anchor(right);
-        min-height: var(--control-height);
-        translate: 0 -50%;
-    }
-
-    /* The icon back to today on a phone a finger wide to hit, its tap reaching 0.625rem right of it, where nothing
-       stands, never over the date at its left; as on the day, see `day/day.css` */
-    .food-today::after {
-        content: "";
-        position: absolute;
-        inset: 0 -0.625rem 0 0;
+        anchor-name: --day-date;
     }
 
     /* The start of an entry on a phone, which leads to its day, as it looks, but a finger's width to hit, taking a tap

@@ -54,63 +54,12 @@
     border-color: var(--chosen-line);
 }
 
-/* Bar of the day over the whole width, see `.day-nav` */
-.day-bar {
-    display: flex;
-    grid-column: 1 / -1;
-    align-items: center;
-}
-
-/* Bar of the day: the date with the arrows left and right of it at its left end, above the plan, the icon back
-   to today beside the date; the trackers at its right end, above the log; where the bar has no room for all,
-   as on a small laptop, the trackers go onto a line below, never over the edge */
+/* Bar of the day over the whole width, see `.day-bar` in `../base.css`: the date with the arrows left and right of it
+   at its left end, above the plan, the icon back to today beside the date; the trackers at its right end, above
+   the log; where the bar has no room for all, as on a small laptop, the trackers go onto a line below, never over
+   the edge */
 .day-nav {
-    flex-wrap: wrap;
-    gap: var(--control-gap);
-}
-
-/* Weekday and date of the day on one line, a comma between them, see `dayShow` in `day.ts` */
-.day-weekday::after {
-    content: ",";
-}
-
-/* Icon back to today beside the date: small, without frame, grey, lighter under the pointer; on today faded
-   and off, so the bar looks the same on every day, see `day.ts` */
-.day-today {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem;
-    border: 0;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-}
-
-.day-today:enabled:hover {
-    color: var(--text-main);
-}
-
-.day-today:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-
-/* Arrows of the bar square, one control high with round corners, a grey lighter under the pointer */
-.day-arrow {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: var(--control-height);
-    min-height: var(--control-height);
-    padding: 0;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--background);
-    cursor: pointer;
-}
-
-.day-arrow:hover {
-    background: var(--fill);
+    grid-column: 1 / -1;
 }
 
 /* Plan and log, each its name above it, bold as the names of my meals and foods in the food view, with the one plus
@@ -444,12 +393,6 @@ button.box-ring.box-checked svg {
     --fc-forma-strong: color-mix(in oklab, var(--text-main) 10%, transparent);
     --fc-forma-stronger: color-mix(in oklab, var(--text-main) 14%, transparent);
     --fc-forma-strongest: color-mix(in oklab, var(--text-main) 18%, transparent);
-}
-
-/* Date of the day above plan and log, and the month to pick a day from, in the size of the calendar's title, light */
-.day-title {
-    font-size: 1.25rem;
-    font-weight: 400;
 }
 
 /* Date of the day as a button, which opens the month to pick a day from: no frame, a grey under the pointer,
@@ -1977,63 +1920,17 @@ svg.route-arrow {
         border-radius: 50%;
     }
 
-    /* The bar of the day on a phone: the arrows at the edges of the screen, plain, without frame, and the date
-       in the middle, the weekday small and grey above it, like `Tue` over `13.10.2026`; below them the trackers
-       and the timer of a session, each over the whole width */
+    /* The bar of the day on a phone as every bar of a day there, see `.day-bar` in `../base.css`, its date, the button
+       that opens the month, only as wide as itself, and below it the trackers and the timer of a session, each over
+       the whole width */
     .day-nav {
-        justify-content: space-between;
+        flex-wrap: wrap;
         row-gap: 0.5rem;
     }
 
-    .day-nav .day-arrow {
-        border-color: transparent;
-        background: none;
-    }
-
-    /* The date on a phone only as wide as itself, since the arrows stand at the edges, so the bar never grows wider
-       than the screen; it stands in the middle of the screen, between the arrows, and the icon back to today stands
-       right beside it without taking room of the bar, so it never pushes the date off the middle: placed
-       at the right of the date, level with its middle, see `anchor-name`; one control high, so a thumb hits it */
     #day-title {
         min-width: 0;
         anchor-name: --day-date;
-    }
-
-    .day-nav .day-today {
-        position: absolute;
-        position-anchor: --day-date;
-        top: anchor(center);
-        left: anchor(right);
-        min-height: var(--control-height);
-        translate: 0 -50%;
-    }
-
-    /* The icon back to today on a phone a finger wide to hit, its tap reaching 0.625rem right of it, where nothing
-       stands, never over the date at its left, which opens the month */
-    .day-nav .day-today::after {
-        content: "";
-        position: absolute;
-        inset: 0 -0.625rem 0 0;
-    }
-
-    .day-nav .day-title {
-        text-align: center;
-        font-size: 1.0625rem;
-        line-height: 1.2;
-    }
-
-    .day-weekday,
-    .day-date {
-        display: block;
-    }
-
-    .day-weekday {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-    }
-
-    .day-weekday::after {
-        content: none;
     }
 
     /* The trackers on a phone on a line of their own below the date, side by side over the whole width, Sleep and Water

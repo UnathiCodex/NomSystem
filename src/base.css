@@ -155,6 +155,65 @@ body {
     color: var(--text-main);
 }
 
+/* The bar of a day, in the day and in the food view alike, see `day/day.html` and `food/food.html`: the date
+   between its arrows, the icon back to today beside it, in one line, a control gap apart, going on below where
+   the bar has no room for all, never over the edge; the arrows square, one control high with round corners, outlined,
+   a grey lighter under the pointer; the date in the size of the calendar's title, light, the weekday before it with
+   a comma, like `Tue, 13.10.2026`, see `dayShow` in `day/day.ts`, its width and room set by its view; the icon back
+   to today small, without frame, grey, lighter under the pointer, on today faded and off, so the bar looks the same
+   on every day. The month to pick a day from takes the size of its date too, see `day/month.html` */
+.day-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--control-gap);
+}
+
+.day-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--control-height);
+    min-height: var(--control-height);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+    cursor: pointer;
+}
+
+.day-arrow:hover {
+    background: var(--fill);
+}
+
+.day-title {
+    font-size: 1.25rem;
+    font-weight: 400;
+}
+
+.day-weekday::after {
+    content: ",";
+}
+
+.day-today {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.day-today:enabled:hover {
+    color: var(--text-main);
+}
+
+.day-today:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
 /* A small button one chip high and as wide, with an icon in place of its word, which is its tooltip, the same
    everywhere: every + that adds a box or an entry of the day, and the − and + of the water; square with slightly
    round corners, flat, outlined, a grey lighter under the pointer, faded while it cannot be used */
@@ -354,6 +413,56 @@ h3 {
     .areas a {
         flex: 1;
         width: auto;
+    }
+
+    /* The bar of a day on a phone: the arrows at the edges of the screen, plain, without frame, the date in the middle,
+       the weekday small and grey above it, like `Tue` over `13.10.2026`, and the icon back to today right beside it
+       without taking room of the bar, so it never pushes the date off the middle: placed at the right of the date,
+       which each view names `--day-date`, level with its middle, one control high, so a thumb hits it, its tap
+       reaching 0.625rem right of it, where nothing stands, never over the date at its left */
+    .day-bar {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+    }
+
+    .day-arrow {
+        border-color: transparent;
+        background: none;
+    }
+
+    .day-bar .day-title {
+        text-align: center;
+        font-size: 1.0625rem;
+        line-height: 1.2;
+    }
+
+    .day-weekday,
+    .day-date {
+        display: block;
+    }
+
+    .day-weekday {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .day-weekday::after {
+        content: none;
+    }
+
+    .day-today {
+        position: absolute;
+        position-anchor: --day-date;
+        top: anchor(center);
+        left: anchor(right);
+        min-height: var(--control-height);
+        translate: 0 -50%;
+    }
+
+    .day-today::after {
+        content: "";
+        position: absolute;
+        inset: 0 -0.625rem 0 0;
     }
 
     /* A small control on a phone as small and quiet as it looks, but a finger's width to hit: it takes a tap `--tap`

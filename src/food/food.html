@@ -2,11 +2,12 @@
      with the search that also finds them on Open Food Facts -->
 <div class="food">
     <!-- The date of the shown day between its arrows, a small icon beside it back to today, faded and off on today -->
-    <div class="food-bar">
-        <button class="food-arrow" id="food-before" type="button"></button>
-        <h2 class="food-day-title"><span class="food-weekday" id="food-weekday"></span> <span id="food-date"></span></h2>
-        <button class="food-today" id="food-today" type="button" disabled></button>
-        <button class="food-arrow" id="food-after" type="button"></button>
+    <div class="day-bar food-bar">
+        <button class="day-arrow" id="food-before" type="button"></button>
+        <h2 class="day-title food-day-title"><span class="day-weekday" id="food-weekday"></span> <span class="day-date"
+            id="food-date"></span></h2>
+        <button class="day-today" id="food-today" type="button" disabled></button>
+        <button class="day-arrow" id="food-after" type="button"></button>
     </div>
 
     <!-- Day: its totals, then its meals from the log, each with its foods -->
