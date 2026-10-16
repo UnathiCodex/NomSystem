@@ -1660,6 +1660,19 @@ function deadlineSee(): void {
 }
 
 /**
+ * Marks the row of the deadline empty while neither its day nor its time holds anything, so a phone shows it one line
+ * high, its empty fields beside its name, as every empty row, see `.entry-deadline-empty` in `day.css`; looked at
+ * when the dialog opens and when I leave one of its fields, never while I type, so the row never changes under
+ * my finger.
+ * - `row`: The row of the deadline.
+ */
+function deadlineEmptyShow(): void {
+    const row: HTMLElement = document.getElementById("entry-deadline") as HTMLElement;
+    row.classList.toggle("entry-deadline-empty", [...row.querySelectorAll("input")]
+        .every((field: HTMLInputElement): boolean => field.value.trim() === ""));
+}
+
+/**
  * Shows the times of the dialog, the same for an entry of the log and a box of the plan: the day and the time
  * of the start and of the end, and for a box its deadline, hidden and disabled for an entry of the log,
  * so the browser checks only the times shown before it sends the form. The day of the start is the calendar date
@@ -1707,6 +1720,7 @@ function timesShow(opening: EntryOpening): void {
     timeFieldShow(document.getElementById("entry-deadline-time") as HTMLInputElement,
         deadline === "" || deadline === opening.box?.day ? null : new Date(deadline));
     deadlineSee();
+    deadlineEmptyShow();
 }
 
 /**
@@ -2027,8 +2041,10 @@ export function categoriesStart(calendar: Calendar): void {
         if (opened.plan !== null)
             boxOpenEdit(opened.plan).catch(errorShow);
     });
-    ["entry-deadline-day", "entry-deadline-time"].forEach((id: string): void =>
-        document.getElementById(id)?.addEventListener("input", deadlineSee));
+    ["entry-deadline-day", "entry-deadline-time"].forEach((id: string): void => {
+        document.getElementById(id)?.addEventListener("input", deadlineSee);
+        document.getElementById(id)?.addEventListener("change", deadlineEmptyShow);
+    });
     ["entry-start-day", "entry-start", "entry-end"].forEach((id: string): void =>
         document.getElementById(id)?.addEventListener("input", endDayFill));
     document.getElementById("entry-start")?.addEventListener("change", endFill);

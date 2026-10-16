@@ -2389,8 +2389,10 @@ svg.route-arrow {
 
     /* A row of a dialog on a phone whose list has no value yet, like With or an empty Summary, one line high,
        its empty value beside its name in place of a line of its own below it, so a tap on the line still opens its
-       list; the note one line high while empty, growing with its text, see `#entry-note` */
-    .panel-field:has(> .picker > .picker-head > .picker-line.picker-empty:first-child) {
+       list; so is the deadline of a box while it has none, see `deadlineEmptyShow` in `categories.ts`; the note
+       one line high while empty, growing with its text, see `#entry-note` */
+    .panel-field:has(> .picker > .picker-head > .picker-line.picker-empty:first-child),
+    .panel-field.entry-deadline-empty {
         grid-template-columns: auto minmax(0, 1fr);
     }
 
