@@ -1,6 +1,7 @@
-/* Sizes include padding and border */
+/* Sizes include padding and border; a tap on a phone draws no box of the browser's blue over what it hits */
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Scrollbars thin and calm, so they hardly show, like the one of the log: in Chrome a bar 6 px wide, its thumb
@@ -192,8 +193,10 @@ body {
     font-weight: 400;
 }
 
+/* The date of the bar on the computer in the size of the calendar's title, so the timer of a session beside it keeps
+   its room, also on the laptop */
 .day-bar .day-title {
-    font-size: 1.375rem;
+    font-size: 1.25rem;
     font-weight: 600;
     line-height: 1.1;
 }
@@ -404,10 +407,15 @@ h3 {
         display: none;
     }
 
-    /* The bar of a day on a phone: the date at the left, and the icon back to today at the right end, one control
-       square, so a thumb hits it; no arrows, since a swipe sideways changes the day, see `day/swipe.ts` */
+    /* The bar of a day on a phone: the date at the left, a step bigger than on the computer, since no timer stands
+       beside it, and the icon back to today at the right end, one control square, so a thumb hits it; no arrows,
+       since a swipe sideways changes the day, see `day/swipe.ts` */
     .day-bar {
         flex-wrap: nowrap;
+    }
+
+    .day-bar .day-title {
+        font-size: 1.375rem;
     }
 
     .day-arrow {
