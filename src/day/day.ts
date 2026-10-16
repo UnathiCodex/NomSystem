@@ -86,6 +86,7 @@ import "./trackers.css";
 import "./boxes.css";
 import "./note.css";
 import "./meal.css";
+import "./log.css";
 
 import type {
     DateSelectInfo, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,
@@ -96,7 +97,7 @@ import type { EntryFields } from "./entries.ts";
 
 /**
  * Minutes of the time grid one line of a taller entry fills: half an hour of the grid is 2rem high, twice the margin
- * and once the line of an hour label, see `.slot-label` in `day.css`, and a line of a taller entry 1.05rem,
+ * and once the line of an hour label, see `.slot-label` in `log.css`, and a line of a taller entry 1.05rem,
  * its text of 0.75rem at a line height of 1.4, see `.entry-inner`; so a line fills 15.75 minutes,
  * and the space of 0.5rem above its first line and 0.25rem below its last, 0.75rem, fills 11.25 minutes,
  * see {@link linesOf}; a short one, as low as `eventShortHeight` in {@link dayStart} or lower, has no space above
@@ -113,7 +114,7 @@ const edgeMinutes: number = 3;
 
 /**
  * Minutes of the time grid one line of an entry fills on a phone: every entry there writes its lines at the line height
- * of a short one, 0.9rem, see `.entry-inner` at the end of `day.css`, and half an hour of the grid is 2rem high,
+ * of a short one, 0.9rem, see `.entry-inner` at the end of `log.css`, and half an hour of the grid is 2rem high,
  * so a line fills 13.5 minutes; so half an hour holds two lines, 45 minutes three and an hour four, see
  * {@link phoneLinesOf}, where the line of the computer, see {@link lineMinutes}, gave them one, two and two.
  */
@@ -127,7 +128,7 @@ const phoneEdgeMinutes: { [kind in "short" | "other"]: number } = { short: 5 / 3
 
 /**
  * Minutes of the time grid the space above and below the lines of a taller entry fills on a phone, 0.375rem above
- * and 0.25rem below them, see `.entry-inner` at the end of `day.css`, see {@link phoneLinesOf}.
+ * and 0.25rem below them, see `.entry-inner` at the end of `log.css`, see {@link phoneLinesOf}.
  */
 const phoneSpaceMinutes: number = 9.375;
 
@@ -147,7 +148,7 @@ const gridHours: number = 24;
  * Event source of the log of the reader. FullCalendar adds `start` and `end` of the shown day to the address,
  * and takes the field `editable` of each entry, so only entries that can be changed are dragged.
  * - `eventDataTransform`: Lets the entries that can be changed react to a click, see {@link entryClick};
- *   a glass of water shows as a background entry of the class `glass-mark`, which `day.css` draws as a small mark.
+ *   a glass of water shows as a background entry of the class `glass-mark`, which `log.css` draws as a small mark.
  *
  * @returns Event source for FullCalendar
  */
@@ -511,7 +512,7 @@ function selectionIs(info: EventDisplayInfo): boolean {
  * Every entry shows its place by its label alone, its address hidden, a way its route, see `whereOf` in `places.ts`;
  * a place with a link opens it on a click, see `whereLinkedOf`.
  * What is never cut and the time never cut; only the place gives way where a line is too narrow,
- * cut with an ellipsis, see `day.css`.
+ * cut with an ellipsis, see `log.css`.
  * The range being selected shows only its start and end,
  * like `15:00 – 16:00`, see {@link selectionIs}.
  * - An entry with room for one line, of a quarter hour or half an hour, see {@link linesOf}, shows what,
@@ -528,10 +529,10 @@ function selectionIs(info: EventDisplayInfo): boolean {
  *   no place line when it has none, no note when it has none or no whole line is left.
  * On a phone an entry has a line more than on the computer from half an hour on, see {@link phoneLinesOf}, so what
  * a short one is goes on over its second line, and a place never ends in an ellipsis beside the time: with too little
- * room it moves whole onto the next line, shown where the entry has room for it, see `.entry-beside` in `day.css`.
+ * room it moves whole onto the next line, shown where the entry has room for it, see `.entry-beside` in `log.css`.
  * Where what is wider than the entry, as on a phone, it takes a line more, broken where a word ends or, for a long name
  * like `IN0004_EinfuehrungRechnerarchitektur`, where its parts meet, see {@link breakableOf}; the lines below then
- * move down, and those the entry has no more room for stay hidden, see `.entry-lines` in `day.css`.
+ * move down, and those the entry has no more room for stay hidden, see `.entry-lines` in `log.css`.
  * - `category`: Category of the entry, empty for an entry without one.
  * - `shownWhat`: What the entry was, a skill entry as its file writes it, like
  *   `IN0004_EinfuehrungRechnerarchitektur (VO)`, see `shownWhatOf` in `boxes.ts`.
@@ -549,9 +550,9 @@ function selectionIs(info: EventDisplayInfo): boolean {
  * - `whole`: What on its own lines, where its long names may break, see {@link breakableOf}.
  * - `shown`: The lines of the entry, which `.entry-lines` holds to the lines it has room for.
  * - `line`: The one line of an entry with room for one: what, its time and its place, in parts beside each other,
- *   see `.entry-line` in `day.css`.
+ *   see `.entry-line` in `log.css`.
  * - `timeLine`: The line with the time, alone or with its place beside it.
- * - `below`: The note below the lines shown, grey, its line clamp the lines left, see `.entry-note` in `day.css`.
+ * - `below`: The note below the lines shown, grey, its line clamp the lines left, see `.entry-note` in `log.css`.
  * - `content`: All lines, as high as the lines the entry has room for, so a line moved down by what taking two lines
  *   is hidden as a whole and never shows cut in half at the bottom of the entry; how many in `data-lines`,
  *   fitted to the part of the entry in sight once it is on the page, see {@link linesFit}.
@@ -612,7 +613,7 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
 
 /**
  * Fits the lines of an entry to the part of it in sight: scrolled partly out of sight at the top, an entry keeps
- * its lines 0.5rem below the top of the grid, as `.entry-lines` in `day.css` makes them stick, and those its rest
+ * its lines 0.5rem below the top of the grid, as `.entry-lines` in `log.css` makes them stick, and those its rest
  * has no more room for, less the space below them, hide as a whole from the bottom, so no line is ever cut
  * at the top and `Sleep: Night` stays in sight the longest; an entry in sight keeps the lines it has room for;
  * lines no longer on the page, like those of the copy FullCalendar draws while an entry is dragged, stay as they are.
@@ -775,23 +776,23 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `dayHeaders`: Leaves out the name of the day above the column, which the date above says already.
  * - `allDaySlot`: Leaves out the row of the whole day above the grid, since no entry of my log lasts a whole day.
  * - `slotHeaderInnerClass`: Adds the class `slot-label` to the hour labels,
- *   so `day.css` sets their size and with it the height of the slots.
+ *   so `log.css` sets their size and with it the height of the slots.
  * - `slotHeaderFormat`: Writes the hours in 24-hour form, like `14:00`; the entries write their times themselves.
  * - `eventContent`: Shows what an entry was, then its time and its place, see {@link entryContentOf}.
  * - `eventShortHeight`: Makes entries short that have no room for one line with the space above and below it,
  *   as high as 39 px in the grid or lower at the page's root size of 20 px: such a line needs 36 px, 0.5rem above,
- *   a line of 1.05rem and 0.25rem below, see `.entry-inner` in `day.css`, and the inside of an entry is 3 px lower
+ *   a line of 1.05rem and 0.25rem below, see `.entry-inner` in `log.css`, and the inside of an entry is 3 px lower
  *   than its place in the grid; so they show their one line without that space, like an entry of a quarter hour;
  *   one of half an hour, 41 px, is taller and shows its one line with it, see {@link entryContentOf}.
  * - `eventMinHeight`: Makes every entry at least as high as a quarter hour, 20 px, one line of an entry with its edge,
  *   so a shorter one, like ten minutes of my neck routine, still shows its line whole.
  * - `eventColor`: Edges the entries in the grey of the log from `variants.css`.
  * - `blockEventClass`: Adds the class `entry` to the entries,
- *   so `day.css` fills them in grey and only their edge keeps the grey of the log,
+ *   so `log.css` fills them in grey and only their edge keeps the grey of the log,
  *   and `entry-selection` to the range being selected, see {@link selectionIs}, which it fills in the calm grey
  *   of what is picked.
  * - `blockEventInnerClass`: Adds the class `entry-inner` to the inside of the entries,
- *   so `day.css` sets the size of their lines and cuts them at the edge of the entry instead of letting them stick out,
+ *   so `log.css` sets the size of their lines and cuts them at the edge of the entry instead of letting them stick out,
  *   and `entry-inner-short` to the inside of short ones, which takes away the space above and below their one line
  *   and keeps it 0.9rem high, and `entry-inner-middle` to the inside of those with room for one line or two,
  *   of half an hour to an hour, on a phone for fewer than four lines with space, which centres their lines
@@ -825,13 +826,13 @@ async function noteStart(calendar: Calendar): Promise<void> {
  *   Calendar, on a computer and on a phone alike, so the longer one keeps its text at its left, like a workshop
  *   with `Food: Pizza Salami` during it.
  * - `nowIndicatorLineClass`, `nowIndicatorDotClass`: Add the classes `now-line` and `now-dot` to the line of now
- *   and its dot, so `day.css` draws them calm grey behind the entries, never through their text.
+ *   and its dot, so `log.css` draws them calm grey behind the entries, never through their text.
  * - `slotMinTime`, `slotMaxTime`: Run the grid over the calendar day, 00:00 to 24:00, as the trackers and the done
  *   boxes count it; an entry past midnight shows on both days, cut at midnight.
  * - `scrollTime`: Scrolls the grid to 06:00 at the start, for a day that does not hold now; today centres on now instead, see {@link nowCenter}.
  *
  * The theme keeps its own classes beside `slot-label`, `entry`, `entry-inner` and the others;
- * `day.css` wins because it comes after the theme's stylesheet.
+ * `log.css` wins because it comes after the theme's stylesheet.
  */
 export function dayStart(): void {
     const calendar: Calendar = new Calendar(document.getElementById("day-calendar") as HTMLElement, {

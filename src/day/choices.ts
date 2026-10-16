@@ -39,8 +39,8 @@ import { matchesAll, searchTextOf, wordsOf } from "../search.ts";
  * Marks where a long name may go on over a next line, where it is wider than its room, as on a phone, in the line
  * of a field and in an entry or a box of the day: after each `_` and between a small and a capital letter, so
  * `IN0004_EinfuehrungRechnerarchitektur (VO)` breaks into `IN0004_Einfuehrung` and `Rechnerarchitektur (VO)`
- * instead of right after `Skill:` and within a word, see `.entry-whole`, `.box-what` and `.picker-line` in `day.css`;
- * the mark is a space of no width, U+200B, which shows nothing.
+ * instead of right after `Skill:` and within a word, see `.entry-whole` in `log.css`, `.box-what` and `.picker-line`
+ * in `day.css`; the mark is a space of no width, U+200B, which shows nothing.
  *
  * @param text - Text with a long name, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
  * @returns The same text with the marks

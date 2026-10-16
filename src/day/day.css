@@ -102,7 +102,7 @@
 
 /* Calendar in the greys of the page, its text in the size of the page, which the theme sets in px;
    the month to pick a day from in the same greys; a range being selected shows as an entry in front of the others,
-   see `.entry-selection`, so the theme's grey for it, which lay behind the entries, stays transparent */
+   see `.entry-selection` in `log.css`, so the theme's grey for it, which lay behind the entries, stays transparent */
 .day-calendar {
     flex: 1;
     min-height: 0;
@@ -149,89 +149,6 @@
 #day-title {
     min-width: 9.25em;
     font-variant-numeric: tabular-nums;
-}
-
-/* Hour labels of the time grid, their margin sets the height of every slot */
-.slot-label {
-    margin: var(--slot-margin) 0.5rem;
-    font-size: 0.75rem;
-    line-height: 1rem;
-}
-
-/* Entries a grey lighter than the fill of the page, their edge in the grey of the log, 4px apart, so two entries
-   one right after the other, like a skill from 10:00 to 10:30 and a way from 10:30, stand apart at a glance */
-.entry {
-    margin-bottom: 4px;
-    background-color: color-mix(in oklab, var(--fill) 95%, var(--text-main));
-}
-
-/* A short entry, of a quarter hour, and a glass of water keep the theme's 1px below them, since 4px would cut
-   the one line of a short entry and shrink the mark of a glass */
-.entry:has(.entry-inner-short),
-.entry.glass-mark {
-    margin-bottom: 1px;
-}
-
-/* Under a pointer that hovers, an entry turns only a little lighter, in place of the theme's bright grey,
-   fading in over 150 ms after 100 ms, so passing over entries stays calm, and back over 150 ms as soon as
-   the pointer leaves; `.entry:hover` wins over the theme's rule, being as exact and coming after it */
-@media (hover: hover) {
-    .entry {
-        transition: background-color 150ms;
-    }
-
-    .entry:hover {
-        background-color: color-mix(in oklab, var(--fill) 89%, var(--text-main));
-        transition: background-color 150ms 100ms;
-    }
-}
-
-/* The range being selected, drawn as an entry in front of the others, see `selectMirror` in `day.ts`: in the calm grey
-   of what is picked, so it stands out over an entry it lies on, like 15:00 to 16:00 over a workshop from 13:00
-   to 18:45; also under the pointer, being as exact as `.entry:hover` and coming after it */
-.entry.entry-selection {
-    background-color: var(--chosen);
-}
-
-/* Entries of the time grid end 1rem before the right edge of the column, as in Google Calendar, so beside each one
-   a free strip stays to select a new entry, like Sleep from 23:00 ending 1rem left of the glass marks;
-   the theme ends them 2.5 % before it, 1 px in a narrow column. The theme puts that margin on the layer
-   of the entries and on the layer of an entry being dragged or of a range being selected, each a child of the column
-   and the parent of the parent of an entry; the glass marks lie beside these layers and keep the edge */
-.day-calendar [role="gridcell"] > :has(> * > .entry) {
-    margin-inline-end: 1rem;
-}
-
-/* Glass of water in the log column: no block, a short grey tick at the right edge, at the time of the glass,
-   without the words of its entry */
-.glass-mark {
-    inset-inline-start: auto !important;
-    width: 0.5rem;
-    border-radius: 999px;
-    background: var(--text-muted) !important;
-    opacity: 0.6;
-}
-
-.glass-mark > * {
-    display: none;
-}
-
-/* Line of now and its dot in the calm grey of the times, behind the entries, so the line never runs through
-   their text and shows between them: their layer, the parent of the line, below the layer of the entries.
-   The dot, 12 px wide in the theme and centred on the left edge of the column, moves left by half its width more,
-   into the gap before the column, where no entry covers it; `.day-calendar .now-line` wins over the theme's grey
-   and margin, being more exact */
-.day-calendar :has(> .now-line) {
-    z-index: 0;
-}
-
-.day-calendar .now-line,
-.day-calendar .now-dot {
-    border-color: var(--text-muted);
-}
-
-.day-calendar .now-dot {
-    margin-inline-start: -12px;
 }
 
 /* A list of points of the note framed like a box of the plan, both lists equally high, scrolling alone when longer
@@ -956,147 +873,13 @@ fieldset.entry-times {
     color: var(--text-muted);
 }
 
-/* Inside of an entry: all its lines in one size, as in Google Calendar, its text 0.75rem, 0.75rem left of its lines
-   and 0.5rem right of them; its lines cut at the edge of the entry, so text never sticks out, by `clip`,
-   which scrolls nothing, so its lines can stay in sight, see `.entry-lines`.
-   A taller entry, like an hour of sleep, keeps 0.5rem above its first line and 0.25rem below its last,
-   and its lines stand apart, each 1.05rem high at a line height of 1.4, 15.75 minutes of the time grid,
-   see `lineMinutes` in `day.ts`; a short one keeps no space above and below its one line, 0.9rem high
-   at a line height of 1.2, so a quarter hour, 1rem high, holds it */
-.entry-inner {
-    overflow: clip;
-    padding-block: 0.5rem 0.25rem;
-    padding-inline: 0.75rem 0.5rem;
-    font-size: 0.75rem;
-    line-height: 1.4;
-}
-
-.entry-inner-short {
-    padding-block: 0;
-    line-height: 1.2;
-}
-
-/* Inside of an entry with room for one line or two, of half an hour to an hour: its lines centred in the entry,
-   without the space above and below them, so the line of half an hour stands in its middle; `safe` keeps a what
-   taking a line more at the top, its last line hidden below */
-.entry-inner-middle {
-    display: flex;
-    flex-direction: column;
-    justify-content: safe center;
-    padding-block: 0;
-}
-
-/* All lines of an entry, as high as the lines it has room for, which `day.ts` sets in units of a line: a line moved
-   down by what taking a line more, like a long skill on a phone, hides as a whole, never cut in half at the bottom.
-   An entry scrolled partly out of sight at the top keeps its lines in sight, 0.5rem below the top of the grid,
-   as far as the entry reaches, so a night from 01:45, scrolled to 06:00, still says `Sleep: Night`; those its rest
-   has no more room for hide as a whole from the bottom, see `linesFit` in `day.ts`, so none is ever cut at the top */
-.entry-lines {
-    position: sticky;
-    top: 0.5rem;
-    overflow: hidden;
-}
-
-/* One line in parts, alone in an entry of a quarter hour or half an hour: what, then the time, then the place,
-   parted by a middle dot, like `Skill: WI1059 (HU) · 05:15 – 05:45 · Home Munich`; what and the time keep
-   their width and only the place gives way, cut with an ellipsis; where what and the time are wider than the entry,
-   the time moves onto a next line, which `.entry-lines` hides, so what stays whole; also the line of the time
-   and the place of an entry of 45 minutes, like `16:00 – 16:45 · Home Munich` */
-.entry-line {
-    display: flex;
-    flex-wrap: wrap;
-    min-width: 0;
-    white-space: nowrap;
-}
-
-/* What on the one line of an entry, as wide as its text; only what wider than the whole entry ends with an ellipsis */
-.entry-what {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* What on its own line on top of an entry with room for two lines or more, never cut: where it is wider than the entry,
-   it goes on over a line more, broken where a word ends, where the parts of a long name meet, like `IN0004_Einfuehrung`
-   and `Rechnerarchitektur`, see `breakableOf` in `choices.ts`, or within a part still too long */
-.entry-whole {
-    overflow-wrap: anywhere;
-}
-
-/* Note of a taller entry below its line, grey like the time, wrapped over the lines left, which `day.ts` sets
-   as its line clamp, and ended with an ellipsis where it is cut, like two lines of the note of an hour */
-.entry-note {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    white-space: normal;
-    color: var(--text-muted);
-}
-
-/* First line of an entry or a box in bold as a whole, category and what, so the log and the boxes scan fast,
-   in the size of the rest */
-.entry-heading {
-    font-weight: 700;
-}
-
-/* Time in normal weight and the one grey of the page, never cut:
-   after what on one line, like `· 05:15 – 05:45`, or on a line of its own, like `20:00 – 23:45`, as wide
-   as its text; only an entry narrower than the time alone, beside others in a narrow column, ends it
-   with an ellipsis */
-.entry-time {
-    flex: none;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    color: var(--text-muted);
-}
-
-/* Place of an entry, in the grey of the time, like `Home Munich`: beside the time, see `.entry-beside`,
-   or with room for three lines on the third, below the time and above the note, going on over the lines below
-   where it is wider than the entry, like a long route, never cut there */
-.entry-place {
-    overflow-wrap: anywhere;
-    color: var(--text-muted);
-}
-
 /* Part of a line after a middle dot, like `· 05:15 – 05:45` or `· Home Munich` in the log, or `· 90 min` in a box:
    the dot drawn before it with half a letter of space on both sides, which a line in parts would drop as spaces
-   at the start of a part */
+   at the start of a part; here and not in `log.css`, before `search.css`, so a result of the search on a phone
+   still drops it before its place */
 .entry-parted::before {
     content: "·";
     margin-inline: 0.5em;
-}
-
-/* Place beside the time on its line, like `· Home Munich` or a route like `· Home Munich → TUM Garching`,
-   in an entry with room for only one or two lines: it takes only the room left beside what and the time,
-   cut with an ellipsis, so a short entry cuts the place, never what or the time; with less room than for about
-   four letters it moves onto the next line, which `.entry-lines` hides, so no dot stands alone at the end */
-.entry-beside {
-    flex: 1 1 0;
-    min-width: min(5em, 100%);
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Arrow of a route between where a way starts and its goal, like `Home Munich → TUM Garching`: drawn as an icon
-   as high as a letter, in the grey of its line, its middle on the middle of the letters, with a third of a letter
-   of room on both sides, see `routeArrowOf` in `places.ts` */
-svg.route-arrow {
-    width: 1em;
-    height: 1em;
-    margin-inline: 0.3em;
-    vertical-align: -0.15em;
-}
-
-/* Place with a link, its `ALTREP`, in an entry or a box, like `8120.01.101 (Audimax im Galileo)`: in the grey
-   of its line, underlined under a pointer, so it shows that a click opens its link, see `whereLinkedOf`
-   in `places.ts` */
-.place-link {
-    color: inherit;
-    text-decoration: none;
-}
-
-.place-link:hover {
-    text-decoration: underline;
 }
 
 /* Time field as wide as a time like 14:00 */
@@ -1228,30 +1011,6 @@ svg.route-arrow {
         min-width: 0;
         padding-left: 0;
         text-align: left;
-    }
-
-    /* Inside of an entry on a phone closer to its edges, 0.5rem left of its lines and 0.375rem right of them, a taller
-       one 0.375rem above its first line, so a narrow entry, like `Food: Pizza Salami` over the right part
-       of a workshop, keeps more of its width for its words; every line as low as a short entry's, 0.9rem, so half
-       an hour holds two lines, 45 minutes three and an hour four, see `phoneLinesOf` in `day.ts` */
-    .entry-inner {
-        padding-block-start: 0.375rem;
-        padding-inline: 0.5rem 0.375rem;
-        line-height: 1.2;
-    }
-
-    /* The place beside the time on a phone never ends in an ellipsis: with too little room beside the time it moves
-       whole onto the next line, shown where the entry has room for it, hidden as a whole where not */
-    .entry-beside {
-        flex: none;
-        min-width: 0;
-        max-width: 100%;
-        text-overflow: clip;
-    }
-
-    .entry-inner-short,
-    .entry-inner-middle {
-        padding-block: 0;
     }
 
     /* A list of my note on a phone as a card, filled in the soft grey of a card instead of a frame */

@@ -167,7 +167,7 @@ function placeAnchorOf(label: string, link: string): HTMLAnchorElement {
 
 /**
  * Makes the arrow of a route between where a way starts and its goal: drawn as an icon, not a character,
- * so it stands in the middle of the line, with a little room on both sides, see `.route-arrow` in `day.css`.
+ * so it stands in the middle of the line, with a little room on both sides, see `.route-arrow` in `log.css`.
  * - `arrow`: The icon.
  *
  * @returns The arrow
