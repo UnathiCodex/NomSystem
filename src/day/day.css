@@ -627,13 +627,16 @@ button.box-ring.box-moved svg {
     color: var(--text-muted);
 }
 
-/* A tracker as a tile in a soft frame of its own, one control high, its name small and grey above its value,
-   so Sleep, Water and Food stand apart at a glance */
+/* A tracker as a tile in a soft frame of its own, one control high, its name small and grey before its value
+   on one line, like `Sleep 09h 15m`, so Sleep, Water and Food stand apart at a glance; on a phone its name above
+   its value, see the end of this file */
 .tracker-row {
     position: relative;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    flex-wrap: wrap;
+    align-content: center;
+    align-items: baseline;
+    gap: 0 0.625rem;
     min-width: 0;
     height: var(--control-height);
     padding: 0 0.875rem;
@@ -662,8 +665,8 @@ button.box-ring.box-moved svg {
 }
 
 /* The water's tile one button, which logs a glass, over the whole tile, its name and value where every tile has them,
-   a grey lighter under the pointer, faded and off on a day still to come; the `−` in its top right corner, small,
-   plain and grey, which takes the last glass back, faded while there is none */
+   a grey lighter under the pointer, faded and off on a day still to come; the `−` at its right end, small,
+   plain and grey, which takes the last glass back, faded while there is none; on a phone in its top right corner */
 .tracker-water {
     padding: 0;
 }
@@ -671,9 +674,11 @@ button.box-ring.box-moved svg {
 .water-add {
     display: flex;
     flex: 1;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
+    flex-wrap: wrap;
+    align-content: center;
+    align-items: baseline;
+    align-self: stretch;
+    gap: inherit;
     min-width: 0;
     padding: 0 0.875rem;
     border: 0;
@@ -694,8 +699,9 @@ button.box-ring.box-moved svg {
 
 .tracker-row .water-less {
     position: absolute;
-    top: 0.25rem;
-    right: 0.25rem;
+    top: 50%;
+    right: 0.5rem;
+    translate: 0 -50%;
     width: 1.5rem;
     height: 1.5rem;
     border: 0;
@@ -1993,7 +1999,8 @@ svg.route-arrow {
     }
 
     /* The trackers on a phone on a line of their own below the date, over the whole width, as three tiles of equal
-       width, filled in the soft grey of a card instead of a frame, a little closer together and around their lines,
+       width, each its name above its value, filled in the soft grey of a card instead of a frame, a little closer
+       together and around their lines,
        so `2,150 kcal` fits its tile; the `−` of the water as small as it looks, but a finger's width to hit,
        reaching down and to the left into its tile */
     .trackers {
@@ -2004,6 +2011,11 @@ svg.route-arrow {
     }
 
     .tracker-row {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 0;
         height: 3.25rem;
         padding: 0 0.625rem;
         border: 0;
@@ -2015,7 +2027,17 @@ svg.route-arrow {
     }
 
     .water-add {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        justify-content: center;
+        align-items: flex-start;
         padding: 0 0.625rem;
+    }
+
+    .tracker-row .water-less {
+        top: 0.25rem;
+        right: 0.25rem;
+        translate: none;
     }
 
     .tracker-row .water-less::after {
