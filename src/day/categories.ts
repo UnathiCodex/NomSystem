@@ -79,6 +79,7 @@
  * - `../skill/attempts.ts`: Names the category of skill entries.
  * - `../icons.ts`: Shows the icons of the copy, the bin and its question, Cancel and Save in their buttons,
  *   and the pencil of a place and of a summary; makes the plain question mark of the bin.
+ * - `../search.ts`: Writes a name without accents for its standard address in `With`.
  * - `lucide`: The icons of the copy, the bin, Cancel, Save and the pencil.
  * - `fullcalendar`: Calendar that shows the entries.
  */
@@ -96,6 +97,7 @@ import {
 import { dateOf, dateParse, dateTextOf, lengthOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut, QuestionMark } from "../icons.ts";
+import { searchTextOf } from "../search.ts";
 import { Check, Copy, Pencil, Trash, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
@@ -1114,16 +1116,18 @@ function manyRowOf(field: Field): HTMLElement {
 
 /**
  * Gives the standard address of a name of `With`: the name in small letters, ä, ö, ü and ß as ae, oe, ue and ss,
- * every other character but a–z and 0–9 a dot, never two in a row and none at either end, then `@invalid`, the ending
- * reserved for addresses that never work, so nothing reaches anybody, like `herr.mueller@invalid` of `Herr Müller`.
+ * every other letter with an accent plainly, like é as e, see `searchTextOf` in `../search.ts`, every other character
+ * but a–z and 0–9 a dot, like a space, never two in a row and none at either end, then `@invalid`, the ending
+ * reserved for addresses that never work, so nothing reaches anybody, like `herr.mueller@invalid` of `Herr Müller`
+ * and `jose.garcia@invalid` of `José García`.
  * - `local`: The part before `@`.
  *
  * @param name - Name, like `Herr Müller`
  * @returns Address, like `herr.mueller@invalid`
  */
 function standardAddressOf(name: string): string {
-    const local: string = name.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue")
-        .replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "");
+    const local: string = searchTextOf(name.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue")
+        .replace(/ß/g, "ss")).replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "");
     return `${local}@invalid`;
 }
 
