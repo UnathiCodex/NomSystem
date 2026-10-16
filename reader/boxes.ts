@@ -39,7 +39,7 @@
  *   and `CANCELLED` once dropped;
  * - each push to a later day, by its arrow or its day in the dialog, see {@link boxPush} and {@link boxEdit},
  *   in one `X-PUSHED` with its start and its length as they stood before, since the standard has nothing for it,
- *   like `X-PUSHED;TZID=Europe/Berlin;X-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`, see `pushAdd`
+ *   like `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`, see `pushAdd`
  *   in `calendar.ts`;
  * - its category, what, place, module, type, semester and note as an entry of the log has them, a skill box its
  *   semester as `X-SEMESTER`, like `X-SEMESTER:2026W`, see `semesterFor` in `categories.ts`, its chapters
@@ -701,7 +701,7 @@ export function boxUniversity(id: string, cancelled: boolean): void {
  * its start and its end. A skill box takes its chapters and documents, see {@link boxLinksPut}.
  * An open box without deadline whose day moves later is pushed, like with its arrow, see {@link boxPush}:
  * its start and its length as they stood go into one more `X-PUSHED`, like
- * `X-PUSHED;TZID=Europe/Berlin;X-DURATION=PT3H15M;VALUE=DATE-TIME:20261017T150000` for one moved
+ * `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261017T150000` for one moved
  * from Sat, 17.10.2026, 15:00 to Mon, 19.10.2026; a box moved earlier or with a deadline is not pushed.
  * - `target`: The plan file it belongs into now.
  * - `start`: New start of an event.

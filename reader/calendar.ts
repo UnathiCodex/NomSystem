@@ -85,8 +85,8 @@ import type { CalendarSource } from "./sources.ts";
  * - `deadline`: Deadline of a to-do, its `DUE`, as ISO instant, or as date like `2026-10-23` when it has no time;
  *   empty for none and for an event.
  * - `pushed`: Days a box was pushed from to a later day, its `X-PUSHED`s in order, like `2026-10-16`
- *   of `X-PUSHED;TZID=Europe/Berlin;X-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`, see {@link pushedDayOf};
- *   none when it has none.
+ *   of `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`,
+ *   see {@link pushedDayOf}; none when it has none.
  * - `number`: Number of a lecture, an exercise, a tutorial or a sheet in its series, its `X-NUMBER`, like `3`,
  *   `NONE` for one the university cancelled, see `boxUniversity` in `boxes.ts`; empty for none.
  * - `written`: When the entry was written, its `DTSTAMP`, as ISO instant, which the reader sets once as it adds an entry;
@@ -403,7 +403,7 @@ function plannedOf(component: ICAL.Component): string {
 
 /**
  * Reads the day of one `X-PUSHED`, see {@link pushAdd}: of its start in Berlin time,
- * like `X-PUSHED;TZID=Europe/Berlin;X-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`, of its date,
+ * like `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`, of its date,
  * like `X-PUSHED;VALUE=DATE:20261012`, or of an older box written like `X-PUSHED:2026-10-12`.
  *
  * @param value - Its value, a time, a date or a text
@@ -1548,10 +1548,11 @@ export function statusPut(file: string, id: string, status: string, completed: D
 /**
  * Notes one more push of a box to a later day, before its start and length change, after its `X-PUSHED`s
  * from before, which stay as they are: its start and its length as they stood, its start as its `DTSTART` holds it,
- * its length as the parameter `X-DURATION` in the form of an `ESTIMATED-DURATION`, the expected duration of a to-do
- * or the time between start and end of an event, like
- * `X-PUSHED;TZID=Europe/Berlin;X-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`, and for a box without time
- * `X-PUSHED;X-DURATION=PT1H15M;VALUE=DATE:20261013`, without `X-DURATION` for one without length.
+ * its length as the parameter `X-ESTIMATED-DURATION`, named and written as the `ESTIMATED-DURATION` of a to-do,
+ * which it is, or the time between start and end of an event, like
+ * `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`,
+ * and for a box without time `X-PUSHED;X-ESTIMATED-DURATION=PT1H15M;VALUE=DATE:20261013`,
+ * without `X-ESTIMATED-DURATION` for one without length.
  * `VALUE` says it is a time or a date, since iCalendar reads a property of my own as text without it.
  * Every other line of the file stays as it is, byte for byte.
  * - `before`: The `X-PUSHED`s it has.
@@ -1576,7 +1577,7 @@ export function pushAdd(file: string, id: string, entry: Entry): void {
     const pushed: ICAL.Property = propertyOf("x-pushed",
         entry.allDay ? ICAL.Time.fromDateString(entry.start) : berlinOf(new Date(entry.start)));
     if (minutes !== null)
-        pushed.setParameter("x-duration", durationOf(minutes));
+        pushed.setParameter("x-estimated-duration", durationOf(minutes));
     propertyPut(component, "x-pushed", [...before, pushed]);
     componentWrite(file, text, place, component, file);
 }
@@ -1584,11 +1585,12 @@ export function pushAdd(file: string, id: string, entry: Entry): void {
 /**
  * Takes the last push of a box out of its file, see {@link pushAdd}: removes its last `X-PUSHED`, the ones before
  * staying as they are, and gives its start and its length as that push noted them, like Sun, 18.10.2026, 15:00 and
- * 195 minutes of `X-PUSHED;TZID=Europe/Berlin;X-DURATION=PT3H15M;VALUE=DATE-TIME:20261018T150000`; a push that
- * noted only its day, like `X-PUSHED;VALUE=DATE:20261016`, gives that day at the time of day the box has now.
+ * 195 minutes of `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261018T150000`;
+ * a push that noted only its day, like `X-PUSHED;VALUE=DATE:20261016`, gives that day at the time of day the box
+ * has now.
  * Every other line of the file stays as it is, byte for byte.
  * - `pushes`: Its `X-PUSHED`s, the last one last.
- * - `duration`: The `X-DURATION` of the last one, empty for none.
+ * - `duration`: The `X-ESTIMATED-DURATION` of the last one, empty for none.
  * - `time`: The time of day it goes back to, `null` for a box without time.
  * - {@link ICAL.Time.fromData}: Builds a time from its parts, in a time zone.
  * - {@link ICAL.Duration.fromString}: Reads a duration of the iCalendar format.
@@ -1615,7 +1617,7 @@ export function pushTake(file: string, id: string, entry: Entry): [string, numbe
     componentWrite(file, text, place, component, file);
 
     const value: unknown = last.getFirstValue();
-    const duration: string = String(last.getParameter("x-duration") ?? "");
+    const duration: string = String(last.getParameter("x-estimated-duration") ?? "");
     const day: string = pushedDayOf(value);
     const [year, month, date]: number[] = day.split("-").map(Number);
     const time: ICAL.Time | null = value instanceof ICAL.Time && !value.isDate ? value
