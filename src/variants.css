@@ -59,3 +59,15 @@
     --reading-width: 45rem;
     color-scheme: dark;
 }
+
+/* Phone: the same look on a narrower screen, every size a tenth smaller than on a computer, 112.5 % of the browser's
+   16 px, so a line holds more of a name, like `0509.EG.980 (Audimax Werner-von-Siemens-Hörsaal)` on two lines, while
+   the text stays 17 px, as big as the text of an app on Android, and a button or a field stays 52 px high, a finger
+   high; every frame a little rounder, as an app's */
+@media (max-width: 900px) {
+    :root {
+        font-size: 112.5%;
+        --radius: 1rem;
+        --chip-radius: 0.625rem;
+    }
+}
