@@ -104,7 +104,7 @@ const edgeMinutes: number = 3;
 
 /**
  * Shows the daily note of a day, like `2026-10-12`, with my gratitude and my points about the day;
- * does nothing until {@link noteStart} has loaded them, and so nothing on a phone, which shows no daily note.
+ * does nothing until {@link noteStart} has loaded them.
  */
 let dayNoteShow: (date: string) => void = (): void => {};
 
@@ -621,18 +621,20 @@ function todayButtonShow(date: string): void {
 }
 
 /**
- * Shows plan or log on a phone, one at a time, see `.day-switch` in `day.css`, the button of the shown one picked;
- * the time grid, which measures itself again once it shows, scrolls to now then, see {@link nowCenter}.
- * - `main`: Plan and log with their bar, which `day.css` shows one of by its `data-shown`.
+ * Shows plan, log or note on a phone, one at a time, see `.day-switch` in `day.css`, the button of the shown one
+ * picked, and `+` off while the note shows, since it adds a box or an entry; the time grid, which measures itself
+ * again once it shows, scrolls to now then, see {@link nowCenter}.
+ * - `main`: Plan, log and note with their bar, which `day.css` shows one of by its `data-shown`.
  *
  * @param calendar - Calendar of the day
- * @param shown - `plan` or `log`
+ * @param shown - `plan`, `log` or `note`
  */
-function phoneShow(calendar: Calendar, shown: "plan" | "log"): void {
+function phoneShow(calendar: Calendar, shown: "plan" | "log" | "note"): void {
     const main: HTMLElement = document.getElementById("day-main") as HTMLElement;
     main.dataset.shown = shown;
-    document.getElementById("day-show-plan")?.setAttribute("aria-pressed", String(shown === "plan"));
-    document.getElementById("day-show-log")?.setAttribute("aria-pressed", String(shown === "log"));
+    for (const part of ["plan", "log", "note"])
+        document.getElementById(`day-show-${part}`)?.setAttribute("aria-pressed", String(shown === part));
+    (document.getElementById("day-new") as HTMLButtonElement).disabled = shown === "note";
     if (shown === "log")
         nowCenter(calendar);
 }
@@ -684,8 +686,9 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * see `askedDayOf` in `today.ts`:
  * the arrows beside the date above plan and log move the calendar by a day, the icon beside it back to today,
  * the date opens the month to pick a day from, `+` below the time grid opens the entry by category of the log
- * for the last half hour; on a phone the buttons at the bottom switch between plan and log, see {@link phoneShow},
- * and their `+` starts a box or an entry of the shown one; while it shows today, the day moves on to the new day
+ * for the last half hour; on a phone the buttons at the bottom switch between plan, log and note, see
+ * {@link phoneShow}, and their `+` starts a box or an entry of the shown plan or log; it shows the daily note, see
+ * {@link noteStart}, and the timer of a session, see `timer.ts`; while it shows today, the day moves on to the new day
  * by itself, now centred again, see `todayFollow` in `today.ts`, and while it shows another day, the icon back
  * to today follows the new day. While the grid scrolls, the lines of every entry fit to the part of it in sight,
  * see {@link linesFit}; the calendar catches the scroll on its way down to the grid, `capture`, since it never rises.
@@ -749,11 +752,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
  *
  * The theme keeps its own classes beside `slot-label`, `entry`, `entry-inner` and the others;
  * `day.css` wins because it comes after the theme's stylesheet.
- *
- * @param note - Whether the day shows its daily note, see {@link noteStart}, and the timer of a session, see
- *   `timer.ts`; never on a phone
  */
-export function dayStart(note: boolean): void {
+export function dayStart(): void {
     const calendar: Calendar = new Calendar(document.getElementById("day-calendar") as HTMLElement, {
         plugins: [timeGridPlugin, interactionPlugin, themePlugin],
         locale: englishLocale,
@@ -828,6 +828,7 @@ export function dayStart(note: boolean): void {
     iconPut(document.getElementById("day-new") as HTMLElement, Plus, "New box or entry");
     document.getElementById("day-show-plan")?.addEventListener("click", (): void => phoneShow(calendar, "plan"));
     document.getElementById("day-show-log")?.addEventListener("click", (): void => phoneShow(calendar, "log"));
+    document.getElementById("day-show-note")?.addEventListener("click", (): void => phoneShow(calendar, "note"));
     document.getElementById("day-new")?.addEventListener("click", (): void => {
         const shown: string = (document.getElementById("day-main") as HTMLElement).dataset.shown ?? "plan";
         document.getElementById(shown === "log" ? "log-new" : "plan-new")?.click();
@@ -853,8 +854,6 @@ export function dayStart(note: boolean): void {
     }, (): void => todayButtonShow(dayOf(calendar.view.currentStart)));
     giftsStart();
     timesStart();
-    if (note) {
-        noteStart(calendar).catch((error: unknown): void => console.error(error));
-        timerStart();
-    }
+    noteStart(calendar).catch((error: unknown): void => console.error(error));
+    timerStart();
 }

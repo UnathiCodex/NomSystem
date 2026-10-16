@@ -252,7 +252,8 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
 
 /**
  * Builds the food: the kcal of the day's meals, rounded and so never marked as an estimate, and in brackets the number
- * of the meals, like `1,850 kcal (3 meals)` or `0 kcal (0 meals)`.
+ * of the meals, like `1,850 kcal (3 meals)` or `0 kcal (0 meals)`, a number never apart from its word, so where
+ * the room is short, as on a phone, only the brackets go on below.
  * - `food`: What the meals gave.
  *
  * @param trackers - Trackers of the day
@@ -262,7 +263,7 @@ function foodOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const food: Totals & { estimate: boolean; meals: number } = trackers.food;
     row.append(elementOf("span", "tracker-name", "Food"), elementOf("span", "tracker-value food-kcal",
-        `${amountOf(food.kcal, 0)} kcal (${food.meals} ${food.meals === 1 ? "meal" : "meals"})`));
+        `${amountOf(food.kcal, 0)}\u00a0kcal (${food.meals}\u00a0${food.meals === 1 ? "meal" : "meals"})`));
     return row;
 }
 

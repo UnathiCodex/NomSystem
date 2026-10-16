@@ -3,7 +3,7 @@
  *
  * A quiet timer in the bar of the day while a session of mine runs, taking the room between the date and the trackers,
  * in a soft frame like them: what its skill entry is at the left, as the log shows it, like `Skill: NomSystemdashboard`,
- * and how long it still runs at the right, in hours and minutes, like `01h 23m`; never on a phone.
+ * and how long it still runs at the right, in hours and minutes, like `01h 23m`; on a phone on a line of its own.
  * Where the room is too small for the whole name, like on my laptop, it is cut with an ellipsis at its end,
  * like `Skill: WI0219_InvestitionFin…`, the time always whole; a short code would not work for every name.
  * A session is the skill entry of the moment in the log, of every type, see `reader/skill.ts`: the first button

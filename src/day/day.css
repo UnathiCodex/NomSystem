@@ -1884,8 +1884,9 @@ svg.route-arrow {
 /* Phone: plan or log, one at a time, one screen high, switched at the bottom, panels from below,
    the entry by category scrolling as a whole */
 @media (max-width: 900px) {
-    /* As simple as can be: the day one screen high above the areas, plan or log, one at a time, filling it, the switch
-       between them with its + at the bottom; no trackers and no daily note, see `main.ts` */
+    /* The day on a phone one screen high above the areas: its bar on top, then plan, log or note, one at a time,
+       filling the rest, the switch between them with its + at the bottom, under the thumb; the names of plan and log
+       stand in the switch, so not above them */
     .day {
         grid-template-rows: minmax(0, 1fr);
     }
@@ -1894,43 +1895,78 @@ svg.route-arrow {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .trackers,
-    .note-boxes,
-    .column-head {
+    .day-main > .day-column > .column-head {
         display: none;
     }
 
-    .day-main[data-shown="plan"] #day-log,
-    .day-main[data-shown="log"] #day-plan {
+    .day-main[data-shown="plan"] :is(#day-log, .note-boxes),
+    .day-main[data-shown="log"] :is(#day-plan, .note-boxes),
+    .day-main[data-shown="note"] :is(#day-plan, #day-log) {
         display: none;
     }
 
-    /* The plan on a phone over the whole width, as the log and the switch below them, so its boxes stand as far
-       from both edges of the screen: no step in from the rail's buttons, `--content-indent`, since a phone has
-       no rail */
-    #day-plan {
+    /* The plan and the note on a phone over the whole width, as the log and the switch below them, so their boxes
+       stand as far from both edges of the screen: no step in from the rail's buttons, `--content-indent`, since
+       a phone has no rail */
+    #day-plan,
+    .note-boxes > .day-column:first-child,
+    .day-note {
         padding-left: 0;
     }
 
-    /* Switch between plan and log at the bottom, its buttons side by side in the middle, the one shown in the calm
-       grey of what is picked, and the + of the shown one at the right */
+    /* The note on a phone in the room of plan and log: my gratitude, my points about the day below it and the rest
+       of the note below them, scrolling as a whole; each list keeps its name, which folds nothing here, since the note
+       has a place of its own, so it shows no fold arrow and takes no tap */
+    .note-boxes {
+        grid-template-columns: minmax(0, 1fr);
+        align-content: start;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .day-note {
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .note-fold {
+        pointer-events: none;
+    }
+
+    .note-fold::before {
+        content: none;
+    }
+
+    /* Switch between plan, log and note at the bottom: one frame one control high with the three side by side inside,
+       equally wide, the one shown in the calm grey of what is picked, its corners as round as the frame's, a little
+       inside it; right of it the + of the shown plan or log, round, so a thumb finds it at once, faded while the note
+       shows */
     .day-switch {
         display: flex;
         align-items: center;
         gap: var(--control-gap);
     }
 
-    .day-switch button[aria-pressed] {
+    .day-views {
+        display: flex;
         flex: 1;
-        min-height: var(--control-height);
+        gap: 0.25rem;
+        height: var(--control-height);
+        padding: 0.25rem;
         border: 1px solid var(--line);
         border-radius: var(--radius);
-        background: var(--background);
+    }
+
+    .day-views button {
+        flex: 1;
+        border: 1px solid transparent;
+        border-radius: calc(var(--radius) - 0.25rem);
+        background: none;
         font-size: var(--control-text);
         cursor: pointer;
     }
 
-    .day-switch button[aria-pressed="true"] {
+    .day-views button[aria-pressed="true"] {
         border-color: var(--chosen-line);
         background: var(--chosen);
     }
@@ -1938,13 +1974,15 @@ svg.route-arrow {
     .day-switch .chip-button {
         width: var(--control-height);
         height: var(--control-height);
+        border-radius: 50%;
     }
 
     /* The bar of the day on a phone: the arrows at the edges of the screen, plain, without frame, and the date
-       in the middle, the weekday small and grey above it, like `Tue` over `13.10.2026` */
+       in the middle, the weekday small and grey above it, like `Tue` over `13.10.2026`; below them the trackers
+       and the timer of a session, each over the whole width */
     .day-nav {
-        flex-wrap: nowrap;
         justify-content: space-between;
+        row-gap: 0.5rem;
     }
 
     .day-nav .day-arrow {
@@ -1996,6 +2034,51 @@ svg.route-arrow {
 
     .day-weekday::after {
         content: none;
+    }
+
+    /* The trackers on a phone on a line of their own below the date, side by side over the whole width, Sleep and Water
+       as wide as they need, Food the rest; each in its frame its name small and grey above its value, so all three
+       fit, like `09h 15m`, `− 0.25 l +` and `1,850 kcal (3 meals)`, the kcal going on below where the room is short */
+    .trackers {
+        display: grid;
+        flex-basis: 100%;
+        grid-template-columns: auto auto minmax(0, 1fr);
+        align-items: stretch;
+        margin-left: 0;
+    }
+
+    .tracker-row {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 0;
+        padding: 0.25rem 0.625rem;
+    }
+
+    .tracker-row:has(.water-litres) {
+        display: grid;
+        grid-template-columns: repeat(3, auto);
+        align-content: center;
+        justify-content: start;
+    }
+
+    .tracker-name {
+        grid-column: 1 / -1;
+    }
+
+    .water-litres {
+        margin-inline: 0.25rem;
+    }
+
+    .food-kcal {
+        min-width: 0;
+        white-space: normal;
+    }
+
+    /* The timer of a session on a phone on a line of its own below the trackers, over the whole width */
+    .session-timer {
+        flex-basis: 100%;
+        order: 1;
     }
 
     /* The month on a phone with its days a finger high, its six weeks and the names of the days 15rem high,
