@@ -406,7 +406,8 @@
     /* The editor on a phone one thing at a time, as the day shows plan or log: the file over the whole screen, never
        the tree beside it, which widened the page beyond the screen; the tree over the file while the button of the tree
        is pressed, see `phoneShow` in `editor.ts`, so both keep where they were scrolled to; both end above the bar
-       at the bottom, its height `--bar-height`, one control and a gap above and below it, as the switch of the day */
+       at the bottom, its height `--bar-height`, one control and a gap above and below it, as the switch of the day,
+       which stands above the areas, `--areas-height`, see `../base.css` */
     .editor {
         --bar-height: calc(var(--control-height) + 2 * var(--gap));
         grid-template-columns: minmax(0, 1fr);
@@ -415,7 +416,7 @@
 
     .editor .notes-tree {
         position: fixed;
-        inset: 0 0 var(--bar-height);
+        inset: 0 0 calc(var(--bar-height) + var(--areas-height));
         z-index: 2;
         padding-inline: var(--gap);
         border-right: 0;
@@ -461,13 +462,13 @@
         transform: none;
     }
 
-    /* The bar on a phone at the bottom of the screen, under the thumb, above the keyboard while one is open, as
-       the switch of plan and log on the day: the button of the tree at the left, in the calm grey of what is picked
-       while the tree is shown, the save button at the right, the notice between them, hidden while the tree is shown,
-       since it tells of the file */
+    /* The bar on a phone at the bottom of the screen, under the thumb, right above the areas and above the keyboard
+       while one is open, as the switch of plan and log on the day: the button of the tree at the left, in the calm
+       grey of what is picked while the tree is shown, the save button at the right, the notice between them, hidden
+       while the tree is shown, since it tells of the file */
     .editor-bar {
         position: fixed;
-        inset: auto 0 0;
+        inset: auto 0 var(--areas-height);
         z-index: 3;
         display: flex;
         align-items: center;

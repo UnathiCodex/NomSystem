@@ -321,15 +321,39 @@ h3 {
     font-weight: 600;
 }
 
-/* A phone only looks at the day, its plan and its log, nothing for learning, see `main.ts`: no areas at the left,
-   so the whole screen stays free */
+/* Phone: the areas in a bar at the bottom of the screen, under the thumb, as an app on Android has them, so the area
+   keeps the whole width above it: the body leaves the room of the bar, `--areas-height`, at its bottom instead
+   of at its left, and a bar of an area of its own, like the switch of plan and log of the day, stands right above it;
+   the buttons side by side over the whole width, equally wide, one control high, half a gap from the bar's edges,
+   the shown one light on the calm grey of what is picked, as on a computer; on the page's background with a thin line
+   above, so what scrolls under it never shows through. While I type, with the keyboard open, the bar gives its room
+   to what I type in, like a note in the editor, and comes back once I leave the field */
 @media (max-width: 900px) {
     body {
-        padding-left: 0;
+        --areas-height: calc(var(--control-height) + var(--gap) + 1px);
+        padding: 0 0 var(--areas-height);
+    }
+
+    body:has(:is(input:not([type="checkbox"], [type="radio"]), textarea, [contenteditable="true"]):focus) {
+        --areas-height: 0px;
+    }
+
+    body:has(:is(input:not([type="checkbox"], [type="radio"]), textarea, [contenteditable="true"]):focus) .areas {
+        display: none;
     }
 
     .areas {
-        display: none;
+        inset: auto 0 0;
+        z-index: 5;
+        flex-direction: row;
+        padding: calc(var(--gap) / 2) var(--gap);
+        border-top: 1px solid var(--line);
+        background: var(--background);
+    }
+
+    .areas a {
+        flex: 1;
+        width: auto;
     }
 
     /* A swipe down at the top of the log never pulls the page to load it again, as Chrome does in a tab, which would

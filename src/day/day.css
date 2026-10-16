@@ -1884,11 +1884,10 @@ svg.route-arrow {
 /* Phone: plan or log, one at a time, one screen high, switched at the bottom, panels from below,
    the entry by category scrolling as a whole */
 @media (max-width: 900px) {
-    /* As simple as can be: the day one screen high, plan or log, one at a time, filling it, the switch between
-       them with its + at the bottom; no trackers and no daily note, see `main.ts` */
+    /* As simple as can be: the day one screen high above the areas, plan or log, one at a time, filling it, the switch
+       between them with its + at the bottom; no trackers and no daily note, see `main.ts` */
     .day {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: calc(100dvh - 2 * var(--gap));
+        grid-template-rows: minmax(0, 1fr);
     }
 
     .day-main {
@@ -2102,10 +2101,6 @@ svg.route-arrow {
 
     .box-meta > .entry-parted::before {
         content: none;
-    }
-
-    body {
-        height: auto;
     }
 
     /* A panel on a phone rises from the bottom over the whole width, a little closer to the screen's edges; its rows,

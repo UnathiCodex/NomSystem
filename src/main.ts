@@ -12,11 +12,10 @@
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the scripts no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
- * A phone, a screen as narrow as the phone layout of the stylesheets, which `phone.ts` tells,
- * is only for the day, its plan and its log, as simple as can be, nothing for learning and no food for now:
- * it opens the day everywhere, without its daily note, so it loads no Markdown renderer;
+ * A phone, a screen as narrow as the phone layout of the stylesheets, which `phone.ts` tells, opens every area as
+ * a computer does, its areas in a bar at the bottom of the screen instead of at its left edge, see `base.css`;
+ * it opens the day without its daily note, so it loads no Markdown renderer;
  * every device tells the reader what it shows of the page, see {@link deviceReport}.
- * `base.css` hides the areas, so the whole screen stays free.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
  * - `./day/day.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`, `./food/food.html?raw`,
@@ -64,7 +63,7 @@ let deviceWait: number = 0;
 const address: URLSearchParams = new URLSearchParams(location.search);
 if (location.pathname === "/notes" || (location.pathname === "/edit" && address.has("path")))
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
-const areas: string[] = phone ? [] : ["/scripts", "/plannings", "/skill", "/food", "/edit"];
+const areas: string[] = ["/scripts", "/plannings", "/skill", "/food", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
 const marked: string = area === "/edit" ? "/plannings" : area;
 document.querySelector(`.areas a[href="${marked}"]`)?.setAttribute("aria-current", "page");
