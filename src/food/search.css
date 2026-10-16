@@ -396,9 +396,9 @@ button.food-row:hover {
         --tap: -0.75rem -0.625rem -0.75rem -0.125rem;
     }
 
-    /* The cross and the check of a form and More on a phone as they look, but a finger's width to hit, each taking a tap
-       a little around it, the cross and the check up to the middle of the room between them; the plus after the name
-       of a meal opened 0.375rem above and below it and 0.75rem beside it, see `--tap` in `../base.css` */
+    /* The cross and the check of a form and More on a phone as they look, but a finger's width to hit, each taking
+       a tap a little around it, the cross and the check up to the middle of the room between them; the plus after
+       the name of a meal opened 0.375rem above and below it and 0.75rem beside it, see `--tap` in `../base.css` */
     .food-buttons button,
     .food-more-button {
         position: relative;

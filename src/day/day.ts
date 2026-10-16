@@ -5,7 +5,8 @@
  * not as a calendar but as a calm list of boxes, see `boxes.ts`; above both the date of the day between its arrows,
  * with a small icon back to today on any other day;
  * at the right the trackers of the day, my sleep, my glasses of water and my food, and below them the daily note
- * with my gratitude and my points about the day at its top, which a phone leaves out, see `main.ts`.
+ * with my gratitude and my points about the day at its top, which a phone shows in place of plan and log,
+ * see {@link phoneShow}.
  * A click on the date opens a month to pick any day from, see `month.ts`.
  * A box goes into the log at its real time by dragging it there, or as expected with one tap on its ring.
  * The log is written by category: `+` below the time grid opens the entry by category for the last half hour,
@@ -30,8 +31,8 @@
  * - `fullcalendar/interaction`: Selects a time range, drags entries and takes boxes dropped from the list.
  * - `fullcalendar/themes/forma`: Look of the calendar, coloured by `variants.css`.
  * - `fullcalendar/locales/en-gb`: English names of days, months and buttons, the day before the month.
- * - `./note.ts`: Shows the daily note of a day, with its Markdown renderer; loaded with `import()`
- *   only with the daily note, so a phone never loads it, see {@link noteStart}.
+ * - `./note.ts`: Shows the daily note of a day, with its Markdown renderer; loaded with `import()` after the calendar,
+ *   see {@link noteStart}.
  * - `./entries.ts`: Sends changed entries to the reader.
  * - `./categories.ts`: Writes the log by category, each field picked from its own list.
  * - `./meal.ts`: Names the category of meals.
