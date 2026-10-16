@@ -1,0 +1,171 @@
+/* Daily note below plan and log: my gratitude and my points about the day as lists of points, their names
+   folding them, and the rest of the note below them, read only; on a phone in the room of plan and log */
+/* Rest of the daily note below my gratitude and my points about the day, read only, over the whole width,
+   scrolling alone when it is longer than a fifth of the screen; nothing for a note that holds only them */
+.day-note {
+    grid-column: 1 / -1;
+    max-height: 20dvh;
+    overflow-y: auto;
+}
+
+.day-note:empty {
+    display: none;
+}
+
+/* My gratitude below the plan and my points about the day below the log, as wide as them, each its name small
+   and grey above its list of points like them, see `.note-points`; the rest of the note below both;
+   all of it but the names hidden while folded, see `.note-fold` */
+.note-boxes {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--gap);
+}
+
+.note-boxes .panel-error {
+    grid-column: 1 / -1;
+}
+
+/* Name of a list as a button looking like the names of plan and log, the grey fold arrow of a chapter of a skill
+   before it, pointing down while open, the arrow light under the pointer, softly, as everything turns lighter, see
+   `base.css`, since the name is light already; a click on either name folds both lists and the note, see `foldToggle`
+   in `evening.ts` */
+.note-fold {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.note-fold::before {
+    content: "";
+    width: 1em;
+    height: 1lh;
+    margin-right: 0.25rem;
+    background: var(--text-muted);
+    mask: var(--fold-icon) center / 0.875em no-repeat;
+    transition: rotate 100ms ease-in-out, background-color 150ms;
+}
+
+.note-fold:hover::before {
+    background: var(--text-main);
+    transition: rotate 100ms ease-in-out, background-color 150ms 100ms;
+}
+
+.note-folded .note-fold::before {
+    rotate: -90deg;
+}
+
+.note-folded .note-points,
+.note-folded .day-note {
+    display: none;
+}
+
+/* A list of points of the note as Markdown shows a list, framed like a box of the plan: a grey bullet before each
+   point, its text in a field of its own without frame, as wide as the list, wrapping and growing with its text,
+   see `points.ts`; both lists equally high, scrolling alone when longer than a third of the screen, see
+   `.note-points` in `day.css` */
+.note-point {
+    padding: 0.125rem 0;
+}
+
+.note-point::marker {
+    color: var(--text-muted);
+}
+
+.note-point textarea {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--text-main);
+    font: inherit;
+    line-height: inherit;
+    field-sizing: content;
+    resize: none;
+}
+
+/* Quotes of the note as grey cards */
+.day-note blockquote {
+    margin: var(--gap) 0;
+    padding: calc(var(--gap) / 2) var(--gap);
+    border-radius: var(--radius);
+    background: var(--fill);
+}
+
+/* Rules of the note as thin grey lines */
+.day-note hr {
+    border: 0;
+    border-top: 1px solid var(--line);
+}
+
+/* Lists of the note close to their heading */
+.day-note ul {
+    margin: 0.25rem 0;
+    padding-left: 1.2em;
+}
+
+/* Task lists of the note with boxes instead of bullets */
+.day-note ul:has(> li > input) {
+    padding-left: 0;
+    list-style: none;
+}
+
+/* Code blocks of the note wrap at the card edge */
+.day-note pre {
+    white-space: pre-wrap;
+}
+
+/* Tables of the note: full width, rows parted by grey lines */
+.day-note table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Cells of a table, text at the top and left */
+.day-note th,
+.day-note td {
+    padding: 0.375rem 0.5rem 0.375rem 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+}
+
+/* Head of a table small and grey, like the hour labels */
+.day-note th {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+/* Phone: the note in the room of plan and log, scrolling as a whole, its names folding nothing */
+@media (max-width: 900px) {
+    /* The note on a phone in the room of plan and log: my gratitude, my points about the day below it and the rest
+       of the note below them, scrolling as a whole; each list keeps its name, which folds nothing here, since the note
+       has a place of its own, so it shows no fold arrow and takes no tap */
+    .note-boxes {
+        grid-template-columns: minmax(0, 1fr);
+        align-content: start;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .day-note {
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .note-fold {
+        pointer-events: none;
+    }
+
+    .note-fold::before {
+        content: none;
+    }
+}

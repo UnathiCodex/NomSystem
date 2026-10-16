@@ -136,7 +136,7 @@ export async function eveningShow(day: string): Promise<void> {
 
 /**
  * Hides both lists and the note below them, or shows them again, after a click on the name of either list,
- * so plan and log take their height; open at every start, see `.note-fold` in `day.css`.
+ * so plan and log take their height; open at every start, see `.note-fold` in `note.css`.
  * - `folded`: Whether they are hidden now.
  */
 function foldToggle(): void {
