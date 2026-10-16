@@ -65,10 +65,23 @@
     display: none;
 }
 
-/* A list of points of the note as Markdown shows a list, framed like a box of the plan: a grey bullet before each
-   point, its text in a field of its own without frame, as wide as the list, wrapping and growing with its text,
-   see `points.ts`; both lists equally high, scrolling alone when longer than a third of the screen, see
-   `.note-points` in `day.css` */
+/* A list of points of the note as Markdown shows a list, a card filled in the soft grey of a card like a box of the
+   plan, its frame transparent, so its points keep their place: a grey bullet before each point, its text in a field
+   of its own without frame, as wide as the list, wrapping and growing with its text, see `points.ts`; both lists
+   equally high, scrolling alone when longer than a third of the screen, on a phone as high as their points */
+.note-points {
+    flex: 1;
+    max-height: 33dvh;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.875rem 1rem 0.875rem calc(1rem + 1.25em);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: var(--fill);
+    list-style: disc;
+    cursor: text;
+}
+
 .note-point {
     padding: 0.125rem 0;
 }
@@ -147,13 +160,17 @@
 /* Phone: the note in the room of plan and log, scrolling as a whole, its names folding nothing */
 @media (max-width: 900px) {
     /* The note on a phone in the room of plan and log: my gratitude, my points about the day below it and the rest
-       of the note below them, scrolling as a whole; each list keeps its name, which folds nothing here, since the note
-       has a place of its own, so it shows no fold arrow and takes no tap */
+       of the note below them, scrolling as a whole, so each as high as what it holds; each list keeps its name, which
+       folds nothing here, since the note has a place of its own, so it shows no fold arrow and takes no tap */
     .note-boxes {
         grid-template-columns: minmax(0, 1fr);
         align-content: start;
         min-height: 0;
         overflow-y: auto;
+    }
+
+    .note-points {
+        max-height: none;
     }
 
     .day-note {

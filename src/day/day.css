@@ -151,21 +151,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* A list of points of the note framed like a box of the plan, both lists equally high, scrolling alone when longer
-   than a third of the screen, see `note.css`; here and not there, before a list of my note on a phone as a card,
-   see the end of this file */
-.note-points {
-    flex: 1;
-    max-height: 33dvh;
-    overflow-y: auto;
-    margin: 0;
-    padding: 0.875rem 1rem 0.875rem calc(1rem + 1.25em);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    list-style: disc;
-    cursor: text;
-}
-
 /* Panel: card over the page, for the entry by category, the gift idea, a place and the month, as sketched:
    one column of rows, each its name grey at the left, `--name-width` wide, about 96 pixels, so every value starts
    at the same place, `--value-start` from the edge of the card's content; 52rem wide, so whole names, addresses
@@ -1011,13 +996,6 @@ fieldset.entry-times {
         min-width: 0;
         padding-left: 0;
         text-align: left;
-    }
-
-    /* A list of my note on a phone as a card, filled in the soft grey of a card instead of a frame */
-    .note-points {
-        max-height: none;
-        border-color: transparent;
-        background: var(--fill);
     }
 
     /* Buttons of a panel in one row across, round, the icon ones beside those with words, which share the rest equally,
