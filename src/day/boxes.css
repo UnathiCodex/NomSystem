@@ -17,44 +17,32 @@
     color: var(--text-muted);
 }
 
-/* Birthday or holiday, a grey line above the boxes of its day, with my gift idea below it after a gift */
+/* Birthday or holiday, above the boxes of its day, looking like one of them, see `.box`, so it reads as
+   an appointment: its name white and bold as what a box is, and beside it, after the middle dot, my gift idea
+   in the grey of a time, going on below where the line is too narrow, see `occasionsOf` in `boxes.ts`;
+   a click anywhere on it opens its gift idea, and one without an idea shows the gift after its name under
+   the pointer, as high as a letter, its middle on the middle of the letters, like the arrow of a route */
 .occasion {
-    padding: 0 0.625rem;
-    color: var(--text-muted);
-}
-
-.occasion-title,
-.occasion-gift {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-}
-
-/* In the day a click on a birthday or holiday opens its gift idea: under the pointer it turns light,
-   and one without an idea shows the gift after its name */
-.occasion-open {
     cursor: pointer;
 }
 
-.occasion-open:hover {
-    color: var(--text-main);
+.occasion-gift {
+    color: var(--text-muted);
 }
 
 .occasion-hint {
-    display: inline-flex;
+    margin-left: 0.375em;
     visibility: hidden;
 }
 
-.occasion-open:hover .occasion-hint {
-    visibility: visible;
+.occasion-hint svg.lucide {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.15em;
 }
 
-/* Line between what holds for the whole day, its birthdays and holidays, and its boxes below,
-   drawn below the last birthday or holiday when boxes follow, halfway between them;
-   clearly seen, twice as thick as a frame and in the lighter grey of what is picked */
-.occasion:has(+ :not(.occasion)) {
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--chosen-line);
+.occasion:hover .occasion-hint {
+    visibility: visible;
 }
 
 /* A box: its ring, its lines and its buttons in one row, a card filled in the soft grey of a card without a frame,

@@ -5,7 +5,7 @@
  * written only when I have one: a click on a birthday or holiday opens a small dialog with one field, my gift idea for it,
  * which `Enter` or `Save` saves as its `DESCRIPTION` in its file, `Birthdays.ics` or `Holidays.ics`, for every year
  * of it; an empty field, or `Remove`, takes the idea out again.
- * The plan shows each idea below its birthday or holiday, see `boxes.ts`, and loads again when the dialog closes.
+ * The plan shows each idea beside its birthday or holiday, see `boxes.ts`, and loads again when the dialog closes.
  *
  * - `lucide`: The icons of the bin, Cancel and Save.
  * - `../icons.ts`: Shows them in their buttons.

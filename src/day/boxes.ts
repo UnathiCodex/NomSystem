@@ -2,8 +2,8 @@
  * ## Boxes
  *
  * The plan of the shown day as a calm list of boxes beside the log, which is my one calendar, see `reader/boxes.ts`:
- * its birthdays and holidays at the top, each with my gift idea for it below, when I have one, see `gifts.ts`,
- * and a line below them, then the boxes one after another like the stations of the day, as real as the log:
+ * its birthdays and holidays at the top, each looking like a box, with my gift idea for it beside it, when I have one,
+ * see `gifts.ts`, then the boxes one after another like the stations of the day, as real as the log:
  * those with an expected time by their time, like my lectures, a cancelled one faded in its place, then those with
  * a deadline, then those without either, then tomorrow's suggested study sessions, dashed, see `suggestions.ts`,
  * and the cancelled boxes without time last; on today below them the boxes carried along, see below.
@@ -461,12 +461,15 @@ function topicsOf(box: Box): string[] {
 }
 
 /**
- * Makes the birthdays and holidays of a day, each a grey line above its boxes with its category in bold and a colon
- * as every entry has it, like **`Birthday:`**` Karlbauer Florian`, see {@link whatOf}, and below it, after a gift,
- * my gift idea for it, when I have one. A click on one opens the dialog of its gift idea, see `gifts.ts`,
- * and one without an idea shows the gift at its right under the pointer.
+ * Makes the birthdays and holidays of a day, each above its boxes looking like a box, see {@link boxElementOf},
+ * so it reads as an appointment of the day: its category in bold with a colon as what a box is, like
+ * **`Birthday:`**` Karlbauer Florian`, see {@link whatOf}, and beside it, after a middle dot, my gift idea for it,
+ * when I have one, like `· Concert tickets`, going on below where the line is too narrow, as what a box is does;
+ * in the place of the ring an empty one, so its line starts where those of the boxes do, and no buttons, since it is
+ * never logged. A click on it opens the dialog of its gift idea, see `gifts.ts`, and one without an idea shows
+ * the gift at its right under the pointer.
+ * - `after`: My gift idea after its dot, else the gift under the pointer.
  * - `element`: A birthday or holiday with its idea.
- * - `hint`: The gift under the pointer, none for one with an idea.
  *
  * @param occasions - Birthdays and holidays with my gift ideas
  * @param open - Opens the dialog of the gift idea for one
@@ -474,11 +477,11 @@ function topicsOf(box: Box): string[] {
  */
 function occasionsOf(occasions: Occasion[], open: (occasion: Occasion) => void): HTMLElement[] {
     return occasions.map((occasion: Occasion): HTMLElement => {
-        const hint: HTMLElement[] = occasion.gift !== "" ? [] : [entryPartOf("span", "occasion-hint", [iconOf(Gift)])];
-        const element: HTMLElement = entryPartOf("div", "occasion occasion-open", [
-            entryPartOf("div", "occasion-title", [...whatOf(occasion.category, occasion.title), ...hint]),
-            ...(occasion.gift === "" ? [] : [entryPartOf("div", "occasion-gift", [iconOf(Gift), occasion.gift])]),
-        ]);
+        const after: HTMLElement = occasion.gift === "" ? entryPartOf("span", "occasion-hint", [iconOf(Gift)])
+            : entryPartOf("span", "entry-parted occasion-gift", [occasion.gift]);
+        const element: HTMLElement = entryPartOf("div", "box occasion", [entryPartOf("span", "box-ring", []),
+            entryPartOf("div", "box-body", [
+                entryPartOf("div", "box-what", [...whatOf(occasion.category, occasion.title), after])])]);
         element.title = occasion.gift === "" ? "Gift idea" : "Change gift idea";
         element.addEventListener("click", (): void => open(occasion));
         return element;
