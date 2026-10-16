@@ -248,7 +248,8 @@
 /* Ring of a box, as high as its first line: for an open box a button, an empty ring in the grey of the plan
    like the circle of a to-do, lighter under the pointer with its check showing, which logs the box as expected;
    for a done box a button too, its grey check, see `.box-checked`; for a cancelled box its grey mark without edge,
-   the landmark or the cross, see `ringOf` in `boxes.ts`; without a ground of its own, so it lies on its box;
+   the calendar crossed out or the cross, see `ringOf` in `boxes.ts`; without a ground of its own, so it lies
+   on its box;
    `.box .box-ring svg` wins over the size of icons in `base.css`, being more exact */
 .box-ring {
     display: inline-flex;

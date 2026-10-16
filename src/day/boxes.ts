@@ -58,7 +58,7 @@
  * - `../today.ts`: Gives today's calendar date, which tells whether the day of a box is over.
  * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
  * - `../phone.ts`: Tells a phone, which shows a skill by its code alone.
- * - `lucide`: The icons plus, check, arrow, cross, undo, landmark and gift.
+ * - `lucide`: The icons plus, check, arrow, cross, undo, calendar crossed out and gift.
  * - `fullcalendar`: Calendar of the log the boxes are dropped into.
  */
 
@@ -75,7 +75,7 @@ import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut, plusPut } from "../icons.ts";
 import { phone } from "../phone.ts";
-import { ArrowRight, Check, Gift, Landmark, Undo2, X } from "lucide";
+import { ArrowRight, CalendarOff, Check, Gift, Undo2, X } from "lucide";
 
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
 import type { IconNode } from "lucide";
@@ -508,9 +508,9 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
  * its check showing under the pointer, which logs it as expected, see {@link boxTap}; for a done box its check,
  * grey, which takes it back to open, see `boxUndo` in `entries.ts`; for a box with a deadline the same ring and check,
  * which tick it submitted and take the tick back, see `boxSubmit` in `entries.ts`, its sessions staying in the log;
- * for a box cancelled its grey mark in that place,
- * no button: the landmark for one the university cancelled, as on the button that cancels it, the cross for one
- * I skipped, its tooltip saying which, so no word in its line has to.
+ * for a box cancelled its grey mark in that place, no button: the calendar crossed out for one the university
+ * cancelled, as on the button that cancels it, the cross for one I skipped, its tooltip saying which, so no word
+ * in its line has to.
  * - `mark`: The mark of a cancelled box.
  * - `ring`: The button.
  *
@@ -521,7 +521,7 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
 function ringOf(calendar: Calendar, box: Box): HTMLElement {
     if (box.state === "dropped" || box.state === "university") {
         const mark: HTMLElement = entryPartOf("span", "box-ring", []);
-        iconPut(mark, box.state === "university" ? Landmark : X,
+        iconPut(mark, box.state === "university" ? CalendarOff : X,
             box.state === "university" ? "Cancelled by university" : "Skipped");
         return mark;
     }
@@ -592,7 +592,7 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
  * to the next day and shows only under the pointer, but for a box with a deadline, which stays on the day
  * of its deadline, and for one whose day is over, see {@link overIs}, whose next day is over too, and the cross,
  * skip, which cancels it, and for a lecture, an exercise, a tutorial or a sheet, see {@link numberedTypes}, before it
- * the landmark, a building with columns, which marks it cancelled by the university, see `boxUniversity`
+ * the calendar crossed out, which marks it cancelled by the university, see `boxUniversity`
  * in `entries.ts`; for a skipped box, and one the university cancelled, the arrow back, which takes it back;
  * none for a done box, whose check takes it back, see {@link ringOf}, and for a box that cannot be changed.
  * One occurrence of a series has them too and changes alone, the series staying.
@@ -617,7 +617,7 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
     return [entryPartOf("div", "box-actions", [
         ...(push === null ? [] : [push]),
         ...(box.category === skillName && numberedTypes.includes(box.type)
-            ? [actionOf(calendar, Landmark, "Cancelled by university", (): Promise<void> =>
+            ? [actionOf(calendar, CalendarOff, "Cancelled by university", (): Promise<void> =>
                 boxUniversity(box.id, true))] : []),
         actionOf(calendar, X, "Skip", (): Promise<void> => boxDrop(box.id, true)),
     ])];

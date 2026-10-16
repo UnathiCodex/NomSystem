@@ -35,7 +35,7 @@ The page draws them from the npm package `lucide`, see `src/icons.ts`; the five 
 | [trash.svg](icons/trash.svg) | Remove |
 | [circle-question-mark.svg](icons/circle-question-mark.svg) | Really remove? |
 | [undo-2.svg](icons/undo-2.svg) | Take back |
-| [landmark.svg](icons/landmark.svg) | Cancelled by university |
+| [calendar-off.svg](icons/calendar-off.svg) | Cancelled by university |
 | [arrow-right.svg](icons/arrow-right.svg) | Route of a way, push a box to the next day |
 | [gift.svg](icons/gift.svg) | Gift idea |
 | [pencil.svg](icons/pencil.svg) | Edit a note, change a place |
