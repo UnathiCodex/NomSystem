@@ -265,22 +265,23 @@ export function inlineFieldOf(value: string, words: string, saved: () => void): 
 
 /**
  * Makes the kind of a food of mine, which changes in place, see {@link Kind}: plain as every value beside it, like
- * `Drink`, see `.food-inline` in `search.css`; a click offers `Eat` and `Drink`, and picking the other saves it.
- * - `select`: The kind.
+ * `Drink`, see `.food-inline` in `search.css`; a click switches it to the other, `Eat` to `Drink` and back, and saves
+ * it, since there are only these two and no list is needed.
+ * - `button`: The kind, its text.
  *
  * @param kind - Its kind
  * @param saved - Sends the change
  * @returns The kind
  */
-function kindFieldOf(kind: Kind, saved: () => void): HTMLSelectElement {
-    const select: HTMLSelectElement = document.createElement("select");
-    select.className = "food-inline";
-    select.setAttribute("aria-label", "Kind");
-    ["Eat", "Drink"].forEach((option: string): void => {
-        select.append(new Option(option, option, false, option === kind));
+function kindFieldOf(kind: Kind, saved: () => void): HTMLButtonElement {
+    const button: HTMLButtonElement = elementOf("button", "food-inline food-kind", kind) as HTMLButtonElement;
+    button.type = "button";
+    button.setAttribute("aria-label", "Kind, a click switches it");
+    button.addEventListener("click", (): void => {
+        button.textContent = button.textContent === "Eat" ? "Drink" : "Eat";
+        saved();
     });
-    select.addEventListener("change", saved);
-    return select;
+    return button;
 }
 
 /**
@@ -289,7 +290,7 @@ function kindFieldOf(kind: Kind, saved: () => void): HTMLSelectElement {
  * brand and store, which change in place by a click into them, see {@link inlineFieldOf}, renaming it wherever it
  * stands, see `foodChange` in `foods.ts`; then its protein, carbs and fat per 100 g or 100 ml, its kcal standing on
  * its line, its portion and its pack, in grams, or in millilitres for a drink, see `unitOf` in `foods.ts`, and its
- * kind, `Eat` or `Drink`, which a click into it changes, see {@link kindFieldOf}. Its nutrients are set once: a food I
+ * kind, `Eat` or `Drink`, which a click switches, see {@link kindFieldOf}. Its nutrients are set once: a food I
  * made by hand, without barcode, takes a nutrient still unknown in place, which then stays as every known one, so
  * nothing known is changed by mistake, and changes its pack; one of Open Food Facts keeps them and its pack as they
  * came, one unknown empty, never 0, and shows its barcode; its portion and kind change in place for every food, since
@@ -336,7 +337,7 @@ function detailOf(search: Search, food: Food): HTMLElement {
         }
         detail.inert = true;
         foodChange(food, {
-            name: text("name"), brand: text("brand"), store: text("store"), portion: portion, kind: kind.value as Kind,
+            name: text("name"), brand: text("brand"), store: text("store"), portion: portion, kind: kind.textContent as Kind,
             ...own ? { protein: protein, carbs: carbs, fat: fat, pack: pack } : {},
         }).then((): void => {
             const renamed: string = keyOf({ ...food, name: text("name"), brand: text("brand"), store: text("store") });
@@ -349,7 +350,7 @@ function detailOf(search: Search, food: Food): HTMLElement {
             detail.inert = false;
         });
     };
-    const kind: HTMLSelectElement = kindFieldOf(food.kind, save);
+    const kind: HTMLButtonElement = kindFieldOf(food.kind, save);
     const fieldAdd: (name: string, key: string, value: string, unit: string) => void = (name: string, key: string,
         value: string, unit: string): void => {
         const input: HTMLInputElement = inlineFieldOf(value, name, save);

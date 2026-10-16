@@ -175,9 +175,9 @@ button.food-row {
     border-bottom-color: var(--chosen-line);
 }
 
-/* The kind of a food, `Eat` or `Drink`: as plain as the values beside it, without the arrow of a list */
-select.food-inline {
-    appearance: none;
+/* The kind of a food, `Eat` or `Drink`, a switch: as plain as the values beside it, its text at their left edge */
+.food-kind {
+    text-align: start;
     cursor: pointer;
 }
 
