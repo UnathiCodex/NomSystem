@@ -87,6 +87,7 @@ import "./boxes.css";
 import "./note.css";
 import "./meal.css";
 import "./log.css";
+import "./choices.css";
 
 import type {
     DateSelectInfo, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,

@@ -28,7 +28,7 @@
 
 /* The plus right after the name of the meal opened, which adds one more of my foods, a little apart from it, one line
    high and at the top of its line, so it stands exactly in the middle, as after the name of a meal in the entry
-   by category, see `day/day.css` */
+   by category, see `day/choices.css` */
 .dish-list .food-name .plus-quiet {
     height: calc(1lh + 0.5rem);
     margin: -0.25rem 0 -0.25rem 0.5rem;

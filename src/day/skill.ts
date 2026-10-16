@@ -309,7 +309,7 @@ function hintOf(text: string): HTMLParagraphElement {
  * like `WokFlow`, and is picked by its name, a module its code, like `IN2028`.
  * My modules of the university stand apart from my projects of programming, each under its small grey head,
  * `Modules` and `Projects`, a thin line between them, as the sections of the food search, see `.picker-group`
- * in `day.css`; a module known by its code, letters then digits, like `IN2028` or `MGT1372`.
+ * in `choices.css`; a module known by its code, letters then digits, like `IN2028` or `MGT1372`.
  * - `module`: Whether a skill is a module of the university.
  * - `choices`: Every skill and module, the modules first, the skills of the semester first in each, each its name
  *   as value, its name airy as text, its kind as group.

@@ -39,8 +39,8 @@ import { matchesAll, searchTextOf, wordsOf } from "../search.ts";
  * Marks where a long name may go on over a next line, where it is wider than its room, as on a phone, in the line
  * of a field and in an entry or a box of the day: after each `_` and between a small and a capital letter, so
  * `IN0004_EinfuehrungRechnerarchitektur (VO)` breaks into `IN0004_Einfuehrung` and `Rechnerarchitektur (VO)`
- * instead of right after `Skill:` and within a word, see `.entry-whole` in `log.css`, `.box-what` and `.picker-line`
- * in `day.css`; the mark is a space of no width, U+200B, which shows nothing.
+ * instead of right after `Skill:` and within a word, see `.entry-whole` in `log.css`, `.box-what` in `boxes.css`
+ * and `.picker-line` in `choices.css`; the mark is a space of no width, U+200B, which shows nothing.
  *
  * @param text - Text with a long name, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
  * @returns The same text with the marks
@@ -250,9 +250,9 @@ function valueButtonOf(choice: Choice, chosen: boolean, click: () => void): HTML
  * Makes a list that the line of a field opens and closes as a menu of its own over the dialog, see the top
  * of this file, the same for every list of the dialogs: a popover of the browser, `manual`, so this file alone
  * decides when it closes, which the anchors of CSS place right under the line that opened it, as wide as the values
- * of the row the line stands in, see `.picker-box` in `day.css`; the line and its row are those anchors while the list
- * is open, `list-line` and `list-field`. It opens on a click on the line, closing the list open before, and closes
- * on another click on the line, on Esc, see {@link listsStart}, and on a click beside its picker and its line.
+ * of the row the line stands in, see `.picker-box` in `choices.css`; the line and its row are those anchors while
+ * the list is open, `list-line` and `list-field`. It opens on a click on the line, closing the list open before, and
+ * closes on another click on the line, on Esc, see {@link listsStart}, and on a click beside its picker and its line.
  * - `field`: The row of the dialog the line stands in, also when moved beside the name of a field, see {@link lineMove};
  *   the picker itself while the line stands in no row.
  * - `close`: Closes the list; also takes back what an open list whose picker left the page meanwhile still holds,
@@ -614,7 +614,7 @@ export function addRowOf(name: string, first: HTMLElement | undefined, picker: H
  * Moves the line of the picker of a row, its plus, right after what it adds to, so no plus stands on a line of its own:
  * beside the name of a field, like `Chapter +`, or after a value, like a chapter's plus that adds a document to it;
  * moved out of its row, the row keeps only the list, which takes no room of the dialog, see `.panel-list`
- * in `day.css`, and opens as a menu right under the plus, see {@link listOf}.
+ * in `choices.css`, and opens as a menu right under the plus, see {@link listOf}.
  * - `line`: The line of the picker of the row.
  *
  * @param row - Row with its picker, built with a plus as its line, see `plus` in {@link ChoicesSetup}
