@@ -575,11 +575,6 @@ button.box-ring.box-moved svg {
     text-overflow: ellipsis;
 }
 
-/* `None` of the timer while no session runs, in the grey of the time, not bold, so it says nothing runs, calmly */
-.session-none {
-    color: var(--text-muted);
-}
-
 .session-left {
     flex: none;
     color: var(--text-muted);

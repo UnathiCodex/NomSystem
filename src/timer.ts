@@ -4,7 +4,8 @@
  * A quiet timer in the bar of the day, always there, taking the room between the date and the trackers,
  * in a soft frame like them: while a session of mine runs what its skill entry is at the left, as the log shows it,
  * like `Skill: NomSystemdashboard`, and how long it still runs at the right, in hours and minutes, like `01h 23m`;
- * while none runs `None` and `00h 00m` in the grey of a time, so the bar never jumps; on a phone on a line of its own.
+ * while none runs `None` and `00h 00m`, `None` in the white and bold of a session's name, so I see at once what runs,
+ * and the bar never jumps; on a phone on a line of its own.
  * Where the room is too small for the whole name, like on my laptop, it is cut with an ellipsis at its end,
  * like `Skill: WI0219_InvestitionFin…`, the time always whole; a short code would not work for every name.
  * A session is the skill entry of the moment in the log, of every type, see `reader/skill.ts`: the first button
@@ -71,7 +72,7 @@ async function timerShow(): Promise<void> {
     const session: Session | null = await sessionLoad();
     const left: number = session === null ? 0 : Math.ceil((Date.parse(session.end) - Date.now()) / (60 * 1000));
     if (session === null || left <= 0) {
-        timer.replaceChildren(entryPartOf("span", "session-what session-none", ["None"]),
+        timer.replaceChildren(entryPartOf("span", "session-what", whatOf("", "None")),
             entryPartOf("span", "session-left", [lengthOf(0)]));
         timer.removeAttribute("title");
         return;

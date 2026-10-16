@@ -206,7 +206,9 @@ body {
     display: block;
 }
 
+/* The weekday a breath apart from the date below it, never so far that the bar grows */
 .day-weekday {
+    margin-bottom: 0.125rem;
     font-size: 0.75rem;
     font-weight: 400;
     color: var(--text-muted);
