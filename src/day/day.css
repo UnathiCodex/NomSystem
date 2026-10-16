@@ -1843,6 +1843,29 @@ svg.route-arrow {
         display: none;
     }
 
+    /* Plan, log or note on a phone follow the finger while a swipe sideways changes the day, see `swipe.ts`: moved
+       sideways by `--swipe`, sliding out and back, but right under the finger while it moves; the day cuts them
+       at the edges of the screen, and the time grid, the plan and the note scroll only up and down, so a move
+       sideways is the swipe's. The swipe takes the place of the arrows beside the date */
+    .day {
+        overflow: clip;
+    }
+
+    .day-main > :is(.day-column, .note-boxes) {
+        translate: var(--swipe, 0px) 0;
+        transition: translate 180ms ease-out;
+        touch-action: pan-y;
+    }
+
+    .day-main.day-swiping > :is(.day-column, .note-boxes) {
+        transition: none;
+    }
+
+    #day-back,
+    #day-next {
+        display: none;
+    }
+
     .day-main[data-shown="plan"] :is(#day-log, .note-boxes),
     .day-main[data-shown="log"] :is(#day-plan, .note-boxes),
     .day-main[data-shown="note"] :is(#day-plan, #day-log) {

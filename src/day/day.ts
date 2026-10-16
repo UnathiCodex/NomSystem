@@ -49,7 +49,8 @@
  *   while it shows today.
  * - `../icons.ts`: Puts the icons of the arrows and of `+` into their buttons.
  * - `../timer.ts`: Shows the timer of a session running now in the bar of the day.
- * - `../phone.ts`: Tells a phone, which puts entries at the same time side by side.
+ * - `./swipe.ts`: Changes the shown day on a phone by a swipe sideways.
+ * - `../phone.ts`: Tells a phone, which puts entries at the same time side by side and changes the day by a swipe.
  * - `lucide`: The icons of the arrows and plus.
  */
 
@@ -65,6 +66,7 @@ import { boxesSee, boxesStart, boxReceive, entryPartOf, shownWhatOf, whatOf } fr
 import { breakableOf } from "./choices.ts";
 import { monthStart } from "./month.ts";
 import { giftsStart } from "./gifts.ts";
+import { swipeStart } from "./swipe.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
 import { trackersSee } from "./trackers.ts";
 import { dateTextOf, timeOf, timesStart } from "./times.ts";
@@ -688,7 +690,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * the arrows beside the date above plan and log move the calendar by a day, the icon beside it back to today,
  * the date opens the month to pick a day from, `+` below the time grid opens the entry by category of the log
  * for the last half hour; on a phone the buttons at the bottom switch between plan, log and note, see
- * {@link phoneShow}, and their `+` starts a box or an entry of the shown plan or log; it shows the daily note, see
+ * {@link phoneShow}, and their `+` starts a box or an entry of the shown plan or log, and a swipe sideways changes
+ * the day in place of the arrows, see `swipe.ts`; it shows the daily note, see
  * {@link noteStart}, and the timer of a session, see `timer.ts`; while it shows today, the day moves on to the new day
  * by itself, now centred again, see `todayFollow` in `today.ts`, and while it shows another day, the icon back
  * to today follows the new day. While the grid scrolls, the lines of every entry fit to the part of it in sight,
@@ -837,6 +840,9 @@ export function dayStart(): void {
     document.getElementById("day-back")?.addEventListener("click", (): void => calendar.prev());
     document.getElementById("day-today")?.addEventListener("click", (): void => calendar.gotoDate(calendarTodayOf()));
     document.getElementById("day-next")?.addEventListener("click", (): void => calendar.next());
+    if (phone)
+        swipeStart(document.getElementById("day-main") as HTMLElement,
+            (days: number): void => calendar.incrementDate({ days: days }));
     document.getElementById("day-calendar")?.addEventListener("scroll", (event: Event): void => {
         const grid: HTMLElement = event.target as HTMLElement;
         for (const lines of grid.querySelectorAll<HTMLElement>(".entry-lines"))
