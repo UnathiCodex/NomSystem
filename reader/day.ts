@@ -43,7 +43,8 @@
 
 import { boxDone, boxFind, boxOpenFind, boxReopen } from "./boxes.ts";
 import {
-    berlinDateOf, entriesOnceRead, entriesRead, entryAppend, entryChange, entryFind, entryLookup, entryRemove, propertiesPut,
+    berlinDateOf, entriesOnceRead, entriesRead, entryAppend, entryChange, entryFind, entryLookup, entryRemove,
+    propertiesPut,
 } from "./calendar.ts";
 import { attendeesAllow, categoryAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";

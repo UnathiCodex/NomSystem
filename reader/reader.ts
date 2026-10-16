@@ -13,8 +13,9 @@
  * ### Modules
  * - `node:http`: Builds the server that answers the browser page
  * - `node:stream/consumers`: Reads a whole request body into one value
- * - `./day.ts`: Reads the log of a day and every entry of the log, adds, changes and removes its entries, adds the meal of a cooking,
- *   logs a box of the plan at its real time and takes it back, and reads how long entries like a box really lasted
+ * - `./day.ts`: Reads the log of a day and every entry of the log, adds, changes and removes its entries, adds the meal
+ *   of a cooking, logs a box of the plan at its real time and takes it back, and reads how long entries like a box
+ *   really lasted
  * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, and the boxes carried along
  *   to a day, adds, changes and removes boxes, pushes them to the next day and drops them
  * - `./gifts.ts`: Writes my gift idea for a birthday or holiday as its `DESCRIPTION` into `Birthdays.ics`

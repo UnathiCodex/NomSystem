@@ -6,9 +6,9 @@
  * I type finds every entry that holds each typed word in its summary, its category, its place, its people or its note,
  * as every search of the page compares, see `../search.ts`, like `Talk` or `Sophale`. The results stand newest first,
  * each what it was, like `Talk: Artificial Intelligence`, and below it small and grey its day, its time, its place
- * and who I was with, like `Friday, 16.10.2026 · 13:45 – 14:15 · Mensa Leopoldstraße · Kicktipp`. A click on a result shows its day and opens
- * its dialog there; closing that dialog, saved or not, brings the search back with what I typed, read anew,
- * so I go from one result to the next. The search brings its dialog itself, `search.html`.
+ * and who I was with, like `Friday, 16.10.2026 · 13:45 – 14:15 · Mensa Leopoldstraße · Kicktipp`. A click on a result
+ * shows its day and opens its dialog there; closing that dialog, saved or not, brings the search back with what I
+ * typed, read anew, so I go from one result to the next. The search brings its dialog itself, `search.html`.
  *
  * - `./search.html?raw`: Html of the dialog of the search as text, packed into the built code by Vite.
  * - `./categories.ts`: Opens the dialog of an entry.
@@ -101,8 +101,9 @@ function searchedOf(entry: LogEntry): string {
 /**
  * Builds a result: what the entry was in the bold of the log, like `Talk: Artificial Intelligence`, see `whatOf`
  * in `boxes.ts`, and below it, small and grey, its day with its weekday written out, its time, its place by its label
- * and who I was with, parted by middle dots, like `Friday, 16.10.2026 · 13:45 – 14:15 · Mensa Leopoldstraße · Kicktipp`;
- * no place or nobody leaves its part out; a phone shows place and people on a line of their own, see `day.css`.
+ * and who I was with, parted by middle dots,
+ * like `Friday, 16.10.2026 · 13:45 – 14:15 · Mensa Leopoldstraße · Kicktipp`; no place or nobody leaves its part out;
+ * a phone shows place and people on a line of their own, see `day.css`.
  * - `start`, `end`: Start and end of the entry.
  * - `day`: Day of its start, like `2026-10-16`.
  * - `weekday`: Its weekday, like `Friday`.
@@ -125,7 +126,8 @@ function resultOf(calendar: Calendar, entry: LogEntry): HTMLLIElement {
     const people: string = entry.attendees.map((person: Attendee): string => person.name).join(", ");
     const where: string[] = [place, people].filter((part: string): boolean => part !== "");
     const meta: HTMLElement = entryPartOf("span", "search-meta", [entryPartOf("span", "search-when",
-        [`${weekday}, ${dateTextOf(day)}`, entryPartOf("span", "entry-parted", [`${timeOf(start)} – ${timeOf(end)}`])])]);
+        [`${weekday}, ${dateTextOf(day)}`,
+            entryPartOf("span", "entry-parted", [`${timeOf(start)} – ${timeOf(end)}`])])]);
     if (where.length > 0)
         meta.append(entryPartOf("span", "search-where entry-parted", [where[0],
             ...where.slice(1).map((part: string): HTMLElement => entryPartOf("span", "entry-parted", [part]))]));

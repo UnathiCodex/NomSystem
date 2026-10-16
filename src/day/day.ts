@@ -16,9 +16,9 @@
  * Entries are moved and resized by dragging, and the reader writes them back into their files.
  * Entries look as Google Calendar shows them: what first, then the time, then the place, in one size, the time a light
  * grey, and a taller one its note below, see {@link entryContentOf};
- * a dish, a meal or a cooking, shows its summary, which leaves its drinks out. The kcal of a meal stay hidden for a try;
- * the dialog and the trackers show them. A glass of water is no block but a small mark at the edge of the log,
- * since the counter of the trackers counts it.
+ * a dish, a meal or a cooking, shows its summary, which leaves its drinks out. The kcal of a meal stay hidden
+ * for a try; the dialog and the trackers show them. A glass of water is no block but a small mark at the edge
+ * of the log, since the counter of the trackers counts it.
  * The day opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today
  * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the food view, opens on that day,
  * which the address then keeps no more, see `today.ts`.
@@ -500,8 +500,9 @@ function selectionIs(info: EventDisplayInfo): boolean {
 /**
  * Content of an entry of the log, as Google Calendar shows one: what first in bold, see {@link whatOf}, then its time
  * in normal weight and the light grey of a time, then its place lighter still; a dish shows its summary, like
- * `Pizza Salami, Pizza Margherita`, never its drinks, which its summary leaves out. Every entry shows its place by its label alone, its address hidden,
- * a way its route, see `whereOf` in `places.ts`; a place with a link opens it on a click, see `whereLinkedOf`.
+ * `Pizza Salami, Pizza Margherita`, never its drinks, which its summary leaves out.
+ * Every entry shows its place by its label alone, its address hidden, a way its route, see `whereOf` in `places.ts`;
+ * a place with a link opens it on a click, see `whereLinkedOf`.
  * What is never cut and the time never cut; only the place gives way where a line is too narrow,
  * cut with an ellipsis, see `day.css`.
  * The range being selected shows only its start and end,
@@ -753,13 +754,15 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * see `askedDayOf` in `today.ts`:
  * the arrows beside the date above plan and log move the calendar by a day, the icon beside it back to today,
  * the date opens the month to pick a day from, `+` below the time grid opens the entry by category of the log
- * for the last half hour, the search beside it the search of the whole log, see `search.ts`; on a phone the buttons at the bottom switch between plan, log and note, see
- * {@link phoneShow}, and their `+` starts a box or an entry of the shown plan or log, and a swipe sideways changes
- * the day in place of the arrows, see `swipe.ts`; it shows the daily note, see
- * {@link noteStart}, and the timer of a session, see `timer.ts`; while it shows today, the day moves on to the new day
- * by itself, now centred again, see `todayFollow` in `today.ts`, and while it shows another day, the icon back
- * to today follows the new day; a day the page stays on when it becomes visible loads again, see {@link dayAgain}. While the grid scrolls, the lines of every entry fit to the part of it in sight,
- * see {@link linesFit}; the calendar catches the scroll on its way down to the grid, `capture`, since it never rises.
+ * for the last half hour, the search beside it the search of the whole log, see `search.ts`; on a phone the buttons
+ * at the bottom switch between plan, log and note, see {@link phoneShow}, and their `+` starts a box or an entry
+ * of the shown plan or log, and a swipe sideways changes the day in place of the arrows, see `swipe.ts`;
+ * it shows the daily note, see {@link noteStart}, and the timer of a session, see `timer.ts`; while it shows today,
+ * the day moves on to the new day by itself, now centred again, see `todayFollow` in `today.ts`, and while it shows
+ * another day, the icon back to today follows the new day; a day the page stays on when it becomes visible loads again,
+ * see {@link dayAgain}.
+ * While the grid scrolls, the lines of every entry fit to the part of it in sight, see {@link linesFit};
+ * the calendar catches the scroll on its way down to the grid, `capture`, since it never rises.
  * - `initialView`: A time grid of the shown day, one column, the log.
  * - `headerToolbar`: None, since the date and its buttons stand above plan and log together, see {@link dayShow}.
  * - `dayHeaders`: Leaves out the name of the day above the column, which the date above says already.

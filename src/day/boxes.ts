@@ -616,10 +616,10 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
 }
 
 /**
- * Puts the buttons of a box or a suggestion at its right, see `.box-actions` in `day.css`: on the computer side by side,
- * each its icon; on a phone behind one button `⋯`, which opens them as a small menu below it, each its icon and its
- * words, like `To tomorrow`, so the line of what the box is keeps its room; a tap on one of them, or beside the menu,
- * closes it.
+ * Puts the buttons of a box or a suggestion at its right, see `.box-actions` in `day.css`: on the computer side by
+ * side, each its icon; on a phone behind one button `⋯`, which opens them as a small menu below it, each its icon and
+ * its words, like `To tomorrow`, so the line of what the box is keeps its room; a tap on one of them, or beside the
+ * menu, closes it.
  * - `more`: The button `⋯`.
  * - `menu`: The menu, shown over the page as a popover, which closes by itself on a tap beside it.
  * - `place`: Puts the menu below the button, its right edge under the button's.

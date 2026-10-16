@@ -2292,10 +2292,10 @@ svg.route-arrow {
         border: 0;
     }
 
-    /* The menu of a box on a phone, opened by its button `⋯`, see `actionsRowOf` in `boxes.ts`: right under that button,
-       its right edge under the button's, with the background, line and soft shadow of every menu of a list, see
-       `.picker-box`; each of its buttons a row one control high, its icon and then its words, like `To tomorrow`,
-       a finger's height to hit, so no tap reaches beside it */
+    /* The menu of a box on a phone, opened by its button `⋯`, see `actionsRowOf` in `boxes.ts`: right under that
+       button, its right edge under the button's, with the background, line and soft shadow of every menu of a list, see
+       `.picker-box`; each of its buttons a row one control high, its icon and then its words, like `To tomorrow`, a
+       finger's height to hit, so no tap reaches beside it */
     .box-menu {
         position: fixed;
         inset: auto;
