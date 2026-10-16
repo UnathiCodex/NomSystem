@@ -50,7 +50,7 @@
  * - `../icons.ts`: Puts the icons of the arrows and of `+` into their buttons.
  * - `../timer.ts`: Shows the timer of a session running now in the bar of the day.
  * - `./swipe.ts`: Changes the shown day on a phone by a swipe sideways.
- * - `../phone.ts`: Tells a phone, which puts entries at the same time side by side and changes the day by a swipe.
+ * - `../phone.ts`: Tells a phone, which changes the day by a swipe.
  * - `lucide`: The icons of the arrows and plus.
  */
 
@@ -745,9 +745,9 @@ async function noteStart(calendar: Calendar): Promise<void> {
  *   long press of a second, so a finger presses into the time grid and pulls the range down over the time,
  *   as in Google Calendar; a swipe moves at once, so it scrolls the grid, and once the grid scrolled FullCalendar
  *   selects nothing. An entry keeps the long press of a second before it is dragged, so a slow tap never moves it.
- * - `slotEventOverlap`: Lets an entry at the same time as another lie over the right part of it on a computer,
- *   as in Google Calendar; on a phone puts them side by side, each half as wide, since one lying over the other there
- *   hid most of its text, like the room of a lecture under the homework done during it.
+ * - `slotEventOverlap`: Lets an entry at the same time as a longer one lie over the right part of it, as in Google
+ *   Calendar, on a computer and on a phone alike, so the longer one keeps its text at its left, like a workshop
+ *   with `Food: Pizza Salami` during it.
  * - `nowIndicatorLineClass`, `nowIndicatorDotClass`: Add the classes `now-line` and `now-dot` to the line of now
  *   and its dot, so `day.css` draws them calm grey behind the entries, never through their text.
  * - `slotMinTime`, `slotMaxTime`: Run the grid over the calendar day, 00:00 to 24:00, as the trackers and the done
@@ -807,7 +807,7 @@ export function dayStart(): void {
             calendar.unselect();
             entryOpen(info.start, info.end).catch((error: unknown): void => console.error(error));
         },
-        slotEventOverlap: !phone,
+        slotEventOverlap: true,
         nowIndicator: true,
         nowIndicatorLineClass: "now-line",
         nowIndicatorDotClass: "now-dot",
