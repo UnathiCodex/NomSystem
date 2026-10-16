@@ -16,8 +16,8 @@
  * Entries are moved and resized by dragging, and the reader writes them back into their files.
  * Entries look as Google Calendar shows them: what first, then the time, then the place, in one size, the time a light
  * grey, and a taller one its note below, see {@link entryContentOf};
- * a dish, a meal or a cooking, lists its foods. The kcal of a meal stay hidden for a try; the dialog and the trackers
- * show them. A glass of water is no block but a small mark at the edge of the log,
+ * a dish, a meal or a cooking, shows its summary, which leaves its drinks out. The kcal of a meal stay hidden for a try;
+ * the dialog and the trackers show them. A glass of water is no block but a small mark at the edge of the log,
  * since the counter of the trackers counts it.
  * The day opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today
  * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the food view, opens on that day,
@@ -35,7 +35,6 @@
  *   see {@link noteStart}.
  * - `./entries.ts`: Sends changed entries to the reader.
  * - `./categories.ts`: Writes the log by category, each field picked from its own list.
- * - `./meal.ts`: Names the category of meals.
  * - `./boxes.ts`: Shows the boxes of the day beside the log, logs a box dropped into it, and makes what an entry is.
  * - `./evening.ts`: Writes my gratitude and my points about the day into its daily note, any time of the day;
  *   loaded like `./note.ts`.
@@ -61,7 +60,6 @@ import themePlugin from "fullcalendar/themes/forma";
 import englishLocale from "fullcalendar/locales/en-gb";
 import { entryChange } from "./entries.ts";
 import { categoriesStart, entryOpen, entryOpenEdit, entryOpenNow } from "./categories.ts";
-import { cookName, foodName, lineOf } from "./meal.ts";
 import { boxesSee, boxesStart, boxReceive, entryPartOf, shownWhatOf, whatOf } from "./boxes.ts";
 import { breakableOf } from "./choices.ts";
 import { monthStart } from "./month.ts";
@@ -85,7 +83,6 @@ import type {
     EventDragStartInfo, EventDragStopInfo, EventInput, EventReceiveInfo, EventResizeStartInfo, EventSourceInput,
 } from "fullcalendar";
 import type { EntryFields } from "./entries.ts";
-import type { Line } from "./meal.ts";
 
 
 /**
@@ -376,36 +373,6 @@ function entryTurn(calendar: Calendar, info: EventDragStopInfo): void {
 }
 
 /**
- * Lists the foods of a dish, a meal or a cooking: from its lines `X-FOOD` by their names, read as the dialog reads them,
- * see `lineOf` in `meal.ts`, like `Reis` of `Reis;Golden Sun;Lidl;125` or of `Reis;150`, the foods of one of my meals
- * once by the name of that meal, which their lines carry after their grams, like `Chili con Carne`
- * of `Hackfleisch;125;Chili con Carne;1;09.10.2026` and `Salz;Chili con Carne;1`;
- * else from its what, parted by `, `, like `Reis`, `Bohnen` and `Eier` of `Reis, Bohnen, Eier`.
- * - `category`: Category of the entry.
- * - `foods`: Lines `X-FOOD` of the entry, none when it lists none.
- * - `names`: The names listed so far.
- *
- * @param event - Entry
- * @returns Foods and meals in their order, none for an entry that is no dish
- */
-function dishOf(event: EventApi): string[] {
-    const category: string = event.extendedProps.category ?? "";
-    const foods: string[] = event.extendedProps.foods ?? [];
-    const names: string[] = [];
-    if (category !== foodName && category !== cookName)
-        return [];
-    if (foods.length === 0)
-        return event.title.split(", ");
-    foods.map(lineOf).forEach((read: Line): void => {
-        if (read.meal === "")
-            names.push(read.name);
-        else if (names.at(-1) !== read.meal)
-            names.push(read.meal);
-    });
-    return names;
-}
-
-/**
  * Lines an entry of the time grid has room for, its shown part less what its edge takes, see {@link edgeMinutes}:
  * three lines or more with the space of 0.75rem above and below them, see {@link lineMinutes}, like an hour and
  * a quarter, (75 - 3 - 11.25) / 15.75 = 3.86, three; else at most two, centred without that space, see
@@ -452,8 +419,8 @@ function selectionIs(info: EventDisplayInfo): boolean {
 
 /**
  * Content of an entry of the log, as Google Calendar shows one: what first in bold, see {@link whatOf}, then its time
- * in normal weight and the light grey of a time, then its place lighter still; a dish lists its foods,
- * see {@link dishOf}, parted by commas. Every entry shows its place by its label alone, its address hidden,
+ * in normal weight and the light grey of a time, then its place lighter still; a dish shows its summary, like
+ * `Pizza Salami, Pizza Margherita`, never its drinks, which its summary leaves out. Every entry shows its place by its label alone, its address hidden,
  * a way its route, see `whereOf` in `places.ts`; a place with a link opens it on a click, see `whereLinkedOf`.
  * What is never cut and the time never cut; only the place gives way where a line is too narrow,
  * cut with an ellipsis, see `day.css`.
@@ -475,9 +442,9 @@ function selectionIs(info: EventDisplayInfo): boolean {
  * like `IN0004_EinfuehrungRechnerarchitektur`, where its parts meet, see {@link breakableOf}; the lines below then
  * move down, and those the entry has no more room for stay hidden, see `.entry-lines` in `day.css`.
  * - `category`: Category of the entry, empty for an entry without one.
- * - `foods`: Foods of a dish, none for any other entry.
- * - `what`: What the entry was, a skill entry as its file writes it, like `IN0004_EinfuehrungRechnerarchitektur (VO)`,
- *   see `shownWhatOf` in `boxes.ts`, its foods for a dish, empty when it is its category, like an old `Sleep`
+ * - `shownWhat`: What the entry was, a skill entry as its file writes it, like
+ *   `IN0004_EinfuehrungRechnerarchitektur (VO)`, see `shownWhatOf` in `boxes.ts`.
+ * - `what`: What the entry was, empty when it is its category, like an old `Sleep`
  *   written before it had its what.
  * - `from`: Where a way starts, its `X-FROM`, empty for none.
  * - `location`: Place of the entry, its `LOCATION`, like `Home Munich, Burgweg 1, 81375 München, Deutschland`.
@@ -503,13 +470,9 @@ function selectionIs(info: EventDisplayInfo): boolean {
  */
 function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     const category: string = info.event.extendedProps.category ?? "";
-    const foods: string[] = dishOf(info.event);
-    let what: string = shownWhatOf(category, info.event.title, info.event.extendedProps.module ?? "",
+    const shownWhat: string = shownWhatOf(category, info.event.title, info.event.extendedProps.module ?? "",
         info.event.extendedProps.type ?? "");
-    if (foods.length > 0)
-        what = foods.join(", ");
-    else if (what === category)
-        what = "";
+    const what: string = shownWhat === category ? "" : shownWhat;
     const from: string = info.event.extendedProps.from ?? "";
     const location: string = info.event.extendedProps.location ?? "";
     const place: string = whereOf(category, from, location);
