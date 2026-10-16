@@ -25,15 +25,15 @@
  * as long as its expected duration, else half an hour, and I resize the entry when it lasted otherwise.
  * Every box shows its two buttons, not only under the pointer: done, the ring at its left, which logs it
  * as expected with one tap, from its expected time, else ending now, see `times.ts`, a box with a deadline ticks it
- * submitted, and skip, the cross at its right,
+ * submitted, and `⋯` at its right, whose menu holds all else it can do, like skip,
  * see below; when the reader does not log a box dropped or tapped, a hint says so above the list until it loads again.
  * Everything undoes with one click: the check of a done box takes it back to open, removing its log entry
  * unless that holds what I added since, see `boxUndo` in `entries.ts`, and the arrow back of a skipped or pushed box.
  * A done box keeps exactly the lines it had open, only greyed with the check in its ring; its real time and length
  * the log shows. An open box is as bright on a day that is over as on today, so a day before looks like today.
- * An open box that can be changed is skipped, cancelled, with one tap on its cross, or pushed to the next day,
- * one whose day is over to tomorrow, with one tap on its arrow, which always shows; a skipped box stays in its file,
- * see `reader/boxes.ts`, and shows greyed, never struck through, at the end of the list, where one tap on its arrow
+ * An open box that can be changed is skipped, cancelled, with its cross, or pushed to the next day,
+ * one whose day is over to tomorrow, with its arrow, both in the menu of its `⋯`; a skipped box stays in its file,
+ * see `reader/boxes.ts`, and shows greyed, never struck through, at the end of the list, where its arrow
  * back takes it back.
  * A pushed box stays greyed on each day it left, once per push, with the start and the length it had there,
  * see `leftBoxesOf` in `reader/boxes.ts`, the arrow in its ring, which leads to the day it stands on now, as a click
@@ -81,7 +81,7 @@ import { linkNameOf } from "../skill/links.ts";
 import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { iconOf, iconPut, plusPut } from "../icons.ts";
+import { iconOf, iconPut, iconWordsOf, plusPut } from "../icons.ts";
 import { phone } from "../phone.ts";
 import { ArrowRight, CalendarOff, Check, Ellipsis, Gift, Undo2, X } from "lucide";
 
@@ -597,8 +597,8 @@ function logFailShow(error: unknown): void {
 }
 
 /**
- * Makes one small button at the right of a box, an icon, its words as tooltip, which sends a change of the box
- * and then loads the list again.
+ * Makes one button of the menu of a box, its icon and then its words, like `To tomorrow`, which sends a change
+ * of the box and then loads the list again.
  * - `button`: The button.
  *
  * @param calendar - Calendar of the day
@@ -611,7 +611,7 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
     const button: HTMLButtonElement = document.createElement("button");
     button.type = "button";
     button.className = "box-action";
-    iconPut(button, icon, words);
+    button.replaceChildren(...iconWordsOf(icon, words));
     button.addEventListener("click", (): void => {
         send().then((): Promise<void> => boxesLoad(calendar)).catch((error: unknown): void => console.error(error));
     });
@@ -619,20 +619,18 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
 }
 
 /**
- * Puts the buttons of a box or a suggestion at its right, see `.box-actions` in `boxes.css`: on the computer side by
- * side, each its icon; on a phone behind one button `⋯`, which opens them as a small menu below it, each its icon and
- * its words, like `To tomorrow`, so the line of what the box is keeps its room; a tap on one of them, or beside the
- * menu, closes it.
+ * Puts the buttons of a box or a suggestion behind one button `⋯` at its right, see `.box-actions` in `boxes.css`,
+ * on the computer as on a phone, so both show the same: it opens them as a small menu below it, each its icon and
+ * its words, like `To tomorrow`, so the line of what the box is keeps its room; a click on one of them, or beside
+ * the menu, closes it.
  * - `more`: The button `⋯`.
- * - `menu`: The menu, shown over the page as a popover, which closes by itself on a tap beside it.
+ * - `menu`: The menu, shown over the page as a popover, which closes by itself on a click beside it.
  * - `place`: Puts the menu below the button, its right edge under the button's.
  *
  * @param buttons - The buttons, like the arrow and the cross
- * @returns The buttons in a row, or the button `⋯` with its menu
+ * @returns The button `⋯` with its menu
  */
 function actionsRowOf(buttons: HTMLButtonElement[]): HTMLElement {
-    if (!phone)
-        return entryPartOf("div", "box-actions", buttons);
     const more: HTMLButtonElement = document.createElement("button");
     const menu: HTMLElement = entryPartOf("div", "box-menu", buttons);
     const place: () => void = (): void => {
@@ -648,32 +646,26 @@ function actionsRowOf(buttons: HTMLButtonElement[]): HTMLElement {
         menu.togglePopover();
     });
     menu.popover = "auto";
-    buttons.forEach((button: HTMLButtonElement): void => {
-        button.append(button.title);
-        button.addEventListener("click", (): void => menu.hidePopover());
-    });
+    menu.addEventListener("click", (): void => menu.hidePopover());
     return entryPartOf("div", "box-actions", [more, menu]);
 }
 
 /**
- * Makes the buttons at the right of a box that can be changed: for an open box the arrow, which pushes it
+ * Makes the menu of a box that can be changed, behind its button `⋯`, see {@link actionsRowOf}: for an open box
+ * first `Log as expected`, as its ring logs it, so the menu holds all it can do, and the arrow, which pushes it
  * to the next day, one whose day is over to tomorrow, also one carried along, see `boxPush` in `reader/boxes.ts`,
- * and always shows, but for a box with a deadline, which stays on the day of its deadline, and the cross,
- * skip, which cancels it, and for a lecture, an exercise, a tutorial or a sheet, see {@link numberedTypes}, before it
- * the calendar crossed out, which marks it cancelled by the university, see `boxUniversity`
- * in `entries.ts`; for a skipped box, and one the university cancelled, the arrow back, which takes it back,
- * and for a box greyed on the day of its last push, which takes that push back, see `boxPush` in `entries.ts`;
- * none for a box greyed on the day of an earlier push, since only the last push can be taken back,
+ * both but for a box with a deadline, which stays on the day of its deadline and whose ring ticks it submitted,
+ * then the cross, skip, which cancels it, and for a lecture, an exercise, a tutorial or a sheet,
+ * see {@link numberedTypes}, before it the calendar crossed out, which marks it cancelled by the university,
+ * see `boxUniversity` in `entries.ts`; for a skipped box, and one the university cancelled, the arrow back,
+ * which takes it back, and for a box greyed on the day of its last push, which takes that push back, see `boxPush`
+ * in `entries.ts`; none for a box greyed on the day of an earlier push, since only the last push can be taken back,
  * for a done box, whose check takes it back, see {@link ringOf}, and for a box that cannot be changed.
- * On a phone they stand behind one button `⋯`, see {@link actionsRowOf}, an open box's first `Log as expected`,
- * as its ring logs it, so the menu holds all it can do.
  * One occurrence of a series has them too and changes alone, the series staying.
- * - `push`: The arrow of an open box, `null` for none.
- * - `log`: On a phone, `Log as expected` of an open box, `null` for none.
  *
  * @param calendar - Calendar of the day
  * @param box - The box
- * @returns The buttons in a row, none for a box without
+ * @returns The button `⋯` with its menu, none for a box without
  */
 function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
     if (!box.editable || box.state === "done")
@@ -686,13 +678,11 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
     if (box.state === "pushed")
         return box.moved?.last !== true ? []
             : [actionsRowOf([actionOf(calendar, Undo2, "Take back", (): Promise<void> => boxPush(box.id, false))])];
-    const push: HTMLButtonElement | null = box.deadline !== "" ? null
-        : actionOf(calendar, ArrowRight, "To tomorrow", (): Promise<void> => boxPush(box.id, true));
-    const log: HTMLButtonElement | null = !phone || box.state !== "open" || box.deadline !== "" ? null
-        : actionOf(calendar, Check, "Log as expected", (): Promise<void> => boxTap(calendar, box));
     return [actionsRowOf([
-        ...(log === null ? [] : [log]),
-        ...(push === null ? [] : [push]),
+        ...(box.deadline !== "" ? [] : [
+            actionOf(calendar, Check, "Log as expected", (): Promise<void> => boxTap(calendar, box)),
+            actionOf(calendar, ArrowRight, "To tomorrow", (): Promise<void> => boxPush(box.id, true)),
+        ]),
         ...(box.category === skillName && numberedTypes.includes(box.type)
             ? [actionOf(calendar, CalendarOff, "Cancelled by university", (): Promise<void> =>
                 boxUniversity(box.id, true))] : []),
@@ -734,9 +724,9 @@ function boxElementOf(calendar: Calendar, box: Box, index: number, carriedShown:
 /**
  * Makes a suggested study session of the list, dashed: what it is, named as a box is, see {@link shownWhatOf},
  * like `Skill: IN2028_BusinessAnalyticsMachineLearning`, on a phone `Skill: IN2028`, its long name broken only where
- * its parts meet, see `breakableOf` in `choices.ts`; its expected duration, and at its right the check, which plans it,
- * and the cross, which dismisses it; a click on it opens the entry by category of a new box filled in as suggested,
- * see `suggestions.ts`.
+ * its parts meet, see `breakableOf` in `choices.ts`; its expected duration, and at its right `⋯`, whose menu plans it
+ * with the check and dismisses it with the cross; a click on it opens the entry by category of a new box filled in
+ * as suggested, see `suggestions.ts`.
  * - `element`: The suggestion.
  * - `what`: What it is as shown.
  * - `body`: Its lines.

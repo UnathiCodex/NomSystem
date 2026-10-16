@@ -1,5 +1,5 @@
-/* Boxes of the plan: each its ring, its lines and its buttons on a card filled in soft grey, above them the birthdays
-   and holidays of the day, below them those carried along to today; on a phone its buttons behind one `⋯` */
+/* Boxes of the plan: each its ring, its lines and its buttons behind one `⋯` on a card filled in soft grey, above
+   them the birthdays and holidays of the day, below them those carried along to today */
 /* Boxes of the plan one below the other, a little apart, so the plan looks airy, filling the height above its +
    and scrolling alone when they are many */
 .plan-boxes {
@@ -65,7 +65,7 @@
 
 /* Under a pointer that hovers, a box turns one grey lighter, a suggested session from the page's ground to the grey
    of a card, fading in over 150 ms after 100 ms and back over 150 ms as soon as the pointer leaves, as an entry of
-   the log, so the plan answers the pointer as the log does; its ring and its buttons have no ground of their own,
+   the log, so the plan answers the pointer as the log does; its ring and its button `⋯` have no ground of their own,
    so they lie on it, see `.box-ring` and `.box-action` */
 @media (hover: hover) {
     .box {
@@ -227,23 +227,23 @@ button.box-ring.box-moved svg {
     background: none;
 }
 
-/* Buttons at the right of a box, small and round, grey, without a ground of their own, so they lie on their box,
-   lighter under the pointer: push and skip, take back, or plan and dismiss a suggestion; they always show,
-   the arrow that pushes a box too; on a phone behind one button `⋯`, see `.box-menu` */
+/* Buttons of a box behind one plain button `⋯` at its right, on the computer as on a phone: grey, without frame
+   or ground, so it lies on its box, lighter under the pointer, centred on the line of what the box is; it opens them
+   as a menu, see `.box-menu`: push and skip, take back, or plan and dismiss a suggestion */
 .box-actions {
     display: flex;
     flex: none;
-    gap: 0.375rem;
+    margin-block: -0.375rem;
 }
 
 .box-action {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.625rem;
-    height: 1.625rem;
+    width: 2.125rem;
+    height: 2rem;
     padding: 0;
-    border: 1px solid var(--line);
+    border: 0;
     border-radius: 999px;
     background: none;
     color: var(--text-muted);
@@ -251,7 +251,6 @@ button.box-ring.box-moved svg {
 }
 
 .box-action:hover {
-    border-color: var(--chosen-line);
     background: var(--chosen);
     color: var(--text-main);
 }
@@ -261,14 +260,46 @@ button.box-ring.box-moved svg {
     height: 0.875rem;
 }
 
-/* Phone: a box a little closer around its lines in one grid, its buttons behind one plain button `⋯` that opens them
-   as a menu, all a finger's width to hit, and its place on a line of its own */
+/* The menu of a box, opened by its button `⋯`, see `actionsRowOf` in `boxes.ts`: right under that button, its right
+   edge under the button's, with the background, line and soft shadow of every menu of a list, see `.picker-box`;
+   each of its buttons a row one control high, its icon and then its words, like `To tomorrow` */
+.box-menu {
+    position: fixed;
+    inset: auto;
+    margin: 0.25rem 0 0;
+    padding: 0.375rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--text-main);
+    box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.5);
+}
+
+.box-menu:popover-open {
+    display: flex;
+    flex-direction: column;
+}
+
+.box-menu .box-action {
+    justify-content: flex-start;
+    gap: 0.75rem;
+    width: auto;
+    height: var(--control-height);
+    padding: 0 1rem 0 0.75rem;
+    border-radius: var(--radius);
+    color: var(--text-main);
+    font: inherit;
+    white-space: nowrap;
+}
+
+/* Phone: a box a little closer around its lines in one grid, its ring and its button `⋯` a finger's width to hit,
+   and its place on a line of its own */
 @media (max-width: 900px) {
-    /* A box on a phone a little closer around its lines, in one grid: the ring at the left of what it is, its buttons,
-       which show without a pointer, at the right of it, on the same line, so they take no row of their own, and its
-       time, place and topics below over the whole width beside the ring, under the buttons too; its lines stand in
-       the grid themselves, a click on them changing the box as before; what it is goes on below where the buttons
-       leave it too little room, like `Skill: MGT1372 (VO)` */
+    /* A box on a phone a little closer around its lines, in one grid: the ring at the left of what it is, its button
+       `⋯` at the right of it, on the same line, so it takes no row of its own, and its time, place and topics below
+       over the whole width beside the ring, under the button too; its lines stand in the grid themselves, a click on
+       them changing the box as before; what it is goes on below where the button leaves it too little room, like
+       `Skill: MGT1372 (VO)` */
     .box {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
@@ -290,61 +321,15 @@ button.box-ring.box-moved svg {
         grid-column: 2 / -1;
     }
 
-    /* The buttons of a box on a phone plain, without frame or ground, side by side, centred on the line of what it
-       is */
     .box-actions {
         grid-row: 1;
         grid-column: 3;
-        gap: 0;
-        margin-block: -0.375rem;
     }
 
-    .box-action {
-        width: 2.125rem;
-        height: 2rem;
-        border: 0;
-    }
-
-    /* The menu of a box on a phone, opened by its button `⋯`, see `actionsRowOf` in `boxes.ts`: right under that
-       button, its right edge under the button's, with the background, line and soft shadow of every menu of a list, see
-       `.picker-box`; each of its buttons a row one control high, its icon and then its words, like `To tomorrow`, a
-       finger's height to hit, so no tap reaches beside it */
-    .box-menu {
-        position: fixed;
-        inset: auto;
-        margin: 0.25rem 0 0;
-        padding: 0.375rem;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        background: var(--background);
-        color: var(--text-main);
-        box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.5);
-    }
-
-    .box-menu:popover-open {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .box-menu .box-action {
-        justify-content: flex-start;
-        gap: 0.75rem;
-        width: auto;
-        height: var(--control-height);
-        padding: 0 1rem 0 0.75rem;
-        border-radius: var(--radius);
-        color: var(--text-main);
-        font: inherit;
-        white-space: nowrap;
-    }
-
-    .box-menu .box-action::after {
-        content: none;
-    }
-
-    /* The ring and the buttons of a box on a phone as they look, but a finger's width to hit: the ring, which logs
-       the box with one tap, takes a tap 0.625rem around it, as far as the lines beside it, and each button
-       its own width, side by side with the next, and 0.5rem above and below */
+    /* The ring and the button `⋯` of a box on a phone as they look, but a finger's width to hit: the ring, which logs
+       the box with one tap, takes a tap 0.625rem around it, as far as the lines beside it, and the button its own
+       width and 0.5rem above and below; the buttons of its menu, a finger high already, only themselves, so no tap
+       reaches beside them */
     button.box-ring,
     .box-action {
         position: relative;
@@ -359,6 +344,10 @@ button.box-ring.box-moved svg {
 
     .box-action::after {
         inset: -0.5rem 0;
+    }
+
+    .box-menu .box-action::after {
+        content: none;
     }
 
     /* The place of a box on a phone on a line of its own below its time, whole, without the dot */
