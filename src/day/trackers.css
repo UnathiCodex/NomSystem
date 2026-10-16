@@ -1,10 +1,11 @@
-/* Trackers and the timer of a session in the bar of the day: Sleep, Water and Food as three tiles in soft frames
-   at its right end, the water's tile a button that logs a glass, the session running now between them and the
-   date; on a phone each on a line of its own below the date, filled in the soft grey of a card */
+/* Trackers and the timer of a session in the bar of the day: Sleep, Water and Food as three tiles at its right end,
+   the water's tile a button that logs a glass, the session running now between them and the date, all filled in
+   the soft grey of a card without a frame, like the cards of the phone; on a phone each on a line of its own below
+   the date */
 /* Timer of a session running now, see `timer.ts`, always there, `None` while none runs, so the bar never jumps: all
    the room the bar leaves between the date and the trackers, never more, so the bar keeps one line, as far from both
-   as the trackers from each other, at least 9rem, so its time always shows, in a soft frame like a tracker, at least
-   one control high, on one line: what the session is at the left, giving way with an ellipsis where the room is too
+   as the trackers from each other, at least 9rem, so its time always shows, filled like a tracker, at least one
+   control high, on one line: what the session is at the left, giving way with an ellipsis where the room is too
    small, how long it still runs at the right, in the grey of a time, every digit equally wide */
 .session-timer {
     display: inline-flex;
@@ -16,8 +17,9 @@
     overflow: hidden;
     min-height: var(--control-height);
     padding: 0.25rem 0.875rem;
-    border: 1px solid var(--line);
+    border: 0;
     border-radius: var(--radius);
+    background: var(--fill);
     white-space: nowrap;
 }
 
@@ -79,9 +81,9 @@
     color: var(--text-muted);
 }
 
-/* A tracker as a tile in a soft frame of its own, one control high, its name small and grey before its value
-   on one line, like `Sleep 09h 15m`, so Sleep, Water and Food stand apart at a glance; on a phone its name above
-   its value, see the end of this file */
+/* A tracker as a tile of its own, filled in the soft grey of a card without a frame, one control high, its name
+   small and grey before its value on one line, like `Sleep 09h 15m`, so Sleep, Water and Food stand apart at a
+   glance; on a phone its name above its value, see the end of this file */
 .tracker-row {
     position: relative;
     display: flex;
@@ -92,8 +94,9 @@
     min-width: 0;
     height: var(--control-height);
     padding: 0 0.875rem;
-    border: 1px solid var(--line);
+    border: 0;
     border-radius: var(--radius);
+    background: var(--fill);
     line-height: 1.2;
 }
 
@@ -141,7 +144,7 @@
 }
 
 .water-add:enabled:hover {
-    background: var(--fill);
+    background: var(--fill-over);
 }
 
 .water-add:disabled {
@@ -166,13 +169,12 @@
     color: var(--text-main);
 }
 
-/* Phone: the trackers and the timer each on a line of their own below the date, as tiles and a pill filled in grey */
+/* Phone: the trackers and the timer each on a line of their own below the date, as tiles and a pill */
 @media (max-width: 900px) {
     /* The trackers on a phone on a line of their own below the date, over the whole width, as three tiles of equal
-       width, each its name above its value, filled in the soft grey of a card instead of a frame, a little closer
-       together and around their lines,
-       so `2,150 kcal` fits its tile; the `−` of the water as small as it looks, but a finger's width to hit,
-       reaching down and to the left into its tile */
+       width, each its name above its value, a little closer together and around their lines, so `2,150 kcal` fits
+       its tile; the `−` of the water as small as it looks, but a finger's width to hit, reaching down and to the
+       left into its tile */
     .trackers {
         flex-basis: 100%;
         gap: 0.375rem;
@@ -188,8 +190,6 @@
         gap: 0;
         height: 3.25rem;
         padding: 0 0.625rem;
-        border: 0;
-        background: var(--fill);
     }
 
     .tracker-water {
@@ -222,8 +222,6 @@
         flex-basis: 100%;
         order: 1;
         min-height: 2.5rem;
-        border: 0;
         border-radius: 1.25rem;
-        background: var(--fill);
     }
 }
