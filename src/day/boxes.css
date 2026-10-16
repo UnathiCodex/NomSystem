@@ -1,5 +1,5 @@
-/* Boxes of the plan: each its ring, its lines and its buttons in a soft frame, above them the birthdays and holidays
-   of the day, below them those carried along to today; on a phone each a filled card, its buttons behind one `⋯` */
+/* Boxes of the plan: each its ring, its lines and its buttons on a card filled in soft grey, above them the birthdays
+   and holidays of the day, below them those carried along to today; on a phone its buttons behind one `⋯` */
 /* Boxes of the plan one below the other, a little apart, so the plan looks airy, filling the height above its +
    and scrolling alone when they are many */
 .plan-boxes {
@@ -57,17 +57,17 @@
     border-bottom: 2px solid var(--chosen-line);
 }
 
-/* A box: its ring, its lines and its buttons in one row, outlined in a soft grey with round corners, with air around
-   its lines, so the plan looks as real as the log; an open box as bright on a day that is over as on today;
-   an open box is grabbed to drag it into the log */
+/* A box: its ring, its lines and its buttons in one row, a card filled in the soft grey of a card without a frame,
+   with round corners, like the cards of the phone, with air around its lines, so the plan looks as real as the log;
+   an open box as bright on a day that is over as on today; an open box is grabbed to drag it into the log */
 .box {
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
     padding: 0.875rem 1rem;
-    border: 1px solid var(--line);
+    border: 1px solid transparent;
     border-radius: var(--radius);
-    background: var(--background);
+    background: var(--fill);
     line-height: 1.45;
 }
 
@@ -75,17 +75,22 @@
     cursor: grab;
 }
 
-/* Under a pointer that hovers, a box turns one grey lighter, fading in over 150 ms after 100 ms and back over 150 ms
-   as soon as the pointer leaves, as an entry of the log, so the plan answers the pointer as the log does; its ring
-   and its buttons have no ground of their own, so they lie on it, see `.box-ring` and `.box-action` */
+/* Under a pointer that hovers, a box turns one grey lighter, a suggested session from the page's ground to the grey
+   of a card, fading in over 150 ms after 100 ms and back over 150 ms as soon as the pointer leaves, as an entry of
+   the log, so the plan answers the pointer as the log does; its ring and its buttons have no ground of their own,
+   so they lie on it, see `.box-ring` and `.box-action` */
 @media (hover: hover) {
     .box {
         transition: background-color 150ms;
     }
 
     .box:hover {
-        background: var(--fill);
+        background: var(--fill-over);
         transition: background-color 150ms 100ms;
+    }
+
+    .box-suggested:hover {
+        background: var(--fill);
     }
 }
 
@@ -226,10 +231,12 @@ button.box-ring.box-moved svg {
     color: var(--text-muted);
 }
 
-/* Suggested study session: dashed in the grey of the plan, not planned yet */
+/* Suggested study session: dashed in the grey of the plan on the page's ground, without the fill of a card,
+   since it is not planned yet */
 .box-suggested {
     border-style: dashed;
     border-color: var(--plan);
+    background: none;
 }
 
 /* Buttons at the right of a box, small and round, grey, without a ground of their own, so they lie on their box,
@@ -266,31 +273,19 @@ button.box-ring.box-moved svg {
     height: 0.875rem;
 }
 
-/* Phone: a box a filled card in one grid, its buttons behind one plain button `⋯` that opens them as a menu, all
-   a finger's width to hit, and its place on a line of its own */
+/* Phone: a box a little closer around its lines in one grid, its buttons behind one plain button `⋯` that opens them
+   as a menu, all a finger's width to hit, and its place on a line of its own */
 @media (max-width: 900px) {
-    /* A box on a phone as a card, filled in the soft grey of a card instead of a frame, a little closer around its
-       lines; a suggested session keeps its dashed frame on the page's ground, since it is not planned yet */
-    .box {
-        padding: 0.75rem 0.875rem;
-        border-color: transparent;
-        background: var(--fill);
-    }
-
-    .box-suggested {
-        border-color: var(--plan);
-        background: none;
-    }
-
-    /* A box on a phone in one grid: the ring at the left of what it is, its buttons, which show without a pointer,
-       at the right of it, on the same line, so they take no row of their own, and its time, place and topics below
-       over the whole width beside the ring, under the buttons too; its lines stand in the grid themselves,
-       a click on them changing the box as before; what it is goes on below where the buttons leave it too little room,
-       like `Skill: MGT1372 (VO)` */
+    /* A box on a phone a little closer around its lines, in one grid: the ring at the left of what it is, its buttons,
+       which show without a pointer, at the right of it, on the same line, so they take no row of their own, and its
+       time, place and topics below over the whole width beside the ring, under the buttons too; its lines stand in
+       the grid themselves, a click on them changing the box as before; what it is goes on below where the buttons
+       leave it too little room, like `Skill: MGT1372 (VO)` */
     .box {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 0 0.625rem;
+        padding: 0.75rem 0.875rem;
     }
 
     .box-body {
