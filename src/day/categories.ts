@@ -1046,9 +1046,9 @@ function fieldRowsOf(field: Field): HTMLElement[] {
  * Builds the row of a summary of several values, like the means of a way, since I change on it, like U-Bahn then bus:
  * one line of the row, the values picked concatenated as one summary, parted by `, `, like `U-Bahn, Bus`, which is
  * also how the entry writes them; its list, a menu, takes a value or takes it back by a click, in the order picked,
- * and stays open for the next, see `many` in `choices.ts`; while none is picked, the small grey plus beside the name
- * of the row, `Summary +`, `Add a means of transport` as its tooltip, see `besideName` in `choices.ts`; its pencil
- * beside it and its link below it, see {@link summaryPartsOf}.
+ * and stays open for the next, see `many` in `choices.ts`; while none is picked, the row empty without a plus, as
+ * every field of one value, since a click into it opens its list; its pencil beside it and its link below it,
+ * see {@link summaryPartsOf}.
  * - `picked`: The values picked, in their order.
  * - `pencil`, `link`, `linkParts`: Pencil, link and the part to type it of the summary.
  *
@@ -1060,7 +1060,7 @@ function manyRowOf(field: Field): HTMLElement {
     const [pencil, link, linkParts]: [HTMLButtonElement, HTMLAnchorElement, HTMLElement] = summaryPartsOf();
     return rowOf(field.name, choicesOf({
         search: searchOf(field.values.map(choiceOf)), picked: picked, many: true, adding: false,
-        noun: "means of transport", empty: "Add a means of transport", plus: true, besideName: true,
+        noun: "means of transport",
         aside: [pencil], below: [link, linkParts],
         pick: (chosen: string[]): void => {
             values[field.key] = chosen.join(", ");

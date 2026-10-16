@@ -590,8 +590,8 @@ export function addedRowsOf(name: string, setup: AddedSetup): HTMLDivElement[] {
 }
 
 /**
- * Builds the row of the list that adds the next value of a field of several values, like a chapter, a document
- * or the means of a way, its plus beside the name of the field, see {@link lineMove}: on the row of the first value
+ * Builds the row of the list that adds the next value of a field of several values, like a chapter or a document,
+ * its plus beside the name of the field, see {@link lineMove}: on the row of the first value
  * picked, the row of the list keeping only the list then, or on the row of the list itself while none is picked,
  * named by the field, like `Chapter +`. Its picker is built with a plus as its line, see `plus` of {@link ChoicesSetup}.
  * - `row`: The row of the list.
