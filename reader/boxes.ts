@@ -10,7 +10,8 @@
  * as `STATUS:CANCELLED`, so it can be counted; `STATUS:CANCELLED` is always my own decision, lectures included.
  * A box neither done nor cancelled stays on its day once that is over and is carried along to today,
  * see {@link boxesCarried}, lectures too, until I do it or cancel it; it never moves into the next days by itself,
- * only when I push it there.
+ * only when I push it there. A pushed box stays greyed on each day it left, once per push, with the start
+ * and the length it had there, like a skipped box, see {@link leftBoxesOf}; it is not carried along from there.
  * A lecture, an exercise, a tutorial and a sheet, a skill box of a type of {@link numberedTypes}, carries its number
  * in its series, the boxes of the same `SUMMARY` by date, as `X-NUMBER`, like `X-NUMBER:3`, the next one when
  * the dialog adds it, see {@link numberNextOf}. One the university cancels gets `X-NUMBER:NONE` by its own button,
@@ -81,8 +82,9 @@
  */
 
 import {
-    berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryIdOf, entryLookup, entryRemove,
-    occurrenceLookup, occurrenceOwn, propertiesPut, pushAdd, pushTake, statusPut, todoAppend, todoChange,
+    berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesOnceRead, entriesRead, entryChange, entryIdOf,
+    entryLookup, entryRemove, occurrenceLookup, occurrenceOwn, propertiesPut, pushAdd, pushTake, statusPut, todoAppend,
+    todoChange,
 } from "./calendar.ts";
 import { planAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, linksOf, titleOf } from "./documents.ts";
@@ -90,14 +92,14 @@ import { moduleContentsRead, moduleFolderOf } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, planEnding } from "./sources.ts";
 
-import type { Entry, EntryFields, EntryTexts, Link, TodoFields } from "./calendar.ts";
+import type { Entry, EntryFields, EntryTexts, Link, Push, TodoFields } from "./calendar.ts";
 
 
 /**
- * State of a box: open, done, since a log entry points to it, dropped, cancelled by me, or cancelled
- * by the university, its `X-NUMBER:NONE`.
+ * State of a box: open, done, since a log entry points to it, dropped, cancelled by me, cancelled
+ * by the university, its `X-NUMBER:NONE`, or pushed, as it shows greyed on a day it left, see {@link leftBoxesOf}.
  */
-export type BoxState = "open" | "done" | "dropped" | "university";
+export type BoxState = "open" | "done" | "dropped" | "university" | "pushed";
 
 /**
  * Types of skill boxes that carry their number in their series: lectures, exercises, central exercises, tutorials
@@ -117,8 +119,9 @@ const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  * - `time`: Expected time as ISO instant, empty for none.
  * - `minutes`: Expected duration in minutes, `null` for none.
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` when it has no time; empty for none.
- * - `state`: Whether it is open, done or dropped.
- * - `pushed`: Days it was pushed from to a later day, in order, like `2026-10-12`.
+ * - `state`: Whether it is open, done, dropped, cancelled by the university, or pushed from the day it shows on.
+ * - `pushed`: Where it stood before each push to a later day, in order, see `Push` in `calendar.ts`,
+ *   like Fri, 16.10.2026, 15:00 for 195 minutes.
  * - `log`: Start and end of the log entry written from it, for a box with a deadline of one of its sessions,
  *   as ISO instants, `null` for none.
  * - `completed`: When it was done, its `COMPLETED`, as ISO instant, like the moment I ticked a homework submitted;
@@ -133,6 +136,8 @@ const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  *   links, see `chaptersOf` in `documents.ts`, like `02_LogisticPoissonRegression`; none for none.
  * - `number`: Its number in its series, its `X-NUMBER`, like `3`, `NONE` for one the university cancelled;
  *   empty for none.
+ * - `moved`: For a box shown greyed on a day it was pushed from, where it went, see {@link Moved};
+ *   `null` for any other.
  */
 export type Box = EntryTexts & {
     id: string;
@@ -141,7 +146,7 @@ export type Box = EntryTexts & {
     minutes: number | null;
     deadline: string;
     state: BoxState;
-    pushed: string[];
+    pushed: Push[];
     log: { start: string; end: string } | null;
     completed: string;
     editable: boolean;
@@ -150,6 +155,19 @@ export type Box = EntryTexts & {
     links: Link[];
     chapters: string[];
     number: string;
+    moved: Moved | null;
+};
+
+/**
+ * Where a box went that shows greyed on a day it was pushed from, see {@link leftBoxesOf}.
+ *
+ * - `day`: The day it stands on now, like `2026-10-17`.
+ * - `last`: Whether it is its last push and the box is still open and can be changed, so the push can be taken back,
+ *   see {@link boxUnpush}.
+ */
+export type Moved = {
+    day: string;
+    last: boolean;
 };
 
 /**
@@ -370,15 +388,34 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         links: entry.links,
         chapters: chaptersOf(entry),
         number: entry.number,
+        moved: null,
     };
 }
 
 /**
+ * Gives a box as it stood on each day it was pushed from, see the top of this file: once per push, greyed like
+ * a skipped box, with the start and the length it had there, see `Push` in `calendar.ts`, else the length it has now,
+ * without deadline, since a box with one is never pushed, and with the pushes before that one; each knows the day
+ * the box stands on now, and the last one whether its push can be taken back, see {@link Moved}.
+ *
+ * @param box - The box as it stands now
+ * @returns One greyed box per push, in the order of its pushes, none for a box never pushed
+ */
+function leftBoxesOf(box: Box): Box[] {
+    return box.pushed.map((push: Push, index: number): Box => ({
+        ...box, day: push.day, time: push.time, minutes: push.minutes ?? box.minutes, deadline: "", state: "pushed",
+        pushed: box.pushed.slice(0, index), log: null, completed: "",
+        moved: { day: box.day, last: index === box.pushed.length - 1 && box.state === "open" && box.editable },
+    }));
+}
+
+/**
  * Orders two boxes as the stations of the day, so the plan reads like the log: those with a time by their time,
- * like my lectures, also one cancelled, which keeps its place faded, then those with a deadline by their deadline,
- * then those without either in the order they were read, the order I planned them in, the cancelled ones of them
- * last.
- * - `rankOf`: 0 for a box with a time, 1 for one with a deadline, 2 for one without, 3 for one without, cancelled.
+ * like my lectures, also one cancelled or pushed away, which keeps its place faded, then those with a deadline by their
+ * deadline, then those without either in the order they were read, the order I planned them in, the cancelled
+ * and pushed ones of them last.
+ * - `rankOf`: 0 for a box with a time, 1 for one with a deadline, 2 for one without, 3 for one without, cancelled
+ *   or pushed.
  *
  * @param first - A box
  * @param second - Another box
@@ -390,7 +427,7 @@ function boxCompare(first: Box, second: Box): number {
             return 0;
         if (box.deadline !== "")
             return 1;
-        return box.state === "dropped" || box.state === "university" ? 3 : 2;
+        return box.state === "dropped" || box.state === "university" || box.state === "pushed" ? 3 : 2;
     };
     return rankOf(first) - rankOf(second) || first.time.localeCompare(second.time)
         || first.deadline.localeCompare(second.deadline);
@@ -413,11 +450,14 @@ function deadlineShows(box: Box, date: string): boolean {
 /**
  * Reads the plans of the days of a range: the birthdays and holidays of each day with my gift ideas for them,
  * their `DESCRIPTION`s, and its boxes, each with its state and the time of its log entry.
- * A box belongs to the day it starts on, a box with a deadline to each day it shows on, see {@link deadlineShows}.
+ * A box belongs to the day it starts on, a box with a deadline to each day it shows on, see {@link deadlineShows},
+ * and a pushed box greyed to each day it was pushed from, see {@link leftBoxesOf}, wherever it lies now.
  * - `from`: Start of the first day, in Berlin time.
  * - `logs`: Log entries written from boxes, until {@link deadlineDays} days after the last day, see {@link logsOf}.
  * - `boxes`: Boxes of the plan from the first day to {@link deadlineDays} days after the last,
  *   so a deadline after the range shows in it.
+ * - `left`: Boxes as they stood on the days of the range they were pushed from: those of the plan that happen once,
+ *   whenever they lie, since one occurrence of a series becomes one of its own before it is pushed, see {@link boxOwn}.
  * - `occasions`: Birthdays and holidays of the days of the range, none of a file while it is missing.
  * - `days`: The plans so far.
  * - `planned`: Boxes of the plan of one day.
@@ -434,12 +474,18 @@ export function boxesRead(start: string, end: string): PlanDay[] {
     const logs: Map<string, Entry> = logsOf(dayAdd(end, deadlineDays));
     const boxes: Box[] = entriesRead(day.plan, from, berlinDayStartOf(dayAdd(end, deadlineDays)))
         .map((entry: Entry): Box => boxOf(entry, logs));
+    const left: Box[] = entriesOnceRead(day.plan)
+        .filter((entry: Entry): boolean =>
+            entry.pushed.some((push: Push): boolean => start <= push.day && push.day < end))
+        .flatMap((entry: Entry): Box[] => leftBoxesOf(boxOf(entry, logs)));
     const occasions: Entry[] = entriesRead(day.system, from, berlinDayStartOf(end));
 
     const days: PlanDay[] = [];
     for (let date: string = start; date < end; date = dayAdd(date, 1)) {
-        const planned: Box[] = boxes.filter((box: Box): boolean =>
-            box.deadline === "" ? box.day === date : deadlineShows(box, date));
+        const planned: Box[] = [
+            ...boxes.filter((box: Box): boolean => box.deadline === "" ? box.day === date : deadlineShows(box, date)),
+            ...left.filter((box: Box): boolean => box.day === date),
+        ];
         days.push({
             day: date,
             occasions: occasions

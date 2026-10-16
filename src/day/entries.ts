@@ -244,13 +244,14 @@ export async function boxDelete(id: string): Promise<void> {
 }
 
 /**
- * Pushes an open box to the next day.
+ * Pushes an open box to the next day, or takes its last push back, putting it back where it stood before.
  *
  * @param id - Identifier of the box
- * @throws {Error} - When the reader does not push it
+ * @param pushed - Whether to push it, else to take its last push back
+ * @throws {Error} - When the reader does not take it
  */
-export async function boxPush(id: string): Promise<void> {
-    await requestSend("POST", "/api/day/pushed", { box: id });
+export async function boxPush(id: string, pushed: boolean): Promise<void> {
+    await requestSend("POST", "/api/day/pushed", { box: id, pushed: pushed });
 }
 
 /**

@@ -248,8 +248,8 @@
 /* Ring of a box, as high as its first line: for an open box a button, an empty ring in the grey of the plan
    like the circle of a to-do, lighter under the pointer with its check showing, which logs the box as expected;
    for a done box a button too, its grey check, see `.box-checked`; for a cancelled box its grey mark without edge,
-   the calendar crossed out or the cross, see `ringOf` in `boxes.ts`; without a ground of its own, so it lies
-   on its box;
+   the calendar crossed out or the cross, see `ringOf` in `boxes.ts`, for a box pushed away the arrow, a button
+   looking the same, see `.box-moved`; without a ground of its own, so it lies on its box;
    `.box .box-ring svg` wins over the size of icons in `base.css`, being more exact */
 .box-ring {
     display: inline-flex;
@@ -285,12 +285,16 @@ button.box-ring:hover svg {
     opacity: 1;
 }
 
-/* Check of a done box, a button too, which takes the box back to open: grey without edge, its check always shown */
-button.box-ring.box-checked {
+/* Check of a done box, a button too, which takes the box back to open, and the arrow of a box greyed on a day it was
+   pushed from, which leads to the day it stands on now: grey without edge, the arrow like the mark of a cancelled box,
+   their icon always shown */
+button.box-ring.box-checked,
+button.box-ring.box-moved {
     border-color: transparent;
 }
 
-button.box-ring.box-checked svg {
+button.box-ring.box-checked svg,
+button.box-ring.box-moved svg {
     opacity: 1;
 }
 
@@ -304,10 +308,12 @@ button.box-ring.box-checked svg {
     color: var(--text-muted);
 }
 
-/* Cancelled box, skipped by me or cancelled by the university, like a lecture that does not take place:
-   only faded, never struck through; the time line of one the university cancelled says so */
+/* Cancelled box, skipped by me or cancelled by the university, like a lecture that does not take place,
+   and a box on a day it was pushed from: only faded, never struck through, all three alike;
+   the mark in its ring says which, see `.box-ring` */
 .box-dropped,
-.box-university {
+.box-university,
+.box-pushed {
     opacity: 0.55;
 }
 
@@ -327,9 +333,8 @@ button.box-ring.box-checked svg {
 }
 
 /* Buttons at the right of a box, small and round, grey, without a ground of their own, so they lie on their box,
-   lighter under the pointer: push and skip, take back, or plan and dismiss a suggestion. They always show, but for
-   the arrow that pushes a box: with a pointer that hovers, it shows only while the pointer is over its box or a button
-   of it has the focus, so the list stays calm */
+   lighter under the pointer: push and skip, take back, or plan and dismiss a suggestion; they always show,
+   the arrow that pushes a box too */
 .box-actions {
     display: flex;
     flex: none;
@@ -359,12 +364,6 @@ button.box-ring.box-checked svg {
 .box .box-action svg {
     width: 0.875rem;
     height: 0.875rem;
-}
-
-@media (hover: hover) {
-    .box:not(:hover):not(:focus-within) .box-push {
-        visibility: hidden;
-    }
 }
 
 /* Calendar in the greys of the page, its text in the size of the page, which the theme sets in px;

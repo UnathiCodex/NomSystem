@@ -84,9 +84,10 @@ import type { CalendarSource } from "./sources.ts";
  *   `null` for none and for an event, whose length lies between its start and its end.
  * - `deadline`: Deadline of a to-do, its `DUE`, as ISO instant, or as date like `2026-10-23` when it has no time;
  *   empty for none and for an event.
- * - `pushed`: Days a box was pushed from to a later day, its `X-PUSHED`s in order, like `2026-10-16`
- *   of `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`,
- *   see {@link pushedDayOf}; none when it has none.
+ * - `pushed`: Where a box stood before each push to a later day, its `X-PUSHED`s in order, see {@link Push},
+ *   like Fri, 16.10.2026, 15:00 for 195 minutes
+ *   of `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`;
+ *   none when it has none.
  * - `number`: Number of a lecture, an exercise, a tutorial or a sheet in its series, its `X-NUMBER`, like `3`,
  *   `NONE` for one the university cancelled, see `boxUniversity` in `boxes.ts`; empty for none.
  * - `written`: When the entry was written, its `DTSTAMP`, as ISO instant, which the reader sets once as it adds an entry;
@@ -129,7 +130,7 @@ export type Entry = {
     completed: string;
     minutes: number | null;
     deadline: string;
-    pushed: string[];
+    pushed: Push[];
     number: string;
     written: string;
     editable: boolean;
@@ -137,6 +138,22 @@ export type Entry = {
     end: string;
     allDay: boolean;
     recurrence: string;
+};
+
+/**
+ * Where a box stood before one push to a later day, one `X-PUSHED`, see {@link pushOf}.
+ *
+ * - `day`: Its day before, like `2026-10-16`.
+ * - `time`: Its start before as ISO instant, like `2026-10-16T13:00:00.000Z`, empty for a box without time;
+ *   for a push that noted only its day, like `X-PUSHED;VALUE=DATE:20261016`, that day at the time of day
+ *   the box has now.
+ * - `minutes`: Its length before in minutes, its parameter `X-ESTIMATED-DURATION`, like 195 of `PT3H15M`,
+ *   `null` where the push noted none.
+ */
+export type Push = {
+    day: string;
+    time: string;
+    minutes: number | null;
 };
 
 /**
@@ -416,6 +433,38 @@ function pushedDayOf(value: unknown): string {
 }
 
 /**
+ * Reads one `X-PUSHED` of a box, see {@link pushAdd}, into a {@link Push}: its day, its start and its length,
+ * like Fri, 16.10.2026, 15:00 and 195 minutes
+ * of `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`; a push that noted
+ * only its day, like `X-PUSHED;VALUE=DATE:20261016` or `X-PUSHED:2026-10-16` of an older box, at the time of day
+ * the box has now, without time for a box without.
+ * - `value`: Its value, a time, a date or a text.
+ * - `day`: Its day, see {@link pushedDayOf}.
+ * - `duration`: Its `X-ESTIMATED-DURATION`, empty for none.
+ * - `time`: The time of day it stood at, `null` for a box without time.
+ * - {@link ICAL.Time.fromData}: Builds a time from its parts, in a time zone.
+ * - {@link ICAL.Duration.fromString}: Reads a duration of the iCalendar format.
+ *
+ * @param property - The `X-PUSHED`
+ * @param now - Start of the box now in Berlin time, `null` for a box without time
+ * @returns Where the box stood before the push
+ */
+function pushOf(property: ICAL.Property, now: ICAL.Time | null): Push {
+    const value: unknown = property.getFirstValue();
+    const day: string = pushedDayOf(value);
+    const duration: string = String(property.getParameter("x-estimated-duration") ?? "");
+    const [year, month, date]: number[] = day.split("-").map(Number);
+    const time: ICAL.Time | null = value instanceof ICAL.Time && !value.isDate ? value : now;
+    return {
+        day: day,
+        time: time === null ? "" : ICAL.Time.fromData({
+            year: year, month: month, day: date, hour: time.hour, minute: time.minute, second: time.second,
+        }, zone).toJSDate().toISOString(),
+        minutes: duration === "" ? null : ICAL.Duration.fromString(duration).toSeconds() / 60,
+    };
+}
+
+/**
  * Reads the expected duration of a to-do, its `ESTIMATED-DURATION`: the property of the task extensions of iCalendar,
  * which `ical.js` does not know yet, so it gives its value as text, like `PT1H15M`.
  * - {@link ICAL.Duration.fromString}: Reads a duration of the iCalendar format.
@@ -517,8 +566,8 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         completed: completed instanceof ICAL.Time ? completed.toJSDate().toISOString() : "",
         minutes: todo ? minutesOf(event.component) : null,
         deadline: todo ? deadlineOf(event.component) : "",
-        pushed: event.component.getAllProperties("x-pushed")
-            .map((property: ICAL.Property): string => pushedDayOf(property.getFirstValue())),
+        pushed: event.component.getAllProperties("x-pushed").map((property: ICAL.Property): Push =>
+            pushOf(property, start.isDate ? null : berlinOf(start.toJSDate()))),
         number: String(event.component.getFirstPropertyValue("x-number") ?? ""),
         written: stamp instanceof ICAL.Time ? stamp.toJSDate().toISOString() : "",
         editable: writable && (todo || !start.isDate),
@@ -672,6 +721,17 @@ export function entriesRead(sources: CalendarSource[], start: string, end: strin
             const [from, to]: [string, string] = boundsOf(entry.allDay, range);
             return entry.start < to && (entry.start >= from || entry.end > from);
         });
+}
+
+/**
+ * Reads the entries of calendar sources that happen once, events, to-dos and changed occurrences of a series,
+ * whenever they lie, without walking a series; a source whose folder or files are missing gives none.
+ *
+ * @param sources - Calendars, each the files of a folder with a name ending
+ * @returns The {@link Entry}s, file by file in the order they were read
+ */
+export function entriesOnceRead(sources: CalendarSource[]): Entry[] {
+    return filesOf(sources).flatMap((file: string): Entry[] => calendarOf(file).entries);
 }
 
 /**
@@ -1584,16 +1644,14 @@ export function pushAdd(file: string, id: string, entry: Entry): void {
 
 /**
  * Takes the last push of a box out of its file, see {@link pushAdd}: removes its last `X-PUSHED`, the ones before
- * staying as they are, and gives its start and its length as that push noted them, like Sun, 18.10.2026, 15:00 and
- * 195 minutes of `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261018T150000`;
+ * staying as they are, and gives its start and its length as that push noted them, see {@link pushOf}, like
+ * Sun, 18.10.2026, 15:00 and 195 minutes
+ * of `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261018T150000`;
  * a push that noted only its day, like `X-PUSHED;VALUE=DATE:20261016`, gives that day at the time of day the box
  * has now.
  * Every other line of the file stays as it is, byte for byte.
  * - `pushes`: Its `X-PUSHED`s, the last one last.
- * - `duration`: The `X-ESTIMATED-DURATION` of the last one, empty for none.
- * - `time`: The time of day it goes back to, `null` for a box without time.
- * - {@link ICAL.Time.fromData}: Builds a time from its parts, in a time zone.
- * - {@link ICAL.Duration.fromString}: Reads a duration of the iCalendar format.
+ * - `push`: Where the last one notes the box stood.
  *
  * @param file - Path of the `.ics` file
  * @param id - Identifier of the to-do or the event
@@ -1615,17 +1673,8 @@ export function pushTake(file: string, id: string, entry: Entry): [string, numbe
         throw new Error(`${entry.title} was never pushed`);
     propertyPut(component, "x-pushed", pushes.slice(0, -1));
     componentWrite(file, text, place, component, file);
-
-    const value: unknown = last.getFirstValue();
-    const duration: string = String(last.getParameter("x-estimated-duration") ?? "");
-    const day: string = pushedDayOf(value);
-    const [year, month, date]: number[] = day.split("-").map(Number);
-    const time: ICAL.Time | null = value instanceof ICAL.Time && !value.isDate ? value
-        : entry.allDay ? null : berlinOf(new Date(entry.start));
-    const start: string = time === null ? day : ICAL.Time.fromData({
-        year: year, month: month, day: date, hour: time.hour, minute: time.minute, second: time.second,
-    }, zone).toJSDate().toISOString();
-    return [start, duration === "" ? null : ICAL.Duration.fromString(duration).toSeconds() / 60];
+    const push: Push = pushOf(last, entry.allDay ? null : berlinOf(new Date(entry.start)));
+    return [push.time === "" ? push.day : push.time, push.minutes];
 }
 
 /**

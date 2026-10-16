@@ -119,8 +119,8 @@ function minutesOf(box: Box, date: string): number {
 
 /**
  * Suggests the study sessions of a day, see the top of this file.
- * - `skills`: The skill boxes of the day that are not dropped, like lectures and study already planned,
- *   and those with a deadline shown on the day.
+ * - `skills`: The skill boxes of the day that are not dropped, cancelled or pushed away, like lectures and study
+ *   already planned, and those with a deadline shown on the day.
  * - `needs`: Modules with tasks to do on the day, each with its study boxes of that day.
  * - `minutes`: Minutes of learning left for the day.
  *
@@ -131,7 +131,7 @@ function minutesOf(box: Box, date: string): number {
 export function suggestionsRead(date: string): Suggestion[] {
     const skills: Box[] = boxesRead(date, dayAdd(date, 1))[0].boxes
         .filter((box: Box): boolean => box.category === skillName && box.state !== "dropped"
-            && box.state !== "university");
+            && box.state !== "university" && box.state !== "pushed");
     const needs: ModuleNeed[] = skillingRead().modules.map((module: SkillModule): ModuleNeed => ({
         code: module.code,
         tasks: module.tasks.filter((task: SkillTask): boolean => !task.skipped && (task.due === ""
