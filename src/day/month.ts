@@ -47,11 +47,11 @@ let month: Calendar | null = null;
  * - `aspectRatio`: Makes the grid 1.8 times as wide as high, so its days are small and wider than high.
  * - `headerToolbar`: None, since the month and its arrows stand above it, as above plan and log.
  * - `dayHeaderFormat`: Writes the days of the week short, like `Mon`.
- * - `dayCellClass`: Adds the class `month-day` to every day, which `day.css` makes clickable,
+ * - `dayCellClass`: Adds the class `month-day` to every day, which `month.css` makes clickable,
  *   `month-other` to the days of the months before and after, which it greys, and `month-shown` to the shown days,
  *   which it marks.
  * - `dayCellTopClass`, `dayCellTopInnerClass`: Add the classes `month-top` and `month-number` to the top of a day
- *   and to its number, which `day.css` puts into the middle in the size of the page.
+ *   and to its number, which `month.css` puts into the middle in the size of the page.
  * - `dateClick`: Shows the clicked day and closes the month.
  * - `datesSet`: Writes the month above the grid, like `October 2026`.
  * - {@link HTMLDialogElement#showModal}: Shows the month over the page, `Esc` and a click beside it close it.
