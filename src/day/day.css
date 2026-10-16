@@ -2239,6 +2239,17 @@ svg.route-arrow {
         row-gap: 0.25rem;
     }
 
+    /* A row of a dialog on a phone whose list has no value yet, like With or an empty Summary, one line high,
+       its empty value beside its name in place of a line of its own below it, so a tap on the line still opens its
+       list; the note one line high while empty, growing with its text, see `#entry-note` */
+    .panel-field:has(> .picker > .picker-head > .picker-line.picker-empty:first-child) {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    #entry-note {
+        min-height: 1lh;
+    }
+
     /* The result of a task picked for a session on a phone below the task, as the value of a row stands below its
        name, so the name of the task keeps the whole width instead of two fifths, like `Unbiased Mean Check` on one
        line, and where I got stuck or why I skipped below the result */
