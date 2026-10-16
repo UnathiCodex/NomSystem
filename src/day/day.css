@@ -1846,7 +1846,7 @@ svg.route-arrow {
     /* Plan, log or note on a phone follow the finger while a swipe sideways changes the day, see `swipe.ts`: moved
        sideways by `--swipe`, sliding out and back, but right under the finger while it moves; the day cuts them
        at the edges of the screen, and the time grid, the plan and the note scroll only up and down, so a move
-       sideways is the swipe's. The swipe takes the place of the arrows beside the date */
+       sideways is the swipe's */
     .day {
         overflow: clip;
     }
@@ -1859,11 +1859,6 @@ svg.route-arrow {
 
     .day-main.day-swiping > :is(.day-column, .note-boxes) {
         transition: none;
-    }
-
-    #day-back,
-    #day-next {
-        display: none;
     }
 
     .day-main[data-shown="plan"] :is(#day-log, .note-boxes),
@@ -1904,14 +1899,14 @@ svg.route-arrow {
         content: none;
     }
 
-    /* Switch between plan, log and note at the bottom: one frame one control high with the three side by side inside,
-       equally wide, the one shown in the calm grey of what is picked, its corners as round as the frame's, a little
-       inside it; right of it the + of the shown plan or log, round, so a thumb finds it at once, faded while the note
-       shows */
+    /* Switch between plan, log and note at the bottom, under the thumb: one pill one control high, filled in the soft
+       grey of a card, the three side by side inside it, equally wide, grey, the shown one light on the calm grey
+       of what is picked; right of it the + of the shown plan or log, round, in that calm grey too, so a thumb finds
+       it at once, faded while the note shows */
     .day-switch {
         display: flex;
         align-items: center;
-        gap: var(--control-gap);
+        gap: 0.75rem;
     }
 
     .day-views {
@@ -1920,75 +1915,109 @@ svg.route-arrow {
         gap: 0.25rem;
         height: var(--control-height);
         padding: 0.25rem;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
+        border-radius: 999px;
+        background: var(--fill);
     }
 
     .day-views button {
         flex: 1;
-        border: 1px solid transparent;
-        border-radius: calc(var(--radius) - 0.25rem);
+        border: 0;
+        border-radius: 999px;
         background: none;
+        color: var(--text-muted);
         font-size: var(--control-text);
         cursor: pointer;
     }
 
     .day-views button[aria-pressed="true"] {
-        border-color: var(--chosen-line);
         background: var(--chosen);
+        color: var(--text-main);
     }
 
     .day-switch .chip-button {
         width: var(--control-height);
         height: var(--control-height);
+        border-color: var(--chosen-line);
         border-radius: 50%;
+        background: var(--chosen);
     }
 
-    /* The bar of the day on a phone as every bar of a day there, see `.day-bar` in `../base.css`, its date, the button
-       that opens the month, only as wide as itself, and below it the trackers and the timer of a session, each over
-       the whole width */
+    /* The bar of the day on a phone as every bar of a day there, see `.day-bar` in `../base.css`, and below it
+       the trackers and the timer of a session, each on a line of its own over the whole width */
     .day-nav {
         flex-wrap: wrap;
-        row-gap: 0.5rem;
+        row-gap: 0.75rem;
     }
 
     #day-title {
         min-width: 0;
-        anchor-name: --day-date;
+        padding-left: 0;
+        text-align: left;
     }
 
-    /* The trackers on a phone on a line of their own below the date, side by side over the whole width, Sleep and Water
-       as wide as they need, Food the rest; each in its frame its name small and grey above its value, so all three
-       fit, like `09h 15m`, `− 0.25 l +` and `1,850 kcal (3 meals)`, the kcal going on below where the room is short */
+    /* The trackers on a phone small, three pills side by side over the whole width, each its icon in place of its
+       name, see `nameOf` in `trackers.ts`, and its value, like `09h 15m`, `− 0.25 l +` and `711 kcal (1 meal)`:
+       Sleep and Water as wide as they need, Food the rest, its brackets going on below where the room is short,
+       on a line of its own below them only where even its kcal find no room, never over the edge; filled in the soft
+       grey of a card, no frame; the − and + of the water plain inside their pill, but a finger high to hit */
     .trackers {
-        display: grid;
         flex-basis: 100%;
-        grid-template-columns: auto auto minmax(0, 1fr);
-        align-items: stretch;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        min-width: 0;
         margin-left: 0;
     }
 
     .tracker-row {
-        flex-direction: column;
-        align-items: flex-start;
-        justify-content: center;
-        gap: 0;
+        gap: 0.3125rem;
+        min-height: 2.5rem;
         padding: 0.25rem 0.625rem;
+        border: 0;
+        border-radius: 1.25rem;
+        background: var(--fill);
+        font-size: 0.8125rem;
+    }
+
+    .tracker-row:has(.food-kcal) {
+        flex: 1;
+        min-width: 0;
     }
 
     .tracker-row:has(.water-litres) {
-        display: grid;
-        grid-template-columns: repeat(3, auto);
-        align-content: center;
-        justify-content: start;
+        gap: 0;
+        padding-inline: 0.25rem;
     }
 
     .tracker-name {
-        grid-column: 1 / -1;
+        display: inline-flex;
+    }
+
+    .tracker-name svg.lucide {
+        width: 0.875rem;
+        height: 0.875rem;
+    }
+
+    .tracker-row:has(.water-litres) .tracker-name {
+        margin-left: 0.375rem;
+    }
+
+    .tracker-row .chip-button {
+        position: relative;
+        width: 1.75rem;
+        height: 1.75rem;
+        border: 0;
+        border-radius: 50%;
+        background: none;
+    }
+
+    .tracker-row .chip-button::after {
+        content: "";
+        position: absolute;
+        inset: -0.5rem 0;
     }
 
     .water-litres {
-        margin-inline: 0.25rem;
+        min-width: 0;
     }
 
     .food-kcal {
@@ -1996,10 +2025,35 @@ svg.route-arrow {
         white-space: normal;
     }
 
-    /* The timer of a session on a phone on a line of its own below the trackers, over the whole width */
+    /* The timer of a session on a phone on a line of its own below the trackers, over the whole width, a pill
+       like them */
     .session-timer {
         flex-basis: 100%;
         order: 1;
+        min-height: 2.5rem;
+        border: 0;
+        border-radius: 1.25rem;
+        background: var(--fill);
+    }
+
+    /* A box and a list of my note on a phone as cards, filled in the soft grey of a card instead of a frame, a little
+       closer around their lines; a suggested session keeps its dashed frame on the page's ground, since it is not
+       planned yet */
+    .box {
+        padding: 0.75rem 0.875rem;
+        border-color: transparent;
+        background: var(--fill);
+    }
+
+    .box-suggested {
+        border-color: var(--plan);
+        background: none;
+    }
+
+    .note-points {
+        max-height: none;
+        border-color: transparent;
+        background: var(--fill);
     }
 
     /* The month on a phone with its days a finger high, its six weeks and the names of the days 15rem high,

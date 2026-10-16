@@ -390,24 +390,20 @@ h3 {
         display: none;
     }
 
-    /* The bar of a day on a phone: the arrows at the edges of the screen, plain, without frame, the date in the middle,
-       the weekday small and grey above it, like `Tue` over `13.10.2026`, and the icon back to today right beside it
-       without taking room of the bar, so it never pushes the date off the middle: placed at the right of the date,
-       which each view names `--day-date`, level with its middle, one control high, so a thumb hits it, its tap
-       reaching 0.625rem right of it, where nothing stands, never over the date at its left */
+    /* The bar of a day on a phone: the date at the left, big, the weekday small and grey above it, like `Fri` over
+       `16.10.2026`, and the icon back to today at the right end, one control square, so a thumb hits it; no arrows,
+       since a swipe sideways changes the day, see `day/swipe.ts` */
     .day-bar {
         flex-wrap: nowrap;
-        justify-content: space-between;
     }
 
     .day-arrow {
-        border-color: transparent;
-        background: none;
+        display: none;
     }
 
     .day-bar .day-title {
-        text-align: center;
-        font-size: 1.0625rem;
+        font-size: 1.375rem;
+        font-weight: 600;
         line-height: 1.2;
     }
 
@@ -417,7 +413,8 @@ h3 {
     }
 
     .day-weekday {
-        font-size: 0.75rem;
+        font-size: 0.8125rem;
+        font-weight: 400;
         color: var(--text-muted);
     }
 
@@ -426,18 +423,10 @@ h3 {
     }
 
     .day-today {
-        position: absolute;
-        position-anchor: --day-date;
-        top: anchor(center);
-        left: anchor(right);
+        justify-content: center;
+        min-width: var(--control-height);
         min-height: var(--control-height);
-        translate: 0 -50%;
-    }
-
-    .day-today::after {
-        content: "";
-        position: absolute;
-        inset: 0 -0.625rem 0 0;
+        margin-left: auto;
     }
 
     /* A small control on a phone as small and quiet as it looks, but a finger's width to hit: it takes a tap `--tap`

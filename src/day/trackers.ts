@@ -28,7 +28,8 @@
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../today.ts`: Gives today's calendar date.
  * - `../icons.ts`: Makes the icons of the buttons.
- * - `lucide`: The icons glass, minus, plus and check.
+ * - `../phone.ts`: Tells a phone, which names each tracker by its icon.
+ * - `lucide`: The icons moon, glass, knife and fork, minus, plus and check.
  * - `fullcalendar`: Calendar that shows the day.
  */
 
@@ -38,9 +39,11 @@ import { amountOf, elementOf } from "../food/foods.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf } from "../icons.ts";
-import { Check, Minus, Plus } from "lucide";
+import { phone } from "../phone.ts";
+import { Check, GlassWater, Minus, Moon, Plus, Utensils } from "lucide";
 
 import type { Calendar } from "fullcalendar";
+import type { IconNode } from "lucide";
 import type { Totals } from "../food/foods.ts";
 
 
@@ -203,6 +206,25 @@ async function glassAdd(calendar: Calendar): Promise<void> {
 }
 
 /**
+ * Makes the name of a tracker, small and grey before its value, like `Sleep`; on a phone its icon in its place,
+ * like a moon, the name only for screen readers, so the three trackers fit side by side, see `.trackers` in `day.css`.
+ * - `name`: The name as shown.
+ *
+ * @param words - Name of the tracker, like `Sleep`
+ * @param icon - Its icon on a phone, like `Moon`
+ * @returns Its name
+ */
+function nameOf(words: string, icon: IconNode): HTMLElement {
+    const name: HTMLElement = elementOf("span", "tracker-name", phone ? "" : words);
+    if (phone) {
+        name.append(iconOf(icon));
+        name.setAttribute("role", "img");
+        name.setAttribute("aria-label", words);
+    }
+    return name;
+}
+
+/**
  * Builds the water: `−`, which takes the last glass of water back, what I drank in litres, every drink one glass
  * of 0.25 l, like `1.5 l` of six glasses, and `+`, which logs one more glass of water; the words of the buttons only
  * for screen readers, no description under the pointer, no goal.
@@ -245,7 +267,7 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
     add.setAttribute("aria-label", "0.25 l more");
     add.disabled = coming;
     add.addEventListener("click", (): void => send((): Promise<void> => glassAdd(calendar)));
-    row.append(elementOf("span", "tracker-name", "Water"), less,
+    row.append(nameOf("Water", GlassWater), less,
         elementOf("span", "water-litres", `${amountOf(litres, 2)} l`), add);
     return row;
 }
@@ -262,7 +284,7 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
 function foodOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const food: Totals & { estimate: boolean; meals: number } = trackers.food;
-    row.append(elementOf("span", "tracker-name", "Food"), elementOf("span", "tracker-value food-kcal",
+    row.append(nameOf("Food", Utensils), elementOf("span", "tracker-value food-kcal",
         `${amountOf(food.kcal, 0)}\u00a0kcal (${food.meals}\u00a0${food.meals === 1 ? "meal" : "meals"})`));
     return row;
 }
@@ -281,7 +303,7 @@ function sleepOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const night: Night | null = trackers.sleep.night;
     const length: HTMLElement = elementOf("span", "tracker-value", lengthOf(night === null ? 0 : night.minutes));
-    row.append(elementOf("span", "tracker-name", "Sleep"), length);
+    row.append(nameOf("Sleep", Moon), length);
     return row;
 }
 
