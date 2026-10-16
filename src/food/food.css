@@ -300,23 +300,21 @@ body:has(> .food) {
         inset: 0 -0.625rem 0 0;
     }
 
-    /* The start of an entry on a phone, which leads to its day, and the plus beside Meals and Foods as they look,
-       but a finger's width to hit: the start taking a tap up into the room above it and a little below it,
-       the plus 0.75rem left and right of it */
-    .food-time,
-    .food-heading .plus-quiet {
+    /* The start of an entry on a phone, which leads to its day, as it looks, but a finger's width to hit, taking a tap
+       up into the room above it and a little below it; the plus beside Meals and Foods 0.75rem left and right of it,
+       see `--tap` in `../base.css` */
+    .food-time {
         position: relative;
     }
 
-    .food-time::after,
-    .food-heading .plus-quiet::after {
+    .food-time::after {
         content: "";
         position: absolute;
         inset: -0.625rem 0 -0.25rem;
     }
 
-    .food-heading .plus-quiet::after {
-        inset: 0 -0.75rem;
+    .food-heading .plus-quiet {
+        --tap: 0 -0.75rem;
     }
 
     /* The day on a phone over the whole width, no step in from the rail's buttons, since a phone has no rail;

@@ -2239,24 +2239,16 @@ svg.route-arrow {
         grid-column: 1 / -1;
     }
 
-    /* The small grey plus and × and the pencil of a dialog on a phone as small and quiet as they look, but a finger's
-       width to hit: the plus and the × take a tap 0.5rem around them, like the plus of `Foods +` or the × of a food,
-       the pencil beside a place only at its right and above and below it, so its name keeps its own tap */
-    .panel .plus-quiet,
-    .panel .cross-quiet,
+    /* The pencil of a dialog on a phone as small and quiet as it looks, like the plus and the ×, see `../base.css`,
+       but a finger's width to hit, beside a place only at its right and above and below it, so its name keeps
+       its own tap */
     .panel .entry-pencil {
         position: relative;
     }
 
-    .panel .plus-quiet::after,
-    .panel .cross-quiet::after,
     .panel .entry-pencil::after {
         content: "";
         position: absolute;
-        inset: -0.5rem;
-    }
-
-    .panel .entry-pencil::after {
         inset: -0.5rem -0.75rem -0.5rem 0;
     }
 

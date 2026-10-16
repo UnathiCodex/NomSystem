@@ -356,6 +356,24 @@ h3 {
         width: auto;
     }
 
+    /* A small control on a phone as small and quiet as it looks, but a finger's width to hit: it takes a tap `--tap`
+       around it, which takes no room of its line, so nothing moves; the quiet plus and cross 0.5rem around them, like
+       the plus of `Foods +` or the × of a food, unless their place sets a reach of its own, like the × of a line
+       of the food view reaching into the room right of its list; every stylesheet gives its own small controls their
+       tap the same way, at its end */
+    .plus-quiet,
+    .cross-quiet {
+        --tap: -0.5rem;
+        position: relative;
+    }
+
+    .plus-quiet::after,
+    .cross-quiet::after {
+        content: "";
+        position: absolute;
+        inset: var(--tap);
+    }
+
     /* A swipe down at the top of the log never pulls the page to load it again, as Chrome does in a tab, which would
        lose what I am typing: the page itself never scrolls on a phone, so it takes no swipe passed on by the log */
     html {
