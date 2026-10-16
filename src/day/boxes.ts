@@ -413,7 +413,7 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
  * its address hidden, like `16:00 – 17:30 · Audimax im Galileo`, a way its route, like `Home Munich → TUM Garching`,
  * see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click instead of the box; then its topics,
  * one per line with a bullet, see {@link topicsOf}; a line without anything to say is left out, a line wider than
- * the box goes on below, see `.box-what` in `day.css`.
+ * the box goes on below, see `.box-what` in `boxes.css`.
  * - `what`: What it is as shown.
  * - `times`: The parts of its time, the first plain, each further one after its dot, see `.entry-parted` in `day.css`.
  * - `place`: The label of its place or the route of a way, empty for none.
@@ -530,7 +530,7 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
  * cancelled, as on the button that cancels it, the cross for one I skipped, its tooltip saying which, so no word
  * in its line has to; for a box greyed on a day it was pushed from the arrow, as on the button that pushes it,
  * grey like a mark, but a button, which leads to the day the box stands on now, its tooltip naming that day,
- * like `Now on Sat, 17.10.2026`, see `.box-moved` in `day.css`.
+ * like `Now on Sat, 17.10.2026`, see `.box-moved` in `boxes.css`.
  * - `mark`: The mark of a cancelled box.
  * - `ring`: The button.
  * - `moved`: Where a pushed box went.
@@ -616,7 +616,7 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
 }
 
 /**
- * Puts the buttons of a box or a suggestion at its right, see `.box-actions` in `day.css`: on the computer side by
+ * Puts the buttons of a box or a suggestion at its right, see `.box-actions` in `boxes.css`: on the computer side by
  * side, each its icon; on a phone behind one button `⋯`, which opens them as a small menu below it, each its icon and
  * its words, like `To tomorrow`, so the line of what the box is keeps its room; a tap on one of them, or beside the
  * menu, closes it.

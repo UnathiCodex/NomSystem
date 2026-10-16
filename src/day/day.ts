@@ -83,6 +83,7 @@ import "./day.css";
 import "./search.css";
 import "./month.css";
 import "./trackers.css";
+import "./boxes.css";
 
 import type {
     DateSelectInfo, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,

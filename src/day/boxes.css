@@ -1,0 +1,393 @@
+/* Boxes of the plan: each its ring, its lines and its buttons in a soft frame, above them the birthdays and holidays
+   of the day, below them those carried along to today; on a phone each a filled card, its buttons behind one `⋯` */
+/* Boxes of the plan one below the other, a little apart, so the plan looks airy, filling the height above its +
+   and scrolling alone when they are many */
+.plan-boxes {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Hint for a day without boxes, calm and grey */
+.plan-none {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+/* Birthday or holiday, a grey line above the boxes of its day, with my gift idea below it after a gift */
+.occasion {
+    padding: 0 0.625rem;
+    color: var(--text-muted);
+}
+
+.occasion-title,
+.occasion-gift {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+/* In the day a click on a birthday or holiday opens its gift idea: under the pointer it turns light,
+   and one without an idea shows the gift after its name */
+.occasion-open {
+    cursor: pointer;
+}
+
+.occasion-open:hover {
+    color: var(--text-main);
+}
+
+.occasion-hint {
+    display: inline-flex;
+    visibility: hidden;
+}
+
+.occasion-open:hover .occasion-hint {
+    visibility: visible;
+}
+
+/* Line between what holds for the whole day, its birthdays and holidays, and its boxes below,
+   drawn below the last birthday or holiday when boxes follow, halfway between them;
+   clearly seen, twice as thick as a frame and in the lighter grey of what is picked */
+.occasion:has(+ :not(.occasion)) {
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--chosen-line);
+}
+
+/* A box: its ring, its lines and its buttons in one row, outlined in a soft grey with round corners, with air around
+   its lines, so the plan looks as real as the log; an open box as bright on a day that is over as on today;
+   an open box is grabbed to drag it into the log */
+.box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--background);
+    line-height: 1.45;
+}
+
+.box-draggable {
+    cursor: grab;
+}
+
+/* Under a pointer that hovers, a box turns one grey lighter, fading in over 150 ms after 100 ms and back over 150 ms
+   as soon as the pointer leaves, as an entry of the log, so the plan answers the pointer as the log does; its ring
+   and its buttons have no ground of their own, so they lie on it, see `.box-ring` and `.box-action` */
+@media (hover: hover) {
+    .box {
+        transition: background-color 150ms;
+    }
+
+    .box:hover {
+        background: var(--fill);
+        transition: background-color 150ms 100ms;
+    }
+}
+
+/* Lines of a box: what it is, then grey its time and length and its place, never cut: a line wider than the box
+   goes on below, broken where a word ends, where the parts of a long name meet, like `IN0004_Einfuehrung`
+   and `Rechnerarchitektur`, see `breakableOf` in `choices.ts`, or within a part still too long;
+   a click on them changes the box */
+.box-body {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.box-what,
+.box-part {
+    overflow-wrap: anywhere;
+}
+
+/* Grey line of a box, its time and after it its place, apart by the middle dot, on one line as in the log: the time
+   whole, the place giving way with an ellipsis where the line is too narrow; both in the one grey of the page;
+   on a phone the place on a line of its own, see the end of this file */
+.box-meta {
+    display: flex;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.box-part {
+    flex: none;
+    max-width: 100%;
+}
+
+.box-part.entry-parted {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.box-time {
+    color: var(--text-muted);
+}
+
+/* What a box is about, its chapters and documents, one per line with a grey bullet, in the size and grey
+   of the line above, close below it */
+.box-topics {
+    margin: 0.125rem 0 0;
+    padding-left: 1.1em;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    list-style: disc;
+}
+
+.box-topics li {
+    overflow-wrap: anywhere;
+}
+
+/* Ring of a box, as high as its first line: for an open box a button, an empty ring in the grey of the plan
+   like the circle of a to-do, lighter under the pointer with its check showing, which logs the box as expected;
+   for a done box a button too, its grey check, see `.box-checked`; for a cancelled box its grey mark without edge,
+   the calendar crossed out or the cross, see `ringOf` in `boxes.ts`, for a box pushed away the arrow, a button
+   looking the same, see `.box-moved`; without a ground of its own, so it lies on its box;
+   `.box .box-ring svg` wins over the size of icons in `base.css`, being more exact */
+.box-ring {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-top: 0.125rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+}
+
+button.box-ring {
+    border-color: var(--plan);
+    cursor: pointer;
+}
+
+button.box-ring svg {
+    opacity: 0;
+}
+
+button.box-ring:hover {
+    border-color: var(--text-main);
+    background: var(--chosen);
+    color: var(--text-main);
+}
+
+button.box-ring:hover svg {
+    opacity: 1;
+}
+
+/* Check of a done box, a button too, which takes the box back to open, and the arrow of a box greyed on a day it was
+   pushed from, which leads to the day it stands on now: grey without edge, the arrow like the mark of a cancelled box,
+   their icon always shown */
+button.box-ring.box-checked,
+button.box-ring.box-moved {
+    border-color: transparent;
+}
+
+button.box-ring.box-checked svg,
+button.box-ring.box-moved svg {
+    opacity: 1;
+}
+
+.box .box-ring svg {
+    width: 0.75rem;
+    height: 0.75rem;
+}
+
+/* Done box: its lines as when it was open, only greyed, its what grey too */
+.box-done .box-what {
+    color: var(--text-muted);
+}
+
+/* Cancelled box, skipped by me or cancelled by the university, like a lecture that does not take place,
+   and a box on a day it was pushed from: only faded, never struck through, all three alike;
+   the mark in its ring says which, see `.box-ring` */
+.box-dropped,
+.box-university,
+.box-pushed {
+    opacity: 0.55;
+}
+
+/* Heading of the boxes carried along to today, below the list of today:
+   small and grey like the heads of plan and log, with room above it */
+.plan-carried {
+    margin: 0.5rem 0 0;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+/* Suggested study session: dashed in the grey of the plan, not planned yet */
+.box-suggested {
+    border-style: dashed;
+    border-color: var(--plan);
+}
+
+/* Buttons at the right of a box, small and round, grey, without a ground of their own, so they lie on their box,
+   lighter under the pointer: push and skip, take back, or plan and dismiss a suggestion; they always show,
+   the arrow that pushes a box too; on a phone behind one button `⋯`, see `.box-menu` */
+.box-actions {
+    display: flex;
+    flex: none;
+    gap: 0.375rem;
+}
+
+.box-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.625rem;
+    height: 1.625rem;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.box-action:hover {
+    border-color: var(--chosen-line);
+    background: var(--chosen);
+    color: var(--text-main);
+}
+
+.box .box-action svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+/* Phone: a box a filled card in one grid, its buttons behind one plain button `⋯` that opens them as a menu, all
+   a finger's width to hit, and its place on a line of its own */
+@media (max-width: 900px) {
+    /* A box on a phone as a card, filled in the soft grey of a card instead of a frame, a little closer around its
+       lines; a suggested session keeps its dashed frame on the page's ground, since it is not planned yet */
+    .box {
+        padding: 0.75rem 0.875rem;
+        border-color: transparent;
+        background: var(--fill);
+    }
+
+    .box-suggested {
+        border-color: var(--plan);
+        background: none;
+    }
+
+    /* A box on a phone in one grid: the ring at the left of what it is, its buttons, which show without a pointer,
+       at the right of it, on the same line, so they take no row of their own, and its time, place and topics below
+       over the whole width beside the ring, under the buttons too; its lines stand in the grid themselves,
+       a click on them changing the box as before; what it is goes on below where the buttons leave it too little room,
+       like `Skill: MGT1372 (VO)` */
+    .box {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0 0.625rem;
+    }
+
+    .box-body {
+        display: contents;
+    }
+
+    .box-ring,
+    .box-what {
+        grid-row: 1;
+    }
+
+    .box-meta,
+    .box-topics {
+        grid-column: 2 / -1;
+    }
+
+    /* The buttons of a box on a phone plain, without frame or ground, side by side, centred on the line of what it
+       is */
+    .box-actions {
+        grid-row: 1;
+        grid-column: 3;
+        gap: 0;
+        margin-block: -0.375rem;
+    }
+
+    .box-action {
+        width: 2.125rem;
+        height: 2rem;
+        border: 0;
+    }
+
+    /* The menu of a box on a phone, opened by its button `⋯`, see `actionsRowOf` in `boxes.ts`: right under that
+       button, its right edge under the button's, with the background, line and soft shadow of every menu of a list, see
+       `.picker-box`; each of its buttons a row one control high, its icon and then its words, like `To tomorrow`, a
+       finger's height to hit, so no tap reaches beside it */
+    .box-menu {
+        position: fixed;
+        inset: auto;
+        margin: 0.25rem 0 0;
+        padding: 0.375rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--background);
+        color: var(--text-main);
+        box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.5);
+    }
+
+    .box-menu:popover-open {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .box-menu .box-action {
+        justify-content: flex-start;
+        gap: 0.75rem;
+        width: auto;
+        height: var(--control-height);
+        padding: 0 1rem 0 0.75rem;
+        border-radius: var(--radius);
+        color: var(--text-main);
+        font: inherit;
+        white-space: nowrap;
+    }
+
+    .box-menu .box-action::after {
+        content: none;
+    }
+
+    /* The ring and the buttons of a box on a phone as they look, but a finger's width to hit: the ring, which logs
+       the box with one tap, takes a tap 0.625rem around it, as far as the lines beside it, and each button
+       its own width, side by side with the next, and 0.5rem above and below */
+    button.box-ring,
+    .box-action {
+        position: relative;
+    }
+
+    button.box-ring::after,
+    .box-action::after {
+        content: "";
+        position: absolute;
+        inset: -0.625rem;
+    }
+
+    .box-action::after {
+        inset: -0.5rem 0;
+    }
+
+    /* The place of a box on a phone on a line of its own below its time, whole, without the dot */
+    .box-meta {
+        flex-direction: column;
+    }
+
+    .box-part.entry-parted {
+        white-space: normal;
+    }
+
+    .box-meta > .entry-parted::before {
+        content: none;
+    }
+}
