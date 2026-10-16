@@ -2,14 +2,15 @@
  * ## Trackers
  *
  * The trackers of the shown day, at the right of the bar of the day, as the reader counts them,
- * see `reader/trackers.ts`, calm and basic, side by side in one line, without descriptions under the pointer:
+ * see `reader/trackers.ts`, calm and basic: three tiles of equal width side by side, each its name small and grey
+ * above its value, like `Sleep` over `09h 15m`, without icons and without descriptions under the pointer:
  * - Sleep: how long the night of the day lasted, the sleep I woke up from that morning, like `07h 30m`;
  *   its goal, the spread of my bedtime and the average of the week left out for now, since other things come first.
- * - Water: what I drank on the day in litres between `−` and `+`, like `1.5 l`, without a goal; `+` logs 0.25 l more,
- *   one glass of water, at the time of the tap on the shown day, `−` takes the last glass of water back;
- *   every other drink, like `Kaffee`, counts as one glass too. A day still to come takes no glasses.
- * - Food: the kcal of the day's meals, a total without goal, and in brackets after it the number of the meals,
- *   like `1,850 kcal (3 meals)`, so a meal missing shows; no link, since the button of the food view is beside it.
+ * - Water: what I drank on the day in litres, like `1.5 l`, without a goal; the whole tile logs 0.25 l more,
+ *   one glass of water, at the time of the tap on the shown day, a small `−` in its corner takes the last glass
+ *   of water back; every other drink, like `Kaffee`, counts as one glass too. A day still to come takes no glasses.
+ * - Food: the kcal of the day's meals, a total without goal, like `1,850 kcal`; no link, since the button
+ *   of the food view is beside it.
  * - Neck: two tiles over the seven days up to the day: on how many of my study days I did
  *   a neck routine, short or long, like `2 / 5` over `short · study days`, a check from two thirds of them on,
  *   since about two thirds of the sessions already gave the large effects (Chen 2018), and on how many days a long
@@ -28,8 +29,7 @@
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../today.ts`: Gives today's calendar date.
  * - `../icons.ts`: Makes the icons of the buttons.
- * - `../phone.ts`: Tells a phone, which names each tracker by its icon.
- * - `lucide`: The icons moon, glass, knife and fork, minus, plus and check.
+ * - `lucide`: The icons minus and check.
  * - `fullcalendar`: Calendar that shows the day.
  */
 
@@ -39,11 +39,9 @@ import { amountOf, elementOf } from "../food/foods.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf } from "../icons.ts";
-import { phone } from "../phone.ts";
-import { Check, GlassWater, Minus, Moon, Plus, Utensils } from "lucide";
+import { Check, Minus } from "lucide";
 
 import type { Calendar } from "fullcalendar";
-import type { IconNode } from "lucide";
 import type { Totals } from "../food/foods.ts";
 
 
@@ -139,14 +137,14 @@ type NeckWeek = {
  * - `sleep`: My sleep, which the card leaves out for now.
  * - `glasses`: My glasses of water and of every other drink, in the order I drank them.
  * - `neck`: My neck routine in the seven days up to the day.
- * - `food`: What my meals gave, `estimate` when one of them counts grams guessed, and the number of my meals.
+ * - `food`: What my meals gave, `estimate` when one of them counts grams guessed.
  */
 export type Trackers = {
     settings: TrackerSettings;
     sleep: SleepDay;
     glasses: Glass[];
     neck: NeckWeek;
-    food: Totals & { estimate: boolean; meals: number };
+    food: Totals & { estimate: boolean };
 };
 
 /**
@@ -206,44 +204,38 @@ async function glassAdd(calendar: Calendar): Promise<void> {
 }
 
 /**
- * Makes the name of a tracker, small and grey before its value, like `Sleep`; on a phone its icon in its place,
- * like a moon, the name only for screen readers, so the three trackers fit side by side, see `.trackers` in `day.css`.
- * - `name`: The name as shown.
+ * Makes the name and the value of a tracker, its name small and grey above its value, like `Sleep` over `07h 30m`,
+ * see `.tracker-row` in `day.css`.
  *
- * @param words - Name of the tracker, like `Sleep`
- * @param icon - Its icon on a phone, like `Moon`
- * @returns Its name
+ * @param name - Name of the tracker, like `Sleep`
+ * @param value - Its value as shown, like `07h 30m`
+ * @returns Name and value
  */
-function nameOf(words: string, icon: IconNode): HTMLElement {
-    const name: HTMLElement = elementOf("span", "tracker-name", phone ? "" : words);
-    if (phone) {
-        name.append(iconOf(icon));
-        name.setAttribute("role", "img");
-        name.setAttribute("aria-label", words);
-    }
-    return name;
+function linesOf(name: string, value: string): HTMLElement[] {
+    return [elementOf("span", "tracker-name", name), elementOf("span", "tracker-value", value)];
 }
 
 /**
- * Builds the water: `−`, which takes the last glass of water back, what I drank in litres, every drink one glass
- * of 0.25 l, like `1.5 l` of six glasses, and `+`, which logs one more glass of water; the words of the buttons only
- * for screen readers, no description under the pointer, no goal.
- * The row takes no clicks while a glass is sent, so a double tap logs one glass; the card loads again once the log changed.
- * - `litres`: What I drank, in litres.
+ * Builds the water: what I drank in litres, every drink one glass of 0.25 l, like `1.5 l` of six glasses, its tile
+ * one button, which logs one more glass of water, and `−` in its corner, which takes the last glass of water back;
+ * the words of `−` only for screen readers, no description under the pointer, no goal.
+ * The tile takes no clicks while a glass is sent, so a double tap logs one glass; the card loads again once the log
+ * changed.
+ * - `litres`: What I drank, in litres, as shown.
  * - `last`: The last glass of water that can be taken back, `undefined` for none.
  * - `coming`: Whether the day is still to come.
- * - `send`: Sends a change of the glasses, the row inert meanwhile.
+ * - `send`: Sends a change of the glasses, the tile inert meanwhile.
  *
  * @param calendar - Calendar of the day
  * @param trackers - Trackers of the day
  * @param day - The shown day, like `2026-10-10`
- * @returns Row of the water
+ * @returns Tile of the water
  */
 function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLElement {
-    const row: HTMLElement = elementOf("div", "tracker-row", "");
-    const less: HTMLButtonElement = document.createElement("button");
+    const row: HTMLElement = elementOf("div", "tracker-row tracker-water", "");
     const add: HTMLButtonElement = document.createElement("button");
-    const litres: number = trackers.glasses.length * trackers.settings.glassMl / 1000;
+    const less: HTMLButtonElement = document.createElement("button");
+    const litres: string = `${amountOf(trackers.glasses.length * trackers.settings.glassMl / 1000, 2)} l`;
     const last: Glass | undefined = trackers.glasses.filter((glass: Glass): boolean => glass.water && glass.editable).at(-1);
     const coming: boolean = day > calendarTodayOf();
     const send: (change: () => Promise<void>) => void = (change: () => Promise<void>): void => {
@@ -254,56 +246,49 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
         });
     };
 
+    add.type = "button";
+    add.className = "water-add";
+    add.append(...linesOf("Water", litres));
+    add.setAttribute("aria-label", `Water ${litres}, 0.25 l more`);
+    add.disabled = coming;
+    add.addEventListener("click", (): void => send((): Promise<void> => glassAdd(calendar)));
     less.type = "button";
-    less.className = "chip-button";
+    less.className = "chip-button water-less";
     less.append(iconOf(Minus));
     less.setAttribute("aria-label", "0.25 l less");
     less.disabled = coming || last === undefined;
     less.addEventListener("click", (): void =>
         send((): Promise<void> => entryDelete(calendar, last?.id ?? "")));
-    add.type = "button";
-    add.className = "chip-button";
-    add.append(iconOf(Plus));
-    add.setAttribute("aria-label", "0.25 l more");
-    add.disabled = coming;
-    add.addEventListener("click", (): void => send((): Promise<void> => glassAdd(calendar)));
-    row.append(nameOf("Water", GlassWater), less,
-        elementOf("span", "water-litres", `${amountOf(litres, 2)} l`), add);
+    row.append(add, less);
     return row;
 }
 
 /**
- * Builds the food: the kcal of the day's meals, rounded and so never marked as an estimate, and in brackets the number
- * of the meals, like `1,850 kcal (3 meals)` or `0 kcal (0 meals)`, a number never apart from its word, so where
- * the room is short, as on a phone, only the brackets go on below.
- * - `food`: What the meals gave.
+ * Builds the food: the kcal of the day's meals, rounded and so never marked as an estimate, like `1,850 kcal`
+ * or `0 kcal`, the number never apart from its word.
  *
  * @param trackers - Trackers of the day
- * @returns Row of the food
+ * @returns Tile of the food
  */
 function foodOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
-    const food: Totals & { estimate: boolean; meals: number } = trackers.food;
-    row.append(nameOf("Food", Utensils), elementOf("span", "tracker-value food-kcal",
-        `${amountOf(food.kcal, 0)}\u00a0kcal (${food.meals}\u00a0${food.meals === 1 ? "meal" : "meals"})`));
+    row.append(...linesOf("Food", `${amountOf(trackers.food.kcal, 0)}\u00a0kcal`));
     return row;
 }
 
 /**
  * Builds the sleep: how long the night of the day lasted, the sleep I woke up from that morning, in hours
  * and minutes, each two digits, like `07h 30m`, or `08h 00m` on the hour; while no night is logged `00h 00m`,
- * in the colour of the text like the water's `0.00 l`, so no dash stands there and the frame keeps its width.
+ * in the colour of the text like the water's `0.00 l`, so no dash stands there.
  * - `night`: The night of the day, `null` for none.
- * - `length`: How long it lasted as shown, see `lengthOf` in `times.ts`.
  *
  * @param trackers - Trackers of the day
- * @returns Row of the sleep
+ * @returns Tile of the sleep
  */
 function sleepOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const night: Night | null = trackers.sleep.night;
-    const length: HTMLElement = elementOf("span", "tracker-value", lengthOf(night === null ? 0 : night.minutes));
-    row.append(nameOf("Sleep", Moon), length);
+    row.append(...linesOf("Sleep", lengthOf(night === null ? 0 : night.minutes)));
     return row;
 }
 

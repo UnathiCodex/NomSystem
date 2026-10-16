@@ -581,13 +581,15 @@ button.box-ring.box-moved svg {
     font-variant-numeric: tabular-nums;
 }
 
-/* Trackers: at the right end of the bar of the day, side by side in one line, never squeezed */
+/* Trackers: at the right end of the bar of the day, above the log and as wide as it, three tiles of equal width
+   side by side, a control gap apart */
 .trackers {
-    display: flex;
+    display: grid;
     flex: none;
-    align-items: center;
-    justify-content: flex-end;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
     gap: var(--control-gap);
+    width: calc((100% - var(--gap)) / 2);
     margin-left: auto;
 }
 
@@ -625,20 +627,22 @@ button.box-ring.box-moved svg {
     color: var(--text-muted);
 }
 
-/* A tracker: its name small and grey, then its tiles or controls, in a soft frame of its own, at least one control
-   high, so Sleep, Water and Food stand apart at a glance */
+/* A tracker as a tile in a soft frame of its own, one control high, its name small and grey above its value,
+   so Sleep, Water and Food stand apart at a glance */
 .tracker-row {
+    position: relative;
     display: flex;
-    align-items: center;
-    gap: var(--control-gap);
-    min-height: var(--control-height);
-    padding: 0.25rem 0.875rem;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    height: var(--control-height);
+    padding: 0 0.875rem;
     border: 1px solid var(--line);
     border-radius: var(--radius);
+    line-height: 1.2;
 }
 
 .tracker-name {
-    flex: none;
     font-size: 0.75rem;
     color: var(--text-muted);
 }
@@ -649,26 +653,59 @@ button.box-ring.box-moved svg {
     font-variant-numeric: tabular-nums;
 }
 
-/* Value of a tracker without controls, like the length of the night, in the colour of the text */
+/* Value of a tracker below its name, a step bigger, semibold, in the colour of the text, like `09h 15m` */
 .tracker-value {
+    font-size: 1.0625rem;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
-/* What I drank between the `−` and `+` of the water, see `.chip-button` in `base.css`, as wide as `2.75 l`,
-   so the buttons stay in place as it counts */
-.water-litres {
-    min-width: 4.5ch;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+/* The water's tile one button, which logs a glass, over the whole tile, its name and value where every tile has them,
+   a grey lighter under the pointer, faded and off on a day still to come; the `−` in its top right corner, small,
+   plain and grey, which takes the last glass back, faded while there is none */
+.tracker-water {
+    padding: 0;
 }
 
-/* What the meals of the day gave, at least as wide as `1,816 kcal (3 meals)`, so the Food tracker keeps one width
-   from day to day, also on a day without meals, and Sleep and Water beside it, with the − and + of the water,
-   never move */
-.food-kcal {
-    min-width: 9.4em;
+.water-add {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 0 0.875rem;
+    border: 0;
+    border-radius: inherit;
+    background: none;
+    line-height: inherit;
+    cursor: pointer;
+}
+
+.water-add:enabled:hover {
+    background: var(--fill);
+}
+
+.water-add:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.tracker-row .water-less {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+}
+
+.tracker-row .water-less:enabled:hover {
+    background: var(--chosen);
+    color: var(--text-main);
 }
 
 /* My gratitude below the plan and my points about the day below the log, as wide as them, each its name small
@@ -1955,74 +1992,36 @@ svg.route-arrow {
         text-align: left;
     }
 
-    /* The trackers on a phone small, three pills side by side over the whole width, each its icon in place of its
-       name, see `nameOf` in `trackers.ts`, and its value, like `09h 15m`, `− 0.25 l +` and `711 kcal (1 meal)`:
-       Sleep and Water as wide as they need, Food the rest, its brackets going on below where the room is short,
-       on a line of its own below them only where even its kcal find no room, never over the edge; filled in the soft
-       grey of a card, no frame; the − and + of the water plain inside their pill, but a finger high to hit */
+    /* The trackers on a phone on a line of their own below the date, over the whole width, as three tiles of equal
+       width, filled in the soft grey of a card instead of a frame, a little closer together and around their lines,
+       so `2,150 kcal` fits its tile; the `−` of the water as small as it looks, but a finger's width to hit,
+       reaching down and to the left into its tile */
     .trackers {
         flex-basis: 100%;
-        flex-wrap: wrap;
         gap: 0.375rem;
-        min-width: 0;
+        width: auto;
         margin-left: 0;
     }
 
     .tracker-row {
-        gap: 0.3125rem;
-        min-height: 2.5rem;
-        padding: 0.25rem 0.625rem;
+        height: 3.25rem;
+        padding: 0 0.625rem;
         border: 0;
-        border-radius: 1.25rem;
         background: var(--fill);
-        font-size: 0.8125rem;
     }
 
-    .tracker-row:has(.food-kcal) {
-        flex: 1;
-        min-width: 0;
+    .tracker-water {
+        padding: 0;
     }
 
-    .tracker-row:has(.water-litres) {
-        gap: 0;
-        padding-inline: 0.25rem;
+    .water-add {
+        padding: 0 0.625rem;
     }
 
-    .tracker-name {
-        display: inline-flex;
-    }
-
-    .tracker-name svg.lucide {
-        width: 0.875rem;
-        height: 0.875rem;
-    }
-
-    .tracker-row:has(.water-litres) .tracker-name {
-        margin-left: 0.375rem;
-    }
-
-    .tracker-row .chip-button {
-        position: relative;
-        width: 1.75rem;
-        height: 1.75rem;
-        border: 0;
-        border-radius: 50%;
-        background: none;
-    }
-
-    .tracker-row .chip-button::after {
+    .tracker-row .water-less::after {
         content: "";
         position: absolute;
-        inset: -0.5rem 0;
-    }
-
-    .water-litres {
-        min-width: 0;
-    }
-
-    .food-kcal {
-        min-width: 0;
-        white-space: normal;
+        inset: -0.25rem -0.25rem -0.75rem -0.75rem;
     }
 
     /* The timer of a session on a phone on a line of its own below the trackers, over the whole width, a pill

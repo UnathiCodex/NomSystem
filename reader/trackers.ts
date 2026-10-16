@@ -133,15 +133,14 @@ export type NeckWeek = {
  * - `sleep`: My sleep.
  * - `glasses`: My glasses of water and of every other drink, in the order I drank them.
  * - `neck`: My neck routine in the seven days up to the day, the day included.
- * - `food`: What my meals gave, totals without goals, see `food.ts`, with the number of my meals,
- *   so a meal I forgot to log does not read as a day I ate little.
+ * - `food`: What my meals gave, totals without goals, see `food.ts`.
  */
 export type Trackers = {
     settings: TrackerSettings;
     sleep: SleepDay;
     glasses: Glass[];
     neck: NeckWeek;
-    food: Totals & { estimate: boolean; meals: number };
+    food: Totals & { estimate: boolean };
 };
 
 /**
@@ -441,9 +440,6 @@ export function trackersRead(date: string): Trackers {
         sleep: sleepRead(date),
         glasses: glassesRead(date),
         neck: neckRead(date),
-        food: {
-            kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat, estimate: food.estimate,
-            meals: food.meals.length,
-        },
+        food: { kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat, estimate: food.estimate },
     };
 }
