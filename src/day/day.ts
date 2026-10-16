@@ -85,6 +85,7 @@ import "./month.css";
 import "./trackers.css";
 import "./boxes.css";
 import "./note.css";
+import "./meal.css";
 
 import type {
     DateSelectInfo, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,

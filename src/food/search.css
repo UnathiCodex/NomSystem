@@ -127,7 +127,7 @@ button.food-row {
 }
 
 /* The `×` of a food of a meal opened on the line of its name, its icon level with the small letters, as an icon
-   beside a word stands and as the `×` of a food in the dialogs, see `.meal-row` in `../day/day.css`, in the middle
+   beside a word stands and as the `×` of a food in the dialogs, see `.meal-row` in `../day/meal.css`, in the middle
    of its room, as the `×` of every list, see `.food-item` */
 .food-part > .cross-quiet {
     display: block;
