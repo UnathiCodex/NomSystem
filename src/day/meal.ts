@@ -17,7 +17,9 @@
  *   saved or not, and every food added or removed changes it there, see {@link freshSend}. Last among my foods
  *   stands `+ New food “Linsensuppe”`, which opens the form of a food by hand named as typed; when nothing is found,
  *   like a barcode Open Food Facts does not know, one grey line says so. A food is a row with its name alone, its
- *   grams, its kcal and its `×`, which removes it, like a food I did not eat of a cooking.
+ *   grams, its kcal and its `×`, which removes it, like a food I did not eat of a cooking; a food of mine has a pencil
+ *   beside its name, which opens it below its row as the food view opens it, to change it right there,
+ *   see {@link foodRowOf}.
  *   Its grams start at those I logged it with last in an entry of the same category, `Food` or `Cook`, see
  *   `gramsRead` in `reader/food.ts`, white like every fact, which I type over; the first time ever, they start empty,
  *   and I type my amount, like that of my chili; the cursor goes into the grams of what was picked, the first empty
@@ -51,10 +53,10 @@
  *   writes amounts and makes elements and buttons.
  * - `../food/meals.ts`: Finds my meals for a search, writes the name of a meal as the reader does, and kcal as the
  *   page writes them.
- * - `../food/search.ts`: The food search and the lines of every list.
- * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, their words as tooltip, and makes the plus
- *   of a new meal.
- * - `lucide`: The icon of the plus.
+ * - `../food/search.ts`: The food search, the lines of every list, and a food of mine opened to change it.
+ * - `../icons.ts`: Puts the one plus, the one `×` and the pencil into the buttons, their words as tooltip, and makes
+ *   the plus of a new meal.
+ * - `lucide`: The icons of the plus and the pencil.
  */
 
 import { choicesOf, listOf, listOpen, rowOf, searchOf } from "./choices.ts";
@@ -64,9 +66,9 @@ import {
     buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodsFind, gramsLoad, portionGramsOf, summaryOf, unitOf,
 } from "../food/foods.ts";
 import { dishesFound, dishNameOf, kcalTextOf, mealNameOf } from "../food/meals.ts";
-import { foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
-import { crossPut, iconOf, plusPut } from "../icons.ts";
-import { Plus } from "lucide";
+import { foodDetailOf, foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
+import { crossPut, iconOf, iconPut, plusPut } from "../icons.ts";
+import { Pencil, Plus } from "lucide";
 
 import type { Choice } from "./choices.ts";
 import type { Dish, Food, FoodsFound, Kind } from "../food/foods.ts";
@@ -195,6 +197,11 @@ let cookedRow: HTMLElement | null = null;
  * foods had brand and store; loaded when the meal was built, with every food added since.
  */
 let mine: Map<string, Food> = new Map();
+
+/**
+ * Key of the food of mine whose pencil opened it below its row, see {@link foodRowOf}, empty while none is open.
+ */
+let foodOpen: string = "";
 
 /**
  * My meals of `Meals.md`, loaded when the meal was built, as they are after every meal kept since.
@@ -455,23 +462,57 @@ function foodsClosed(): boolean {
 }
 
 /**
+ * Takes a food of mine as the reader wrote it after a change in the dialog, see {@link foodRowOf}: among my foods
+ * in place of the food as it was, and every food picked of it, beside the meals and in a meal, under its new name,
+ * brand and store, so the entry writes its lines `X-FOOD` so; my meals load anew, which the reader renamed it in.
+ * - `renamed`: The foods picked of it.
+ *
+ * @param old - The food as `Foods.md` held it
+ * @param written - The food as the reader wrote it
+ */
+function foodTake(old: Food, written: Food): void {
+    const renamed: FoodPick[] = [...picks, ...meals.flatMap((meal: MealPick): FoodPick[] => meal.foods)]
+        .filter((pick: FoodPick): boolean => foodOf(pick) === old);
+    [...mine.keys()].filter((key: string): boolean => mine.get(key) === old)
+        .forEach((key: string): void => {
+            mine.delete(key);
+        });
+    mineAdd(written);
+    renamed.forEach((pick: FoodPick): void => {
+        pick.name = written.name;
+        pick.brand = written.brand;
+        pick.store = written.store;
+    });
+    dishesLoad().then((all: Dish[]): void => { dishes = all; })
+        .catch((error: unknown): void => console.error(error));
+}
+
+/**
  * Builds the row of a food, beside the meals or of one: its name alone, like `Skyr natur`, without its brand and
  * store, which only tell which one it is when I pick it, as everywhere a food stands as eaten, marked when `Foods.md`
  * does not hold it, its grams, its kcal and a small grey `×`, which removes it, as a value picked in every list
- * of the dialog.
+ * of the dialog. A food of mine has a pencil beside its name, as a place and a summary have, which opens below its row
+ * the food as the food view opens it, its name, brand and store, its nutrients, its portion, its pack and its kind,
+ * with all its rules, see `foodDetailOf` in `../food/search.ts`, and closes it again; a change shows the rows anew
+ * at once, see {@link foodTake}, the new name and the kcal of its grams, the food staying open and the cursor
+ * in the value I went on to.
  * - `food`: The food in `Foods.md`, `undefined` for one it does not hold.
  * - `name`: Its name.
  * - `kcalTextFor`: Its kcal as written, nothing while its grams are empty or `Foods.md` does not hold it.
  * - `kcal`: Cell of its kcal.
  * - `remove`: Its `×`.
+ * - `detailFor`: Opens the food below its row.
+ * - `detail`: The food opened, `null` while it is closed.
  *
  * @param pick - Food picked, changed as its grams are typed
  * @param typed - Comes once its grams are typed, after its kcal show anew
  * @param removed - Takes it out of the meal, on its `×`
  * @param again - Opens the search it came from again, on Enter in its grams
- * @returns Row
+ * @param renewed - Shows the rows anew after a change of the food
+ * @returns Row, and the food opened below it while open
  */
-function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void, again: () => void): HTMLElement {
+function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void, again: () => void,
+                   renewed: () => void): HTMLElement[] {
     const row: HTMLElement = elementOf("div", "meal-row", "");
     const food: Food | undefined = foodOf(pick);
     const name: HTMLElement = elementOf("span", "meal-name", pick.name);
@@ -485,10 +526,36 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void, again
             typed();
         });
     const remove: HTMLButtonElement = buttonOf("", "", removed);
+    const detailFor: (mineFood: Food) => HTMLElement = (mineFood: Food): HTMLElement =>
+        foodDetailOf(mineFood, (written: Food): void => {
+            const typing: string | null = document.activeElement?.closest(".food-detail") === null ? null
+                : document.activeElement?.getAttribute("aria-label") ?? null;
+            foodTake(mineFood, written);
+            foodOpen = keyOf(written);
+            renewed();
+            if (typing !== null)
+                foodsRows.querySelector<HTMLInputElement>(`.food-detail input[aria-label="${typing}"]`)?.focus();
+        });
+    let detail: HTMLElement | null = food !== undefined && foodOpen === keyOf(food) ? detailFor(food) : null;
 
     if (food === undefined)
         name.append(elementOf("span", "meal-unknown", " · not in my foods"));
     name.title = name.textContent ?? "";
+    if (food !== undefined) {
+        const pencil: HTMLButtonElement = buttonOf("entry-pencil", "", (): void => {
+            if (detail !== null) {
+                detail.remove();
+                detail = null;
+                foodOpen = "";
+                return;
+            }
+            foodOpen = keyOf(food);
+            detail = detailFor(food);
+            row.after(detail);
+        });
+        iconPut(pencil, Pencil, `Change ${pick.name}`);
+        name.append(pencil);
+    }
     input.addEventListener("keydown", (event: KeyboardEvent): void => {
         if (event.key !== "Enter")
             return;
@@ -499,7 +566,7 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void, again
     gramsFields.set(pick, input);
     crossPut(remove, `Remove ${pick.name}`);
     row.append(name, grams, kcal, remove);
-    return row;
+    return detail === null ? [row] : [row, detail];
 }
 
 /**
@@ -578,7 +645,7 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
     blockPluses.set(meal, plus);
     name.append(plus);
     row.append(name, elementOf("span", "", ""), kcal, remove);
-    parts.append(...meal.foods.map((pick: FoodPick): HTMLElement => foodRowOf(pick, (): void => {
+    parts.append(...meal.foods.flatMap((pick: FoodPick): HTMLElement[] => foodRowOf(pick, (): void => {
         kcal.textContent = kcalTextOf(mealKcalOf(meal));
         summaryShow();
         changed();
@@ -591,6 +658,9 @@ function mealRowsOf(meal: MealPick, changed: () => void): HTMLElement[] {
     }, (): void => {
         if (!listOpen(box))
             plus.click();
+    }, (): void => {
+        rowsShow(changed);
+        changed();
     })), box);
     return [row, parts];
 }
@@ -619,7 +689,7 @@ function summaryShow(): void {
  */
 function rowsShow(changed: () => void): void {
     foodsRows.replaceChildren(...meals.flatMap((meal: MealPick): HTMLElement[] => mealRowsOf(meal, changed)),
-        ...picks.map((pick: FoodPick): HTMLElement => foodRowOf(pick, (): void => {
+        ...picks.flatMap((pick: FoodPick): HTMLElement[] => foodRowOf(pick, (): void => {
             summaryShow();
             changed();
         }, (): void => {
@@ -629,6 +699,9 @@ function rowsShow(changed: () => void): void {
         }, (): void => {
             if (foodsClosed())
                 foodsLine.click();
+        }, (): void => {
+            rowsShow(changed);
+            changed();
         })));
     summaryShow();
 }
@@ -954,6 +1027,7 @@ export async function mealOf(lines: string[], title: string, changed: () => void
     cooked = drawing?.cooked ?? "";
     mine = new Map();
     found.foods.forEach(mineAdd);
+    foodOpen = "";
     meals = [];
     picks = [];
     lines.map(lineOf).forEach((read: Line): void => {

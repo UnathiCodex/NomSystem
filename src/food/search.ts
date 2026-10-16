@@ -24,7 +24,8 @@
  * in `foods.ts`, and takes it like one of mine. Where a food is wanted, like in an entry, a click on one of my foods
  * picks it; in the food view, which wants none, it opens the food below its line: its protein, carbs and fat per 100 g,
  * one unknown empty, never 0, its pack and its barcode where known, its kind, `Eat` or `Drink`, its amounts in grams
- * or millilitres by it, and its name, brand and store to change, see {@link detailOf}. A food found nowhere goes in
+ * or millilitres by it, and its name, brand and store to change, see {@link foodDetailOf}, which the dialog of a meal
+ * opens the same way by the pencil of a food, see `../day/meal.ts`. A food found nowhere goes in
  * by hand only in the food view, by the plus beside the name `Foods`, see {@link foodNewShow}.
  * Nothing in the search is a form or sends one, so it can stand inside the form of a dialog.
  *
@@ -48,7 +49,7 @@ import type { Food, FoodsFound, Kind, Product } from "./foods.ts";
  * What a search does, where it stands.
  *
  * - `pick`: Takes a food picked or added, like into an entry; `null` where no food is wanted, like in the food view,
- *   where a click on one of my foods opens it, see {@link detailOf}.
+ *   where a click on one of my foods opens it, see {@link foodDetailOf}.
  * - `meals`: Builds the lines of my meals to show above my foods for the search as typed, see `listLineOf`,
  *   in an entry; `null` for none.
  * - `products`: Whether it finds products of Open Food Facts too; not for a meal of the food view, which takes only
@@ -285,8 +286,9 @@ function kindFieldOf(kind: Kind, saved: () => void): HTMLButtonElement {
 }
 
 /**
- * Builds a food of mine opened below its line in the food view, in two columns as the parts of a dialog, each its name
- * small and grey, then its value, every value as high as a field, so the rows stand equally apart: on top its name,
+ * Builds a food of mine opened below its line, in the food view and in the dialog of a meal, in two columns as the
+ * parts of a dialog, each its name small and grey, then its value, every value as high as a field, so the rows stand
+ * equally apart: on top its name,
  * brand and store, which change in place by a click into them, see {@link inlineFieldOf}, renaming it wherever it
  * stands, see `foodChange` in `foods.ts`; then its protein, carbs and fat per 100 g or 100 ml, its kcal standing on
  * its line, its portion and its pack, in grams, or in millilitres for a drink, see `unitOf` in `foods.ts`, and its
@@ -295,7 +297,8 @@ function kindFieldOf(kind: Kind, saved: () => void): HTMLButtonElement {
  * nothing known is changed by mistake, and changes its pack; one of Open Food Facts keeps them and its pack as they
  * came, one unknown empty, never 0, and shows its barcode; its portion and kind change in place for every food, since
  * how much I take and whether I drink it only I know.
- * A click on its line closes it again. When the reader does not take a change, the food stays open and says so.
+ * Once the reader wrote a change, where it stands shows it anew, see `saved`; when the reader does not take a change,
+ * the food stays open and says so.
  * - `own`: Whether I made it by hand.
  * - `detail`: The food opened.
  * - `facts`: Its values in two columns.
@@ -305,17 +308,17 @@ function kindFieldOf(kind: Kind, saved: () => void): HTMLButtonElement {
  * - `unit`: Unit of its amounts, `g` or `ml`.
  * - `kind`: Its kind as picked.
  * - `error`: Hint that the reader did not take the change.
- * - `save`: Sends the values, the food taking no clicks meanwhile, and shows the search anew, the food staying open
- *   under its new name; a number that is none, like `abc`, takes nothing and says so.
+ * - `save`: Sends the values, the food taking no clicks meanwhile, then hands on the food as written; a number that
+ *   is none, like `abc`, takes nothing and says so.
  * - `fieldAdd`: Adds a value that changes in place, with its unit after it where it has one.
  * - `gramsOf`: Writes grams of a nutrient as a fixed value, empty while unknown.
  * - `nutrientAdd`: Adds a nutrient, a field while unknown in a food I made by hand, else fixed.
  *
- * @param search - The search
  * @param food - My food
+ * @param saved - Takes the food as the reader wrote it, like with its new name, to show it anew
  * @returns The food opened
  */
-function detailOf(search: Search, food: Food): HTMLElement {
+export function foodDetailOf(food: Food, saved: (written: Food) => void): HTMLElement {
     const own: boolean = food.barcode === "";
     const detail: HTMLElement = elementOf("div", "food-detail", "");
     const facts: HTMLElement = elementOf("div", "food-facts", "");
@@ -339,12 +342,7 @@ function detailOf(search: Search, food: Food): HTMLElement {
         foodChange(food, {
             name: text("name"), brand: text("brand"), store: text("store"), portion: portion, kind: kind.textContent as Kind,
             ...own ? { protein: protein, carbs: carbs, fat: fat, pack: pack } : {},
-        }).then((): void => {
-            const renamed: string = keyOf({ ...food, name: text("name"), brand: text("brand"), store: text("store") });
-            search.added = search.added.map((key: string): string => key === keyOf(food) ? renamed : key);
-            search.open = renamed;
-            resultsLoad(search, 1);
-        }).catch((reason: unknown): void => {
+        }).then(saved).catch((reason: unknown): void => {
             console.error(reason);
             error.hidden = false;
             detail.inert = false;
@@ -399,7 +397,8 @@ function detailOf(search: Search, food: Food): HTMLElement {
 
 /**
  * Builds the line of a food of mine: a click picks it where foods are picked, else opens it below its line or closes
- * it again, see {@link detailOf}; in the food view its small grey `×` at its end, which removes it from `Foods.md`,
+ * it again, see {@link foodDetailOf}, after a change the search shown anew, the food staying open under its new name;
+ * in the food view its small grey `×` at its end, which removes it from `Foods.md`,
  * its first click only asking, a plain question mark, `Really remove?`, as for a meal; entries and meals listing it
  * keep their lines, which then count nothing.
  * - `key`: Its key.
@@ -439,7 +438,11 @@ function mineLinesOf(search: Search, food: Food): HTMLElement[] {
     }, remove);
     if (search.setup.pick === null)
         row.setAttribute("aria-expanded", String(open));
-    return open ? [line, detailOf(search, food)] : [line];
+    return open ? [line, foodDetailOf(food, (written: Food): void => {
+        search.added = search.added.map((key: string): string => key === keyOf(food) ? keyOf(written) : key);
+        search.open = keyOf(written);
+        resultsLoad(search, 1);
+    })] : [line];
 }
 
 /**
@@ -635,7 +638,7 @@ function numberRead(text: string): number | null {
 /**
  * Opens the form of a food by hand at the top of the results of a search, named as typed, for the plus beside
  * the name `Foods` of the food view, in place of one open before, in the look of a food of mine opened, see
- * {@link detailOf}: its name, brand and store, its kcal and its protein, carbs and fat per 100 g, the grams of its
+ * {@link foodDetailOf}: its name, brand and store, its kcal and its protein, carbs and fat per 100 g, the grams of its
  * portion, like 50 of a Semmel, empty taking its pack, else 100, and its pack, in two columns, each its name small
  * and grey, then its value, plain with a thin line below to type on, see `.food-inline-new` in `search.css`, its
  * unit after a number, a click on its name
@@ -667,7 +670,7 @@ export function foodNewShow(element: HTMLElement): void {
  * Opens the form of a food by hand in a search, see {@link foodNewShow}, named as typed in the search, the cursor in
  * its kcal, or in its name while none is typed; for a product of Open Food Facts without kcal its name, brand and
  * store filled in, its pack and portion too, its barcode and kind kept, its amounts in the unit of its kind,
- * see {@link productLineOf}; a food of my own is `Eat`, which I change once it is saved, see {@link detailOf}.
+ * see {@link productLineOf}; a food of my own is `Eat`, which I change once it is saved, see {@link foodDetailOf}.
  * - `kind`: Kind of the food.
  * - `start`: What each field starts with.
  * - `form`: The form.
