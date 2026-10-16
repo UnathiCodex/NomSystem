@@ -34,13 +34,14 @@
 }
 
 /* Row of a meal or a food, flat: its name, then its kcal as a bare number, just as wide as five digits, so the name
-   has the room; at least one chip high, higher for a product with its pack below its name or a name going on below,
+   has the room, 2rem apart at the least, so a long name or one cut with … never runs up to its number,
+   like `Pasta mit Ricotta Tomaten und Paprika (Pasta, Ricotta, Tom…)   609`; at least one chip high, higher for a product with its pack below its name or a name going on below,
    its number then on the line of the name, never between its lines; a little room above and below, so the pack
    of a product stays clear of the next name; a grey lighter under the pointer where a click does something */
 .food-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 4rem;
-    gap: 0.5rem;
+    gap: 0.5rem 2rem;
     align-items: baseline;
     width: 100%;
     min-height: var(--chip-height);
