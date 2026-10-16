@@ -57,6 +57,7 @@
  *   and gives the day of a date.
  * - `../today.ts`: Gives today's calendar date, which tells whether the day of a box is over.
  * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
+ * - `../phone.ts`: Tells a phone, which shows a skill by its code alone.
  * - `lucide`: The icons plus, check, arrow, cross, undo, landmark and gift.
  * - `fullcalendar`: Calendar of the log the boxes are dropped into.
  */
@@ -73,6 +74,7 @@ import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut, plusPut } from "../icons.ts";
+import { phone } from "../phone.ts";
 import { ArrowRight, Check, Gift, Landmark, Undo2, X } from "lucide";
 
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
@@ -92,12 +94,6 @@ export type BoxState = "open" | "done" | "dropped" | "university";
  * exercises, central exercises, tutorials and sheets.
  */
 const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
-
-/**
- * A phone, a screen as narrow as the phone layout of the stylesheets, as in `main.ts`, which shows a skill by its code
- * alone, see {@link shownWhatOf}, since its whole name would fill a box there.
- */
-const phone: boolean = matchMedia("(max-width: 900px)").matches;
 
 /**
  * A box, as the reader sends it.

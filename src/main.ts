@@ -12,7 +12,7 @@
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the scripts no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
- * A phone, a screen as narrow as the phone layout of the stylesheets, which {@link matchMedia} tells,
+ * A phone, a screen as narrow as the phone layout of the stylesheets, which `phone.ts` tells,
  * is only for the day, its plan and its log, as simple as can be, nothing for learning and no food for now:
  * it opens the day everywhere, without its daily note, so it loads no Markdown renderer;
  * every device tells the reader what it shows of the page, see {@link deviceReport}.
@@ -22,6 +22,7 @@
  * - `./day/day.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`, `./food/food.html?raw`,
  *   `./editor/editor.html?raw`: Html of day, scripts, skill, food and editor as text,
  *   packed into the built code by Vite.
+ * - `./phone.ts`: Tells a phone.
  * - `./day/day.ts`: Shows the log of a day, my one calendar, with the boxes of its plan beside it.
  * - `./notes/notes.ts`: Shows a due task as a card, its text alone, rendered like Obsidian.
  * - `./skill/skill.ts`: Shows my tasks, due ones first, and records my attempts.
@@ -38,6 +39,7 @@ import notesHtml from "./notes/notes.html?raw";
 import skillHtml from "./skill/skill.html?raw";
 import foodHtml from "./food/food.html?raw";
 import editorHtml from "./editor/editor.html?raw";
+import { phone } from "./phone.ts";
 
 
 /**
@@ -59,7 +61,6 @@ function deviceReport(): void {
  */
 let deviceWait: number = 0;
 
-const phone: boolean = matchMedia("(max-width: 900px)").matches;
 const address: URLSearchParams = new URLSearchParams(location.search);
 if (location.pathname === "/notes" || (location.pathname === "/edit" && address.has("path")))
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);

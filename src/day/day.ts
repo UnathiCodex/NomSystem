@@ -48,6 +48,7 @@
  *   while it shows today.
  * - `../icons.ts`: Puts the icons of the arrows and of `+` into their buttons.
  * - `../timer.ts`: Shows the timer of a session running now in the bar of the day.
+ * - `../phone.ts`: Tells a phone, which puts entries at the same time side by side.
  * - `lucide`: The icons of the arrows and plus.
  */
 
@@ -70,6 +71,7 @@ import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
 import { iconOf, iconPut, plusPut } from "../icons.ts";
 import { timerStart } from "../timer.ts";
+import { phone } from "../phone.ts";
 import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from "lucide";
 import "fullcalendar/skeleton.css";
 import "fullcalendar/themes/forma/theme.css";
@@ -110,12 +112,6 @@ let dayNoteShow: (date: string) => void = (): void => {};
  * Hours of the time grid, from 00:00 to 24:00 of the shown day, see `slotMinTime` and `slotMaxTime`.
  */
 const gridHours: number = 24;
-
-/**
- * A phone, a screen as narrow as the phone layout of the stylesheets, as in `main.ts`, which puts entries at the same
- * time side by side, see `slotEventOverlap` in {@link dayStart}.
- */
-const phone: boolean = matchMedia("(max-width: 900px)").matches;
 
 
 /**

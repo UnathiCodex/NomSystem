@@ -39,6 +39,7 @@
  * - `./tasks.ts`: Shows the rows of the tasks of a note.
  * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked, and the outline of a note.
  * - `../day/choices.ts`: Marks where the long name of a file may go on below, on a phone.
+ * - `../phone.ts`: Tells a phone, which shows the tree or the file, one at a time.
  * - `lucide`, `../icons.ts`: The check of the save button and the tree of the button that shows the tree on a phone.
  * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images, and of the tree.
  * - `./editor.css`: Look of the editor.
@@ -58,6 +59,7 @@ import { taskRows, tasksLoad } from "./tasks.ts";
 import { outlineShow, treeShow } from "../notes/tree.ts";
 import { timeOf } from "../day/times.ts";
 import { breakableOf } from "../day/choices.ts";
+import { phone } from "../phone.ts";
 import { Check, ListTree } from "lucide";
 import { iconPut } from "../icons.ts";
 import "../notes/notes.css";
@@ -155,12 +157,6 @@ let outlineTree: HTMLElement | null = null;
  * it rests.
  */
 let outlineWait: number = 0;
-
-/**
- * Whether the page shows on a phone, a screen as narrow as the phone layout of the stylesheets, which shows
- * one thing at a time, see {@link phoneShow}.
- */
-const phone: boolean = matchMedia("(max-width: 900px)").matches;
 
 
 /**

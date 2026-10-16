@@ -41,6 +41,7 @@
  * - `../day/choices.ts`: Marks where the name of a module or a section may go on over a next line, as on a phone,
  *   like `IN0004_Einfuehrung` and `Rechnerarchitektur`, never within a word.
  * - `./task.ts`: Tells when a task is due.
+ * - `../phone.ts`: Tells a phone, where the path of a link not found goes on below between its parts.
  * - `../notes/math.ts`: Renders the formulas as the scripts view does, loaded only when there is one.
  * - `./skill.css`: Look of the skill view.
  */
@@ -50,6 +51,7 @@ import { calendarTodayOf } from "../today.ts";
 import { timeOf } from "../day/times.ts";
 import { breakableOf } from "../day/choices.ts";
 import { stateTextOf } from "./task.ts";
+import { phone } from "../phone.ts";
 import "./skill.css";
 
 import type {
@@ -62,12 +64,6 @@ import type {
  * and no digit after it, so `$5 and $6` stays text; a backslash keeps the next character. With its TeX.
  */
 const formula: RegExp = /\$(?![\s$])((?:\\.|[^\\$])+?)(?<!\s)\$(?!\d)/;
-
-/**
- * A phone, a screen as narrow as the phone layout of the stylesheets, as in `main.ts`, where the path of a link
- * not found goes on below between its parts, see {@link lostOf}.
- */
-const phone: boolean = matchMedia("(max-width: 900px)").matches;
 
 
 /**
