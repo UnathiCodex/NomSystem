@@ -113,32 +113,33 @@ body {
     color: var(--text-main);
 }
 
-/* Areas at the left edge of the screen, as far from the edge as from the top, a gap,
-   one below the other from the top, so the area keeps the whole height:
-   each a square button one control high with its icon, its name as tooltip, see `main.ts`, grey, a grey lighter
-   under the pointer, the shown one light on the calm grey of what is picked */
+/* Areas at the left edge of the screen, as far from the edge as from the top, a gap, one below the other, so the area
+   keeps the whole height: one upright pill one control wide, filled in the soft grey of a card, like the switch of
+   plan, log and note on a phone, see `day/day.css`; in it each area a round button with its icon, its name as tooltip,
+   see `main.ts`, frameless, grey, lighter under the pointer, the shown one light on the calm grey of what is picked */
 .areas {
     position: fixed;
-    inset: 0 auto 0 0;
+    inset: var(--gap) auto auto var(--gap);
     display: flex;
     flex-direction: column;
-    gap: var(--control-gap);
-    padding: var(--gap) 0 var(--gap) var(--gap);
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border-radius: 999px;
+    background: var(--fill);
 }
 
 .areas a {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: var(--control-height);
-    height: var(--control-height);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
+    width: calc(var(--control-height) - 0.5rem);
+    height: calc(var(--control-height) - 0.5rem);
+    border-radius: 50%;
     color: var(--text-muted);
 }
 
 .areas a:hover {
-    background: var(--fill);
+    background: var(--fill-over);
 }
 
 /* Icons of the areas, written in `index.html`, drawn as Lucide draws its icons */
@@ -151,7 +152,6 @@ body {
 }
 
 .areas a[aria-current="page"] {
-    border-color: var(--chosen-line);
     background: var(--chosen);
     color: var(--text-main);
 }
