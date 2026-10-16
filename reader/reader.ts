@@ -44,7 +44,9 @@ import { json } from "node:stream/consumers";
 import {
     boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, realMinutesRead,
 } from "./day.ts";
-import { boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxSubmit, boxUniversity } from "./boxes.ts";
+import {
+    boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxSubmit, boxUniversity, boxUnpush,
+} from "./boxes.ts";
 import { giftWrite } from "./gifts.ts";
 import { noteRead, sectionsRead, sectionWrite } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
@@ -141,7 +143,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   and sends the identifier of the log entry.
  * - `POST /api/day/undone`: Takes the done box named in the body back to open, removing the log entry from it
  *   unless it holds what I added since.
- * - `POST /api/day/pushed`: Pushes the box named in the body to the next day.
+ * - `POST /api/day/pushed`: Pushes the box named in the body to the next day, or takes its last push back
+ *   when the body says `pushed: false`.
  * - `POST /api/day/dropped`: Drops the box named in the body, or takes it back when the body says `dropped: false`.
  * - `POST /api/day/university`: Marks the box named in the body cancelled by the university, renumbering its series,
  *   or takes it back when the body says `cancelled: false`.
@@ -272,7 +275,11 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/pushed") {
-        boxPush((await json(request) as { box: string }).box);
+        const pushed: { box: string; pushed?: boolean } = await json(request) as { box: string; pushed?: boolean };
+        if (pushed.pushed === false)
+            boxUnpush(pushed.box);
+        else
+            boxPush(pushed.box);
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/dropped") {

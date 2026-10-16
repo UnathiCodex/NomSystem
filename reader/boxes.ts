@@ -38,8 +38,9 @@
  *   or ticked submitted,
  *   and `CANCELLED` once dropped;
  * - each push to a later day, by its arrow or its day in the dialog, see {@link boxPush} and {@link boxEdit},
- *   in one `X-PUSHED` with the day it was pushed from, as a date of the iCalendar format,
- *   like `X-PUSHED;VALUE=DATE:20261013`, since the standard has nothing for it;
+ *   in one `X-PUSHED` with its start and its length as they stood before, since the standard has nothing for it,
+ *   like `X-PUSHED;TZID=Europe/Berlin;X-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`, see `pushAdd`
+ *   in `calendar.ts`;
  * - its category, what, place, module, type, semester and note as an entry of the log has them, a skill box its
  *   semester as `X-SEMESTER`, like `X-SEMESTER:2026W`, see `semesterFor` in `categories.ts`, its chapters
  *   as `X-CHAPTER`s and the documents it will use as `ATTACH`es, like the slides of a lecture,
@@ -81,7 +82,7 @@
 
 import {
     berlinDateOf, berlinDayStartOf, berlinLater, dayAdd, entriesRead, entryChange, entryIdOf, entryLookup, entryRemove,
-    occurrenceLookup, occurrenceOwn, propertiesPut, pushesPut, statusPut, todoAppend, todoChange,
+    occurrenceLookup, occurrenceOwn, propertiesPut, pushAdd, pushTake, statusPut, todoAppend, todoChange,
 } from "./calendar.ts";
 import { planAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, linksOf, titleOf } from "./documents.ts";
@@ -699,8 +700,9 @@ export function boxUniversity(id: string, cancelled: boolean): void {
  * A to-do changes as it is sent; an event, like a lecture imported from TUMonline, keeps a time and a duration,
  * its start and its end. A skill box takes its chapters and documents, see {@link boxLinksPut}.
  * An open box without deadline whose day moves later is pushed, like with its arrow, see {@link boxPush}:
- * the day it leaves goes into one more `X-PUSHED`, like `X-PUSHED;VALUE=DATE:20261017` for one moved
- * from Sat, 17.10.2026 to Mon, 19.10.2026; a box moved earlier or with a deadline is not pushed.
+ * its start and its length as they stood go into one more `X-PUSHED`, like
+ * `X-PUSHED;TZID=Europe/Berlin;X-DURATION=PT3H15M;VALUE=DATE-TIME:20261017T150000` for one moved
+ * from Sat, 17.10.2026, 15:00 to Mon, 19.10.2026; a box moved earlier or with a deadline is not pushed.
  * - `target`: The plan file it belongs into now.
  * - `start`: New start of an event.
  * - `fields`: New fields and times of an event.
@@ -716,7 +718,7 @@ export function boxEdit(change: BoxChange): void {
     boxCheck(change, entry);
     boxOwn(file, entry);
     if (box.state === "open" && box.deadline === "" && change.deadline === "" && change.day > box.day)
-        pushesPut(file, change.id, [...entry.pushed, box.day]);
+        pushAdd(file, change.id, entry);
     const target: string = planFileAfter(file, entry, change, change.day);
     if (entry.todo) {
         todoChange(file, entry, todoFieldsOf(change, entry), target);
@@ -755,7 +757,7 @@ export function boxDelete(id: string): void {
 }
 
 /**
- * Pushes an open box of the new system to the next day, with one tap: notes the day it leaves in one more `X-PUSHED`,
+ * Pushes an open box of the new system to the next day, with one tap: notes where it leaves in one more `X-PUSHED`,
  * then moves its day and its time by one day, its time of day kept, into the plan of the next year on the last day
  * of a year, see {@link planFileAfter}; one occurrence of a series alone, see {@link boxOwn}.
  * A box with a deadline stays, since its day is the day of its deadline.
@@ -777,7 +779,7 @@ export function boxPush(id: string): void {
         semester: entry.semester, note: entry.note,
     };
     boxOwn(file, entry);
-    pushesPut(file, id, [...entry.pushed, box.day]);
+    pushAdd(file, id, entry);
     if (entry.todo)
         todoChange(file, entry, {
             ...texts, day: next, time: box.time === "" ? null : berlinLater(new Date(box.time), 1), minutes: entry.minutes,
@@ -787,6 +789,43 @@ export function boxPush(id: string): void {
         entryChange(file, entry, {
             ...texts, start: berlinLater(new Date(entry.start), 1), end: berlinLater(new Date(entry.end), 1),
         }, planFileAfter(file, entry, entry, next));
+}
+
+/**
+ * Takes back the last push of an open box of the new system, by its arrow or by its day in the dialog: puts it back
+ * where it stood before, its start and its length as its last `X-PUSHED` notes them, which goes, see `pushTake`
+ * in `calendar.ts`, like WI1059 (VO) back from Mon, 19.10.2026, 10:00 for 2 hours to Sun, 18.10.2026, 15:00
+ * for 3 hours 15 minutes; its length stays where the push noted none; into the plan of its year again,
+ * see {@link planFileAfter}.
+ * - `start`, `minutes`: Start and length before the push, see `pushTake`.
+ * - `day`: Its day before the push.
+ * - `texts`: Its text fields, as they are.
+ *
+ * @param id - Identifier of the box
+ * @throws {Error} - When there is no such box in the new system, it is not open, or it was never pushed
+ */
+export function boxUnpush(id: string): void {
+    const [file, entry, box]: [string, Entry, Box] = boxFind(id);
+    if (!entry.editable || box.state !== "open" || entry.pushed.length === 0)
+        throw new Error(`${entry.title} is no open box of the new system pushed before`);
+
+    const [start, minutes]: [string, number | null] = pushTake(file, id, entry);
+    const day: string = box.time === "" ? start : berlinDateOf(new Date(start));
+    const texts: EntryTexts = {
+        category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
+        locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type,
+        semester: entry.semester, note: entry.note,
+    };
+    if (entry.todo)
+        todoChange(file, entry, {
+            ...texts, day: day, time: box.time === "" ? null : new Date(start), minutes: minutes ?? entry.minutes,
+            deadline: "",
+        }, planFileAfter(file, entry, entry, day));
+    else
+        entryChange(file, entry, {
+            ...texts, start: new Date(start), end: new Date(Date.parse(start)
+                + (minutes === null ? Date.parse(entry.end) - Date.parse(entry.start) : minutes * 60 * 1000)),
+        }, planFileAfter(file, entry, entry, day));
 }
 
 /**
