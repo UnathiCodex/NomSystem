@@ -17,8 +17,8 @@
  * Entries look as Google Calendar shows them: what first, then the time, then the place, in one size, the time a light
  * grey, and a taller one its note below, see {@link entryContentOf};
  * a dish, a meal or a cooking, shows its summary, which leaves its drinks out. The kcal of a meal stay hidden
- * for a try; the dialog and the trackers show them. A glass of water is no block but a small mark at the edge
- * of the log, since the counter of the trackers counts it.
+ * for a try; the dialog and the trackers show them. A glass of water does not show in the log at all, since the
+ * counter of the trackers counts it.
  * The day opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today
  * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the food view, opens on that day,
  * which the address then keeps no more, see `today.ts`.
@@ -149,7 +149,7 @@ const gridHours: number = 24;
  * Event source of the log of the reader. FullCalendar adds `start` and `end` of the shown day to the address,
  * and takes the field `editable` of each entry, so only entries that can be changed are dragged.
  * - `eventDataTransform`: Lets the entries that can be changed react to a click, see {@link entryClick};
- *   a glass of water shows as a background entry of the class `glass-mark`, which `log.css` draws as a small mark.
+ *   a glass of water does not show, since the counter of the trackers counts it.
  *
  * @returns Event source for FullCalendar
  */
@@ -159,7 +159,7 @@ function logSourceOf(): EventSourceInput {
         url: "/api/day/log",
         eventDataTransform: (entry: EventInput): EventInput => {
             if (entry.glass === true)
-                return { ...entry, display: "background", className: "glass-mark" };
+                return { ...entry, display: "none" };
             return { ...entry, interactive: entry.editable === true };
         },
     };

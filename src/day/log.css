@@ -14,10 +14,8 @@
     background-color: color-mix(in oklab, var(--fill) 95%, var(--text-main));
 }
 
-/* A short entry, of a quarter hour, and a glass of water keep the theme's 1px below them, since 4px would cut
-   the one line of a short entry and shrink the mark of a glass */
-.entry:has(.entry-inner-short),
-.entry.glass-mark {
+/* A short entry, of a quarter hour, keeps the theme's 1px below it, since 4px would cut its one line */
+.entry:has(.entry-inner-short) {
     margin-bottom: 1px;
 }
 
@@ -49,20 +47,6 @@
    and the parent of the parent of an entry; the glass marks lie beside these layers and keep the edge */
 .day-calendar [role="gridcell"] > :has(> * > .entry) {
     margin-inline-end: 1rem;
-}
-
-/* Glass of water in the log column: no block, a short grey tick at the right edge, at the time of the glass,
-   without the words of its entry */
-.glass-mark {
-    inset-inline-start: auto !important;
-    width: 0.5rem;
-    border-radius: 999px;
-    background: var(--text-muted) !important;
-    opacity: 0.6;
-}
-
-.glass-mark > * {
-    display: none;
 }
 
 /* Line of now and its dot in the calm grey of the times, behind the entries, so the line never runs through
