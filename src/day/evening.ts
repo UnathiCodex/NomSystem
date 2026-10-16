@@ -49,7 +49,7 @@ const pause: number = 1000;
 let shown: string = "";
 
 /**
- * Texts of the lists as last loaded or saved, as their sections hold them, by the titles of the sections.
+ * Texts of the lists as last shown or saved, as their sections hold them, by the titles of the sections.
  */
 let saved: Map<SectionTitle, string> = new Map();
 
@@ -115,7 +115,9 @@ async function boxesSave(): Promise<void> {
 }
 
 /**
- * Shows my gratitude and my points about a day, after saving what was typed for the day shown before.
+ * Shows my gratitude and my points about a day, after saving what was typed for the day shown before;
+ * its texts count as saved as the points show them, so only what I type saves, never a list only shown,
+ * like a point of two lines that a phone shows on one, see `points.ts`.
  * - `sections`: Sections of the day's note.
  *
  * @param day - Day like `2026-10-10`
@@ -127,8 +129,8 @@ export async function eveningShow(day: string): Promise<void> {
     const sections: { [title in SectionTitle]: string } = await sectionsLoad(day);
     if (day !== shown)
         return;
-    saved = new Map(boxes.map((box: Box): [SectionTitle, string] => [box.title, sections[box.title]]));
     boxes.forEach((box: Box): void => pointsShow(listOf(box), sections[box.title]));
+    saved = new Map(boxes.map((box: Box): [SectionTitle, string] => [box.title, textOf(box)]));
     document.getElementById("note-boxes-error")?.setAttribute("hidden", "");
 }
 
