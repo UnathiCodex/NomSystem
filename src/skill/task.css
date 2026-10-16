@@ -35,32 +35,35 @@
     gap: var(--gap);
 }
 
-/* Buttons and reasons to skip one chip high and outlined, with a quarter more room beside their words,
-   a grey lighter under the pointer; Next step and Show all of a solution the same */
+/* Buttons and reasons to skip one chip high, filled in the soft grey of a card without a frame, as on the phone,
+   with a quarter more room beside their words, one grey lighter under the pointer; Next step and Show all
+   of a solution the same, and the button of the history; each keeps its size, its frame there but clear */
 .task-row button,
-.steps-buttons button {
+.steps-buttons button,
+.task-history > summary {
     min-height: var(--chip-height);
     padding: 0 calc(1.25 * var(--control-padding));
-    border: 1px solid var(--line);
+    border: 1px solid transparent;
     border-radius: 999px;
-    background: var(--background);
+    background: var(--fill);
     cursor: pointer;
 }
 
 .task-row button:hover,
-.steps-buttons button:hover {
-    background: var(--fill);
+.steps-buttons button:hover,
+.task-history > summary:hover {
+    background: var(--fill-over);
 }
 
-/* Copy for my tutor after the buttons: quiet, its icon alone in grey without a line, round and one chip high;
-   `.task-row button.task-tutor` wins over the outline of the buttons, being more exact */
-.task-row button.task-tutor {
+/* Copy for my tutor after the buttons: quiet, its icon alone in grey without a fill, round and one chip high;
+   `.task-row .task-tutor` wins over their fill, being more exact, but not over their grey under the pointer */
+.task-row .task-tutor {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: var(--chip-height);
     padding: 0;
-    border-color: transparent;
+    background: none;
     color: var(--text-muted);
 }
 
@@ -89,34 +92,31 @@
     margin: 0;
 }
 
-/* Short text field one chip high, as wide as a few words */
+/* Short text field one chip high, as wide as a few words, filled in the soft grey of a card without a frame */
 .task-form input {
     width: min(22.5rem, 100%);
     height: var(--chip-height);
     padding: 0 0.75rem;
-    border: 1px solid var(--line);
+    border: 0;
     border-radius: var(--radius);
-    background: var(--background);
+    background: var(--fill);
 }
 
-/* History of a task: a small grey button with its icon and the number of attempts on a line of its own, closed at first,
-   opening the attempts below it, the latest first, across the whole width */
+/* History of a task: a small grey button with its icon and the number of attempts on a line of its own, filled like
+   the buttons, closed at first, opening the attempts below it, the latest first, across the whole width;
+   while open, the button light on the calm grey of what is shown */
 .task-history > summary {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    min-height: var(--chip-height);
     padding: 0 var(--control-padding);
-    border: 1px solid var(--line);
-    border-radius: 999px;
     color: var(--text-muted);
     list-style: none;
-    cursor: pointer;
 }
 
-.task-history > summary:hover,
 .task-history[open] > summary {
-    background: var(--fill);
+    background: var(--chosen);
+    color: var(--text-main);
 }
 
 details.task-history > ol {
