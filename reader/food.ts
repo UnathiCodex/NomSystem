@@ -1073,7 +1073,8 @@ function lineRenamed(line: string, old: string, renamed: { name: string; brand: 
 /**
  * Changes a food of mine: renames it wherever it stands, its name, brand and store as typed, cleaned as those of
  * a food added, see {@link foodTextOf}, so every entry and meal still finds it: first every line `X-FOOD` of the log
- * naming it, past and to come, its grams and meal kept, then every meal of `Meals.md` holding it, last its row of
+ * naming it, past and to come, its grams and meal kept, and its name in the summary of each entry where it stands
+ * beside the meals, like `Kren` of `Hausgemachter Salat, Kren`, every other part staying as it is, then every meal of `Meals.md` holding it, last its row of
  * `Foods.md`, every other line staying as it is, so one stopped in between finishes when sent again; with its row
  * for a food I made by hand, without barcode, its protein, carbs and fat where they are still unknown, each set once
  * and then fixed, as its kcal from the start, so nothing known is changed by mistake, and its pack; those of Open Food
@@ -1146,9 +1147,18 @@ export function foodChange(sent: FoodChanged): Food {
             entry.foods.some((line: string): boolean => lineRenamed(line, old, renamed) !== line))
         .forEach((entry: Entry): void => {
             const file: string | undefined = entryLookup(food.log, entry.id)?.[0];
+            const beside: boolean = entry.foods.some((line: string): boolean => {
+                const parts: string[] | null = partsOf(line);
+                return parts !== null && keyOf({ name: parts[0], brand: parts[1], store: parts[2] }) === old
+                    && parts[4] === "";
+            });
+            const properties: [string, string[]][] =
+                [["x-food", entry.foods.map((line: string): string => lineRenamed(line, old, renamed))]];
+            if (beside)
+                properties.push(["summary", [entry.title.split(", ")
+                    .map((part: string): string => part === found.name ? renamed.name : part).join(", ")]]);
             if (file !== undefined)
-                propertiesPut(file, entry.id, [["x-food",
-                    entry.foods.map((line: string): string => lineRenamed(line, old, renamed))]]);
+                propertiesPut(file, entry.id, properties);
         });
     const meals: Composition[] = compositionsRead();
     if (meals.some((meal: Composition): boolean =>
