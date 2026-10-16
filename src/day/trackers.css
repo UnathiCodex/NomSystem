@@ -123,6 +123,7 @@
    a grey lighter under the pointer, faded and off on a day still to come; the `−` at its right end, small,
    plain and grey, which takes the last glass back, faded while there is none; on a phone in its top right corner */
 .tracker-water {
+    align-content: stretch;
     padding: 0;
 }
 
