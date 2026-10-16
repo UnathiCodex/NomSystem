@@ -84,7 +84,7 @@ import type { CalendarSource } from "./sources.ts";
  *   `null` for none and for an event, whose length lies between its start and its end.
  * - `deadline`: Deadline of a to-do, its `DUE`, as ISO instant, or as date like `2026-10-23` when it has no time;
  *   empty for none and for an event.
- * - `pushed`: Days a box was pushed from to the next day, its `X-PUSHED`s in order, like `2026-10-12`
+ * - `pushed`: Days a box was pushed from to a later day, its `X-PUSHED`s in order, like `2026-10-12`
  *   of `X-PUSHED;VALUE=DATE:20261012`, see {@link pushedDayOf}; none when it has none.
  * - `number`: Number of a lecture, an exercise, a tutorial or a sheet in its series, its `X-NUMBER`, like `3`,
  *   `NONE` for one the university cancelled, see `boxUniversity` in `boxes.ts`; empty for none.
@@ -1544,7 +1544,7 @@ export function statusPut(file: string, id: string, status: string, completed: D
 }
 
 /**
- * Notes the days a box was pushed from to the next day, one `X-PUSHED` each, as dates of the iCalendar format,
+ * Notes the days a box was pushed from to a later day, one `X-PUSHED` each, as dates of the iCalendar format,
  * like `X-PUSHED;VALUE=DATE:20261012`, replacing all its old lines, also those of an older box written
  * like `X-PUSHED:2026-10-12`. Every other line of the file stays as it is, byte for byte.
  * - {@link ICAL.Time.fromDateString}: Reads a day like `2026-10-12` into a time without time of day.

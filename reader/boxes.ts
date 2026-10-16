@@ -37,7 +37,8 @@
  * - its state in `STATUS`: `NEEDS-ACTION` while open, `COMPLETED` with `COMPLETED`, the moment in UTC it was logged
  *   or ticked submitted,
  *   and `CANCELLED` once dropped;
- * - each push in one `X-PUSHED` with the day it was pushed from, as a date of the iCalendar format,
+ * - each push to a later day, by its arrow or its day in the dialog, see {@link boxPush} and {@link boxEdit},
+ *   in one `X-PUSHED` with the day it was pushed from, as a date of the iCalendar format,
  *   like `X-PUSHED;VALUE=DATE:20261013`, since the standard has nothing for it;
  * - its category, what, place, module, type, semester and note as an entry of the log has them, a skill box its
  *   semester as `X-SEMESTER`, like `X-SEMESTER:2026W`, see `semesterFor` in `categories.ts`, its chapters
@@ -116,7 +117,7 @@ const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  * - `minutes`: Expected duration in minutes, `null` for none.
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` when it has no time; empty for none.
  * - `state`: Whether it is open, done or dropped.
- * - `pushed`: Days it was pushed from to the next day, in order, like `2026-10-12`.
+ * - `pushed`: Days it was pushed from to a later day, in order, like `2026-10-12`.
  * - `log`: Start and end of the log entry written from it, for a box with a deadline of one of its sessions,
  *   as ISO instants, `null` for none.
  * - `completed`: When it was done, its `COMPLETED`, as ISO instant, like the moment I ticked a homework submitted;
@@ -697,6 +698,9 @@ export function boxUniversity(id: string, cancelled: boolean): void {
  * a box moves into the plan it belongs into now when that is another file, see {@link planFileAfter}.
  * A to-do changes as it is sent; an event, like a lecture imported from TUMonline, keeps a time and a duration,
  * its start and its end. A skill box takes its chapters and documents, see {@link boxLinksPut}.
+ * An open box without deadline whose day moves later is pushed, like with its arrow, see {@link boxPush}:
+ * the day it leaves goes into one more `X-PUSHED`, like `X-PUSHED;VALUE=DATE:20261017` for one moved
+ * from Sat, 17.10.2026 to Mon, 19.10.2026; a box moved earlier or with a deadline is not pushed.
  * - `target`: The plan file it belongs into now.
  * - `start`: New start of an event.
  * - `fields`: New fields and times of an event.
@@ -706,11 +710,13 @@ export function boxUniversity(id: string, cancelled: boolean): void {
  *   is no web address, an event would lose its time or its duration, or a document is none of the module's
  */
 export function boxEdit(change: BoxChange): void {
-    const [file, entry]: [string, Entry, Box] = boxFind(change.id);
+    const [file, entry, box]: [string, Entry, Box] = boxFind(change.id);
     if (!entry.editable)
         throw new Error(`${entry.title} may not be changed`);
     boxCheck(change, entry);
     boxOwn(file, entry);
+    if (box.state === "open" && box.deadline === "" && change.deadline === "" && change.day > box.day)
+        pushesPut(file, change.id, [...entry.pushed, box.day]);
     const target: string = planFileAfter(file, entry, change, change.day);
     if (entry.todo) {
         todoChange(file, entry, todoFieldsOf(change, entry), target);

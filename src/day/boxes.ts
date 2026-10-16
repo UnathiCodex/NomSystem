@@ -116,7 +116,7 @@ const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  * - `minutes`: Expected duration in minutes, `null` for none.
  * - `deadline`: Deadline as ISO instant, or as its day like `2026-10-23` when it has no time; empty for none.
  * - `state`: Whether it is open, done or dropped, which is cancelled.
- * - `pushed`: Days it was pushed from to the next day, in order.
+ * - `pushed`: Days it was pushed from to a later day, in order.
  * - `log`: Start and end of the log entry written from it, for a box with a deadline of one of its sessions,
  *   as ISO instants, `null` for none.
  * - `completed`: When it was done, as ISO instant, like the moment I ticked a homework submitted; empty for none.
