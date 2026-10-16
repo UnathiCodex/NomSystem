@@ -43,7 +43,9 @@
  * `Online`, the place of a meeting online, stands once among my places, but for a way, one generic place: picked,
  * it shows its parts the same way, typed per entry, its software, who offers it and its passcode in place of
  * an address, then its link, see {@link onlinePartsOf}.
- * `From` starts where the last way before the entry ended.
+ * A new entry or box, also one logged from a box, starts where the last way before it ended: a way its `From`,
+ * every other category its place, with its link, as picked from the list, see {@link wayEndFill}; a way's place,
+ * its goal, stays empty.
  * Plan and log use one and the same dialog with the same fields and lists, see `skill.ts`: an entry of the log
  * and a box of the plan alike have a start and an end, each a day like `13.10.2026` and a plain time, as calendar apps
  * write them: the day of the start, its calendar date, typed to move it to any other day, and the day of the end,
@@ -296,6 +298,12 @@ let realMiddle: number | null = null;
  * see {@link endDayFill}.
  */
 let endDayTyped: boolean = false;
+
+/**
+ * Place a new entry or box started with, where the last way before it ended, see {@link wayEndFill}, so a way picked
+ * after it starts there instead of going there; empty while none was filled in.
+ */
+let placeFilled: string = "";
 
 
 
@@ -1126,10 +1134,41 @@ async function wayEndLoad(): Promise<string> {
 }
 
 /**
+ * Fills in where a new entry or box starts, also one logged from a box, as where the last way before it ended,
+ * see {@link wayEndLoad}: a way its `From`, every other category its place, while that field is empty; nothing for
+ * an entry or a box being changed. The place is my place or room of that name as its list offers it, so it shows
+ * with its link, as picked there, like `Mensa Leopoldstraße` for a Talk after a way that ended there; a way picked
+ * after another category leaves the place filled in for it, so its place, its goal, stays empty; nothing once another
+ * category was picked meanwhile.
+ * - `way`: Whether the category is `Way`, which has the field `from`.
+ * - `field`: The field to fill in, `From` of a way, else `Place`.
+ * - `line`: The place where the last way ended, as that way wrote it.
+ *
+ * @param category - Category picked
+ * @throws {Error} - When the reader gives no valid answer
+ */
+async function wayEndFill(category: Category): Promise<void> {
+    const way: boolean = category.fields.some((field: Field): boolean => field.key === "from");
+    const field: Field | undefined =
+        category.fields.find((other: Field): boolean => other.key === (way ? "from" : "location"));
+    if (way && placeFilled !== "" && values.location === placeFilled)
+        values.location = "";
+    if (field === undefined || opened.entry !== null || opened.box !== null || values[field.key] !== "")
+        return;
+    const line: string = await wayEndLoad();
+    if (chosen !== category)
+        return;
+    values[field.key] = [...field.values, ...field.rooms]
+        .find((value: string): boolean => line !== "" && labelOf(value) === labelOf(line)) ?? line;
+    if (!way)
+        placeFilled = values.location;
+}
+
+/**
  * Picks a category: shows its fields, keeping the places picked under the category before, but not its summary
  * with its link, and an older value of a field that takes only its values as that field writes it,
  * see {@link fixedValueOf}.
- * A new entry of a category with the field `from` starts where the last way ended.
+ * A new entry starts where the last way before it ended, see {@link wayEndFill}.
  * `Food` in the log shows its summary, its meals and its foods in place of the summary, with those of the meal being
  * changed, see `meal.ts`, built before its fields show, unless another category was picked meanwhile;
  * `Skill` shows its skill and type before the times, and its place, semester, chapters, documents and attempts
@@ -1153,6 +1192,8 @@ async function categoryPick(category: Category | null): Promise<void> {
     });
     meal = null;
     document.getElementById("entry-more")?.replaceChildren();
+    if (category !== null)
+        await wayEndFill(category);
     if (category?.name === skillName) {
         await skillFieldsShow(document.getElementById("entry-fields") as HTMLElement,
             document.getElementById("entry-more") as HTMLElement, placeRowsOf(), opened.target === "box",
@@ -1160,9 +1201,6 @@ async function categoryPick(category: Category | null): Promise<void> {
         saveAllow();
         return;
     }
-    const starts: boolean = category?.fields.some((field: Field): boolean => field.key === "from") ?? false;
-    if (starts && opened.entry === null && values.from === "")
-        values.from = await wayEndLoad();
     if ((category?.name === foodName || category?.name === cookName) && opened.target === "log") {
         const changing: boolean = opened.category === category.name;
         const built: HTMLElement[] = await mealOf(changing ? opened.foods : [], changing ? opened.values.title : "",
@@ -1538,6 +1576,7 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     summaryOpen = false;
     partsOpen = null;
     addedLine = "";
+    placeFilled = "";
     chosen = null;
     realSeen = "";
     realMiddle = null;
