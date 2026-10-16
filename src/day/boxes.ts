@@ -31,18 +31,21 @@
  * unless that holds what I added since, see `boxUndo` in `entries.ts`, and the arrow back of a skipped or pushed box.
  * A done box keeps exactly the lines it had open, only greyed with the check in its ring; its real time and length
  * the log shows. An open box is as bright on a day that is over as on today, so a day before looks like today.
- * An open box that can be changed is skipped, cancelled, with one tap on its cross, or pushed to the next day
- * with one tap on its arrow, which always shows; a skipped box stays in its file, see `reader/boxes.ts`,
- * and shows greyed, never struck through, at the end of the list, where one tap on its arrow back takes it back.
+ * An open box that can be changed is skipped, cancelled, with one tap on its cross, or pushed to the next day,
+ * one whose day is over to tomorrow, with one tap on its arrow, which always shows; a skipped box stays in its file,
+ * see `reader/boxes.ts`, and shows greyed, never struck through, at the end of the list, where one tap on its arrow
+ * back takes it back.
  * A pushed box stays greyed on each day it left, once per push, with the start and the length it had there,
  * see `leftBoxesOf` in `reader/boxes.ts`, the arrow in its ring, which leads to the day it stands on now, as a click
  * on its lines does; the last of them has the arrow back, which takes that push back. Skipped, cancelled
  * by the university and pushed look and work alike, greyed with their mark in the ring and the arrow back,
  * and none of them is carried along.
- * A box neither done nor cancelled stays on its day once that is over, without its arrow, and is carried
+ * A box neither done nor cancelled stays on its day once that is over and is carried
  * along on today: below the list of today, under `Carried along`, each with its day, like `Mon, 12.10.2026 · 00h 45m`,
  * the earliest first, see `boxesCarried` in `reader/boxes.ts`, until I do it, dragged into the log or with its ring,
- * or cancel it with its cross; a click on it changes it, like its day. It never moves into the next days by itself.
+ * cancel it with its cross, or push it with its arrow, there and on its own day alike, which takes it to tomorrow,
+ * the day after today, not the day after its own, see `boxPush` in `reader/boxes.ts`; a click on it changes it,
+ * like its day. It never moves into the next days by itself.
  * `+` beside the name of the plan opens the entry by category for a new box of the shown day; a click on a box changes it,
  * see `categories.ts`. A box without category, like a to-do another app wrote into the plan, opens the entry
  * by category of the log instead of being logged at once, when it is dropped or its ring tapped, since the log needs
@@ -334,17 +337,6 @@ async function carriedFetch(day: string): Promise<Box[]> {
 }
 
 /**
- * Tells whether the day of an open box is over, so it has no arrow on its day and is carried along to today,
- * see the top of this file: it lies before today's calendar date, for a box with a deadline the day of its deadline.
- *
- * @param box - The box
- * @returns Whether it is open and its day lies before today
- */
-function overIs(box: Box): boolean {
-    return box.state === "open" && box.day < calendarTodayOf();
-}
-
-/**
  * Writes the deadline of a box, like `Deadline Fri, 23.10.2026, 12:00`;
  * a deadline without time is its day, so it shows without time.
  * - `time`: Its time after a comma, empty for a deadline without time.
@@ -622,8 +614,8 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
 
 /**
  * Makes the buttons at the right of a box that can be changed: for an open box the arrow, which pushes it
- * to the next day and always shows, but for a box with a deadline, which stays on the day
- * of its deadline, and for one whose day is over, see {@link overIs}, whose next day is over too, and the cross,
+ * to the next day, one whose day is over to tomorrow, also one carried along, see `boxPush` in `reader/boxes.ts`,
+ * and always shows, but for a box with a deadline, which stays on the day of its deadline, and the cross,
  * skip, which cancels it, and for a lecture, an exercise, a tutorial or a sheet, see {@link numberedTypes}, before it
  * the calendar crossed out, which marks it cancelled by the university, see `boxUniversity`
  * in `entries.ts`; for a skipped box, and one the university cancelled, the arrow back, which takes it back,
@@ -649,7 +641,7 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
     if (box.state === "pushed")
         return box.moved?.last !== true ? [] : [entryPartOf("div", "box-actions",
             [actionOf(calendar, Undo2, "Take back", (): Promise<void> => boxPush(box.id, false))])];
-    const push: HTMLButtonElement | null = box.deadline !== "" || overIs(box) ? null
+    const push: HTMLButtonElement | null = box.deadline !== "" ? null
         : actionOf(calendar, ArrowRight, "To tomorrow", (): Promise<void> => boxPush(box.id, true));
     return [entryPartOf("div", "box-actions", [
         ...(push === null ? [] : [push]),

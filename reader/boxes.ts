@@ -9,9 +9,10 @@
  * can be compared later; a box I decide against is cancelled, dropped with one tap, and stays in its file
  * as `STATUS:CANCELLED`, so it can be counted; `STATUS:CANCELLED` is always my own decision, lectures included.
  * A box neither done nor cancelled stays on its day once that is over and is carried along to today,
- * see {@link boxesCarried}, lectures too, until I do it or cancel it; it never moves into the next days by itself,
- * only when I push it there. A pushed box stays greyed on each day it left, once per push, with the start
- * and the length it had there, like a skipped box, see {@link leftBoxesOf}; it is not carried along from there.
+ * see {@link boxesCarried}, lectures too, until I do it, cancel it or push it; it never moves into the next days
+ * by itself, only when I push it there, a box whose day is over to tomorrow, see {@link boxPush}. A pushed box
+ * stays greyed on each day it left, once per push, with the start and the length it had there, like a skipped box,
+ * see {@link leftBoxesOf}; it is not carried along from there.
  * A lecture, an exercise, a tutorial and a sheet, a skill box of a type of {@link numberedTypes}, carries its number
  * in its series, the boxes of the same `SUMMARY` by date, as `X-NUMBER`, like `X-NUMBER:3`, the next one when
  * the dialog adds it, see {@link numberNextOf}. One the university cancels gets `X-NUMBER:NONE` by its own button,
@@ -803,11 +804,16 @@ export function boxDelete(id: string): void {
 }
 
 /**
- * Pushes an open box of the new system to the next day, with one tap: notes where it leaves in one more `X-PUSHED`,
- * then moves its day and its time by one day, its time of day kept, into the plan of the next year on the last day
- * of a year, see {@link planFileAfter}; one occurrence of a series alone, see {@link boxOwn}.
+ * Pushes an open box of the new system with one tap, by its arrow, also one carried along: to the next day, or,
+ * when its day is over, to tomorrow, the day after today in Berlin time, so it does not land on a day over too,
+ * like a box of Wed, 14.10.2026 pushed on Fri, 16.10.2026 to Sat, 17.10.2026. Notes where it leaves in one more
+ * `X-PUSHED`, then moves its day and its time by as many days, its time of day and its length kept, an event
+ * its start and its end, into the plan of the next year when it moves into it, see {@link planFileAfter};
+ * one occurrence of a series alone, see {@link boxOwn}.
  * A box with a deadline stays, since its day is the day of its deadline.
- * - `next`: The next day.
+ * - `today`: Today in Berlin time.
+ * - `next`: The day it goes to, the day after its own day or after today, the later of them.
+ * - `days`: Days it moves by, one for a box whose day is not over.
  * - `texts`: Its text fields, as they are.
  *
  * @param id - Identifier of the box
@@ -818,7 +824,9 @@ export function boxPush(id: string): void {
     if (!entry.editable || box.state !== "open" || box.deadline !== "")
         throw new Error(`${entry.title} is no open box of the new system without deadline`);
 
-    const next: string = dayAdd(box.day, 1);
+    const today: string = berlinDateOf(new Date());
+    const next: string = dayAdd(box.day < today ? today : box.day, 1);
+    const days: number = Math.round((Date.parse(next) - Date.parse(box.day)) / (dayMinutes * minuteLength));
     const texts: EntryTexts = {
         category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
         locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type,
@@ -828,12 +836,12 @@ export function boxPush(id: string): void {
     pushAdd(file, id, entry);
     if (entry.todo)
         todoChange(file, entry, {
-            ...texts, day: next, time: box.time === "" ? null : berlinLater(new Date(box.time), 1), minutes: entry.minutes,
-            deadline: "",
+            ...texts, day: next, time: box.time === "" ? null : berlinLater(new Date(box.time), days),
+            minutes: entry.minutes, deadline: "",
         }, planFileAfter(file, entry, entry, next));
     else
         entryChange(file, entry, {
-            ...texts, start: berlinLater(new Date(entry.start), 1), end: berlinLater(new Date(entry.end), 1),
+            ...texts, start: berlinLater(new Date(entry.start), days), end: berlinLater(new Date(entry.end), days),
         }, planFileAfter(file, entry, entry, next));
 }
 
