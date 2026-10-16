@@ -232,7 +232,7 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
 async function dayShow(day: string): Promise<void> {
     shown = day;
     (document.getElementById("food-weekday") as HTMLElement).textContent =
-        new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short" });
+        new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" });
     (document.getElementById("food-date") as HTMLElement).textContent = dateTextOf(day);
     (document.getElementById("food-today") as HTMLButtonElement).disabled = day === calendarTodayOf();
 
