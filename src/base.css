@@ -158,12 +158,12 @@ body {
 
 /* The bar of a day, in the day and in the food view alike, see `day/day.html` and `food/food.html`: the date
    between its arrows, the icon back to today beside it, in one line, a control gap apart, going on below where
-   the bar has no room for all, never over the edge; the arrows square, one control high with round corners, outlined,
-   a grey lighter under the pointer; the date big and semibold, the weekday small and grey above it, not bold,
-   like `Tuesday` over `13.10.2026`, see `dayShow` in `day/day.ts`, both lines close, so they fit the height of the arrows,
-   its width and room set by its view; the icon back
-   to today small, without frame, grey, lighter under the pointer, on today faded and off, so the bar looks the same
-   on every day. The month to pick a day from takes the size of its date too, see `day/month.html` */
+   the bar has no room for all, never over the edge; the arrows square, one control high with round corners, filled
+   in the soft grey of a card without a frame, like the cards of the phone, one grey lighter under the pointer; the
+   date big and semibold, the weekday small and grey above it, not bold, like `Tuesday` over `13.10.2026`, see
+   `dayShow` in `day/day.ts`, both lines close, so they fit the height of the arrows, its width and room set by its
+   view; the icon back to today small, without frame, grey, lighter under the pointer, on today faded and off, so the
+   bar looks the same on every day. The month to pick a day from takes the size of its date too, see `day/month.html` */
 .day-bar {
     display: flex;
     flex-wrap: wrap;
@@ -178,14 +178,14 @@ body {
     min-width: var(--control-height);
     min-height: var(--control-height);
     padding: 0;
-    border: 1px solid var(--line);
+    border: 1px solid transparent;
     border-radius: var(--radius);
-    background: var(--background);
+    background: var(--fill);
     cursor: pointer;
 }
 
 .day-arrow:hover {
-    background: var(--fill);
+    background: var(--fill-over);
 }
 
 .day-title {
@@ -235,7 +235,7 @@ body {
 
 /* A small button one chip high and as wide, with an icon in place of its word, which is its tooltip, the same
    everywhere: every + that adds a box or an entry of the day, and the − and + of the water; square with slightly
-   round corners, flat, outlined, a grey lighter under the pointer, faded while it cannot be used */
+   round corners, filled like a card, no frame, one grey lighter under the pointer, faded while it cannot be used */
 .chip-button {
     display: inline-flex;
     flex: none;
@@ -244,15 +244,15 @@ body {
     width: var(--chip-height);
     height: var(--chip-height);
     padding: 0;
-    border: 1px solid var(--line);
+    border: 1px solid transparent;
     border-radius: var(--chip-radius);
-    background: var(--background);
+    background: var(--fill);
     color: var(--text-main);
     cursor: pointer;
 }
 
 .chip-button:enabled:hover {
-    background: var(--fill);
+    background: var(--fill-over);
 }
 
 .chip-button:disabled {
