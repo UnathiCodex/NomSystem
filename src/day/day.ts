@@ -48,7 +48,7 @@
  * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the day on to the new day
  *   while it shows today.
  * - `../icons.ts`: Puts the icons of the arrows and of `+` into their buttons.
- * - `../timer.ts`: Shows the timer of a session running now in the bar of the day.
+ * - `../timer.ts`: Shows the timer of a session running now in the bar of the day, `None` while none runs.
  * - `./swipe.ts`: Changes the shown day on a phone by a swipe sideways.
  * - `../phone.ts`: Tells a phone, which changes the day by a swipe.
  * - `lucide`: The icons of the arrows and plus.
@@ -73,7 +73,7 @@ import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
 import { iconOf, iconPut, plusPut } from "../icons.ts";
-import { timerStart } from "../timer.ts";
+import { timerSee, timerStart } from "../timer.ts";
 import { phone } from "../phone.ts";
 import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from "lucide";
 import "fullcalendar/skeleton.css";
@@ -799,7 +799,8 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * - `droppable`: Takes the boxes dragged from the list.
  * - `eventReceive`: Logs a box dropped into the log at the time of the drop, see `boxes.ts`.
  * - `eventsSet`: Tells the boxes the entries of the shown day, after every change.
- * - `eventSourceSuccess`: Loads the trackers again each time the log was read, see `trackersSee` in `trackers.ts`.
+ * - `eventSourceSuccess`: Loads the trackers again each time the log was read, see `trackersSee` in `trackers.ts`,
+ *   and the timer of a session, so an entry saved, ended or removed shows there at once, see `timerSee` in `timer.ts`.
  * - `eventClick`: Opens the entry by category for an entry that can be changed, see {@link entryClick}.
  * - `selectMirror`: Draws the range being selected as an entry in front of the others, with its start and end,
  *   see {@link entryContentOf}; FullCalendar's own grey of a selection lies behind the entries, so a range over
@@ -863,7 +864,10 @@ export function dayStart(): void {
         droppable: true,
         eventReceive: (info: EventReceiveInfo): void => boxReceive(calendar, info),
         eventsSet: (events: EventApi[]): void => boxesSee(calendar, events),
-        eventSourceSuccess: (): void => trackersSee(calendar),
+        eventSourceSuccess: (): void => {
+            trackersSee(calendar);
+            timerSee();
+        },
         eventClick: entryClick,
         selectable: true,
         selectMirror: true,

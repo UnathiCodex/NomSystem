@@ -549,11 +549,11 @@ button.box-ring.box-moved svg {
     display: none;
 }
 
-/* Timer of a session running now, see `timer.ts`: all the room the bar leaves between the date and the trackers,
-   never more, so the bar keeps one line, as far from both as the trackers from each other, at least 9rem, so its time
-   always shows, in a soft frame like a tracker, at least one control high, on one line: what the session is
-   at the left, giving way with an ellipsis where the room is too small, how long it still runs at the right,
-   in the grey of a time, every digit equally wide */
+/* Timer of a session running now, see `timer.ts`, always there, `None` while none runs, so the bar never jumps: all
+   the room the bar leaves between the date and the trackers, never more, so the bar keeps one line, as far from both
+   as the trackers from each other, at least 9rem, so its time always shows, in a soft frame like a tracker, at least
+   one control high, on one line: what the session is at the left, giving way with an ellipsis where the room is too
+   small, how long it still runs at the right, in the grey of a time, every digit equally wide */
 .session-timer {
     display: inline-flex;
     flex: 1;
@@ -573,6 +573,11 @@ button.box-ring.box-moved svg {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* `None` of the timer while no session runs, in the grey of the time, not bold, so it says nothing runs, calmly */
+.session-none {
+    color: var(--text-muted);
 }
 
 .session-left {
