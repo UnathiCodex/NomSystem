@@ -187,21 +187,6 @@
     text-decoration: underline;
 }
 
-@media (max-width: 900px) {
-    .skill-task {
-        flex-wrap: wrap;
-    }
-
-    li.skill-task > .skill-name {
-        flex-basis: 100%;
-    }
-
-    .skill-state {
-        flex: auto;
-        text-align: right;
-    }
-}
-
 /* Chapter, open at first, its name and numbers on its line, the grey fold arrow before it, light under the pointer,
    softly, as everything turns lighter, see `../base.css`, so the line shows that a click folds it */
 .skill-chapter > summary {
@@ -312,11 +297,24 @@
     margin: 0 0 0 1.5rem;
 }
 
-/* Phone: less room around the overview, and the name of a section takes its whole line, its state below it;
-   after the rule of its width above */
+/* Phone: less room around the overview, and the name of a task or a section takes its whole line, its state below it
+   at the right */
 @media (max-width: 900px) {
     .skill {
         padding: var(--gap);
+    }
+
+    .skill-task {
+        flex-wrap: wrap;
+    }
+
+    li.skill-task > .skill-name {
+        flex-basis: 100%;
+    }
+
+    .skill-state {
+        flex: auto;
+        text-align: right;
     }
 
     .skill-section > summary .skill-name {

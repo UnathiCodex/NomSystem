@@ -598,6 +598,33 @@
     padding-top: 0;
 }
 
+/* A due task as a card, see cardSet in notes.ts: every other block, the task's heading and its source line hidden;
+   its text, then the question, its solution and its row with the buttons last */
+.notes-card #notes-text > :not(.card-task),
+.notes-card .card-task > summary,
+.notes-card .card-task > .fold-content > blockquote {
+    display: none;
+}
+
+.notes-card .card-task > .fold-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.notes-card .card-task .task-row {
+    order: 1;
+}
+
+/* The question of a card, grey, before the solution */
+.card-prompt {
+    margin-top: 1.5em;
+    color: var(--text-muted);
+}
+
+.card-prompt a {
+    color: inherit;
+}
+
 /* Phone: the card of a task over the whole screen, from its text down to its Solution and its row, with little room
    around it, a gap, as the plan of the day */
 @media (max-width: 900px) {
@@ -650,31 +677,4 @@
         max-height: calc(100dvh - 4rem);
         border-radius: var(--radius) var(--radius) 0 0;
     }
-}
-
-/* A due task as a card, see cardSet in notes.ts: every other block, the task's heading and its source line hidden;
-   its text, then the question, its solution and its row with the buttons last */
-.notes-card #notes-text > :not(.card-task),
-.notes-card .card-task > summary,
-.notes-card .card-task > .fold-content > blockquote {
-    display: none;
-}
-
-.notes-card .card-task > .fold-content {
-    display: flex;
-    flex-direction: column;
-}
-
-.notes-card .card-task .task-row {
-    order: 1;
-}
-
-/* The question of a card, grey, before the solution */
-.card-prompt {
-    margin-top: 1.5em;
-    color: var(--text-muted);
-}
-
-.card-prompt a {
-    color: inherit;
 }
