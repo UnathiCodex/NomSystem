@@ -16,7 +16,8 @@
  *   `Really remove?` as its tooltip. The plus beside `Meals` opens a field of a name, as the plus beside `Foods` its
  *   form, and a name typed in the search that no meal has offers `+ New meal “Linsen Curry”` last: either opens the new
  *   meal with the search of its foods, and its first food keeps it in `Meals.md`; its `×` drops it before.
- *   A click on a line opens the meal below it: on top its name, which changes in place
+ *   A click on a line opens the meal below it, its line staying as it was closed, its short title grey in brackets
+ *   beside its name, though the name then stands twice: on top its name, which changes in place
  *   by a click into it, as that of a food, renaming it wherever it stands, also in every entry that holds it, see
  *   `dishRename` in `reader/food.ts`; then its short title, see {@link dishNameOf}; then its foods, each with
  *   its brand and store in brackets, its standard grams, which change in place, and its `×` while the meal has more
@@ -350,7 +351,7 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
         ];
         const rows: HTMLElement[] = shown.flatMap((dish: Dish): HTMLElement[] => {
             const key: string = dish.name.toLowerCase();
-            const name: HTMLElement = open === key ? elementOf("span", "food-name", dish.name) : dishNameOf(dish);
+            const name: HTMLElement = dishNameOf(dish);
             const remove: HTMLButtonElement = removeOf(`Remove ${dish.name}`, (): void => {
                 if (dish.foods.length === 0) {
                     fresh = "";
