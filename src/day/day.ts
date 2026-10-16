@@ -594,18 +594,18 @@ function gridOf(element: HTMLElement): HTMLElement {
 }
 
 /**
- * Shows the date of the shown day above plan and log, its weekday short and its date in my standard way,
- * like `Sun` over `11.10.2026`, always fully readable, with the icon back to today on any other day,
+ * Shows the date of the shown day above plan and log, its weekday written out and its date in my standard way,
+ * like `Sunday` over `11.10.2026`, always fully readable, with the icon back to today on any other day,
  * see {@link todayButtonShow}, and its daily note, gratitude and points about the day, see {@link dayNoteShow};
  * the boxes and the trackers follow the entries of the log, see `eventsSet` in {@link dayStart}.
  * The weekday stands small and grey above the date, see `.day-bar` in `../base.css`.
- * - `weekday`: Weekday of the shown day, like `Sun`, from the day at noon.
+ * - `weekday`: Weekday of the shown day, like `Sunday`, from the day at noon.
  *
  * @param info - Range of the shown day
  */
 function dayShow(info: DatesSetInfo): void {
     const date: string = info.startStr.slice(0, 10);
-    const weekday: string = new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short" });
+    const weekday: string = new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" });
     (document.getElementById("day-weekday") as HTMLElement).textContent = weekday;
     (document.getElementById("day-date") as HTMLElement).textContent = dateTextOf(date);
     todayButtonShow(date);

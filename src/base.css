@@ -159,7 +159,7 @@ body {
    between its arrows, the icon back to today beside it, in one line, a control gap apart, going on below where
    the bar has no room for all, never over the edge; the arrows square, one control high with round corners, outlined,
    a grey lighter under the pointer; the date big and semibold, the weekday small and grey above it, not bold,
-   like `Tue` over `13.10.2026`, see `dayShow` in `day/day.ts`, both lines close, so they fit the height of the arrows,
+   like `Tuesday` over `13.10.2026`, see `dayShow` in `day/day.ts`, both lines close, so they fit the height of the arrows,
    its width and room set by its view; the icon back
    to today small, without frame, grey, lighter under the pointer, on today faded and off, so the bar looks the same
    on every day. The month to pick a day from takes the size of its date too, see `day/month.html` */
