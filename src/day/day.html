@@ -8,11 +8,13 @@
              back to today, saving the room of a button Today, faded and off on today. A click on the date opens
              the month to pick a day from, see month.ts. Between them the timer of a session running now; the trackers
              of the shown day at the right end, above the log. On a phone the date stands at the left, without arrows,
-             the trackers and the timer each on a line of their own below it -->
+             the trackers and the timer each on a line of their own below it, and while the log shows the search
+             of the log beside the icon back to today, see search.ts -->
         <div class="day-bar day-nav">
             <button class="day-arrow" id="day-back" type="button"></button>
             <h2 class="day-title"><button class="day-title-button" id="day-title" type="button" title="Pick a day"><span
                 class="day-weekday" id="day-weekday"></span> <span class="day-date" id="day-date"></span></button></h2>
+            <button class="day-search" id="day-search" type="button"></button>
             <button class="day-today" id="day-today" type="button" disabled></button>
             <button class="day-arrow" id="day-next" type="button"></button>
 
@@ -36,11 +38,12 @@
         </section>
 
         <!-- Log: the time grid of what happened, drawn by FullCalendar; its + beside its name opens the entry
-             by category -->
+             by category, the search beside it the search of the whole log, see search.ts -->
         <section class="day-column" id="day-log">
             <div class="column-head">
                 <h2>Log</h2>
                 <button id="log-new" type="button"></button>
+                <button class="plus-quiet" id="log-search" type="button"></button>
             </div>
             <div class="day-calendar" id="day-calendar"></div>
         </section>

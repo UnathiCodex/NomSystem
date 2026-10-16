@@ -1,0 +1,12 @@
+<!-- Search of the log over all its entries, opened by its button beside Log +: one row for what I type, then the entries
+     that hold it, newest first, each what it was and below it its day and time, small and grey; a click on one opens
+     its dialog on its day, and closing that dialog brings the results back, see search.ts -->
+<dialog class="panel search-panel" id="search" closedby="any">
+    <div class="panel-form search-form">
+        <label class="panel-field"><span class="entry-name">Search</span>
+            <input id="search-text" type="text" autocomplete="off" enterkeyhint="search"
+                   aria-label="Search the log"></label>
+        <p class="panel-error" id="search-error" hidden>The log cannot be read</p>
+        <ol class="search-results" id="search-results"></ol>
+    </div>
+</dialog>

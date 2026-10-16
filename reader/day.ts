@@ -22,6 +22,7 @@
  * to its box with `X-PLANNED:<UID of the box>`, which is still read.
  *
  * The dialog of a box shows how long the last entries like it really lasted, see {@link realMinutesRead}.
+ * The search of the log reads every entry of it, see {@link logAllRead}.
  *
  * A meal of the log lists its foods as lines `X-FOOD`, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150`: appended
  * with the entry, and replaced as a whole when the entry changes; the reader counts what each meal gives, see `food.ts`.
@@ -42,7 +43,7 @@
 
 import { boxDone, boxFind, boxOpenFind, boxReopen } from "./boxes.ts";
 import {
-    berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryLookup, entryRemove, propertiesPut,
+    berlinDateOf, entriesOnceRead, entriesRead, entryAppend, entryChange, entryFind, entryLookup, entryRemove, propertiesPut,
 } from "./calendar.ts";
 import { attendeesAllow, categoryAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
@@ -240,6 +241,19 @@ export function dayEntriesRead(start: string, end: string): DayEntry[] {
         estimate: meals.get(entry.id)?.estimate ?? false,
         glass: glassIs(entry),
     }));
+}
+
+/**
+ * Reads every entry of the log, of every log file the reader reads, for the search of the log, newest first,
+ * see `search.ts` in `src/day`: the entries that can be changed, since a click on a result opens its dialog;
+ * a glass of water is no entry of its own but a mark of the trackers, so it is left out.
+ *
+ * @returns {@link Entry}s, the latest start first
+ */
+export function logAllRead(): Entry[] {
+    return entriesOnceRead(day.log)
+        .filter((entry: Entry): boolean => entry.editable && !entry.todo && !glassIs(entry))
+        .sort((one: Entry, other: Entry): number => other.start.localeCompare(one.start));
 }
 
 /**

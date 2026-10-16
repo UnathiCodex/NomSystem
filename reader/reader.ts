@@ -13,7 +13,7 @@
  * ### Modules
  * - `node:http`: Builds the server that answers the browser page
  * - `node:stream/consumers`: Reads a whole request body into one value
- * - `./day.ts`: Reads the log of a day, adds, changes and removes its entries, adds the meal of a cooking,
+ * - `./day.ts`: Reads the log of a day and every entry of the log, adds, changes and removes its entries, adds the meal of a cooking,
  *   logs a box of the plan at its real time and takes it back, and reads how long entries like a box really lasted
  * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, and the boxes carried along
  *   to a day, adds, changes and removes boxes, pushes them to the next day and drops them
@@ -42,7 +42,7 @@
 import { createServer } from "node:http";
 import { json } from "node:stream/consumers";
 import {
-    boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, realMinutesRead,
+    boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, logAllRead, realMinutesRead,
 } from "./day.ts";
 import {
     boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxSubmit, boxUniversity, boxUnpush,
@@ -120,6 +120,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * Handles a request by its method and its address.
  * The range of the log comes as FullCalendar sends it, `start` and `end` with offset; the range of the plan as days.
  * - `GET /api/day/log?start=…&end=…`: Sends log entries of the range.
+ * - `GET /api/day/all`: Sends every entry of the log, newest first, for its search.
  * - `GET /api/day/boxes?start=…&end=…`: Sends the plan of each day from the first day to the day before the last,
  *   like `start=2026-10-13&end=2026-10-14` for one day: its birthdays and holidays with my gift ideas, and its boxes.
  * - `GET /api/day/carried?date=…`: Sends the boxes of the days before the date that are neither done nor cancelled.
@@ -216,6 +217,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     if (request.method === "GET" && url.pathname === "/api/day/log") {
         responseSend(response, 200, dayEntriesRead(start, end));
+
+    } else if (request.method === "GET" && url.pathname === "/api/day/all") {
+        responseSend(response, 200, logAllRead());
 
     } else if (request.method === "GET" && url.pathname === "/api/day/boxes") {
         responseSend(response, 200, boxesRead(start, end));

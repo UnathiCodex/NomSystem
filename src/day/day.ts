@@ -40,6 +40,7 @@
  *   loaded like `./note.ts`.
  * - `./month.ts`: Picks the day to show from a month.
  * - `./gifts.ts`: Writes my gift ideas for the birthdays and holidays of the plan.
+ * - `./search.ts`: Finds entries in my whole log and opens them on their day.
  * - `./places.ts`: Gives the name of the place of an entry, the part of its line before the first comma.
  * - `./trackers.ts`: Shows my sleep, my glasses of water, my food and my neck sessions of the day.
  * - `./times.ts`: Reads the typed times of the panels, writes the times of entries and the date of the day.
@@ -64,6 +65,7 @@ import { boxesAgain, boxesSee, boxesStart, boxReceive, entryPartOf, shownWhatOf,
 import { breakableOf } from "./choices.ts";
 import { monthStart } from "./month.ts";
 import { giftsStart } from "./gifts.ts";
+import { searchStart } from "./search.ts";
 import { swipeStart } from "./swipe.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
 import { trackersSee } from "./trackers.ts";
@@ -670,7 +672,7 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * see `askedDayOf` in `today.ts`:
  * the arrows beside the date above plan and log move the calendar by a day, the icon beside it back to today,
  * the date opens the month to pick a day from, `+` below the time grid opens the entry by category of the log
- * for the last half hour; on a phone the buttons at the bottom switch between plan, log and note, see
+ * for the last half hour, the search beside it the search of the whole log, see `search.ts`; on a phone the buttons at the bottom switch between plan, log and note, see
  * {@link phoneShow}, and their `+` starts a box or an entry of the shown plan or log, and a swipe sideways changes
  * the day in place of the arrows, see `swipe.ts`; it shows the daily note, see
  * {@link noteStart}, and the timer of a session, see `timer.ts`; while it shows today, the day moves on to the new day
@@ -841,6 +843,7 @@ export function dayStart(): void {
         nowCenter(calendar);
     }, (): void => todayButtonShow(dayOf(calendar.view.currentStart)), (): void => dayAgain(calendar));
     giftsStart();
+    searchStart(calendar);
     timesStart();
     noteStart(calendar).catch((error: unknown): void => console.error(error));
     timerStart();
