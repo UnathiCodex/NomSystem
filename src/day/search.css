@@ -1,0 +1,94 @@
+/* Search of the log: its dialog, always as high, its row to type in and below it its results, each what it was
+   and small and grey its day, time, place and people; on a phone its button in the bar while the log shows */
+/* Search of the log: as wide as the entry by category, always 40rem high or as high as the screen with a gap around,
+   so it never jumps while I type; its row to type in on top, its results below it, scrolling alone */
+.search-panel[open] {
+    display: flex;
+    flex-direction: column;
+    height: min(40rem, calc(100dvh - 2 * var(--gap)));
+}
+
+.search-form {
+    flex: 1;
+    min-height: 0;
+}
+
+.search-results {
+    min-height: 0;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+
+/* A result: what it was in the bold of the log, and below it, small and grey, its day, its time, its place and
+   who I was with, flat as a box of the plan, a grey under the pointer */
+.search-result {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    width: 100%;
+    padding: 0.5rem var(--row-padding);
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text-main);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.search-result:hover {
+    background: var(--fill);
+}
+
+.search-meta {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* The search in the bar of the day only on a phone, while the log shows, see the end of this file; on the computer
+   it stands beside `Log +` */
+.day-search {
+    display: none;
+}
+
+/* Phone: the search a button in the bar beside the icon back to today, a sheet most of the screen high, the place
+   and people of a result on a line of their own */
+@media (max-width: 900px) {
+    /* The search in the bar of a phone while the log shows, beside the icon back to today and like it, one control
+       square, grey, since the log has no name above it there that its button could stand beside */
+    .day-main[data-shown="log"] .day-search {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: var(--control-height);
+        min-height: var(--control-height);
+        margin-left: auto;
+        padding: 0.25rem;
+        border: 0;
+        background: none;
+        color: var(--text-muted);
+    }
+
+    .day-main[data-shown="log"] .day-search + .day-today {
+        margin-left: 0;
+    }
+
+    /* The search of the log on a phone as high as most of the screen, a sheet like every panel, each result over its
+       whole width */
+    .search-panel[open] {
+        height: 85dvh;
+    }
+
+    /* A result on a phone: its day and time on one line, its place and people on the next, as the parts of a box
+       stand there, so no line starts with a dot */
+    .search-where {
+        display: block;
+    }
+
+    .search-where::before {
+        content: none;
+    }
+}

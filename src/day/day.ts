@@ -52,6 +52,7 @@
  * - `./swipe.ts`: Changes the shown day on a phone by a swipe sideways.
  * - `../phone.ts`: Tells a phone, which changes the day by a swipe.
  * - `lucide`: The icons of the arrows and plus.
+ * - `./day.css`, `./search.css`: Look of the day, one stylesheet per part.
  */
 
 import { Calendar } from "fullcalendar";
@@ -79,6 +80,7 @@ import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from "lucide";
 import "fullcalendar/skeleton.css";
 import "fullcalendar/themes/forma/theme.css";
 import "./day.css";
+import "./search.css";
 
 import type {
     DateSelectInfo, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,
