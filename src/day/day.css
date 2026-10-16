@@ -978,17 +978,11 @@ button.box-ring.box-checked svg {
 }
 
 /* The folder of the skill picked on a line of its own below skill and type, as close below them as an address
-   below its place, see `skillPathOf` in `skill.ts`, and so the link of a `Watch` below what and platform, the link
-   to type below that, see `watchRowOf` in `categories.ts` */
+   below its place, see `skillPathOf` in `skill.ts` */
 .panel-pair .entry-address {
     order: 1;
     flex-basis: 100%;
     margin-top: calc(0.125rem - 0.375rem);
-}
-
-.panel-pair .field-parts {
-    order: 1;
-    flex-basis: 100%;
 }
 
 /* The copy and the bin apart from the others, at the left, the copy alone there while the bin is hidden */
@@ -2170,8 +2164,7 @@ svg.route-arrow {
 
     /* Skill and type on a phone while the type is still its plus: the plus on the first line of the skill, right after
        it, or at the right end of that line where a long name, like `IN2028 Business Analytics Machine Learning`,
-       goes on below, never on a line of its own; the folder below both, as before, and so the link of a `Watch` and
-       the link to type. A type picked, like `(VO)`, still
+       goes on below, never on a line of its own; the folder below both, as before. A type picked, like `(VO)`, still
        goes below the name where the line has no room for both */
     .panel-pair:has(> .picker:last-child .picker-empty) {
         display: grid;
@@ -2179,8 +2172,7 @@ svg.route-arrow {
         justify-content: start;
     }
 
-    .panel-pair:has(> .picker:last-child .picker-empty) .entry-address,
-    .panel-pair:has(> .picker:last-child .picker-empty) .field-parts {
+    .panel-pair:has(> .picker:last-child .picker-empty) .entry-address {
         grid-column: 1 / -1;
     }
 
