@@ -83,7 +83,7 @@ import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut, plusPut } from "../icons.ts";
 import { phone } from "../phone.ts";
-import { ArrowRight, CalendarOff, Check, Gift, Undo2, X } from "lucide";
+import { ArrowRight, CalendarOff, Check, Ellipsis, Gift, Undo2, X } from "lucide";
 
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
 import type { IconNode } from "lucide";
@@ -616,6 +616,43 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
 }
 
 /**
+ * Puts the buttons of a box or a suggestion at its right, see `.box-actions` in `day.css`: on the computer side by side,
+ * each its icon; on a phone behind one button `⋯`, which opens them as a small menu below it, each its icon and its
+ * words, like `To tomorrow`, so the line of what the box is keeps its room; a tap on one of them, or beside the menu,
+ * closes it.
+ * - `more`: The button `⋯`.
+ * - `menu`: The menu, shown over the page as a popover, which closes by itself on a tap beside it.
+ * - `place`: Puts the menu below the button, its right edge under the button's.
+ *
+ * @param buttons - The buttons, like the arrow and the cross
+ * @returns The buttons in a row, or the button `⋯` with its menu
+ */
+function actionsRowOf(buttons: HTMLButtonElement[]): HTMLElement {
+    if (!phone)
+        return entryPartOf("div", "box-actions", buttons);
+    const more: HTMLButtonElement = document.createElement("button");
+    const menu: HTMLElement = entryPartOf("div", "box-menu", buttons);
+    const place: () => void = (): void => {
+        const rect: DOMRect = more.getBoundingClientRect();
+        menu.style.top = `${rect.bottom}px`;
+        menu.style.right = `${document.documentElement.clientWidth - rect.right}px`;
+    };
+    more.type = "button";
+    more.className = "box-action";
+    iconPut(more, Ellipsis, "More");
+    more.addEventListener("click", (): void => {
+        place();
+        menu.togglePopover();
+    });
+    menu.popover = "auto";
+    buttons.forEach((button: HTMLButtonElement): void => {
+        button.append(button.title);
+        button.addEventListener("click", (): void => menu.hidePopover());
+    });
+    return entryPartOf("div", "box-actions", [more, menu]);
+}
+
+/**
  * Makes the buttons at the right of a box that can be changed: for an open box the arrow, which pushes it
  * to the next day, one whose day is over to tomorrow, also one carried along, see `boxPush` in `reader/boxes.ts`,
  * and always shows, but for a box with a deadline, which stays on the day of its deadline, and the cross,
@@ -625,8 +662,11 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
  * and for a box greyed on the day of its last push, which takes that push back, see `boxPush` in `entries.ts`;
  * none for a box greyed on the day of an earlier push, since only the last push can be taken back,
  * for a done box, whose check takes it back, see {@link ringOf}, and for a box that cannot be changed.
+ * On a phone they stand behind one button `⋯`, see {@link actionsRowOf}, an open box's first `Log as expected`,
+ * as its ring logs it, so the menu holds all it can do.
  * One occurrence of a series has them too and changes alone, the series staying.
  * - `push`: The arrow of an open box, `null` for none.
+ * - `log`: On a phone, `Log as expected` of an open box, `null` for none.
  *
  * @param calendar - Calendar of the day
  * @param box - The box
@@ -636,17 +676,19 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
     if (!box.editable || box.state === "done")
         return [];
     if (box.state === "dropped")
-        return [entryPartOf("div", "box-actions",
-            [actionOf(calendar, Undo2, "Take back", (): Promise<void> => boxDrop(box.id, false))])];
+        return [actionsRowOf([actionOf(calendar, Undo2, "Take back", (): Promise<void> => boxDrop(box.id, false))])];
     if (box.state === "university")
-        return [entryPartOf("div", "box-actions", [actionOf(calendar, Undo2, "Not cancelled by university",
+        return [actionsRowOf([actionOf(calendar, Undo2, "Not cancelled by university",
             (): Promise<void> => boxUniversity(box.id, false))])];
     if (box.state === "pushed")
-        return box.moved?.last !== true ? [] : [entryPartOf("div", "box-actions",
-            [actionOf(calendar, Undo2, "Take back", (): Promise<void> => boxPush(box.id, false))])];
+        return box.moved?.last !== true ? []
+            : [actionsRowOf([actionOf(calendar, Undo2, "Take back", (): Promise<void> => boxPush(box.id, false))])];
     const push: HTMLButtonElement | null = box.deadline !== "" ? null
         : actionOf(calendar, ArrowRight, "To tomorrow", (): Promise<void> => boxPush(box.id, true));
-    return [entryPartOf("div", "box-actions", [
+    const log: HTMLButtonElement | null = !phone || box.state !== "open" || box.deadline !== "" ? null
+        : actionOf(calendar, Check, "Log as expected", (): Promise<void> => boxTap(calendar, box));
+    return [actionsRowOf([
+        ...(log === null ? [] : [log]),
         ...(push === null ? [] : [push]),
         ...(box.category === skillName && numberedTypes.includes(box.type)
             ? [actionOf(calendar, CalendarOff, "Cancelled by university", (): Promise<void> =>
@@ -710,7 +752,7 @@ function suggestionElementOf(calendar: Calendar, suggestion: Suggestion): HTMLEl
     body.addEventListener("click", (): void => {
         suggestionOpen(suggestion, calendar.view.currentStart).catch((error: unknown): void => console.error(error));
     });
-    element.append(entryPartOf("span", "box-ring", []), body, entryPartOf("div", "box-actions", [
+    element.append(entryPartOf("span", "box-ring", []), body, actionsRowOf([
         actionOf(calendar, Check, "Plan it", (): Promise<void> => suggestionAccept(suggestion, shown.day)),
         actionOf(calendar, X, "Dismiss", async (): Promise<void> => suggestionDismiss(suggestion)),
     ]));
