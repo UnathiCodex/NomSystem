@@ -158,8 +158,9 @@ body {
 /* The bar of a day, in the day and in the food view alike, see `day/day.html` and `food/food.html`: the date
    between its arrows, the icon back to today beside it, in one line, a control gap apart, going on below where
    the bar has no room for all, never over the edge; the arrows square, one control high with round corners, outlined,
-   a grey lighter under the pointer; the date in the size of the calendar's title, light, the weekday before it with
-   a comma, like `Tue, 13.10.2026`, see `dayShow` in `day/day.ts`, its width and room set by its view; the icon back
+   a grey lighter under the pointer; the date big and semibold, the weekday small and grey above it, not bold,
+   like `Tue` over `13.10.2026`, see `dayShow` in `day/day.ts`, both lines close, so they fit the height of the arrows,
+   its width and room set by its view; the icon back
    to today small, without frame, grey, lighter under the pointer, on today faded and off, so the bar looks the same
    on every day. The month to pick a day from takes the size of its date too, see `day/month.html` */
 .day-bar {
@@ -191,8 +192,21 @@ body {
     font-weight: 400;
 }
 
-.day-weekday::after {
-    content: ",";
+.day-bar .day-title {
+    font-size: 1.375rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.day-weekday,
+.day-date {
+    display: block;
+}
+
+.day-weekday {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
 }
 
 .day-today {
@@ -390,36 +404,14 @@ h3 {
         display: none;
     }
 
-    /* The bar of a day on a phone: the date at the left, big, the weekday small and grey above it, like `Fri` over
-       `16.10.2026`, and the icon back to today at the right end, one control square, so a thumb hits it; no arrows,
-       since a swipe sideways changes the day, see `day/swipe.ts` */
+    /* The bar of a day on a phone: the date at the left, and the icon back to today at the right end, one control
+       square, so a thumb hits it; no arrows, since a swipe sideways changes the day, see `day/swipe.ts` */
     .day-bar {
         flex-wrap: nowrap;
     }
 
     .day-arrow {
         display: none;
-    }
-
-    .day-bar .day-title {
-        font-size: 1.375rem;
-        font-weight: 600;
-        line-height: 1.2;
-    }
-
-    .day-weekday,
-    .day-date {
-        display: block;
-    }
-
-    .day-weekday {
-        font-size: 0.8125rem;
-        font-weight: 400;
-        color: var(--text-muted);
-    }
-
-    .day-weekday::after {
-        content: none;
     }
 
     .day-today {

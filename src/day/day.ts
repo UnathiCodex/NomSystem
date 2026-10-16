@@ -595,10 +595,10 @@ function gridOf(element: HTMLElement): HTMLElement {
 
 /**
  * Shows the date of the shown day above plan and log, its weekday short and its date in my standard way,
- * like `Sun, 11.10.2026`, always fully readable, with the icon back to today on any other day,
+ * like `Sun` over `11.10.2026`, always fully readable, with the icon back to today on any other day,
  * see {@link todayButtonShow}, and its daily note, gratitude and points about the day, see {@link dayNoteShow};
  * the boxes and the trackers follow the entries of the log, see `eventsSet` in {@link dayStart}.
- * The comma after the weekday is drawn by `day.css`, which on a phone puts the weekday above the date instead.
+ * The weekday stands small and grey above the date, see `.day-bar` in `../base.css`.
  * - `weekday`: Weekday of the shown day, like `Sun`, from the day at noon.
  *
  * @param info - Range of the shown day
