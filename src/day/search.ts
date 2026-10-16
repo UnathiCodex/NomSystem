@@ -3,8 +3,8 @@
  *
  * Finds entries in my whole log, not only the shown day, like every `Talk` to add who was there with `With`:
  * a small button beside `Log +` opens the search, on a phone a button in the bar while the log shows, and what
- * I type finds every entry that holds each typed word in its summary, its category, its place, its people or its note,
- * as every search of the page compares, see `../search.ts`, like `Talk` or `Sophale`. The results stand newest first,
+ * I type finds every entry that holds each typed word in its summary, its category, its place, its people or its day,
+ * as every search of the page compares, see `../search.ts`, like `Talk Sophale` or `Talk 10.2026`, never in its note. The results stand newest first,
  * each what it was, like `Talk: Artificial Intelligence`, and below it small and grey its day, its time, its place
  * and who I was with, like `Friday, 16.10.2026 · 13:45 – 14:15 · Mensa Leopoldstraße · Kicktipp`. A click on a result
  * shows its day and opens its dialog there; closing that dialog, saved or not, brings the search back with what I
@@ -45,7 +45,6 @@ import type { Attendee } from "./entries.ts";
  * - `location`: Its place, its `LOCATION`, like `Mensa Leopoldstraße, Leopoldstraße 13a, 80802 München, Deutschland`.
  * - `from`: Where a way starts, its `X-FROM`, empty for none.
  * - `attendees`: Who I was with, none for nobody.
- * - `note`: Its note, its `DESCRIPTION`.
  * - `start`, `end`: Its start and end as ISO instants.
  */
 type LogEntry = {
@@ -57,7 +56,6 @@ type LogEntry = {
     location: string;
     from: string;
     attendees: Attendee[];
-    note: string;
     start: string;
     end: string;
 };
@@ -88,14 +86,16 @@ function whatTextOf(entry: LogEntry): string {
 
 /**
  * Gives the text the search compares with what I type: the summary of an entry, its category, its place,
- * its people and its note, like `Talk Artificial Intelligence Mensa Leopoldstraße … Kicktipp`.
+ * its people and the day of its start, like `Talk Artificial Intelligence Mensa Leopoldstraße … Kicktipp 16.10.2026`,
+ * so `Talk 10.2026` finds my talks of October and `Talk 16.10` those of one day; never its note.
  *
  * @param entry - The entry
  * @returns Its text
  */
 function searchedOf(entry: LogEntry): string {
     return [entry.category, entry.title, entry.module, entry.type, entry.location, entry.from,
-        ...entry.attendees.map((person: Attendee): string => person.name), entry.note].join(" ");
+        ...entry.attendees.map((person: Attendee): string => person.name),
+        dateTextOf(dayOf(new Date(entry.start)))].join(" ");
 }
 
 /**
