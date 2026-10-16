@@ -1207,11 +1207,13 @@ fieldset.entry-times {
     text-decoration: underline;
 }
 
-/* Pencil right beside a name, of a place or a summary, the Lucide pencil small and grey, lighter under the pointer */
+/* Pencil beside a name, of a place or a summary, a little apart from its text, so it never sticks to it,
+   the Lucide pencil small and grey, lighter under the pointer */
 .entry-pencil {
     display: inline-flex;
     flex: none;
     align-items: center;
+    margin-inline-start: 0.375rem;
     padding: 0 0.25rem;
     border: 0;
     background: none;
