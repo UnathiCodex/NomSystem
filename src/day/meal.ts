@@ -734,7 +734,7 @@ function freshSend(meal: MealPick): void {
 
 /**
  * Builds my meals as the search of the row `Foods` shows them above my foods, see `../food/search.ts`: the line of each
- * meal whose name or foods hold the words typed, see `dishesFound` in `../food/meals.ts`, its name with its first foods
+ * meal whose name or foods hold the words typed, see `dishesFound` in `../food/meals.ts`, its name with its short title
  * in brackets, see `dishNameOf` there, and what it gave the last time I ate it, a click picking it, see
  * {@link dishPick}; then, while the text typed is no meal of mine nor of this entry, nor a barcode, last, the one plus
  * with it, `+ New meal “Chili con Carne”`, see {@link mealNew}, so `chili` offers Chili con Carne before a new meal

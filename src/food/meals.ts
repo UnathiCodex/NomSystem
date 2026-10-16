@@ -4,11 +4,11 @@
  * My meals of `Meals.md`, each only its composition, one or more of my foods without grams, servings or variants,
  * since I prepare it a little differently every time. A meal goes into `Meals.md` from an entry, named in its search,
  * see `../day/meal.ts`; the food view lists my meals above my foods, where I change and remove them, and the search
- * of an entry finds them above my foods too, each with its first foods in brackets, see {@link dishNameOf}.
+ * of an entry finds them above my foods too, each with its short title in brackets, see {@link dishNameOf}.
  * - The line of a meal, wherever it stands, is that of every list of meals or foods, see `listLineOf` in `search.ts`:
- *   its name with its first two foods grey in brackets, see {@link dishNameOf}, and what it gave the last time I ate
- *   it, a bare number under the head `My meals` and `kcal / meal`; for a meal never eaten what its foods give at the
- *   grams I logged each with last, see `dishesRead` in `reader/food.ts`.
+ *   its name with its short title grey in brackets on one line, see {@link dishNameOf}, and what it gave the last time
+ *   I ate it, a bare number under the head `My meals` and `kcal / meal`; for a meal never eaten what its foods give
+ *   at the grams I logged each with last, see `dishesRead` in `reader/food.ts`.
  * - The section of the food view, built as that of my foods: `Meals`, then a search field, which shows only the meals
  *   whose name or foods hold what is typed, ignoring case and accents, see {@link dishesFound}, like `reis` finding
  *   every meal with rice; then the head and the line of each meal, the small grey `×` at its end, whose first click
@@ -21,8 +21,7 @@
  *   `dishRename` in `reader/food.ts`; then its short title, see {@link dishNameOf}; then its foods, each with
  *   its brand and store in brackets, its standard grams, which change in place, and its `×` while the meal has more
  *   than one, ordered by their standard grams by themselves, the most first, see `rankOf` in `reader/food.ts`, so
- *   the foods that matter most stand first and show in the brackets of its line while it has no short title;
- *   right after
+ *   the foods that matter most stand first; right after
  *   the name of the meal the small grey plus, like `Chili con Carne +`, which opens below its foods the search of my
  *   foods and of Open Food Facts by name or barcode, as the plus of a meal in an entry does, and closes it again;
  *   a food picked, a product taken into my foods first, changed for good in `Meals.md` at once, the search staying
@@ -74,20 +73,72 @@ export function kcalTextOf(kcal: number): string {
 }
 
 /**
- * Makes the name of a meal as the search of an entry shows it: its name, then grey in brackets its first two foods
- * by their names, and `…` when it has more, like `Chili con Carne (Hackfleisch gemischt, Kidneybohnen, …)`, so I still
- * know what is in it, as a food has its brand and store in brackets.
- * - `name`: The name.
- * - `foods`: Names of its foods.
+ * Puts the short title of a meal into its brackets as far as the line of its name has room, see {@link dishNameOf}:
+ * whole where it fits, else cut after the last letter that fits, with `…` right before the closing bracket,
+ * like `Chilli con Carne (Tomaten, Hackfl…)`, a comma or space before the cut left out, like `(Tomaten…)`;
+ * no brackets where not one letter fits beside the name, like a long name on a phone, which then goes on below.
+ * - `fits`: Whether the brackets stand beside the name on its one line.
+ * - `cut`: The short title cut after a number of letters, with `…`.
+ * - `low`, `high`: Fewest and most letters that may fit, closer each time until they meet at the most that fit.
+ *
+ * @param line - Name of the meal with its brackets
+ * @param brackets - Its brackets
+ * @param short - Its short title, like `Tomaten, Hackfleisch, Bohnen`
+ */
+function shortFit(line: HTMLElement, brackets: HTMLElement, short: string): void {
+    const fits: () => boolean = (): boolean => line.scrollWidth <= line.clientWidth
+        && (line.firstElementChild as HTMLElement).offsetHeight <= brackets.offsetHeight;
+    const cut: (letters: number) => string = (letters: number): string =>
+        `${short.slice(0, letters).replace(/[\s,]+$/, "")}…`;
+    brackets.hidden = false;
+    brackets.textContent = ` (${short})`;
+    if (fits())
+        return;
+    let low: number = 0;
+    let high: number = short.length - 1;
+    while (low < high) {
+        const middle: number = Math.ceil((low + high) / 2);
+        brackets.textContent = ` (${cut(middle)})`;
+        if (fits())
+            low = middle;
+        else
+            high = middle - 1;
+    }
+    brackets.textContent = ` (${cut(low)})`;
+    brackets.hidden = low === 0 || !fits();
+}
+
+/**
+ * Makes the name of a meal as every list of meals shows it, always on one line: its name, then grey in brackets
+ * its short title, as a food has its brand and store in brackets,
+ * like `Chilli con Carne (Tomaten, Hackfleisch, Bohnen)`, cut where the line has no room, see {@link shortFit},
+ * again whenever the line gets narrower or wider, and once the font of the page has loaded, which changes the room
+ * it takes; a meal without a short title shows its name alone.
+ * - `name`: The name with its short title.
+ * - `brackets`: Its short title in brackets.
+ * - `width`: Width of the line when last fitted, so a change of its height alone fits nothing.
+ * - `fit`: Fits the short title into the line.
  *
  * @param dish - Meal of `Meals.md`
  * @returns The name
  */
 export function dishNameOf(dish: Dish): HTMLElement {
-    const name: HTMLElement = elementOf("span", "food-name", dish.name);
-    const foods: string[] = dish.foods.map((line: string): string => line.split(";")[0]);
-    name.append(elementOf("span", "food-brand", ` (${dish.short !== "" ? dish.short
-        : [...foods.slice(0, 2), ...foods.length > 2 ? ["…"] : []].join(", ")})`));
+    const name: HTMLElement = elementOf("span", "food-name dish-name", "");
+    name.append(elementOf("span", "", dish.name));
+    if (dish.short === "")
+        return name;
+    const brackets: HTMLElement = elementOf("span", "food-brand", "");
+    name.append(brackets);
+    let width: number = -1;
+    const fit: () => void = (): void => shortFit(name, brackets, dish.short);
+    new ResizeObserver((entries: ResizeObserverEntry[]): void => {
+        const now: number = entries[0]?.contentRect.width ?? width;
+        if (now === width)
+            return;
+        width = now;
+        fit();
+    }).observe(name);
+    document.fonts.ready.then(fit).catch((error: unknown): void => console.error(error));
     return name;
 }
 

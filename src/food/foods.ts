@@ -160,7 +160,7 @@ export type Meal = Totals & {
  * each with the grams I put in as a rule, and what they give.
  *
  * - `name`: Name of the meal, like `Chili con Carne`.
- * - `short`: What its brackets show, as I typed it, like `Hackfleisch, Tomaten`; empty for its first two foods.
+ * - `short`: What its brackets show, as I typed it, like `Hackfleisch, Tomaten`; empty for no brackets.
  * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order.
  * - `standard`: The grams of each food, in their order, which an entry starts with: 0 for one I rarely put in,
  *   `null` for none set yet.

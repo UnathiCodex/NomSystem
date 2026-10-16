@@ -5,6 +5,24 @@
     margin-bottom: calc(1.5 * var(--gap));
 }
 
+/* Name of a meal with its short title grey in brackets, see `dishNameOf` in `meals.ts`, wherever a meal stands:
+   the brackets one piece beside the name, keeping the space before them, never going below, whatever the brackets
+   of the foods in the same list do, see `bracketsWatch` in `foods.ts`; the name going on below only where it alone
+   has no room, the brackets then left out, see `shortFit` in `meals.ts` */
+.dish-name {
+    display: flex;
+    align-items: flex-start;
+}
+
+.dish-name > :first-child {
+    min-width: 0;
+}
+
+.dish-name > .food-brand {
+    flex: none;
+    white-space: pre;
+}
+
 /* The plus right after the name of the meal opened, which adds one more of my foods, a little apart from it, one line
    high and at the top of its line, so it stands exactly in the middle, as after the name of a meal in the entry
    by category, see `day/day.css` */

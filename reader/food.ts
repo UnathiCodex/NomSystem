@@ -254,7 +254,7 @@ export type Meal = Totals & {
  * I put in as a rule.
  *
  * - `name`: Name of the meal, like `Chili con Carne`; unique, without `|`, `;` and `,`.
- * - `short`: What its brackets show, as I typed it, like `Hackfleisch, Tomaten`; empty for its first two foods.
+ * - `short`: What its brackets show, as I typed it, like `Hackfleisch, Tomaten`; empty for no brackets.
  * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order;
  *   by their names alone in a table written before foods had brand and store.
  * - `standard`: The grams of each food, in their order, which an entry starts with: 0 for one I rarely put in,
@@ -375,7 +375,7 @@ const mealsHead: string[] = [
     "",
     "My meals, each one list of every food I may put in, by name, brand and store, with the grams I put in as a rule,",
     "0 for a food I rarely put in; an entry brings each at these grams, which I change there, so a meal changed here",
-    "leaves past days as they were. `Short` is what the brackets after its name show, its first two foods while empty.",
+    "leaves past days as they were. `Short` is what the brackets after its name show, none while empty.",
     "",
     "| Meal | Short | Food | Brand | Store | Grams |",
     "| --- | --- | --- | --- | --- | ---: |",
