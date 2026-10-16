@@ -175,6 +175,12 @@ button.food-row {
     border-bottom-color: var(--chosen-line);
 }
 
+/* The kind of a food, `Eat` or `Drink`: as plain as the values beside it, without the arrow of a list */
+select.food-inline {
+    appearance: none;
+    cursor: pointer;
+}
+
 .food-fact {
     font-size: 0.75rem;
     color: var(--text-muted);

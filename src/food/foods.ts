@@ -41,30 +41,38 @@ export type Totals = {
 };
 
 /**
+ * Kind of a food, as the reader sends it: `Eat`, its values per 100 g and its amounts in grams, or `Drink`, its values
+ * per 100 ml and its amounts in millilitres, see {@link unitOf}.
+ */
+export type Kind = "Eat" | "Drink";
+
+/**
  * A food, one row of `Foods.md`, or a product of Open Food Facts as it would go there: its {@link Nutrients}
- * per 100 g with its name, barcode, brand, store and pack.
+ * per 100 of its unit with its name, barcode, brand, store, pack and kind.
  *
  * - `name`: Name, by which a meal lists it, like `Reis` of `X-FOOD:Reis;Golden Sun;Lidl;150`.
  * - `barcode`: Open Food Facts barcode it came from, empty for a food added by hand.
  * - `brand`: Its first brand, like `Milbona`, empty when none is known.
  * - `store`: The first store that sells it, like `Lidl`, empty when none is known.
- * - `pack`: Size of its pack as sold, like `450 g`, empty when none is known.
- * - `portion`: Grams I typically take at once, like 50 of a Semmel, one piece, or 30 of oil, two tablespoons, so an
- *   entry takes `2x` or `2 St` as twice that; `null` for none.
+ * - `pack`: Size of its pack as sold in its unit, like 450, `null` when none is known.
+ * - `portion`: Amount in its unit I typically take at once, like 50 of a Semmel, one piece, or 30 of oil, two
+ *   tablespoons, so an entry takes `2x` or `2 St` as twice that; `null` only in a row left empty by hand.
+ * - `kind`: Its kind, `Eat` or `Drink`.
  */
 export type Food = Nutrients & {
     name: string;
     barcode: string;
     brand: string;
     store: string;
-    pack: string;
+    pack: number | null;
     portion: number | null;
+    kind: Kind;
 };
 
 /**
  * What changes of a food of mine, as typed, see {@link foodChange}: its name, brand and store always; for a food
- * I made by hand a nutrient per 100 g still unknown, which once known stays, and its pack; the grams of the portion
- * of any food, `null` for none.
+ * I made by hand a nutrient per 100 g still unknown, which once known stays, and its pack; the portion of any food,
+ * `null` for none, which the reader fills from its pack, else 100; and its kind.
  */
 export type FoodChanges = {
     name: string;
@@ -73,8 +81,9 @@ export type FoodChanges = {
     protein?: number | null;
     carbs?: number | null;
     fat?: number | null;
-    pack?: string;
+    pack?: number | null;
     portion?: number | null;
+    kind?: Kind;
 };
 
 /**
@@ -110,10 +119,11 @@ export type FoodsFound = {
  * - `name`: Name of the food, as the meal lists it, like `Skyr natur`.
  * - `brand`, `store`: Its brand and the store I bought it in, like `K-Classic` and `Kaufland`; empty where the line
  *   names none.
- * - `grams`: Grams eaten as the meal lists them, 0 for none, which count nothing.
+ * - `grams`: Grams eaten as the meal lists them, millilitres of a drink, 0 for none, which count nothing.
  * - `estimate`: Whether the grams are guessed, marked by `~`.
  * - `known`: Whether `Foods.md` holds the food; an unknown food gives nothing.
  * - `meal`: The meal of mine it belongs to in this entry, like `Chili con Carne`; empty for a food eaten by itself.
+ * - `kind`: Kind of its food, `Eat` for one `Foods.md` does not hold.
  */
 export type Eaten = Nutrients & {
     name: string;
@@ -123,6 +133,7 @@ export type Eaten = Nutrients & {
     estimate: boolean;
     known: boolean;
     meal: string;
+    kind: Kind;
 };
 
 /**
@@ -155,6 +166,7 @@ export type Meal = Totals & {
  *   `null` for none set yet.
  * - `kcal`: What its foods give at those grams; `null` while none has grams.
  * - `portions`: The grams of the portion of each food, in their order, so its grams take `2x`; `null` for none.
+ * - `kinds`: The kind of each food, in their order, `Eat` for one `Foods.md` does not hold.
  */
 export type Dish = {
     name: string;
@@ -163,7 +175,34 @@ export type Dish = {
     standard: (number | null)[];
     kcal: number | null;
     portions: (number | null)[];
+    kinds: Kind[];
 };
+
+/**
+ * Gives the unit of the amounts of a food by its kind: `g` for a food to eat, `ml` for a drink, like `330 ml` of
+ * a Coca-Cola, wherever the page shows or asks for an amount of it.
+ *
+ * @param kind - Kind of the food
+ * @returns `g` or `ml`
+ */
+export function unitOf(kind: Kind): string {
+    return kind === "Drink" ? "ml" : "g";
+}
+
+/**
+ * Writes the summary of a meal of the log from what it names, its meals of mine and the foods beside them, in their
+ * order, parted by `, `, drinks left out, so it does not fill up, like `Pizza Salami, Pizza Margherita` of those two
+ * and a `Coca-Cola`; an entry of drinks alone names them all, so no summary stays empty.
+ * - `eaten`: What it names but drinks.
+ *
+ * @param named - Its meals of mine, each `Eat`, and the foods beside them, each with the kind of its food
+ * @returns Summary, empty while nothing is named
+ */
+export function summaryOf(named: { name: string; kind: Kind }[]): string {
+    const eaten: { name: string; kind: Kind }[] = named.filter((part: { name: string; kind: Kind }): boolean =>
+        part.kind !== "Drink");
+    return (eaten.length > 0 ? eaten : named).map((part: { name: string; kind: Kind }): string => part.name).join(", ");
+}
 
 /**
  * Reads portions typed into the grams of a food, by the grams of its portion I keep with the food, see `portion`

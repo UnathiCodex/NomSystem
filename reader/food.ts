@@ -10,19 +10,22 @@
  * category, see {@link gramsRead}, which I change there; the lists of my meals show each with what it gave the last
  * time I ate it, see {@link dishesRead}.
  * A meal keeps its name as I type it, its spaces too, like `Chili con Carne`, only without commas, see {@link mealNameOf}.
- * `Foods.md` is one Markdown table with one row per food: its name, kcal, protein, carbs and fat per 100 g,
- * the column `Portion`, a usual portion written before and no longer filled, the Open Food Facts barcode it came from,
- * its brand and store, like `Milbona` and `Lidl`, so the same name of two shops never mixes up, and the size of its
- * pack as sold, like `285 g`; a product of Open Food Facts goes in as Open Food Facts gives it, brand, store and pack
- * empty where it knows none, a food added by hand without barcode and pack, see {@link foodAdd}. No name, brand or
+ * `Foods.md` is one Markdown table with one row per food: its name, kcal, protein, carbs and fat per 100 of its unit,
+ * its portion, the amount I typically take at once, never empty, the Open Food Facts barcode it came from,
+ * its brand and store, like `Milbona` and `Lidl`, so the same name of two shops never mixes up, the size of its
+ * pack as sold, a bare number in its unit, like `265`, and last its kind, `Eat` or `Drink`, see {@link Kind}: a food
+ * to eat counts per 100 g and in grams, a drink per 100 ml and in millilitres, like `Coca-Cola`; a product of Open Food
+ * Facts goes in as Open Food Facts gives it, brand, store and pack empty where it knows none, a food added by hand
+ * without barcode and pack, `Eat` until I change it, see {@link foodAdd}. No name, brand or
  * store of a food written holds a comma, which parts names, see {@link foodTextOf}.
  * A nutrient nobody gives is never 0: the one of protein, carbs and fat a food lacks is worked out from its kcal,
  * two or three missing stay unknown, an empty cell, which counts nothing, see {@link nutrientsOf}.
  * A row written before brand, store or pack were kept lacks them, and the table gets their columns with the next food.
  * A food renamed is renamed wherever it stands, see {@link foodChange}.
  * A meal is a log entry of the category `Food`: `SUMMARY` what I ate, its foods parted by `, `,
- * like `Reis, Bohnen, Eier`, `LOCATION` where, and one line `X-FOOD` per food: its name, brand and store in `Foods.md`,
- * then the grams I ate, each part parted by `;`, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150`, so the log tells
+ * like `Reis, Bohnen, Eier`, drinks left out, `LOCATION` where, and one line `X-FOOD` per food: its name, brand and
+ * store in `Foods.md`, then the grams I ate, the millilitres of a drink, a bare number either way, each part parted by
+ * `;`, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150` or `X-FOOD:Coca-Cola;Coca-Cola;Supermarkt;330`, so the log tells
  * which product it was, see {@link lineOf}; a line written before foods had brand and store names its food alone,
  * like `X-FOOD:Reis;150`, and a line without grams, like `X-FOOD:Skyr natur;K-Classic;Kaufland;` or `X-FOOD:Eier`,
  * counts nothing. A cooking, `Cook`, lists what went into the pot the same way, like
@@ -33,7 +36,9 @@
  * so the log keeps what the meal held that day, whatever I change in `Meals.md` later; its what names the meal,
  * then the foods eaten beside it, like `Chili con Carne, Weißbrot`; an older line of a meal carried its servings eaten
  * and its variant, like `Hackfleisch;62.5;Chili con Carne;0.5;09.10.2026`, still read.
- * A product of Open Food Facts is a pack as sold, its values per 100 g, with the size of the pack, like `450 g`.
+ * A product of Open Food Facts is a pack as sold, its values per 100 g or 100 ml, with the size of the pack in grams
+ * or millilitres, like `450` of `450 g`, its portion that of a serving where Open Food Facts gives one, else its pack,
+ * else 100, see {@link productOf}.
  * Open Food Facts is asked anonymously: a request carries the search and the name of the dashboard,
  * never my email or my name.
  *
@@ -85,26 +90,34 @@ export type Totals = {
 };
 
 /**
- * A food, one row of `Foods.md`: its {@link Nutrients} per 100 g with its name, barcode, brand, store and pack;
- * no two foods have the same name, brand and store, ignoring case.
+ * Kind of a food: `Eat`, a food to eat, its values per 100 g and its amounts in grams, or `Drink`, a drink, its values
+ * per 100 ml and its amounts in millilitres, like `Coca-Cola`, which a summary leaves out, see the top of this file.
+ */
+export type Kind = "Eat" | "Drink";
+
+/**
+ * A food, one row of `Foods.md`: its {@link Nutrients} per 100 of its unit with its name, barcode, brand, store, pack
+ * and kind; no two foods have the same name, brand and store, ignoring case.
  *
  * - `name`: Name, by which a meal lists it, like `Reis` of `X-FOOD:Reis;Golden Sun;Lidl;150`; without `|` and `;`,
  *   and without `,` in a row written since commas went, see {@link foodTextOf}.
  * - `barcode`: Open Food Facts barcode it came from, like `20112745`; empty for a food added by hand.
  * - `brand`: Its brand, like `Milbona`, empty when none is known.
  * - `store`: The store I bought it in, like `Lidl`, empty when none is known.
- * - `pack`: Size of its pack as sold, like `450 g` or `140 g (7 x 20 g)`, empty when none is known,
+ * - `pack`: Size of its pack as sold in its unit, like 450 of `450 g` or 330 of `0.33 l`, `null` when none is known,
  *   like for a food added by hand.
- * - `portion`: Grams I typically take at once, like 50 of a Semmel, one piece, or 30 of oil, two tablespoons, so an
- *   entry takes `2x` or `2 St` as twice that; `null` for none.
+ * - `portion`: Amount in its unit I typically take at once, like 50 of a Semmel, one piece, or 30 of oil, two
+ *   tablespoons, so an entry takes `2x` or `2 St` as twice that; `null` only in a row left empty by hand.
+ * - `kind`: Its kind, `Eat` for a row without one, see {@link Kind}.
  */
 export type Food = Nutrients & {
     name: string;
     barcode: string;
     brand: string;
     store: string;
-    pack: string;
+    pack: number | null;
     portion: number | null;
+    kind: Kind;
 };
 
 /**
@@ -156,8 +169,9 @@ type ProductsPage = {
  * - `name`, `brand`, `store`: Its name, brand and store as typed.
  * - `protein`, `carbs`, `fat`: Its nutrients per 100 g as typed, `null` for one unknown; taken only for a food I made
  *   by hand, without barcode, and only while unknown, see {@link foodChange}.
- * - `pack`: Size of its pack as typed, for a food by hand.
- * - `portion`: Grams of its portion as typed, `null` for none.
+ * - `pack`: Size of its pack in its unit as typed, for a food by hand, `null` for none.
+ * - `portion`: Amount of its portion as typed, `null` for none, which takes its pack, else 100, see {@link portionOf}.
+ * - `kind`: Its kind as picked, see {@link Kind}.
  */
 export type FoodChanged = {
     old: { name: string; brand: string; store: string };
@@ -167,8 +181,9 @@ export type FoodChanged = {
     protein?: number | null;
     carbs?: number | null;
     fat?: number | null;
-    pack?: string;
+    pack?: number | null;
     portion?: number | null;
+    kind?: Kind;
 };
 
 /**
@@ -177,11 +192,13 @@ export type FoodChanged = {
  * - `name`: Name of the food, as the meal lists it, like `Skyr natur`.
  * - `brand`, `store`: Its brand and the store I bought it in, like `K-Classic` and `Kaufland`; empty where the line
  *   names none, so the page shows them grey after the name, as everywhere.
- * - `grams`: Grams eaten as the meal lists them, 0 for a line without grams, which counts nothing.
+ * - `grams`: Grams eaten as the meal lists them, millilitres of a drink, 0 for a line without grams, which counts
+ *   nothing.
  * - `estimate`: Whether the grams are guessed, not weighed, marked by `~`.
  * - `known`: Whether `Foods.md` holds the food; an unknown food gives nothing.
  * - `meal`: The meal of mine it belongs to in this entry, as its line carries it, like `Chili con Carne`;
  *   empty for a food eaten by itself, like bread beside a meal.
+ * - `kind`: Kind of its food, `Eat` for a food `Foods.md` does not hold, see {@link Kind}.
  */
 export type Eaten = Nutrients & {
     name: string;
@@ -191,6 +208,7 @@ export type Eaten = Nutrients & {
     estimate: boolean;
     known: boolean;
     meal: string;
+    kind: Kind;
 };
 
 /**
@@ -256,10 +274,12 @@ type Composition = {
  *   no food has standard grams.
  * - `portions`: The grams of the portion of each of its foods, in their order, as `Foods.md` holds them, so its
  *   standard grams take `2x`; `null` for a food without portion or not in `Foods.md`.
+ * - `kinds`: The kind of each of its foods, in their order, `Eat` for a food not in `Foods.md`, see {@link Kind}.
  */
 export type Dish = Composition & {
     kcal: number | null;
     portions: (number | null)[];
+    kinds: Kind[];
 };
 
 /**
@@ -281,6 +301,8 @@ export type FoodDay = Totals & {
  * - `brands`: Brands, a list from the search, a text parted by commas from the products.
  * - `stores`: Stores that sell it, as the brands.
  * - `quantity`: Size of the pack as its maker writes it, like `450g`.
+ * - `serving_quantity`: Amount of a serving in grams or millilitres, like `30`.
+ * - `nutrition_data_per`: What its nutrients are given for, `100g` or `100ml`.
  * - `nutriments`: Nutrients by their names, like `energy-kcal_100g` or `proteins_100g`.
  */
 type ProductSent = {
@@ -289,6 +311,8 @@ type ProductSent = {
     brands?: string | string[];
     stores?: string | string[];
     quantity?: string;
+    serving_quantity?: number | string;
+    nutrition_data_per?: string;
     nutriments?: { [nutrient: string]: number | string | undefined };
 };
 
@@ -310,14 +334,14 @@ type Answer = {
 export const foodName: string = "Food";
 
 /**
- * Head of the table of `Foods.md`, the header and the line below it, with the columns of brand, store and pack.
+ * Head of the table of `Foods.md`, the header and the line below it, with the columns of brand, store, pack and kind.
  *
  * @returns The two lines
  */
 function tableHeadOf(): string[] {
     return [
-        "| Food | kcal | Protein | Carbs | Fat | Portion | Barcode | Brand | Store | Pack |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |",
+        "| Food | kcal | Protein | Carbs | Fat | Portion | Barcode | Brand | Store | Pack | Kind |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | ---: | --- |",
     ];
 }
 
@@ -328,10 +352,11 @@ function tableHeadOf(): string[] {
 const fileHead: string[] = [
     "# Foods",
     "",
-    "My foods: kcal, protein, carbs and fat per 100 g, the Open Food Facts barcode, the brand and the store,",
-    "so the same name of two shops never mixes up, and the size of the pack as sold; Portion is the grams I typically",
-    "take at once, like 50 of a Semmel, one piece, or 30 of oil, two tablespoons.",
-    "A meal in the log lists a food by its name, brand and store, then the grams I ate, like",
+    "My foods: kcal, protein, carbs and fat per 100 g, or per 100 ml for a drink, the Open Food Facts barcode, the",
+    "brand and the store, so the same name of two shops never mixes up, the size of the pack as sold, a bare number in",
+    "g or ml, and the kind, `Eat` or `Drink`; Portion is the amount I typically take at once, never empty, like 50 of",
+    "a Semmel, one piece, or 30 of oil, two tablespoons.",
+    "A meal in the log lists a food by its name, brand and store, then the grams I ate, or ml of a drink, like",
     "`X-FOOD:Skyr natur;K-Classic;Kaufland;150`; a cooking lists what went into the pot the same way.",
     "",
     ...tableHeadOf(),
@@ -389,7 +414,7 @@ const agent: string = "NomSystemDashboard/0.1";
 /**
  * Fields of a product the reader asks Open Food Facts for, see {@link ProductSent}.
  */
-const productFields: string = "code,product_name,brands,stores,quantity,nutriments";
+const productFields: string = "code,product_name,brands,stores,quantity,serving_quantity,nutrition_data_per,nutriments";
 
 /**
  * Languages of the names a search looks in: German, since I shop in Germany, and English.
@@ -542,18 +567,54 @@ function firstOf(sent: string | string[] | undefined): string {
 }
 
 /**
- * Writes the size of a pack with a space between number and unit, like `450 g` of `450g`, a whole number without
- * its zero decimals, like `500 g` of `500.0 g`, spaces in a row one; nothing for a size without a weight or volume,
- * like `1 pcs`, which tells nothing of what it gives.
- * - `pack`: The size written.
- *
- * @param quantity - Size as its maker writes it, like `450g` or `140 g (7 x 20 g)`; missing when none is known
- * @returns Size, like `450 g`, empty for none
+ * Grams or millilitres of one of each unit a maker writes the size of a pack in.
  */
-function packOf(quantity: string | undefined): string {
-    const pack: string = (quantity ?? "").replace(/(\d)[.,]0+(?!\d)/g, "$1").replace(/(\d)(?=[a-zA-Z])/g, "$1 ")
-        .replace(/\s+/g, " ").trim();
-    return /\d\s*(k?g|m?l|cl|dl)\b/i.test(pack) ? pack : "";
+const unitSizes: { [unit: string]: number } = { g: 1, kg: 1000, ml: 1, cl: 10, dl: 100, l: 1000 };
+
+/**
+ * Gives the size of a pack as a bare number in grams or millilitres, its first weight or volume, to one decimal,
+ * like 450 of `450g`, 500 of `500.0 g`, 330 of `0.33 l` and 140 of `140 g (7 x 20 g)`; nothing for a size without
+ * a weight or volume, like `1 pcs`, which tells nothing of what it gives.
+ * - `size`: Its first weight or volume cut into number and unit, `null` for none.
+ *
+ * @param quantity - Size as its maker writes it, like `450g` or `0.33 l`; missing when none is known
+ * @returns Size in grams or millilitres, `null` for none
+ */
+function packOf(quantity: string | undefined): number | null {
+    const size: RegExpExecArray | null = /(\d+(?:[.,]\d+)?)\s*(kg|g|ml|cl|dl|l)\b/i.exec(quantity ?? "");
+    return size === null ? null : roundOf(numberOf(size[1]) * unitSizes[size[2].toLowerCase()], 1);
+}
+
+/**
+ * Tells the kind of a product of Open Food Facts, see {@link Kind}: `Drink` when its nutrients are given per 100 ml or
+ * the size of its pack is a volume, like `0.33 l`, else `Eat`.
+ *
+ * @param sent - Product as sent
+ * @returns Its kind
+ */
+function productKindOf(sent: ProductSent): Kind {
+    return sent.nutrition_data_per === "100ml" || /\d\s*(ml|cl|dl|l)\b/i.test(sent.quantity ?? "") ? "Drink" : "Eat";
+}
+
+/**
+ * Reads the kind of a food as written, see {@link Kind}.
+ *
+ * @param text - Kind as written or sent, like `Drink`; missing in a row written before kinds were kept
+ * @returns `Drink` for `Drink`, ignoring case, else `Eat`
+ */
+function kindOf(text: unknown): Kind {
+    return String(text ?? "").trim().toLowerCase() === "drink" ? "Drink" : "Eat";
+}
+
+/**
+ * Gives the portion of a food as written, never empty: the amount given, to one decimal, else its pack, else 100.
+ *
+ * @param given - Amount of its portion given, like a serving of Open Food Facts or one typed; `null` for none
+ * @param pack - Size of its pack, `null` for none
+ * @returns Its portion
+ */
+function portionOf(given: number | null, pack: number | null): number {
+    return given !== null && given > 0 ? roundOf(given, 1) : pack ?? 100;
 }
 
 /**
@@ -569,8 +630,8 @@ function cellsOf(line: string): string[] {
 
 /**
  * Reads my foods, the rows of the table of `Foods.md`: its lines starting with `|`, after the head of the table,
- * as they are, the column `Portion` the grams I typically take at once, called `Piece` for a while. kcal that cannot be
- * read counts as 0;
+ * as they are, the column `Portion` the amount I typically take at once, called `Piece` for a while, the pack a bare
+ * number, and the kind, `Eat` where a row has none, see {@link kindOf}. kcal that cannot be read counts as 0;
  * a nutrient empty or unreadable
  * is unknown, `null`, never 0, see {@link nutrientOf}; a row without a name stays out.
  *
@@ -588,7 +649,7 @@ function foodsRead(): Food[] {
         .map((cells: string[]): Food => ({
             name: cells[0], kcal: numberOf(cells[1]), protein: nutrientOf(cells[2]), carbs: nutrientOf(cells[3]),
             fat: nutrientOf(cells[4]), barcode: cells[6] ?? "", brand: cells[7] ?? "", store: cells[8] ?? "",
-            pack: cells[9] ?? "", portion: nutrientOf(cells[5]),
+            pack: nutrientOf(cells[9]), portion: nutrientOf(cells[5]), kind: kindOf(cells[10]),
         }));
 }
 
@@ -781,12 +842,14 @@ function addressOf(query: string, page: number): URL {
  * Turns a product as Open Food Facts sends it into a {@link Food} as it would go into `Foods.md`: its name cleaned,
  * see {@link foodTextOf}, the first of its brands and of its stores, cleaned too, its nutrients as `Foods.md` writes
  * them, the one of protein, carbs and fat it lacks worked out from its kcal, more missing unknown,
- * see {@link nutrientsOf}, and the size of its pack.
+ * see {@link nutrientsOf}, the size of its pack, see {@link packOf}, its portion, its serving where given, else its
+ * pack, else 100, see {@link portionOf}, and its kind, see {@link productKindOf}.
  * - `nutrients`: Its nutrients by their names.
  * - `kcal`: Its kcal per 100 g, else its energy in kJ per 100 g turned into kcal, 4.184 kJ a kcal, `null` when both
  *   are missing.
  * - `given`: Its protein, carbs and fat per 100 g, `null` where missing.
  * - `name`: Its clean name.
+ * - `pack`: Size of its pack, `null` for none.
  *
  * @param sent - Product as sent
  * @returns The product, its kcal `null` when Open Food Facts does not know them, see {@link Product};
@@ -801,6 +864,7 @@ function productOf(sent: ProductSent): Product | null {
         fat: nutrientOf(nutrients.fat_100g),
     };
     const name: string = foodTextOf(sent.product_name ?? "");
+    const pack: number | null = packOf(sent.quantity);
     if (name === "")
         return null;
 
@@ -810,8 +874,9 @@ function productOf(sent: ProductSent): Product | null {
         barcode: sent.code ?? "",
         brand: brandOf(firstOf(sent.brands)),
         store: brandOf(firstOf(sent.stores)),
-        pack: packOf(sent.quantity),
-        portion: null,
+        pack: pack,
+        portion: portionOf(nutrientOf(sent.serving_quantity), pack),
+        kind: productKindOf(sent),
     };
 }
 
@@ -892,22 +957,23 @@ export async function foodsFind(text: string, page: number, products: boolean): 
 }
 
 /**
- * Writes a food as a row of the table of `Foods.md`, an unknown nutrient an empty cell, never 0, and the grams of its
- * portion in the column `Portion`, empty for none, see the top of this file.
+ * Writes a food as a row of the table of `Foods.md`, an unknown nutrient an empty cell, never 0, the amount of its
+ * portion in the column `Portion`, its pack a bare number, empty for none, and its kind last, see the top of this file.
  * - `cells`: Its values in the order of the columns, see {@link tableHeadOf}.
  *
  * @param food - Food as written
- * @returns Row like `| Gouda | 356 | 25 |  |  |  | 4056489012345 | Milbona | Lidl | 400 g |`
+ * @returns Row like `| Gouda | 356 | 25 |  |  | 30 | 4056489012345 | Milbona | Lidl | 400 | Eat |`
  */
 function rowOf(food: Food): string {
     const cells: (string | number | null)[] = [food.name, food.kcal, food.protein, food.carbs, food.fat, food.portion,
-        food.barcode, food.brand, food.store, food.pack];
+        food.barcode, food.brand, food.store, food.pack, food.kind];
     return `| ${cells.map((cell: string | number | null): string => String(cell ?? "")).join(" | ")} |`;
 }
 
 /**
  * Gives the head of the table of `Foods.md` the columns of today, see {@link tableHeadOf}, like a table written before
- * packs were kept, or with `Piece` where `Portion` stands now, so the rows written since stand under their names.
+ * packs or kinds were kept, or with `Piece` where `Portion` stands now, so the rows written since stand under their
+ * names.
  *
  * @param lines - Lines of `Foods.md`, changed in place
  * @param header - Index of the header of its table
@@ -919,16 +985,18 @@ function tableHeadPut(lines: string[], header: number): void {
 
 /**
  * Adds a food to `Foods.md` as the last row of its table, every other line staying as it is, but a head of the table
- * without the columns of brand, store or pack, which gets them, see {@link tableHeadPut}; creates `Foods.md` with
+ * without the columns of brand, store, pack or kind, which gets them, see {@link tableHeadPut}; creates `Foods.md` with
  * its head, see {@link fileHead}, when it does not exist yet.
  * A product of Open Food Facts goes in as Open Food Facts gives it, a food by hand as typed: the name, brand and store
  * cleaned, see {@link foodTextOf}, brand, store and pack empty where none is known, the numbers as `Foods.md`
  * writes them, see {@link nutrientsOf}: protein, carbs or fat sent as `null` is unknown, so the one of them a food
- * typed by hand lacks is worked out from its kcal like that of a product, and two or three stay empty cells, never 0.
+ * typed by hand lacks is worked out from its kcal like that of a product, and two or three stay empty cells, never 0;
+ * its portion never empty, see {@link portionOf}; its kind as sent, `Eat` for a food by hand, which sends none.
  * A product that is one of my foods already, by its barcode or by its name, brand and store, like the same beans
  * in a bigger can, is that food, and nothing is written; a food by hand with the name, brand and store of one of mine
  * is refused.
  * - `amount`: Tells whether a value is a number of 0 or more, as kcal is to be, and every nutrient known.
+ * - `pack`: Size of its pack, `null` for none.
  * - `added`: The food as written.
  * - `same`: My food it is already, `undefined` for none.
  * - `lines`: Lines of `Foods.md`.
@@ -947,14 +1015,16 @@ export function foodAdd(sent: Food): Food {
         || ![sent.protein, sent.carbs, sent.fat].every((value: unknown): boolean => value === null || amount(value)))
         throw new Error(`No numbers of a food: ${JSON.stringify(sent)}`);
 
+    const pack: number | null = amount(sent.pack) && Number(sent.pack) > 0 ? roundOf(Number(sent.pack), 1) : null;
     const added: Food = {
         name: foodTextOf(String(sent.name ?? "")),
         ...nutrientsOf({ kcal: sent.kcal, protein: sent.protein, carbs: sent.carbs, fat: sent.fat }),
         barcode: String(sent.barcode ?? "").trim(),
         brand: brandOf(String(sent.brand ?? "")),
         store: brandOf(String(sent.store ?? "")),
-        pack: nameOf(String(sent.pack ?? "")),
-        portion: amount(sent.portion) && Number(sent.portion) > 0 ? roundOf(Number(sent.portion), 1) : null,
+        pack: pack,
+        portion: portionOf(amount(sent.portion) ? Number(sent.portion) : null, pack),
+        kind: kindOf(sent.kind),
     };
     if (added.name === "")
         throw new Error(`No name of a food: ${JSON.stringify(sent)}`);
@@ -1007,7 +1077,8 @@ function lineRenamed(line: string, old: string, renamed: { name: string; brand: 
  * `Foods.md`, every other line staying as it is, so one stopped in between finishes when sent again; with its row
  * for a food I made by hand, without barcode, its protein, carbs and fat where they are still unknown, each set once
  * and then fixed, as its kcal from the start, so nothing known is changed by mistake, and its pack; those of Open Food
- * Facts stay as they came; and the grams of the portion of any food. A food sent without change writes nothing.
+ * Facts stay as they came; and the portion of any food, never empty, see {@link portionOf}, and its kind, `Eat` or
+ * `Drink`. A food sent without change writes nothing.
  * - `old`: Key of the food, see {@link keyOf}.
  * - `renamed`: Its new name, brand and store, cleaned.
  * - `mine`: My foods.
@@ -1015,6 +1086,7 @@ function lineRenamed(line: string, old: string, renamed: { name: string; brand: 
  * - `amount`: Tells whether a value is a number of 0 or more.
  * - `own`: Whether I made it by hand, so its nutrients still unknown and its pack change.
  * - `settled`: Gives a nutrient of it as written: as it is once known, else as sent for my own food.
+ * - `pack`: Size of its pack as written, as sent for my own food, `null` for none.
  * - `changed`: The food as written.
  * - `meals`: My meals.
  * - `lines`: Lines of `Foods.md`.
@@ -1024,7 +1096,8 @@ function lineRenamed(line: string, old: string, renamed: { name: string; brand: 
  * @param sent - The food and what changes, as the page sends it
  * @returns The food as written
  * @throws {Error} - When `Foods.md` holds no such food, the new name is empty, another food of mine has the new name,
- *   brand and store, ignoring case, a number is none of 0 or more, or a file lies outside the new system
+ *   brand and store, ignoring case, a number is none of 0 or more, a kind is none of `Eat` and `Drink`, or a file lies
+ *   outside the new system
  */
 export function foodChange(sent: FoodChanged): Food {
     const old: string = keyOf({
@@ -1043,21 +1116,25 @@ export function foodChange(sent: FoodChanged): Food {
         throw new Error(`No new name of a food: ${labelOf(renamed)}`);
     const amount: (value: unknown) => boolean = (value: unknown): boolean => typeof value === "number" && value >= 0;
     const own: boolean = found.barcode === "";
-    if (![sent.protein, sent.carbs, sent.fat, sent.portion].every((value: unknown): boolean =>
+    if (![sent.protein, sent.carbs, sent.fat, sent.portion, sent.pack].every((value: unknown): boolean =>
         value === undefined || value === null || amount(value)))
         throw new Error(`No numbers of a food: ${JSON.stringify(sent)}`);
+    if (sent.kind !== undefined && sent.kind !== "Eat" && sent.kind !== "Drink")
+        throw new Error(`No kind of a food: ${String(sent.kind)}`);
     const settled: (known: number | null, typed: number | null | undefined) => number | null =
         (known: number | null, typed: number | null | undefined): number | null =>
             known !== null || !own || typed === undefined ? known : typed;
+    const pack: number | null = !own || sent.pack === undefined ? found.pack
+        : sent.pack === null || sent.pack === 0 ? null : roundOf(sent.pack, 1);
     const changed: Food = {
         ...found, ...renamed,
         ...nutrientsOf({
             kcal: found.kcal, protein: settled(found.protein, sent.protein), carbs: settled(found.carbs, sent.carbs),
             fat: settled(found.fat, sent.fat),
         }),
-        pack: own && sent.pack !== undefined ? nameOf(String(sent.pack)) : found.pack,
-        portion: sent.portion === undefined ? found.portion
-            : sent.portion === null || sent.portion === 0 ? null : roundOf(sent.portion, 1),
+        pack: pack,
+        portion: sent.portion === undefined ? found.portion : portionOf(sent.portion, pack),
+        kind: sent.kind ?? found.kind,
     };
     if (rowOf(changed) === rowOf(found))
         return found;
@@ -1158,7 +1235,7 @@ function eatenOf(line: string, mine: Map<string, Food>): Eaten {
         per === null || per === undefined ? null : share * per;
     return {
         name: read.name, brand: read.brand, store: read.store, grams: grams, estimate: read.guessed,
-        known: known !== undefined, meal: read.meal,
+        known: known !== undefined, meal: read.meal, kind: known?.kind ?? "Eat",
         kcal: share * (known?.kcal ?? 0), protein: part(known?.protein), carbs: part(known?.carbs), fat: part(known?.fat),
     };
 }
@@ -1296,8 +1373,8 @@ function compositionsRead(): Composition[] {
 }
 
 /**
- * Reads my meals of `Meals.md`, each with what its foods give at their standard grams and the portion of each,
- * see {@link Dish}.
+ * Reads my meals of `Meals.md`, each with what its foods give at their standard grams and the portion and kind of
+ * each, see {@link Dish}.
  * - `mine`: My foods by their keys and names, see {@link foodsByKeyRead}.
  *
  * @returns My meals in the order of the table, none while `Meals.md` does not exist
@@ -1310,6 +1387,7 @@ export function dishesRead(): Dish[] {
             : meal.foods.reduce((sum: number, line: string, index: number): number =>
                 sum + (meal.standard[index] ?? 0) / 100 * (foodOfLine(lineOf(line), mine)?.kcal ?? 0), 0),
         portions: meal.foods.map((line: string): number | null => foodOfLine(lineOf(line), mine)?.portion ?? null),
+        kinds: meal.foods.map((line: string): Kind => foodOfLine(lineOf(line), mine)?.kind ?? "Eat"),
     }));
 }
 

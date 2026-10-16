@@ -7,7 +7,7 @@
  * The day: the number of its meals and its totals
  * of kcal, protein, carbs and fat, all alike, without goals, so the log stays a log, not calorie control;
  * then each meal of the log: its start, linking to the day in the day view, where, and its kcal in bold,
- * below it what it holds, each food by its name alone with its grams.
+ * below it what it holds, each food by its name alone with its grams, a drink with its millilitres.
  * A food listed without grams counts nothing; every amount is rounded and an estimate anyway,
  * so none is marked as one. A food not in `Foods.md` and a meal that lists no foods count nothing,
  * and a line below the totals says so; so does a nutrient a food does not know, the totals adding what is known,
@@ -33,7 +33,7 @@
  * - `./food.css`: Look of the food view.
  */
 
-import { amountOf, buttonOf, elementOf, foodDayLoad } from "./foods.ts";
+import { amountOf, buttonOf, elementOf, foodDayLoad, summaryOf, unitOf } from "./foods.ts";
 import { foodNewShow, foodSearchOf, foodShow } from "./search.ts";
 import { mealsSectionOf } from "./meals.ts";
 import { labelOf } from "../day/places.ts";
@@ -150,20 +150,20 @@ function totalsShow(day: FoodDay): void {
 
 /**
  * Builds a line of what an entry holds, a name: a meal of mine alone, or a food alone, without its brand and store,
- * which only tell which one it is when I pick it, with its grams in the column of numbers, none for a food without
- * grams, which the hints below the totals name, see {@link totalsShow}; a meal or a food eaten by itself in the text
- * of controls, the foods of a meal indented below it, see {@link mealLinesOf}.
+ * which only tell which one it is when I pick it, with its grams in the column of numbers, the millilitres of a drink,
+ * like `330 ml`, none for a food without grams, which the hints below the totals name, see {@link totalsShow}; a meal
+ * or a food eaten by itself in the text of controls, the foods of a meal indented below it, see {@link mealLinesOf}.
  * - `line`: The line.
  *
  * @param name - Name of the meal or the food, like `Chili con Carne` or `Semmel`
- * @param grams - Grams of the food, 0 for none, `null` for a meal, which has no grams
+ * @param eaten - The food, `null` for a meal, which has no grams
  * @param item - Whether it stands at the top of its entry, as a meal or a food eaten by itself
  * @returns Line in the columns of the meals
  */
-function whatLineOf(name: string, grams: number | null, item: boolean): HTMLElement {
+function whatLineOf(name: string, eaten: Eaten | null, item: boolean): HTMLElement {
     const line: HTMLElement = elementOf("div", item ? "food-line food-meal" : "food-line", "");
-    line.append(elementOf("span", "food-what", name),
-        elementOf("span", "food-value", grams === null || grams === 0 ? "" : amountTextOf(grams, "g")));
+    line.append(elementOf("span", "food-what", name), elementOf("span", "food-value",
+        eaten === null || eaten.grams === 0 ? "" : amountTextOf(eaten.grams, unitOf(eaten.kind))));
     return line;
 }
 
@@ -205,8 +205,7 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
             alone.push(eaten);
         else
             meals.set(eaten.meal, [...meals.get(eaten.meal) ?? [], eaten]);
-    if (meals.size === 0 && meal.title.trim().toLowerCase()
-        !== alone.map((eaten: Eaten): string => eaten.name).join(", ").toLowerCase()) {
+    if (meals.size === 0 && meal.title.trim().toLowerCase() !== summaryOf(alone).toLowerCase()) {
         meals.set(meal.title.trim(), alone);
         alone = [];
     }
@@ -215,8 +214,8 @@ function mealLinesOf(meal: Meal): HTMLElement[] {
     return [
         entry,
         ...[...meals].flatMap(([name, foods]: [string, Eaten[]]): HTMLElement[] => [whatLineOf(name, null, true),
-            ...foods.map((eaten: Eaten): HTMLElement => whatLineOf(eaten.name, eaten.grams, false))]),
-        ...alone.map((eaten: Eaten): HTMLElement => whatLineOf(eaten.name, eaten.grams, true)),
+            ...foods.map((eaten: Eaten): HTMLElement => whatLineOf(eaten.name, eaten, false))]),
+        ...alone.map((eaten: Eaten): HTMLElement => whatLineOf(eaten.name, eaten, true)),
     ];
 }
 

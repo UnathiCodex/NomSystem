@@ -23,9 +23,9 @@
  * A click on a product adds it to my foods as Open Food Facts gives it, no form in between, see `foodSend`
  * in `foods.ts`, and takes it like one of mine. Where a food is wanted, like in an entry, a click on one of my foods
  * picks it; in the food view, which wants none, it opens the food below its line: its protein, carbs and fat per 100 g,
- * one unknown empty, never 0, its pack and its barcode where known, and its name, brand and store to change,
- * see {@link detailOf}. A food found nowhere goes in by hand only in the food view, by the plus beside the name
- * `Foods`, see {@link foodNewShow}.
+ * one unknown empty, never 0, its pack and its barcode where known, its kind, `Eat` or `Drink`, its amounts in grams
+ * or millilitres by it, and its name, brand and store to change, see {@link detailOf}. A food found nowhere goes in
+ * by hand only in the food view, by the plus beside the name `Foods`, see {@link foodNewShow}.
  * Nothing in the search is a form or sends one, so it can stand inside the form of a dialog.
  *
  * - `./foods.ts`: Finds foods, sends new and renamed foods, writes amounts and makes elements and buttons.
@@ -34,13 +34,14 @@
  * - `./search.css`: Look of the search and of every list of meals or foods, the same wherever they stand.
  */
 
-import { amountOf, bracketsWatch, buttonOf, elementOf, foodChange, foodDelete, foodNameOf, foodSend, foodsFind }
-    from "./foods.ts";
+import {
+    amountOf, bracketsWatch, buttonOf, elementOf, foodChange, foodDelete, foodNameOf, foodSend, foodsFind, unitOf,
+} from "./foods.ts";
 import { crossPut, iconOf, iconPut, QuestionMark } from "../icons.ts";
 import { Check, Plus, X } from "lucide";
 import "./search.css";
 
-import type { Food, FoodsFound, Product } from "./foods.ts";
+import type { Food, FoodsFound, Kind, Product } from "./foods.ts";
 
 
 /**
@@ -102,13 +103,19 @@ type Search = {
 const pause: number = 300;
 
 /**
- * Fields of the form of a food by hand: the name shown, the value of the food it fills and its unit after it, empty
- * for none.
+ * Gives the fields of the form of a food by hand: the name shown, the value of the food it fills and its unit after it,
+ * empty for none; its portion and pack in the unit of its kind, see `unitOf` in `foods.ts`.
+ *
+ * @param kind - Kind of the food, `Eat` for a food of my own
+ * @returns The fields in their order
  */
-const fields: [string, "name" | "brand" | "store" | "kcal" | "protein" | "carbs" | "fat" | "portion" | "pack", string][] = [
-    ["Name", "name", ""], ["Brand", "brand", ""], ["Store", "store", ""], ["kcal", "kcal", "kcal"],
-    ["Protein", "protein", "g"], ["Carbs", "carbs", "g"], ["Fat", "fat", "g"], ["Portion", "portion", "g"], ["Pack", "pack", ""],
-];
+function fieldsOf(kind: Kind): [string, string, string][] {
+    return [
+        ["Name", "name", ""], ["Brand", "brand", ""], ["Store", "store", ""], ["kcal", "kcal", "kcal"],
+        ["Protein", "protein", "g"], ["Carbs", "carbs", "g"], ["Fat", "fat", "g"], ["Portion", "portion", unitOf(kind)],
+        ["Pack", "pack", unitOf(kind)],
+    ];
+}
 
 /**
  * Each search by its element on the page, so {@link foodSearchClear} and {@link foodNewShow} find it.
@@ -257,14 +264,36 @@ export function inlineFieldOf(value: string, words: string, saved: () => void): 
 }
 
 /**
+ * Makes the kind of a food of mine, which changes in place, see {@link Kind}: plain as every value beside it, like
+ * `Drink`, see `.food-inline` in `search.css`; a click offers `Eat` and `Drink`, and picking the other saves it.
+ * - `select`: The kind.
+ *
+ * @param kind - Its kind
+ * @param saved - Sends the change
+ * @returns The kind
+ */
+function kindFieldOf(kind: Kind, saved: () => void): HTMLSelectElement {
+    const select: HTMLSelectElement = document.createElement("select");
+    select.className = "food-inline";
+    select.setAttribute("aria-label", "Kind");
+    ["Eat", "Drink"].forEach((option: string): void => {
+        select.append(new Option(option, option, false, option === kind));
+    });
+    select.addEventListener("change", saved);
+    return select;
+}
+
+/**
  * Builds a food of mine opened below its line in the food view, in two columns as the parts of a dialog, each its name
  * small and grey, then its value, every value as high as a field, so the rows stand equally apart: on top its name,
  * brand and store, which change in place by a click into them, see {@link inlineFieldOf}, renaming it wherever it
- * stands, see `foodChange` in `foods.ts`; then its protein, carbs and fat per 100 g, its kcal standing on its line,
- * the grams of its portion and its pack. Its nutrients are set once: a food I made by hand, without barcode, takes
- * a nutrient still unknown in place, which then stays as every known one, so nothing known is changed by mistake,
- * and changes its pack; one of Open Food Facts keeps them and its pack as they came, one unknown empty, never 0,
- * and shows its barcode; the grams of its portion change in place for every food, since how much I take only I know.
+ * stands, see `foodChange` in `foods.ts`; then its protein, carbs and fat per 100 g or 100 ml, its kcal standing on
+ * its line, its portion and its pack, in grams, or in millilitres for a drink, see `unitOf` in `foods.ts`, and its
+ * kind, `Eat` or `Drink`, which a click into it changes, see {@link kindFieldOf}. Its nutrients are set once: a food I
+ * made by hand, without barcode, takes a nutrient still unknown in place, which then stays as every known one, so
+ * nothing known is changed by mistake, and changes its pack; one of Open Food Facts keeps them and its pack as they
+ * came, one unknown empty, never 0, and shows its barcode; its portion and kind change in place for every food, since
+ * how much I take and whether I drink it only I know.
  * A click on its line closes it again. When the reader does not take a change, the food stays open and says so.
  * - `own`: Whether I made it by hand.
  * - `detail`: The food opened.
@@ -272,6 +301,8 @@ export function inlineFieldOf(value: string, words: string, saved: () => void): 
  * - `factAdd`: Adds a value with its name.
  * - `fields`: Its values that change in place, by their keys.
  * - `text`: The text of a value that changes, as typed.
+ * - `unit`: Unit of its amounts, `g` or `ml`.
+ * - `kind`: Its kind as picked.
  * - `error`: Hint that the reader did not take the change.
  * - `save`: Sends the values, the food taking no clicks meanwhile, and shows the search anew, the food staying open
  *   under its new name; a number that is none, like `abc`, takes nothing and says so.
@@ -292,20 +323,21 @@ function detailOf(search: Search, food: Food): HTMLElement {
     };
     const fields: Map<string, HTMLInputElement> = new Map();
     const text: (key: string) => string = (key: string): string => fields.get(key)?.value.trim() ?? "";
+    const unit: string = unitOf(food.kind);
     const error: HTMLElement = elementOf("p", "food-error",
         "Not changed: it needs a name, numbers only, and no other food of mine may have this name, brand and store");
     const save: () => void = (): void => {
-        const [protein, carbs, fat, portion]: (number | null)[] = ["protein", "carbs", "fat", "portion"]
+        const [protein, carbs, fat, portion, pack]: (number | null)[] = ["protein", "carbs", "fat", "portion", "pack"]
             .map((key: string): number | null => numberRead(text(key)));
         if (text("name") === ""
-            || [protein, carbs, fat, portion].some((typed: number | null): boolean => Number.isNaN(typed))) {
+            || [protein, carbs, fat, portion, pack].some((typed: number | null): boolean => Number.isNaN(typed))) {
             error.hidden = false;
             return;
         }
         detail.inert = true;
         foodChange(food, {
-            name: text("name"), brand: text("brand"), store: text("store"), portion: portion,
-            ...own ? { protein: protein, carbs: carbs, fat: fat, pack: text("pack") } : {},
+            name: text("name"), brand: text("brand"), store: text("store"), portion: portion, kind: kind.value as Kind,
+            ...own ? { protein: protein, carbs: carbs, fat: fat, pack: pack } : {},
         }).then((): void => {
             const renamed: string = keyOf({ ...food, name: text("name"), brand: text("brand"), store: text("store") });
             search.added = search.added.map((key: string): string => key === keyOf(food) ? renamed : key);
@@ -317,6 +349,7 @@ function detailOf(search: Search, food: Food): HTMLElement {
             detail.inert = false;
         });
     };
+    const kind: HTMLSelectElement = kindFieldOf(food.kind, save);
     const fieldAdd: (name: string, key: string, value: string, unit: string) => void = (name: string, key: string,
         value: string, unit: string): void => {
         const input: HTMLInputElement = inlineFieldOf(value, name, save);
@@ -350,11 +383,12 @@ function detailOf(search: Search, food: Food): HTMLElement {
     nutrientAdd("Protein", "protein", food.protein);
     nutrientAdd("Carbs", "carbs", food.carbs);
     nutrientAdd("Fat", "fat", food.fat);
-    fieldAdd("Portion", "portion", numberOf(food.portion), "g");
+    fieldAdd("Portion", "portion", numberOf(food.portion), unit);
     if (own)
-        fieldAdd("Pack", "pack", food.pack, "");
-    else if (food.pack !== "")
-        factAdd("Pack", food.pack);
+        fieldAdd("Pack", "pack", numberOf(food.pack), unit);
+    else if (food.pack !== null)
+        factAdd("Pack", `${food.pack} ${unit}`);
+    factAdd("Kind", kind);
     if (food.barcode !== "")
         factAdd("Barcode", food.barcode);
     error.hidden = true;
@@ -409,7 +443,8 @@ function mineLinesOf(search: Search, food: Food): HTMLElement[] {
 
 /**
  * Makes the name of a product of Open Food Facts in its line: its name with its brand and store in brackets, see
- * `foodNameOf` in `foods.ts`, and below it, small and grey, its pack, like `Pack 265 g`, where known.
+ * `foodNameOf` in `foods.ts`, and below it, small and grey, its pack in its unit, like `Pack 265 g` or `Pack 330 ml`,
+ * where known.
  * - `title`: Name, and below it the pack.
  *
  * @param product - The product
@@ -418,8 +453,8 @@ function mineLinesOf(search: Search, food: Food): HTMLElement[] {
 function productNameOf(product: Product): HTMLElement {
     const title: HTMLElement = elementOf("span", "food-title", "");
     title.append(foodNameOf("food-name", product.name, product.brand, product.store));
-    if (product.pack !== "")
-        title.append(elementOf("span", "food-pack", `Pack ${product.pack}`));
+    if (product.pack !== null)
+        title.append(elementOf("span", "food-pack", `Pack ${product.pack} ${unitOf(product.kind)}`));
     return title;
 }
 
@@ -600,8 +635,9 @@ function numberRead(text: string): number | null {
  * Opens the form of a food by hand at the top of the results of a search, named as typed, for the plus beside
  * the name `Foods` of the food view, in place of one open before, in the look of a food of mine opened, see
  * {@link detailOf}: its name, brand and store, its kcal and its protein, carbs and fat per 100 g, the grams of its
- * portion, like 50 of a Semmel, and its pack, in two columns, each its name small and grey, then its value, plain with
- * a thin line below to type on, see `.food-inline-new` in `search.css`, its unit after a number, a click on its name
+ * portion, like 50 of a Semmel, empty taking its pack, else 100, and its pack, in two columns, each its name small
+ * and grey, then its value, plain with a thin line below to type on, see `.food-inline-new` in `search.css`, its
+ * unit after a number, a click on its name
  * putting the cursor into it; its name, brand, store and kcal it needs, since I keep my own brands and places
  * always, like my bakery and where it is, and protein, carbs or fat left empty is unknown, never 0, the one of them
  * missing worked out by the reader from the kcal, see `nutrientsOf` in `reader/food.ts`.
@@ -629,7 +665,9 @@ export function foodNewShow(element: HTMLElement): void {
 /**
  * Opens the form of a food by hand in a search, see {@link foodNewShow}, named as typed in the search, the cursor in
  * its kcal, or in its name while none is typed; for a product of Open Food Facts without kcal its name, brand and
- * store filled in and its barcode and pack kept, see {@link productLineOf}.
+ * store filled in, its pack and portion too, its barcode and kind kept, its amounts in the unit of its kind,
+ * see {@link productLineOf}; a food of my own is `Eat`, which I change once it is saved, see {@link detailOf}.
+ * - `kind`: Kind of the food.
  * - `start`: What each field starts with.
  * - `form`: The form.
  * - `facts`: Its values in two columns.
@@ -644,8 +682,10 @@ export function foodNewShow(element: HTMLElement): void {
  */
 function newFormShow(search: Search, product: Product | null): void {
     search.results.querySelector(".food-form")?.remove();
+    const kind: Kind = product?.kind ?? "Eat";
     const start: Map<string, string> = new Map([["name", product?.name ?? search.input.value.trim()],
-        ["brand", product?.brand ?? ""], ["store", product?.store ?? ""], ["pack", product?.pack ?? ""]]);
+        ["brand", product?.brand ?? ""], ["store", product?.store ?? ""], ["pack", String(product?.pack ?? "")],
+        ["portion", String(product?.portion ?? "")]]);
     const form: HTMLElement = elementOf("div", "food-form food-detail", "");
     const facts: HTMLElement = elementOf("div", "food-facts", "");
     const inputs: Map<string, HTMLInputElement> = new Map();
@@ -654,17 +694,18 @@ function newFormShow(search: Search, product: Product | null): void {
     const text: (key: string) => string = (key: string): string => inputs.get(key)?.value.trim() ?? "";
     const close: () => void = (): void => form.remove();
     const add: () => void = (): void => {
-        const [kcal, protein, carbs, fat, portion]: (number | null)[] = ["kcal", "protein", "carbs", "fat", "portion"]
-            .map((key: string): number | null => numberRead(text(key)));
+        const [kcal, protein, carbs, fat, portion, pack]: (number | null)[] = ["kcal", "protein", "carbs", "fat",
+            "portion", "pack"].map((key: string): number | null => numberRead(text(key)));
         if (text("name") === "" || text("brand") === "" || text("store") === "" || kcal === null
-            || [kcal, protein, carbs, fat, portion].some((typed: number | null): boolean => Number.isNaN(typed))) {
+            || [kcal, protein, carbs, fat, portion, pack].some((typed: number | null): boolean =>
+                Number.isNaN(typed))) {
             error.hidden = false;
             return;
         }
         form.inert = true;
         foodSend({
             name: text("name"), kcal: kcal, protein: protein, carbs: carbs, fat: fat, barcode: product?.barcode ?? "",
-            brand: text("brand"), store: text("store"), pack: text("pack"), portion: portion,
+            brand: text("brand"), store: text("store"), pack: pack, portion: portion, kind: kind,
         }).then((food: Food): void => {
             form.remove();
             addedOf(search)(food);
@@ -675,7 +716,7 @@ function newFormShow(search: Search, product: Product | null): void {
         });
     };
 
-    fields.forEach(([name, key, unit]: [string, string, string]): void => {
+    fieldsOf(kind).forEach(([name, key, unit]: [string, string, string]): void => {
         const label: HTMLElement = elementOf("span", "food-fact", name);
         const input: HTMLInputElement = editFieldOf(start.get(key) ?? "", name, add, close);
         const amount: HTMLElement = elementOf("span", "food-grams", "");

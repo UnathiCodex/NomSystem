@@ -40,7 +40,7 @@
 
 import {
     amountOf, bracketsWatch, buttonOf, dishDelete, dishesLoad, dishRename, dishSend, elementOf, foodNameOf,
-    portionGramsOf,
+    portionGramsOf, unitOf,
 } from "./foods.ts";
 import { editButtonsOf, editFieldOf, foodSearchOf, inlineFieldOf, listHeadOf, listLineOf } from "./search.ts";
 import { crossPut, iconOf, iconPut, plusPut, QuestionMark } from "../icons.ts";
@@ -135,7 +135,7 @@ function removeOf(words: string, click: () => void): HTMLButtonElement {
 /**
  * Makes the line of a food of a meal opened: its name with its brand and store in brackets, see `foodNameOf`
  * in `./foods.ts`, a link to the food itself among my foods, which opens it there, see `foodShow` in `./search.ts`;
- * its standard grams, which change in place by a click into them; and its `×` where given.
+ * its standard grams, which change in place by a click into them, millilitres for a drink; and its `×` where given.
  * - `part`: The line.
  * - `name`, `brand`, `store`: The parts of the food.
  * - `link`: Its name, as a link to the food.
@@ -143,19 +143,20 @@ function removeOf(words: string, click: () => void): HTMLButtonElement {
  *
  * @param food - Food of the meal, like `Hackfleisch;Gut & Günstig;Edeka`
  * @param grams - Field of its standard grams, see {@link gramsFieldOf}
+ * @param unit - Unit of its grams, `g`, or `ml` for a drink, see `unitOf` in `./foods.ts`
  * @param remove - Its `×`, `null` while it is the only food of the meal
  * @param open - Opens the food among my foods
  * @returns The line
  */
-function partOf(food: string, grams: HTMLInputElement, remove: HTMLButtonElement | null, open: () => void):
-    HTMLElement {
+function partOf(food: string, grams: HTMLInputElement, unit: string, remove: HTMLButtonElement | null,
+                open: () => void): HTMLElement {
     const part: HTMLElement = elementOf("div", "food-part", "");
     const [name, brand, store]: string[] = food.split(";");
     const link: HTMLButtonElement = buttonOf("food-link", "", open);
     const amount: HTMLElement = elementOf("span", "food-value food-grams", "");
     link.append(foodNameOf("food-name", name, brand ?? "", store ?? ""));
     link.title = `Open ${name} among my foods`;
-    amount.append(grams, "g");
+    amount.append(grams, unit);
     part.append(link, amount);
     if (remove !== null)
         part.append(remove);
@@ -265,7 +266,8 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
         if (taken)
             fresh = "";
         const shown: Dish[] = [
-            ...fresh === "" ? [] : [{ name: fresh, short: "", foods: [], standard: [], kcal: null, portions: [] }],
+            ...fresh === "" ? [] : [{ name: fresh, short: "", foods: [], standard: [], kcal: null, portions: [],
+                kinds: [] }],
             ...dishesFound(dishes, search.value),
         ];
         const rows: HTMLElement[] = shown.flatMap((dish: Dish): HTMLElement[] => {
@@ -337,7 +339,7 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
                     dish.portions[index] ?? null, (typed: number | null): void => send(dish, dish.foods, dish.short,
                         dish.standard.map((other: number | null, at: number): number | null => at === index ? typed : other)));
                 const [name, brand, store]: string[] = food.split(";");
-                const part: HTMLElement = partOf(food, grams, dish.foods.length > 1
+                const part: HTMLElement = partOf(food, grams, unitOf(dish.kinds[index] ?? "Eat"), dish.foods.length > 1
                     ? removeOf(`Remove ${name}`, (): void =>
                         change(dish, dish.foods.filter((other: string): boolean => other !== food)))
                     : null, (): void => foodOpen({ name: name, brand: brand ?? "", store: store ?? "" }));

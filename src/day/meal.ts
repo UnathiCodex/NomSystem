@@ -3,8 +3,9 @@
  *
  * A meal of the log, `Food`, in rows of the dialog, like every field, with the fewest steps and nothing nested:
  * - Summary: what I ate, written by itself, never typed: the meals, then the foods eaten beside them, parted by `, `,
- *   like `Chili con Carne, Weißbrot`, and after it in brackets what they give together, as a type stands after its
- *   skill, like `Chili con Carne, Weißbrot (660 kcal)`.
+ *   like `Chili con Carne, Weißbrot`, drinks left out, like a `Coca-Cola`, see {@link mealTitle}, and after it in
+ *   brackets what they give together, drinks too, as a type stands after its skill, like
+ *   `Chili con Carne, Weißbrot (660 kcal)`. A drink's amount is in millilitres, like `330 ml`, any other in grams.
  * - Foods: what I ate, the one plus beside its name opening one list, a menu over the dialog right under the plus,
  *   see `listOf` in `choices.ts`, whose one search finds, as I type, my meals by their names and foods first, then my
  *   foods, then the products of Open Food Facts by name or barcode, see `../food/search.ts`; one click takes one:
@@ -60,7 +61,7 @@ import { choicesOf, listOf, listOpen, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import {
-    buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodsFind, gramsLoad, portionGramsOf,
+    buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodsFind, gramsLoad, portionGramsOf, summaryOf, unitOf,
 } from "../food/foods.ts";
 import { dishesFound, dishNameOf, kcalTextOf, mealNameOf } from "../food/meals.ts";
 import { foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
@@ -68,7 +69,7 @@ import { crossPut, iconOf, plusPut } from "../icons.ts";
 import { Plus } from "lucide";
 
 import type { Choice } from "./choices.ts";
-import type { Dish, Food, FoodsFound } from "../food/foods.ts";
+import type { Dish, Food, FoodsFound, Kind } from "../food/foods.ts";
 
 
 /**
@@ -400,7 +401,8 @@ function portionsOf(text: string, portion: number | null): string {
 }
 
 /**
- * Makes the small field of the grams of a food with `g` after it, starting at the grams given, which a click selects
+ * Makes the small field of the grams of a food with `g` after it, or `ml` for a drink, see `unitOf` in
+ * `../food/foods.ts`, starting at the grams given, which a click selects
  * so I type over them, empty for none; portions typed, like `2x`, become grams once I leave the field or press Enter,
  * see {@link portionsOf}; marking itself invalid while its text is no number of 0 or more, so the dialog does not send
  * it; 0 is a food I did not put in this time, which the entry leaves out, see {@link mealFoods}.
@@ -409,11 +411,12 @@ function portionsOf(text: string, portion: number | null): string {
  * @param value - Grams as typed, empty for none
  * @param name - Words for screen readers, like `Grams of Brot`
  * @param portion - Grams of the portion of the food, `null` for none kept
+ * @param unit - Unit after the field, `g` or `ml`
  * @param typed - Takes the text typed
  * @returns The field with its unit, the text field itself, and what turns its portions into grams
  */
-function gramsFieldOf(value: string, name: string, portion: number | null, typed: (text: string) => void):
-    [HTMLElement, HTMLInputElement, () => void] {
+function gramsFieldOf(value: string, name: string, portion: number | null, unit: string,
+                      typed: (text: string) => void): [HTMLElement, HTMLInputElement, () => void] {
     const label: HTMLElement = elementOf("label", "meal-grams", "");
     const input: HTMLInputElement = document.createElement("input");
     const portions: () => void = (): void => {
@@ -436,7 +439,7 @@ function gramsFieldOf(value: string, name: string, portion: number | null, typed
         typed(input.value.trim());
     });
     input.addEventListener("change", portions);
-    label.append(input, " g");
+    label.append(input, ` ${unit}`);
     return [label, input, portions];
 }
 
@@ -476,7 +479,7 @@ function foodRowOf(pick: FoodPick, typed: () => void, removed: () => void, again
         food === undefined || pick.grams.trim() === "" ? "" : kcalTextOf(kcalOf(pick));
     const kcal: HTMLElement = elementOf("span", "meal-kcal", kcalTextFor());
     const [grams, input, portions]: [HTMLElement, HTMLInputElement, () => void] = gramsFieldOf(pick.grams,
-        `Grams of ${pick.name}`, food?.portion ?? null, (text: string): void => {
+        `Grams of ${pick.name}`, food?.portion ?? null, unitOf(food?.kind ?? "Eat"), (text: string): void => {
             pick.grams = text;
             kcal.textContent = kcalTextFor();
             typed();
@@ -966,7 +969,7 @@ export async function mealOf(lines: string[], title: string, changed: () => void
         last.foods.push(pickOf(read, read.grams));
     });
     if (drawing !== null && meals.length === 0 && picks.length > 0 && title.trim() !== ""
-        && title.trim().toLowerCase() !== picks.map((pick: FoodPick): string => pick.name).join(", ").toLowerCase()) {
+        && title.trim().toLowerCase() !== mealTitle().toLowerCase()) {
         meals = [{ name: title.trim(), foods: picks }];
         picks = [];
     }
@@ -1038,11 +1041,16 @@ export function mealFoods(): string[] {
 
 /**
  * Gives the summary of the meal: the names of the meals that hold a food, then of the foods beside them without brand
- * and store, in the order picked, parted by `, `, like `Chili con Carne, Weißbrot`.
+ * and store, in the order picked, parted by `, `, like `Chili con Carne, Weißbrot`, drinks left out, like a
+ * `Coca-Cola`, whose kcal still count, see `summaryOf` in `../food/foods.ts`.
  *
  * @returns Summary, empty while nothing is picked
  */
 export function mealTitle(): string {
-    return [...meals.filter((meal: MealPick): boolean => meal.foods.length > 0), ...picks]
-        .map((picked: MealPick | FoodPick): string => picked.name).join(", ");
+    return summaryOf([
+        ...meals.filter((meal: MealPick): boolean => meal.foods.length > 0)
+            .map((meal: MealPick): { name: string; kind: Kind } => ({ name: meal.name, kind: "Eat" })),
+        ...picks.map((pick: FoodPick): { name: string; kind: Kind } =>
+            ({ name: pick.name, kind: foodOf(pick)?.kind ?? "Eat" })),
+    ]);
 }
