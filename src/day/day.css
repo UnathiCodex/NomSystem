@@ -2113,26 +2113,49 @@ svg.route-arrow {
         font-size: 0.875rem;
     }
 
-    /* A box on a phone: its lines take the whole width beside the ring, and its buttons, which show without
-       a pointer, go into a row of their own below them, at the right, 0.75rem apart, so a tap between two of them
-       goes to neither, see below */
+    /* A box on a phone in one grid: the ring at the left of what it is, its buttons, which show without a pointer,
+       at the right of it, on the same line, so they take no row of their own, and its time, place and topics below
+       over the whole width beside the ring, under the buttons too; its lines stand in the grid themselves,
+       a click on them changing the box as before; what it is goes on below where the buttons leave it too little room,
+       like `Skill: MGT1372 (VO)` */
     .box {
-        flex-wrap: wrap;
-        row-gap: 0.5rem;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0 0.625rem;
     }
 
     .box-body {
-        flex-basis: calc(100% - 1.125rem - 0.75rem);
+        display: contents;
     }
 
+    .box-ring,
+    .box-what {
+        grid-row: 1;
+    }
+
+    .box-meta,
+    .box-topics {
+        grid-column: 2 / -1;
+    }
+
+    /* The buttons of a box on a phone plain, without frame or ground, side by side, centred on the line of what it
+       is */
     .box-actions {
-        gap: 0.75rem;
-        margin-left: auto;
+        grid-row: 1;
+        grid-column: 3;
+        gap: 0;
+        margin-block: -0.375rem;
+    }
+
+    .box-action {
+        width: 2.125rem;
+        height: 2rem;
+        border: 0;
     }
 
     /* The ring and the buttons of a box on a phone as they look, but a finger's width to hit: the ring, which logs
-       the box with one tap, takes a tap 0.75rem around it, as far as the lines beside it, and each button 0.375rem
-       around it */
+       the box with one tap, takes a tap 0.625rem around it, as far as the lines beside it, and each button
+       its own width, side by side with the next, and 0.5rem above and below */
     button.box-ring,
     .box-action {
         position: relative;
@@ -2142,11 +2165,11 @@ svg.route-arrow {
     .box-action::after {
         content: "";
         position: absolute;
-        inset: -0.75rem;
+        inset: -0.625rem;
     }
 
     .box-action::after {
-        inset: -0.375rem;
+        inset: -0.5rem 0;
     }
 
     /* The place of a box on a phone on a line of its own below its time, whole, without the dot */
