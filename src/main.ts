@@ -12,8 +12,9 @@
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the scripts no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
- * A phone opens every area as a computer does, its areas in a bar at the bottom of the screen instead of at its left
- * edge, see `base.css`; every device tells the reader what it shows of the page, see {@link deviceReport}.
+ * A phone, a screen as narrow as the phone layout of the stylesheets, which `phone.ts` tells, opens the day everywhere,
+ * its plan, its log and its daily note, nothing else, and `base.css` hides the areas, so the whole screen stays free;
+ * every device tells the reader what it shows of the page, see {@link deviceReport}.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
  * - `./day/day.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`, `./food/food.html?raw`,
@@ -25,6 +26,7 @@
  * - `./food/food.ts`: Shows what I ate on a day with its totals, and my foods.
  * - `./editor/editor.ts`: Edits a note of my modules or a Markdown file of my new system as its text, its Markdown
  *   shown as in Obsidian's live preview, saved exactly as edited, with the tree of its root on the left.
+ * - `./phone.ts`: Tells a phone, which opens the day everywhere.
  * - {@link History#replaceState}: Turns an older address of the scripts into `/scripts`, without loading
  *   the page again.
  */
@@ -35,6 +37,7 @@ import notesHtml from "./notes/notes.html?raw";
 import skillHtml from "./skill/skill.html?raw";
 import foodHtml from "./food/food.html?raw";
 import editorHtml from "./editor/editor.html?raw";
+import { phone } from "./phone.ts";
 
 
 /**
@@ -59,7 +62,7 @@ let deviceWait: number = 0;
 const address: URLSearchParams = new URLSearchParams(location.search);
 if (location.pathname === "/notes" || (location.pathname === "/edit" && address.has("path")))
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
-const areas: string[] = ["/scripts", "/plannings", "/skill", "/food", "/edit"];
+const areas: string[] = phone ? [] : ["/scripts", "/plannings", "/skill", "/food", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
 const marked: string = area === "/edit" ? "/plannings" : area;
 document.querySelector(`.areas a[href="${marked}"]`)?.setAttribute("aria-current", "page");
