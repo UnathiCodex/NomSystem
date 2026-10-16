@@ -6,7 +6,8 @@
  * at the right, like `Category  Skill`, see `choices.ts`: start and end fixed at the top, then the category, below it
  * each of its fields one after another, the note always at the bottom, a click on a row opening its one list right
  * under it, then `Save`; an empty field stays empty, without dash or placeholder. Esc closes an open list, else
- * the dialog, and a click beside the dialog closes it without saving. A new entry opens with the list
+ * the dialog, and a click beside the dialog closes it without saving. Enter in a field confirms only that field,
+ * and the entry saves only by its check or by Ctrl+Enter, see {@link enterTake}. A new entry opens with the list
  * of the categories open.
  * Every category has its `Summary`, the `SUMMARY` of its file, its `Place`, a way also `From` before its place,
  * and `With` right below its place, who I was with, see {@link withRowOf};
@@ -1965,13 +1966,40 @@ function timesCheck(): boolean {
 }
 
 /**
+ * Takes Enter in the dialog, see the top of this file, for an entry of the log and a box of the plan alike:
+ * Ctrl+Enter from any field saves it, as its check does, before the field sees the key; Enter in a field without
+ * its own use of it, like a time, a day, a part of a place or an address of `With`, only confirms that field,
+ * what I typed staying and the cursor leaving it, instead of sending the form; a field that uses Enter keeps it,
+ * like a list taking its first match, the grams of a food opening the list again or a field of a food saving
+ * that food, and the note keeps it as a new line.
+ * - `form`: The form of the dialog.
+ */
+function enterTake(): void {
+    const form: HTMLFormElement = document.getElementById("entry-form") as HTMLFormElement;
+    form.addEventListener("keydown", (event: KeyboardEvent): void => {
+        if (event.key !== "Enter" || !event.ctrlKey)
+            return;
+        event.preventDefault();
+        event.stopPropagation();
+        form.requestSubmit();
+    }, true);
+    form.addEventListener("keydown", (event: KeyboardEvent): void => {
+        if (event.key !== "Enter" || event.defaultPrevented || !(event.target instanceof HTMLInputElement))
+            return;
+        event.preventDefault();
+        event.target.blur();
+    });
+}
+
+/**
  * Starts the entry by category after the router has put its HTML into the page:
  * the copy duplicates the entry or the box being changed, see {@link entryDuplicate}, the pencil beside the box being
  * logged changes that box; the dialog logs no box, since the ring of the box in the plan does that already;
  * typing a deadline turns start and end of a box off, see {@link deadlineSee}; typing the day, start or end
  * fills the day of the end, see {@link endDayFill}, until I type that day myself, and a start typed for a new box
  * its end, see {@link endFill}; typing a day of a skill entry gives it the semester of that day while I picked none,
- * see `skillDaySet` in `skill.ts`; times that are not right are not sent, see {@link timesCheck};
+ * see `skillDaySet` in `skill.ts`; times that are not right are not sent, see {@link timesCheck}; Enter confirms
+ * only its field, see {@link enterTake};
  * the dialog of a new place starts too, see `places.ts`.
  * - `endDay`: Field of the day of the end.
  *
@@ -2009,6 +2037,7 @@ export function categoriesStart(calendar: Calendar): void {
     endDay.addEventListener("input", (): void => {
         endDayTyped = true;
     });
+    enterTake();
     document.getElementById("entry-form")?.addEventListener("submit", (event: SubmitEvent): void => {
         event.preventDefault();
         if (timesCheck())
