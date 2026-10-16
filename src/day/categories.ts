@@ -8,7 +8,8 @@
  * under it, then `Save`; an empty field stays empty, without dash or placeholder. Esc closes an open list, else
  * the dialog, and a click beside the dialog closes it without saving. A new entry opens with the list
  * of the categories open.
- * Every category has its `Summary`, the `SUMMARY` of its file, and its `Place`, a way also `From` before its place;
+ * Every category has its `Summary`, the `SUMMARY` of its file, its `Place`, a way also `From` before its place,
+ * and `With` right below its place, who I was with, see {@link withRowOf};
  * the summary of `Sleep` only `Night` or `Day`, a nap, that of `Way` my means of transport;
  * a value with steps shows them below its line while it is picked, with the note of its last entry;
  * `Body` is my body care, like `Shower`;
@@ -67,7 +68,7 @@
  * buttons, see {@link entryDuplicate}.
  *
  * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top.
- * - `./entries.ts`: Sends new, changed and removed entries to the reader.
+ * - `./entries.ts`: Sends new, changed and removed entries to the reader, and names who I was with.
  * - `./meal.ts`: A meal of the log: its summary and its meals and foods, picked from one search, and its new meals.
  * - `./places.ts`: The dialog of a place, which adds a new one with its address to `Places.md` or changes mine.
  * - `./skill.ts`: The fields of `Skill`: skill and type, place, semester, chapters, documents,
@@ -100,14 +101,19 @@ import type { Calendar, EventApi } from "fullcalendar";
 import type { Box } from "./boxes.ts";
 import type { Choice } from "./choices.ts";
 import type { Online, Place } from "./places.ts";
-import type { BoxFields, EntryFields } from "./entries.ts";
+import type { Attendee, BoxFields, EntryFields } from "./entries.ts";
 import type { ModuleType, SkillLinks, SkillValues } from "./skill.ts";
 
 
 /**
- * Field of an entry a field of a category writes into: `title`, `from` or `location`.
+ * Field of an entry a field of a category writes into: `title`, `from`, `location` or `with`, its people.
  */
-type FieldKey = "title" | "from" | "location";
+type FieldKey = "title" | "from" | "location" | "with";
+
+/**
+ * Fields of a place, where an entry is and where a way starts, which share one list of places.
+ */
+const placeKeys: FieldKey[] = ["from", "location"];
 
 /**
  * A field of a category, as the reader gives it.
@@ -118,11 +124,12 @@ type FieldKey = "title" | "from" | "location";
  * - `steps`: Steps of a value offered in the code, by the value, like the exercises of `Neck short`.
  * - `fixed`: Whether it takes only its values, like `Night` and `Day` of `Sleep`, and no new ones.
  * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `U-Bahn, Bus`,
- *   see {@link manyRowOf}; one when left out.
+ *   see {@link manyRowOf}, or the people of `With`, `Sophale, Willi`, see {@link withRowOf}; one when left out.
  * - `rooms`: For a field of a place, the rooms of the university in `Rooms.md`, each as the line an entry writes,
  *   which its list offers only as I search, see {@link placeSearchOf}; none for any other field.
  * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
- *   like `https://nav.tum.de/room/0509.EG.980`; none for any other field.
+ *   like `https://nav.tum.de/room/0509.EG.980`; for `With` the address of each name its last entry wrote,
+ *   like `sophale@invalid`; none for any other field.
  */
 type Field = {
     name: string;
@@ -163,7 +170,9 @@ type EntryTarget = "log" | "box";
  * - `time`: Expected time of a box, `null` for none and for an entry of the log.
  * - `minutes`: Expected duration of a box in minutes, `null` for none and for an entry of the log.
  * - `category`: Category picked already, else `null`.
- * - `values`: Values picked already, by the field they write into.
+ * - `values`: Values picked already, by the field they write into; for `with` the names, like `Sophale, Willi`.
+ * - `addresses`: Address of each name of `With` as the entry, the box or the box to log has it,
+ *   or the one it is a copy of, like `sophale@invalid`; none for nobody.
  * - `titleLink`: Link of what it was, the `ALTREP` of its `SUMMARY`, as the entry, the box or the box to log has it,
  *   or the one it is a copy of, for a skill entry the folder of its skill; empty for none.
  * - `locationLink`: Link of its place, its `ALTREP`, as the entry, the box or the box to log has it,
@@ -184,6 +193,7 @@ type EntryOpening = {
     minutes: number | null;
     category: string | null;
     values: { [key in FieldKey]: string };
+    addresses: { [name: string]: string };
     titleLink: string;
     locationLink: string;
     note: string;
@@ -214,15 +224,15 @@ let categories: Category[] = [];
 /**
  * Values picked in the lists of the fields, by the field they write into, empty for none.
  */
-let values: { [key in FieldKey]: string } = { title: "", from: "", location: "" };
+let values: { [key in FieldKey]: string } = { title: "", from: "", location: "", with: "" };
 
 /**
  * What the open dialog shows.
  */
 let opened: EntryOpening = {
     target: "log", start: new Date(), end: new Date(), time: null, minutes: null, category: null,
-    values: { title: "", from: "", location: "" }, titleLink: "", locationLink: "", note: "", foods: [], skill: skillNone,
-    plan: null, entry: null, box: null,
+    values: { title: "", from: "", location: "", with: "" }, addresses: {}, titleLink: "", locationLink: "", note: "",
+    foods: [], skill: skillNone, plan: null, entry: null, box: null,
 };
 
 /**
@@ -300,6 +310,18 @@ let realMiddle: number | null = null;
 let endDayTyped: boolean = false;
 
 /**
+ * Address of each name of `With` as the dialog has it, by name, like `sophale@invalid`: as the entry or the box had it,
+ * or as typed by its pencil, see {@link withRowOf}; a name without one takes it by {@link personAddressOf}.
+ */
+let addresses: { [name: string]: string } = {};
+
+/**
+ * Whether the names of `With` show their addresses below them to type, opened and closed by its pencil,
+ * see {@link withRowOf}.
+ */
+let withOpen: boolean = false;
+
+/**
  * Place a new entry or box started with, where the last way before it ended, see {@link wayEndFill}, so a way picked
  * after it starts there instead of going there; empty while none was filled in.
  */
@@ -339,7 +361,7 @@ function startRead(): Date {
  * @returns Values by the field they write into
  */
 function valuesRead(): { [key in FieldKey]: string } {
-    const picked: { [key in FieldKey]: string } = { title: "", from: "", location: "" };
+    const picked: { [key in FieldKey]: string } = { title: "", from: "", location: "", with: "" };
     (chosen?.fields ?? []).forEach((field: Field): void => {
         picked[field.key] = values[field.key];
     });
@@ -426,6 +448,16 @@ function endFill(): void {
 }
 
 /**
+ * Tells whether a field is one of a place, see {@link placeKeys}.
+ *
+ * @param field - Field of a category, like `From`
+ * @returns Whether it picks a place
+ */
+function placeIs(field: Field): boolean {
+    return placeKeys.includes(field.key);
+}
+
+/**
  * Takes a value picked into the list of every field of its kind that lacks it, like a new place,
  * because places are one list for every field of a place; a room picked stays among the rooms, which the list
  * offers only as I search, see {@link placeSearchOf}.
@@ -435,7 +467,7 @@ function endFill(): void {
  */
 function valueAdd(field: Field, value: string): void {
     (chosen?.fields ?? [])
-        .filter((other: Field): boolean => (other.key === "title") === (field.key === "title")
+        .filter((other: Field): boolean => (other.key === field.key || (placeIs(other) && placeIs(field)))
             && !other.values.includes(value) && !other.rooms.includes(value))
         .forEach((other: Field): void => {
             other.values.push(value);
@@ -624,7 +656,7 @@ function placesShow(): void {
  * @returns Whether `Online` is picked
  */
 function onlinePicked(field: Field): boolean {
-    return field.key !== "title" && labelOf(values[field.key]) === onlineName;
+    return placeIs(field) && labelOf(values[field.key]) === onlineName;
 }
 
 /**
@@ -730,7 +762,7 @@ function partsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]): H
 function placeTake(old: string, place: Place): void {
     const line: string = lineOf(place);
     categories.flatMap((category: Category): Field[] => category.fields)
-        .filter((other: Field): boolean => other.key !== "title")
+        .filter(placeIs)
         .forEach((other: Field): void => {
             other.values = other.values.map((value: string): string => value === old ? line : value);
             delete other.links[old];
@@ -738,7 +770,7 @@ function placeTake(old: string, place: Place): void {
                 other.links[line] = place.link;
         });
     (Object.keys(values) as FieldKey[])
-        .filter((key: FieldKey): boolean => key !== "title" && values[key] === old)
+        .filter((key: FieldKey): boolean => placeKeys.includes(key) && values[key] === old)
         .forEach((key: FieldKey): void => {
             values[key] = line;
         });
@@ -1002,6 +1034,8 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
  * @returns Its row, with the parts of its place where they show
  */
 function fieldRowsOf(field: Field): HTMLElement[] {
+    if (field.key === "with")
+        return [withRowOf(field)];
     if (field.key === "title" && meal !== null)
         return meal;
     if (field.key === "title" && field.many === true && !asPlanned())
@@ -1078,10 +1112,123 @@ function manyRowOf(field: Field): HTMLElement {
 }
 
 /**
- * Builds the rows of the place of a skill entry, the one field of `Skill` from the reader, see {@link fieldRowsOf},
- * which `skill.ts` shows below skill and type.
+ * Gives the standard address of a name of `With`: the name in small letters, ä, ö, ü and ß as ae, oe, ue and ss,
+ * every other character but a–z and 0–9 a dot, never two in a row and none at either end, then `@invalid`, the ending
+ * reserved for addresses that never work, so nothing reaches anybody, like `herr.mueller@invalid` of `Herr Müller`.
+ * - `local`: The part before `@`.
  *
- * @returns The row of the place, none before `Skill` is picked
+ * @param name - Name, like `Herr Müller`
+ * @returns Address, like `herr.mueller@invalid`
+ */
+function standardAddressOf(name: string): string {
+    const local: string = name.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue")
+        .replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "");
+    return `${local}@invalid`;
+}
+
+/**
+ * Gives the address of a name of `With`: as the dialog has it, see {@link addresses}, else as its last entry wrote it,
+ * else the standard one, see {@link standardAddressOf}.
+ *
+ * @param field - The field `With`, with the address of each name its last entry wrote
+ * @param name - Name, like `Sophale`
+ * @returns Address, like `sophale@invalid`
+ */
+function personAddressOf(field: Field, name: string): string {
+    return addresses[name] ?? field.links[name] ?? standardAddressOf(name);
+}
+
+/**
+ * Builds the parts below the names of `With`, see {@link withRowOf}: each name small and grey, then its address
+ * to type, like `sophale@invalid`, if I ever want a real e-mail there, as the parts of a place stand,
+ * see {@link partOf}; an address goes along as typed when the entry is saved, see {@link peopleRead}, an empty one
+ * as the name's standard address.
+ * - `input`: Field of the address of a name.
+ *
+ * @param field - The field `With`
+ * @param names - Names picked, like `Sophale` and `Willi`
+ * @returns The part of each name
+ */
+function withPartsOf(field: Field, names: string[]): HTMLLabelElement[] {
+    return names.map((name: string): HTMLLabelElement => {
+        const input: HTMLInputElement = partFieldOf("email", personAddressOf(field, name), `Address of ${name}`);
+        input.addEventListener("input", (): void => {
+            addresses[name] = input.value.trim() === "" ? standardAddressOf(name) : input.value.trim();
+        });
+        return partOf(name, input);
+    });
+}
+
+/**
+ * Builds the row of `With`, who I was with, one or more people or groups, mostly one group, like `Socials`,
+ * sometimes several, like `Sophale, Willi`: one line of the row, the names picked parted by `, `, as the means
+ * of a way, see {@link manyRowOf}; its list offers the names my earlier entries wrote, the most used first, takes
+ * a name or takes it back by a click and stays open for the next, and adds a typed name, `Search or add a person`,
+ * but none with a comma, which parts names; beside the line the pencil, while a name is picked, which shows below it
+ * the address of each name to change, see {@link withPartsOf}. Who I was with shows only here, not in the time grid
+ * or the plan.
+ * - `picked`: The names picked, in their order.
+ * - `pencil`: The pencil, `✎`.
+ * - `parts`: The addresses below the names, shown while the pencil opened them.
+ * - `show`: Shows the pencil and the addresses for the names picked.
+ *
+ * @param field - The field `With`
+ * @returns Its row
+ */
+function withRowOf(field: Field): HTMLElement {
+    const picked: string[] = values.with === "" ? [] : values.with.split(", ");
+    const pencil: HTMLButtonElement = document.createElement("button");
+    const parts: HTMLElement = document.createElement("div");
+    const show: (names: string[]) => void = (names: string[]): void => {
+        pencil.hidden = names.length === 0;
+        parts.hidden = !withOpen || names.length === 0;
+        parts.replaceChildren(...withPartsOf(field, names));
+    };
+    pencil.type = "button";
+    pencil.className = "entry-pencil";
+    iconPut(pencil, Pencil, "Change the addresses");
+    pencil.addEventListener("click", (): void => {
+        withOpen = !withOpen;
+        show(values.with === "" ? [] : values.with.split(", "));
+        if (withOpen)
+            parts.querySelector("input")?.focus();
+    });
+    parts.className = "field-parts";
+    parts.dataset.field = field.key;
+    show(picked);
+    return rowOf(field.name, choicesOf({
+        search: searchOf(field.values.map(choiceOf)), picked: picked, many: true, adding: true,
+        add: async (name: string): Promise<string | null> => name.includes(",") ? null : name.trim(),
+        noun: "person",
+        aside: [pencil], below: [parts],
+        pick: (names: string[]): void => {
+            values.with = names.join(", ");
+            names.forEach((name: string): void => valueAdd(field, name));
+            show(names);
+            saveAllow();
+        },
+    }));
+}
+
+/**
+ * Reads who I was with as picked in `With`, each name with its address, see {@link personAddressOf}.
+ * - `field`: The field `With` of the category picked, `undefined` for none.
+ *
+ * @returns The people, none while none is picked
+ */
+function peopleRead(): Attendee[] {
+    const field: Field | undefined = chosen?.fields.find((other: Field): boolean => other.key === "with");
+    if (field === undefined || values.with === "")
+        return [];
+    return values.with.split(", ")
+        .map((name: string): Attendee => ({ name: name, address: personAddressOf(field, name) }));
+}
+
+/**
+ * Builds the rows of the place of a skill entry and of who I was with, the fields of `Skill` from the reader,
+ * see {@link fieldRowsOf}, which `skill.ts` shows below skill and type.
+ *
+ * @returns The rows of the place and of `With`, none before `Skill` is picked
  */
 function placeRowsOf(): HTMLElement[] {
     return (chosen?.fields ?? []).flatMap(fieldRowsOf);
@@ -1090,8 +1237,8 @@ function placeRowsOf(): HTMLElement[] {
 /**
  * Tells whether the dialog logs a box of the plan that has a category, or changes an entry of the log logged from
  * a box, which points to it with `RELATED-TO`: its category and summary stay the plan's, so the link shows how
- * the plan was really done, while its times, place, semester and note change freely, like a lecture watched online
- * at home. A box without category leaves both open, to be picked.
+ * the plan was really done, while its times, place, people, semester and note change freely, like a lecture
+ * watched online at home. A box without category leaves both open, to be picked.
  *
  * @returns Whether it does
  */
@@ -1103,8 +1250,8 @@ function asPlanned(): boolean {
 /**
  * Shows the fields of the category picked, each its rows, see {@link fieldRowsOf}, in the order of the file,
  * the same for every category, below the times and the category: what, then its place, a way where it starts
- * before its place;
- * after the place for `Body` my neck pain, shown while `Neck long` is picked, see {@link painRowOf};
+ * before its place, then who I was with, see {@link withRowOf};
+ * after them for `Body` my neck pain, shown while `Neck long` is picked, see {@link painRowOf};
  * a meal of the log is its summary, see {@link meal}.
  * - `fields`: The fields of the category picked.
  */
@@ -1267,8 +1414,9 @@ function titleRead(picked: string): string {
  * - `skill`: Skill and type of a skill entry, empty for any other entry.
  * - `links`: Chapters and documents of a skill entry, none for any other entry.
  *
- * @returns Category, what with its link, see {@link summaryLink}, place with the link of `Online`, where a way starts, module, type, semester, note,
- *   chapters and documents, as a box of the day the dialog opened with, without time, duration and deadline;
+ * @returns Category, what with its link, see {@link summaryLink}, place with the link of `Online`, where a way starts,
+ *   who I was with, see {@link peopleRead}, module, type, semester, note, chapters and documents, as a box of the day
+ *   the dialog opened with, without time, duration and deadline;
  *   the semester of a skill entry as picked, else of that day
  */
 function textsRead(): BoxFields {
@@ -1284,6 +1432,7 @@ function textsRead(): BoxFields {
         location: picked.location,
         locationLink: online ? onlineLink : undefined,
         from: picked.from,
+        attendees: peopleRead(),
         module: skill.module,
         type: skill.type,
         semester: chosen?.name === skillName ? skillSemesterOf(dayOf(opened.start)) : "",
@@ -1364,7 +1513,7 @@ function fieldsRead(): EntryFields {
     return {
         category: texts.category, title: texts.title, titleLink: texts.titleLink, location: texts.location,
         locationLink: texts.locationLink,
-        from: texts.from, module: texts.module, type: texts.type,
+        from: texts.from, attendees: texts.attendees, module: texts.module, type: texts.type,
         semester: chosen?.name === skillName ? skillSemesterOf(dayOf(start)) : "", note: texts.note,
         foods: [foodName, cookName].includes(chosen?.name ?? "") ? mealFoods() : [],
         cooked: chosen?.name === foodName ? mealCooked() : "",
@@ -1575,6 +1724,8 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     summaryLink = opening.category === skillName ? "" : opening.titleLink;
     summaryOpen = false;
     partsOpen = null;
+    addresses = { ...opening.addresses };
+    withOpen = false;
     addedLine = "";
     placeFilled = "";
     chosen = null;
@@ -1606,6 +1757,26 @@ async function entryShow(opening: EntryOpening): Promise<void> {
 }
 
 /**
+ * Gives the names of who I was with as `With` shows them, parted by `, `.
+ *
+ * @param people - The people of an entry or a box
+ * @returns Names, like `Sophale, Willi`, empty for nobody
+ */
+function namesOf(people: Attendee[]): string {
+    return people.map((person: Attendee): string => person.name).join(", ");
+}
+
+/**
+ * Gives the address of each person of an entry or a box by name, as it wrote them, see {@link addresses}.
+ *
+ * @param people - The people of an entry or a box
+ * @returns Address by name, like `sophale@invalid` for `Sophale`
+ */
+function addressesOf(people: Attendee[]): { [name: string]: string } {
+    return Object.fromEntries(people.map((person: Attendee): [string, string] => [person.name, person.address]));
+}
+
+/**
  * Opens the dialog for a new entry of the log with start and end, its day the calendar date of the start,
  * like `13.10.2026` for a selection at 01:45 on 13 October.
  *
@@ -1616,8 +1787,8 @@ async function entryShow(opening: EntryOpening): Promise<void> {
 export async function entryOpen(start: Date, end: Date): Promise<void> {
     await entryShow({
         target: "log", start: start, end: end, time: null, minutes: null, category: null,
-        values: { title: "", from: "", location: "" }, titleLink: "", locationLink: "", note: "", foods: [],
-        skill: skillNone, plan: null, entry: null, box: null,
+        values: { title: "", from: "", location: "", with: "" }, addresses: {}, titleLink: "", locationLink: "",
+        note: "", foods: [], skill: skillNone, plan: null, entry: null, box: null,
     });
 }
 
@@ -1639,8 +1810,8 @@ export async function entryOpenNow(calendar: Calendar): Promise<void> {
 
 /**
  * Opens the dialog to log a box at a start and an end, like those of its drop into the log; a box with a category
- * comes with its category and fields picked as planned, a skill box with its skill, type, semester, chapters
- * and documents, see `skill.ts`, ready to save or to change, like a lecture with its chapters and slides;
+ * comes with its category and fields picked as planned, its people too, a skill box with its skill, type, semester,
+ * chapters and documents, see `skill.ts`, ready to save or to change, like a lecture with its chapters and slides;
  * a box without category, like a to-do another app wrote, without them.
  * - `planned`: Whether the box has a category.
  *
@@ -1654,8 +1825,9 @@ export async function entryOpenFromBox(box: Box, start: Date, end: Date): Promis
     await entryShow({
         target: "log", start: start, end: end, time: null, minutes: null, category: planned ? box.category : null,
         values: planned
-            ? { title: box.title, from: box.from, location: box.location }
-            : { title: "", from: "", location: "" },
+            ? { title: box.title, from: box.from, location: box.location, with: namesOf(box.attendees) }
+            : { title: "", from: "", location: "", with: "" },
+        addresses: planned ? addressesOf(box.attendees) : {},
         titleLink: planned ? box.titleLink : "", locationLink: planned ? box.locationLink : "", note: "", foods: [],
         skill: {
             ...skillNone, module: box.module, type: box.type, semester: box.semester, chapters: box.chapters,
@@ -1674,8 +1846,8 @@ export async function entryOpenFromBox(box: Box, start: Date, end: Date): Promis
 export async function boxOpenNew(day: Date): Promise<void> {
     await entryShow({
         target: "box", start: day, end: day, time: null, minutes: null, category: null,
-        values: { title: "", from: "", location: "" }, titleLink: "", locationLink: "", note: "", foods: [],
-        skill: skillNone, plan: null, entry: null, box: null,
+        values: { title: "", from: "", location: "", with: "" }, addresses: {}, titleLink: "", locationLink: "",
+        note: "", foods: [], skill: skillNone, plan: null, entry: null, box: null,
     });
 }
 
@@ -1692,8 +1864,8 @@ export async function boxOpenNew(day: Date): Promise<void> {
 export async function boxOpenSuggestion(day: Date, module: string, type: string, minutes: number): Promise<void> {
     await entryShow({
         target: "box", start: day, end: day, time: null, minutes: minutes, category: skillName,
-        values: { title: "", from: "", location: "" }, titleLink: "", locationLink: "", note: "", foods: [],
-        skill: { ...skillNone, module: module, type: type }, plan: null, entry: null, box: null,
+        values: { title: "", from: "", location: "", with: "" }, addresses: {}, titleLink: "", locationLink: "",
+        note: "", foods: [], skill: { ...skillNone, module: module, type: type }, plan: null, entry: null, box: null,
     });
 }
 
@@ -1710,8 +1882,9 @@ export async function boxOpenEdit(box: Box): Promise<void> {
     await entryShow({
         target: "box", start: day, end: day, time: box.time === "" ? null : day, minutes: box.minutes,
         category: box.category === "" ? null : box.category,
-        values: { title: box.title, from: box.from, location: box.location }, titleLink: box.titleLink,
-        locationLink: box.locationLink, note: box.note, foods: [],
+        values: { title: box.title, from: box.from, location: box.location, with: namesOf(box.attendees) },
+        addresses: addressesOf(box.attendees), titleLink: box.titleLink, locationLink: box.locationLink, note: box.note,
+        foods: [],
         skill: {
             ...skillNone, module: box.module, type: box.type, semester: box.semester, chapters: box.chapters,
             links: box.links,
@@ -1724,16 +1897,19 @@ export async function boxOpenEdit(box: Box): Promise<void> {
  * Opens the dialog to change an entry of the log of the new system, its fields picked, a meal with its foods,
  * a skill entry with its skill, type, chapters, links and attempts.
  * - `props`: Fields of the entry as the reader gave them.
+ * - `people`: Who I was with, as the reader gave them.
  *
  * @param entry - Entry to change
  * @throws {Error} - When the reader gives no valid answer
  */
 export async function entryOpenEdit(entry: EventApi): Promise<void> {
     const props: { [field: string]: string } = entry.extendedProps;
+    const people: Attendee[] = entry.extendedProps.attendees ?? [];
     await entryShow({
         target: "log", start: entry.start as Date, end: entry.end as Date, time: null, minutes: null,
         category: props.category ?? null,
-        values: { title: entry.title, from: props.from ?? "", location: props.location ?? "" },
+        values: { title: entry.title, from: props.from ?? "", location: props.location ?? "", with: namesOf(people) },
+        addresses: addressesOf(people),
         titleLink: props.titleLink ?? "", locationLink: props.locationLink ?? "", note: props.note ?? "",
         foods: entry.extendedProps.foods ?? [],
         skill: {

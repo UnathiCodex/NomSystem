@@ -848,7 +848,7 @@ export function skillModuleType(): ModuleType {
 }
 
 /**
- * Sends the skill entry of the log as picked, with the times, place, semester, note and box of the dialog,
+ * Sends the skill entry of the log as picked, with the times, place, people, semester, note and box of the dialog,
  * new or as the changes of the entry being changed, then loads the log of the shown day again.
  * - {@link EventSourceApi#refetch}: Loads the entries of a calendar of the reader again.
  * - `attempts`: The tasks picked with their results, as attempts to send, a task without result left out.
@@ -872,7 +872,8 @@ export async function skillSave(calendar: Calendar, id: string, fields: EntryFie
     await skillEntrySend(id, {
         type: picks.type, module: picks.module, semester: fields.semester, chapters: picks.chapters,
         documents: picks.documents, attempts: attempts,
-        location: fields.location, locationLink: fields.locationLink, planned: fields.planned, note: fields.note,
+        location: fields.location, locationLink: fields.locationLink, attendees: fields.attendees ?? [],
+        planned: fields.planned, note: fields.note,
         start: fields.start, end: fields.end,
     });
     calendar.getEventSourceById("log")?.refetch();

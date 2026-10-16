@@ -2,8 +2,8 @@
  * ## Categories
  *
  * Entry by category, for plan and log alike: a fixed list of categories, each with its fields, named as the file
- * names them, its `Summary`, its `SUMMARY`, and its `Place`, its `LOCATION`, like `Way` with `Summary`, `From`
- * and `Place`.
+ * names them, its `Summary`, its `SUMMARY`, its `Place`, its `LOCATION`, and `With`, who I was with, its `ATTENDEE`s,
+ * like `Way` with `Summary`, `From`, `Place` and `With`.
  * Each field of a what offers its values from the log itself, the what of its entries of the category,
  * the most used first, equal ones alphabetical.
  * Places are one list for every field of a place, the place of an entry and where a way starts: only my places
@@ -12,6 +12,10 @@
  * to another, see {@link offlineNames}; the most used by the entries of the log first, counted by their names.
  * `Online` takes its parts and its link typed per entry, its software, who offers it and its passcode,
  * see `onlineName` in `places.ts`.
+ * `With` takes one or more people or groups, each by a name without comma, mostly one group, like `Socials`,
+ * sometimes several, like `Sophale, Willi`, offering the names the entries of the log wrote, the most used first,
+ * equal ones alphabetical, with the address the last of them wrote, see {@link addressesOf}; there is no file
+ * of people.
  * A value offered in the code may come with steps, which the dialog shows while it is picked, and below them
  * the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
  * `Body` is my body care, showering and any care, offering `Shower` before any use; my neck routine,
@@ -23,8 +27,8 @@
  * `Sleep` takes only two whats, `Night` and `Day`, a nap, see {@link sleepWhats}, and no new ones,
  * so the sleep tracker tells a nap from a night, see `trackers.ts`; `Way` takes only my means of transport,
  * see {@link transports}.
- * `Skill` has only the field `Place`, like the room of a lecture: in plan and log a skill, a module by its code
- * or a project by its name, and a type or none, which the dialog picks itself, written as its skill airy
+ * `Skill` has only the fields `Place`, like the room of a lecture, and `With`: in plan and log a skill, a module
+ * by its code or a project by its name, and a type or none, which the dialog picks itself, written as its skill airy
  * with the type in brackets, like `IN2028 Business Analytics Machine Learning (VO)` or `WokFlow`,
  * see `activeSkills` in `sources.ts` and {@link skillTypes};
  * in the log also its documents and its attempts, which only the skill area writes, see `skill.ts`.
@@ -42,15 +46,15 @@ import { entriesRead, skillName } from "./calendar.ts";
 import { labelOf, lineOf, onlineName, placesRead, roomsRead } from "./places.ts";
 import { day } from "./sources.ts";
 
-import type { Entry, EntryTexts } from "./calendar.ts";
+import type { Attendee, Entry, EntryTexts } from "./calendar.ts";
 import type { Place } from "./places.ts";
 
 
 /**
  * Field of an entry a field of a category writes into:
- * `title` into `SUMMARY`, `from` into `X-FROM`, `location` into `LOCATION`.
+ * `title` into `SUMMARY`, `from` into `X-FROM`, `location` into `LOCATION`, `with` into its `ATTENDEE`s.
  */
-export type FieldKey = "title" | "from" | "location";
+export type FieldKey = "title" | "from" | "location" | "with";
 
 /**
  * A field of a category, picked from its list.
@@ -61,8 +65,8 @@ export type FieldKey = "title" | "from" | "location";
  * - `steps`: Steps of a value offered in the code, by the value, which the dialog shows while it is picked,
  *   like the exercises of `Neck short`; none for the other values.
  * - `fixed`: Whether it takes only the values offered in the code, like `Night` and `Day` of `Sleep`, and no new ones.
- * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `U-Bahn, Bus`;
- *   one when left out.
+ * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `U-Bahn, Bus`,
+ *   or the people of `With`, `Sophale, Willi`; one when left out.
  */
 export type Field = {
     name: string;
@@ -92,7 +96,8 @@ export type Category = {
  * - `rooms`: For a field of a place, the rooms of `Rooms.md`, each as the line an entry writes, in the order
  *   of the table, which the list offers only as I search, see `places.ts`; none for any other field.
  * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
- *   like `https://nav.tum.de/room/0509.EG.980`, see `places.ts`; none for any other field.
+ *   like `https://nav.tum.de/room/0509.EG.980`, see `places.ts`; for `With` the address of each name, as its last
+ *   entry wrote it, like `sophale@invalid`, see {@link addressesOf}; none for any other field.
  */
 export type FieldShown = Field & {
     rooms: string[];
@@ -139,10 +144,16 @@ export const neckRoutines: { [what: string]: string[] } = {
 };
 
 /**
- * Builds a category with the fields `Summary` and `Place`, whose summary offers only what the log holds.
+ * Field `With` of every category, who I was with, one or more people or groups, see the top of this file;
+ * its values the reader gives from the log, see {@link categoriesRead}.
+ */
+const withField: Field = { name: "With", key: "with", values: [], steps: {}, fixed: false, many: true };
+
+/**
+ * Builds a category with the fields `Summary`, `Place` and `With`, whose summary offers only what the log holds.
  *
  * @param name - Name of the category, like `Food`
- * @returns Category to pick what and where
+ * @returns Category to pick what, where and with whom
  */
 function categoryOf(name: string): Category {
     return {
@@ -150,6 +161,7 @@ function categoryOf(name: string): Category {
         fields: [
             { name: "Summary", key: "title", values: [], steps: {}, fixed: false },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+            withField,
         ],
     };
 }
@@ -157,7 +169,7 @@ function categoryOf(name: string): Category {
 /**
  * Category of skill entries, written as `CATEGORIES:Skill`: in plan and log a skill and a type or none,
  * both in its `SUMMARY`, like `IN2028 Business Analytics Machine Learning (VO)`, see `skillPartsOf` in `calendar.ts`,
- * which names the category, and its place,
+ * which names the category, its place and who I was with,
  * in the log also its documents and its attempts, which only the skill area writes.
  */
 export { skillName };
@@ -221,13 +233,14 @@ const retiredWhats: { [category: string]: string[] } = { Body: Object.keys(neckR
 const categories: Category[] = [
     {
         name: skillName,
-        fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false }],
+        fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false }, withField],
     },
     {
         name: "Sleep",
         fields: [
             { name: "Summary", key: "title", values: sleepWhats, steps: {}, fixed: true },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+            withField,
         ],
     },
     categoryOf("Food"),
@@ -238,6 +251,7 @@ const categories: Category[] = [
         fields: [
             { name: "Summary", key: "title", values: ["Shower"], steps: {}, fixed: false },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+            withField,
         ],
     },
     categoryOf("Meditate"),
@@ -249,6 +263,7 @@ const categories: Category[] = [
             },
             { name: "From", key: "from", values: [], steps: {}, fixed: false },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+            withField,
         ],
     },
     categoryOf("Talk"),
@@ -336,6 +351,30 @@ function titleUsesOf(logs: Entry[], name: string): string[] {
 }
 
 /**
+ * Lists the people of log entries, who I was with, by their names, see `Attendee` in `calendar.ts`.
+ *
+ * @param logs - Log entries
+ * @returns Every use of a name, like `Sophale`, a name as often as it was used
+ */
+function peopleUsesOf(logs: Entry[]): string[] {
+    return logs.flatMap((log: Entry): string[] => log.attendees.map((attendee: Attendee): string => attendee.name));
+}
+
+/**
+ * Gives the address of each person of log entries as the last entry with the person wrote it, so a name picked again
+ * takes it, like `sophale@invalid`, or a real one I typed.
+ *
+ * @param logs - Log entries, in any order
+ * @returns Address by name
+ */
+function addressesOf(logs: Entry[]): { [name: string]: string } {
+    return Object.fromEntries([...logs]
+        .sort((first: Entry, second: Entry): number => first.start.localeCompare(second.start))
+        .flatMap((log: Entry): [string, string][] =>
+            log.attendees.map((attendee: Attendee): [string, string] => [attendee.name, attendee.address])));
+}
+
+/**
  * Orders values by how often they were used, the most used first, equal ones alphabetical.
  *
  * @param uses - Every use of a value
@@ -390,6 +429,8 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * - `rooms`: The rooms of the university for every field of a place, each as the line an entry writes, in the order
  *   of `Rooms.md`, none of the name of one of my places.
  * - `links`: The links of my places and rooms that have one, by their lines.
+ * - `people`: The names of `With`, the most used first, see {@link peopleUsesOf}.
+ * - `addresses`: The address of each of them, see {@link addressesOf}.
  *
  * @param now - Present as ISO instant, as the page knows it
  * @returns {@link CategoryShown}s in their order
@@ -405,18 +446,21 @@ export function categoriesRead(now: string): CategoryShown[] {
     const links: { [value: string]: string } = Object.fromEntries([...mine, ...rooms]
         .filter((place: Place): boolean => place.link !== "")
         .map((place: Place): [string, string] => [lineOf(place), place.link]));
+    const people: string[] = valuesOrder(peopleUsesOf(logs), []);
+    const addresses: { [name: string]: string } = addressesOf(logs);
     return categories
         .filter((category: Category): boolean => !hiddenNames.includes(category.name))
         .map((category: Category): CategoryShown => ({
             name: category.name,
             fields: category.fields.map((field: Field): FieldShown => ({
                 ...field,
-                values: field.key !== "title" ? offlineNames.includes(category.name) ? offline : places
-                    : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values)
-                        .filter((value: string): boolean => !(retiredWhats[category.name] ?? []).includes(value)),
+                values: field.key === "with" ? people
+                    : field.key !== "title" ? offlineNames.includes(category.name) ? offline : places
+                        : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values)
+                            .filter((value: string): boolean => !(retiredWhats[category.name] ?? []).includes(value)),
                 steps: stepsWithNoteOf(logs, category.name, field.steps),
-                rooms: field.key === "title" ? [] : rooms.map(lineOf),
-                links: field.key === "title" ? {} : links,
+                rooms: field.key === "title" || field.key === "with" ? [] : rooms.map(lineOf),
+                links: field.key === "with" ? addresses : field.key === "title" ? {} : links,
             })),
             plan: !unplannedNames.includes(category.name),
         }));
@@ -439,11 +483,24 @@ export function wayEndRead(before: string): string {
 }
 
 /**
+ * Tells whether the people of an entry or a box are well formed, see `Attendee` in `calendar.ts`: each a name without
+ * comma and without spaces around it, like `Herr Müller`, and an address without spaces and commas, like
+ * `herr.mueller@invalid`.
+ *
+ * @param attendees - Who I was with
+ * @returns Whether they may be written
+ */
+export function attendeesAllow(attendees: Attendee[]): boolean {
+    return attendees.every((attendee: Attendee): boolean => attendee.name !== "" && !attendee.name.includes(",")
+        && attendee.name.trim() === attendee.name && /^[^\s,]+$/.test(attendee.address));
+}
+
+/**
  * Tells whether the fields of an entry fit its category, in plan and log alike:
  * the category is in the list, what is empty or picked, one of its values for a field that takes no new ones,
  * like `Night` or `Day` of `Sleep`, or, without a field `title`, the name of the category,
- * `from` is only set when the category has the field, and module and type stay empty; every field but the category
- * and the times may stay empty.
+ * `from` is only set when the category has the field, and module and type stay empty, the people of every category
+ * well formed, see {@link attendeesAllow}; every field but the category and the times may stay empty.
  * `Skill` is a skill or none, a module code like `IN2028` or a project like `WokFlow`, and one of the
  * {@link skillTypes} or none; what it was the reader writes from both, see `skillTitleOf` in `documents.ts`,
  * and its chapters, documents and attempts in the log only the skill area writes.
@@ -454,10 +511,11 @@ export function wayEndRead(before: string): string {
  * @param fields - Text fields of an entry or a box to write
  * @returns Whether the entry may be written
  */
-export function categoryAllows(fields: Omit<EntryTexts, "locationLink" | "titleLink">): boolean {
+export function categoryAllows(fields: Omit<EntryTexts, "locationLink" | "titleLink" | "attendees">
+    & { attendees?: Attendee[] }): boolean {
     const category: Category | undefined = categories.find((candidate: Category): boolean =>
         candidate.name === fields.category);
-    if (category === undefined)
+    if (category === undefined || !attendeesAllow(fields.attendees ?? []))
         return false;
     if (category.name === skillName)
         return /^\w*$/.test(fields.module) && (fields.type === "" || skillTypes.includes(fields.type))
@@ -479,6 +537,7 @@ export function categoryAllows(fields: Omit<EntryTexts, "locationLink" | "titleL
  * @param fields - Text fields of a box to write
  * @returns Whether the box may be written
  */
-export function planAllows(fields: Omit<EntryTexts, "locationLink" | "titleLink">): boolean {
+export function planAllows(fields: Omit<EntryTexts, "locationLink" | "titleLink" | "attendees">
+    & { attendees?: Attendee[] }): boolean {
     return categoryAllows(fields) && !unplannedNames.includes(fields.category);
 }

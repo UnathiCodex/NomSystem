@@ -14,6 +14,18 @@ import type { Calendar } from "fullcalendar";
 
 
 /**
+ * A person or a group I was with, one `ATTENDEE` of an entry or a box,
+ * like `ATTENDEE;CN=Sophale:mailto:sophale@invalid`.
+ *
+ * - `name`: Its name, like `Sophale` or `Socials`, without comma.
+ * - `address`: Its address without `mailto:`, like `sophale@invalid`, which reaches nobody, or a real one I typed.
+ */
+export type Attendee = {
+    name: string;
+    address: string;
+};
+
+/**
  * Fields and times of an entry of the log to send; an empty field is not written.
  *
  * - `category`: Category picked, `CATEGORIES`.
@@ -24,6 +36,7 @@ import type { Calendar } from "fullcalendar";
  * - `locationLink`: Link of the place `Online`, as typed or pasted, the `ALTREP` of its `LOCATION`; left out for any
  *   other place, whose link the reader finds itself, and after a drag, so the place keeps its link.
  * - `from`: Where a way starts, `X-FROM`.
+ * - `attendees`: Who I was with, one `ATTENDEE` each, none for nobody; left out after a drag, so it keeps its people.
  * - `module`: Module of a skill entry, like `IN2028`, written by the reader only in its `SUMMARY`,
  *   like `IN2028 Business Analytics Machine Learning (VO)`.
  * - `type`: Type of a skill entry, like `VO`, written only in its `SUMMARY`.
@@ -47,6 +60,7 @@ export type EntryFields = {
     location: string;
     locationLink?: string;
     from: string;
+    attendees?: Attendee[];
     module: string;
     type: string;
     semester: string;
@@ -62,8 +76,8 @@ export type EntryFields = {
 /**
  * Fields of a box of the plan to send; an empty field is not written.
  *
- * - `category`, `title`, `titleLink`, `location`, `locationLink`, `from`, `module`, `type`, `semester`, `note`:
- *   As those of {@link EntryFields}.
+ * - `category`, `title`, `titleLink`, `location`, `locationLink`, `from`, `attendees`, `module`, `type`, `semester`,
+ *   `note`: As those of {@link EntryFields}; `attendees` left out by an accepted suggestion, which has none.
  * - `day`: Day of the box, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time on its day, `null` for none and for a box with a deadline.
  * - `minutes`: Expected duration in minutes, `null` for none.
@@ -79,6 +93,7 @@ export type BoxFields = {
     location: string;
     locationLink?: string;
     from: string;
+    attendees?: Attendee[];
     module: string;
     type: string;
     semester: string;

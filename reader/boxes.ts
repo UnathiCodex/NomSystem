@@ -87,13 +87,13 @@ import {
     entryLookup, entryRemove, occurrenceLookup, occurrenceOwn, propertiesPut, pushAdd, pushTake, statusPut, todoAppend,
     todoChange,
 } from "./calendar.ts";
-import { planAllows, semesterFor, skillName } from "./categories.ts";
+import { attendeesAllow, planAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, linksOf, titleOf } from "./documents.ts";
 import { moduleContentsRead, moduleFolderOf } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, planEnding } from "./sources.ts";
 
-import type { Entry, EntryFields, EntryTexts, Link, Push, TodoFields } from "./calendar.ts";
+import type { Attendee, Entry, EntryFields, EntryTexts, Link, Push, TodoFields } from "./calendar.ts";
 
 
 /**
@@ -209,6 +209,8 @@ export type PlanDay = {
  *   left out for any other place, as for an entry of the log, see `EntryNew` in `day.ts`.
  * - `titleLink`: Link typed for what it is, like the page of an event, written as the `ALTREP` of its `SUMMARY`;
  *   left out by a sender that does not know it, as for an entry of the log, see `EntryNew` in `day.ts`.
+ * - `attendees`: Who I will be with, one `ATTENDEE` each; left out by a sender that does not know it, like
+ *   an accepted suggestion, so a changed box keeps its people and a new one has none.
  * - `semester`: Semester of a skill box, like `2026W`, the semester of its day when empty, see `semesterFor`
  *   in `categories.ts`; empty for any other box.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
@@ -220,9 +222,10 @@ export type PlanDay = {
  * - `documents`: Paths from the folder of its skill of the documents a skill box will use, like
  *   `VO_UniversityLectureLessons/TUM_2026W/01_Introduction.pdf`, none for none and for any other box.
  */
-export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink"> & {
+export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink" | "attendees"> & {
     locationLink?: string;
     titleLink?: string;
+    attendees?: Attendee[];
     day: string;
     time: string;
     minutes: number | null;
@@ -373,8 +376,8 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         state = "university";
     return {
         id: entryIdOf(entry), category: entry.category, title: entry.title, titleLink: entry.titleLink,
-        location: entry.location, locationLink: entry.locationLink, from: entry.from, module: entry.module,
-        type: entry.type, semester: entry.semester, note: entry.note,
+        location: entry.location, locationLink: entry.locationLink, from: entry.from, attendees: entry.attendees,
+        module: entry.module, type: entry.type, semester: entry.semester, note: entry.note,
         day: dayOf(entry),
         time: entry.allDay ? "" : entry.start,
         minutes: minutes,
@@ -572,6 +575,7 @@ export function boxOpenFind(id: string): Box {
 /**
  * Checks a new or changed box before it is written: its day, its fields, which fit its category, one I plan,
  * see {@link planAllows}, or keep what the box was, its category and title, for a skill box its skill and type,
+ * with well-formed people, see `attendeesAllow` in `categories.ts`,
  * like an older `IN2028 DEV` of a type no longer offered, its time on its day, its duration, whole minutes
  * of at most a day, its deadline, on its day and without expected time, see the top of this file, and the chapters
  * of a skill box among those of its module or those it had.
@@ -586,7 +590,8 @@ export function boxOpenFind(id: string): Box {
  */
 function boxCheck(box: BoxNew, old: Entry | null): void {
     const kept: boolean = old !== null && box.category === old.category && (box.category === skillName
-        ? box.module === old.module && box.type === old.type : box.title === old.title);
+        ? box.module === old.module && box.type === old.type : box.title === old.title)
+        && attendeesAllow(box.attendees ?? []);
     dateCheck(box.day);
     if (!(kept || planAllows(box)))
         throw new Error(`No box ${box.category} ${box.title}`);
@@ -643,6 +648,7 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
     return {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
         locationLink: placeLinkOf(box.location, box.locationLink, old), from: box.from,
+        attendees: box.attendees ?? old?.attendees ?? [],
         module: box.module, type: box.type, semester: semesterFor(box.category, box.semester, box.day), note: box.note,
         day: box.day, time: box.time === "" ? null : new Date(box.time), minutes: box.minutes, deadline: box.deadline,
     };
@@ -780,6 +786,7 @@ export function boxEdit(change: BoxChange): void {
     const fields: EntryFields = {
         category: change.category, title: title, titleLink: titleLink, location: change.location,
         locationLink: placeLinkOf(change.location, change.locationLink, entry), from: change.from,
+        attendees: change.attendees ?? entry.attendees,
         module: change.module, type: change.type, semester: semesterFor(change.category, change.semester, change.day),
         note: change.note,
         start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
@@ -829,8 +836,8 @@ export function boxPush(id: string): void {
     const days: number = Math.round((Date.parse(next) - Date.parse(box.day)) / (dayMinutes * minuteLength));
     const texts: EntryTexts = {
         category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
-        locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type,
-        semester: entry.semester, note: entry.note,
+        locationLink: entry.locationLink, from: entry.from, attendees: entry.attendees, module: entry.module,
+        type: entry.type, semester: entry.semester, note: entry.note,
     };
     boxOwn(file, entry);
     pushAdd(file, id, entry);
@@ -867,8 +874,8 @@ export function boxUnpush(id: string): void {
     const day: string = box.time === "" ? start : berlinDateOf(new Date(start));
     const texts: EntryTexts = {
         category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
-        locationLink: entry.locationLink, from: entry.from, module: entry.module, type: entry.type,
-        semester: entry.semester, note: entry.note,
+        locationLink: entry.locationLink, from: entry.from, attendees: entry.attendees, module: entry.module,
+        type: entry.type, semester: entry.semester, note: entry.note,
     };
     if (entry.todo)
         todoChange(file, entry, {

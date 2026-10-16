@@ -55,7 +55,7 @@
  * when the entry by category closes, and after a push, a cancel or a suggestion accepted.
  *
  * - `fullcalendar/interaction`: Drags the boxes into the log.
- * - `./entries.ts`: Sends logged, taken back, pushed and cancelled boxes to the reader.
+ * - `./entries.ts`: Sends logged, taken back, pushed and cancelled boxes to the reader, and names who I will be with.
  * - `./categories.ts`: Opens the entry by category for a new box, a box to change, and a box to log through it.
  * - `./suggestions.ts`: Loads the study sessions suggested for tomorrow, accepts and dismisses them.
  * - `./gifts.ts`: Opens the dialog of the gift idea for a birthday or holiday.
@@ -88,6 +88,7 @@ import { ArrowRight, CalendarOff, Check, Gift, Undo2, X } from "lucide";
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
 import type { IconNode } from "lucide";
 import type { Suggestion } from "./suggestions.ts";
+import type { Attendee } from "./entries.ts";
 import type { Link } from "../skill/attempts.ts";
 
 
@@ -116,6 +117,7 @@ const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  * - `location`: Place, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, empty for none.
  * - `locationLink`: Link of its place, its `ALTREP`, like `https://nav.tum.de/room/0509.EG.980`, empty for none.
  * - `from`: Where a way starts, empty for none.
+ * - `attendees`: Who I will be with, see `Attendee` in `entries.ts`, none for nobody.
  * - `module`: Module of a skill box, like `WI1059`, empty for any other box.
  * - `type`: Type of a skill box, like `HU`, empty for any other box.
  * - `semester`: Semester of a skill box, like `2026W`, empty for none, like an older box, and for any other box.
@@ -149,6 +151,7 @@ export type Box = {
     location: string;
     locationLink: string;
     from: string;
+    attendees: Attendee[];
     module: string;
     type: string;
     semester: string;

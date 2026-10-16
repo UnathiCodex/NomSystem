@@ -48,6 +48,7 @@ import type { CalendarSource } from "./sources.ts";
  * - `locationLink`: Link of its place, the standard parameter `ALTREP` of its `LOCATION`,
  *   like `https://nav.tum.de/room/0509.EG.980`, empty when it has none.
  * - `from`: Where a way starts, its `X-FROM`, empty when the event has none.
+ * - `attendees`: Who I was with, its `ATTENDEE`s in order, see {@link Attendee}, none when the event has none.
  * - `module`: Skill of a skill entry from its `SUMMARY`, the code of a module, like `IN2028`, or a project,
  *   like `WokFlow`, see {@link skillPartsOf}; empty for any other entry.
  * - `type`: Type of a skill entry from its `SUMMARY`, like `VO`, empty for none, like my own learning or a project,
@@ -113,6 +114,7 @@ export type Entry = {
     location: string;
     locationLink: string;
     from: string;
+    attendees: Attendee[];
     module: string;
     type: string;
     semester: string;
@@ -138,6 +140,20 @@ export type Entry = {
     end: string;
     allDay: boolean;
     recurrence: string;
+};
+
+/**
+ * A person or a group I was with, one `ATTENDEE` of an entry or a box, its name as parameter `CN` and its address
+ * as value, like `ATTENDEE;CN=Sophale:mailto:sophale@invalid`, see {@link attendeePropertyOf}: the address ends
+ * in `.invalid`, reserved for addresses that never work, unless I typed a real one, so the line keeps to the standard
+ * and nothing is ever sent.
+ *
+ * - `name`: Its name, like `Sophale` or `Socials`, without comma; the address for a line without `CN`.
+ * - `address`: Its address without `mailto:`, like `sophale@invalid`.
+ */
+export type Attendee = {
+    name: string;
+    address: string;
 };
 
 /**
@@ -183,6 +199,7 @@ export type Link = {
  * - `locationLink`: Link of the place, the parameter `ALTREP` of `LOCATION`, written only with its place,
  *   empty for none.
  * - `from`: Where a way starts, `X-FROM`.
+ * - `attendees`: Who I was with, one `ATTENDEE` each, see {@link Attendee}; none for nobody.
  * - `module`: Skill of a skill entry, not written, since its `SUMMARY` names it, see {@link skillPartsOf}.
  * - `type`: Type of a skill entry, not written, since its `SUMMARY` names it.
  * - `semester`: Semester of a skill entry, `X-SEMESTER`, like `2026W`; empty for any other entry.
@@ -195,6 +212,7 @@ export type EntryTexts = {
     location: string;
     locationLink: string;
     from: string;
+    attendees: Attendee[];
     module: string;
     type: string;
     semester: string;
@@ -297,7 +315,8 @@ const zone: ICAL.Timezone = new ICAL.Timezone(zoneComponent);
  * Order of the lines of every event and to-do the reader writes, new or changed, by the names of their properties,
  * see {@link linesOrdered}: who it is, `UID` and `DTSTAMP`; when, `DTSTART`, `DTEND`, for a to-do `DUE`,
  * `DURATION` and `ESTIMATED-DURATION` after them, then `RRULE`, `RDATE`, `EXDATE` and `RECURRENCE-ID`;
- * what, `CATEGORIES`, `SUMMARY`, `STATUS`, with `COMPLETED` after it; where, `LOCATION`; more about it,
+ * what, `CATEGORIES`, `SUMMARY`, `STATUS`, with `COMPLETED` after it; where, `LOCATION`; with whom, `ATTENDEE`;
+ * more about it,
  * `DESCRIPTION`, `ATTACH` and `RELATED-TO`; then every other line of the standard, then the `X-` lines,
  * each in the order it had, those of a skill entry last, see {@link lineEnding}.
  */
@@ -305,7 +324,7 @@ const lineOrder: string[] = [
     "UID", "DTSTAMP",
     "DTSTART", "DTEND", "DUE", "DURATION", "ESTIMATED-DURATION", "RRULE", "RDATE", "EXDATE", "RECURRENCE-ID",
     "CATEGORIES", "SUMMARY", "STATUS", "COMPLETED",
-    "LOCATION",
+    "LOCATION", "ATTENDEE",
     "DESCRIPTION", "ATTACH", "RELATED-TO",
 ];
 
@@ -543,6 +562,10 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         location: event.location ?? "",
         locationLink: String(event.component.getFirstProperty("location")?.getParameter("altrep") ?? ""),
         from: String(event.component.getFirstPropertyValue("x-from") ?? ""),
+        attendees: event.component.getAllProperties("attendee").map((property: ICAL.Property): Attendee => {
+            const address: string = String(property.getFirstValue()).replace(/^mailto:/i, "");
+            return { name: String(property.getParameter("cn") ?? address), address: address };
+        }),
         module: module,
         type: type,
         semester: String(event.component.getFirstPropertyValue("x-semester") ?? ""),
@@ -1271,6 +1294,20 @@ function textPropertyOf(name: string, value: string, fields: EntryTexts): ICAL.P
 }
 
 /**
+ * Builds the `ATTENDEE` of a person I was with, see {@link Attendee}, like
+ * `ATTENDEE;CN=Herr Müller:mailto:herr.mueller@invalid`.
+ * - `property`: The property.
+ *
+ * @param attendee - The person, like `Herr Müller` with `herr.mueller@invalid`
+ * @returns Property to write
+ */
+function attendeePropertyOf(attendee: Attendee): ICAL.Property {
+    const property: ICAL.Property = propertyOf("attendee", `mailto:${attendee.address}`);
+    property.setParameter("cn", attendee.name);
+    return property;
+}
+
+/**
  * Builds the `RELATED-TO` of a log entry, which points to the box it was logged from by its `UID`, the standard way,
  * like `RELATED-TO:study-13@nomsystem`; for one date of a series that date goes along as parameter `X-RECURRENCE-ID`
  * in the form of the iCalendar format, see {@link icsTextOf}, since the `UID` names the whole series,
@@ -1305,7 +1342,7 @@ function ownPropertyOf(name: string, value: string | Link): ICAL.Property {
  * Puts a property into the lines of an event, one line per value: takes out all its old lines
  * and puts the new ones where the first old one stood, or before the end of the event when there was none;
  * no value removes the property. Most properties have one value, the `X-ATTEMPT`s of a skill entry one per attempt,
- * its `ATTACH`es one per link.
+ * its `ATTACH`es one per link, the `ATTENDEE`s of an entry one per person, see {@link attendeePropertyOf}.
  * - `at`: Line of the first old value, or the end of the event.
  * - {@link ICAL.Property#toICALString}: Writes a property in the iCalendar format, as one line.
  * - {@link ICAL.helpers.foldline}: Folds a line after every 75 bytes, parting the lines by `\r\n`.
@@ -1328,7 +1365,8 @@ function propertyPut(event: string[], name: string, values: (string | ICAL.Time 
 
 /**
  * Text fields of an entry with the names of their properties, in the order they are written;
- * the skill and type of a skill entry stand only in its `SUMMARY`, see {@link skillPartsOf}.
+ * the skill and type of a skill entry stand only in its `SUMMARY`, see {@link skillPartsOf}, and who I was with
+ * in one `ATTENDEE` per person after them, see {@link attendeePropertyOf}.
  *
  * @param fields - Text fields of an event or a to-do
  * @returns Name of each property with its value, empty when it is not written
@@ -1347,7 +1385,8 @@ function textsOf(fields: EntryTexts): [string, string][] {
 /**
  * Appends an entry to an `.ics` file, creating file and folders when missing.
  * Writes start and end in Berlin time, and only the text fields and the properties beyond them that are not empty,
- * its place with its link, see {@link textPropertyOf}, the box it was logged from as `RELATED-TO`,
+ * its place with its link, see {@link textPropertyOf}, one `ATTENDEE` per person I was with,
+ * see {@link attendeePropertyOf}, the box it was logged from as `RELATED-TO`,
  * see {@link ownPropertyOf}.
  * - `id`: Identifier of the new event, its `UID`.
  *
@@ -1373,6 +1412,9 @@ export function entryAppend(file: string, fields: EntryFields, own: [string, str
         .forEach(([name, value]: [string, string]): void => {
             event.addProperty(textPropertyOf(name, value, fields));
         });
+    fields.attendees.forEach((attendee: Attendee): void => {
+        event.addProperty(attendeePropertyOf(attendee));
+    });
     own.filter(([, value]: [string, string | Link]): boolean => value !== "")
         .forEach(([name, value]: [string, string | Link]): void => {
             event.addProperty(ownPropertyOf(name, value));
@@ -1418,7 +1460,8 @@ function durationOf(minutes: number): string {
 /**
  * Appends a to-do to an `.ics` file, a box of the plan, creating file and folders when missing:
  * its day or its time as `DTSTART`, or instead its deadline as `DUE`, its expected duration as `ESTIMATED-DURATION`
- * when it has one, `STATUS:NEEDS-ACTION`, since it is open, and only the text fields that are not empty.
+ * when it has one, `STATUS:NEEDS-ACTION`, since it is open, and only the text fields that are not empty, then one
+ * `ATTENDEE` per person I will be with, see {@link attendeePropertyOf}.
  * A to-do with a deadline has no `DTSTART`: iCalendar (RFC 5545) wants `DUE` of the same kind as `DTSTART`,
  * both days or both times, and later, so the day of its deadline is its day, see {@link deadlineDayOf}.
  * - `id`: Identifier of the new to-do, its `UID`.
@@ -1446,13 +1489,17 @@ export function todoAppend(file: string, fields: TodoFields): string {
         .forEach(([name, value]: [string, string]): void => {
             todo.addProperty(textPropertyOf(name, value, fields));
         });
+    fields.attendees.forEach((attendee: Attendee): void => {
+        todo.addProperty(attendeePropertyOf(attendee));
+    });
     componentInsert(file, todo.toString().split("\r\n"));
     return id;
 }
 
 /**
  * Puts the text fields that changed into the lines of an event or a to-do, a new place with its link,
- * see {@link textPropertyOf}; a place that stays keeps its line as it is, with its `ALTREP`.
+ * see {@link textPropertyOf}; a place that stays keeps its line as it is, with its `ALTREP`. Who I was with,
+ * once changed, replaces all its `ATTENDEE`s, see {@link attendeePropertyOf}.
  * A skill entry whose `SUMMARY` is written anew loses the lines `X-MODULE` and `X-TYPE` of an older entry,
  * since its `SUMMARY` names both now, see {@link skillPartsOf}.
  * - `textsOld`: Its text fields as read, with the names of their properties.
@@ -1467,6 +1514,8 @@ function textsPut(component: string[], entry: Entry, fields: EntryTexts): void {
         if (value !== textsOld[index][1])
             propertyPut(component, name, value === "" ? [] : [textPropertyOf(name, value, fields)]);
     });
+    if (JSON.stringify(fields.attendees) !== JSON.stringify(entry.attendees))
+        propertyPut(component, "attendee", fields.attendees.map(attendeePropertyOf));
     if (fields.category === skillName && fields.title !== entry.title) {
         propertyPut(component, "x-module", []);
         propertyPut(component, "x-type", []);

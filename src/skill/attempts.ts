@@ -5,7 +5,11 @@
  * orders the tasks into groups by when they are due, writes days out as the page shows them,
  * and sends to the reader's one writer of skill entries: an attempt from a button of a task into the skill entry
  * of the moment, my effort on it from the tap after it, and a whole skill entry from the entry by category.
+ *
+ * - `../day/entries.ts`: Names who I was with in a skill entry.
  */
+
+import type { Attendee } from "../day/entries.ts";
 
 
 /**
@@ -286,6 +290,7 @@ export type AttemptNew = {
  * - `location`: Place, like the room of a lecture logged from the plan.
  * - `locationLink`: Link of the meeting of the place `Online`, as pasted, the `ALTREP` of its `LOCATION`;
  *   left out for any other place, whose link the reader finds itself.
+ * - `attendees`: Who I was with, see `Attendee` in `../day/entries.ts`, none for nobody.
  * - `planned`: Identifier of the plan entry it is logged from, empty for none.
  * - `note`: Free note.
  * - `start`: Start of the entry.
@@ -300,6 +305,7 @@ export type SkillEntryNew = {
     attempts: AttemptNew[];
     location: string;
     locationLink?: string;
+    attendees: Attendee[];
     planned: string;
     note: string;
     start: Date;

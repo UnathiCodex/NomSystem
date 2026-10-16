@@ -78,7 +78,7 @@ import {
     berlinDateOf, berlinTimeOf, dayAdd, entriesRead, entryAppend, entryChange, entryFind,
     propertiesPut,
 } from "./calendar.ts";
-import { semesterFor, skillName, skillTypes } from "./categories.ts";
+import { attendeesAllow, semesterFor, skillName, skillTypes } from "./categories.ts";
 import { logFileOf } from "./day.ts";
 import {
     chaptersOf, documentLinksOf, linksLostRead, linksOf, skillFolderOf, skillLabelOf, titleOf,
@@ -90,7 +90,7 @@ import { placeLinkOf } from "./places.ts";
 import { activeModules, activeSkills, projectOf, skillLog, skillNameOf } from "./sources.ts";
 
 import type { Box, BoxState } from "./boxes.ts";
-import type { Entry, EntryFields, Link } from "./calendar.ts";
+import type { Attendee, Entry, EntryFields, Link } from "./calendar.ts";
 import type { LinkLost } from "./documents.ts";
 import type { Chapter, ModuleContents, NoteEntry, NotesModule, Paper } from "./notes.ts";
 
@@ -331,6 +331,8 @@ export type AttemptNew = {
  * - `location`: Place, `LOCATION`, like the room of a lecture logged from its box.
  * - `locationLink`: Link of the meeting of the place `Online`, as typed, written as the `ALTREP` of its `LOCATION`;
  *   left out for any other place, as for any entry of the log, see `EntryNew` in `day.ts`.
+ * - `attendees`: Who I was with, one `ATTENDEE` each; left out, as for any entry of the log, see `EntryNew`
+ *   in `day.ts`.
  * - `planned`: Identifier of the box it is logged from, written as its `RELATED-TO`, empty for none.
  * - `note`: Free note, `DESCRIPTION`.
  * - `start`: Start as ISO instant.
@@ -345,6 +347,7 @@ export type SkillEntryNew = {
     attempts: AttemptNew[];
     location: string;
     locationLink?: string;
+    attendees?: Attendee[];
     planned: string;
     note: string;
     start: string;
@@ -1070,7 +1073,8 @@ function tasksOf(values: string[]): string[] {
 /**
  * Checks a skill entry before it is written: one of the types, the type it had, like an older `DEV` no longer
  * offered, or none, a module with a folder, a project or no skill at all, chapters among the module's or among those
- * the entry had, new attempts at tasks of its module only, and an end after the start; the attempts a changed entry
+ * the entry had, new attempts at tasks of its module only, well-formed people, see `attendeesAllow` in `categories.ts`,
+ * and an end after the start; the attempts a changed entry
  * has keep their task, also once I changed its skill.
  * - `offered`: Chapters of the module, see `notes.ts`.
  * - `unknown`: First chapter that is neither offered nor kept.
@@ -1092,6 +1096,8 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
         throw new Error(`No chapter ${unknown} in ${entry.module}`);
     if (values.some((value: string): boolean => attemptLineOf(value).task.split("/")[0] !== entry.module))
         throw new Error(`Only attempts at tasks of ${entry.module}`);
+    if (!attendeesAllow(entry.attendees ?? []))
+        throw new Error(`No people ${(entry.attendees ?? []).map((attendee: Attendee): string => attendee.name)}`);
     if (!(new Date(entry.start) < new Date(entry.end)))
         throw new Error("A skill entry needs an end after its start");
 }
@@ -1125,6 +1131,7 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: entry.location,
         locationLink: placeLinkOf(entry.location, entry.locationLink, plan), from: "",
+        attendees: entry.attendees ?? plan?.attendees ?? [],
         module: entry.module, type: entry.type,
         semester: semesterFor(skillName, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note.trim(),
         start: new Date(entry.start), end: new Date(entry.end),
@@ -1182,6 +1189,7 @@ export function skillEntryEdit(change: SkillEntryChange): void {
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: change.location,
         locationLink: placeLinkOf(change.location, change.locationLink, old), from: "",
+        attendees: change.attendees ?? old.attendees,
         module: change.module, type: change.type,
         semester: semesterFor(skillName, change.semester, berlinDateOf(new Date(change.start))),
         note: change.note.trim(),
@@ -1235,7 +1243,7 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
             titleOf({ category: skillName, title: "", module: module, type: type }, null);
         const fields: EntryFields = {
             category: skillName, title: title, titleLink: titleLink, location: plan?.location ?? "",
-            locationLink: plan?.locationLink ?? "", from: "",
+            locationLink: plan?.locationLink ?? "", from: "", attendees: plan?.attendees ?? [],
             module: module, type: type, semester: semesterFor(skillName, plan?.semester ?? "", berlinDateOf(start)),
             note: "", start: start, end: quarter,
         };

@@ -44,7 +44,7 @@ import { boxDone, boxFind, boxOpenFind, boxReopen } from "./boxes.ts";
 import {
     berlinDateOf, entriesRead, entryAppend, entryChange, entryFind, entryLookup, entryRemove, propertiesPut,
 } from "./calendar.ts";
-import { categoryAllows, semesterFor, skillName } from "./categories.ts";
+import { attendeesAllow, categoryAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
 import { foodLineAllows, foodName, mealsOf } from "./food.ts";
 import { placeLinkOf } from "./places.ts";
@@ -52,7 +52,7 @@ import { day, logEnding } from "./sources.ts";
 import { glassIs } from "./trackers.ts";
 
 import type { Box } from "./boxes.ts";
-import type { Entry, EntryFields, Link } from "./calendar.ts";
+import type { Attendee, Entry, EntryFields, Link } from "./calendar.ts";
 import type { Meal } from "./food.ts";
 
 
@@ -70,6 +70,9 @@ import type { Meal } from "./food.ts";
  *   left out for any other place, whose link the reader finds itself, and by a sender that does not know it,
  *   like the calendar after a drag, so the place keeps its link.
  * - `from`: Where a way starts.
+ * - `attendees`: Who I was with, one `ATTENDEE` each, see `Attendee` in `calendar.ts`; left out by a sender that does
+ *   not know it, like the calendar after a drag, so a changed entry keeps its people and one logged from a box takes
+ *   those of the box.
  * - `module`: Module of a skill entry, like `IN2028`, empty for any other entry.
  * - `type`: Type of a skill entry, like `VO`, empty for any other entry.
  * - `semester`: Semester of a skill entry, like `2026W`, the semester of its day when empty, see `semesterFor`
@@ -92,6 +95,7 @@ export type EntryNew = {
     location: string;
     locationLink?: string;
     from: string;
+    attendees?: Attendee[];
     module: string;
     type: string;
     semester: string;
@@ -165,8 +169,9 @@ export function logFileOf(fields: { category: string; module: string; start: Dat
 
 /**
  * Turns an entry as the page sends it into the fields to write: its place with its link, the one typed
- * for `Online` or the one the reader finds, see `placeLinkOf` in `places.ts`, and what a skill entry was
- * as the reader writes it, see `titleOf` in `documents.ts`.
+ * for `Online` or the one the reader finds, see `placeLinkOf` in `places.ts`, who I was with as sent, else as the box
+ * or the entry being changed has them, and what a skill entry was as the reader writes it, see `titleOf`
+ * in `documents.ts`.
  * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
  *
  * @param entry - New or changed entry, with ISO instants
@@ -174,12 +179,14 @@ export function logFileOf(fields: { category: string; module: string; start: Dat
  * @returns Fields and times
  * @throws {Error} - When the link typed for `Online` is no web address
  */
-function fieldsOf(entry: EntryNew,
-                  from: { title: string; titleLink: string; location: string; locationLink: string } | null): EntryFields {
+function fieldsOf(entry: EntryNew, from: {
+    title: string; titleLink: string; location: string; locationLink: string; attendees: Attendee[];
+} | null): EntryFields {
     const [title, titleLink]: [string, string] = titleOf(entry, from);
     return {
         category: entry.category, title: title, titleLink: titleLink, location: entry.location,
         locationLink: placeLinkOf(entry.location, entry.locationLink, from), from: entry.from,
+        attendees: entry.attendees ?? from?.attendees ?? [],
         module: entry.module, type: entry.type,
         semester: semesterFor(entry.category, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note,
         start: new Date(entry.start), end: new Date(entry.end),
@@ -189,7 +196,8 @@ function fieldsOf(entry: EntryNew,
 /**
  * Checks fields, foods and times of an entry of the log before they are written.
  * An entry has to fit its category, see {@link categoryAllows}, or keep what it was, or what the box it is logged
- * from was: the same category and title, for a skill entry the same skill and type, like an entry written before
+ * from was: the same category and title, for a skill entry the same skill and type, with well-formed people,
+ * see `attendeesAllow` in `categories.ts`, like an entry written before
  * its category got its rules, dragged to another time, or an older skill box `IN2028 DEV` of a type
  * no longer offered.
  * Only a meal lists foods, each line well formed, see {@link foodLineAllows}.
@@ -203,7 +211,7 @@ function fieldsOf(entry: EntryNew,
 function fieldsCheck(fields: EntryFields, foods: string[], old: Entry | Box | null): void {
     const kept: boolean = old !== null && old.title !== "" && fields.category === old.category
         && (fields.category === skillName ? fields.module === old.module && fields.type === old.type
-            : fields.title === old.title);
+            : fields.title === old.title) && attendeesAllow(fields.attendees);
     if (!(kept || categoryAllows(fields)))
         throw new Error(`No log entry ${fields.category} ${fields.title}`);
     if (foods.length > 0 && !([foodName, cookName].includes(fields.category) && foods.every(foodLineAllows)))
@@ -374,7 +382,8 @@ export function entryAdd(entry: EntryNew): string {
 }
 
 /**
- * Logs a box at its real time, with one drop or one tap: a log entry of its category, what, place, and a skill entry
+ * Logs a box at its real time, with one drop or one tap: a log entry of its category, what, place, people, and a skill
+ * entry
  * with its skill and type, written as the reader writes them, see `titleOf` in `documents.ts`, linking the folder
  * of its skill, from the start to the end the day sends,
  * pointing to the box with `RELATED-TO`, after which the box is done, see `boxDone` in `boxes.ts`. Its note stays
@@ -400,7 +409,7 @@ export function boxLog(logged: BoxLogged): string {
     const [title, titleLink]: [string, string] = titleOf({ ...box, titleLink: undefined }, box);
     const fields: EntryFields = {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
-        locationLink: box.locationLink, from: box.from, module: box.module, type: box.type,
+        locationLink: box.locationLink, from: box.from, attendees: box.attendees, module: box.module, type: box.type,
         semester: semesterFor(box.category, box.semester, box.day), note: "",
         start: new Date(logged.start), end: new Date(logged.end),
     };
