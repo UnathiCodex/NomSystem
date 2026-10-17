@@ -32,7 +32,7 @@ import { skillName } from "./skill/attempts.ts";
  * - `title`: What its skill entry is as written, like `IN2028 Business Analytics Machine Learning (HU)`.
  * - `start`, `end`: Start and end of its skill entry, as ISO instants.
  */
-type Session = {
+export type Session = {
     module: string;
     type: string;
     title: string;

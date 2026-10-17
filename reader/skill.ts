@@ -1647,16 +1647,18 @@ export function roundAdd(line: RoundNew): void {
  * Reads the session running now, for the timer of the day: the skill entry of the moment, of any module,
  * the last one of the log that started before now and ended at most {@link sessionPause} ago, as the buttons of a task
  * write into it, see {@link attemptAdd}, of every type, a lecture as my own learning, so the timer of the day
- * always shows the session I am in.
+ * always shows the session I am in; for the learning view that of one module, see {@link momentOf}, into which
+ * its round writes, so a section opens only in a session of its module, see `src/editor/session.ts`.
  * - `now`: The moment.
  * - `open`: The skill entry of the moment.
  *
+ * @param module - Code of a module, like `IN2028`, whose session alone counts; empty for any, as the timer asks
  * @returns The session, `null` while none runs
  */
-export function sessionRead(): Session | null {
+export function sessionRead(module: string): Session | null {
     const now: Date = new Date();
-    const open: Entry | undefined = skillEntriesRead(new Date(now.getTime() - sessionPause).toISOString(), now.toISOString())
-        .at(-1);
+    const open: Entry | undefined = module !== "" ? momentOf(module, now)
+        : skillEntriesRead(new Date(now.getTime() - sessionPause).toISOString(), now.toISOString()).at(-1);
     if (open === undefined)
         return null;
     return {

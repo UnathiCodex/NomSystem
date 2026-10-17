@@ -177,7 +177,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   of the moment.
  * - `POST /api/skill/entry`: Writes skill entry of the body into the log.
  * - `PATCH /api/skill/entry`: Changes skill entry of the body, adding its new attempts.
- * - `GET /api/skill/session`: Sends the session running now, or `null`.
+ * - `GET /api/skill/session?module=…`: Sends the session running now, of the module when one is named, or `null`.
  * - `GET /api/food/search?q=…&page=…&products=…`: Sends my foods for a name or barcode, the most eaten first,
  *   then a page of those of Open Food Facts, none for `products=0`.
  * - `POST /api/food/foods`: Adds food of the body to `Foods.md` and sends it as written.
@@ -370,7 +370,7 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, null);
 
     } else if (request.method === "GET" && url.pathname === "/api/skill/session") {
-        responseSend(response, 200, sessionRead());
+        responseSend(response, 200, sessionRead(url.searchParams.get("module") ?? ""));
 
     } else if (request.method === "GET" && url.pathname === "/api/food/search") {
         responseSend(response, 200, await foodsFind(url.searchParams.get("q") ?? "",

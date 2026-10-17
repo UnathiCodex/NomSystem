@@ -1,0 +1,131 @@
+/* Question how long a session is, see `session.ts`: a card over the section, filled in the soft grey of a card
+   without a frame, 34rem wide, the page behind dimmed as behind a dialog of the day; its rows as those of a dialog
+   of the day, each its name small and grey at the left, 4.8rem wide, its value at the right */
+.session-panel {
+    width: min(34rem, calc(100vw - 2 * var(--gap)));
+    padding: var(--gap);
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--fill);
+    color: var(--text-main);
+}
+
+.session-panel::backdrop {
+    background: rgb(0 0 0 / 0.6);
+}
+
+.session-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.session-row {
+    display: grid;
+    grid-template-columns: 4.8rem minmax(0, 1fr);
+    column-gap: var(--control-gap);
+    align-items: baseline;
+    margin: 0;
+    padding: 0.625rem 0.75rem;
+}
+
+.session-name {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* The lengths and the field for other minutes side by side, each one chip high and round, without a frame,
+   the one picked light on the calm grey of what is picked; the field as wide as what it holds, `Other` or the minutes
+   typed, `min` right after it */
+.session-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    align-items: baseline;
+    margin-block: -0.25rem;
+}
+
+.session-choices button,
+.session-other {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--chip-height);
+    padding: 0 0.875rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    font-size: var(--control-text);
+    cursor: pointer;
+}
+
+.session-choices button[aria-pressed="true"],
+.session-other.session-picked {
+    border-color: var(--chosen-line);
+    background: var(--chosen);
+}
+
+.session-other {
+    gap: 0.25em;
+    cursor: text;
+}
+
+.session-other input {
+    field-sizing: content;
+    min-width: 1ch;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+}
+
+/* Hint when the reader does not write the session */
+.session-error {
+    margin: 0;
+    padding: 0 0.75rem;
+}
+
+/* Cancel and Start at the bottom right, square, one control high, as the buttons of a dialog of the day: Cancel
+   with a faint frame, Start in the calm grey of what is picked, faded while it cannot start */
+.session-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--control-gap);
+    margin-top: 0.75rem;
+}
+
+.session-buttons button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-height);
+    height: var(--control-height);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: transparent;
+    cursor: pointer;
+}
+
+.session-buttons .session-main {
+    border-color: var(--chosen-line);
+    background: var(--chosen);
+}
+
+.session-buttons .session-main:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* Under a pointer that hovers, a length not picked and Cancel one grey lighter, Start one grey lighter than its calm
+   grey while it can start; not on a tablet, where a tap would leave them lit */
+@media (hover: hover) {
+    .session-choices button[aria-pressed="false"]:hover,
+    .session-other:not(.session-picked):hover,
+    .session-buttons button:not(.session-main):hover {
+        background: var(--fill-over);
+    }
+
+    .session-buttons .session-main:enabled:hover {
+        background: var(--chosen-over);
+    }
+}

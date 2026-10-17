@@ -43,6 +43,7 @@
  * - `./steps.ts`: Shows an unfolded solution one step at a time.
  * - `./tasks.ts`: Shows the rows of the tasks of a note.
  * - `./round.ts`: Shows the round of a section in the note.
+ * - `./session.ts`: Asks how long the session is when a section opens and none of its module runs.
  * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked, and the outline of a note or the blocks
  *   of a section with their places.
  * - `../day/choices.ts`: Marks where the long name of a file may go on below, on a phone.
@@ -65,6 +66,7 @@ import { headingShow, linksSet, livePreview, solutionsFold } from "./preview.ts"
 import { solutionSteps } from "./steps.ts";
 import { taskRows, tasksLoad } from "./tasks.ts";
 import { roundBlocksOf, roundClose, roundHeadingShow, roundStart } from "./round.ts";
+import { sessionEnsure } from "./session.ts";
 import { outlineShow, treeShow } from "../notes/tree.ts";
 import { todayShow } from "./today.ts";
 import { calendarTodayOf } from "../today.ts";
@@ -411,7 +413,8 @@ function treeClick(event: MouseEvent): void {
  * A note of my modules gets the rows of its tasks, see `./tasks.ts`, its outline in the tree, and scrolls to the
  * heading of the address, also when the back or forward button of the browser changes it; a section its round,
  * see `./round.ts`, its text hidden until its tasks are loaded, so its blocks fold before they show, scrolled to
- * its current block unless the address names a heading.
+ * its current block unless the address names a heading, and the question how long the session is while none of its
+ * module runs, see `./session.ts`.
  * A phone shows the file, or the tree while no file is named, and the button of the tree switches between them,
  * off while there is no file to go back to, see {@link phoneShow}; the name of the file may go on below between
  * its parts there, see `breakableOf` in `../day/choices.ts`.
@@ -505,6 +508,8 @@ export async function editorStart(): Promise<void> {
             addressHeadingShow();
         else if (location.hash !== "")
             roundHeadingShow(view, decodeURIComponent(location.hash.slice(1)));
+        if (sectionShown)
+            sessionEnsure(path).catch((error: unknown): void => console.error(error));
     });
     shown.then((): void => {
         outlineTree = tree;
