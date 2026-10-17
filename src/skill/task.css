@@ -30,9 +30,11 @@
 
 /* Reasons to skip one chip high, filled in the soft grey of a card without a frame, as on the phone,
    with a quarter more room beside their words, one grey lighter under the pointer; Next step and Show all
-   of a solution the same, and the button of the history; each keeps its size, its frame there but clear */
+   of a solution the same, Next of a learning path, and the button of the history; each keeps its size, its frame there
+   but clear */
 .task-form button,
 .steps-buttons button,
+.path-next,
 .task-history > summary {
     min-height: var(--chip-height);
     padding: 0 calc(1.25 * var(--control-padding));
@@ -44,6 +46,7 @@
 
 .task-form button:hover,
 .steps-buttons button:hover,
+.path-next:enabled:hover,
 .task-history > summary:hover {
     background: var(--fill-over);
 }
@@ -109,13 +112,15 @@ details.task-history a {
     display: none;
 }
 
-/* Line of a part of a cold task, across the row: its number, a check once it sits, then its button `⋯` */
+/* Line of a part of a cold task, across the row: its number, a check once it sits, then its button `⋯`;
+   one chip high also without it, like a part that sits on a card, so the lines stand equally apart */
 .task-part {
     display: flex;
     flex-basis: 100%;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--gap);
+    min-height: var(--chip-height);
 }
 
 .task-part-name {
@@ -153,12 +158,14 @@ details.task-history a {
 @media (max-width: 900px) {
     .task-form button,
     .steps-buttons button,
+    .path-next,
     .task-history > summary {
         position: relative;
     }
 
     .task-form button::after,
     .steps-buttons button::after,
+    .path-next::after,
     .task-history > summary::after {
         content: "";
         position: absolute;

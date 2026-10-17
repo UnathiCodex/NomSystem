@@ -6,13 +6,17 @@
  * for the scripts view and the entry by category alike.
  * Only the modules of the semester have tasks, see `activeModules`; their chapters and tasks are read live
  * from the folders every time, so a changed chapter changes the views too, and no list of them is kept anywhere.
- * A task is a heading `## Task. <name>` in a note of a chapter folder like `01_RegressionAnalysis`,
- * in the drafts or in my modules, with its source as the `>` line right below,
+ * A task is a block of a note of a chapter folder like `01_RegressionAnalysis`, in the drafts or in my modules,
+ * its kind by the type word of its heading: `## Example. <name>` with a `#### Solution` is worked, whose solution
+ * opens one step at a time, an Example without one being theory; `## Completion. <name>` is faded, its `Given:` and
+ * `Missing:` lines saying what it gives and what I fill in; `## Task. <name>` is cold, the one I solve alone, one of its
+ * variants due per round. A note still written the older way, with a heading `## Task. <name> (cold)`, keeps its
+ * meaning: that one is cold, `(cold)` no part of its name, and each plain `## Task. <name>` faded with `Given:` and
+ * `Missing:` lines, else worked. Its source is the `>` line right below its heading,
  * like `> [[VO_UniversityLectureLessons/TUM_2025W/01_CourseOverview.pdf#page=45|VO 2025W 01_CourseOverview (slide 45)]]`;
  * a note not yet rewritten still starts it with a mode word, `> Original: …` or `> Generated: …`, which is left out.
- * A cold task of its section, the one I solve alone with a part per idea, ends its heading with `(cold)`,
- * like `## Task. Kiosk Chain Review (cold)`, which is no part of its name; its parts are its numbered list items
- * at the start of a line, like `1. Sales $X_1,X_2,X_3$ of three days`, before its solution.
+ * The parts of a cold task, one per idea, are its numbered list items at the start of a line,
+ * like `1. Sales $X_1,X_2,X_3$ of three days`, before its solution.
  *
  * A skill entry of the log is one block of learning of a type, as in the plan: a lecture or a tutorial I attended,
  * a homework sheet I worked on, or study, solving the tasks of my notes, of any module of `NomSkillingmodules`,
@@ -108,6 +112,12 @@ export type Result = "right" | "guided" | "wrong" | "stuck" | "skipped";
 export type Effort = "low" | "medium" | "high";
 
 /**
+ * Kind of a task, see the top of this file: worked, its solution one step at a time; faded, with what is given
+ * and what is missing; or cold, solved alone.
+ */
+export type Kind = "worked" | "faded" | "cold";
+
+/**
  * A task as a chapter note holds it.
  * Its identity is its module and its name, not its note or chapter, so it keeps its history when it moves.
  * A task whose wording improves keeps its heading and with it its history; a task thrown away disappears,
@@ -117,24 +127,24 @@ export type Effort = "low" | "medium" | "high";
  * - `id`: Identity, `<module>/<name>`, like `IN2028/Airline Revenue Interval`, the first part of its `X-ATTEMPT`s.
  * - `name`: Name in its heading, like `Airline Revenue Interval` of `## Task. Airline Revenue Interval`.
  * - `heading`: Its heading as written, like `Task. Airline Revenue Interval`, for a link to it.
+ * - `kind`: Its {@link Kind}, by the type word of its heading.
  * - `source`: Its sources as written on its source line, without `> ` and an older mode word,
  *   like `[[…/01_CourseOverview.pdf#page=45|VO 2025W 01_CourseOverview (slide 45)]]`, empty without one.
  * - `note`: Path of its note, as the scripts view takes it, like
  *   `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
  * - `section`: Name of its section, its note, like `01_01_SampleMeanStandardError`.
- * - `cold`: Whether it is a cold task of its section, its heading ending with `(cold)`.
  * - `parts`: Numbers of the parts of a cold task, like `1`, `2` and `3`, none for one without parts and any other task.
  */
 export type Task = {
     id: string;
     name: string;
     heading: string;
+    kind: Kind;
     source: string;
     note: string;
     chapter: string;
     section: string;
-    cold: boolean;
     parts: string[];
 };
 
@@ -188,9 +198,10 @@ export type SkillTask = Task & {
  * - `title`: Its name, like `01_01_SampleMeanStandardError`.
  * - `note`: Path of its note, as the scripts view takes it.
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
- * - `cold`: Identity of its cold task, empty when it has none yet.
+ * - `cold`: Identity of its cold task of today, the variant {@link variantIndexOf} gives, empty when it has none yet.
  * - `tasks`: Number of its tasks, the cold one included.
  * - `tried`: Number of its tasks I tried, skips not counted.
+ * - `round`: Its round, see {@link roundOf}.
  */
 export type SkillSection = {
     title: string;
@@ -199,6 +210,7 @@ export type SkillSection = {
     cold: string;
     tasks: number;
     tried: number;
+    round: number;
 };
 
 /**
@@ -517,10 +529,15 @@ const sessionPause: number = 30 * 60 * 1000;
 
 
 /**
- * Heading of a task, `## Task. <name>`, or `## Task. <name> (cold)` for a cold task:
- * the heading as written, the name, and `(cold)` when it is there.
+ * Heading of a task, `## Example. <name>`, `## Completion. <name>` or `## Task. <name>`, an older one
+ * `## Task. <name> (cold)`: the heading as written, its type word, the name, and `(cold)` when it is there.
  */
-const taskHeading: RegExp = /^## (Task\.[ \t]+(.+?)(?:[ \t]+(\(cold\)))?)[ \t]*$/;
+const taskHeading: RegExp = /^## ((Example|Completion|Task)\.[ \t]+(.+?)(?:[ \t]+(\(cold\)))?)[ \t]*$/;
+
+/**
+ * Heading of a cold task written the older way, `## Task. <name> (cold)`, which marks the whole note as written so.
+ */
+const olderCold: RegExp = /^## Task\.[ \t]+.+[ \t]+\(cold\)[ \t]*$/;
 
 /**
  * Source line of a task, `> …` with its sources, an older one `> Original: …` or `> Generated: …`
@@ -556,10 +573,47 @@ function partsOf(lines: string[], index: number): string[] {
 }
 
 /**
- * Reads the tasks of a note in their order: each heading `## Task. <name>` with the source line below it,
- * and for a cold task its parts.
+ * Gives the lines of a block, from below its heading `##` to the next heading `##` or higher.
+ *
+ * @param lines - Lines of the note
+ * @param index - Line of the heading of the block
+ * @returns Its lines
+ */
+function blockOf(lines: string[], index: number): string[] {
+    const end: number = lines.findIndex((line: string, at: number): boolean => at > index && /^#{1,2}[ \t]/.test(line));
+    return lines.slice(index + 1, end === -1 ? lines.length : end);
+}
+
+/**
+ * Tells the kind of a task by the type word of its heading, see the top of this file; a note written the older way
+ * makes `(cold)` cold, and a plain `Task.` faded or worked by its lines. An Example without a solution is theory.
+ * - `block`: Lines of the block.
+ *
+ * @param word - Type word of the heading, like `Example`
+ * @param cold - Whether the heading ends with `(cold)`
+ * @param older - Whether the note is written the older way
+ * @param lines - Lines of the note
+ * @param index - Line of the heading
+ * @returns Its kind, `null` for theory
+ */
+function kindOf(word: string, cold: boolean, older: boolean, lines: string[], index: number): Kind | null {
+    const block: string[] = blockOf(lines, index);
+    if (word === "Example")
+        return block.some((line: string): boolean => /^####[ \t]+Solution\b/.test(line)) ? "worked" : null;
+    if (word === "Completion")
+        return "faded";
+    if (!older || cold)
+        return "cold";
+    return block.some((line: string): boolean => line.startsWith("Given:"))
+        && block.some((line: string): boolean => line.startsWith("Missing:")) ? "faded" : "worked";
+}
+
+/**
+ * Reads the tasks of a note in their order: each heading of a task with the source line below it, its kind,
+ * see {@link kindOf}, and for a cold task its parts.
  * - `lines`: Lines of the note.
  * - `section`: Name of the note's section.
+ * - `older`: Whether the note is written the older way, with a heading `## Task. <name> (cold)`.
  *
  * @param code - Module code of the note
  * @param chapter - Name of the chapter of the note
@@ -570,20 +624,22 @@ function partsOf(lines: string[], index: number): string[] {
 function noteTasksRead(code: string, chapter: string, note: string): Task[] {
     const lines: string[] = fileRead(note).content.toString("utf8").split(/\r?\n/);
     const section: string = sectionTitleOf(note);
+    const older: boolean = lines.some((line: string): boolean => olderCold.test(line));
     return lines.flatMap((line: string, index: number): Task[] => {
         const heading: RegExpExecArray | null = taskHeading.exec(line);
-        if (heading === null)
+        const kind: Kind | null = heading === null ? null : kindOf(heading[2], heading[4] !== undefined, older, lines, index);
+        if (heading === null || kind === null)
             return [];
         return [{
-            id: `${code}/${heading[2]}`,
-            name: heading[2],
+            id: `${code}/${heading[3]}`,
+            name: heading[3],
             heading: heading[1],
+            kind: kind,
             source: sourceLine.exec(lines[index + 1] ?? "")?.[1] ?? "",
             note: note,
             chapter: chapter,
             section: section,
-            cold: heading[3] !== undefined,
-            parts: heading[3] === undefined ? [] : partsOf(lines, index),
+            parts: kind === "cold" ? partsOf(lines, index) : [],
         }];
     });
 }
@@ -835,24 +891,74 @@ function coldScheduleOf(task: Task, attempts: Attempt[], exam: ExamDate): [Skill
 }
 
 /**
- * Builds the sections of a module from its tasks, in their order: one per note, with its cold task, the first one
- * when a note has more, and how many of its tasks I tried.
+ * Gives the attempts at all cold tasks of a section in the order I made them: the variants of a section share
+ * its runs, so a run done on one variant counts for all.
+ *
+ * @param own - Cold tasks of a section, its variants, in the order of the note
+ * @param attemptsOf - Attempts at a task
+ * @returns Attempts, the oldest first
+ */
+function variantAttemptsOf(own: Task[], attemptsOf: (task: Task) => Attempt[]): Attempt[] {
+    return own.flatMap(attemptsOf).sort((first: Attempt, second: Attempt): number =>
+        `${first.day} ${first.time}`.localeCompare(`${second.day} ${second.time}`));
+}
+
+/**
+ * Gives the round of a section: its days of attempts at its cold tasks before today, so round 0 lasts until a cold task
+ * first comes back on a later day, and each later day of attempts starts the next round.
+ *
+ * @param own - Cold tasks of a section, its variants, in the order of the note
+ * @param attemptsOf - Attempts at a task
+ * @param today - Today like `2026-10-17`
+ * @returns Round, 0 at first
+ */
+function roundOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attempt[], today: string): number {
+    const days: string[] = [...new Set(own.flatMap(attemptsOf)
+        .filter((attempt: Attempt): boolean => attempt.result !== "skipped")
+        .map((attempt: Attempt): string => attempt.day))].sort();
+    return days.at(-1) === today ? days.length - 1 : days.length;
+}
+
+/**
+ * Gives which variant of a section's cold task is due: each round takes the next variant, see {@link roundOf},
+ * so a run never repeats the numbers of the run before; the variant of today stays while I'm at it.
+ *
+ * @param own - Cold tasks of a section, its variants, in the order of the note
+ * @param attemptsOf - Attempts at a task
+ * @param today - Today like `2026-10-17`
+ * @returns Index of the variant in `own`
+ */
+function variantIndexOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attempt[], today: string): number {
+    return roundOf(own, attemptsOf, today) % own.length;
+}
+
+/**
+ * Builds the sections of a module from its tasks, in their order: one per note, with its round and its cold task
+ * of today, and how many of its tasks I tried.
  * - `notes`: Tasks by their notes, in order.
+ * - `colds`: Cold tasks of a note, its variants.
+ * - `attemptsOf`: Attempts at a task.
  *
  * @param tasks - Tasks of the module with when each is due
+ * @param today - Today like `2026-10-17`
  * @returns Sections
  */
-function sectionsOf(tasks: SkillTask[]): SkillSection[] {
+function sectionsOf(tasks: SkillTask[], today: string): SkillSection[] {
     const notes: Map<string, SkillTask[]> = Map.groupBy(tasks, (task: SkillTask): string => task.note);
-    return [...notes.values()].map((own: SkillTask[]): SkillSection => ({
-        title: own[0].section,
-        note: own[0].note,
-        chapter: own[0].chapter,
-        cold: own.find((task: SkillTask): boolean => task.cold)?.id ?? "",
-        tasks: own.length,
-        tried: own.filter((task: SkillTask): boolean =>
-            task.attempts.some((attempt: Attempt): boolean => attempt.result !== "skipped")).length,
-    }));
+    const attemptsOf: (task: SkillTask) => Attempt[] = (task: SkillTask): Attempt[] => task.attempts;
+    return [...notes.values()].map((own: SkillTask[]): SkillSection => {
+        const colds: SkillTask[] = own.filter((task: SkillTask): boolean => task.kind === "cold");
+        return {
+            title: own[0].section,
+            note: own[0].note,
+            chapter: own[0].chapter,
+            cold: colds.length === 0 ? "" : colds[variantIndexOf(colds, attemptsOf, today)].id,
+            tasks: own.length,
+            tried: own.filter((task: SkillTask): boolean =>
+                task.attempts.some((attempt: Attempt): boolean => attempt.result !== "skipped")).length,
+            round: roundOf(colds, attemptsOf, today),
+        };
+    });
 }
 
 /**
@@ -949,17 +1055,26 @@ export function skillingRead(): Skilling {
         const exam: ExamDate = examOf(module.code, boxes);
         const attemptsOf: (task: Task) => Attempt[] = (task: Task): Attempt[] =>
             (byTask.get(task.id) ?? []).map((logged: LoggedAttempt): Attempt => logged.attempt);
-        const colds: Map<string, [SkillTask, boolean]> = new Map(unique
-            .filter((task: Task): boolean => task.cold)
-            .toReversed()
-            .map((task: Task): [string, [SkillTask, boolean]] => [task.note, coldScheduleOf(task, attemptsOf(task), exam)]));
-        const tasks: SkillTask[] = unique.map((task: Task): SkillTask => task.cold
-            ? coldScheduleOf(task, attemptsOf(task), exam)[0]
-            : ladderScheduleOf(task, attemptsOf(task), colds.get(task.note)?.[1] ?? false));
+        const variants: Map<string, Task[]> = Map.groupBy(unique.filter((task: Task): boolean => task.kind === "cold"),
+            (task: Task): string => task.note);
+        const colds: Map<string, [SkillTask, boolean]> = new Map([...variants].map(([note, own]: [string, Task[]]):
+            [string, [SkillTask, boolean]] => [note, coldScheduleOf(own[0], variantAttemptsOf(own, attemptsOf), exam)]));
+        const today: string = berlinDateOf(new Date());
+        const tasks: SkillTask[] = unique.map((task: Task): SkillTask => {
+            if (task.kind !== "cold")
+                return ladderScheduleOf(task, attemptsOf(task), colds.get(task.note)?.[1] ?? false);
+            const own: Task[] = variants.get(task.note) ?? [task];
+            const run: SkillTask = colds.get(task.note)?.[0] ?? coldScheduleOf(task, attemptsOf(task), exam)[0];
+            const current: boolean = own[variantIndexOf(own, attemptsOf, today)] === task;
+            return {
+                ...task, due: current ? run.due : "", done: run.done, level: run.level, open: run.open,
+                ready: run.ready, skipped: current && run.skipped, attempts: attemptsOf(task),
+            };
+        });
         const removed: number = attempts.filter((logged: LoggedAttempt): boolean => logged.task.split("/")[0] === module.code
             && !tasks.some((task: SkillTask): boolean => task.id === logged.task)).length;
         return {
-            code: module.code, title: module.title, exam: exam, tasks: tasks, sections: sectionsOf(tasks),
+            code: module.code, title: module.title, exam: exam, tasks: tasks, sections: sectionsOf(tasks, today),
             duplicates: duplicates, removed: removed, planned: plannedOf(module.code, boxes),
             papers: papersRead(module.title),
         };

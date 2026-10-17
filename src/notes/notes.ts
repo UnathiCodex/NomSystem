@@ -12,15 +12,17 @@
  * Images and embedded notes come from the reader, and the formulas are rendered last.
  * Under the heading of each task of the semester stands its row: when it is due, its history, the buttons for the next
  * attempt behind its `⋯`, and right after an attempt the question for my effort on it.
- * A cold task, its heading ending with `(cold)`, shows a grey label beside its heading in place of `(cold)`,
- * like `cold · 2 done · 1 right`.
+ * The parts of a cold task that sit in its run while others are still open, like 1. and 2. before 3., show greyed,
+ * in its text and in its row, without their `⋯` there, so only the open parts can be answered.
+ * Its row stays quiet, without state, hint or numbers, see `../skill/task.ts`.
+ * The learning path of a section renders its note the same way, see `./path.ts`.
  *
  * - `./markdown.ts`: Turns the Markdown of a note into HTML, with Obsidian's syntax.
  * - `./math.ts`: Renders the formulas, as Obsidian does.
  * - `./tree.ts`: Builds the address of a note in the scripts view.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due.
  * - `../today.ts`: Gives today's calendar date, for when a task is due.
- * - `../skill/task.ts`: Builds the row of a task with its menu, and the label of a cold task.
+ * - `../skill/task.ts`: Builds the row of a task with its menu.
  * - `./notes.css`: Look of the notes.
  */
 
@@ -29,7 +31,7 @@ import { mathRender } from "./math.ts";
 import { noteAddressOf } from "./tree.ts";
 import { skillingLoad } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { coldLabelOf, taskRowOf } from "../skill/task.ts";
+import { taskRowOf } from "../skill/task.ts";
 import "./notes.css";
 
 import type { SkillModule, SkillTask, Skilling } from "../skill/attempts.ts";
@@ -42,7 +44,7 @@ import type { SkillModule, SkillTask, Skilling } from "../skill/attempts.ts";
  * - `text`: Markdown text of the note.
  * - `links`: For each link of the note as written, the path of the file it leads to, `null` when it leads nowhere.
  */
-type LinkedNote = {
+export type LinkedNote = {
     path: string;
     text: string;
     links: { [link: string]: string | null };
@@ -52,12 +54,6 @@ type LinkedNote = {
  * How deep embedded notes may lie in each other, so a note that embeds itself ends.
  */
 const embedDepth: number = 3;
-
-/**
- * End of the heading of a cold task, `(cold)` with the space before it, like in `Task. Kiosk Chain Review (cold)`.
- */
-const coldMark: RegExp = /[ \t]*\(cold\)$/;
-
 
 /**
  * Builds the address of a file of my modules at the reader, like an image of a note.
@@ -102,7 +98,7 @@ function noteRead(path: string): Promise<LinkedNote> {
  * @param heading - Heading as written, like `05.06. Definition. Eulersche Formel`
  * @returns Markdown of the section, empty when the note has no such heading
  */
-function sectionOf(text: string, heading: string): string {
+export function sectionOf(text: string, heading: string): string {
     const lines: string[] = text.split("\n");
     const levelOf: (line: string) => number = (line: string): number => /^(#{1,6})[ \t]/.exec(line)?.[1].length ?? 0;
     const start: number = lines.findIndex((line: string): boolean =>
@@ -168,7 +164,7 @@ async function embedShow(embed: HTMLElement, path: string | null, heading: strin
  * @param depth - How deep the note lies in embeds, the shown note being 0
  * @throws {Error} - When the reader cannot read an embedded note
  */
-async function linksResolve(element: HTMLElement, note: LinkedNote, depth: number): Promise<void> {
+export async function linksResolve(element: HTMLElement, note: LinkedNote, depth: number): Promise<void> {
     const embeds: Promise<void>[] = [];
     element.querySelectorAll<HTMLElement>("[data-link]").forEach((linked: HTMLElement): void => {
         const path: string | null = note.links[linked.dataset.link ?? ""] ?? null;
@@ -194,6 +190,8 @@ async function linksResolve(element: HTMLElement, note: LinkedNote, depth: numbe
  * the menu for the next attempt, which goes into the skill entry of the moment, Right, With tutor and Wrong once its
  * solution is open, and right after an attempt the question for my effort on it;
  * after each attempt and effort the rows load again. Only tasks of the modules of the semester have a row.
+ * The text of each part of a cold task that sits in its run shows greyed while others are still open,
+ * see {@link partsGrey}.
  * - `tasks`: Tasks of the note, the first of each name.
  * - `today`: Today like `2026-10-10`.
  * - `fold`: Fold of a block.
@@ -216,12 +214,12 @@ async function tasksShow(path: string): Promise<void> {
         if (task === undefined)
             return;
 
-        if (task.cold)
-            coldLabelPut(heading, task);
+        if (fold !== null)
+            partsGrey(fold, task);
         const solution: HTMLDetailsElement | null =
             fold?.querySelector<HTMLDetailsElement>(":scope > .fold-content > details.fold") ?? null;
         fold?.querySelector(":scope > .fold-content")?.prepend(
-            taskRowOf(task, skilling.skips, skilling.efforts, today, solution, (): Promise<void> => tasksShow(path)));
+            taskRowOf(task, skilling.skips, skilling.efforts, today, solution, true, (): Promise<void> => tasksShow(path)));
     });
 }
 
@@ -239,7 +237,7 @@ async function tasksShow(path: string): Promise<void> {
  *
  * @param text - Element of the shown note
  */
-function stepsPut(text: HTMLElement): void {
+export function stepsPut(text: HTMLElement): void {
     text.querySelectorAll<HTMLElement>("details.fold > .fold-content > details.fold > .fold-content").forEach(
         (content: HTMLElement): void => {
             const steps: HTMLElement[] = [...content.querySelectorAll<HTMLElement>(":scope > :not(ul, ol), li")];
@@ -270,19 +268,22 @@ function stepsPut(text: HTMLElement): void {
 }
 
 /**
- * Puts the label of a cold task beside its heading in place of its `(cold)`, see `../skill/task.ts`,
- * or in place of the label put before, so its numbers follow each attempt.
- * - `text`: Last text of the heading, which ends with `(cold)` until the first label.
+ * Greys each part of a cold task that sits in its run while others are still open, so the open ones stand out to be
+ * answered: its parts are the items of the numbered lists of its text, outside its solution, each by its number,
+ * like `2` for the second item of a list starting at 1, as the reader reads them, see `partsOf` in `reader/skill.ts`.
+ * - `list`: A numbered list of its text.
  *
- * @param heading - Heading of the task
- * @param task - Cold task
+ * @param fold - Fold of the task
+ * @param task - The task
  */
-function coldLabelPut(heading: HTMLElement, task: SkillTask): void {
-    heading.querySelector(".task-cold")?.remove();
-    const text: ChildNode | null = heading.lastChild;
-    if (text?.nodeType === Node.TEXT_NODE)
-        text.textContent = (text.textContent ?? "").replace(coldMark, "");
-    heading.append(coldLabelOf(task));
+export function partsGrey(fold: HTMLElement, task: SkillTask): void {
+    if (task.kind !== "cold" || task.parts.length === 0)
+        return;
+    fold.querySelectorAll<HTMLOListElement>(":scope > .fold-content > ol").forEach((list: HTMLOListElement): void => {
+        [...list.children].forEach((item: Element, index: number): void => {
+            item.classList.toggle("card-part-sat", !task.open.includes(String(list.start + index)));
+        });
+    });
 }
 
 /**

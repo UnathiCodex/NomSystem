@@ -8,6 +8,92 @@
     min-height: 0;
 }
 
+/* A learning path with its navigator as a third column on the right, see `../notes/path.ts` */
+.editor.editor-pathed {
+    grid-template-columns: var(--tree-width) minmax(0, 1fr) 18rem;
+}
+
+/* On a laptop, too narrow for three columns, a learning path without the tree, so the block keeps my reading width
+   beside its navigator; Show all brings the tree back with the whole note */
+@media (min-width: 901px) and (max-width: 1500px) {
+    .editor.editor-pathed {
+        grid-template-columns: minmax(0, 1fr) 18rem;
+    }
+
+    .editor-pathed .notes-tree {
+        display: none;
+    }
+}
+
+/* Navigator of the blocks of a learning path: own column with a line beside it, scrolls alone, its rows like those
+   of the tree, in its text and one chip high, its first row level with the name of the note; a long name goes on
+   below, never cut */
+.editor-navigator {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    overflow-y: auto;
+    padding: calc(2rem + (var(--control-height) - var(--chip-height)) / 2) var(--gap) var(--gap) 0.75rem;
+    border-left: 1px solid var(--line);
+    font-size: var(--tree-text);
+    line-height: 1.5;
+}
+
+/* A block of the round: its name, a check after a block done; one grey lighter under the pointer, the block shown
+   in the calm grey of what is picked, a later block greyed and taking no click */
+.editor-navigator[hidden] {
+    display: none;
+}
+
+.path-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: var(--chip-height);
+    padding: 0.125rem var(--tree-row-padding, 0.75rem);
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text-main);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.path-step:enabled:hover {
+    background: var(--fill);
+}
+
+.path-step[aria-current] {
+    background: var(--chosen);
+}
+
+.path-step-done {
+    color: var(--text-muted);
+}
+
+/* The other blocks of the note below a line, greyed like a later step, but taking a click to read */
+.path-step-other {
+    color: var(--reading-marker);
+}
+
+/* Line between the steps of the round and the other blocks, as the line between whole-day items and boxes */
+.path-line {
+    flex: none;
+    margin: 0.5rem 0;
+    border-top: 1px solid var(--line);
+}
+
+.path-step:disabled {
+    color: var(--reading-marker);
+    cursor: default;
+}
+
+.path-check {
+    display: inline-flex;
+    flex: none;
+}
+
 /* The file: the page of it in the middle, scrolls alone, with at least 2rem left and right of the page, as the scripts
    view keeps around its note, so the text never touches the tree or the edge */
 .editor-file {
@@ -73,6 +159,31 @@
 .editor-state {
     color: var(--text-muted);
     font-size: var(--control-text);
+}
+
+/* Round of a learning path right after the name of its section, grey in the size of the text, never cut;
+   the name as wide as it needs, cut only before the round */
+.editor-title:has(+ .editor-round) {
+    flex: 0 1 auto;
+}
+
+.editor-round {
+    flex: 1 0 auto;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+/* Show all of a learning path, a quiet grey link in the text of controls */
+.editor-all {
+    flex: none;
+    white-space: nowrap;
+    color: var(--text-muted);
+    font-size: var(--control-text);
+    text-decoration: none;
+}
+
+.editor-all:hover {
+    color: var(--text-main);
 }
 
 /* Without a file, its name empty, the notice, like `Choose a file on the left`, stands where the name of a file stands,
@@ -360,17 +471,20 @@
     margin-top: 0;
 }
 
-/* Spacers and invisible characters on the line of the cursor as faint dots in the grey of list markers,
-   drawn over them, so nothing moves */
+/* Spacers and invisible characters on the line of the cursor as a short faint line on the baseline in the grey
+   of list markers, drawn over them, so nothing moves; never a dot, which at the start of a spacer line in a list
+   looked like a second bullet */
 .editor-text .cm-spacer {
     position: relative;
 }
 
 .editor-text .cm-spacer::after {
-    content: "·";
+    content: "";
     position: absolute;
     left: 0;
-    color: var(--reading-marker);
+    bottom: 0.3em;
+    width: max(100%, 0.4em);
+    border-bottom: 1px solid var(--reading-marker);
 }
 
 /* A file that is no Markdown, like an `.ics` file, as its plain text in a font of even width */
@@ -407,10 +521,16 @@
        the tree beside it, which widened the page beyond the screen; the tree over the file while the button of the tree
        is pressed, see `phoneShow` in `editor.ts`, so both keep where they were scrolled to; both end above the bar
        at the bottom, its height `--bar-height`, one control and a gap above and below it, as the switch of the day */
-    .editor {
+    .editor,
+    .editor.editor-pathed {
         --bar-height: calc(var(--control-height) + 2 * var(--gap));
         grid-template-columns: minmax(0, 1fr);
         padding-bottom: var(--bar-height);
+    }
+
+    /* No navigator on a phone, which shows one thing at a time; the path's Next leads on */
+    .editor-navigator {
+        display: none;
     }
 
     .editor .notes-tree {

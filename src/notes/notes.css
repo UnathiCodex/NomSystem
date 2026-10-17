@@ -619,6 +619,12 @@
     order: 1;
 }
 
+/* A part of a cold task that sits in its run while others are still open, greyed as a done box of the day,
+   so the open parts stand out to be answered, see `partsGrey` in notes.ts */
+.card-part-sat {
+    color: var(--text-muted);
+}
+
 /* The question of a card, grey, before the solution */
 .card-prompt {
     margin-top: 1.5em;
@@ -627,6 +633,46 @@
 
 .card-prompt a {
     color: inherit;
+}
+
+/* Learning path of a section, see path.ts */
+/* A task as on a card: without its source line, its row with the buttons last, after its solution */
+.editor-path .path-task > .fold-content > blockquote {
+    display: none;
+}
+
+.editor-path .path-task > .fold-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-path .path-task .task-row {
+    order: 1;
+}
+
+/* The current block open for good, without its fold arrow */
+.editor-path .path-current > summary {
+    cursor: default;
+}
+
+.editor-path details.path-current > summary > *::after {
+    display: none;
+}
+
+/* Next under the current block, like Next step of a solution, faded while a task waits for its result */
+.path-next {
+    margin-top: 1.5rem;
+}
+
+.path-next:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* When the section comes back, grey, after the last block */
+.path-back {
+    margin-top: 1.5rem;
+    color: var(--text-muted);
 }
 
 /* Phone: the card of a task over the whole screen, from its text down to its Solution and its row, with little room

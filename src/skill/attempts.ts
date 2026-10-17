@@ -55,7 +55,8 @@ export type Attempt = {
  * - `note`: Path of its note, as the scripts view takes it.
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
  * - `section`: Name of its section, its note, like `01_01_SampleMeanStandardError`.
- * - `cold`: Whether it is a cold task of its section, its heading ending with `(cold)`.
+ * - `kind`: Its kind by the type word of its heading: worked, an Example with a solution; faded, a Completion;
+ *   or cold, a Task.
  * - `parts`: Numbers of the parts of a cold task, like `1`, `2` and `3`, none for any other task.
  */
 export type Task = {
@@ -66,7 +67,7 @@ export type Task = {
     note: string;
     chapter: string;
     section: string;
-    cold: boolean;
+    kind: "worked" | "faded" | "cold";
     parts: string[];
 };
 
@@ -97,9 +98,10 @@ export type SkillTask = Task & {
  * - `title`: Its name, like `01_01_SampleMeanStandardError`.
  * - `note`: Path of its note.
  * - `chapter`: Name of its chapter.
- * - `cold`: Identity of its cold task, empty when it has none yet.
+ * - `cold`: Identity of its cold task of today, the one variant due, empty when it has none yet.
  * - `tasks`: Number of its tasks.
  * - `tried`: Number of its tasks I tried.
+ * - `round`: Its days of attempts at its cold tasks before today, 0 until a cold task first comes back.
  */
 export type SkillSection = {
     title: string;
@@ -108,6 +110,7 @@ export type SkillSection = {
     cold: string;
     tasks: number;
     tried: number;
+    round: number;
 };
 
 /**

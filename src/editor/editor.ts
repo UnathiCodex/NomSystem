@@ -15,6 +15,10 @@
  * file without a diff; an `.ics` file opens as its plain text, to read only, each block of it drawn one step in and its
  * entries apart, see `./ics.ts`; any other file shows in the tree, faint, and opens not.
  * A note of my modules shows the rows of its tasks under their headings, see `./tasks.ts`.
+ * A section, a note with tasks of the semester, opens as its learning path instead, one block at a time, its round
+ * beside its name, a quiet `Show all` for the whole note, here to edit, and a navigator of its blocks on the right,
+ * see `../notes/path.ts`; an address with
+ * a heading, or with `all=1`, like `/scripts?path=…&all=1`, opens the whole note.
  * The address names a note by its path in the scripts view and the heading to scroll to, like
  * `/scripts?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md#…`,
  * so a reload and the back button of the browser stay on it, and a file of my new system by its path in the tree,
@@ -36,7 +40,9 @@
  * - `./keys.ts`: The keys of a Markdown file as in Obsidian, like Enter continuing a list.
  * - `./syntax.ts`: Obsidian syntax for the Markdown parser.
  * - `./preview.ts`: Shows the Markdown as in the scripts view, folds its sections and scrolls to a heading.
+ * - `./steps.ts`: Shows an unfolded solution one step at a time.
  * - `./tasks.ts`: Shows the rows of the tasks of a note.
+ * - `../notes/path.ts`: Shows a section as its learning path.
  * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked, and the outline of a note.
  * - `../day/choices.ts`: Marks where the long name of a file may go on below, on a phone.
  * - `../phone.ts`: Tells a phone, which shows the tree or the file, one at a time.
@@ -55,8 +61,10 @@ import { icsLook } from "./ics.ts";
 import { markdownKeys } from "./keys.ts";
 import { obsidianSyntax } from "./syntax.ts";
 import { headingShow, linksSet, livePreview, solutionsFold } from "./preview.ts";
+import { solutionSteps } from "./steps.ts";
 import { taskRows, tasksLoad } from "./tasks.ts";
-import { outlineShow, treeShow } from "../notes/tree.ts";
+import { pathShow } from "../notes/path.ts";
+import { noteAddressOf, outlineShow, treeShow } from "../notes/tree.ts";
 import { timeOf } from "../day/times.ts";
 import { breakableOf } from "../day/choices.ts";
 import { phone } from "../phone.ts";
@@ -248,6 +256,7 @@ function keyDown(event: KeyboardEvent): void {
  * - `scrollMargins`: Keeps the cursor below the head with the name and the save button, which stays on top
  *   while the file scrolls, so moving up never hides the cursor under it; on a phone the name scrolls away
  *   with the file, and the bar at the bottom stands below the file, so the cursor needs no margin there.
+ * - `solutionSteps`: The steps of an unfolded solution, one at a time, see `./steps.ts`.
  * - `taskRows`: The rows of the tasks of a note, once loaded, see `./tasks.ts`.
  * - `updateListener`: Shows whether the file has unsaved changes after each change of the text, and builds the outline
  *   of a note anew once the typing rests.
@@ -268,7 +277,7 @@ function extensionsOf(opened: Opened): Extension[] {
         EditorView.darkTheme.of(true),
         EditorView.scrollMargins.of((): Partial<Rect> =>
             ({ top: phone ? 0 : (document.getElementById("editor-head") as HTMLElement).offsetHeight })),
-        ...(opened.markdown ? [livePreview(opened.links), taskRows] : []),
+        ...(opened.markdown ? [livePreview(opened.links), solutionSteps, taskRows] : []),
         ...(/\.ics$/i.test(path) ? [icsLook()] : []),
         EditorView.updateListener.of((update: ViewUpdate): void => {
             if (!update.docChanged)
@@ -347,6 +356,42 @@ function treeClick(event: MouseEvent): void {
 }
 
 /**
+ * Shows the note as the learning path of its section in place of its text, see `../notes/path.ts`, when it is one:
+ * its round beside its name, `Show all` in place of the save button, and its navigator on the right in place of
+ * the outline in the tree, which would list blocks not in the round.
+ * - `round`: Round of the section, `null` for a note that is no section.
+ * - `label`: Its round, like `Round 0`.
+ * - `all`: Link to the whole note.
+ *
+ * @param opened - The note
+ * @returns Whether the note shows as a path
+ */
+async function pathOpen(opened: Opened): Promise<boolean> {
+    const element: HTMLElement = document.getElementById("editor-path") as HTMLElement;
+    const round: number | null = await pathShow(element, document.getElementById("editor-navigator") as HTMLElement,
+        { path: path, text: opened.text, links: opened.links })
+        .catch((error: unknown): null => {
+            console.error(error);
+            return null;
+        });
+    if (round === null)
+        return false;
+
+    const label: HTMLElement = document.createElement("span");
+    const all: HTMLAnchorElement = document.getElementById("editor-all") as HTMLAnchorElement;
+    label.className = "editor-round";
+    label.textContent = `Round ${round}`;
+    (document.getElementById("editor-title") as HTMLElement).after(label);
+    all.href = `${noteAddressOf(path, "")}&all=1`;
+    all.hidden = false;
+    element.hidden = false;
+    (document.getElementById("editor") as HTMLElement).classList.add("editor-pathed");
+    (document.getElementById("editor-text") as HTMLElement).hidden = true;
+    (document.getElementById("editor-save") as HTMLElement).hidden = true;
+    return true;
+}
+
+/**
  * Starts the editor after the router has put its HTML into the page: shows the tree on the left, that of my new system
  * for one of its files and at `/plannings`, else that of my modules, the module of the address picked while no note
  * is shown, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning` from a skill entry, see `../notes/tree.ts`;
@@ -354,7 +399,8 @@ function treeClick(event: MouseEvent): void {
  * button, Ctrl+S, and a question before leaving with changes unsaved; a file to read only says so, a file that cannot
  * be read shows a hint instead, and so does the editor while it shows no file.
  * A note of my modules gets the rows of its tasks, see `./tasks.ts`, its outline in the tree, and scrolls to the
- * heading of the address, also when the back or forward button of the browser changes it.
+ * heading of the address, also when the back or forward button of the browser changes it; a section without heading
+ * and without `all=1` in its address shows as its learning path instead, see {@link pathOpen}.
  * A phone shows the file, or the tree while no file is named, and the button of the tree switches between them,
  * off while there is no file to go back to, see {@link phoneShow}; the name of the file may go on below between
  * its parts there, see `breakableOf` in `../day/choices.ts`.
@@ -397,6 +443,9 @@ export async function editorStart(): Promise<void> {
             path === "" ? `Choose a ${plannings ? "file" : "note"} on the left` : "This file cannot be read";
         return;
     }
+
+    if (!plannings && opened.markdown && !address.has("all") && location.hash === "" && await pathOpen(opened))
+        return;
 
     const text: HTMLElement = document.getElementById("editor-text") as HTMLElement;
     text.classList.toggle("markdown", opened.markdown);

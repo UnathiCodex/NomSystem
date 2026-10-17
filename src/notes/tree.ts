@@ -372,14 +372,20 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
 
 /**
  * Puts the outline of the note shown under its entry in the tree, as Obsidian's outline: each heading `##` in order,
- * linking to it, each task under the block above it that is no task, like `Definition. Standard Error of the Mean`,
- * which then folds its tasks by its arrow and still links to its heading by its name; tasks named without `Task.`,
- * formulas rendered as in the note. A block without tasks below it stays a plain link, and so does a task without
- * such a block above it; a cold task, named also without `(cold)`, stands alone, at the end of its section.
+ * linking to it, each worked or faded task under the block above it that is no task, like
+ * `Definition. Standard Error of the Mean`, which then folds its tasks by its arrow and still links to its heading
+ * by its name; tasks named without their type word, `Example.`, `Completion.` or `Task.`, formulas rendered as in
+ * the note. A block without tasks below it stays a plain link, and so does a task without such a block above it;
+ * a cold task, a `Task.`, in a note written the older way `Task. … (cold)`, named also without `(cold)`, stands alone,
+ * at the end of its section; there a plain `Task.` is worked or faded. An Example without a solution is theory.
  * The outline put before goes; a block I folded in it stays folded.
  * - `entry`: Entry of the note in the tree, `null` while it is none, like a note of a module not of the semester.
  * - `folded`: Names of the blocks folded in the outline before.
  * - `outline`: The outline.
+ * - `lines`: Lines of the note.
+ * - `older`: Whether the note is written the older way.
+ * - `end`, `solved`: Where the block of a heading ends, and whether it has a solution.
+ * - `cold`, `ladder`: Whether a heading is that of a cold task, or of a worked or faded one.
  * - `block`: Link of the last block that is no task, until its first task makes it a folder.
  * - `tasks`: Place of the tasks below that block, the outline itself before the first block.
  * - `heading`: Text of a heading `##` as written, `undefined` for a line that is none.
@@ -398,23 +404,32 @@ export function outlineShow(tree: HTMLElement, path: string, text: string): void
         return;
 
     const outline: HTMLDivElement = document.createElement("div");
+    const lines: string[] = text.split(/\r?\n/);
+    const older: boolean = lines.some((line: string): boolean => /^## Task\..*\(cold\)[ \t]*$/.test(line));
     let block: HTMLAnchorElement | null = null;
     let tasks: HTMLElement = outline;
     outline.className = "tree-children tree-outline";
-    for (const line of text.split(/\r?\n/)) {
+    lines.forEach((line: string, index: number): void => {
         const heading: string | undefined = /^##[ \t]+(.+?)[ \t]*$/.exec(line)?.[1];
         if (heading === undefined)
-            continue;
+            return;
+        const end: number = lines.findIndex((next: string, at: number): boolean => at > index && /^#{1,2}[ \t]/.test(next));
+        const solved: boolean = lines.slice(index + 1, end === -1 ? undefined : end)
+            .some((next: string): boolean => /^####[ \t]+Solution\b/.test(next));
+        const cold: boolean = older ? /^Task\..*\(cold\)$/.test(heading) : heading.startsWith("Task. ");
+        const ladder: boolean = !cold && (heading.startsWith("Completion. ") || (older && heading.startsWith("Task. "))
+            || (heading.startsWith("Example. ") && solved));
         const link: HTMLAnchorElement = document.createElement("a");
         link.className = "tree-file";
         link.href = noteAddressOf(path, heading);
         link.dataset.heading = heading;
-        link.innerHTML = inlineHtmlOf(heading.replace(/^Task\.\s*/, "").replace(/[ \t]*\(cold\)$/, ""));
-        if (!heading.startsWith("Task. ")) {
+        link.innerHTML = inlineHtmlOf(cold || ladder
+            ? heading.replace(/^(Task|Completion|Example)\.\s*/, "").replace(/[ \t]*\(cold\)$/, "") : heading);
+        if (!cold && !ladder) {
             outline.append(link);
             block = link;
             tasks = outline;
-        } else if (/\(cold\)$/.test(heading)) {
+        } else if (cold) {
             outline.append(link);
         } else {
             if (block !== null) {
@@ -427,7 +442,7 @@ export function outlineShow(tree: HTMLElement, path: string, text: string): void
             }
             tasks.append(link);
         }
-    }
+    });
     mathRender(outline);
     entry.after(outline);
 }

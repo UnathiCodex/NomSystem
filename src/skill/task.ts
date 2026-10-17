@@ -13,6 +13,9 @@
  * since self-grading runs generous (León 2023); Stuck and Skip show always.
  * A cold task with parts, 1., 2., 3., has one line per part with its own `⋯` for Right, With tutor, Wrong and Stuck,
  * since each part gets its own result, a check after a part that sits in the run; Skip stays for the whole task.
+ * On a card, a part that sits has no `⋯` while others are still open, so only the open ones can be answered.
+ * A card and the learning path of a section keep the row quiet: no state, no hint and no number of attempts,
+ * only the `⋯` and the history behind its small button.
  * Right after an attempt that is no skip, the menu of the task opens by itself with the question for my effort on it
  * on top, low, medium or high, and keeps it there as long as the attempt is of today and has none.
  *
@@ -24,7 +27,7 @@
  */
 
 import { attemptSend, dayTextOf, effortSend } from "./attempts.ts";
-import { iconPut, iconWordsOf } from "../icons.ts";
+import { iconOf, iconPut, iconWordsOf } from "../icons.ts";
 import { menuItemOf, menuOf, menuOpen } from "../menu.ts";
 import {
     BrickWall, Check, HandHelping, History, SignalHigh, SignalLow, SignalMedium, SkipForward, X,
@@ -136,9 +139,10 @@ export function resultTextOf(attempt: Attempt): string {
  * that opens all attempts, the latest first, each its day, linking to the day in the day view, and its result.
  *
  * @param task - Task
+ * @param counted - Whether the button shows the number of attempts beside its icon
  * @returns History, none for a task never tried
  */
-export function historyOf(task: SkillTask): HTMLElement[] {
+export function historyOf(task: SkillTask, counted: boolean): HTMLElement[] {
     if (task.attempts.length === 0)
         return [];
 
@@ -146,7 +150,7 @@ export function historyOf(task: SkillTask): HTMLElement[] {
     const summary: HTMLElement = elementOf("summary", "", "");
     const list: HTMLElement = elementOf("ol", "", "");
     history.className = "task-history";
-    summary.append(...iconWordsOf(History, String(task.attempts.length)));
+    summary.append(...(counted ? iconWordsOf(History, String(task.attempts.length)) : [iconOf(History)]));
     summary.title = "History";
     summary.setAttribute("aria-label", `History, ${task.attempts.length} ${task.attempts.length === 1 ? "attempt" : "attempts"}`);
     list.append(...task.attempts.toReversed().map((attempt: Attempt): HTMLElement => {
@@ -321,21 +325,25 @@ function resultItemsOf(row: HTMLElement, task: SkillTask, part: string, written:
 
 /**
  * Builds the lines of the parts of a cold task, one per part: its number, a check once it sits in the run,
- * and its button `⋯` with Right, With tutor, Wrong and Stuck for it.
+ * and its button `⋯` with Right, With tutor, Wrong and Stuck for it, which a part that sits has not on a card,
+ * so only the open parts can be answered.
+ * - `sits`: Whether the part sits in the run.
  *
  * @param row - Row of the task
  * @param task - Cold task with parts
+ * @param card - Whether the row stands on a card
  * @param written - Shows the task again once the attempt is written
  * @returns Lines, across the row
  */
-function partLinesOf(row: HTMLElement, task: SkillTask, written: () => Promise<void>): HTMLElement[] {
+function partLinesOf(row: HTMLElement, task: SkillTask, card: boolean, written: () => Promise<void>): HTMLElement[] {
     return task.parts.map((part: string): HTMLElement => {
         const line: HTMLElement = elementOf("div", "task-part", "");
         const name: HTMLElement = elementOf("span", "task-part-name", `${part}.`);
-        if (!task.open.includes(part))
+        const sits: boolean = !task.open.includes(part);
+        if (sits)
             name.append(checkOf());
-        name.title = task.open.includes(part) ? "Still to sit in this run" : "Sits in this run";
-        line.append(name, menuOf(resultItemsOf(row, task, part, written)));
+        name.title = sits ? "Sits in this run" : "Still to sit in this run";
+        line.append(name, ...(card && sits ? [] : [menuOf(resultItemsOf(row, task, part, written))]));
         return line;
     });
 }
@@ -354,7 +362,8 @@ function checkOf(): HTMLElement {
  * Builds the row of a task under its heading in the scripts view: when it is due, then its button `⋯`,
  * for a cold task with parts one line per part below them, then its history and the place for the field of Stuck
  * and Skip, each across the row. Right, With tutor and Wrong hide until the solution is open, and the row marks
- * itself so meanwhile, a grey hint after the state saying so, see `task.css`.
+ * itself so meanwhile, a grey hint after the state saying so, see `task.css`; a card's row shows neither state nor hint,
+ * and its history no number.
  * Right after an attempt, its menu opens by itself with the question for my effort on top, once the row stands
  * in the page.
  * - `efforts`: The question for my effort on top of the menu, none when there is nothing to rate.
@@ -369,15 +378,18 @@ function checkOf(): HTMLElement {
  * @param today - Today like `2026-10-10`
  * @param solution - Fold of the task's solution, `null` when it has none: whether it is open, and a `toggle` when that
  *   changes, like the fold of a card, or as the editor draws the row anew on each fold, see `../editor/tasks.ts`
+ * @param card - Whether the row stands on a card or in a learning path, quiet, where a part of a cold task that sits
+ *   takes no answer
  * @param written - Shows the task again once an attempt or an effort is written
  * @returns Row
  */
 export function taskRowOf(task: SkillTask, skips: string[], efforts: Effort[], today: string,
-                          solution: (EventTarget & { open: boolean }) | null, written: () => Promise<void>): HTMLElement {
+                          solution: (EventTarget & { open: boolean }) | null, card: boolean,
+                          written: () => Promise<void>): HTMLElement {
 
     const row: HTMLElement = elementOf("div", "task-row", "");
     const form: HTMLElement = elementOf("div", "task-form", "");
-    const parted: boolean = task.cold && task.parts.length > 0;
+    const parted: boolean = task.kind === "cold" && task.parts.length > 0;
     const asked: HTMLElement[] = effortItemsOf(row, task, efforts, today, written);
     const more: HTMLElement = menuOf([
         ...asked,
@@ -389,9 +401,9 @@ export function taskRowOf(task: SkillTask, skips: string[], efforts: Effort[], t
     };
 
     form.hidden = true;
-    row.append(elementOf("span", "task-state", stateTextOf(task, today)),
-        elementOf("span", "task-hint", "Right and Wrong once the solution is open"), more,
-        ...(parted ? partLinesOf(row, task, written) : []), ...historyOf(task), form);
+    row.append(...(card ? [] : [elementOf("span", "task-state", stateTextOf(task, today)),
+        elementOf("span", "task-hint", "Right and Wrong once the solution is open")]), more,
+        ...(parted ? partLinesOf(row, task, card, written) : []), ...historyOf(task, !card), form);
     judged();
     solution?.addEventListener("toggle", judged);
     if (asked.length > 0 && effortAsked === task.id) {

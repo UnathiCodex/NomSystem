@@ -116,7 +116,7 @@ class RowWidget extends WidgetType {
      */
     toDOM(view: EditorView): HTMLElement {
         return taskRowOf(this.task, this.loaded.skips, this.loaded.efforts, this.loaded.today,
-            this.open === null ? null : Object.assign(new EventTarget(), { open: this.open }),
+            this.open === null ? null : Object.assign(new EventTarget(), { open: this.open }), false,
             (): Promise<void> => tasksLoad(view, this.loaded.path));
     }
 
@@ -210,7 +210,7 @@ function decorationsOf(state: EditorState, loaded: NoteTasks | null): Decoration
         const task: SkillTask | undefined = loaded.tasks.find((candidate: SkillTask): boolean => candidate.heading === text);
         if (task === undefined)
             continue;
-        const cold: RegExpExecArray | null = task.cold ? coldMark.exec(line.text) : null;
+        const cold: RegExpExecArray | null = task.kind === "cold" ? coldMark.exec(line.text) : null;
         if (cold !== null && !state.selection.ranges.some((range: SelectionRange): boolean =>
             range.from <= line.to && range.to >= line.from))
             decorations.push(Decoration.replace({ widget: new ColdWidget(task) }).range(line.from + cold.index, line.to));

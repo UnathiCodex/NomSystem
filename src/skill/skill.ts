@@ -7,7 +7,7 @@
  * - At the top the name of the module and the ready number, its sections whose cold task has its three runs,
  *   like `Ready 0 / 36`, since the section is the unit, not the task; below it grey its exam,
  *   like `Exam ≈ Thu, 25.02.2027`, `≈` while the day is estimated, and the section that comes next, the first
- *   I never tried, linking to its note, like `Next 01_01_SampleMeanStandardError`, see {@link nextOf};
+ *   I never tried, opening its cold task as a card, like `Next 01_01_SampleMeanStandardError`, see {@link nextOf};
  *   then what needs a look: task headings found twice and attempts on removed tasks.
  * - Due today: the tasks due today or earlier, the earliest first, a cold task with its parts still open;
  *   each opens as a card, its text alone, so I choose the method myself, see `cardSet` in `../notes/notes.ts`.
@@ -151,7 +151,7 @@ function cardAddressOf(task: SkillTask): string {
 function taskLineOf(task: SkillTask, state: string, card: boolean): HTMLElement {
     const line: HTMLElement = elementOf("li", "skill-task", "");
     const name: HTMLElement = linkOf("skill-name", task.name, card ? cardAddressOf(task) : noteAddressOf(task.note, task.heading));
-    if (task.cold) {
+    if (task.kind === "cold") {
         let cold: string = " cold";
         if (task.open.length > 0 && task.open.length < task.parts.length)
             cold += ` · ${task.open.map((part: string): string => `${part}.`).join(" ")}`;
@@ -219,7 +219,8 @@ function sectionOf(section: SkillSection, tasks: SkillTask[], today: string): HT
 /**
  * Builds the line of the section that comes next: the first section of the module, in the order of the notes,
  * none of whose tasks I tried yet, since I go through the sections in order and what I tried comes back when due;
- * its name links to its note, like `Next 01_01_SampleMeanStandardError`.
+ * its name, like `Next 01_01_SampleMeanEstimator`, opens its note, since learning a section starts with its theory,
+ * then its worked and faded tasks, and only then its cold task.
  * - `next`: The section, `undefined` once I tried every section.
  * - `line`: The line.
  *
