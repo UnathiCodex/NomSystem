@@ -15,6 +15,9 @@
  * - `|` inside `[[…]]` on a table row as part of the link, not as the end of a cell.
  * Beyond Obsidian, the block under each heading `##`, like a theory block or a task, folds by a click on its heading,
  * open at first, and the section under a heading `#### Solution…` comes folded, so I try a task before I see its solution.
+ * Also beyond Obsidian, every empty line between two blocks stays one line high, as I wrote it and as the editor
+ * shows it, so the space between two blocks shows how many empty lines I wrote between them,
+ * see {@link emptyLinesMade}.
  * Links, images and embeds keep their link as written in `data-link` and `data-heading`, for the scripts view
  * to resolve; formulas keep their TeX as text in an element of the class `math`, as in Obsidian,
  * for `math.ts` to render.
@@ -126,6 +129,19 @@ function escaped(text: string): string {
 function linkPartsOf(address: string): [string, string] {
     const hash: number = address.indexOf("#");
     return hash === -1 ? [address.trim(), ""] : [address.slice(0, hash).trim(), address.slice(hash + 1).trim()];
+}
+
+/**
+ * Counts the empty lines at the end of Markdown: the line breaks after its last text, less the one that ends its last
+ * line; a line of spaces or tabs counts as empty.
+ * - `end`: The spaces, tabs and line breaks after the last text, like `\n\n\n`.
+ *
+ * @param markdown - Markdown, like `Text\n\n\n`
+ * @returns Number of empty lines at its end, like 2
+ */
+function emptyLinesAtEndOf(markdown: string): number {
+    const end: string = /[ \t\n]*$/.exec(markdown)?.[0] ?? "";
+    return Math.max((end.match(/\n/g) ?? []).length - 1, 0);
 }
 
 /**
@@ -341,6 +357,15 @@ const wikiLink: TokenizerAndRendererExtension = {
 };
 
 /**
+ * Empty lines between two blocks, see {@link emptyLinesMade}: renders as an empty `<div class="empty-lines">`
+ * with their number in `data-lines`, which {@link htmlOf} gives to the block below them.
+ */
+const emptyLines: TokenizerAndRendererExtension = {
+    name: "emptyLines",
+    renderer: (token: Tokens.Generic): string => `<div class="empty-lines" data-lines="${token.lines}"></div>`,
+};
+
+/**
  * Section under a heading that folds, see {@link foldsMade}: renders as `<details class="fold">`, open or closed,
  * with the heading as its `<summary>`, the one place to click to fold it, and the blocks of the section inside.
  */
@@ -352,6 +377,42 @@ const fold: TokenizerAndRendererExtension = {
             + `<div class="fold-content">${this.parser.parse(blocks)}</div></details>`;
     },
 };
+
+/**
+ * Keeps the empty lines between two blocks, which marked reads as a block `space` and draws as nothing: each `space`
+ * between two blocks becomes one {@link emptyLines} with the number of empty lines between them, like 1 for the empty
+ * line below the `Generated:` quote of a block, counted from the end of the block above, since marked keeps the line
+ * break that ends a block's last line sometimes in the block and sometimes in the `space`. The same inside quotes,
+ * callouts and list items, and between two list items, whose empty lines marked keeps at the end of the item above,
+ * so they go there. Empty lines before the first or after the last block of a note, a quote, a callout or an item
+ * stand between no blocks and go.
+ * - `lines`: Number of empty lines at the end of a list item.
+ *
+ * @param tokens - Blocks, like those of a note or of a list item
+ * @returns The same blocks, with their empty lines
+ */
+function emptyLinesMade(tokens: Token[] | TokensList): Token[] | TokensList {
+    while (tokens[0]?.type === "space")
+        tokens.shift();
+    while (tokens.at(-1)?.type === "space")
+        tokens.pop();
+    tokens.forEach((block: Token, index: number): void => {
+        if (block.type === "space")
+            tokens[index] = {
+                type: "emptyLines", raw: block.raw, lines: emptyLinesAtEndOf(tokens[index - 1].raw + block.raw),
+            };
+        else if (block.type === "blockquote" || block.type === "callout")
+            emptyLinesMade(block.tokens ?? []);
+        else if (block.type === "list")
+            block.items.forEach((item: Tokens.ListItem, number: number): void => {
+                emptyLinesMade(item.tokens);
+                const lines: number = emptyLinesAtEndOf(item.raw);
+                if (number < block.items.length - 1 && lines > 0)
+                    item.tokens.push({ type: "emptyLines", raw: "", lines: lines });
+            });
+    });
+    return tokens;
+}
 
 /**
  * Folds each section under a heading of a level, up to the next heading of the same or a higher level,
@@ -393,6 +454,18 @@ function sectionsFolded(tokens: Token[] | TokensList, depth: number, folds: (tex
 function foldsMade(tokens: Token[] | TokensList): Token[] | TokensList {
     sectionsFolded(tokens, 4, (text: string): boolean => solutionRule.test(text), false);
     return sectionsFolded(tokens, 2, (): boolean => true, true);
+}
+
+/**
+ * Changes the blocks of a note once they are read, before they turn into HTML: keeps their empty lines,
+ * see {@link emptyLinesMade}, then folds their sections, see {@link foldsMade}, so the empty lines below a section
+ * stand at the end of its fold.
+ *
+ * @param tokens - Blocks of a note
+ * @returns The same blocks, with their empty lines and folds
+ */
+function blocksMade(tokens: Token[] | TokensList): Token[] | TokensList {
+    return foldsMade(emptyLinesMade(tokens));
 }
 
 /**
@@ -450,23 +523,40 @@ function htmlBlockOf(src: string): Tokens.HTML | false {
  */
 const markdown: Marked = new Marked({
     breaks: true,
-    extensions: [mathBlock, mathInline, callout, wikiLink, fold],
+    extensions: [mathBlock, mathInline, callout, wikiLink, emptyLines, fold],
     tokenizer: { html: htmlBlockOf },
     renderer: { heading: headingOf, link: linkOf, image: imageOf },
-    hooks: { preprocess: preprocess, emStrongMask: emStrongMask, processAllTokens: foldsMade },
+    hooks: { preprocess: preprocess, emStrongMask: emStrongMask, processAllTokens: blocksMade },
 });
 
 
 /**
- * Turns the Markdown of a note into clean HTML, see the top of this file.
+ * Turns the Markdown of a note into clean HTML, see the top of this file. The block below empty lines, see
+ * {@link emptyLinesMade}, gets their number in `--empty-lines`, which `notes.css` turns into room above it, so the room
+ * comes and goes with the block, like a step of a solution shown one at a time. Empty lines at the end of a list item
+ * or of a section stand above the next item or section, so they go to the element after the first element around them
+ * that has one, like the next `<li>` or the next fold.
  * - {@link Marked#parse}: Turns Markdown into HTML, with `async: false` directly as text.
  * - {@link DOMPurify.sanitize}: Takes out scripts, event handlers and the like, keeps classes and `data-` fields.
+ * - `page`: The HTML as elements, in a `<template>`, which shows and loads nothing of them, like an image.
+ * - `above`: The empty lines, or the first element around them with an element after it.
+ * - `below`: That element after it, the block below the empty lines, `null` for none.
  *
  * @param note - Text of the note
  * @returns HTML of the note
  */
 export function htmlOf(note: string): string {
-    return DOMPurify.sanitize(markdown.parse(note, { async: false }));
+    const page: HTMLTemplateElement = document.createElement("template");
+    page.innerHTML = DOMPurify.sanitize(markdown.parse(note, { async: false }));
+    page.content.querySelectorAll<HTMLElement>(".empty-lines").forEach((lines: HTMLElement): void => {
+        let above: Element | null = lines;
+        while (above !== null && above.nextElementSibling === null)
+            above = above.parentElement;
+        const below: HTMLElement | null = (above?.nextElementSibling ?? null) as HTMLElement | null;
+        below?.style.setProperty("--empty-lines", lines.dataset.lines ?? "0");
+        lines.remove();
+    });
+    return page.innerHTML;
 }
 
 /**
