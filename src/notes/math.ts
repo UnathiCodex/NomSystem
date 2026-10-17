@@ -48,6 +48,8 @@ const global: { MathJax: object } = window as unknown as { MathJax: object };
  *   in `mathjax-tex-font`, and without `fonts` it would load its fonts from the CDN jsDelivr.
  * - `loader.load`: Loads the extra TeX packages before the first formula, as Obsidian has them built in.
  * - `output.font`: The MathJax TeX font, the font of MathJax 3, instead of the newer default.
+ * - `output.linebreaks.inline`: Off, so a formula within a line never breaks inside, like before its `=`, as in
+ *   MathJax 3; it goes to the next line whole.
  * - `tex.macros`: Lets `\usepackage{…}` and `\RequirePackage{…}` load a package, as in Obsidian.
  * - `tex.inlineMath`, `tex.displayMath`: Empty, so MathJax searches the page for no formula itself;
  *   the Markdown reader finds them, see `markdown.ts`.
@@ -59,7 +61,7 @@ global.MathJax = {
         paths: { mathjax: "/node_modules/mathjax", fonts: "/node_modules/@mathjax" },
         load: packages.map((name: string): string => `[tex]/${name}`),
     },
-    output: { font: "mathjax-tex" },
+    output: { font: "mathjax-tex", linebreaks: { inline: false } },
     tex: {
         packages: { "[+]": packages },
         macros: { RequirePackage: ["\\require{#1}", 1], usepackage: ["\\require{#1}", 1] },

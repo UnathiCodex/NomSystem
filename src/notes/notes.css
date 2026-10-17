@@ -477,6 +477,14 @@
     rotate: -90deg;
 }
 
+/* A block right below a closed block of its level with its heading right below that block's heading, without the room
+   above a heading, so closed blocks stand close below each other as a list, as in the editor, see `belowFoldIs`
+   in `../editor/preview.ts` */
+.markdown details.fold:not([open]) + details.fold > summary > * {
+    margin-top: 0;
+    padding-top: 0;
+}
+
 /* Row of a task under its heading in the text and lines of the page, see `../skill/task.css` */
 .markdown .task-row {
     font-size: var(--text-size);
@@ -637,6 +645,12 @@
     overflow-x: auto;
     overflow-y: hidden;
     text-align: left;
+}
+
+/* Formula within a line with the punctuation right after it, like `,`, on one line, so the punctuation never stands
+   alone at the start of the next line, see `mathInline` in `markdown.ts` and `mathLook` in `../editor/preview.ts` */
+.markdown .math-unbroken {
+    white-space: nowrap;
 }
 
 /* Tables with grey lines and tighter lines, as in Obsidian;

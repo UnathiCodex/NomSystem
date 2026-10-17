@@ -283,6 +283,12 @@
     padding-top: 0;
 }
 
+/* A heading right below the folded section of a heading of its level without the room above a heading, so folded
+   headings stand close below each other as a list, see `belowFoldIs` in `preview.ts` */
+.editor-text.markdown :is(h1, h2, h3, h4) > .cm-line.cm-below-fold {
+    padding-top: 0;
+}
+
 .editor-text.markdown h3 > .cm-line {
     padding-top: 1em;
 }

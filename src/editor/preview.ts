@@ -12,8 +12,8 @@
  *   Their `##`, `>`, indentation, `-` and `1.` are hidden; on the line of the cursor the `##` and `>` show left of the text,
  *   and the `-` or number of an item shows in place of its bullet or number, so the text never moves.
  * - Empty lines as high as the space the scripts view leaves between the blocks around them, the line of the cursor
- *   as high as a line, see {@link spaceLook}; the blank line before text that goes on in a point below its sub-points
- *   without height, see {@link paragraphLook}.
+ *   too, so nothing moves as the cursor comes and goes, see {@link spaceLook}; the blank line before text that goes on
+ *   in a point below its sub-points without height, see {@link paragraphLook}.
  * - The type word of a block of a section at the start of a heading `##`, like `Definition. `, a small grey box before
  *   the name, as in the tree, as written on the line of the cursor, see {@link headingLook}.
  * - Bold, italic, struck and code without `**`, `*`, `~~` and `` ` ``, Markdown links and wiki links
@@ -21,19 +21,21 @@
  * - Line breaks `<br>` and break opportunities `<wbr>` drawn as in the scripts view, so `<br><wbr>` at the end of a line
  *   leaves an empty line below it; as their text while the cursor touches them.
  * - Task boxes `[ ]` and `[x]` as the boxes of the scripts view, which a click ticks, as written on the line of the cursor.
- * - Formulas `$…$` and `$$…$$` rendered as in the scripts view, as their TeX while the cursor touches them;
+ * - Formulas `$…$` and `$$…$$` rendered as in the scripts view, never broken inside, with the punctuation right after
+ *   one on its line, see {@link mathLook}; as their TeX while the cursor touches them;
  *   a formula `$$…$$` being edited shows rendered below its TeX, as in Obsidian.
  * - Images `![[Image.svg|300]]` shown; tables, callouts `> [!note] Title`, code blocks and HTML blocks like `<table>`
  *   rendered as in the scripts view, those right below each other as one, as their text while the cursor is on one
  *   of their lines, as Obsidian shows a callout.
  * - Spacers `⠀` (U+2800) and invisible characters like the soft hyphen blank, as in the scripts view; the spacer
  *   of a spacer line without room, so the cursor on it stands where its text will begin, see {@link paragraphLook}.
- * - The cursor never stands in what is hidden, so every key moves it where I see it, see {@link caretPlace}.
+ * - The cursor never stands in what is hidden, so every key moves it where I see it, see {@link caretPlaceOf}.
  * - Each heading folds its section, up to the next heading of its level or higher, by a click on its arrow after its
  *   text, as in the scripts view, and each list item with sub-points folds them and its further lines by its arrow
  *   left of its bullet, shown under the pointer, as in Obsidian; one click folds, one click unfolds,
  *   see {@link FoldWidget}; a solution, the section under `#### Solution`, comes folded, see {@link solutionsFold},
- *   so I try a task before I see its solution, but that of a worked Example, which I study whole.
+ *   so I try a task before I see its solution, but that of a worked Example, which I study whole; folded headings
+ *   of a level stand close below each other as a list, see {@link spaceLook}.
  * A click on a rendered piece puts the cursor there, so it shows as text; while the editor is not focused,
  * like before the first click, the whole note shows rendered.
  * A click on a rendered link follows it, as in Obsidian, and so does a click with Ctrl held on a link shown as text,
@@ -50,7 +52,8 @@
  *   a list item's from the end of its first line.
  * - `@lezer/highlight`: Gives pieces of the syntax the classes of their look, see `./editor.css`.
  * - `../notes/math.ts`: Renders formulas as the scripts view does.
- * - `../notes/markdown.ts`: Renders tables, callouts, code blocks and HTML blocks as the scripts view does.
+ * - `../notes/markdown.ts`: Renders tables, callouts, code blocks and HTML blocks as the scripts view does, and tells
+ *   the punctuation that stays on the line of a formula.
  * - `../notes/tree.ts`: Builds the address of a note in the scripts view, for a link to follow, and tells the type word
  *   of a block at the start of its heading.
  * - `./keys.ts`: Tells a spacer line and the indentation of the text of a list item, for where the item ends.
@@ -65,7 +68,7 @@ import {
 } from "@codemirror/language";
 import { tagHighlighter, tags } from "@lezer/highlight";
 import { mathRender } from "../notes/math.ts";
-import { htmlOf } from "../notes/markdown.ts";
+import { htmlOf, punctuationRule } from "../notes/markdown.ts";
 import { kindRule, noteAddressOf } from "../notes/tree.ts";
 import { columnsOf, spacerRule, textIndentationOf } from "./keys.ts";
 import { roundHeadingShow } from "./round.ts";
@@ -94,6 +97,7 @@ export type Links = {
  * - `decorations`: Decorations found so far.
  * - `wrappers`: Elements found so far that lines stand in, like the `li` of a list item.
  * - `rendered`: Starts of the blocks rendered whole so far, like a table, see {@link blockLook}.
+ * - `roomless`: Starts of the empty lines found so far that are drawn without height while the cursor is not on them.
  */
 type Look = {
     state: EditorState;
@@ -102,6 +106,7 @@ type Look = {
     decorations: Range<Decoration>[];
     wrappers: Range<BlockWrapper>[];
     rendered: number[];
+    roomless: number[];
 };
 
 /**
@@ -109,10 +114,13 @@ type Look = {
  *
  * - `decorations`: Hidden markup, rendered pieces and classes of lines and text.
  * - `wrappers`: Elements around lines, like `ul` and `li`.
+ * - `roomless`: Starts of the empty lines drawn without height while the cursor is not on them, which the cursor
+ *   passes over, see {@link caretPlaceOf}.
  */
 type Drawing = {
     decorations: DecorationSet;
     wrappers: RangeSet<BlockWrapper>;
+    roomless: number[];
 };
 
 /**
@@ -207,9 +215,15 @@ const external: Decoration = Decoration.mark({ class: "cm-follow cm-external" })
 const noHeight: Decoration = Decoration.line({ attributes: { style: "height: 0" } });
 
 /**
- * Empty line of the cursor right below a list with the space above a paragraph above it, see {@link spaceLook}.
+ * Formula with the punctuation right after it, kept on one line, see {@link mathLook} and `../notes/notes.css`;
+ * inclusive at its start, so it opens before the drawn formula and holds it, not only the punctuation.
  */
-const paragraphRoom: Decoration = Decoration.line({ attributes: { style: "padding-top: 1.5rem" } });
+const unbroken: Decoration = Decoration.mark({ class: "math-unbroken", inclusiveStart: true });
+
+/**
+ * Heading right below the folded section of a heading of its level, see {@link belowFoldIs}.
+ */
+const belowFold: Decoration = Decoration.line({ class: "cm-below-fold" });
 
 /**
  * Line of a code block being edited.
@@ -981,7 +995,11 @@ function unresolvedOf(target: string): Decoration {
 }
 
 /**
- * Formula: rendered while the cursor does not touch it, else its TeX, a formula `$$…$$` rendered below it.
+ * Formula: rendered while the cursor does not touch it, a formula `$…$` with the punctuation right after it, like `,`,
+ * on its line, as in the scripts view, see `mathInline` in `../notes/markdown.ts`; else its TeX, a formula `$$…$$`
+ * rendered below it.
+ * - `after`: The rest of its line.
+ * - `punctuation`: How many characters of punctuation follow it.
  *
  * @param look - Look being built
  * @param node - Formula, `InlineMath`
@@ -991,10 +1009,15 @@ function mathLook(look: Look, node: SyntaxNode): boolean {
     const text: string = look.state.sliceDoc(node.from, node.to);
     const display: boolean = text.startsWith("$$");
     const tex: string = display ? text.slice(2, -2) : text.slice(1, -1);
-    if (!touched(look, node.from, node.to))
+    const after: string = look.state.sliceDoc(node.to, look.state.doc.lineAt(node.to).to);
+    const punctuation: number = display ? 0 : punctuationRule.exec(after)?.[0].length ?? 0;
+    if (!touched(look, node.from, node.to)) {
         look.decorations.push(Decoration.replace({ widget: new MathWidget(tex, display, false) }).range(node.from, node.to));
-    else if (display)
+        if (punctuation > 0)
+            look.decorations.push(unbroken.range(node.from, node.to + punctuation));
+    } else if (display) {
         look.decorations.push(Decoration.widget({ widget: new MathWidget(tex, true, true), side: 1 }).range(node.to));
+    }
     return false;
 }
 
@@ -1086,7 +1109,7 @@ function listMarkLook(look: Look, node: SyntaxNode): boolean {
  * without the room of a blank and the cursor on it stands where its text begins, never one blank further right.
  * A paragraph that goes on in a list item below its sub-points, after the blank line Markdown needs before it,
  * see `lineTyping` in `./keys.ts`, stands right below them as any further line: that blank line without height while
- * the cursor is not on it.
+ * the cursor is not on it, which passes over it, see {@link caretPlaceOf}.
  * - `first`: The first line of the paragraph.
  * - `line`: One of its lines.
  * - `blank`: Its indentation, with the spacer of a spacer line.
@@ -1109,8 +1132,11 @@ function paragraphLook(look: Look, node: SyntaxNode): boolean {
 
     if (belowSubpointsIs(node)) {
         const above: Line = look.state.doc.line(first.number - 1);
-        if (/^[ \t]*$/.test(above.text) && !cursorOn(look, above))
-            look.decorations.push(noHeight.range(above.from));
+        if (/^[ \t]*$/.test(above.text)) {
+            look.roomless.push(above.from);
+            if (!cursorOn(look, above))
+                look.decorations.push(noHeight.range(above.from));
+        }
     }
     return true;
 }
@@ -1154,67 +1180,52 @@ function hiddenStartOf(state: EditorState, line: Line): number {
 }
 
 /**
- * Tells the blank line before a paragraph that goes on in a list item below its sub-points, drawn without height,
- * see {@link paragraphLook}.
- * - `next`: The line after it.
- * - `node`: A piece of syntax around the start of the text of the line after it, from the innermost outwards.
- *
- * @param state - Text and syntax tree
- * @param line - The line
- * @returns Whether it is such a blank line
- */
-function hiddenBlankIs(state: EditorState, line: Line): boolean {
-    if (!/^[ \t]*$/.test(line.text) || line.number === state.doc.lines)
-        return false;
-    const next: Line = state.doc.line(line.number + 1);
-    for (let node: SyntaxNode | null = syntaxTree(state).resolveInner(next.from + (/^[ \t]*/.exec(next.text)?.[0].length ?? 0), 1);
-         node !== null; node = node.parent)
-        if (node.name === "Paragraph")
-            return state.doc.lineAt(node.from).number === next.number && belowSubpointsIs(node);
-    return false;
-}
-
-/**
  * Keeps the cursor off what the look hides, so every key moves it where I see it: put into the hidden start of a line,
  * see {@link hiddenStartOf}, by a click, Home or an arrow up or down, it goes to where the text begins, on an empty
  * spacer line to its end; moved left out of the text of a line it goes on to the end of the line above, as from the
- * start of any line. A blank line drawn without height, see {@link hiddenBlankIs}, it passes over in the direction
- * it moved. Only for a cursor moved alone, never while text is picked or changed.
+ * start of any line. An empty line drawn without height, see {@link spaceLook} and {@link paragraphLook}, it passes
+ * over in the direction it moved, so such a line never opens as the cursor comes. Only for a cursor moved alone, never
+ * while text is picked or changed.
  * - `state`: Text and cursor before the move, the same text after it.
+ * - `roomless`: Starts of the empty lines drawn without height while the cursor is not on them.
  * - `head`: Where the cursor was put.
  * - `before`: Where it stood.
  * - `place`: Where it goes instead, the same for no change.
  * - `line`: The line of the place.
  * - `start`: Where the text of that line begins.
  *
+ * @param look - Look of the note, which tells the empty lines drawn without height
  * @returns Filter of the changes of the editor
  */
-const caretPlace: Extension = EditorState.transactionFilter.of((transaction: Transaction): TransactionSpec | readonly TransactionSpec[] => {
-    if (transaction.docChanged || transaction.selection === undefined || transaction.selection.ranges.length > 1
-        || !transaction.selection.main.empty || !transaction.isUserEvent("select"))
-        return transaction;
+function caretPlaceOf(look: StateField<Drawing>): Extension {
+    return EditorState.transactionFilter.of((transaction: Transaction): TransactionSpec | readonly TransactionSpec[] => {
+        if (transaction.docChanged || transaction.selection === undefined || transaction.selection.ranges.length > 1
+            || !transaction.selection.main.empty || !transaction.isUserEvent("select"))
+            return transaction;
 
-    const state: EditorState = transaction.startState;
-    const head: number = transaction.selection.main.head;
-    const before: number = state.selection.main.head;
-    let place: number = head;
-    for (let line: Line = state.doc.lineAt(place); ; line = state.doc.lineAt(place)) {
-        const start: number = line.from + hiddenStartOf(state, line);
-        if (hiddenBlankIs(state, line) && place > before)
-            place = state.doc.line(line.number + 1).from;
-        else if (hiddenBlankIs(state, line) && line.number > 1)
-            place = state.doc.line(line.number - 1).to;
-        else if (place < start && before >= start && before <= line.to && line.number > 1)
-            place = state.doc.line(line.number - 1).to;
-        else if (place < start)
-            place = start;
-        else
-            break;
-        if (state.doc.lineAt(place).number === line.number)
-            break;
-    }
-    return place === head ? transaction : [transaction, { selection: { anchor: place }, sequential: true }];
-});
+        const state: EditorState = transaction.startState;
+        const roomless: number[] = state.field(look).roomless;
+        const head: number = transaction.selection.main.head;
+        const before: number = state.selection.main.head;
+        let place: number = head;
+        for (let line: Line = state.doc.lineAt(place); ; line = state.doc.lineAt(place)) {
+            const start: number = line.from + hiddenStartOf(state, line);
+            if (roomless.includes(line.from) && place > before)
+                place = state.doc.line(line.number + 1).from;
+            else if (roomless.includes(line.from) && line.number > 1)
+                place = state.doc.line(line.number - 1).to;
+            else if (place < start && before >= start && before <= line.to && line.number > 1)
+                place = state.doc.line(line.number - 1).to;
+            else if (place < start)
+                place = start;
+            else
+                break;
+            if (state.doc.lineAt(place).number === line.number)
+                break;
+        }
+        return place === head ? transaction : [transaction, { selection: { anchor: place }, sequential: true }];
+    });
+}
 
 /**
  * Task box `[ ]` or `[x]` of a list item: the box of the scripts view, as written on the line of the cursor.
@@ -1396,16 +1407,49 @@ const looks: { [name: string]: (look: Look, node: SyntaxNode) => boolean } = {
 };
 
 /**
+ * Tells a heading right below the folded section of a heading of its level, like `## Definition. Estimator`
+ * below the folded `## Definition. Random Sample`, see {@link spaceLook}.
+ * - {@link foldedRanges}: The parts of the note folded now, a section from the end of the line of its heading
+ *   to the end of its last block.
+ * - `level`: Start of the line of a heading of its level, like `## `.
+ * - `folded`: Whether such a section ends with the block before.
+ *
+ * @param look - Look being built
+ * @param block - Block of the note
+ * @param before - Block before it, `null` for the first
+ * @returns Whether it is such a heading
+ */
+function belowFoldIs(look: Look, block: SyntaxNode, before: SyntaxNode | null): boolean {
+    if (before === null || !/^ATXHeading\d$/.test(block.name))
+        return false;
+
+    const level: RegExp = new RegExp(`^#{${block.name.slice(-1)}}[ \\t]`);
+    let folded: boolean = false;
+    foldedRanges(look.state).between(before.to, before.to, (from: number, to: number): void => {
+        folded ||= to === before.to && level.test(look.state.doc.lineAt(from).text);
+    });
+    return folded;
+}
+
+/**
  * Empty lines between the blocks of the note together as high as the space the scripts view leaves between them,
  * the larger of the space below the block before, 1em below a quote, and the space above the block after,
  * see {@link spaceAboveOf}, shared evenly by several, since the scripts view leaves the same space for any number
  * of them; without height next to a block rendered whole, which keeps its own space.
- * The empty line of the cursor keeps the height of a line, so I see where I type: Enter after a heading,
- * which leaves no space below it, gives a line the rest moves down for, as in Obsidian; right below a list, where
- * Enter or Backspace ended it, with the space above a paragraph above it, since text typed there begins a paragraph
- * after the list, see `lineTyping` in `./keys.ts`, so the cursor stands where the text will.
+ * The empty line of the cursor keeps its height, so nothing moves as the cursor comes and goes, its line height the same,
+ * so the cursor, as high as the text, stands in the middle of it. Where the scripts view leaves no space, like right
+ * below a heading or above a list, the cursor passes over the empty lines, see {@link caretPlaceOf}, and only where
+ * typing puts it, the line of the cursor is as high as a line, so I see where I type: Enter after a heading gives
+ * a line the rest moves down for, as in Obsidian.
+ * A heading right below the folded section of a heading of its level stands right below that heading, without the
+ * room above a heading, so folded headings stand close below each other as a list, see {@link belowFoldIs}.
+ * - `rendered`: Whether one of the two blocks is rendered whole.
+ * - `folded`: Whether the block after is a heading right below such a folded section.
+ * - `above`: The space above the block after, see {@link spaceAboveOf}.
+ * - `roomless`: Whether the two blocks leave no space between them.
  * - `first`: Number of the first empty line after the block before.
  * - `count`: How many empty lines stand between the two blocks.
+ * - `share`: Height of each of them.
  * - `line`: One of them.
  *
  * @param look - Look being built
@@ -1414,17 +1458,22 @@ function spaceLook(look: Look): void {
     let before: SyntaxNode | null = null;
     for (let block: SyntaxNode | null = syntaxTree(look.state).topNode.firstChild; block !== null; block = block.nextSibling) {
         const rendered: boolean = look.rendered.includes(block.from) || (before !== null && look.rendered.includes(before.from));
-        const height: string = rendered ? "0rem"
-            : `max(${before?.name === "Blockquote" ? "1rem" : "0rem"}, ${spaceAboveOf(look, block, before)})`;
+        const folded: boolean = belowFoldIs(look, block, before);
+        if (folded)
+            look.decorations.push(belowFold.range(look.state.doc.lineAt(block.from).from));
+        const above: string = spaceAboveOf(look, block, before);
+        const roomless: boolean = rendered || folded || (before?.name !== "Blockquote" && above === "0rem");
+        const height: string = roomless ? "0rem" : before?.name === "Blockquote" ? `max(1rem, ${above})` : above;
         const first: number = before === null ? 1 : look.state.doc.lineAt(before.to).number + 1;
         const count: number = look.state.doc.lineAt(block.from).number - first;
-        const space: Decoration = Decoration.line({ attributes: { style: `height: calc(${height} / ${Math.max(count, 1)})` } });
+        const share: string = `calc(${height} / ${Math.max(count, 1)})`;
+        const space: Decoration = Decoration.line({ attributes: { style: `height: ${share}; line-height: ${share}` } });
         for (let number: number = first; number < first + count; number++) {
             const line: Line = look.state.doc.line(number);
-            if (!cursorOn(look, line))
+            if (roomless)
+                look.roomless.push(line.from);
+            if (!roomless || !cursorOn(look, line))
                 look.decorations.push(space.range(line.from));
-            else if (number === first && line.length === 0 && (before?.name === "BulletList" || before?.name === "OrderedList"))
-                look.decorations.push(paragraphRoom.range(line.from));
         }
         before = block;
     }
@@ -1457,13 +1506,16 @@ function spacersLook(look: Look): void {
 function drawingOf(state: EditorState): Drawing {
     const look: Look = {
         state: state, links: state.field(linkTargets), focused: state.field(focused), decorations: [], wrappers: [], rendered: [],
+        roomless: [],
     };
     syntaxTree(state).iterate({
         enter: (node: SyntaxNodeRef): boolean => looks[node.name]?.(look, node.node) ?? true,
     });
     spaceLook(look);
     spacersLook(look);
-    return { decorations: Decoration.set(look.decorations, true), wrappers: BlockWrapper.set(look.wrappers, true) };
+    return {
+        decorations: Decoration.set(look.decorations, true), wrappers: BlockWrapper.set(look.wrappers, true), roomless: look.roomless,
+    };
 }
 
 /**
@@ -1671,7 +1723,7 @@ export function livePreview(links: Links): Extension {
         codeFolding({ placeholderDOM: (): HTMLElement => document.createElement("span") }),
         keymap.of(foldKeymap),
         look,
-        caretPlace,
+        caretPlaceOf(look),
         EditorView.focusChangeEffect.of((_state: EditorState, focusing: boolean): StateEffect<boolean> => focusChange.of(focusing)),
         EditorView.domEventHandlers({ mousedown: linkClicked, click: linkClicked }),
         syntaxHighlighting(highlighter),

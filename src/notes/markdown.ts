@@ -49,6 +49,12 @@ const mathDisplayRule: RegExp = /^\$\$((?:\\[\s\S]|[^\\])*?)\$\$(?:[^\S\n]*\n)?/
 const mathInlineRule: RegExp = /^\$(?![ \t$])((?:\\[\s\S]|[^\\])+?)(?<![ \t])\$(?!\d)/;
 
 /**
+ * Punctuation right after a formula `$…$`, like the `,` of `$x_1$, $x_2$`, which stays on its line: a formula never
+ * breaks, so a break before the punctuation would leave it alone at the start of the next line.
+ */
+export const punctuationRule: RegExp = /^[.,;:!?)]+/;
+
+/**
  * Callout: a quote whose first line is `> [!type] Title`, with its type, `-` or `+` for folding, its title,
  * and the further lines of the quote.
  */
@@ -232,7 +238,10 @@ const mathBlock: TokenizerAndRendererExtension = {
 /**
  * Formula within a line, `$$…$$` or `$…$`, see {@link mathDisplayRule} and {@link mathInlineRule}.
  * Renders as `<span class="math math-block">` for `$$…$$`, `<span class="math math-inline">` for `$…$`,
- * with its TeX, as in Obsidian.
+ * with its TeX, as in Obsidian; a formula `$…$` with punctuation right after it, see {@link punctuationRule},
+ * together with it in `<span class="math-unbroken">`, which `notes.css` keeps on one line.
+ * - `punctuation`: The punctuation right after a formula `$…$`, empty for none.
+ * - `math`: The element of the formula.
  */
 const mathInline: TokenizerAndRendererExtension = {
     name: "mathInline",
@@ -241,10 +250,17 @@ const mathInline: TokenizerAndRendererExtension = {
     tokenizer: (src: string): Tokens.Generic | undefined => {
         const display: RegExpExecArray | null = mathDisplayRule.exec(src);
         const match: RegExpExecArray | null = display ?? mathInlineRule.exec(src);
-        return match === null ? undefined : { type: "mathInline", raw: match[0], tex: match[1], display: display !== null };
+        if (match === null)
+            return undefined;
+        const punctuation: string = display === null ? punctuationRule.exec(src.slice(match[0].length))?.[0] ?? "" : "";
+        return {
+            type: "mathInline", raw: match[0] + punctuation, tex: match[1], display: display !== null, punctuation: punctuation,
+        };
     },
-    renderer: (token: Tokens.Generic): string =>
-        `<span class="math math-${token.display ? "block" : "inline"}">${escaped(token.tex)}</span>`,
+    renderer: (token: Tokens.Generic): string => {
+        const math: string = `<span class="math math-${token.display ? "block" : "inline"}">${escaped(token.tex)}</span>`;
+        return token.punctuation === "" ? math : `<span class="math-unbroken">${math}${escaped(token.punctuation)}</span>`;
+    },
 };
 
 /**
