@@ -237,7 +237,7 @@ async function tasksShow(path: string): Promise<void> {
  * @param text - Element of the shown note
  */
 function stepsPut(text: HTMLElement): void {
-    text.querySelectorAll<HTMLElement>("details.fold > .fold-content > details.fold > .fold-content").forEach(
+    text.querySelectorAll<HTMLElement>("details.fold > .fold-content > details.fold:not(.scene) > .fold-content").forEach(
         (content: HTMLElement): void => {
             const steps: HTMLElement[] = [...content.querySelectorAll<HTMLElement>(":scope > :not(ul, ol), li")];
             if (steps.length < 2)

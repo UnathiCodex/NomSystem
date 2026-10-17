@@ -373,14 +373,16 @@ const emptyLines: TokenizerAndRendererExtension = {
 };
 
 /**
- * Section under a heading that folds, see {@link foldsMade}: renders as `<details class="fold">`, open or closed,
- * with the heading as its `<summary>`, the one place to click to fold it, and the blocks of the section inside.
+ * Section under a heading that folds, see {@link foldsMade}: renders as `<details class="fold">`, of a scene
+ * `<details class="fold scene">`, open or closed, with the heading as its `<summary>`, the one place to click to fold
+ * it, and the blocks of the section inside.
  */
 const fold: TokenizerAndRendererExtension = {
     name: "fold",
     renderer(this: RendererThis, token: Tokens.Generic): string {
         const [heading, ...blocks]: Token[] = token.tokens ?? [];
-        return `<details class="fold"${token.open ? " open" : ""}><summary>${this.parser.parse([heading])}</summary>`
+        return `<details class="fold${token.scene ? " scene" : ""}"${token.open ? " open" : ""}>`
+            + `<summary>${this.parser.parse([heading])}</summary>`
             + `<div class="fold-content">${this.parser.parse(blocks)}</div></details>`;
     },
 };
@@ -432,10 +434,11 @@ function emptyLinesMade(tokens: Token[] | TokensList): Token[] | TokensList {
  * @param folds - Tells by the text of a heading, and of the last heading of a higher level above it, whether its
  *   section folds
  * @param open - Whether the sections are open at first
+ * @param scene - Whether the sections are scenes, see {@link sceneBlockRule}
  * @returns The same blocks, each such section as one block
  */
 function sectionsFolded(tokens: Token[] | TokensList, depth: number, folds: (text: string, above: string) => boolean,
-                        open: boolean): Token[] | TokensList {
+                        open: boolean, scene: boolean): Token[] | TokensList {
 
     const sectionEnds: (block: Token) => boolean = (block: Token): boolean => block.type === "heading" && block.depth <= depth;
     let above: string = "";
@@ -451,7 +454,8 @@ function sectionsFolded(tokens: Token[] | TokensList, depth: number, folds: (tex
             end++;
         const section: Token[] = tokens.splice(start, end - start);
         tokens.splice(start, 0,
-            { type: "fold", raw: section.map((block: Token): string => block.raw).join(""), tokens: section, open: open });
+            { type: "fold", raw: section.map((block: Token): string => block.raw).join(""), tokens: section, open: open,
+                scene: scene });
     }
     return tokens;
 }
@@ -464,9 +468,9 @@ function sectionsFolded(tokens: Token[] | TokensList, depth: number, folds: (tex
  * @returns The same blocks, with the sections folded
  */
 function foldsMade(tokens: Token[] | TokensList): Token[] | TokensList {
-    sectionsFolded(tokens, 4, (text: string, above: string): boolean =>
-        solutionRule.test(text) || sceneBlockRule.test(above), false);
-    return sectionsFolded(tokens, 2, (): boolean => true, true);
+    sectionsFolded(tokens, 4, (text: string): boolean => solutionRule.test(text), false, false);
+    sectionsFolded(tokens, 4, (_text: string, above: string): boolean => sceneBlockRule.test(above), false, true);
+    return sectionsFolded(tokens, 2, (): boolean => true, true, false);
 }
 
 /**
