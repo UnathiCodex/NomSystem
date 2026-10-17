@@ -28,8 +28,11 @@
  * Task has a result; the close writes `done` where the step stood, and Today follows.
  * Reading a round needs no session, but `Next` and the round check write only in a session of the module, which
  * the dialog of a new entry starts while none runs, see `./session.ts`; cancelled, I stay where I was.
+ * I write only in the block shown, see {@link changesKeep} and {@link selectionKeep}, so no key, cut or drag takes
+ * `Next` or the hidden text around the block away.
  *
- * - `@codemirror/state`, `@codemirror/view`: Hold the place of `Next` and draw it as a widget below the current block.
+ * - `@codemirror/state`, `@codemirror/view`: Hold the block shown, keep what I write and select inside it,
+ *   and draw `Next` as a widget below it.
  * - `@codemirror/language`: Folds and unfolds the blocks, as their arrows do.
  * - `../skill/attempts.ts`: Writes the days of the round line out.
  * - `./tasks.ts`: Hears each load of the tasks of the note, with its section.
@@ -38,13 +41,13 @@
  * - `../notes/tree.ts`: The places of the blocks the tree shows.
  */
 
-import { StateEffect, StateField } from "@codemirror/state";
+import { EditorSelection, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { foldable, foldedRanges, foldEffect, unfoldEffect } from "@codemirror/language";
 import { tasksFollow } from "./tasks.ts";
 import { sessionEnsure } from "./session.ts";
 
-import type { EditorState, Extension, Line, Range, StateEffectType, Transaction } from "@codemirror/state";
+import type { Extension, Line, Range, SelectionRange, StateEffectType, Transaction, TransactionSpec } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
 import type { Attempt, Result, SkillSection, SkillTask } from "../skill/attempts.ts";
 import type { NoteTasks } from "./tasks.ts";
@@ -106,6 +109,19 @@ type Round = {
     seen: string[];
     at: string;
     changed: () => void;
+};
+
+/**
+ * The block shown alone, see {@link aloneOf}, the only text I may change and select while it shows.
+ *
+ * - `from`: Start of its heading line.
+ * - `to`: Where it ends, see {@link endOf}.
+ * - `decorations`: What is drawn: the text around it hidden, its heading marked as the first, `Next` below it.
+ */
+type Alone = {
+    from: number;
+    to: number;
+    decorations: DecorationSet;
 };
 
 /**
@@ -175,20 +191,75 @@ class NextWidget extends WidgetType {
 }
 
 /**
- * Where `Next` stands: built anew when it moves, carried along when the text changes.
+ * The block shown alone with `Next` below it, `null` for none: built anew when `Next` moves, carried along when
+ * the text changes, its start before what I type at it and its end after, so what I type at either belongs to it.
  * - {@link StateField}: Only a field may draw a widget between the lines.
  */
-const nextPlace: StateField<DecorationSet> = StateField.define<DecorationSet>({
-    create: (): DecorationSet => Decoration.none,
-    update: (place: DecorationSet, transaction: Transaction): DecorationSet => {
+const alonePlace: StateField<Alone | null> = StateField.define<Alone | null>({
+    create: (): Alone | null => null,
+    update: (alone: Alone | null, transaction: Transaction): Alone | null => {
         for (const effect of transaction.effects)
             if (effect.is(nextMoved))
-                return effect.value === null ? Decoration.none : aloneOf(transaction.state, effect.value.block, effect.value.end,
+                return effect.value === null ? null : aloneOf(transaction.state, effect.value.block, effect.value.end,
                     effect.value.next);
-        return place.map(transaction.changes);
+        if (alone === null || !transaction.docChanged)
+            return alone;
+        return { from: transaction.changes.mapPos(alone.from, -1), to: transaction.changes.mapPos(alone.to, 1),
+            decorations: alone.decorations.map(transaction.changes) };
     },
-    provide: (field: StateField<DecorationSet>): Extension => EditorView.decorations.from(field),
+    provide: (field: StateField<Alone | null>): Extension =>
+        EditorView.decorations.from(field, (alone: Alone | null): DecorationSet => alone?.decorations ?? Decoration.none),
 });
+
+/**
+ * Keeps what I type and delete inside the block shown alone: a change reaching beyond it is left out whole,
+ * never half, like Delete at its end, which took the line break `Next` stands on and pulled the hidden text after
+ * it into the block, Backspace at the start of its heading, or a cut over a selection reaching past `Next`;
+ * undo and redo, which CodeMirror never filters, only take back what was allowed.
+ * - `alone`: The block shown alone before the change.
+ * - `inside`: Whether every change lies inside it.
+ *
+ * @param transaction - Transaction
+ * @returns Whether its changes may stand
+ */
+function changesKeep(transaction: Transaction): boolean {
+    const alone: Alone | null = transaction.startState.field(alonePlace);
+    let inside: boolean = true;
+    if (alone !== null)
+        transaction.changes.iterChangedRanges((from: number, to: number): void => {
+            inside &&= from >= alone.from && to <= alone.to;
+        });
+    return inside;
+}
+
+/**
+ * Keeps the cursor and what I select inside the block shown alone, so neither reaches the hidden text,
+ * like Shift+Down on its last line, Ctrl+A or a drag past `Next`: a place beyond the block goes to its start or its
+ * end. Only where a key, a click or a drag puts them: the cursor left in the block before when `Next` moves on stays
+ * there, unseen and without the focus, until I click or move it, so the heading of the next block shows as before.
+ * - `alone`: The block shown alone after the transaction.
+ * - `selection`: The cursors and selections the transaction puts.
+ * - `inside`: A place kept inside the block.
+ * - `kept`: Each cursor or selection inside the block, the same where it already lies inside.
+ *
+ * @param transaction - Transaction
+ * @returns The transaction, and after it the selection kept inside, when it reached beyond the block
+ */
+function selectionKeep(transaction: Transaction): TransactionSpec | readonly TransactionSpec[] {
+    if (transaction.selection === undefined)
+        return transaction;
+    const alone: Alone | null = transaction.state.field(alonePlace);
+    if (alone === null)
+        return transaction;
+    const selection: EditorSelection = transaction.selection;
+    const inside: (place: number) => number = (place: number): number => Math.min(Math.max(place, alone.from), alone.to);
+    const kept: SelectionRange[] = selection.ranges.map((range: SelectionRange): SelectionRange =>
+        range.anchor === inside(range.anchor) && range.head === inside(range.head) ? range
+            : EditorSelection.range(inside(range.anchor), inside(range.head)));
+    if (kept.every((range: SelectionRange, index: number): boolean => range === selection.ranges[index]))
+        return transaction;
+    return [transaction, { selection: EditorSelection.create(kept, selection.mainIndex), sequential: true }];
+}
 
 
 /**
@@ -213,9 +284,9 @@ function endOf(state: EditorState, block: Block): number {
  * @param block - The block shown
  * @param end - Where it ends
  * @param next - Whether `Next` stands below it
- * @returns What to draw
+ * @returns The block shown alone
  */
-function aloneOf(state: EditorState, block: Block, end: number, next: boolean): DecorationSet {
+function aloneOf(state: EditorState, block: Block, end: number, next: boolean): Alone {
     const start: number = state.doc.line(block.line).from;
     const last: boolean = end >= state.doc.length;
     const marks: Range<Decoration>[] = [];
@@ -226,7 +297,7 @@ function aloneOf(state: EditorState, block: Block, end: number, next: boolean): 
         marks.push(Decoration.widget({ widget: new NextWidget(), block: true, side: last ? 1 : -1 }).range(last ? end : end + 1));
     if (!last)
         marks.push(Decoration.replace({ block: true }).range(end + 1, state.doc.length));
-    return Decoration.set(marks);
+    return { from: start, to: end, decorations: Decoration.set(marks) };
 }
 
 /**
@@ -762,11 +833,15 @@ export function roundHeadingShow(view: EditorView, heading: string): boolean {
 
 /**
  * Starts the round of the notes the editor shows: it hears each load of their tasks, see {@link roundTake}.
+ * - {@link EditorState.changeFilter}: Leaves changes out before they are applied.
+ * - {@link EditorState.transactionFilter}: Changes a transaction before it is applied; {@link Prec.highest} runs
+ *   {@link selectionKeep} after the other filters, which move the cursor too, so it has the last word.
  *
  * @param changed - Shows the places of the blocks anew, in the tree and on a phone
- * @returns Extension for the editor, the place of `Next`
+ * @returns Extension for the editor: the block shown with `Next`, and what I write and select kept inside it
  */
 export function roundStart(changed: () => void): Extension {
     tasksFollow((view: EditorView, loaded: NoteTasks): void => roundTake(view, loaded, changed));
-    return nextPlace;
+    return [alonePlace, EditorState.changeFilter.of(changesKeep),
+        Prec.highest(EditorState.transactionFilter.of(selectionKeep))];
 }
