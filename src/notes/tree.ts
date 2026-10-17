@@ -5,7 +5,8 @@
  * as Obsidian's file explorer, of one of two roots at a time, each an area of its own in the rail:
  * - `NomSkillingmodules`, the book, the modules of the semester, one at a time, since I learn one module at a time:
  *   right below the name of the root the module picked, then its chapter picked, of its folder and of its drafts
- *   together, each a picker whose menu comes down below it, see {@link pickerOf}, then the notes of that chapter
+ *   together, each a picker whose arrow brings its menu down below it and whose name opens its overview,
+ *   see {@link pickerOf}, then the notes of that chapter
  *   as a plain list, nothing folding, which open in the scripts view to write; of my modules the reader writes only
  *   the drafts;
  * - `NomManageplannings`, the open folder, my new system, as the reader lists it, without my old system
@@ -124,6 +125,21 @@ export function noteAddressOf(path: string, heading: string): string {
 }
 
 /**
+ * Builds the address of the overview of a module, or of one of its chapters, in the scripts view,
+ * see `../editor/overview.ts`.
+ *
+ * @param module - Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`
+ * @param chapter - Name of the chapter, like `01_RegressionAnalysis`, empty for the whole module
+ * @returns Address like `/scripts?module=…&chapter=…`
+ */
+export function overviewAddressOf(module: string, chapter: string): string {
+    const address: string = `/scripts?module=${encodeURIComponent(module)}`;
+    if (chapter === "")
+        return address;
+    return `${address}&chapter=${encodeURIComponent(chapter)}`;
+}
+
+/**
  * Asks the reader for something as JSON.
  *
  * @param address - Address at the reader, like `/api/edit/tree`
@@ -235,26 +251,33 @@ function moduleNodeOf(module: NotesModule): HTMLDivElement {
 
 /**
  * Makes a picker of the tree of my modules, see the top of this file: a row, the name of what is picked with a grey
- * arrow after it, which opens its menu right below it, the browser's own popover, which a pick, Escape or a click
- * beside it closes; each choice a row, the one picked in the calm grey of what is picked.
+ * arrow after it; the arrow opens its menu right below it, the browser's own popover, which a pick, Escape or a click
+ * beside it closes; each choice a row, the one picked in the calm grey of what is picked. A click on the name opens
+ * the overview of what is picked where the note stands, see `../editor/overview.ts`, and no menu.
  * - `pick`: The row, a button.
  * - `name`: The name of what is picked on it, before its arrow, see `.tree-pick` in `./notes.css`.
  * - `menu`: The menu.
+ * - {@link Event#preventDefault}: Keeps a click on the name from the button, which would open the menu.
  *
  * @param kind - What it picks, `module` or `chapter`, which names its anchor, see `.tree-pick` in `./notes.css`
  * @param choices - Gives what it may pick: the modules, or the chapters of the module picked
  * @param nameOf - Gives the name of a choice, like `01_RegressionAnalysis`
  * @param choose - Shows the choice picked
+ * @param addressOf - Gives the address of the overview of what is picked, see {@link overviewAddressOf}
  * @returns The row and its menu
  */
 function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: HTMLElement) => string,
-                  choose: (choice: HTMLElement) => void): [HTMLButtonElement, HTMLDivElement] {
+                  choose: (choice: HTMLElement) => void, addressOf: () => string): [HTMLButtonElement, HTMLDivElement] {
     const pick: HTMLButtonElement = document.createElement("button");
     const name: HTMLSpanElement = document.createElement("span");
     const menu: HTMLDivElement = document.createElement("div");
     pick.type = "button";
     pick.className = `tree-pick tree-pick-${kind}`;
     name.className = "tree-pick-name";
+    name.addEventListener("click", (event: MouseEvent): void => {
+        event.preventDefault();
+        location.assign(addressOf());
+    });
     pick.append(name);
     pick.popoverTargetElement = menu;
     menu.className = `tree-menu tree-menu-${kind}`;
@@ -288,7 +311,7 @@ function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: H
  * @param module - The module, see {@link moduleNodeOf}
  * @param chapter - A chapter of it, `null` for a module without chapters
  */
-function chapterShow(tree: HTMLElement, module: HTMLElement, chapter: HTMLElement | null): void {
+export function chapterShow(tree: HTMLElement, module: HTMLElement, chapter: HTMLElement | null): void {
     tree.querySelectorAll<HTMLElement>(".tree-module").forEach((other: HTMLElement): void => {
         other.classList.toggle("picked", other === module);
     });
@@ -535,7 +558,9 @@ export type TreeRoot = "NomSkillingmodules" | "NomManageplannings";
  * - `modules`: Of my modules the modules, each with its chapters and notes, see {@link moduleNodeOf}.
  * - `choose`: Picks a module or a chapter: shows it, see {@link chapterShow};
  *   a module with the chapter of the note shown, if it holds the note, else with its first chapter.
- * - `modulePick`, `chapterPick`: The pickers of module and chapter, each with its menu.
+ * - `moduleOf`: Gives the name of the folder of the module picked, for the address of its overview.
+ * - `modulePick`, `chapterPick`: The pickers of module and chapter, each with its menu, their names opening
+ *   the overview of the module or the chapter picked.
  * - `entries`: Of my new system its folders and files.
  * - `asked`: The module asked for, `null` for none.
  *
@@ -578,11 +603,16 @@ export async function treeShow(tree: HTMLElement, root: TreeRoot, shown: string,
                 ?? picked.querySelector(".tree-chapter");
         chapterShow(tree, picked, chapter);
     };
+    const moduleOf: () => string = (): string =>
+        tree.querySelector<HTMLElement>(".tree-module.picked")?.dataset.module ?? "";
     const modulePick: [HTMLButtonElement, HTMLDivElement] = pickerOf("module", (): HTMLElement[] => modules,
-        (choice: HTMLElement): string => choice.dataset.title ?? "", choose);
+        (choice: HTMLElement): string => choice.dataset.title ?? "", choose,
+        (): string => overviewAddressOf(moduleOf(), ""));
     const chapterPick: [HTMLButtonElement, HTMLDivElement] = pickerOf("chapter", (): HTMLElement[] =>
         [...tree.querySelectorAll<HTMLElement>(".tree-module.picked > .tree-chapter")],
-        (choice: HTMLElement): string => choice.dataset.chapter ?? "", choose);
+        (choice: HTMLElement): string => choice.dataset.chapter ?? "", choose,
+        (): string => overviewAddressOf(moduleOf(),
+            tree.querySelector<HTMLElement>(".tree-module.picked > .tree-chapter.picked")?.dataset.chapter ?? ""));
     tree.replaceChildren(heading, ...modulePick, ...chapterPick, ...modules);
     if (treeMark(tree, shown) !== null || modules.length === 0)
         return;

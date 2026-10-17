@@ -39,7 +39,7 @@ import type { Fallback } from "./round.ts";
  * - `address`: Address it opens.
  * - `done`: Whether it is done today.
  */
-type Item = {
+export type Item = {
     title: string;
     module: string;
     address: string;
@@ -53,7 +53,7 @@ type Item = {
  * @param section - Section
  * @returns Its name
  */
-function wordsOf(section: SkillSection): string {
+export function wordsOf(section: SkillSection): string {
     return section.title.replace(/^\d+_\d+_/, "").replace(/(?<=[a-z])(?=[A-Z])/g, " ");
 }
 
@@ -68,7 +68,7 @@ function wordsOf(section: SkillSection): string {
  * @param today - Today like `2026-10-17`
  * @returns Items in order
  */
-function itemsOf(module: SkillModule, today: string): Item[] {
+export function itemsOf(module: SkillModule, today: string): Item[] {
     const items: Item[] = [];
     const fresh: Item[] = [];
     const sections: SkillSection[] = module.sections.filter((section: SkillSection): boolean => section.cold !== "");

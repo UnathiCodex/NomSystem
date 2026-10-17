@@ -112,21 +112,31 @@
     background: var(--fill-over);
 }
 
+/* The name on a picker opens the overview of what is picked, the arrow its menu, see `pickerOf` in `tree.ts`: the name
+   takes the card from its left edge, top and bottom up to the arrow, a grey lighter under the pointer, as the link of
+   the root; the arrow, in its place, takes the room right of it to the edge, so it is easy to hit */
 .tree-pick-name {
+    flex: 1;
+    margin: calc(-1 * var(--tree-pick-padding)) 0 calc(-1 * var(--tree-pick-padding)) calc(-1 * var(--tree-row-padding));
+    padding: var(--tree-pick-padding) 0 var(--tree-pick-padding) var(--tree-row-padding);
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.tree-pick-name:hover {
+    color: var(--text-muted);
 }
 
 .tree-pick::after {
     content: "";
     flex: none;
     display: inline-block;
-    width: 1em;
+    width: calc(1em + var(--tree-row-padding));
     height: 1lh;
-    margin-left: auto;
+    margin-right: calc(-1 * var(--tree-row-padding));
     vertical-align: top;
     background: var(--text-muted);
-    mask: var(--fold-icon) center / 0.875em no-repeat;
+    mask: var(--fold-icon) 0.0625em center / 0.875em no-repeat;
 }
 
 .tree-pick-module {
@@ -716,6 +726,13 @@
 
     .tree-search {
         height: 2.25rem;
+    }
+
+    /* The name on a picker on a phone taking the whole height of its row too, so a tap above or below its letters
+       opens the overview, not the menu */
+    .tree-pick-name {
+        margin-block: -0.5625rem;
+        padding-block: 0.5625rem;
     }
 
     /* A folder's name going on below on a phone in line with its first line after the arrow, not below the arrow */

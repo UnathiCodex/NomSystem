@@ -18,7 +18,10 @@
  * A section, a note with tasks of the semester, shows its round in the same view: its name in words, its round below
  * it, like `Round 1`, then only the block due, `Next` below it, and in the tree, in place of the outline, its blocks
  * with their places, a click opening one, see `./round.ts`.
- * While no note is open, the page shows Today, the items due today as cards, see `./today.ts`.
+ * While no note is open, the page shows Today, the items due today as cards, see `./today.ts`; for the address of
+ * a module or of one of its chapters, which a click on its name in the tree opens, like
+ * `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`, it shows its overview,
+ * where each of its sections stands, see `./overview.ts`.
  * The address names a note by its path in the scripts view and the heading to scroll to, like
  * `/scripts?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md#…`,
  * so a reload and the back button of the browser stay on it, and a file of my new system by its path in the tree,
@@ -43,6 +46,7 @@
  * - `./steps.ts`: Shows an unfolded solution one step at a time.
  * - `./tasks.ts`: Shows the rows of the tasks of a note.
  * - `./round.ts`: Shows the round of a section in the note.
+ * - `./overview.ts`: Shows the overview of a module or of a chapter, and its chapter in the tree.
  * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked, and the outline of a note or the blocks
  *   of a section with their places.
  * - `../day/choices.ts`: Marks where the long name of a file may go on below, on a phone.
@@ -68,6 +72,7 @@ import { taskRows, tasksLoad } from "./tasks.ts";
 import { roundBlocksOf, roundClose, roundHeadingShow, roundStart } from "./round.ts";
 import { outlineShow, treeShow } from "../notes/tree.ts";
 import { todayShow } from "./today.ts";
+import { overviewShow, overviewTreeShow } from "./overview.ts";
 import { calendarTodayOf } from "../today.ts";
 import { timeOf } from "../day/times.ts";
 import { breakableOf } from "../day/choices.ts";
@@ -405,7 +410,9 @@ function treeClick(event: MouseEvent): void {
 /**
  * Starts the editor after the router has put its HTML into the page: shows the tree on the left, that of my new system
  * for one of its files and at `/plannings`, else that of my modules, the module of the address picked while no note
- * is shown, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning` from a skill entry, see `../notes/tree.ts`;
+ * is shown, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning` from a skill entry, see `../notes/tree.ts`,
+ * and its chapter of the address, like `&chapter=01_RegressionAnalysis`, whose overview then stands on the right,
+ * see `./overview.ts`; Today stands there while the address names neither a note nor a module;
  * reads the file the address names and shows it to edit, its solutions folded, see `./preview.ts`, with the save
  * button, Ctrl+S, and a question before leaving with changes unsaved; a file to read only says so, a file that cannot
  * be read shows a hint instead, and so does the editor while it shows no file.
@@ -456,6 +463,15 @@ export async function editorStart(): Promise<void> {
     if (path === "" && !plannings) {
         save.hidden = true;
         (document.getElementById("editor") as HTMLElement).classList.add("editor-on-today");
+        if (address.has("module")) {
+            const module: string = address.get("module") ?? "";
+            const chapter: string = address.get("chapter") ?? "";
+            shown.then((): void => overviewTreeShow(tree, module, chapter)).catch((error: unknown): void =>
+                console.error(error));
+            await overviewShow(document.getElementById("editor-overview") as HTMLElement, module, chapter,
+                calendarTodayOf());
+            return;
+        }
         await todayShow(document.getElementById("editor-today") as HTMLElement, calendarTodayOf());
         return;
     }

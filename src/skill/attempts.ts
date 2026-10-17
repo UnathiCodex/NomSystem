@@ -115,6 +115,7 @@ export type SkillTask = Task & {
  *   form the steps before the one I stand at count as passed.
  * - `at`: Key of the step of the round shown I went on to with the last `Next`, where I stand, empty for none yet.
  * - `closed`: Whether I closed the round shown by hand.
+ * - `days`: Days I learned it, by its attempts and its lines in the log, the oldest first, like `2026-10-11`.
  */
 export type SkillSection = {
     title: string;
@@ -131,6 +132,7 @@ export type SkillSection = {
     seen: string[];
     at: string;
     closed: boolean;
+    days: string[];
 };
 
 /**

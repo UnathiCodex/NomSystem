@@ -237,6 +237,8 @@ export type SkillTask = Task & {
  *   {@link RoundLine}; in today's form the steps before the one I stand at count as passed.
  * - `at`: Key of the step of the round shown I am at, by the last `Next`, empty for none yet.
  * - `closed`: Whether I closed the round shown by hand.
+ * - `days`: Days I learned it, the oldest first: those of the skill entries with an attempt at one of its tasks,
+ *   skips not counted, or a line `X-ROUND` of it, like `2026-10-11`.
  */
 export type SkillSection = {
     title: string;
@@ -253,6 +255,7 @@ export type SkillSection = {
     seen: string[];
     at: string;
     closed: boolean;
+    days: string[];
 };
 
 /**
@@ -1083,6 +1086,7 @@ function variantIndexOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attem
  * - `first`: Its lines of round 0, and `begun` whether round 0 is begun and not closed.
  * - `round`: The round shown: 0 on the ladder, else the runs of its cold task done before today.
  * - `shown`: The lines of the round shown: all of round 0, or those of today of a later round.
+ * - `days`: The days of its attempts, skips left out, and of its lines.
  *
  * @param tasks - Tasks of the module with when each is due
  * @param today - Today like `2026-10-17`
@@ -1104,6 +1108,11 @@ function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate, lines: Ro
             (task: SkillTask): Attempt[] => task.attempts.filter((attempt: Attempt): boolean => attempt.day < today)), exam)[1];
         const shown: RoundLine[] = ladder ? first : lines.filter((line: RoundLine): boolean =>
             line.section === key && line.round === round && line.day === today);
+        const days: string[] = [
+            ...own.flatMap(attemptsOf).filter((attempt: Attempt): boolean => attempt.result !== "skipped")
+                .map((attempt: Attempt): string => attempt.day),
+            ...lines.filter((line: RoundLine): boolean => line.section === key).map((line: RoundLine): string => line.day),
+        ];
         return {
             title: own[0].section,
             note: own[0].note,
@@ -1121,6 +1130,7 @@ function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate, lines: Ro
             seen: shown.filter((line: RoundLine): boolean => line.kind === "seen").map((line: RoundLine): string => line.step),
             at: shown.findLast((line: RoundLine): boolean => line.kind === "at")?.step ?? "",
             closed: shown.some((line: RoundLine): boolean => line.kind === "closed"),
+            days: [...new Set(days)].sort(),
         };
     });
 }
