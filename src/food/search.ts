@@ -639,7 +639,7 @@ function numberRead(text: string): number | null {
  * Opens the form of a food by hand at the top of the results of a search, named as typed, for the plus beside
  * the name `Foods` of the food view, in place of one open before, in the look of a food of mine opened, see
  * {@link foodDetailOf}: its name, brand and store, its kcal and its protein, carbs and fat per 100 g, the grams of its
- * portion, like 50 of a Semmel, empty taking its pack, else 100, and its pack, in two columns, each its name small
+ * portion, like 50 of a Semmel, empty taking 100, never its pack, and its pack, in two columns, each its name small
  * and grey, then its value, plain with a thin line below to type on, see `.food-inline-new` in `search.css`, its
  * unit after a number, a click on its name
  * putting the cursor into it; its name, brand, store and kcal it needs, since I keep my own brands and places

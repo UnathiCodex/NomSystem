@@ -37,8 +37,8 @@
  * then the foods eaten beside it, like `Chili con Carne, Weißbrot`; an older line of a meal carried its servings eaten
  * and its variant, like `Hackfleisch;62.5;Chili con Carne;0.5;09.10.2026`, still read.
  * A product of Open Food Facts is a pack as sold, its values per 100 g or 100 ml, with the size of the pack in grams
- * or millilitres, like `450` of `450 g`, its portion that of a serving where Open Food Facts gives one, else its pack,
- * else 100, see {@link productOf}.
+ * or millilitres, like `450` of `450 g`, its portion that of a serving where Open Food Facts gives one, else 100,
+ * never its pack, since `2x` means two portions, not two packs, see {@link productOf}.
  * Open Food Facts is asked anonymously: a request carries the search and the name of the dashboard,
  * never my email or my name.
  *
@@ -170,7 +170,7 @@ type ProductsPage = {
  * - `protein`, `carbs`, `fat`: Its nutrients per 100 g as typed, `null` for one unknown; taken only for a food I made
  *   by hand, without barcode, and only while unknown, see {@link foodChange}.
  * - `pack`: Size of its pack in its unit as typed, for a food by hand, `null` for none.
- * - `portion`: Amount of its portion as typed, `null` for none, which takes its pack, else 100, see {@link portionOf}.
+ * - `portion`: Amount of its portion as typed, `null` for none, which takes 100, see {@link portionOf}.
  * - `kind`: Its kind as picked, see {@link Kind}.
  */
 export type FoodChanged = {
@@ -607,14 +607,14 @@ function kindOf(text: unknown): Kind {
 }
 
 /**
- * Gives the portion of a food as written, never empty: the amount given, to one decimal, else its pack, else 100.
+ * Gives the portion of a food as written, never empty: the amount given, to one decimal, else 100; never its pack,
+ * which only I type or pick, so `1x` of a jar of jam of 450 g is one portion, not the jar.
  *
  * @param given - Amount of its portion given, like a serving of Open Food Facts or one typed; `null` for none
- * @param pack - Size of its pack, `null` for none
  * @returns Its portion
  */
-function portionOf(given: number | null, pack: number | null): number {
-    return given !== null && given > 0 ? roundOf(given, 1) : pack ?? 100;
+function portionOf(given: number | null): number {
+    return given !== null && given > 0 ? roundOf(given, 1) : 100;
 }
 
 /**
@@ -842,8 +842,8 @@ function addressOf(query: string, page: number): URL {
  * Turns a product as Open Food Facts sends it into a {@link Food} as it would go into `Foods.md`: its name cleaned,
  * see {@link foodTextOf}, the first of its brands and of its stores, cleaned too, its nutrients as `Foods.md` writes
  * them, the one of protein, carbs and fat it lacks worked out from its kcal, more missing unknown,
- * see {@link nutrientsOf}, the size of its pack, see {@link packOf}, its portion, its serving where given, else its
- * pack, else 100, see {@link portionOf}, and its kind, see {@link productKindOf}.
+ * see {@link nutrientsOf}, the size of its pack, see {@link packOf}, its portion, its serving where given, else 100,
+ * see {@link portionOf}, and its kind, see {@link productKindOf}.
  * - `nutrients`: Its nutrients by their names.
  * - `kcal`: Its kcal per 100 g, else its energy in kJ per 100 g turned into kcal, 4.184 kJ a kcal, `null` when both
  *   are missing.
@@ -875,7 +875,7 @@ function productOf(sent: ProductSent): Product | null {
         brand: brandOf(firstOf(sent.brands)),
         store: brandOf(firstOf(sent.stores)),
         pack: pack,
-        portion: portionOf(nutrientOf(sent.serving_quantity), pack),
+        portion: portionOf(nutrientOf(sent.serving_quantity)),
         kind: productKindOf(sent),
     };
 }
@@ -1023,7 +1023,7 @@ export function foodAdd(sent: Food): Food {
         brand: brandOf(String(sent.brand ?? "")),
         store: brandOf(String(sent.store ?? "")),
         pack: pack,
-        portion: portionOf(amount(sent.portion) ? Number(sent.portion) : null, pack),
+        portion: portionOf(amount(sent.portion) ? Number(sent.portion) : null),
         kind: kindOf(sent.kind),
     };
     if (added.name === "")
@@ -1134,7 +1134,7 @@ export function foodChange(sent: FoodChanged): Food {
             fat: settled(found.fat, sent.fat),
         }),
         pack: pack,
-        portion: sent.portion === undefined ? found.portion : portionOf(sent.portion, pack),
+        portion: sent.portion === undefined ? found.portion : portionOf(sent.portion),
         kind: sent.kind ?? found.kind,
     };
     if (rowOf(changed) === rowOf(found))
@@ -1304,6 +1304,32 @@ export function mealsOf(entries: Entry[]): Map<string, Meal> {
     return new Map(entries
         .filter((entry: Entry): boolean => entry.category === foodName && entry.foods.length > 0)
         .map((entry: Entry): [string, Meal] => [entry.id, mealOf(entry, mine)]));
+}
+
+/**
+ * Writes the summary of a meal from its lines `X-FOOD`, as the dialog writes it, see `summaryOf` in
+ * `../src/food/foods.ts`: its meals of mine, then the foods beside them, in their order, parted by `, `, drinks left
+ * out, like `Pizza Salami, Pizza Margherita` of those two and a `Coca-Cola`; an entry of drinks alone names them all.
+ * - `mine`: My foods by their keys and names, see {@link foodsByKeyRead}.
+ * - `read`: The lines as read, see {@link lineOf}.
+ * - `named`: Its meals, each `Eat`, then the foods beside them, each with the kind of its food.
+ * - `eaten`: What it names but drinks.
+ *
+ * @param lines - Lines `X-FOOD` of the meal, like `Hackfleisch;Gut & Günstig;Edeka;250;Chili con Carne`
+ * @returns Summary, empty for no lines
+ */
+export function mealTitleOf(lines: string[]): string {
+    const mine: Map<string, Food> = foodsByKeyRead();
+    const read: Line[] = lines.map(lineOf);
+    const named: { name: string; kind: Kind }[] = [
+        ...[...new Set(read.filter((line: Line): boolean => line.meal !== "").map((line: Line): string => line.meal))]
+            .map((meal: string): { name: string; kind: Kind } => ({ name: meal, kind: "Eat" })),
+        ...read.filter((line: Line): boolean => line.meal === "").map((line: Line): { name: string; kind: Kind } =>
+            ({ name: line.name, kind: foodOfLine(line, mine)?.kind ?? "Eat" })),
+    ];
+    const eaten: { name: string; kind: Kind }[] = named.filter((part: { name: string; kind: Kind }): boolean =>
+        part.kind !== "Drink");
+    return (eaten.length > 0 ? eaten : named).map((part: { name: string; kind: Kind }): string => part.name).join(", ");
 }
 
 /**

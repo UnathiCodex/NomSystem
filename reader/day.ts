@@ -29,8 +29,8 @@
  * with the entry, and replaced as a whole when the entry changes; the reader counts what each meal gives, see `food.ts`.
  * A cooking, `Cook`, lists what went into the pot the same way, like `X-FOOD:Hackfleisch;Gut & Günstig;Edeka;500`,
  * which counts nothing; a meal drawn from it holds `X-COOKED:<UID of the Cook entry>` and the foods it ate with their
- * grams, so each keeps its foods in its own lines and the meal what it was that day, whatever the cooking becomes
- * later; a link only ever points back in time, see {@link cookedCheck}.
+ * grams, so each keeps its foods in its own lines, which follow every change of the cooking, see {@link cookedShare};
+ * a link only ever points back in time, see {@link cookedCheck}.
  *
  * - `./boxes.ts`: Finds a box of the plan, an open one, and marks a box done or open again.
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
@@ -49,7 +49,7 @@ import {
 } from "./calendar.ts";
 import { attendeesAllow, categoryAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
-import { foodLineAllows, foodName, mealsOf } from "./food.ts";
+import { foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
 import { placeLinkOf } from "./places.ts";
 import { day, logEnding } from "./sources.ts";
 import { glassIs } from "./trackers.ts";
@@ -293,19 +293,31 @@ function cookedCheck(category: string, start: Date, cooked: string): void {
 }
 
 /**
- * Shares a cooking out evenly among the meals that draw from it, so each eats its part of the pot by itself:
- * every food of the cooking, in every meal drawing from it, gets the grams of the pot divided by how many meals draw,
- * halves for two, thirds for three, to one decimal, like 250 of 500 g; its line keeps its meal, and foods the meal
- * ate beside the pot keep theirs; a food without grams in the pot stays without. Called after a meal drawing from it
- * is added, changed or removed, and after the cooking itself changes, so every share stays right.
+ * Carries a cooking into the meals that draw from it, whatever their time, so each eats its part of the pot by itself
+ * and follows every change of the cooking: every food of the pot in a meal gets the grams of the pot divided by how
+ * many meals draw, halves for two, thirds for three, to one decimal, like 250 of 500 g, a `~` of grams guessed kept,
+ * in the meal of the pot; a food without grams in the pot keeps the grams the meal gave it. A food the cooking took
+ * in since a meal drew comes into the meal, also under a meal it renamed, one it took out leaves it, and one I took
+ * out of a meal stays out. Foods a meal ate beside the pot keep their lines, after the foods of the pot of the same
+ * meal of mine, unless the pot now holds the same food in the same meal; the lines stay grouped by meal, the foods
+ * beside the meals last, as the dialog writes them, and a meal whose lines change gets its summary anew, see
+ * `mealTitleOf` in `food.ts`. Called after a meal drawing from it is added, changed or removed, and after the cooking
+ * itself changes, its foods, grams or time, so every meal stays right.
  * - `found`: The cooking with its file, `undefined` when it is gone.
  * - `keyOf`: Key of a line by its food and meal, in small letters.
- * - `pot`: Grams of each food of the pot by its key, `null` for none.
+ * - `mealOf`: The meal of a line, empty for none.
+ * - `drawn`: Keys of the lines of the pot as it was when the meals drew.
+ * - `potKeys`: Keys of the lines of the pot as it is.
  * - `eaters`: The meals drawing from it.
+ * - `had`: The lines of a meal that came from the pot as it was, by their keys.
+ * - `lines`: Its lines from the pot as it is, then those it ate beside.
+ * - `meals`: The meals of mine among its lines, in their order.
+ * - `foods`: Its lines grouped by meal, the foods beside the meals last.
  *
  * @param cooked - Identifier of the cooking, empty for none
+ * @param before - Lines `X-FOOD` of the cooking before it changed, `undefined` while it is as the meals drew it
  */
-function cookedShare(cooked: string): void {
+function cookedShare(cooked: string, before?: string[]): void {
     const found: [string, Entry] | undefined = cooked === "" ? undefined : entryLookup(day.log, cooked);
     if (found === undefined)
         return;
@@ -313,24 +325,34 @@ function cookedShare(cooked: string): void {
         const parts: string[] = line.split(";");
         return [parts[0], parts[1] ?? "", parts[2] ?? "", parts[4] ?? ""].join(";").toLowerCase();
     };
-    const pot: Map<string, number | null> = new Map(found[1].foods.map((line: string): [string, number | null] => {
-        const grams: number = Number(line.split(";")[3] ?? "");
-        return [keyOf(line), (line.split(";")[3] ?? "") === "" || !Number.isFinite(grams) ? null : grams];
-    }));
-    const eaters: Entry[] = entriesRead(day.log, found[1].start, "9999-12-31T00:00:00Z")
+    const mealOf: (line: string) => string = (line: string): string => line.split(";")[4]?.trim() ?? "";
+    const drawn: Set<string> = new Set((before ?? found[1].foods).map(keyOf));
+    const potKeys: Set<string> = new Set(found[1].foods.map(keyOf));
+    const eaters: Entry[] = entriesRead(day.log, "1970-01-01T00:00:00Z", "9999-12-31T00:00:00Z")
         .filter((entry: Entry): boolean => entry.category === foodName && entry.cooked === cooked);
     eaters.forEach((entry: Entry): void => {
-        const foods: string[] = entry.foods.map((line: string): string => {
-            const grams: number | null | undefined = pot.get(keyOf(line));
-            if (grams === undefined || grams === null)
-                return line;
-            const parts: string[] = line.split(";");
-            parts[3] = String(Math.round(grams / eaters.length * 10) / 10);
-            return parts.join(";");
-        });
+        const had: Map<string, string> = new Map(entry.foods.filter((line: string): boolean => drawn.has(keyOf(line)))
+            .map((line: string): [string, string] => [keyOf(line), line]));
+        const lines: string[] = [
+            ...found[1].foods.filter((line: string): boolean => had.has(keyOf(line)) || !drawn.has(keyOf(line)))
+                .map((line: string): string => {
+                    const parts: string[] = line.split(";");
+                    const grams: RegExpExecArray | null = /^(~?)\s*(\d+(?:\.\d+)?)$/.exec((parts[3] ?? "").trim());
+                    if (grams === null)
+                        return had.get(keyOf(line)) ?? line;
+                    parts[3] = `${grams[1]}${Math.round(Number(grams[2]) / eaters.length * 10) / 10}`;
+                    return parts.join(";");
+                }),
+            ...entry.foods.filter((line: string): boolean => !drawn.has(keyOf(line)) && !potKeys.has(keyOf(line))),
+        ];
+        const meals: string[] = [...new Set(lines.map(mealOf).filter((meal: string): boolean => meal !== ""))];
+        const foods: string[] = [
+            ...meals.flatMap((meal: string): string[] => lines.filter((line: string): boolean => mealOf(line) === meal)),
+            ...lines.filter((line: string): boolean => mealOf(line) === ""),
+        ];
         const file: string | undefined = entryLookup(day.log, entry.id)?.[0];
         if (file !== undefined && foods.join("\n") !== entry.foods.join("\n"))
-            propertiesPut(file, entry.id, [["x-food", foods]]);
+            propertiesPut(file, entry.id, [["x-food", foods], ["summary", [mealTitleOf(foods)]]]);
     });
 }
 
@@ -502,7 +524,7 @@ export function entryEdit(change: EntryChange): void {
     if (change.cooked !== undefined && change.cooked !== entry.cooked)
         cookedShare(change.cooked);
     if (fields.category === cookName)
-        cookedShare(entry.id);
+        cookedShare(entry.id, entry.foods);
 }
 
 /**

@@ -72,7 +72,7 @@ export type Food = Nutrients & {
 /**
  * What changes of a food of mine, as typed, see {@link foodChange}: its name, brand and store always; for a food
  * I made by hand a nutrient per 100 g still unknown, which once known stays, and its pack; the portion of any food,
- * `null` for none, which the reader fills from its pack, else 100; and its kind.
+ * `null` for none, which the reader fills with 100, never with its pack; and its kind.
  */
 export type FoodChanges = {
     name: string;
