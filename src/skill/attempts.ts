@@ -401,18 +401,35 @@ export async function attemptSend(attempt: AttemptNew): Promise<void> {
 
 /**
  * Sends a skill entry of the log to the reader, with ISO instants: a new one to write,
- * or with the identifier of an entry the changes of that entry, its attempts added after those it has.
+ * or with the identifier of an entry the changes of that entry, its attempts added after those it has, only while
+ * its file holds it as the dialog opened it: the reader refuses the change with 409 once the file changed it since,
+ * like an attempt the learning view wrote into it, see `skillEntryEdit` in `reader/skill.ts`, as for any entry
+ * of the log, see `entryChange` in `../day/entries.ts`; the first save wins.
+ * - `body`: The entry with ISO instants.
+ * - `response`: Answer of the reader to a change.
  *
  * @param id - Identifier of the entry to change, empty for a new entry
  * @param entry - Skill entry, for a change with only the new attempts
- * @throws {Error} - When the reader does not take the entry
+ * @param version - Fingerprint of the entry to change as the dialog opened it, see `version` of `Entry`
+ *   in `reader/calendar.ts`; empty for a new entry
+ * @returns Whether it is written, `false` when the file changed the entry since the dialog opened it
+ * @throws {Error} - When the reader does not take the entry for another reason
  */
-export async function skillEntrySend(id: string, entry: SkillEntryNew): Promise<void> {
+export async function skillEntrySend(id: string, entry: SkillEntryNew, version: string): Promise<boolean> {
     const body: object = { ...entry, start: entry.start.toISOString(), end: entry.end.toISOString() };
-    if (id === "")
+    if (id === "") {
         await readerSend("POST", "/api/skill/entry", body);
-    else
-        await readerSend("PATCH", "/api/skill/entry", { ...body, id: id });
+        return true;
+    }
+    const response: Response = await fetch("/api/skill/entry", {
+        method: "PATCH",
+        body: JSON.stringify({ ...body, id: id, version: version }),
+    });
+    if (response.status === 409)
+        return false;
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return true;
 }
 
 /**

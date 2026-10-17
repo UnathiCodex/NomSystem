@@ -460,9 +460,11 @@ export type SkillEntryNew = {
 /**
  * A changed skill entry of the log, as the entry by category sends it: a {@link SkillEntryNew}
  * with the identifier `id` of the entry, whose `attempts` are only the new ones, added after those it has;
- * its box stays as it is, and its place keeps its link while it stays the same place.
+ * its box stays as it is, and its place keeps its link while it stays the same place; and with `version`,
+ * its fingerprint as the dialog opened it, see `version` of `Entry` in `calendar.ts`, so the reader writes nothing
+ * older than the file, see {@link skillEntryEdit}.
  */
-export type SkillEntryChange = SkillEntryNew & { id: string };
+export type SkillEntryChange = SkillEntryNew & { id: string; version: string };
 
 /**
  * A session of a module running now, as the learning view reads it, see {@link sessionRead}.
@@ -1461,6 +1463,9 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
  * see `placeLinkOf` in `places.ts`. The attempts it has keep their task, also once I change its skill: then each
  * that names its task without module is written the older way, with its module, see {@link lineValueOf}, and each
  * line `X-ROUND` of today's form names the module of its section, see {@link roundSectionOf}.
+ * Written only while its file holds it as the dialog opened it, its fingerprint still the one the dialog sends,
+ * as for any entry of the log, see `entryEdit` in `day.ts`: after any change of it since, like an attempt
+ * the learning view wrote into it, see {@link attemptAdd}, nothing is written; the first save wins.
  * - `file`: `.ics` file of the entry.
  * - `old`: The entry as it is.
  * - `tasks`: Tasks of the modules of the semester.
@@ -1469,15 +1474,18 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
  * - `marks`: Its `X-ROUND`s, of today's form with the module of their section once its skill changes.
  * - `worked`: Identities of the tasks of its attempts and older copies for my tutor at tasks of its skill, whose chapters it covered.
  *
- * @param change - Changed skill entry as the page sends it
+ * @param change - Changed skill entry as the page sends it, with its fingerprint as the dialog opened it
+ * @returns Whether it is written, `false` when its file changed it since the dialog opened it
  * @throws {Error} - When there is no such skill entry in the log of the new system, a new attempt is not right,
  *   see {@link attemptValueOf}, the entry is not right, see {@link skillEntryCheck}, a document is none
  *   of the module's, or the link typed for `Online` is no web address
  */
-export function skillEntryEdit(change: SkillEntryChange): void {
+export function skillEntryEdit(change: SkillEntryChange): boolean {
     const [file, old]: [string, Entry] = entryFind(skillLog, change.id);
     if (!old.editable || old.category !== skillName)
         throw new Error(`${old.title} is no skill entry of the new system`);
+    if (old.version !== change.version)
+        return false;
     const tasks: Task[] = tasksRead();
     const added: string[] = change.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks));
     const values: string[] = [...old.attempts.map((value: string): string => change.module === old.module ? value
@@ -1507,6 +1515,7 @@ export function skillEntryEdit(change: SkillEntryChange): void {
         start: new Date(change.start), end: new Date(change.end),
     };
     entryChange(file, old, fields, logFileOf(fields));
+    return true;
 }
 
 /**

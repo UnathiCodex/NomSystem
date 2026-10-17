@@ -3,7 +3,7 @@
  *
  * Sends new, changed, moved and removed entries of the log to the reader, the meal of a cooking, and the boxes
  * of the plan: new, changed and removed ones, a box logged at its real time or taken back, pushed to the next day
- * or dropped. A changed entry goes with the entry as the dialog opened it, so the reader refuses it once its file
+ * or dropped. A changed entry goes with its fingerprint as the dialog opened it, so the reader refuses it once its file
  * changed it since, and a moved one with its new times alone, so nothing the page holds from before is written back.
  * After a change of the log the log of the shown day loads again, so the page shows what the files hold,
  * and with it the boxes, which are done once a log entry points to them, see `boxes.ts`;
@@ -12,7 +12,7 @@
  * - `fullcalendar`: Calendar that shows the log.
  */
 
-import type { Calendar, EventApi } from "fullcalendar";
+import type { Calendar } from "fullcalendar";
 
 
 /**
@@ -155,35 +155,6 @@ function bodyOf(fields: EntryFields): object {
 }
 
 /**
- * Gives the fields and times of an entry of the log as the reader gave them, every field as its file held it then,
- * like the entry as the dialog opened it, see {@link entryChange}.
- *
- * @param entry - Entry as the calendar shows it
- * @returns Its fields and times
- */
-export function entryFieldsOf(entry: EventApi): EntryFields {
-    return {
-        category: entry.extendedProps.category ?? "",
-        title: entry.title,
-        titleLink: entry.extendedProps.titleLink ?? "",
-        location: entry.extendedProps.location ?? "",
-        locationLink: entry.extendedProps.locationLink ?? "",
-        from: entry.extendedProps.from ?? "",
-        attendees: entry.extendedProps.attendees ?? [],
-        module: entry.extendedProps.module ?? "",
-        type: entry.extendedProps.type ?? "",
-        semester: entry.extendedProps.semester ?? "",
-        note: entry.extendedProps.note ?? "",
-        foods: entry.extendedProps.foods ?? [],
-        planned: entry.extendedProps.planned ?? "",
-        pain: entry.extendedProps.pain ?? "",
-        cooked: entry.extendedProps.cooked ?? "",
-        start: entry.start as Date,
-        end: entry.end as Date,
-    };
-}
-
-/**
  * Turns the fields of a box into the form the reader takes: its time as ISO instant, empty for none.
  *
  * @param fields - Fields of the box
@@ -214,15 +185,15 @@ export async function entryAdd(calendar: Calendar, fields: EntryFields): Promise
  * @param calendar - Calendar of the day
  * @param id - Identifier of the entry
  * @param fields - New fields and times
- * @param base - Fields and times of the entry as the dialog opened it, see {@link entryFieldsOf}
+ * @param version - Fingerprint of the entry as the dialog opened it, see `version` of `Entry` in `reader/calendar.ts`
  * @returns Whether it is changed, `false` when its file changed it since the dialog opened it
  * @throws {Error} - When the reader does not take the change for another reason
  */
 export async function entryChange(calendar: Calendar, id: string, fields: EntryFields,
-                                  base: EntryFields): Promise<boolean> {
+                                  version: string): Promise<boolean> {
     const response: Response = await fetch("/api/day/log", {
         method: "PATCH",
-        body: JSON.stringify({ id: id, ...bodyOf(fields), base: bodyOf(base) }),
+        body: JSON.stringify({ id: id, ...bodyOf(fields), version: version }),
     });
     if (response.status === 409)
         return false;

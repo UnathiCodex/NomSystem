@@ -907,26 +907,34 @@ export function skillModuleType(): ModuleType {
 
 /**
  * Sends the skill entry of the log as picked, with the times, place, people, semester, note and box of the dialog,
- * new or as the changes of the entry being changed, then loads the log of the shown day again.
+ * new or as the changes of the entry being changed, then loads the log of the shown day again; a change only while
+ * the file holds the entry as the dialog opened it, see `skillEntrySend` in `../skill/attempts.ts`, else nothing.
  * - {@link EventSourceApi#refetch}: Loads the entries of a calendar of the reader again.
  * - `attempts`: The tasks picked with their results, as attempts to send, a task without result left out.
+ * - `saved`: Whether the reader wrote it.
  *
  * @param calendar - Calendar of the day
  * @param id - Identifier of the entry being changed, empty for a new one
  * @param fields - Fields, note, times and box of the dialog
- * @throws {Error} - When the reader does not take the entry
+ * @param version - Fingerprint of the entry being changed as the dialog opened it, see `version` of `Entry`
+ *   in `reader/calendar.ts`; empty for a new one
+ * @returns Whether it is written, `false` when the file changed the entry since the dialog opened it
+ * @throws {Error} - When the reader does not take the entry for another reason
  */
-export async function skillSave(calendar: Calendar, id: string, fields: EntryFields): Promise<void> {
+export async function skillSave(calendar: Calendar, id: string, fields: EntryFields,
+                                version: string): Promise<boolean> {
     const attempts: AttemptNew[] = picks.attempts.flatMap((pick: AttemptPick): AttemptNew[] => pick.result === "" ? []
         : [{ task: pick.task, result: pick.result, comment: pick.result === "wrong" ? pick.comment : "" }]);
 
-    await skillEntrySend(id, {
+    const saved: boolean = await skillEntrySend(id, {
         type: picks.type, module: picks.module, semester: fields.semester, chapters: picks.chapters,
         documents: picks.documents, attempts: attempts,
         titleLink: fields.titleLink, location: fields.location, locationLink: fields.locationLink,
         attendees: fields.attendees ?? [],
         planned: fields.planned, note: fields.note,
         start: fields.start, end: fields.end,
-    });
-    calendar.getEventSourceById("log")?.refetch();
+    }, version);
+    if (saved)
+        calendar.getEventSourceById("log")?.refetch();
+    return saved;
 }

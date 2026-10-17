@@ -16,7 +16,7 @@
  *
  * - `node:fs`: Works with files and folders on the disk.
  * - `node:path`: Builds file paths for the operating system.
- * - `node:crypto`: Creates random identifiers.
+ * - `node:crypto`: Creates random identifiers and the fingerprint of each entry.
  * - `ical.js`: Reads and writes the iCalendar format of `.ics` files.
  * - `./places.ts`: Tells a link I typed, a web address.
  * - `./sources.ts`: Names the files of a calendar, the folder of my modules and my projects, and tells which files
@@ -25,7 +25,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import ICAL from "ical.js";
 import { linkForm } from "./places.ts";
 import { modulesFolder, projectOf, writeAllowed } from "./sources.ts";
@@ -99,6 +99,10 @@ import type { CalendarSource } from "./sources.ts";
  *   `NONE` for one the university cancelled, see `boxUniversity` in `boxes.ts`; empty for none.
  * - `written`: When the entry was written, its `DTSTAMP`, as ISO instant, which the reader sets once as it adds an entry;
  *   empty when the event has none.
+ * - `version`: Fingerprint of the entry as its file holds it, the SHA-256 of its lines as read, in hexadecimal digits,
+ *   which changes with any change of the entry, by the dashboard, another device, Claude or by hand, and with no change
+ *   of another entry; the dialog sends it back, so the reader writes nothing older than the file, see `entryEdit`
+ *   in `day.ts`; for an occurrence that of its series.
  * - `editable`: Whether the dashboard may change the entry: it lies in the new system and has times or is a to-do;
  *   also one occurrence of a series, which becomes a component of its own once it is changed alone,
  *   see {@link occurrenceOwn}. FullCalendar lets only these events be dragged.
@@ -142,6 +146,7 @@ export type Entry = {
     pushed: Push[];
     number: string;
     written: string;
+    version: string;
     editable: boolean;
     start: string;
     end: string;
@@ -544,6 +549,8 @@ function deadlineDayOf(component: ICAL.Component): [ICAL.Time, ICAL.Time] {
  * - `completed`: Its `COMPLETED`, an `ical.js` time when it has one.
  * - `recurrence`: For a changed occurrence its `RECURRENCE-ID`, for an occurrence of a series its start,
  *   empty for an event that happens once.
+ * - {@link createHash}: Computes its fingerprint, the SHA-256 of its lines as read, written out by
+ *   {@link ICAL.Component#toString}, see `version` of {@link Entry}.
  *
  * @param event - Event with title and place, or the series of an occurrence, or a to-do
  * @param start - Start of the event or the occurrence
@@ -605,6 +612,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
             pushOf(property, start.isDate ? null : berlinOf(start.toJSDate()))),
         number: String(event.component.getFirstPropertyValue("x-number") ?? ""),
         written: stamp instanceof ICAL.Time ? stamp.toJSDate().toISOString() : "",
+        version: createHash("sha256").update(event.component.toString()).digest("hex"),
         editable: writable && (todo || !start.isDate),
         start: textOf(start),
         end: textOf(end),

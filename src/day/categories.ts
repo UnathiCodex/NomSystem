@@ -87,7 +87,7 @@
  */
 
 import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
-import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, entryFieldsOf } from "./entries.ts";
+import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import {
     addressPartsOf, labelOf, lineOf, mapsLinkIs, mapsLinkOf, onlineLineOf, onlineName, onlineOf, placeSend,
@@ -1635,12 +1635,14 @@ async function boxSave(): Promise<void> {
 /**
  * Sends the new or changed entry to the reader, into the log, then closes the dialog; a box goes into the plan,
  * see {@link boxSave}. A skill entry goes to the one writer of skill entries, see `skill.ts`.
- * A changed entry goes with the entry as the dialog opened it, and the reader writes it only while its file still
- * holds it so, see `entryChange` in `entries.ts`: the first save wins. When the file changed it since, like Eier
- * renamed on the phone while the dialog on the laptop showed Eier, nothing is saved and the dialog stays open, saying
- * `Not saved: it changed on the disk, close and open it again`, see {@link hintShow}; opened again, it shows
- * the entry as the file holds it, to change and save once more.
+ * A changed entry, a skill entry alike, goes with its fingerprint as the dialog opened it, and the reader writes it only
+ * while its file still holds it so, see `entryChange` in `entries.ts` and `skillSave` in `skill.ts`: the first save
+ * wins. When the file changed it since, like Eier renamed on the phone while the dialog on the laptop showed Eier,
+ * nothing is saved and the dialog stays open, saying `Not saved: it changed on the disk, close and open it again`,
+ * see {@link hintShow}; opened again, it shows the entry as the file holds it, to change and save once more.
  * - `fields`: Fields, note and times of the dialog.
+ * - `version`: Fingerprint of the entry being changed as the dialog opened it, see `version` of `Entry`
+ *   in `reader/calendar.ts`; empty for a new one.
  * - `saved`: Whether the reader wrote it, `false` when the file changed the entry since the dialog opened it.
  *
  * @param calendar - Calendar of the day
@@ -1652,11 +1654,12 @@ async function entrySave(calendar: Calendar): Promise<void> {
         return;
     }
     const fields: EntryFields = fieldsRead();
+    const version: string = opened.entry?.extendedProps.version ?? "";
     let saved: boolean = true;
     if (chosen?.name === skillName)
-        await skillSave(calendar, opened.entry?.id ?? "", fields);
+        saved = await skillSave(calendar, opened.entry?.id ?? "", fields, version);
     else if (opened.entry !== null)
-        saved = await entryChange(calendar, opened.entry.id, fields, entryFieldsOf(opened.entry));
+        saved = await entryChange(calendar, opened.entry.id, fields, version);
     else
         await entryAdd(calendar, fields);
     if (saved)

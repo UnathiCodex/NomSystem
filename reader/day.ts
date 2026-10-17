@@ -116,10 +116,10 @@ export type EntryNew = {
 
 /**
  * A changed entry, as the dialog sends it after editing: an {@link EntryNew} with the identifier `id` of the entry
- * and `base`, the entry as the dialog opened it, in the same form with every field as its file held it then,
- * see {@link baseOf}, so the reader writes nothing older than the file, see {@link entryEdit}.
+ * and `version`, its fingerprint as the dialog opened it, see `version` of `Entry` in `calendar.ts`, so the reader
+ * writes nothing older than the file, see {@link entryEdit}.
  */
-export type EntryChange = EntryNew & { id: string; base: EntryNew };
+export type EntryChange = EntryNew & { id: string; version: string };
 
 /**
  * An entry moved or resized, as the calendar sends it after a drag: its new times alone, every other field staying
@@ -212,22 +212,6 @@ function fieldsOf(entry: EntryNew, from: {
         attendees: entry.attendees ?? from?.attendees ?? [],
         module: entry.module, type: entry.type, semester: semester, note: entry.note,
         start: new Date(entry.start), end: new Date(entry.end),
-    };
-}
-
-/**
- * Gives an entry of the log in the form the dialog sends it, every field as its file holds it: the form of `base`
- * of an {@link EntryChange}, the entry as the dialog opened it, see {@link entryEdit}.
- *
- * @param entry - Entry as its file holds it
- * @returns Its fields and times, with ISO instants
- */
-function baseOf(entry: Entry): EntryNew {
-    return {
-        category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
-        locationLink: entry.locationLink, from: entry.from, attendees: entry.attendees, module: entry.module,
-        type: entry.type, semester: entry.semester, note: entry.note, foods: entry.foods, planned: entry.planned,
-        pain: entry.pain, cooked: entry.cooked, start: entry.start, end: entry.end,
     };
 }
 
@@ -582,25 +566,21 @@ function entryWrite(file: string, entry: Entry, change: EntryNew): void {
 
 /**
  * Changes an entry of the log as the dialog sends it, see {@link entryWrite}, only while its file holds it as the dialog
- * opened it: every field of `base`, see {@link baseOf}, has to be the same in the file still, else nothing is written,
- * so a save never writes back what the file held before, like a food renamed in every entry while the dialog was open,
- * see `foodChange` in `food.ts`; the first save wins, and the dialog says so, see `entrySave`
- * in `src/day/categories.ts`.
+ * opened it, its fingerprint still the one the dialog sends, see `version` of `Entry` in `calendar.ts`: after any change
+ * of it since, by another device, Claude or the reader, like a food renamed in every entry while the dialog was open,
+ * see `foodChange` in `food.ts`, nothing is written, so a save never writes back what the file held before;
+ * the first save wins, and the dialog says so, see `entrySave` in `src/day/categories.ts`; a skill entry alike,
+ * see `skillEntryEdit` in `skill.ts`.
  * - `file`, `entry`: Its `.ics` file and the entry as the file holds it.
- * - `now`: The entry as the file holds it, in the form of `base`.
- * - `fields`: Names of the fields of that form.
  *
- * @param change - Changed entry as the dialog sends it, with the entry as it opened
+ * @param change - Changed entry as the dialog sends it, with its fingerprint as the dialog opened it
  * @returns Whether it is written, `false` when its file changed it since the dialog opened it
  * @throws {Error} - When there is no such entry, it may not be changed, the fields or foods are not allowed,
  *   the link typed for `Online` is no web address, or the end is not after the start
  */
 export function entryEdit(change: EntryChange): boolean {
     const [file, entry]: [string, Entry] = entryFind(day.log, change.id);
-    const now: EntryNew = baseOf(entry);
-    const fields: (keyof EntryNew)[] = Object.keys(now) as (keyof EntryNew)[];
-    if (fields.some((field: keyof EntryNew): boolean =>
-        JSON.stringify(now[field]) !== JSON.stringify(change.base[field])))
+    if (entry.version !== change.version)
         return false;
     entryWrite(file, entry, change);
     return true;

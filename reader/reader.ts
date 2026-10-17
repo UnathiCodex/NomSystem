@@ -182,7 +182,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/skill/round`: Writes where I am in a round, a line `X-ROUND` of the body, into the skill entry
  *   of the moment.
  * - `POST /api/skill/entry`: Writes skill entry of the body into the log.
- * - `PATCH /api/skill/entry`: Changes skill entry of the body, adding its new attempts.
+ * - `PATCH /api/skill/entry`: Changes skill entry of the body, adding its new attempts, refused with 409 when its file
+ *   changed it since the dialog opened it.
  * - `GET /api/skill/session?module=…`: Sends the session of the module running now, or `null`.
  * - `GET /api/food/search?q=…&page=…&products=…`: Sends my foods for a name or barcode, the most eaten first,
  *   then a page of those of Open Food Facts, none for `products=0`.
@@ -383,8 +384,7 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, null);
 
     } else if (request.method === "PATCH" && url.pathname === "/api/skill/entry") {
-        skillEntryEdit(await json(request) as SkillEntryChange);
-        responseSend(response, 200, null);
+        responseSend(response, skillEntryEdit(await json(request) as SkillEntryChange) ? 200 : 409, null);
 
     } else if (request.method === "GET" && url.pathname === "/api/skill/session") {
         responseSend(response, 200, sessionRead(url.searchParams.get("module") ?? ""));
