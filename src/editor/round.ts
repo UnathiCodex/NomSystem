@@ -27,9 +27,10 @@
  * it, in another sitting or on another day; the steps without a result before it, like theory, count as passed,
  * as do those an older line `seen` names.
  * A task counts as done by the log: in the ladder by any attempt, a Task once nothing of it is due today.
- * A click on a block in the tree shows it alone, back or ahead, and `Next` returns to the current step; the last step
- * has no `Next`, since a round closes only by hand, with the round check in the head, see {@link roundClose}, once its
- * Task has a result; the close writes `done` where the step stood, and Today follows.
+ * A click on a block in the tree, or on a link to its heading in the note, shows it alone, back or ahead, see
+ * {@link roundHeadingShow}, and `Next` returns to the current step; the last step has no `Next`, since a round closes
+ * only by hand, with the round check in the head, see {@link roundClose}, once its Task has a result; the close writes
+ * `done` where the step stood, and Today follows; once closed, a block opened has no `Next`, with no step to return to.
  * Reading a round needs no session, but `Next` and the round check write only in a session of the module, which
  * the dialog of a new entry starts while none runs, see `./session.ts`; cancelled, I stay where I was.
  * I write only in the block shown, see {@link changesKeep} and {@link selectionKeep}, so no key, cut or drag takes
@@ -641,7 +642,7 @@ function roundDraw(view: EditorView, shown: Round): void {
     sessionShow(shown);
     const blocks: Block[] = blocksOf(view.state, shown.loaded.tasks);
     const alone: Block | undefined = blocks.find((block: Block): boolean => block.heading === opened) ?? current?.block;
-    const next: boolean = alone !== current?.block || (current !== undefined && steps.indexOf(current) < steps.length - 1);
+    const next: boolean = current !== undefined && (alone !== current.block || steps.indexOf(current) < steps.length - 1);
     view.dispatch({ effects: nextMoved.of(alone === undefined ? null
         : { block: alone, end: endOf(view.state, alone), next: next }) });
     (document.getElementById("editor-text") as HTMLElement).classList.toggle("round-waiting",
@@ -804,10 +805,9 @@ function roundTake(view: EditorView, loaded: NoteTasks, changed: () => void): vo
 
 /**
  * Gives the places of the blocks of the round shown in their order, every block of the note, for the tree: done,
- * the one shown, which is the current step unless one was opened from the tree, later in the round, or outside it,
- * like a Task variant not due, also when opened from the tree and shown.
+ * the current step, also while I look at another block, which keeps its own place, its check too, later in the round,
+ * or outside it, like a Task variant not due, also when opened from the tree and shown.
  * - `steps`, `current`: Steps of the round and the current one.
- * - `alone`: Heading of the block shown.
  * - `own`: The steps of a block.
  *
  * @param view - The editor
@@ -819,21 +819,20 @@ export function roundBlocksOf(view: EditorView): [string, BlockMark][] | null {
     const shown: Round = round;
     const steps: Step[] = roundStepsOf(view, shown);
     const current: Step | undefined = currentOf(shown, steps);
-    const alone: string = opened !== "" ? opened : current?.block.heading ?? "";
     return blocksOf(view.state, shown.loaded.tasks)
         .map((block: Block): [string, BlockMark] => {
             const own: Step[] = steps.filter((step: Step): boolean => step.block.heading === block.heading);
-            if (alone === block.heading)
-                return [block.heading, own.length === 0 ? "opened" : "current"];
             if (own.length === 0)
-                return [block.heading, "other"];
+                return [block.heading, opened === block.heading ? "opened" : "other"];
+            if (current?.block.heading === block.heading)
+                return [block.heading, "current"];
             return [block.heading, own.every((step: Step): boolean => doneIs(shown, step)) ? "done" : "round"];
         });
 }
 
 /**
- * Shows a block by its heading alone, as its line in the tree asks, back or ahead, see the top of this file;
- * `Next` below it returns to the current step, which stays where it was.
+ * Shows a block by its heading alone, as its line in the tree or a link to it in the note asks, back or ahead, see the
+ * top of this file; `Next` below it returns to the current step, which stays where it was, marked in the tree.
  * - `block`: The block asked for.
  * - `current`: The current step.
  *

@@ -25,7 +25,8 @@
  * The address names a note by its path in the scripts view and the heading to scroll to, like
  * `/scripts?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md#…`,
  * so a reload and the back button of the browser stay on it, and a file of my new system by its path in the tree,
- * like `/edit?file=NomMetainformations/Foods.md`.
+ * like `/edit?file=NomMetainformations/Foods.md`; a section opens where its round stands, a block it shows from the
+ * tree or a link staying out of the address, so a reload returns there.
  * Saves only with its button, the plain floppy disk of saving, so the round's check is the only check, its tooltip
  * `Save`, or Ctrl+S, never by itself, refused when the file changed on the disk since it was read, and asks before
  * leaving with changes unsaved, also for another file of the tree; the button faint while nothing is to save, its full
@@ -376,7 +377,8 @@ function addressHeadingShow(): void {
 /**
  * Scrolls to a heading of the note shown on a click on a link to it in the tree, like in its outline, without loading
  * the page again, and keeps it in the address and the history of the browser; a block of a section shows alone in its
- * round, see `roundHeadingShow` in `./round.ts`;
+ * round, see `roundHeadingShow` in `./round.ts`, and stays out of the address, so a reload returns to where the round
+ * stands;
  * on a phone it shows the note in place of the tree first, see {@link phoneShow}; links to other notes, and clicks
  * with a key held, act as usual.
  * - {@link History#pushState}: Writes the address as a new step of the history, for the back button.
@@ -394,10 +396,11 @@ function treeClick(event: MouseEvent): void {
     if (address.pathname !== "/scripts" || address.searchParams.get("path") !== path)
         return;
     event.preventDefault();
-    window.history.pushState(null, "", address);
     phoneShow("file");
-    if (!roundHeadingShow(view, decodeURIComponent(address.hash.slice(1))))
-        addressHeadingShow();
+    if (roundHeadingShow(view, decodeURIComponent(address.hash.slice(1))))
+        return;
+    window.history.pushState(null, "", address);
+    addressHeadingShow();
 }
 
 /**
@@ -412,7 +415,8 @@ function treeClick(event: MouseEvent): void {
  * A note of my modules gets the rows of its tasks, see `./tasks.ts`, its outline in the tree, and scrolls to the
  * heading of the address, also when the back or forward button of the browser changes it; a section its round,
  * see `./round.ts`, its text hidden until its tasks are loaded, so its blocks fold before they show, scrolled to
- * its current block unless the address names a heading.
+ * its current block unless the address names a heading, whose block it shows once, the heading then dropped from the
+ * address, see {@link History#replaceState}.
  * A phone shows the file, or the tree while no file is named, and the button of the tree switches between them,
  * off while there is no file to go back to, see {@link phoneShow}; the name of the file may go on below between
  * its parts there, see `breakableOf` in `../day/choices.ts`.
@@ -511,8 +515,10 @@ export async function editorStart(): Promise<void> {
             (document.getElementById("editor-title") as HTMLElement).textContent = title;
         if (!sectionShown)
             addressHeadingShow();
-        else if (location.hash !== "")
+        else if (location.hash !== "") {
             roundHeadingShow(view, decodeURIComponent(location.hash.slice(1)));
+            window.history.replaceState(null, "", location.pathname + location.search);
+        }
     });
     shown.then((): void => {
         outlineTree = tree;

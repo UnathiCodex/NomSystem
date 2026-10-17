@@ -38,7 +38,8 @@
  * like before the first click, the whole note shows rendered.
  * A click on a rendered link follows it, as in Obsidian, and so does a click with Ctrl held on a link shown as text,
  * see {@link linkFollow}: a note opens in the scripts view at its heading, a heading of the same note scrolls into
- * sight, any other file, like a PDF at its page, and an address of the web open in a new tab.
+ * sight, in a section its block shows alone, as a click in the tree shows it, any other file, like a PDF at its page,
+ * and an address of the web open in a new tab.
  * Links resolve as the reader found them when the note was read or saved last, see {@link linksSet}: a link that leads
  * nowhere fades and leads nowhere, a link or image written since works once the note is saved.
  *
@@ -53,6 +54,7 @@
  * - `../notes/tree.ts`: Builds the address of a note in the scripts view, for a link to follow, and tells the type word
  *   of a block at the start of its heading.
  * - `./keys.ts`: Tells a spacer line and the indentation of the text of a list item, for where the item ends.
+ * - `./round.ts`: Shows a block of a section alone, for a link to its heading.
  * - `./steps.ts`: Tells a worked Example, whose solution comes unfolded.
  */
 
@@ -66,6 +68,7 @@ import { mathRender } from "../notes/math.ts";
 import { htmlOf } from "../notes/markdown.ts";
 import { kindRule, noteAddressOf } from "../notes/tree.ts";
 import { columnsOf, spacerRule, textIndentationOf } from "./keys.ts";
+import { roundHeadingShow } from "./round.ts";
 import { workedIs } from "./steps.ts";
 
 import type { Extension, Line, Range, SelectionRange, StateEffectType, Transaction, TransactionSpec } from "@codemirror/state";
@@ -1566,7 +1569,8 @@ function linkFollow(view: EditorView, node: SyntaxNode, links: Links): void {
 }
 
 /**
- * Follows a link by its address as written, see {@link linkFollow}.
+ * Follows a link by its address as written, see {@link linkFollow}; a heading of the same note in a section shows its
+ * block alone, see `roundHeadingShow` in `./round.ts`, since every other block there is hidden.
  * - `hash`: Where its `#` stands, -1 for none.
  * - `target`, `heading`: The link to a file before `#`, empty for the note itself, and the place in it after `#`.
  * - `path`: The file it leads to, as the reader found it, `null` for none.
@@ -1586,9 +1590,10 @@ function addressFollow(view: EditorView, address: string, links: Links): void {
     const target: string = (hash === -1 ? address : address.slice(0, hash)).trim();
     const heading: string = hash === -1 ? "" : address.slice(hash + 1).trim();
     const path: string | null = links[target] ?? null;
-    if (target === "")
-        headingShow(view, heading);
-    else if (path !== null && /\.md$/i.test(path))
+    if (target === "") {
+        if (!roundHeadingShow(view, heading))
+            headingShow(view, heading);
+    } else if (path !== null && /\.md$/i.test(path))
         location.assign(noteAddressOf(path, heading));
     else if (path !== null)
         window.open(heading === "" ? fileAddressOf(path) : `${fileAddressOf(path)}#${heading}`, "_blank");
