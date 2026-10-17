@@ -459,12 +459,20 @@ function blockNameOf(heading: string): Node[] {
     const kind: RegExpExecArray | null = kindRule.exec(heading);
     const name: HTMLSpanElement = document.createElement("span");
     name.innerHTML = inlineHtmlOf(heading.slice(kind?.[0].length ?? 0).replace(/[ \t]*\(cold\)$/, ""));
-    if (kind === null)
-        return [name];
+    return kind === null ? [name] : [kindBoxOf(kind[1]), name];
+}
+
+/**
+ * Builds the small grey box of a type word, like `Definition`, see `.block-kind` in `./notes.css`.
+ *
+ * @param kind - Type word
+ * @returns The box
+ */
+function kindBoxOf(kind: string): HTMLSpanElement {
     const box: HTMLSpanElement = document.createElement("span");
     box.className = "block-kind";
-    box.textContent = kind[1];
-    return [box, name];
+    box.textContent = kind;
+    return box;
 }
 
 /**
@@ -473,9 +481,10 @@ function blockNameOf(heading: string): Node[] {
  * the one shown in the calm grey of what is shown, a later one of the round plain, one outside the round grey.
  * Every block of the section stands in it, never hidden without a trace: once two or more blocks of one kind are
  * outside the round, like the Examples and Tasks round 0 does not need, they fold into one grey line of their kind
- * after its last block, like `Tasks · 7 more`, which opens them on a click, as a folder; one alone stays a line of its
- * own, since folding it saves no room. A line I opened stays open while the list is built anew, and the one holding
- * the block shown opens.
+ * after its last block, its type word boxed as on their lines and how many, like `Task` boxed and `7 more`, the line
+ * of the Tasks with the day the next one comes, like `Tomorrow`, which opens them on a click, as a folder; one alone
+ * stays a line of its own, since folding it saves no room. A line I opened stays open while the list is built anew,
+ * and the one holding the block shown opens.
  * - `list`: The list.
  * - `linkOf`: Makes the link to a block.
  * - `kindOf`: Gives the type word of a block, empty for none.
@@ -487,9 +496,10 @@ function blockNameOf(heading: string): Node[] {
  * @param path - Path of the note
  * @param blocks - Headings of its blocks in their order, each with its place
  * @param opened - Type words whose lines were open in the list before
+ * @param next - The day the next Task comes, like `Tomorrow`, empty for none, see `roundNextOf` in `../editor/round.ts`
  * @returns The list
  */
-export function roundListOf(path: string, blocks: [string, BlockMark][], opened: string[]): HTMLElement {
+export function roundListOf(path: string, blocks: [string, BlockMark][], opened: string[], next: string): HTMLElement {
     const list: HTMLDivElement = document.createElement("div");
     const linkOf: (block: [string, BlockMark]) => HTMLAnchorElement = ([heading, mark]: [string, BlockMark]): HTMLAnchorElement => {
         const link: HTMLAnchorElement = document.createElement("a");
@@ -516,7 +526,8 @@ export function roundListOf(path: string, blocks: [string, BlockMark][], opened:
             return;
         const inside: [string, BlockMark][] = blocks.filter((other: [string, BlockMark]): boolean =>
             kindOf(other) === kind && outside(other));
-        const fold: HTMLDetailsElement = folderOf(`${kind}s · ${inside.length} more`);
+        const fold: HTMLDetailsElement = folderOf("");
+        fold.firstElementChild?.append(kindBoxOf(kind), `${inside.length} more${kind === "Task" && next !== "" ? ` · ${next}` : ""}`);
         fold.classList.add("tree-kind");
         fold.dataset.kind = kind;
         fold.open = opened.includes(kind) || inside.some((other: [string, BlockMark]): boolean => other[1] === "opened");
@@ -554,8 +565,10 @@ export function roundListOf(path: string, blocks: [string, BlockMark][], opened:
  * @param path - Path of the note shown
  * @param text - Text of the note
  * @param round - Headings of the blocks of a section with their places in its round, `null` for any other note
+ * @param next - For a section the day its next Task comes, like `Tomorrow`, empty for none
  */
-export function outlineShow(tree: HTMLElement, path: string, text: string, round: [string, BlockMark][] | null): void {
+export function outlineShow(tree: HTMLElement, path: string, text: string, round: [string, BlockMark][] | null,
+                            next: string): void {
     const entry: HTMLElement | null = tree.querySelector(`.tree-file.shown[data-path="${CSS.escape(path)}"]`);
     const folded: string[] = [...tree.querySelectorAll<HTMLDetailsElement>(".tree-outline details.tree-folder:not(.tree-kind, [open])")]
         .map((folder: HTMLDetailsElement): string => folder.querySelector<HTMLElement>(".tree-file")?.dataset.heading ?? "");
@@ -565,7 +578,7 @@ export function outlineShow(tree: HTMLElement, path: string, text: string, round
     if (entry === null)
         return;
     if (round !== null) {
-        entry.after(roundListOf(path, round, kinds));
+        entry.after(roundListOf(path, round, kinds, next));
         return;
     }
 

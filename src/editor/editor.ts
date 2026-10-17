@@ -70,7 +70,7 @@ import { obsidianSyntax } from "./syntax.ts";
 import { headingShow, linksSet, livePreview, solutionsFold } from "./preview.ts";
 import { solutionSteps } from "./steps.ts";
 import { taskRows, tasksLoad } from "./tasks.ts";
-import { roundBlocksOf, roundClose, roundHeadingShow, roundStart } from "./round.ts";
+import { roundBlocksOf, roundClose, roundHeadingShow, roundNextOf, roundStart } from "./round.ts";
 import { outlineShow, treeShow } from "../notes/tree.ts";
 import { todayShow } from "./today.ts";
 import { overviewShow, overviewTreeShow } from "./overview.ts";
@@ -274,12 +274,13 @@ function keyDown(event: KeyboardEvent): void {
 
 /**
  * Builds the outline of a note in the tree anew, or for a section its blocks with their places in its round,
+ * with the day its next Task comes.
  * - `blocks`: The blocks of a section with their places, `null` for any other note.
  */
 function outlineRefresh(): void {
     const blocks: [string, BlockMark][] | null = roundBlocksOf(view);
     if (outlineTree !== null)
-        outlineShow(outlineTree, path, view.state.sliceDoc(), blocks);
+        outlineShow(outlineTree, path, view.state.sliceDoc(), blocks, roundNextOf());
 }
 
 /**

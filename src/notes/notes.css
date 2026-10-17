@@ -322,8 +322,8 @@
     color: var(--text-muted);
 }
 
-/* The line of a kind whose blocks lie outside the round, like `Tasks · 7 more`, grey as they are, its arrow before
-   it, a folder that opens them below it, see `roundListOf` in `tree.ts` */
+/* The line of a kind whose blocks lie outside the round, like `Task` boxed and `7 more · Tomorrow`, grey as they are,
+   its box as faint as theirs, its arrow before it, a folder that opens them below it, see `roundListOf` in `tree.ts` */
 .tree-round .tree-kind > summary {
     color: var(--reading-marker);
 }
@@ -353,7 +353,7 @@
     text-align: center;
 }
 
-.tree-round .tree-file:hover .block-kind {
+.tree-round :is(.tree-file, .tree-kind > summary):hover .block-kind {
     background: var(--chosen);
 }
 
@@ -361,7 +361,7 @@
     background: var(--chosen-over);
 }
 
-.tree-round .tree-other .block-kind {
+.tree-round :is(.tree-other, .tree-kind > summary) .block-kind {
     color: inherit;
 }
 

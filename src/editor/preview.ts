@@ -14,7 +14,8 @@
  * - Every empty line one line high, as I wrote it, so the space between two blocks shows how many empty lines stand
  *   between them, like the one below the `Generated:` quote, see {@link spaceLook}.
  * - The type word of a block of a section at the start of a heading `##`, like `Definition. `, a small grey box before
- *   the name, as in the tree, as written on the line of the cursor, see {@link headingLook}.
+ *   the name, as in the tree, hanging left of the page where the file has room, see `./editor.css`, as written on
+ *   the line of the cursor, see {@link headingLook}; a click on the box does nothing, see {@link kindClicked}.
  * - Bold, italic, struck and code without `**`, `*`, `~~` and `` ` ``, Markdown links and wiki links
  *   `[[Note#Heading|Text]]` as their text; the markup of the piece the cursor touches shows.
  * - Line breaks `<br>` and break opportunities `<wbr>` drawn as in the scripts view, so `<br><wbr>` at the end of a line
@@ -846,7 +847,8 @@ function foldLook(look: Look, line: Line, item: boolean): void {
  * Heading `##`: its line in an `h2`, as the scripts view draws it, its `##` hidden,
  * on the line of the cursor shown left of the text, which keeps its place; its fold arrow after its text.
  * The type word of a block at its start, like `Definition` of `## Definition. Population and Sample`, a small grey
- * box before the name, its dot and space hidden, while the cursor is not on the line, see {@link kindRule}.
+ * box before the name, its dot and space hidden, while the cursor is not on the line, see {@link kindRule};
+ * no text to click into, see {@link kindClicked}.
  * - `kind`: The type word with the dot and space after it, `null` for a heading without one.
  * - `start`: Where the text of the heading starts.
  *
@@ -1585,6 +1587,20 @@ function linkClicked(event: MouseEvent, view: EditorView): boolean {
 }
 
 /**
+ * Leaves a click on the type word of a heading, its small grey box, see {@link headingLook}, to nothing: the box is
+ * no text, so the cursor never goes into it and the heading stays drawn; a click on the name edits it as before.
+ *
+ * @param event - Mouse button taken down, `mousedown`
+ * @returns Whether it was a click on the box, which the editor then leaves alone
+ */
+function kindClicked(event: MouseEvent): boolean {
+    if ((event.target as Element).closest(".block-kind") === null)
+        return false;
+    event.preventDefault();
+    return true;
+}
+
+/**
  * Takes the files the links of the note lead to anew, as the reader found them for the note just saved,
  * so a link written since works and one that leads nowhere fades.
  *
@@ -1633,6 +1649,7 @@ export function livePreview(links: Links): Extension {
         look,
         caretPlaceOf(look),
         EditorView.focusChangeEffect.of((_state: EditorState, focusing: boolean): StateEffect<boolean> => focusChange.of(focusing)),
+        EditorView.domEventHandlers({ mousedown: kindClicked }),
         EditorView.domEventHandlers({ mousedown: linkClicked, click: linkClicked }),
         syntaxHighlighting(highlighter),
     ];

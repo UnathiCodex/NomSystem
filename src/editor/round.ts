@@ -39,7 +39,7 @@
  * - `@codemirror/state`, `@codemirror/view`: Hold the block shown, keep what I write and select inside it,
  *   and draw `Next` as a widget below it.
  * - `@codemirror/language`: Folds and unfolds the blocks, as their arrows do.
- * - `../skill/attempts.ts`: Writes the days of the round line out.
+ * - `../skill/attempts.ts`: Writes the days of the round line out, and the day of the next Task for the tree.
  * - `./tasks.ts`: Hears each load of the tasks of the note, with its section, and each Right.
  * - `./session.ts`: Makes sure a session of the module runs before `Next` or the round check writes, and gives the
  *   session running, with its day and times written out.
@@ -52,6 +52,7 @@ import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { foldable, foldedRanges, foldEffect, unfoldEffect } from "@codemirror/language";
 import { tasksFollow } from "./tasks.ts";
 import { sessionEnsure, sessionOf, sessionTextOf } from "./session.ts";
+import { dayOf, dayTextOf } from "../skill/attempts.ts";
 
 import type { Extension, Line, Range, SelectionRange, StateEffectType, Transaction, TransactionSpec } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
@@ -828,6 +829,29 @@ export function roundBlocksOf(view: EditorView): [string, BlockMark][] | null {
                 return [block.heading, "current"];
             return [block.heading, own.every((step: Step): boolean => doneIs(shown, step)) ? "done" : "round"];
         });
+}
+
+/**
+ * Tells when the section shown has its next Task, for the line of its Tasks outside the round in the tree, see
+ * `roundListOf` in `../notes/tree.ts`: the day its Task comes back, by the rule of the overview, see `stateOf`
+ * in `./overview.ts`, `Tomorrow` for the day after today, else like `Mon, 19.10.2026`; nothing while its Task is due
+ * today, since its result decides the day, or no day is known.
+ * - `today`, `due`: Today and the day its Task comes back, empty for none.
+ * - `year`, `month`, `day`: Today in numbers.
+ * - `tomorrow`: The day after today.
+ *
+ * @returns The day, empty for none
+ */
+export function roundNextOf(): string {
+    if (round === null)
+        return "";
+    const today: string = round.loaded.today;
+    const due: string = round.loaded.tasks.find((task: SkillTask): boolean => task.kind === "cold" && task.due !== "")?.due ?? "";
+    const [year, month, day]: number[] = today.split("-").map(Number);
+    const tomorrow: string = dayOf(new Date(year, month - 1, day + 1));
+    if (due <= today)
+        return "";
+    return due === tomorrow ? "Tomorrow" : dayTextOf(due, true);
 }
 
 /**
