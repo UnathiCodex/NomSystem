@@ -7,8 +7,9 @@
  * Only the modules of the semester have tasks, see `activeModules`; their chapters and tasks are read live
  * from the folders every time, so a changed chapter changes the views too, and no list of them is kept anywhere.
  * A task is a heading `## Task. <name>` in a note of a chapter folder like `01_RegressionAnalysis`,
- * in the drafts or in my modules, with its source on the line below, its mode word first,
- * like `> Original: [[…/Endterm_Assignments.pdf#page=4|exam 2024/25 endterm 1a]]` or `> Generated: …`.
+ * in the drafts or in my modules, with its source as the `>` line right below,
+ * like `> [[VO_UniversityLectureLessons/TUM_2025W/01_CourseOverview.pdf#page=45|VO 2025W 01_CourseOverview (slide 45)]]`;
+ * a note not yet rewritten still starts it with a mode word, `> Original: …` or `> Generated: …`, which is left out.
  * A cold task of its section, the one I solve alone with a part per idea, ends its heading with `(cold)`,
  * like `## Task. Kiosk Chain Review (cold)`, which is no part of its name; its parts are its numbered list items
  * at the start of a line, like `1. Sales $X_1,X_2,X_3$ of three days`, before its solution.
@@ -116,8 +117,8 @@ export type Effort = "low" | "medium" | "high";
  * - `id`: Identity, `<module>/<name>`, like `IN2028/Airline Revenue Interval`, the first part of its `X-ATTEMPT`s.
  * - `name`: Name in its heading, like `Airline Revenue Interval` of `## Task. Airline Revenue Interval`.
  * - `heading`: Its heading as written, like `Task. Airline Revenue Interval`, for a link to it.
- * - `source`: Its source line without `> `: its mode word, `Original` or `Generated`, and its sources as written,
- *   like `Original: [[…/Endterm_Assignments.pdf#page=4|exam 2024/25 endterm 1a]]`, empty without one.
+ * - `source`: Its sources as written on its source line, without `> ` and an older mode word,
+ *   like `[[…/01_CourseOverview.pdf#page=45|VO 2025W 01_CourseOverview (slide 45)]]`, empty without one.
  * - `note`: Path of its note, as the scripts view takes it, like
  *   `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
@@ -522,9 +523,10 @@ const sessionPause: number = 30 * 60 * 1000;
 const taskHeading: RegExp = /^## (Task\.[ \t]+(.+?)(?:[ \t]+(\(cold\)))?)[ \t]*$/;
 
 /**
- * Source line of a task, `> Original: …` or `> Generated: …`, with its mode word and sources.
+ * Source line of a task, `> …` with its sources, an older one `> Original: …` or `> Generated: …`
+ * with its mode word, which is left out.
  */
-const sourceLine: RegExp = /^>[ \t]*((?:Original|Generated):.*?)[ \t]*$/;
+const sourceLine: RegExp = /^>[ \t]*(?:(?:Original|Generated):[ \t]*)?(.*?)[ \t]*$/;
 
 
 /**

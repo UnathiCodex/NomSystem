@@ -50,7 +50,8 @@ export type Attempt = {
  * - `id`: Identity, `<module>/<name>`, like `IN2028/Airline Revenue Interval`.
  * - `name`: Name in its heading, like `Airline Revenue Interval`.
  * - `heading`: Its heading as written, like `Task. Airline Revenue Interval`.
- * - `source`: Its source line without `> `, like `Original: [[…|exam 2024/25 endterm 1a]]`, empty without one.
+ * - `source`: Its sources as written on its source line, without `> ` and an older mode word,
+ *   like `[[…|VO 2025W 01_CourseOverview (slide 45)]]`, empty without one.
  * - `note`: Path of its note, as the scripts view takes it.
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
  * - `section`: Name of its section, its note, like `01_01_SampleMeanStandardError`.
