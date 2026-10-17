@@ -3,14 +3,15 @@
  *
  * The trackers of the shown day, at the right of the bar of the day, as the reader counts them,
  * see `reader/trackers.ts`, calm and basic: three tiles of equal width side by side, each its name small and grey
- * above its value, like `Sleep` over `09h 15m`, without icons and without descriptions under the pointer:
+ * before its value on the computer, like `Sleep 09h 15m`, and above it on a phone, every tile alike, without icons
+ * and without descriptions under the pointer:
  * - Sleep: how long the night of the day lasted, the sleep I woke up from that morning, like `07h 30m`;
  *   its goal, the spread of my bedtime and the average of the week left out for now, since other things come first.
  * - Water: what I drank on the day in litres, like `1.5 l`, without a goal; the whole tile logs 0.25 l more,
  *   one glass of water, at the time of the tap on the shown day, a small `−` in its corner takes the last glass
  *   of water back; every other drink, like `Kaffee`, counts as one glass too. A day still to come takes no glasses.
  * - Food: the kcal of the day's meals, a total without goal, and on the computer in brackets after it the number
- *   of the meals, like `1,850 kcal (3 meals)`, so a meal missing shows; on a phone only `1,850 kcal`, so the three
+ *   of the meals, like `1.850 kcal (3)`, so a meal missing shows; on a phone only `1.850 kcal`, so the three
  *   tiles keep their width; no link, since the button of the food view is beside it.
  * - Neck: two tiles over the seven days up to the day: on how many of my study days I did
  *   a neck routine, short or long, like `2 / 5` over `short · study days`, a check from two thirds of them on,
@@ -207,8 +208,8 @@ async function glassAdd(calendar: Calendar): Promise<void> {
 }
 
 /**
- * Makes the name and the value of a tracker, its name small and grey above its value, like `Sleep` over `07h 30m`,
- * see `.tracker-row` in `trackers.css`.
+ * Makes the name and the value of a tracker, its name small and grey before its value on the computer, like
+ * `Sleep 07h 30m`, and above it on a phone, see `.tracker-row` in `trackers.css`.
  *
  * @param name - Name of the tracker, like `Sleep`
  * @param value - Its value as shown, like `07h 30m`
@@ -267,8 +268,8 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
 }
 
 /**
- * Builds the food: the kcal of the day's meals, rounded and so never marked as an estimate, like `1,850 kcal`
- * or `0 kcal`, on the computer the number of the meals in brackets after it, like `1,850 kcal (3 meals)`,
+ * Builds the food: the kcal of the day's meals, rounded and so never marked as an estimate, like `1.850 kcal`
+ * or `0 kcal`, on the computer the number of the meals in brackets after it, like `1.850 kcal (3)`,
  * a number never apart from its word.
  * - `food`: What the meals gave.
  * - `kcal`: The kcal as shown.
@@ -280,8 +281,7 @@ function foodOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
     const food: Totals & { estimate: boolean; meals: number } = trackers.food;
     const kcal: string = `${amountOf(food.kcal, 0)}\u00a0kcal`;
-    row.append(...linesOf("Food",
-        phone ? kcal : `${kcal} (${food.meals}\u00a0${food.meals === 1 ? "meal" : "meals"})`));
+    row.append(...linesOf("Food", phone ? kcal : `${kcal} (${food.meals})`));
     return row;
 }
 

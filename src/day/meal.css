@@ -32,7 +32,7 @@
 /* Row of a meal or a food: its name, the grams of a food, its kcal and its small grey `×`, see `.cross-quiet`
    in `base.css`; grams, kcal and × on the line of the name, also while its brand and store stand on a line below it,
    see `bracketsWatch` in `../food/foods.ts`, never between the two lines; the kcal with the room of four digits and
-   their unit, like `1,250 kcal`, a clear gap to the grams before them and to the × after them; the ×, which has no
+   their unit, like `1.250 kcal`, a clear gap to the grams before them and to the × after them; the ×, which has no
    text of its own, on the line of the name, its icon level with the small letters, as an icon beside a word stands */
 .meal-row {
     display: grid;

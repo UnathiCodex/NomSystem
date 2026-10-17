@@ -58,7 +58,7 @@ let shown: string = "";
  *
  * @param value - Amount
  * @param unit - Unit, like `kcal` or `g`
- * @returns Text like `1,284 kcal` or `62 g`
+ * @returns Text like `1.284 kcal` or `62 g`
  */
 function amountTextOf(value: number, unit: string): string {
     return `${amountOf(value, 0)} ${unit}`;

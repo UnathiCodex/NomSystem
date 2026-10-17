@@ -392,18 +392,20 @@ export async function foodDayLoad(day: string): Promise<FoodDay> {
 }
 
 /**
- * Writes an amount as the page shows it, in English, with a comma between thousands and always as many decimals
- * as asked, so a number keeps its width as it changes, like the date of a day: `1.00` litres, never `1`,
- * and `0.0` g of a nutrient, never `0`; an unknown amount, like the fat of a food nobody gives, as nothing,
- * no dash and no `?`, so it never reads as 0.
+ * Writes an amount as the page shows it, with a point between thousands and a point before the decimals, always
+ * as many decimals as asked, so a number keeps its width as it changes, like the date of a day: `1.00` litres,
+ * never `1`, and `0.0` g of a nutrient, never `0`; an unknown amount, like the fat of a food nobody gives, as nothing,
+ * no dash and no `?`, so it never reads as 0. English writes the thousands with a comma, its only comma,
+ * which becomes the point.
  *
  * @param value - Amount, `null` when unknown
  * @param digits - Decimals to show, like 0 for kcal, 1 for nutrients per 100 g and 2 for litres
- * @returns Amount like `1,284`, `7.4` or `1.00`, empty when unknown
+ * @returns Amount like `1.284`, `7.4` or `1.00`, empty when unknown
  */
 export function amountOf(value: number | null, digits: number): string {
     return value === null ? ""
-        : value.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+        : value.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits })
+            .replaceAll(",", ".");
 }
 
 /**

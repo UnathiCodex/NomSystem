@@ -744,7 +744,7 @@ function newFormShow(search: Search, product: Product | null): void {
 
 /**
  * Builds the line below the products: how many it shows of how many the search matches, like `8 of 54`,
- * `10,000+` when Open Food Facts gives only a lower bound, and `More`, while a next page holds more,
+ * `10.000+` when Open Food Facts gives only a lower bound, and `More`, while a next page holds more,
  * which loads it and takes no second click meanwhile.
  * - `line`: The line.
  * - `more`: The button `More`.

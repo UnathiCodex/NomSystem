@@ -36,7 +36,9 @@
 }
 
 /* Trackers: at the right end of the bar of the day, above the log and as wide as it, three tiles of equal width
-   side by side, a control gap apart */
+   side by side, a control gap apart; wider where the log is too narrow for every tile's name beside its value,
+   like `Food 2.137 kcal (3)` on the laptop at 1280 px, so no name ever goes above its value and none goes over
+   the edge */
 .trackers {
     display: grid;
     flex: none;
@@ -44,6 +46,7 @@
     grid-auto-flow: column;
     gap: var(--control-gap);
     width: calc((100% - var(--gap)) / 2);
+    min-width: max-content;
     margin-left: auto;
 }
 
@@ -173,13 +176,14 @@
 /* Phone: the trackers and the timer each on a line of their own below the date, as tiles and a pill */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     /* The trackers on a phone on a line of their own below the date, over the whole width, as three tiles of equal
-       width, each its name above its value, a little closer together and around their lines, so `2,150 kcal` fits
+       width, each its name above its value, a little closer together and around their lines, so `2.150 kcal` fits
        its tile; the `−` of the water as small as it looks, but a finger's width to hit, reaching down and to the
        left into its tile */
     .trackers {
         flex-basis: 100%;
         gap: 0.375rem;
         width: auto;
+        min-width: 0;
         margin-left: 0;
     }
 
