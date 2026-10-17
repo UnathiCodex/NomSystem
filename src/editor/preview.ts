@@ -12,7 +12,8 @@
  *   Their `##`, `>`, indentation, `-` and `1.` are hidden; on the line of the cursor the `##` and `>` show left of the text,
  *   and the `-` or number of an item shows in place of its bullet or number, so the text never moves.
  * - Empty lines as high as the space the scripts view leaves between the blocks around them, the line of the cursor
- *   as high as a line, see {@link spaceLook}.
+ *   as high as a line, see {@link spaceLook}; the blank line before text that goes on in a point below its sub-points
+ *   without height, see {@link paragraphLook}.
  * - Bold, italic, struck and code without `**`, `*`, `~~` and `` ` ``, Markdown links and wiki links
  *   `[[Note#Heading|Text]]` as their text; the markup of the piece the cursor touches shows.
  * - Line breaks `<br>` and break opportunities `<wbr>` drawn as in the scripts view, so `<br><wbr>` at the end of a line
@@ -23,8 +24,9 @@
  * - Images `![[Image.svg|300]]` shown; tables, callouts `> [!note] Title`, code blocks and HTML blocks like `<table>`
  *   rendered as in the scripts view, those right below each other as one, as their text while the cursor is on one
  *   of their lines, as Obsidian shows a callout.
- * - Spacers `⠀` (U+2800) and invisible characters like the soft hyphen blank, as in the scripts view;
- *   on the line of the cursor as faint dots, so I see where they stand.
+ * - Spacers `⠀` (U+2800) and invisible characters like the soft hyphen blank, as in the scripts view; the spacer
+ *   of a spacer line without room, so the cursor on it stands where its text will begin, see {@link paragraphLook}.
+ * - The cursor never stands in what is hidden, so every key moves it where I see it, see {@link caretPlace}.
  * - Each heading folds its section, up to the next heading of its level or higher, by a click on its arrow after its
  *   text, as in the scripts view, and each list item with sub-points folds them and its further lines by its arrow
  *   left of its bullet, shown under the pointer, as in Obsidian; one click folds, one click unfolds,
@@ -51,7 +53,7 @@
  * - `./steps.ts`: Tells a worked Example, whose solution comes unfolded.
  */
 
-import { RangeSet, StateEffect, StateField } from "@codemirror/state";
+import { EditorState, RangeSet, StateEffect, StateField } from "@codemirror/state";
 import { BlockWrapper, Decoration, EditorView, WidgetType, keymap } from "@codemirror/view";
 import {
     codeFolding, foldable, foldedRanges, foldEffect, foldKeymap, forceParsing, syntaxHighlighting, syntaxTree, unfoldEffect,
@@ -63,7 +65,7 @@ import { noteAddressOf } from "../notes/tree.ts";
 import { columnsOf, spacerRule, textIndentationOf } from "./keys.ts";
 import { workedIs } from "./steps.ts";
 
-import type { EditorState, Extension, Line, Range, SelectionRange, StateEffectType, Transaction } from "@codemirror/state";
+import type { Extension, Line, Range, SelectionRange, StateEffectType, Transaction, TransactionSpec } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
 import type { Highlighter } from "@lezer/highlight";
 import type { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
@@ -187,6 +189,16 @@ const followable: Decoration = Decoration.mark({ class: "cm-follow" });
  * out of a box after it, as in the scripts view, see `../notes/notes.css`.
  */
 const external: Decoration = Decoration.mark({ class: "cm-follow cm-external" });
+
+/**
+ * Blank line without height, see {@link paragraphLook}.
+ */
+const noHeight: Decoration = Decoration.line({ attributes: { style: "height: 0" } });
+
+/**
+ * Empty line of the cursor right below a list with the space above a paragraph above it, see {@link spaceLook}.
+ */
+const paragraphRoom: Decoration = Decoration.line({ attributes: { style: "padding-top: 1.5rem" } });
 
 /**
  * Line of a code block being edited.
@@ -1023,7 +1035,8 @@ function itemLook(look: Look, node: SyntaxNode): boolean {
 /**
  * Marker of a list item, `-` or a number like `1.`, with the indentation before it and the spaces after it:
  * hidden, as the item's `li` draws its bullet or number; on the line of the cursor shown as written,
- * in place of the bullet or number, see `./editor.css`, its indentation still hidden.
+ * in place of the bullet or number, see `./editor.css`, its indentation still hidden; of a `-` the spaces after it
+ * hidden too, so the cursor after them stands where the text begins, also on a new, empty item.
  *
  * @param look - Look being built
  * @param node - Marker, `ListMark`
@@ -1034,29 +1047,152 @@ function listMarkLook(look: Look, node: SyntaxNode): boolean {
     const textFrom: number = node.to + (/^[ \t]*/.exec(look.state.sliceDoc(node.to, line.to))?.[0].length ?? 0);
     if (/^[ \t]*$/.test(look.state.sliceDoc(line.from, node.from)))
         hide(look, line.from, node.from);
-    if (!touched(look, line.from, line.to))
+    if (!touched(look, line.from, line.to)) {
         hide(look, node.from, textFrom);
-    else
-        look.decorations.push((node.parent?.parent?.name === "BulletList" ? bulletMark : numberMark).range(node.from, textFrom));
+    } else if (node.parent?.parent?.name === "BulletList") {
+        look.decorations.push(bulletMark.range(node.from, node.to));
+        hide(look, node.to, textFrom);
+    } else {
+        look.decorations.push(numberMark.range(node.from, textFrom));
+    }
     return true;
 }
 
 /**
- * Paragraph: the indentation of its further lines hidden, as the scripts view leaves it out,
- * in a list item putting them under the item's text.
+ * Paragraph: the indentation of its lines hidden, as the scripts view leaves it out, in a list item putting them
+ * under the item's text, and with it the spacer of a spacer line, see `spacerRule` in `./keys.ts`, so the line is blank
+ * without the room of a blank and the cursor on it stands where its text begins, never one blank further right.
+ * A paragraph that goes on in a list item below its sub-points, after the blank line Markdown needs before it,
+ * see `lineTyping` in `./keys.ts`, stands right below them as any further line: that blank line without height while
+ * the cursor is not on it.
+ * - `first`: The first line of the paragraph.
+ * - `line`: One of its lines.
+ * - `blank`: Its indentation, with the spacer of a spacer line.
+ * - `above`: The line above its first line.
  *
  * @param look - Look being built
  * @param node - `Paragraph`, or `Task`, the paragraph of a task item
  * @returns `true`, to look into its text
  */
 function paragraphLook(look: Look, node: SyntaxNode): boolean {
+    const first: Line = look.state.doc.lineAt(node.from);
+    if (/^[ \t]*$/.test(look.state.sliceDoc(first.from, node.from)))
+        hide(look, first.from, look.state.sliceDoc(node.from, node.from + 1) === "⠀" ? node.from + 1 : node.from);
     const last: number = look.state.doc.lineAt(node.to).number;
-    for (let number: number = look.state.doc.lineAt(node.from).number + 1; number <= last; number++) {
+    for (let number: number = first.number + 1; number <= last; number++) {
         const line: Line = look.state.doc.line(number);
-        hide(look, line.from, line.from + (/^[ \t]*/.exec(line.text)?.[0].length ?? 0));
+        const blank: number = /^[ \t]*⠀?/.exec(line.text)?.[0].length ?? 0;
+        hide(look, line.from, line.from + blank);
+    }
+
+    if (belowSubpointsIs(node)) {
+        const above: Line = look.state.doc.line(first.number - 1);
+        if (/^[ \t]*$/.test(above.text) && !cursorOn(look, above))
+            look.decorations.push(noHeight.range(above.from));
     }
     return true;
 }
+
+/**
+ * Tells a paragraph that goes on in a list item below its sub-points, which Markdown begins only after a blank line,
+ * see {@link paragraphLook}.
+ *
+ * @param node - `Paragraph`
+ * @returns Whether it stands in a list item right after a list of sub-points
+ */
+function belowSubpointsIs(node: SyntaxNode): boolean {
+    return node.parent?.name === "ListItem" && (node.prevSibling?.name === "BulletList" || node.prevSibling?.name === "OrderedList");
+}
+
+/**
+ * Gives how much of the start of a line the look hides, see {@link paragraphLook} and {@link listMarkLook}:
+ * of a line of a paragraph its indentation, with the spacer of a spacer line; of the line of a list item
+ * the indentation before its `-` or number; nothing of a line of blanks, a code block, a table or a quote,
+ * whose blanks show.
+ * - `blanks`: Its indentation.
+ * - `node`: A piece of syntax around the start of its text, from the innermost outwards.
+ *
+ * @param state - Text and syntax tree
+ * @param line - The line
+ * @returns Number of characters hidden at its start
+ */
+function hiddenStartOf(state: EditorState, line: Line): number {
+    const blanks: number = /^[ \t]*/.exec(line.text)?.[0].length ?? 0;
+    if (blanks === line.length)
+        return 0;
+    for (let node: SyntaxNode | null = syntaxTree(state).resolveInner(line.from + blanks, 1); node !== null; node = node.parent) {
+        if (node.name === "Paragraph" || node.name === "Task")
+            return blanks + (line.text[blanks] === "⠀" ? 1 : 0);
+        if (node.name === "ListItem")
+            return blanks;
+        if (["FencedCode", "CodeBlock", "HTMLBlock", "Table", "Blockquote"].includes(node.name))
+            return 0;
+    }
+    return 0;
+}
+
+/**
+ * Tells the blank line before a paragraph that goes on in a list item below its sub-points, drawn without height,
+ * see {@link paragraphLook}.
+ * - `next`: The line after it.
+ * - `node`: A piece of syntax around the start of the text of the line after it, from the innermost outwards.
+ *
+ * @param state - Text and syntax tree
+ * @param line - The line
+ * @returns Whether it is such a blank line
+ */
+function hiddenBlankIs(state: EditorState, line: Line): boolean {
+    if (!/^[ \t]*$/.test(line.text) || line.number === state.doc.lines)
+        return false;
+    const next: Line = state.doc.line(line.number + 1);
+    for (let node: SyntaxNode | null = syntaxTree(state).resolveInner(next.from + (/^[ \t]*/.exec(next.text)?.[0].length ?? 0), 1);
+         node !== null; node = node.parent)
+        if (node.name === "Paragraph")
+            return state.doc.lineAt(node.from).number === next.number && belowSubpointsIs(node);
+    return false;
+}
+
+/**
+ * Keeps the cursor off what the look hides, so every key moves it where I see it: put into the hidden start of a line,
+ * see {@link hiddenStartOf}, by a click, Home or an arrow up or down, it goes to where the text begins, on an empty
+ * spacer line to its end; moved left out of the text of a line it goes on to the end of the line above, as from the
+ * start of any line. A blank line drawn without height, see {@link hiddenBlankIs}, it passes over in the direction
+ * it moved. Only for a cursor moved alone, never while text is picked or changed.
+ * - `state`: Text and cursor before the move, the same text after it.
+ * - `head`: Where the cursor was put.
+ * - `before`: Where it stood.
+ * - `place`: Where it goes instead, the same for no change.
+ * - `line`: The line of the place.
+ * - `start`: Where the text of that line begins.
+ *
+ * @returns Filter of the changes of the editor
+ */
+const caretPlace: Extension = EditorState.transactionFilter.of((transaction: Transaction): TransactionSpec | readonly TransactionSpec[] => {
+    if (transaction.docChanged || transaction.selection === undefined || transaction.selection.ranges.length > 1
+        || !transaction.selection.main.empty || !transaction.isUserEvent("select"))
+        return transaction;
+
+    const state: EditorState = transaction.startState;
+    const head: number = transaction.selection.main.head;
+    const before: number = state.selection.main.head;
+    let place: number = head;
+    for (let line: Line = state.doc.lineAt(place); ; line = state.doc.lineAt(place)) {
+        const start: number = line.from + hiddenStartOf(state, line);
+        if (hiddenBlankIs(state, line) && place > before)
+            place = state.doc.line(line.number + 1).from;
+        else if (hiddenBlankIs(state, line) && line.number > 1)
+            place = state.doc.line(line.number - 1).to;
+        else if (place < start && before >= start && before <= line.to && line.number > 1)
+            place = state.doc.line(line.number - 1).to;
+        else if (place < start)
+            place = start;
+        else
+            break;
+        if (state.doc.lineAt(place).number === line.number)
+            break;
+    }
+    return place === head ? transaction : [transaction, { selection: { anchor: place }, sequential: true }];
+});
 
 /**
  * Task box `[ ]` or `[x]` of a list item: the box of the scripts view, as written on the line of the cursor.
@@ -1243,7 +1379,9 @@ const looks: { [name: string]: (look: Look, node: SyntaxNode) => boolean } = {
  * see {@link spaceAboveOf}, shared evenly by several, since the scripts view leaves the same space for any number
  * of them; without height next to a block rendered whole, which keeps its own space.
  * The empty line of the cursor keeps the height of a line, so I see where I type: Enter after a heading,
- * which leaves no space below it, gives a line the rest moves down for, as in Obsidian.
+ * which leaves no space below it, gives a line the rest moves down for, as in Obsidian; right below a list, where
+ * Enter or Backspace ended it, with the space above a paragraph above it, since text typed there begins a paragraph
+ * after the list, see `lineTyping` in `./keys.ts`, so the cursor stands where the text will.
  * - `first`: Number of the first empty line after the block before.
  * - `count`: How many empty lines stand between the two blocks.
  * - `line`: One of them.
@@ -1263,6 +1401,8 @@ function spaceLook(look: Look): void {
             const line: Line = look.state.doc.line(number);
             if (!cursorOn(look, line))
                 look.decorations.push(space.range(line.from));
+            else if (number === first && line.length === 0 && (before?.name === "BulletList" || before?.name === "OrderedList"))
+                look.decorations.push(paragraphRoom.range(line.from));
         }
         before = block;
     }
@@ -1507,6 +1647,7 @@ export function livePreview(links: Links): Extension {
         codeFolding({ placeholderDOM: (): HTMLElement => document.createElement("span") }),
         keymap.of(foldKeymap),
         look,
+        caretPlace,
         EditorView.focusChangeEffect.of((_state: EditorState, focusing: boolean): StateEffect<boolean> => focusChange.of(focusing)),
         EditorView.domEventHandlers({ mousedown: linkClicked, click: linkClicked }),
         syntaxHighlighting(highlighter),
