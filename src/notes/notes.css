@@ -619,9 +619,10 @@
     border-left: 2px solid var(--reading-accent);
 }
 
-/* Formula on a line of its own, at the left as in my Obsidian;
-   one wider than the page or its callout scrolls sideways on its own, never up and down */
+/* Formula on a line of its own, at the left as in my Obsidian, a little less room above and below it than MathJax's
+   0.7em, in the editor too; one wider than the page or its callout scrolls sideways on its own, never up and down */
 .markdown .math-block mjx-container[display="true"] {
+    margin-block: 0.4em;
     overflow-x: auto;
     overflow-y: hidden;
     text-align: left;
