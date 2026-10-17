@@ -12,9 +12,11 @@
    to click; the anchor of the menus of its pickers, which open beside it.
    Its framed rows, the search and the grey of the note shown or under the pointer, one gap beside the rail's
    buttons, their names a step in from them, `--content-indent`, as every text without a frame of its own,
-   the room left of a name in a row `--tree-row-padding` */
+   the room left of a name in a row `--tree-row-padding`, the room above and below the name of a picker
+   `--tree-pick-padding` */
 .notes-tree {
     --tree-row-padding: calc(var(--content-indent) - var(--gap));
+    --tree-pick-padding: 0.25rem;
     anchor-name: --tree;
     overflow-y: auto;
     padding: var(--gap) 0.75rem var(--gap) var(--gap);
@@ -82,10 +84,12 @@
     cursor: pointer;
 }
 
-/* Pickers of my modules below the root, the module, then its chapter, see `pickerOf` in `tree.ts`: each a row
-   of the tree, the name picked in bold, in the text of the tree, a step below the bold root, so what I picked stands
-   out from the notes below it, and the grey arrow of a folder after it, turned down, beside it on its line also where
-   the name ends in dots, which opens its menu; each the anchor of its menu */
+/* Pickers of my modules below the root, the module, then its chapter, see `pickerOf` in `tree.ts`: each a card
+   of the day, filled in the soft grey of a card without a frame, one grey lighter under the pointer, a little higher
+   than a row, the name picked in bold, in the text of the tree, a step below the bold root, so what I picked stands
+   out from the notes below it, and the grey arrow of a folder at its right end, turned down, as a field to pick from,
+   which opens its menu; the two cards a little apart, the notes a little further below them; each the anchor
+   of its menu */
 .tree-pick,
 .tree-choice {
     width: 100%;
@@ -98,7 +102,14 @@
 
 .tree-pick {
     display: flex;
+    gap: 0.25rem;
+    padding-block: var(--tree-pick-padding);
+    background: var(--fill);
     font-weight: 600;
+}
+
+.tree-pick:hover {
+    background: var(--fill-over);
 }
 
 .tree-pick-name {
@@ -112,30 +123,32 @@
     display: inline-block;
     width: 1em;
     height: 1lh;
-    margin-left: 0.25rem;
+    margin-left: auto;
     vertical-align: top;
     background: var(--text-muted);
     mask: var(--fold-icon) center / 0.875em no-repeat;
 }
 
 .tree-pick-module {
+    margin-bottom: 0.375rem;
     anchor-name: --tree-module;
 }
 
 .tree-pick-chapter {
+    margin-bottom: 0.75rem;
     anchor-name: --tree-chapter;
 }
 
-/* Menu of a picker right beside the tree, over the note, its first row level with the picker, so it opens next to
-   what I clicked and the tree stays in sight; as wide as its longest name, so no name is cut, as the menus of
-   the dialogs: the page's background, a grey line and a soft shadow; its rows those of the tree, with the little room
-   of a menu left of their names, the one picked in the calm grey of what is picked; it scrolls where the room below
-   is short */
+/* Menu of a picker right beside the tree, over the note, its first row level with the name on the picker, so it
+   opens next to what I clicked and the tree stays in sight; as wide as its longest name, so no name is cut, as the
+   menus of the dialogs: the page's background, a grey line and a soft shadow; its rows those of the tree, with the
+   little room of a menu left of their names, the one picked in the calm grey of what is picked; it scrolls where
+   the room below is short */
 .tree-menu {
     --tree-row-padding: 0.5rem;
     position: fixed;
     inset: auto;
-    top: calc(anchor(top) - 0.375rem - 1px);
+    top: calc(anchor(top) + var(--tree-pick-padding) - 0.375rem - 1px);
     bottom: var(--gap);
     left: calc(anchor(--tree right) + 0.5rem);
     width: max-content;
@@ -274,13 +287,18 @@
 /* Entry under the pointer one grey lighter; the note or file shown in the calm grey of what is picked */
 .tree-folder > summary:hover,
 .tree-file:hover,
-.tree-pick:hover,
 .tree-choice:hover {
     background: var(--fill);
 }
 
 .tree-file.shown {
     background: var(--chosen);
+}
+
+/* The outline of the note shown, or the blocks of a section, folded away by a click on its entry, like a folder,
+   see `outlineFold` in `tree.ts` */
+.tree-file.tree-folded + .tree-outline {
+    display: none;
 }
 
 /* A file of my new system that does not open, faint and without the grey under the pointer, see `tree.ts` */

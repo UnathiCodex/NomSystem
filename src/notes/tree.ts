@@ -19,7 +19,8 @@
  * is short enough to see, and the name of their root on top opens Today, what I learn today, see
  * `../editor/today.ts`.
  * Under the note shown stands its outline, as Obsidian's outline, see {@link outlineShow}; under a section its blocks
- * in the places of its round, see {@link roundListOf}.
+ * in the places of its round, see {@link roundListOf}; a click on the note shown folds them away, as a folder closes,
+ * and a further click opens them again, see {@link outlineFold}.
  * Each name stands on one line, one too long for it ending in dots; on a phone, whose tree is narrower than
  * a computer's, a name goes on below between its parts instead, like `IN2028_BusinessAnalytics` and `MachineLearning`,
  * see `breakableOf` in `../day/choices.ts`; its look is in `./notes.css`.
@@ -169,9 +170,31 @@ function fileNodeOf(node: FileNode): HTMLElement {
 }
 
 /**
+ * Folds the outline of the note shown, or the blocks of a section, away on a click on its entry, as a folder closes,
+ * and opens it again on a further click, the note staying open and in place beside the tree: `tree-folded` on the
+ * entry hides the outline below it, see `./notes.css`, and stays on it while the outline is built anew,
+ * see {@link outlineShow}. A click on another note, on a note without an outline, or with a key held, acts as usual.
+ * - {@link Event#stopPropagation}: Keeps the click from the tree, which would scroll the note to its top,
+ *   see `treeClick` in `../editor/editor.ts`.
+ * - `entry`: The entry clicked.
+ *
+ * @param event - Click on the entry of a note
+ */
+function outlineFold(event: MouseEvent): void {
+    const entry: HTMLElement = event.currentTarget as HTMLElement;
+    if (!entry.classList.contains("shown") || !entry.nextElementSibling?.classList.contains("tree-outline")
+        || event.ctrlKey || event.metaKey || event.shiftKey)
+        return;
+    event.preventDefault();
+    event.stopPropagation();
+    entry.classList.toggle("tree-folded");
+}
+
+/**
  * Makes a module of the semester, shown once it is picked, see {@link chapterShow}: the name of its folder
  * and its name as data, so it can be picked, see {@link treeShow}, its chapters in it, each shown once it is picked,
- * its notes a plain list, which link to the scripts view, named without `.md` as in Obsidian;
+ * its notes a plain list, which link to the scripts view, named without `.md` as in Obsidian, the note shown
+ * folding its outline by a click on it, see {@link outlineFold};
  * a module without chapter notes holds a calm `No chapters yet`, as the skill view says it.
  * - `element`: The module.
  * - `group`: A chapter.
@@ -196,6 +219,7 @@ function moduleNodeOf(module: NotesModule): HTMLDivElement {
             link.dataset.path = note.path;
             link.href = noteAddressOf(note.path, "");
             link.textContent = breakableOf(note.name.replace(/\.md$/i, ""));
+            link.addEventListener("click", outlineFold);
             return link;
         }));
         return group;
