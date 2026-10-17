@@ -5,7 +5,8 @@
    of a round's check or the guides of a list, light enough to show on my PC monitor and still calm;
    the line at the left of indented parts, like the foods of a meal, 2 px and a little lighter than other
    lines, `--guide`, so it shows;
-   notes in the greys of my Obsidian's dark theme with my accent #969696, and in its reading width, the titles
+   notes in the greys of my Obsidian's dark theme with my accent #969696, a little wider than its reading width,
+   `--reading-width`, so the room left and right of a page stays small, the titles
    of callouts and the fold arrows of headings in Obsidian's grey of callout titles, `--reading-callout`;
    controls and lines sized for my 4K monitor: buttons and fields one control high,
    chips, small buttons and the rows of the menu one chip high, all with the text of controls and the space beside it,
@@ -64,7 +65,7 @@
     --chip-radius: 0.5rem;
     --note-width: 18rem;
     --tree-width: 25rem;
-    --reading-width: 45rem;
+    --reading-width: 50rem;
     color-scheme: dark;
 }
 

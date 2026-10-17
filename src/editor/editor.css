@@ -9,10 +9,8 @@
 }
 
 /* The file: the page of it in the middle, scrolls alone, with at least 1.25rem left and right of the page, so the text
-   never touches the tree or the edge, yet keeps room on the laptop for the buttons at the right of a heading; its width
-   tells whether the type words of headings hang beside the page, see `.block-kind` below */
+   never touches the tree or the edge, yet keeps room on the laptop for the buttons at the right of a heading */
 .editor-file {
-    container: file / inline-size;
     overflow-y: auto;
     padding-inline: 1.25rem;
 }
@@ -125,7 +123,8 @@
 
 /* The type word of a block on the line of its heading, see `.block-kind` in `../notes/notes.css`, about as big as the
    text of the tree, whatever the size of the heading: every box as wide as the widest word, `Algorithm`, its word in
-   the middle, as in the tree, so the names after them start in one line, a clear gap before the name */
+   the middle, as in the tree, so the names after them start in one line, a clear gap before the name; on every screen
+   at the left edge of the page, where the text starts, never hanging beside it */
 .editor-text h2 .block-kind {
     box-sizing: border-box;
     width: 6.75em;
@@ -133,14 +132,6 @@
     font-size: 0.55em;
     text-align: center;
     cursor: default;
-}
-
-/* Where the file has room beside the page, as on the PC, the box hangs in the room left of the page, as the `##` of
-   the line of the cursor does, so the name starts where the text starts */
-@container file (min-width: 62rem) {
-    .editor-text h2 .block-kind {
-        margin-left: -8em;
-    }
 }
 
 /* Buttons of the head, square, one control high, outlined, as the buttons of the dialogs; the button of the tree
