@@ -12,10 +12,12 @@
  *   Backspace on an empty spacer line moves it one level out, at the outermost level makes it a plain empty line,
  *   see {@link spacerOutward}, and on the last character of a further line leaves it a spacer line, see
  *   {@link textBackward}; so a list is left one level at a time, with a new bullet by Enter or without one by
- *   Backspace. On such an empty line `- ` starts the next point of its level, and text typed there belongs to the point
- *   of its level, or after the list to no point, also in Obsidian, see {@link lineTyping}.
+ *   Backspace. On such an empty line `- ` starts the next point of its level, below a numbered point a sub-point,
+ *   `-` and Tab a sub-point, and text typed there belongs to the point of its level, or after the list to no point,
+ *   also in Obsidian, see {@link lineTyping} and {@link waitingIndent}.
  * - Tab moves a list item one step in, Shift+Tab one step out, always with its sub-points and further lines,
- *   see {@link itemIndent}, and a spacer line one level, see {@link spacerIndent}; outside a list Tab writes a tab
+ *   see {@link itemIndent}, and a spacer line one level, see {@link spacerIndent}; every change of a list counts
+ *   its numbered points in order again, a sub-list from `1.`, see {@link listChange}; outside a list Tab writes a tab
  *   where the cursor is, on several lines picked it moves them all one step in, and Shift+Tab one step out.
  * - Alt+Up and Alt+Down move the line of the cursor, or the lines picked, one line up or down; a list item goes
  *   with its sub-points and further lines past the item before or after it, see {@link itemMove}.
@@ -39,12 +41,14 @@ import { EditorView, keymap } from "@codemirror/view";
 import {
     cursorLineDown, deleteLine, indentLess, indentMore, insertTab, moveLineDown, moveLineUp, selectLineDown,
 } from "@codemirror/commands";
-import { foldedRanges, syntaxTree } from "@codemirror/language";
+import { ensureSyntaxTree, foldedRanges, syntaxTree } from "@codemirror/language";
 import { deleteMarkupBackward, insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
 
-import type { ChangeSpec, EditorState, Extension, Line, SelectionRange, StateCommand } from "@codemirror/state";
+import type {
+    ChangeSpec, EditorState, Extension, Line, SelectionRange, StateCommand, Text, TransactionSpec,
+} from "@codemirror/state";
 import type { Command } from "@codemirror/view";
-import type { SyntaxNode } from "@lezer/common";
+import type { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
 
 
 /**
@@ -90,6 +94,71 @@ export function columnsOf(text: string): number {
 }
 
 /**
+ * Counts the points of the numbered lists a change touched in order again, as Obsidian does: a sub-list from `1.`,
+ * a list at the left edge on from the number its first place had before, each point one more than the one before it,
+ * its `.` or `)` kept. So a point moved in by Tab under `1.` becomes `1.` of its sub-list and the `3.` after it `2.`
+ * again, `2.` moved above `1.` becomes `1.`; lists the change did not touch keep their numbers.
+ * - `doc`: Text after the change.
+ * - `from`, `to`: Where the change wrote, `to` on to the end of the line below, whose list it may have made a sub-list.
+ * - `changes`: The numbers to write, each over a number that differs.
+ * - `before`: Number on the first place of a list before the change, `null` for none.
+ * - `number`: Number the next point of the list should have, `null` until its first point is read.
+ * - `mark`: The number of a point with its `.` or `)`, `ListMark`.
+ * - `written`: That number as written, like `3.`.
+ * - `wanted`: The number it should have, like `2.`.
+ *
+ * @param change - The change, like a point moved in by Tab
+ * @returns Changes of the numbers, none when every list touched counts in order
+ */
+function numbersFixed(change: Transaction): ChangeSpec[] {
+    const doc: Text = change.newDoc;
+    let from: number = doc.length;
+    let to: number = 0;
+    change.changes.iterChangedRanges((fromA: number, toA: number, fromB: number, toB: number): void => {
+        from = Math.min(from, fromB);
+        to = Math.max(to, toB);
+    });
+    to = doc.line(Math.min(doc.lineAt(to).number + 1, doc.lines)).to;
+    const changes: ChangeSpec[] = [];
+    ensureSyntaxTree(change.state, doc.length, 200)?.iterate({
+        from: Math.min(from, to),
+        to: to,
+        enter: (node: SyntaxNodeRef): void => {
+            if (node.name !== "OrderedList")
+                return;
+            const before: RegExpExecArray | null = /^[ \t]*(\d+)[.)]/
+                .exec(change.startState.doc.lineAt(change.changes.invertedDesc.mapPos(node.from, -1)).text);
+            let number: number | null = node.node.parent?.name === "ListItem" ? 1
+                : before !== null ? Number(before[1]) : null;
+            for (const item of node.node.getChildren("ListItem")) {
+                const mark: SyntaxNode | null = item.getChild("ListMark");
+                if (mark === null)
+                    continue;
+                const written: string = doc.sliceString(mark.from, mark.to);
+                if (number === null)
+                    number = Number.parseInt(written);
+                const wanted: string = `${number}${written.slice(-1)}`;
+                if (written !== wanted)
+                    changes.push({ from: mark.from, to: mark.to, insert: wanted });
+                number++;
+            }
+        },
+    });
+    return changes;
+}
+
+/**
+ * Sends a change of a list to the editor with its numbered points counted in order again, see {@link numbersFixed},
+ * both in one step of Undo, the cursor where the change put it.
+ *
+ * @param view - The editor
+ * @param spec - The change, like a point moved in by Tab
+ */
+function listChange(view: EditorView, spec: TransactionSpec): void {
+    view.dispatch(spec, { changes: numbersFixed(view.state.update(spec)), sequential: true });
+}
+
+/**
  * Goes on in the same point of a list on the next line, with Shift+Enter, where I want a new line but no new bullet,
  * as Enter starts the next point: a spacer line, see {@link spacer}, with the indentation of the point's text,
  * see {@link textIndentationOf}, the cursor after the spacer; below a further line or a spacer line with the same
@@ -114,8 +183,17 @@ export const pointContinue: Command = (view: EditorView): boolean => {
  * on the point above writes, see {@link pointContinue}, instead of taking it out of the list: the indentation of its
  * text and the spacer. Only for an item below another point, the one before it in its list or the one it stands in;
  * anywhere else it leaves the key to the next, CodeMirror's Markdown, which takes the `-` away.
+ * The first point of a sub-list, with no point before it in its list, leaves no sub-list behind: the spacer line goes
+ * into the text of the point it stands in, and its own empty spacer lines go with it, so Enter, Tab and Backspace
+ * below `1.` give back the text as it was, no deeper spacer line Markdown would read as code. An empty point Markdown
+ * reads as text of the point above, like `\t- ` right below `1. one`, counts as such a first point.
+ * The numbers of its list count in order again, see {@link listChange}.
  * - `line`: The line of the cursor.
  * - `item`: The list item it stands in, `null` outside a list.
+ * - `own`: Whether Markdown reads the line as a point of its own, else as text of `item`.
+ * - `parent`: The point it stands in.
+ * - `first`: Whether it is the first point of a sub-list.
+ * - `last`: Its last line, the line of the cursor or its last empty spacer line below it.
  * - `insert`: The spacer line.
  *
  * @param view - The editor
@@ -127,12 +205,19 @@ const spacerBackward: Command = (view: EditorView): boolean => {
         || !/^\t*(?:[-*+]|\d+[.)]) $/.test(line.text))
         return false;
     const item: SyntaxNode | null = itemOf(view.state, line);
-    if (item?.prevSibling?.name !== "ListItem" && item?.parent?.parent?.name !== "ListItem")
+    const own: boolean = item !== null && view.state.doc.lineAt(item.from).number === line.number;
+    const parent: SyntaxNode | null = own ? item?.parent?.parent ?? null : item;
+    if (item === null || own && item.prevSibling?.name !== "ListItem" && parent?.name !== "ListItem")
         return false;
 
-    const insert: string = textIndentationOf(line.text) + spacer;
-    view.dispatch({
-        changes: { from: line.from, to: line.to, insert: insert },
+    const first: boolean = !own || item.prevSibling?.name !== "ListItem";
+    let last: Line = line;
+    while (own && first && last.number < view.state.doc.lineAt(item.to).number
+           && emptySpacerRule.test(view.state.doc.line(last.number + 1).text))
+        last = view.state.doc.line(last.number + 1);
+    const insert: string = textIndentationOf(first ? view.state.doc.lineAt(parent?.from ?? 0).text : line.text) + spacer;
+    listChange(view, {
+        changes: { from: line.from, to: last.to, insert: insert },
         selection: { anchor: line.from + insert.length },
         scrollIntoView: true,
         userEvent: "delete",
@@ -204,10 +289,13 @@ function spacerItemOf(state: EditorState, line: Line): SyntaxNode | null {
  * text of the point it stands in, whose guide line then runs on through it, from the outermost point out of the list
  * as a plain empty line; so Backspace leaves a list one level at a time, as Enter does on an empty item, never at once
  * to the left edge, and from each level a `- ` typed or Enter goes on with the list of that level, see
- * {@link lineTyping}. With the cursor at the start of the line, and on any other line, it leaves the key to the next.
+ * {@link lineTyping}. A spacer line a sub-level deeper than the text of its point, with no sub-point there, which
+ * Markdown reads as code, moves to the text of its point first. With the cursor at the start of the line, and on any
+ * other line, it leaves the key to the next.
  * - `range`: The cursor.
  * - `line`: Its line.
  * - `levels`: The levels the spacer may stand at.
+ * - `level`: Its level.
  * - `target`: Level it moves to, `-1` out of the list.
  * - `insert`: What the line becomes.
  *
@@ -220,7 +308,8 @@ const spacerOutward: Command = (view: EditorView): boolean => {
     if (!range.empty || range.head === line.from || !emptySpacerRule.test(line.text))
         return false;
     const levels: string[] = spacerLevelsOf(view.state, line);
-    const target: number = spacerLevelOf(levels, line.text) - 1;
+    const level: number = spacerLevelOf(levels, line.text);
+    const target: number = level >= 0 && columnsOf(line.text) >= columnsOf(levels[level]) + 4 ? level : level - 1;
     if (target < -1)
         return false;
 
@@ -321,8 +410,8 @@ function spacerIndent(inward: boolean): Command {
  * and its `-`, or its number counted on, like `2.` after `1.`, and what stood right of the cursor; an empty further
  * line becomes the new point itself, so no empty line stays behind. On a spacer line the point is that of its level,
  * see {@link spacerItemOf}, so Enter goes on with the list of the level Backspace moved it to, see
- * {@link spacerOutward}. Anywhere else it leaves the key to the next, CodeMirror's Markdown, which continues a list
- * from the line of a `-`.
+ * {@link spacerOutward}; the points after it count on, see {@link listChange}. Anywhere else it leaves the key to the
+ * next, CodeMirror's Markdown, which continues a list from the line of a `-`.
  * - `range`: The cursor.
  * - `line`: Its line.
  * - `item`: The list item it stands in, `null` outside a list.
@@ -350,7 +439,7 @@ const furtherContinue: Command = (view: EditorView): boolean => {
     if (point === null)
         return false;
     const insert: string = `${point[1]}${point[2] ?? `${Number(point[3]) + 1}${point[4]}`} `;
-    view.dispatch({
+    listChange(view, {
         changes: blank ? { from: line.from, to: line.to, insert: insert }
             : { from: range.head, insert: view.state.lineBreak + insert },
         selection: { anchor: blank ? line.from + insert.length : range.head + view.state.lineBreak.length + insert.length },
@@ -359,6 +448,24 @@ const furtherContinue: Command = (view: EditorView): boolean => {
     });
     return true;
 };
+
+/**
+ * Continues a list on Enter by CodeMirror's Markdown, on an empty point one level out, with the numbers counted
+ * in order again, see {@link listChange}, so the `3.` of a sub-list below an emptied `2.` becomes `1.`.
+ *
+ * @param view - The editor
+ * @returns Whether it took the key
+ */
+const markupContinue: Command = (view: EditorView): boolean =>
+    insertNewlineContinueMarkupCommand({ nonTightLists: false })({
+        state: view.state,
+        dispatch: (transaction: Transaction): void => listChange(view, {
+            changes: transaction.changes,
+            selection: transaction.selection,
+            scrollIntoView: true,
+            userEvent: transaction.annotation(Transaction.userEvent),
+        }),
+    });
 
 /**
  * Finds the list item a line stands in: the innermost item around the start of its text, so a further line of a point
@@ -391,7 +498,8 @@ function itemAt(state: EditorState): SyntaxNode | null {
 
 /**
  * Runs one of CodeMirror's commands on the lines of a list item, from the line of its `-` to its last sub-point or
- * further line, as if they were picked, and keeps my cursor where it was in the text.
+ * further line, as if they were picked, and keeps my cursor where it was in the text; the numbers of the lists it
+ * touched count in order again, see {@link listChange}.
  *
  * @param view - The editor
  * @param item - The list item
@@ -401,7 +509,7 @@ function itemLinesRun(view: EditorView, item: SyntaxNode, command: StateCommand)
     const lines: SelectionRange = EditorSelection.range(view.state.doc.lineAt(item.from).from, view.state.doc.lineAt(item.to).to);
     command({
         state: view.state.update({ selection: lines }).state,
-        dispatch: (transaction: Transaction): void => view.dispatch({
+        dispatch: (transaction: Transaction): void => listChange(view, {
             changes: transaction.changes,
             selection: view.state.selection.map(transaction.changes, 1),
             userEvent: transaction.annotation(Transaction.userEvent),
@@ -436,7 +544,8 @@ function itemIndent(inward: boolean): Command {
 
 /**
  * Swaps two blocks of whole lines that stand right below each other, like a list item and the one before it,
- * and moves the cursor or what is picked along with the block it stands in.
+ * and moves the cursor or what is picked along with the block it stands in; numbered points count in order again,
+ * so `2.` moved above `1.` becomes `1.`, see {@link listChange}.
  * - `upper`, `lower`: The text of the two blocks.
  * - `shift`: How far the cursor moves with its block.
  *
@@ -450,7 +559,7 @@ function blocksSwap(view: EditorView, from: number, middle: number, to: number, 
     const upper: string = view.state.sliceDoc(from, middle - view.state.lineBreak.length);
     const lower: string = view.state.sliceDoc(middle, to);
     const shift: number = inLower ? -(upper.length + view.state.lineBreak.length) : lower.length + view.state.lineBreak.length;
-    view.dispatch({
+    listChange(view, {
         changes: { from: from, to: to, insert: lower + view.state.lineBreak + upper },
         selection: EditorSelection.create(view.state.selection.ranges.map((range: SelectionRange): SelectionRange =>
             EditorSelection.range(range.anchor + shift, range.head + shift)), view.state.selection.mainIndex),
@@ -579,6 +688,62 @@ function lineDown(command: Command): Command {
 }
 
 /**
+ * Spacer line with a `-`, `*` or `+` waiting after the spacer, typed on an empty spacer line, see {@link lineTyping}:
+ * its indentation and the mark.
+ */
+const waitingRule: RegExp = /^([ \t]*)⠀([-*+])$/;
+
+/**
+ * Gives the start of a new point that a `-`, `*` or `+` waiting on a spacer line of a point begins, see
+ * {@link lineTyping}: by a space the next point of that point's level, with the indentation of its `-`, below
+ * a numbered point a sub-point of it, since a `- ` beside `1.` would end the numbered list; by Tab always a sub-point,
+ * see {@link waitingIndent}. Sub-points take one tab more, as my notes indent them.
+ * - `indentation`: Indentation of the point's `-` or number.
+ * - `sub`: Whether the new point is a sub-point.
+ *
+ * @param state - Text
+ * @param item - The point of the spacer line's level, see {@link spacerItemOf}
+ * @param mark - The mark typed, like `-`
+ * @param inward - Whether Tab was pressed, which always makes a sub-point
+ * @returns The start of the line, like `\t- `
+ */
+function pointStartOf(state: EditorState, item: SyntaxNode, mark: string, inward: boolean): string {
+    const indentation: string = /^[ \t]*/.exec(state.doc.lineAt(item.from).text)?.[0] ?? "";
+    const sub: boolean = inward || item.parent?.name === "OrderedList";
+    return indentation + (sub ? "\t" : "") + mark + " ";
+}
+
+/**
+ * Makes the `-`, `*` or `+` waiting on a spacer line a sub-point with Tab, see {@link pointStartOf}: below
+ * `1. Compute sample mean` a `-` and Tab give `\t- ` under it, the cursor after it, ready to type, as Tab moves a new
+ * point in; on any other line it leaves the key to the next.
+ * - `line`: The line of the cursor.
+ * - `waiting`: Indentation and mark of the line, `null` for a line without a waiting mark.
+ * - `item`: The point of the spacer line's level, `null` outside a list.
+ * - `insert`: What the line becomes.
+ *
+ * @param view - The editor
+ * @returns Whether it took the key
+ */
+const waitingIndent: Command = (view: EditorView): boolean => {
+    const line: Line = view.state.doc.lineAt(view.state.selection.main.head);
+    const waiting: RegExpExecArray | null = waitingRule.exec(line.text);
+    const item: SyntaxNode | null = waiting !== null && view.state.selection.main.empty
+        ? spacerItemOf(view.state, line) : null;
+    if (waiting === null || item === null)
+        return false;
+
+    const insert: string = pointStartOf(view.state, item, waiting[2], true);
+    view.dispatch({
+        changes: { from: line.from, to: line.to, insert: insert },
+        selection: { anchor: line.from + insert.length },
+        scrollIntoView: true,
+        userEvent: "input.indent",
+    });
+    return true;
+};
+
+/**
  * Writes the first text typed on an empty line of a list where its level says, as Google Docs keeps a line in its place:
  * - On an empty spacer line, see {@link spacer}, the text takes the place of the spacer: the line stays in the point
  *   of its level as a further line, its text under the point's text, since the spacer is needed only while the line
@@ -586,7 +751,9 @@ function lineDown(command: Command): Command {
  * - A `-`, `*` or `+` typed first waits after the spacer, the line still a spacer line of its level: a space after it
  *   starts the next point of that level, see {@link spacerItemOf}, as Enter does, with the indentation of that point's
  *   `-`, so the `- ` stands where Backspace took it away, see {@link spacerOutward}, and Obsidian reads it as the next
- *   point of that level, not as a sub-point; any other text after it takes the place of the spacer too.
+ *   point of that level, not as a sub-point; below a numbered point, like `1. Compute sample mean`, a sub-point of it,
+ *   `\t- `, since a `- ` beside `1.` would end its numbered list; Tab after it makes a sub-point too, see
+ *   {@link waitingIndent}; any other text after it takes the place of the spacer too.
  * - On an empty line right below a list, where Enter or Backspace ended it, the same, as on a spacer line outside it.
  * - Where Markdown would read the text into a deeper point than its level, see {@link lazyIs}, like text with the
  *   indentation of the text of `x̄` right below its sub-point `:=`, or text at the left edge right below a list,
@@ -594,7 +761,8 @@ function lineDown(command: Command): Command {
  *   in Obsidian too; the editor draws that blank line as every empty line, one line high, see `spaceLook`
  *   in `./preview.ts`.
  * - `line`: The line typed on.
- * - `waiting`: Indentation and `-`, `*` or `+` of a line where one waits after the spacer, `null` for none.
+ * - `waiting`: Indentation and `-`, `*` or `+` of a line where one waits after the spacer, `null` for none,
+ *   see {@link waitingRule}.
  * - `empty`: Indentation of the line while it is an empty spacer line or an empty line below a list, `null` else.
  * - `item`: The point of the spacer's level, `null` for none.
  * - `insert`: What the line becomes.
@@ -609,14 +777,14 @@ const lineTyping: Extension = EditorView.inputHandler.of((view: EditorView, from
     if (from !== to || from !== line.to || /[\r\n]/.test(text))
         return false;
 
-    const waiting: RegExpExecArray | null = /^([ \t]*)⠀([-*+])$/.exec(line.text);
+    const waiting: RegExpExecArray | null = waitingRule.exec(line.text);
     const empty: string | null = emptySpacerRule.test(line.text) ? line.text.slice(0, -spacer.length)
         : line.length === 0 && lazyIs(view.state, line, "") ? "" : null;
     let insert: string;
     let textual: boolean = true;
     if (waiting !== null && text === " ") {
         const item: SyntaxNode | null = spacerItemOf(view.state, line);
-        insert = (item !== null ? /^[ \t]*/.exec(view.state.doc.lineAt(item.from).text)?.[0] ?? "" : waiting[1]) + waiting[2] + " ";
+        insert = item === null ? waiting[1] + waiting[2] + " " : pointStartOf(view.state, item, waiting[2], false);
         textual = false;
     } else if (waiting !== null) {
         insert = waiting[1] + waiting[2] + text;
@@ -636,17 +804,19 @@ const lineTyping: Extension = EditorView.inputHandler.of((view: EditorView, from
 
 /**
  * Keys of a Markdown file, see the top of this file; Enter, Tab and Shift+Tab, Alt+Up and Alt+Down try the list item
- * first, Backspace, Tab and Shift+Tab a spacer line before it, then the key goes on to the next command,
+ * first, Backspace, Tab and Shift+Tab a spacer line before it, Tab a waiting `-` before that, then the key goes on
+ * to the next command,
  * CodeMirror's own; and the first text typed on an empty line of a list where its level says, see {@link lineTyping}.
  */
 export const markdownKeys: Extension = [lineTyping, Prec.high(keymap.of([
     { key: "Enter", run: furtherContinue },
-    { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
+    { key: "Enter", run: markupContinue },
     { key: "Shift-Enter", run: pointContinue },
     { key: "Backspace", run: spacerBackward },
     { key: "Backspace", run: spacerOutward },
     { key: "Backspace", run: textBackward },
     { key: "Backspace", run: deleteMarkupBackward },
+    { key: "Tab", run: waitingIndent },
     { key: "Tab", run: spacerIndent(true), shift: spacerIndent(false) },
     { key: "Tab", run: itemIndent(true), shift: itemIndent(false) },
     { key: "Tab", run: insertTab, shift: indentLess },
