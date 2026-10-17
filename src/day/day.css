@@ -226,6 +226,12 @@
     border-color: transparent;
 }
 
+/* A row whose list has no value yet, like With or Tasks, no frame under the pointer either, so no empty box lights up;
+   its frame comes once its list is open or I type in it */
+.panel-field:hover:not(:focus-within, .list-field):has(> .picker > .picker-head > .picker-line.picker-empty:first-child) {
+    border-color: transparent;
+}
+
 /* Two pickers side by side in one row, like the skill and the type of a skill entry in its summary, read as the file
    writes it, `MGT1372_EntrepreneurialBusiness (VO)`: each only as wide as its value, the type one space after the
    name and in its brackets, a small grey plus while it has none; where the row has no room for both, as on a phone,
@@ -283,14 +289,20 @@
     padding: 0 var(--row-padding);
 }
 
-/* Cancel and Save at the bottom right, with room above them; where the row has no room for all buttons, as on a phone,
-   the first ones go onto a line above, each button on one line */
+/* Cancel and Save at the bottom right, with room above them, always in sight at the bottom of a dialog whose rows
+   scroll, like a long entry by category: on the background of the dialog, so a row scrolled under them hides behind
+   them, their room above and the dialog's room below them their own; where the row has no room for all buttons,
+   as on a phone, the first ones go onto a line above, each button on one line */
 .panel-buttons {
+    position: sticky;
+    bottom: calc(-1 * var(--gap));
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: var(--control-gap);
-    margin-top: 0.75rem;
+    margin-bottom: calc(-1 * var(--gap));
+    padding-block: 0.75rem var(--gap);
+    background: var(--background);
 }
 
 /* Buttons of a panel, one control high, their word in the middle, like `Edit plan` */
@@ -345,11 +357,13 @@
     width: min(34rem, calc(100vw - 2 * var(--gap)));
 }
 
-/* Entry by category: one column of rows, at most as high as the screen with a gap around, then scrolling
-   as a whole; the lists of its fields open as menus over it, see `.picker-box`, so its rows never move */
+/* Entry by category: one column of rows, `--panel-top` below the top of the screen and at most as high as the rest
+   of it but a gap, then its rows scrolling, its buttons always in sight, see `.panel-buttons`; the lists of its fields
+   open as menus over it, see `.picker-box`, so its rows never move */
 .entry-panel {
-    max-height: calc(100dvh - 2 * var(--gap));
-    margin-top: max(var(--gap), 6dvh);
+    --panel-top: max(var(--gap), 6dvh);
+    max-height: calc(100dvh - var(--panel-top) - var(--gap));
+    margin-top: var(--panel-top);
     overflow-y: auto;
 }
 
@@ -693,6 +707,7 @@ fieldset.entry-times {
        see `.panel-buttons` */
     .panel {
         --value-start: calc(var(--row-padding) + 1px);
+        --panel-top: var(--gap);
         width: 100%;
         max-width: none;
         margin: auto 0 0;

@@ -71,22 +71,21 @@ export function sessionTextOf(session: Session): string {
 /**
  * Puts the dialog of a new entry of the day into the page and starts it, see `categoriesStart` in
  * `../day/categories.ts`, with a calendar of a day as the day view has, but never drawn and without entries, since
- * the learning view shows no log.
- * - `looks`: The look of the dialog, loading meanwhile.
+ * the learning view shows no log; its look loaded in the order the day loads it, so `choices.css` wins over `day.css`
+ * as there, like a row that keeps only a list taking no room.
  * - `html`, `categories`, `full`, `timeGrid`: The HTML of the day, with the dialog `#entry`, the code of the dialog,
  *   that of the calendar and of its view of a day.
  *
  * @returns The code of the dialog
  */
 async function dialogStart(): Promise<typeof Categories> {
-    const looks: Promise<unknown[]> = Promise.all([
-        import("../day/day.css"), import("../day/choices.css"), import("../day/meal.css"),
-    ]);
+    await import("../day/day.css");
+    await import("../day/choices.css");
+    await import("../day/meal.css");
     const html: string = (await import("../day/day.html?raw")).default;
     const categories: typeof Categories = await import("../day/categories.ts");
     const full: typeof FullCalendar = await import("fullcalendar");
     const timeGrid: typeof TimeGrid = await import("fullcalendar/timegrid");
-    await looks;
     document.body.append(new DOMParser().parseFromString(html, "text/html").getElementById("entry") as HTMLElement);
     categories.categoriesStart(new full.Calendar(document.createElement("div"),
         { plugins: [timeGrid.default], initialView: "timeGridDay" }));
