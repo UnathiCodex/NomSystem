@@ -10,8 +10,8 @@
  * in the drafts or in my modules, with its source on the line below, its mode word first,
  * like `> Original: [[…/Endterm_Assignments.pdf#page=4|exam 2024/25 endterm 1a]]` or `> Generated: …`.
  * A cold task of its section, the one I solve alone with a part per idea, ends its heading with `(cold)`,
- * like `## Task. Kiosk Chain Review (cold)`, which is no part of its name; its parts are its lines starting
- * with a letter and `)`, like `a) Sales $X_1,X_2,X_3$ of three days`, before its solution.
+ * like `## Task. Kiosk Chain Review (cold)`, which is no part of its name; its parts are its numbered list items
+ * at the start of a line, like `1. Sales $X_1,X_2,X_3$ of three days`, before its solution.
  *
  * A skill entry of the log is one block of learning of a type, as in the plan: a lecture or a tutorial I attended,
  * a homework sheet I worked on, or study, solving the tasks of my notes, of any module of `NomSkillingmodules`,
@@ -32,7 +32,7 @@
  * - one `X-ATTEMPT` per attempt at a task of my notes, of any type, like the tasks I solved in a tutorial:
  *   the time of the tap in Berlin time when a button wrote it, in the form of the iCalendar format, like `140500`
  *   for 14:05, its task with the part of a cold task after `#`, its result, my effort, and where I got stuck or why
- *   I skipped, see {@link AttemptLine}, like `X-ATTEMPT:140500;IN2028/Kiosk Chain Review#b;stuck;high;step 2`,
+ *   I skipped, see {@link AttemptLine}, like `X-ATTEMPT:140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2`,
  *   an older one with its time like `14:05`; an attempt from the dialog has no time,
  *   like `X-ATTEMPT:IN2028/Kiosk Sales Standard Error;right`;
  * - one `X-TUTOR` per task I copied for my tutor in it, like `X-TUTOR:IN2028/Kiosk Sales Standard Error`,
@@ -123,7 +123,7 @@ export type Effort = "low" | "medium" | "high";
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
  * - `section`: Name of its section, its note, like `01_01_SampleMeanStandardError`.
  * - `cold`: Whether it is a cold task of its section, its heading ending with `(cold)`.
- * - `parts`: Letters of the parts of a cold task, like `a`, `b` and `c`, none for one without parts and any other task.
+ * - `parts`: Numbers of the parts of a cold task, like `1`, `2` and `3`, none for one without parts and any other task.
  */
 export type Task = {
     id: string;
@@ -142,7 +142,7 @@ export type Task = {
  *
  * - `day`: Day its skill entry started in Berlin time, like `2026-10-10`.
  * - `time`: Time of the tap in Berlin time, like `14:05`, empty for an attempt from the dialog.
- * - `part`: Part of a cold task it is about, like `b`, empty for the whole task.
+ * - `part`: Part of a cold task it is about, like `2`, empty for the whole task.
  * - `result`: Its {@link Result}.
  * - `effort`: My {@link Effort} on it, empty before I rated it and for a skip.
  * - `stuck`: Where I got stuck, like `step 3`, empty when not given.
@@ -299,7 +299,7 @@ export type Skilling = {
  * A new attempt, as a button of a task sends it, and as each attempt of a skill entry of the dialog comes.
  *
  * - `task`: Identity of the task, see {@link Task}.
- * - `part`: Part of a cold task, like `b`, empty for the whole task.
+ * - `part`: Part of a cold task, like `2`, empty for the whole task.
  * - `result`: Its {@link Result}; a button sends `right`, which the reader writes as `guided` after a copy for my tutor.
  * - `effort`: My {@link Effort} on it, empty when not rated yet, always for a skip.
  * - `stuck`: Where I got stuck, only with `stuck`, empty when not given.
@@ -417,7 +417,7 @@ type LoggedAttempt = {
  *
  * - `time`: Time of the tap, like `14:05`, written like `140500`, empty for none.
  * - `task`: Identity of the task, like `IN2028/Kiosk Chain Review`.
- * - `part`: Part of a cold task, like `b`, empty for the whole task.
+ * - `part`: Part of a cold task, like `2`, empty for the whole task.
  * - `result`: The result as written, like `stuck`.
  * - `effort`: My effort as written, empty for none.
  * - `detail`: Where I got stuck or why I skipped, empty for none.
@@ -494,9 +494,9 @@ const examDefault: ExamDate = { day: "2027-02-15", estimated: true };
 const plannedDays: number = 366;
 
 /**
- * Part of a cold task, a line starting with its letter and `)`, like `b) Campus kiosk, seven days in July`.
+ * Part of a cold task, a numbered list item at the start of a line, like `2. Campus kiosk, seven days in July`.
  */
-const partLine: RegExp = /^([a-z])\)\s/;
+const partLine: RegExp = /^(\d+)\.\s/;
 
 /**
  * Time of the tap at the start of an `X-ATTEMPT` in the form of the iCalendar format, hours, minutes and seconds,
@@ -539,13 +539,13 @@ function sectionTitleOf(note: string): string {
 }
 
 /**
- * Reads the parts of a cold task: the letters of its lines that start with a letter and `)`, see {@link partLine},
- * from below its heading to the next heading, which is its solution or the next block, each letter once.
+ * Reads the parts of a cold task: the numbers of its lines that start with a number and `.`, see {@link partLine},
+ * from below its heading to the next heading, which is its solution or the next block, each number once.
  * - `body`: Lines below the heading, up to the next heading.
  *
  * @param lines - Lines of the note
  * @param index - Line of the heading of the task
- * @returns Letters in their order, like `a`, `b` and `c`; none for a task without parts
+ * @returns Numbers in their order, like `1`, `2` and `3`; none for a task without parts
  */
 function partsOf(lines: string[], index: number): string[] {
     const end: number = lines.findIndex((line: string, at: number): boolean => at > index && line.startsWith("#"));
@@ -634,7 +634,7 @@ function skillEntriesRead(start: string, end: string): Entry[] {
  * - `time`: The time, like `14:05`, empty for none.
  * - `task`, `part`: The task and its part, the part `undefined` for none.
  *
- * @param value - `X-ATTEMPT`, like `140500;IN2028/Kiosk Chain Review#b;stuck;high;step 2`,
+ * @param value - `X-ATTEMPT`, like `140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2`,
  *   or `14:05;…` of an older one
  * @returns Its parts
  */
@@ -659,7 +659,7 @@ function attemptLineOf(value: string): AttemptLine {
  * - `end`: Number of them written, at least task and result.
  *
  * @param line - Parts of the attempt
- * @returns Value like `140500;IN2028/Kiosk Chain Review#b;stuck;;step 2` or `IN2028/Airline Revenue Interval;right`
+ * @returns Value like `140500;IN2028/Kiosk Chain Review#2;stuck;;step 2` or `IN2028/Airline Revenue Interval;right`
  */
 function lineValueOf(line: AttemptLine): string {
     const fields: string[] = [line.part === "" ? line.task : `${line.task}#${line.part}`, line.result, line.effort, line.detail];
@@ -1017,7 +1017,7 @@ export function moduleRead(code: string): ModuleContents {
  * @param attempt - New attempt
  * @param tasks - Tasks of the modules of the semester
  * @param time - Time of the tap in Berlin time, like `14:05`, empty for an attempt from the dialog
- * @returns Value like `140500;IN2028/Kiosk Chain Review#b;stuck;high;step 2`
+ * @returns Value like `140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2`
  * @throws {Error} - When no note holds the task, the part is none of the task's, the result or effort is unknown,
  *   a skip comes with an effort, or a reason to skip or where I got stuck comes with another result
  */

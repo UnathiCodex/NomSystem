@@ -10,7 +10,7 @@
  * Skip offers the reasons to pick, with a field for my own words, which Enter writes without a reason.
  * Right and Wrong show only once the solution of the task is open, so I judge against it, not by feeling,
  * since self-grading runs generous (León 2023); Stuck and Skip show always.
- * A cold task with parts, a), b), c), has one line of Right, Wrong and Stuck per part, since each part gets its own
+ * A cold task with parts, 1., 2., 3., has one line of Right, Wrong and Stuck per part, since each part gets its own
  * result, a check after a part that sits in the run; Skip stays for the whole task.
  * Right after an attempt that is no skip, the row offers one tap for my effort on it, low, medium or high,
  * as long as the attempt is of today and has none.
@@ -108,7 +108,7 @@ export function coldLabelOf(task: SkillTask): HTMLElement {
  * - `part`: The part before it, empty for the whole task.
  *
  * @param attempt - Attempt
- * @returns Text like `right · low effort`, `b) stuck at step 3`, `right with tutor` or `skipped: too easy`
+ * @returns Text like `right · low effort`, `2. stuck at step 3`, `right with tutor` or `skipped: too easy`
  */
 export function resultTextOf(attempt: Attempt): string {
     let result: string = attempt.result;
@@ -118,7 +118,7 @@ export function resultTextOf(attempt: Attempt): string {
         result = `skipped: ${attempt.skip}`;
     else if (attempt.result === "guided")
         result = "right with tutor";
-    const part: string = attempt.part === "" ? "" : `${attempt.part}) `;
+    const part: string = attempt.part === "" ? "" : `${attempt.part}. `;
     return attempt.effort === "" ? `${part}${result}` : `${part}${result} · ${attempt.effort} effort`;
 }
 
@@ -333,7 +333,7 @@ function resultButtonsOf(row: HTMLElement, task: SkillTask, part: string, writte
 }
 
 /**
- * Builds the lines of the parts of a cold task, one per part: its letter, a check once it sits in the run,
+ * Builds the lines of the parts of a cold task, one per part: its number, a check once it sits in the run,
  * and Right, Wrong and Stuck for it.
  *
  * @param row - Row of the task
@@ -344,7 +344,7 @@ function resultButtonsOf(row: HTMLElement, task: SkillTask, part: string, writte
 function partLinesOf(row: HTMLElement, task: SkillTask, written: () => Promise<void>): HTMLElement[] {
     return task.parts.map((part: string): HTMLElement => {
         const line: HTMLElement = elementOf("div", "task-part", "");
-        const name: HTMLElement = elementOf("span", "task-part-name", `${part})`);
+        const name: HTMLElement = elementOf("span", "task-part-name", `${part}.`);
         if (!task.open.includes(part))
             name.append(checkOf());
         name.title = task.open.includes(part) ? "Still to sit in this run" : "Sits in this run";

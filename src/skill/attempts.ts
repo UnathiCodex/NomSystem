@@ -28,7 +28,7 @@ export type Effort = "low" | "medium" | "high";
  *
  * - `day`: Day its skill entry started, like `2026-10-10`.
  * - `time`: Time of the tap, like `14:05`, empty for an attempt from the dialog.
- * - `part`: Part of a cold task it is about, like `b`, empty for the whole task.
+ * - `part`: Part of a cold task it is about, like `2`, empty for the whole task.
  * - `result`: Its {@link Result}.
  * - `effort`: My {@link Effort} on it, empty before I rated it and for a skip.
  * - `stuck`: Where I got stuck, like `step 3`, empty when not given.
@@ -55,7 +55,7 @@ export type Attempt = {
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
  * - `section`: Name of its section, its note, like `01_01_SampleMeanStandardError`.
  * - `cold`: Whether it is a cold task of its section, its heading ending with `(cold)`.
- * - `parts`: Letters of the parts of a cold task, like `a`, `b` and `c`, none for any other task.
+ * - `parts`: Numbers of the parts of a cold task, like `1`, `2` and `3`, none for any other task.
  */
 export type Task = {
     id: string;
@@ -262,7 +262,7 @@ export type ModuleContents = {
  * A new attempt to send, from a button of a task or as one of a skill entry.
  *
  * - `task`: Identity of the task.
- * - `part`: Part of a cold task, like `b`, empty for the whole task.
+ * - `part`: Part of a cold task, like `2`, empty for the whole task.
  * - `result`: Its {@link Result}.
  * - `effort`: My {@link Effort} on it, empty when not rated, always for a skip.
  * - `stuck`: Where I got stuck, only with `stuck`, empty when not given.

@@ -199,7 +199,7 @@ function effortLineOf(last: Attempt | undefined): string {
  * - `blocks`: Blocks of the note.
  * - `block`: Block of the task, `undefined` when the note no longer holds it.
  * - `theory`: Blocks of the note that are no task.
- * - `attempts`: My earlier attempts, one line each, like `- 17.10.2026, 14:05: b) stuck at step 3 · high effort`.
+ * - `attempts`: My earlier attempts, one line each, like `- 17.10.2026, 14:05: 2. stuck at step 3 · high effort`.
  * - `last`: My last attempt that is no skip.
  * - `failed`: Whether it was wrong, stuck or guided, so the tutor gets the solution and my steps.
  *

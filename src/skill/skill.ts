@@ -154,7 +154,7 @@ function taskLineOf(task: SkillTask, state: string, card: boolean): HTMLElement 
     if (task.cold) {
         let cold: string = " cold";
         if (task.open.length > 0 && task.open.length < task.parts.length)
-            cold += ` · ${task.open.map((part: string): string => `${part})`).join(" ")}`;
+            cold += ` · ${task.open.map((part: string): string => `${part}.`).join(" ")}`;
         name.append(elementOf("span", "skill-cold", cold));
     }
     line.append(name);

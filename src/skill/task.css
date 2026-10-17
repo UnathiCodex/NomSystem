@@ -141,7 +141,7 @@ details.task-history a {
     display: none;
 }
 
-/* Line of a part of a cold task, across the row: its letter, a check once it sits, then its buttons */
+/* Line of a part of a cold task, across the row: its number, a check once it sits, then its buttons */
 .task-part {
     display: flex;
     flex-basis: 100%;
