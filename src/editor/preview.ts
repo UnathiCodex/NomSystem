@@ -1553,7 +1553,7 @@ function addressFollow(view: EditorView, address: string, links: Links): void {
     const heading: string = hash === -1 ? "" : address.slice(hash + 1).trim();
     const path: string | null = links[target] ?? null;
     if (target === "") {
-        if (!roundHeadingShow(view, heading))
+        if (!roundHeadingShow(view, heading, true))
             headingShow(view, heading);
     } else if (path !== null && /\.md$/i.test(path))
         location.assign(noteAddressOf(path, heading));

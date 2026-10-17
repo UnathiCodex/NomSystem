@@ -28,7 +28,10 @@
  * as do those an older line `seen` names.
  * A task counts as done by the log: in the ladder by any attempt, a Task once nothing of it is due today.
  * A click on a block in the tree, or on a link to its heading in the note, shows it alone, back or ahead, see
- * {@link roundHeadingShow}, and `Next` returns to the current step; the last step has no `Next`, since a round closes
+ * {@link roundHeadingShow}, and `Next` returns to the current step. The scene of a Definition or Algorithm, its section
+ * under a heading `####` like `#### Ice Cream Kiosk`, stands open in the round that holds the block, so the first time
+ * I map it onto the theory; a block looked up, by a link or from the tree outside that round, shows its scene folded,
+ * the theory a clean card, its arrow opening it, see {@link blockOpen}; the last step has no `Next`, since a round closes
  * only by hand, with the round check in the head, see {@link roundClose}, once its Task has a result; the close writes
  * `done` where the step stood, and Today follows; once closed, a block opened has no `Next`, with no step to return to.
  * Reading a round needs no session, but `Next` and the round check write only in a session of the module, which
@@ -136,6 +139,11 @@ type Alone = {
  * Heading `##` of a block, with its text as written.
  */
 const blockRule: RegExp = /^##[ \t]+(.+?)[ \t]*$/;
+
+/**
+ * Heading `##` of a block whose sections under a heading `####` are scenes, like `#### Ice Cream Kiosk`.
+ */
+const sceneBlockRule: RegExp = /^(Definition|Algorithm)\./;
 
 /**
  * Results that bring a block back: wrong, stuck, or right only with my tutor's help.
@@ -583,6 +591,29 @@ function bodyOf(state: EditorState, block: Block): { from: number; to: number } 
 }
 
 /**
+ * Gives what the scenes of a block fold, see {@link sceneBlockRule}: each section under a heading `####`.
+ * - `body`: What the block folds.
+ *
+ * @param state - Text of the note
+ * @param block - Block
+ * @returns The ranges, none for a block without scenes
+ */
+function scenesOf(state: EditorState, block: Block): { from: number; to: number }[] {
+    const body: { from: number; to: number } | null = bodyOf(state, block);
+    if (body === null || !sceneBlockRule.test(block.heading))
+        return [];
+    const scenes: { from: number; to: number }[] = [];
+    for (let number: number = block.line + 1; number <= state.doc.lineAt(body.to).number; number++) {
+        const line: Line = state.doc.line(number);
+        const scene: { from: number; to: number } | null =
+            /^####[ \t]/.test(line.text) ? foldable(state, line.from, line.to) : null;
+        if (scene !== null)
+            scenes.push(scene);
+    }
+    return scenes;
+}
+
+/**
  * Tells whether something folded starts at a place.
  *
  * @param state - Folds of the note
@@ -653,17 +684,26 @@ function roundDraw(view: EditorView, shown: Round): void {
 }
 
 /**
- * Opens a block, which then stands alone on the page, and scrolls the page to its top, so the name of the section
- * and its round stay in sight above it, once the page is drawn anew.
+ * Opens a block, which then stands alone on the page, its scenes open, or folded for a lookup, see the top of this file,
+ * and scrolls the page to its top, so the name of the section and its round stay in sight above it, once the page is
+ * drawn anew.
  * - {@link requestAnimationFrame}: Waits until the page is drawn next.
+ * - `effects`: Unfolding the block, and folding or unfolding its scenes.
  *
  * @param view - The editor
  * @param block - Block
+ * @param lookup - Whether it is looked up, so its scenes fold
  */
-function blockOpen(view: EditorView, block: Block): void {
+function blockOpen(view: EditorView, block: Block, lookup: boolean): void {
     const body: { from: number; to: number } | null = bodyOf(view.state, block);
+    const effects: StateEffect<{ from: number; to: number }>[] = [];
     if (body !== null && foldedAt(view.state, body.from))
-        view.dispatch({ effects: unfoldEffect.of(body) });
+        effects.push(unfoldEffect.of(body));
+    scenesOf(view.state, block).forEach((scene: { from: number; to: number }): void => {
+        if (foldedAt(view.state, scene.from) !== lookup)
+            effects.push((lookup ? foldEffect : unfoldEffect).of(scene));
+    });
+    view.dispatch({ effects: effects });
     requestAnimationFrame((): void => {
         (document.querySelector(".editor-file") as HTMLElement).scrollTop = 0;
     });
@@ -692,7 +732,7 @@ async function roundNext(view: EditorView): Promise<void> {
         return;
     if (opened !== "" && opened !== current.block.heading) {
         opened = "";
-        blockOpen(view, current.block);
+        blockOpen(view, current.block, false);
         roundDraw(view, shown);
         return;
     }
@@ -707,7 +747,7 @@ async function roundNext(view: EditorView): Promise<void> {
         shown.seen.push(keyOf(current));
     shown.at = keyOf(following);
     lineWrite(shown, keyOf(following)).catch(failShow);
-    blockOpen(view, following.block);
+    blockOpen(view, following.block, false);
     roundDraw(view, shown);
 }
 
@@ -799,7 +839,7 @@ function roundTake(view: EditorView, loaded: NoteTasks, changed: () => void): vo
         });
         view.dispatch({ effects: effects });
         if (current !== undefined && current.block !== blocks[0])
-            blockOpen(view, current.block);
+            blockOpen(view, current.block, false);
     }
     roundDraw(view, round);
 }
@@ -857,14 +897,16 @@ export function roundNextOf(): string {
 /**
  * Shows a block by its heading alone, as its line in the tree or a link to it in the note asks, back or ahead, see the
  * top of this file; `Next` below it returns to the current step, which stays where it was, marked in the tree.
+ * Its scenes fold for a link, or for a block outside the round.
  * - `block`: The block asked for.
- * - `current`: The current step.
+ * - `steps`, `current`: The steps of the round and the current one.
  *
  * @param view - The editor
  * @param heading - Heading as written
+ * @param linked - Whether a link asks for it
  * @returns Whether the round took it, not for a note that is no section
  */
-export function roundHeadingShow(view: EditorView, heading: string): boolean {
+export function roundHeadingShow(view: EditorView, heading: string, linked: boolean): boolean {
     if (round === null)
         return false;
     const shown: Round = round;
@@ -872,9 +914,10 @@ export function roundHeadingShow(view: EditorView, heading: string): boolean {
         .find((candidate: Block): boolean => candidate.heading === heading);
     if (block === undefined)
         return false;
-    const current: Step | undefined = currentOf(shown, roundStepsOf(view, shown));
+    const steps: Step[] = roundStepsOf(view, shown);
+    const current: Step | undefined = currentOf(shown, steps);
     opened = current?.block.heading === heading ? "" : heading;
-    blockOpen(view, block);
+    blockOpen(view, block, linked || !steps.some((step: Step): boolean => step.block.heading === heading));
     roundDraw(view, shown);
     return true;
 }

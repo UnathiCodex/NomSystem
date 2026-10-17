@@ -14,7 +14,9 @@
  *   so Markdown right below it is read as Markdown;
  * - `|` inside `[[…]]` on a table row as part of the link, not as the end of a cell.
  * Beyond Obsidian, the block under each heading `##`, like a theory block or a task, folds by a click on its heading,
- * open at first, and the section under a heading `#### Solution…` comes folded, so I try a task before I see its solution.
+ * open at first, and the section under a heading `#### Solution…` comes folded, so I try a task before I see its solution;
+ * so does the scene of a Definition or Algorithm, its `####` heading like `#### Ice Cream Kiosk`, since a rendered note
+ * is looked up, and a lookup reads the theory as a clean card.
  * Also beyond Obsidian, every empty line between two blocks stays one line high, as I wrote it and as the editor
  * shows it, so the space between two blocks shows how many empty lines I wrote between them,
  * see {@link emptyLinesMade}.
@@ -98,6 +100,11 @@ const blockStartRule: RegExp = /^[ \t]*(?:#{1,6}(?:[ \t]|$)|>|```|~~~|\||<|(?:[-
  * Text of a heading that opens a solution, like `Solution` or `Solution (own, unchecked)`.
  */
 const solutionRule: RegExp = /^Solution\b/;
+
+/**
+ * Text of a heading `##` whose block holds a scene under a heading `####`, like `#### Ice Cream Kiosk`.
+ */
+const sceneBlockRule: RegExp = /^(Definition|Algorithm)\./;
 
 /**
  * Address with a scheme, like `https://…`: a link out of the module, opened as it is.
@@ -418,20 +425,25 @@ function emptyLinesMade(tokens: Token[] | TokensList): Token[] | TokensList {
  * Folds each section under a heading of a level, up to the next heading of the same or a higher level,
  * into one {@link fold}, when the heading's text says so.
  * - `sectionEnds`: Tells whether a block ends the section, a heading of the same or a higher level.
+ * - `above`: Text of the last heading of a higher level so far, empty for none.
  *
  * @param tokens - Blocks of a note
  * @param depth - Level of the headings, like 2 for `##`
- * @param folds - Tells by the text of a heading whether its section folds
+ * @param folds - Tells by the text of a heading, and of the last heading of a higher level above it, whether its
+ *   section folds
  * @param open - Whether the sections are open at first
  * @returns The same blocks, each such section as one block
  */
-function sectionsFolded(tokens: Token[] | TokensList, depth: number, folds: (text: string) => boolean,
+function sectionsFolded(tokens: Token[] | TokensList, depth: number, folds: (text: string, above: string) => boolean,
                         open: boolean): Token[] | TokensList {
 
     const sectionEnds: (block: Token) => boolean = (block: Token): boolean => block.type === "heading" && block.depth <= depth;
+    let above: string = "";
     for (let start: number = 0; start < tokens.length; start++) {
         const heading: Token = tokens[start];
-        if (heading.type !== "heading" || heading.depth !== depth || !folds(heading.text))
+        if (heading.type === "heading" && heading.depth < depth)
+            above = heading.text;
+        if (heading.type !== "heading" || heading.depth !== depth || !folds(heading.text, above))
             continue;
 
         let end: number = start + 1;
@@ -445,14 +457,15 @@ function sectionsFolded(tokens: Token[] | TokensList, depth: number, folds: (tex
 }
 
 /**
- * Folds the sections of a note, see {@link sectionsFolded}: first each under a heading `#### Solution…`, closed,
- * so I try a task before I see its solution; then each under a heading `##`, open, its solutions inside.
+ * Folds the sections of a note, see {@link sectionsFolded}: first each under a heading `#### Solution…` and each scene
+ * of a Definition or Algorithm, see {@link sceneBlockRule}, closed; then each under a heading `##`, open, those inside.
  *
  * @param tokens - Blocks of a note
  * @returns The same blocks, with the sections folded
  */
 function foldsMade(tokens: Token[] | TokensList): Token[] | TokensList {
-    sectionsFolded(tokens, 4, (text: string): boolean => solutionRule.test(text), false);
+    sectionsFolded(tokens, 4, (text: string, above: string): boolean =>
+        solutionRule.test(text) || sceneBlockRule.test(above), false);
     return sectionsFolded(tokens, 2, (): boolean => true, true);
 }
 

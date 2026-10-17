@@ -398,7 +398,7 @@ function treeClick(event: MouseEvent): void {
         return;
     event.preventDefault();
     phoneShow("file");
-    if (roundHeadingShow(view, decodeURIComponent(address.hash.slice(1))))
+    if (roundHeadingShow(view, decodeURIComponent(address.hash.slice(1)), false))
         return;
     window.history.pushState(null, "", address);
     addressHeadingShow();
@@ -416,8 +416,8 @@ function treeClick(event: MouseEvent): void {
  * A note of my modules gets the rows of its tasks, see `./tasks.ts`, its outline in the tree, and scrolls to the
  * heading of the address, also when the back or forward button of the browser changes it; a section its round,
  * see `./round.ts`, its text hidden until its tasks are loaded, so its blocks fold before they show, scrolled to
- * its current block unless the address names a heading, whose block it shows once, the heading then dropped from the
- * address, see {@link History#replaceState}.
+ * its current block unless the address names a heading, whose block it shows once as looked up, the heading then
+ * dropped from the address, see {@link History#replaceState}.
  * A phone shows the file, or the tree while no file is named, and the button of the tree switches between them,
  * off while there is no file to go back to, see {@link phoneShow}; the name of the file may go on below between
  * its parts there, see `breakableOf` in `../day/choices.ts`.
@@ -517,7 +517,7 @@ export async function editorStart(): Promise<void> {
         if (!sectionShown)
             addressHeadingShow();
         else if (location.hash !== "") {
-            roundHeadingShow(view, decodeURIComponent(location.hash.slice(1)));
+            roundHeadingShow(view, decodeURIComponent(location.hash.slice(1)), true);
             window.history.replaceState(null, "", location.pathname + location.search);
         }
     });
