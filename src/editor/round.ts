@@ -72,7 +72,8 @@ type Kept = {
  *
  * - `loaded`: The tasks of the note with its section, as loaded last.
  * - `section`: Its section.
- * - `key`: Key in the browser's storage of what is kept of the round.
+ * - `key`: Key in the browser's storage of what is kept of the round, with the headings of the note in it, so a note
+ *   generated anew starts its round afresh, see {@link headingsKeyOf}.
  * - `kept`: What is kept of it.
  * - `changed`: Shows the places of the blocks anew, in the tree and on a phone.
  */
@@ -255,6 +256,23 @@ function stepsOf(blocks: Block[], section: SkillSection, today: string): Step[] 
  */
 function keyOf(step: Step): string {
     return step.after === "" ? step.block.heading : `${step.block.heading} after ${step.after}`;
+}
+
+/**
+ * Gives a short key of the headings of a note's blocks, so what the browser keeps of a round belongs to the note
+ * as it was: a note generated anew, with other blocks, starts its round afresh, instead of finding its round done
+ * by the headings of the old one.
+ * - `hash`: Hash of the headings, one after the other.
+ *
+ * @param blocks - Blocks of the note
+ * @returns Key like `k3f9a2c`
+ */
+function headingsKeyOf(blocks: Block[]): string {
+    let hash: number = 5381;
+    [...blocks.map((block: Block): string => block.heading).join("\n")].forEach((character: string): void => {
+        hash = (hash * 33 + character.charCodeAt(0)) >>> 0;
+    });
+    return `k${hash.toString(36)}`;
 }
 
 /**
@@ -476,7 +494,7 @@ function roundTake(view: EditorView, loaded: NoteTasks, changed: () => void): vo
         return;
     }
     const fresh: boolean = round === null || round.loaded.path !== loaded.path;
-    const key: string = `round ${loaded.path} ${section.round}`;
+    const key: string = `round ${loaded.path} ${section.round} ${headingsKeyOf(blocksOf(view.state, loaded.tasks))}`;
     const stored: Kept | null = fresh ? JSON.parse(localStorage.getItem(key) ?? "null") as Kept | null : round?.kept ?? null;
     round = {
         loaded: loaded, section: section, key: key, changed: changed,
