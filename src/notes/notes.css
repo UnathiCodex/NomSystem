@@ -11,8 +11,9 @@
    view, each row in the text of the tree, see `--tree-text` in `../variants.css`, and a little higher than a chip,
    `--tree-row-height`, so its grey has room around the name; the anchor of the menus of its pickers, which open
    beside it.
-   Its framed rows, the search and the grey of the note shown or under the pointer, 0.75rem beside the rail's
-   buttons and only 0.25rem before its scrollbar, so they take the width of the tree, their names
+   Its framed rows, the search and the grey of the note shown or under the pointer, as far from the rail's buttons
+   as from its line at the right, 0.625rem each, of which the rail's own room holds 0.25rem, so they take the width
+   of the tree, their names
    `--tree-row-padding` in from their left edge,
    the room left of a name in a row `--tree-row-padding`, the room above and below the name of a picker
    `--tree-pick-padding` */
@@ -22,7 +23,7 @@
     --tree-row-height: calc(var(--chip-height) + 0.25rem);
     anchor-name: --tree;
     overflow-y: auto;
-    padding: var(--gap) 0.25rem var(--gap) 0.75rem;
+    padding: var(--gap) 0.625rem var(--gap) 0.375rem;
     border-right: 1px solid var(--line);
     font-size: var(--tree-text);
     line-height: var(--tree-row-height);
