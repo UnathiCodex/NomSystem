@@ -402,7 +402,7 @@ export function entryAdd(entry: EntryNew): string {
  * Logs a box at its real time, with one drop or one tap: a log entry of its category, what, place, people, and a skill
  * entry
  * with its skill and type, written as the reader writes them, see `titleOf` in `documents.ts`, linking the folder
- * of its skill and of its material, from the start to the end the day sends,
+ * of its skill and of its material, or the web address I typed for the box, from the start to the end the day sends,
  * pointing to the box with `RELATED-TO`, after which the box is done, see `boxDone` in `boxes.ts`. Its note stays
  * empty, since the note of a log entry is my diary note about what happened; a skill box hands on its links
  * to documents, like the slides of a lecture, see `documents.ts`, and its chapters as `X-CHAPTER`s, also those

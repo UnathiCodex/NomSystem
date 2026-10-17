@@ -304,6 +304,8 @@ export type AttemptNew = {
  * - `location`: Place, like the room of a lecture logged from the plan.
  * - `locationLink`: Link of the meeting of the place `Online`, as pasted, the `ALTREP` of its `LOCATION`;
  *   left out for any other place, whose link the reader finds itself.
+ * - `titleLink`: Link typed for what it was, a web address, the `ALTREP` of its `SUMMARY` in place of the folder
+ *   of its skill; empty for none, the reader then linking that folder.
  * - `attendees`: Who I was with, see `Attendee` in `../day/entries.ts`, none for nobody.
  * - `planned`: Identifier of the plan entry it is logged from, empty for none.
  * - `note`: Free note.
@@ -319,6 +321,7 @@ export type SkillEntryNew = {
     attempts: AttemptNew[];
     location: string;
     locationLink?: string;
+    titleLink?: string;
     attendees: Attendee[];
     planned: string;
     note: string;

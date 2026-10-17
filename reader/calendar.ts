@@ -18,15 +18,17 @@
  * - `node:path`: Builds file paths for the operating system.
  * - `node:crypto`: Creates random identifiers.
  * - `ical.js`: Reads and writes the iCalendar format of `.ics` files.
- * - `./sources.ts`: Names the files of a calendar and the folder of my modules, and tells which files the reader
- *   may write.
+ * - `./places.ts`: Tells a link I typed, a web address.
+ * - `./sources.ts`: Names the files of a calendar, the folder of my modules and my projects, and tells which files
+ *   the reader may write.
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import ICAL from "ical.js";
-import { modulesFolder, writeAllowed } from "./sources.ts";
+import { linkForm } from "./places.ts";
+import { modulesFolder, projectOf, writeAllowed } from "./sources.ts";
 
 import type { CalendarSource } from "./sources.ts";
 
@@ -43,7 +45,7 @@ import type { CalendarSource } from "./sources.ts";
  * - `titleLink`: Link of what it was, the standard parameter `ALTREP` of its `SUMMARY`: for a skill entry the folder
  *   of its skill from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, for a type
  *   on into the folder of its material, like `…/VO_UniversityLectureLessons/TUM_2026W`, see `skillLinkOf`
- *   in `documents.ts`; empty when it has none.
+ *   in `documents.ts`, or a web address I typed in its place, see `titleOf` there; empty when it has none.
  * - `location`: Place of the entry, its `LOCATION`, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`,
  *   or `Home Munich` in an older entry, empty when the event has none.
  * - `locationLink`: Link of its place, the standard parameter `ALTREP` of its `LOCATION`,
@@ -359,7 +361,9 @@ export const skillName: string = "Skill";
  * at the end when it has one, like `IN2028 Business Analytics Machine Learning (VO)`, my own learning without brackets,
  * like `IN2028 Business Analytics Machine Learning`, see `skillTitleOf` in `documents.ts`: its skill is the code
  * of a module, the part before the first space, like `IN2028`, or all of it for a project, a skill whose folder,
- * the `ALTREP` of the `SUMMARY`, lies outside `NomSkillingmodules`, like `WokFlow`. An entry written before
+ * the `ALTREP` of the `SUMMARY`, lies outside `NomSkillingmodules`, like `WokFlow`; an entry that links no folder,
+ * like one linking a web address I typed, is a project when it names one of my projects, see `projectOf`
+ * in `sources.ts`. An entry written before
  * the summary was airy names the folder of its module, its code before the first `_`, like
  * `IN2028 Business Analytics Machine Learning (VO)`; an older one without brackets has its code and a type of two
  * capitals parted by one space, like `IN2028 VO`. A skill entry carries no `X-MODULE` and no `X-TYPE`; those lines
@@ -379,7 +383,8 @@ function skillPartsOf(summary: string, link: string): [string, string] {
     if (bracketed === null && older !== null)
         return [older[1], older[2]];
     const name: string = bracketed?.[1] ?? summary;
-    const project: boolean = link !== "" && !link.startsWith(`${modulesFolder}/`);
+    const project: boolean = link !== "" && !linkForm.test(link) ? !link.startsWith(`${modulesFolder}/`)
+        : projectOf(name) !== undefined;
     return [project ? name : name.split(/[_ ]/)[0], bracketed?.[2] ?? ""];
 }
 

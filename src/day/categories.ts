@@ -30,10 +30,11 @@
  * the typed text can be added as a new value with `+ New summary` at the end of the list, which is then picked,
  * the one way to write a new summary or another one in place of the one picked, but to the summary of `Sleep`
  * and `Way`, which take no new ones.
- * Every summary but that of `Skill` has a pencil `✎` beside it, as a place has, which shows below it its link to type,
- * like the page of an event, written as the `ALTREP` of its `SUMMARY` and shown small and grey below the summary,
- * opening it, see {@link summaryPartsOf}; the summary of `Skill` links the folder of its skill, for a type on into
- * the folder of its material, which the reader writes, since it tells a module from a project, see `skill.ts`.
+ * Every summary has a pencil `✎` beside it, as a place has, that of `Skill` after its type, the same for every type,
+ * which shows below it its link to type, like the page of an event, a web address, written as the `ALTREP` of its
+ * `SUMMARY` and shown small and grey below the summary, opening it, see {@link summaryPartsOf}; while I type none,
+ * the summary of `Skill` links the folder of its skill, for a type on into the folder of its material, which
+ * the reader writes, shown there and grey in the field to type, see `skill.ts`.
  * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first,
  * each by its name, like `TUM Innenstadt`, its address grey beside it in the list; a picked one is written with its address,
  * as one line, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`; its row shows its name with a pencil `✎`
@@ -73,7 +74,7 @@
  * - `./meal.ts`: A meal of the log: its summary and its meals and foods, picked from one search, and its new meals.
  * - `./places.ts`: The dialog of a place, which adds a new one with its address to `Places.md` or changes mine.
  * - `./skill.ts`: The fields of `Skill`: skill and type, place, semester, chapters, documents,
- *   and in the log attempts.
+ *   and in the log attempts; the folder its summary links while I type no link.
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
  *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
@@ -92,7 +93,8 @@ import {
     standardLinkOf,
 } from "./places.ts";
 import {
-    skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPlaceShow, skillSave, skillSemesterOf,
+    skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPathOf, skillPathShow, skillPlaceShow,
+    skillSave, skillSemesterOf,
 } from "./skill.ts";
 import { dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
@@ -177,7 +179,8 @@ type EntryTarget = "log" | "box";
  * - `addresses`: Address of each name of `With` as the entry, the box or the box to log has it,
  *   or the one it is a copy of, like `sophale@invalid`; none for nobody.
  * - `titleLink`: Link of what it was, the `ALTREP` of its `SUMMARY`, as the entry, the box or the box to log has it,
- *   or the one it is a copy of, for a skill entry the folder of its skill or of its material; empty for none.
+ *   or the one it is a copy of, for a skill entry the folder of its skill or of its material, or a web address typed;
+ *   empty for none.
  * - `locationLink`: Link of its place, its `ALTREP`, as the entry, the box or the box to log has it,
  *   or the one it is a copy of; empty for none.
  * - `note`: Note of the entry.
@@ -256,9 +259,16 @@ let partsOpen: FieldKey | null = null;
 let addedLine: string = "";
 
 /**
+ * A link typed below a summary, a web address without spaces, like `https://github.com/UnathiCodex/NomSystem`,
+ * as the reader takes it, see `linkForm` in `reader/places.ts`; any other link of a skill entry is the folder
+ * the reader writes.
+ */
+const linkForm: RegExp = /^https?:\/\/\S+$/;
+
+/**
  * Link of what the entry or the box was, typed below its summary by its pencil, see {@link summaryPartsOf},
- * written as the `ALTREP` of its `SUMMARY`, like the page of an event; empty for none and for a skill entry,
- * whose link the reader writes, the folder of its skill or of its material.
+ * written as the `ALTREP` of its `SUMMARY`, like the page of an event, a web address; empty for none, a skill entry
+ * then linking the folder of its skill or of its material, which the reader writes.
  */
 let summaryLink: string = "";
 
@@ -268,10 +278,10 @@ let summaryLink: string = "";
 let summaryOpen: boolean = false;
 
 /**
- * Pencil beside the summary and its link below it as shown, see {@link summaryPartsOf}; `null` while no summary
- * shows them, like that of a skill entry, which is its skill and type.
+ * Pencil beside the summary, its link below it and the field to type it as shown, see {@link summaryPartsOf};
+ * `null` while no summary shows them.
  */
-let summaryShown: [HTMLButtonElement, HTMLAnchorElement] | null = null;
+let summaryShown: [HTMLButtonElement, HTMLAnchorElement, HTMLInputElement] | null = null;
 
 /**
  * Category picked, `null` before picking.
@@ -895,20 +905,29 @@ function onlinePartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElemen
 /**
  * Shows the link of what the entry or the box was below its summary, small and grey, as a link that opens
  * in a new tab, like the address of a place, see {@link placePartsShow}: the link itself, like the page of an event;
- * nothing while it has none; the pencil beside the summary while the summary names something, see {@link titleRead}.
- * - `pencil`, `link`: Pencil and link of the summary as shown.
+ * for a skill entry while I type none the folder of its skill, see `skillPathShow` in `skill.ts`, also grey
+ * in the field to type; nothing while it has none; the pencil beside the summary while the summary names something,
+ * see {@link titleRead}, a skill entry by its skill or its type.
+ * - `pencil`, `link`, `field`: Pencil, link and field of the summary as shown.
+ * - `skill`: Skill and type of a skill entry, `null` for any other entry.
  */
 function summaryPartsShow(): void {
     if (summaryShown === null)
         return;
-    const [pencil, link]: [HTMLButtonElement, HTMLAnchorElement] = summaryShown;
+    const [pencil, link, field]: [HTMLButtonElement, HTMLAnchorElement, HTMLInputElement] = summaryShown;
+    const skill: ModuleType | null = chosen?.name === skillName ? skillModuleType() : null;
+    pencil.hidden = skill === null ? titleRead(valuesRead().title) === "" : skill.module === "" && skill.type === "";
+    field.placeholder = skill === null ? "" : skillPathOf();
+    if (skill !== null && summaryLink === "") {
+        skillPathShow(link);
+        return;
+    }
     link.textContent = summaryLink;
     if (summaryLink !== "")
         link.href = summaryLink;
     else
         link.removeAttribute("href");
     link.hidden = summaryLink === "";
-    pencil.hidden = titleRead(valuesRead().title) === "";
 }
 
 /**
@@ -916,8 +935,8 @@ function summaryPartsShow(): void {
  * beside its summary, which shows and hides the link to type, the link below the summary, see {@link summaryPartsShow},
  * and below that the link to type, one part `Link` indented with the grey line at its left, see {@link partOf},
  * empty until I type or paste one, like the page of an event; it goes along when the entry is saved,
- * see {@link textsRead}. Every summary has them but that of a skill entry, whose link is the folder of its skill,
- * see `skillPathOf` in `skill.ts`.
+ * see {@link textsRead}. Every summary has them, that of a skill entry beside and below its skill and type,
+ * see `skill.ts`.
  * - `pencil`: The pencil, `✎`.
  * - `link`: The link below the summary.
  * - `field`: The field of the link to type.
@@ -949,7 +968,7 @@ function summaryPartsOf(): [HTMLButtonElement, HTMLAnchorElement, HTMLElement] {
         summaryLink = field.value.trim();
         summaryPartsShow();
     });
-    summaryShown = [pencil, link];
+    summaryShown = [pencil, link, field];
     summaryPartsShow();
     return [pencil, link, parts];
 }
@@ -965,6 +984,15 @@ function mealLinkPut(row: HTMLElement): void {
     const value: HTMLDivElement = document.createElement("div");
     value.append(row.lastElementChild as HTMLElement, ...summaryPartsOf());
     row.append(value);
+}
+
+/**
+ * Tells the dialog that what is picked for a skill entry changed: shows the link of its summary anew, which follows
+ * its skill, type and semester while I type none, see {@link summaryPartsShow}, and allows saving or not.
+ */
+function skillChanged(): void {
+    summaryPartsShow();
+    saveAllow();
 }
 
 /**
@@ -1342,8 +1370,9 @@ async function categoryPick(category: Category | null): Promise<void> {
     if (category?.name === skillName) {
         await skillFieldsShow(document.getElementById("entry-fields") as HTMLElement,
             document.getElementById("entry-more") as HTMLElement, placeRowsOf(), opened.target === "box",
-            opened.category === skillName ? opened.skill : skillNone, dayRead(), asPlanned(), saveAllow);
-        saveAllow();
+            opened.category === skillName ? opened.skill : skillNone, dayRead(), asPlanned(), skillChanged,
+            summaryPartsOf());
+        skillChanged();
         return;
     }
     if ((category?.name === foodName || category?.name === cookName) && opened.target === "log") {
@@ -1426,7 +1455,7 @@ function textsRead(): BoxFields {
     return {
         category: chosen?.name ?? "",
         title: titleRead(picked.title),
-        titleLink: chosen?.name === skillName ? undefined : summaryLink,
+        titleLink: summaryLink,
         location: picked.location,
         locationLink: online ? onlineLink : undefined,
         from: picked.from,
@@ -1733,7 +1762,7 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     categories = await categoriesLoad();
     opened = opening;
     onlineLink = labelOf(opening.values.location) === onlineName ? opening.locationLink : "";
-    summaryLink = opening.category === skillName ? "" : opening.titleLink;
+    summaryLink = opening.category === skillName && !linkForm.test(opening.titleLink) ? "" : opening.titleLink;
     summaryOpen = false;
     partsOpen = null;
     addresses = { ...opening.addresses };

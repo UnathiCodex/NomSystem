@@ -31,7 +31,8 @@ export type Attendee = {
  * - `category`: Category picked, `CATEGORIES`.
  * - `title`: What picked, `SUMMARY`.
  * - `titleLink`: Link of what it was, as typed or pasted below its summary, the `ALTREP` of its `SUMMARY`, like the page
- *   of an event; left out for a skill entry, whose link the reader writes, and after a drag, so it keeps its link.
+ *   of an event, empty for none, a skill entry then linking the folder the reader writes; left out after a drag,
+ *   so it keeps its link.
  * - `location`: Place picked, `LOCATION`.
  * - `locationLink`: Link of the place `Online`, as typed or pasted, the `ALTREP` of its `LOCATION`; left out for any
  *   other place, whose link the reader finds itself, and after a drag, so the place keeps its link.

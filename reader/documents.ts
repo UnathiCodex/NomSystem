@@ -7,8 +7,9 @@
  * of my system it belongs to, one `X-CHAPTER` each, like `X-CHAPTER:02_LogisticPoissonRegression`.
  * Its `SUMMARY` names its skill airy, a module by its code and the words of its title, see {@link skillLabelOf},
  * with its type in round brackets at the end when it has one, see {@link skillTitleOf}, and links the folder
- * of the skill as its `ALTREP`, for a module with a type on into the folder of the material of its type and of its
- * semester, as far as they hold files, see {@link skillLinkOf}, like
+ * of the skill as its `ALTREP` while I type no web address in its place, see {@link titleOf}, for a module with a type
+ * on into the folder of the material of its type and of its semester, as far as they hold files, see
+ * {@link skillLinkOf}, like
  * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…/VO_UniversityLectureLessons/TUM_2026W":IN2028 Business Analytics
  * Machine Learning (VO)`, my own learning without brackets, linking the module folder, a project by its folder name,
  * like `SUMMARY;ALTREP="NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow":WokFlow`.
@@ -30,7 +31,8 @@
  * The folder of a module in an `ATTACH` of an older entry counts no more and goes once the entry changes too.
  * The reader checks every link of the whole log when it starts and every night at 04:00, see {@link linksCheckStart}:
  * a module folder that is gone, like after a rename, is found again by the code of the entry's module,
- * see `moduleFolderOf` in `notes.ts`, and its `SUMMARY` names the module of the folder found; a document whose path no longer leads
+ * see `moduleFolderOf` in `notes.ts`, and its `SUMMARY` names the module of the folder found, also that of an entry
+ * linking a web address I typed, which keeps it, since a web page is on no disk; a document whose path no longer leads
  * to a file, like after a rename or a move into another folder of the module, is looked for by its fingerprint
  * among the module's documents, a note without fingerprint by its name, like a draft once it is checked and lies
  * in the module folder, and a chapter by the name of its folder in the module folder found or its drafts.
@@ -260,14 +262,15 @@ export function skillLinkOf(code: string, type: string, semester: string): strin
 }
 
 /**
- * Gives what an entry or a box was as it is written, its `SUMMARY` and the `ALTREP` of it: for a skill entry
- * its skill and type, see {@link skillTitleOf}, linking the folder of its skill and of its material, see
- * {@link skillLinkOf}, which tells a module from a project, see `skillPartsOf` in `calendar.ts`, so no link is typed
- * for it; for any other
- * its what as sent with the link typed for it, like the page of an event, a web address, see `linkForm`
- * in `places.ts`, or, from a sender that knows no typed link, like the calendar after a drag, the link it had
- * in the entry or box it comes from while it is the same what, else none.
- * - `link`: The link typed, without spaces at its ends.
+ * Gives what an entry or a box was as it is written, its `SUMMARY` and the `ALTREP` of it: its what as sent,
+ * for a skill entry its skill and type, see {@link skillTitleOf}, with the link typed for it, like the page of an event,
+ * a web address, see `linkForm` in `places.ts`, or, from a sender that knows no typed link, like the calendar after
+ * a drag, the link it had in the entry or box it comes from while it is the same what, of a skill entry only a web
+ * address; a skill entry without one links the folder of its skill and of its material, see {@link skillLinkOf}.
+ * - `skill`: Whether it is a skill entry.
+ * - `title`: What it was, as written.
+ * - `typed`: The link typed, without spaces at its ends, `undefined` from a sender that knows none.
+ * - `link`: The link typed or kept, empty for none.
  *
  * @param fields - Category, what, the link typed for it, skill, type and semester of the entry or the box, as sent,
  *   the semester as it is written, see `semesterFor` in `categories.ts`; the link `undefined` from a sender that
@@ -282,14 +285,14 @@ export function skillLinkOf(code: string, type: string, semester: string): strin
 export function titleOf(fields: {
     category: string; title: string; titleLink?: string; module: string; type: string; semester: string;
 }, from: { title: string; titleLink: string } | null): [string, string] {
-    if (fields.category === skillName)
-        return [skillTitleOf(fields.module, fields.type), skillLinkOf(fields.module, fields.type, fields.semester)];
-    if (fields.titleLink === undefined)
-        return [fields.title, from !== null && from.title === fields.title ? from.titleLink : ""];
-    const link: string = fields.titleLink.trim();
-    if (link !== "" && !linkForm.test(link))
-        throw new Error(`No link of ${fields.title}: ${link}`);
-    return [fields.title, link];
+    const skill: boolean = fields.category === skillName;
+    const title: string = skill ? skillTitleOf(fields.module, fields.type) : fields.title;
+    const typed: string | undefined = fields.titleLink?.trim();
+    if (typed !== undefined && typed !== "" && !linkForm.test(typed))
+        throw new Error(`No link of ${title}: ${typed}`);
+    const link: string = typed ?? (from !== null && from.title === title && (!skill || linkForm.test(from.titleLink))
+        ? from.titleLink : "");
+    return [title, skill && link === "" ? skillLinkOf(fields.module, fields.type, fields.semester) : link];
 }
 
 /**
@@ -513,27 +516,34 @@ function repairPrint(entry: Entry, old: string, path: string): void {
 /**
  * Repairs the folder of a skill entry, the `ALTREP` of its `SUMMARY`, when it leads nowhere: a module folder found
  * again by the code of the entry's module, see `moduleFolderOf` in `notes.ts`, its `SUMMARY` then naming the folder
- * found, see {@link skillTitleOf}; the folder of a project stays as written.
+ * found, see {@link skillTitleOf}; the folder of a project stays as written. An entry linking a web address I typed
+ * keeps it, since a web page is on no disk, its `SUMMARY` naming the folder of its module found by its code all
+ * the same, like after a rename.
+ * - `typed`: Whether the entry links a web address I typed, see {@link titleOf}.
  * - `folder`: Name of the folder of the entry's module, as found now, `undefined` for none.
  * - `fields`: Fields and times of the entry, its `SUMMARY` and its `ALTREP` repaired.
  *
  * @param file - `.ics` file of the entry
  * @param entry - Skill entry of the log
- * @returns Whether its folder leads somewhere now
+ * @returns Whether its folder leads somewhere now, always for a web address
  */
 function folderRepair(file: string, entry: Entry): boolean {
-    if (entry.titleLink === "" || existsSync(diskOf(entry.titleLink)))
+    const typed: boolean = linkForm.test(entry.titleLink);
+    if (entry.titleLink === "" || (!typed && existsSync(diskOf(entry.titleLink))))
         return true;
-    const folder: string | undefined = moduleIs(entry.titleLink) ? moduleFolderOf(entry.module) : undefined;
+    const folder: string | undefined = typed || moduleIs(entry.titleLink) ? moduleFolderOf(entry.module) : undefined;
     if (folder === undefined)
-        return false;
+        return typed;
 
     const fields: EntryFields = {
-        ...entry, title: skillTitleOf(entry.module, entry.type), titleLink: `${modulesFolder}/${folder}`,
+        ...entry, title: skillTitleOf(entry.module, entry.type),
+        titleLink: typed ? entry.titleLink : `${modulesFolder}/${folder}`,
         start: new Date(entry.start), end: new Date(entry.end),
     };
+    if (fields.title === entry.title && fields.titleLink === entry.titleLink)
+        return true;
     entryChange(file, entry, fields, file);
-    repairPrint(entry, entry.titleLink, fields.titleLink);
+    repairPrint(entry, typed ? entry.title : entry.titleLink, typed ? fields.title : fields.titleLink);
     return true;
 }
 

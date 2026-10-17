@@ -115,7 +115,7 @@ const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  * - `category`: Category, like `Skill`, empty for a box without one, like a to-do another app wrote.
  * - `title`: What, like `WI1059 HU`.
  * - `titleLink`: Link of what it is, its `ALTREP`, like the page of an event, for a skill box the folder of its skill
- *   or of its material, empty for none.
+ *   or of its material while I typed none, empty for none.
  * - `location`: Place, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, empty for none.
  * - `locationLink`: Link of its place, its `ALTREP`, like `https://nav.tum.de/room/0509.EG.980`, empty for none.
  * - `from`: Where a way starts, empty for none.

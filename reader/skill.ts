@@ -428,6 +428,8 @@ export type AttemptNew = {
  * - `location`: Place, `LOCATION`, like the room of a lecture logged from its box.
  * - `locationLink`: Link of the meeting of the place `Online`, as typed, written as the `ALTREP` of its `LOCATION`;
  *   left out for any other place, as for any entry of the log, see `EntryNew` in `day.ts`.
+ * - `titleLink`: Link typed for what it was, a web address, written as the `ALTREP` of its `SUMMARY` in place of
+ *   the folder of its skill, see `titleOf` in `documents.ts`; empty or left out for none.
  * - `attendees`: Who I was with, one `ATTENDEE` each; left out, as for any entry of the log, see `EntryNew`
  *   in `day.ts`.
  * - `planned`: Identifier of the box it is logged from, written as its `RELATED-TO`, empty for none.
@@ -444,6 +446,7 @@ export type SkillEntryNew = {
     attempts: AttemptNew[];
     location: string;
     locationLink?: string;
+    titleLink?: string;
     attendees?: Attendee[];
     planned: string;
     note: string;
