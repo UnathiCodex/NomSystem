@@ -392,12 +392,16 @@
     background: var(--reading-marker);
 }
 
-/* List inside an item with a thin grey line down from the item's bullet, as Obsidian's indentation guides */
-.markdown li > :is(ul, ol) {
+/* List inside an item with a thin grey line down from the item's bullet, as Obsidian's indentation guides,
+   on through the lines of the item after it down to the item's end, like a spacer line `⠀` that ends a sub-point
+   but stays in the item */
+.markdown li > :is(ul, ol),
+.markdown li > :is(ul, ol) ~ * {
     position: relative;
 }
 
-.markdown li > :is(ul, ol)::before {
+.markdown li > :is(ul, ol)::before,
+.markdown li > :is(ul, ol) ~ *::before {
     content: "";
     position: absolute;
     top: 0;

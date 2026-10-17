@@ -47,6 +47,7 @@
  * - `../notes/math.ts`: Renders formulas as the scripts view does.
  * - `../notes/markdown.ts`: Renders tables, callouts, code blocks and HTML blocks as the scripts view does.
  * - `../notes/tree.ts`: Builds the address of a note in the scripts view, for a link to follow.
+ * - `./keys.ts`: Tells a spacer line and the indentation of the text of a list item, for where the item ends.
  */
 
 import { RangeSet, StateEffect, StateField } from "@codemirror/state";
@@ -58,6 +59,7 @@ import { tagHighlighter, tags } from "@lezer/highlight";
 import { mathRender } from "../notes/math.ts";
 import { htmlOf } from "../notes/markdown.ts";
 import { noteAddressOf } from "../notes/tree.ts";
+import { columnsOf, spacerRule, textIndentationOf } from "./keys.ts";
 
 import type { EditorState, Extension, Line, Range, SelectionRange, StateEffectType, Transaction } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
@@ -961,7 +963,8 @@ function mathLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * List: its lines in a `ul` or `ol`, as the scripts view draws them, a numbered list counting from its first number.
+ * List: its lines in a `ul` or `ol`, up to where its last item ends, see {@link itemEndOf}, as the scripts view draws
+ * them, a numbered list counting from its first number.
  *
  * @param look - Look being built
  * @param node - `BulletList` or `OrderedList`
@@ -970,12 +973,36 @@ function mathLook(look: Look, node: SyntaxNode): boolean {
 function listLook(look: Look, node: SyntaxNode): boolean {
     const first: SyntaxNode | null = node.firstChild?.getChild("ListMark") ?? null;
     const start: number = node.name === "OrderedList" && first !== null ? parseInt(look.state.sliceDoc(first.from, first.to)) : 1;
-    wrap(look, node, node.name === "BulletList" ? "ul" : "ol", start === 1 ? {} : { start: String(start) });
+    wrap(look, node, node.name === "BulletList" ? "ul" : "ol", start === 1 ? {} : { start: String(start) },
+        node.lastChild !== null ? itemEndOf(look, node.lastChild) : node.to);
     return true;
 }
 
 /**
- * List item: its lines in an `li`, which draws its bullet or number as in the scripts view;
+ * Finds where a list item ends by the indentation of its lines: Markdown reads spacer lines right below it into its
+ * text, whatever their indentation, see `spacerLevelsOf` in `./keys.ts`; those at its end that do not reach its text
+ * belong to a point it stands in, or to no list, and stand after it, so a spacer line with the indentation of the text
+ * of `- Estimator` right below its sub-point `\t- θ` ends `θ`, but stays in `Estimator`.
+ * - `first`: The first line of the item.
+ * - `text`: Columns of the indentation of its text.
+ * - `line`: Its last line so far.
+ *
+ * @param look - Look being built
+ * @param node - `ListItem`
+ * @returns End of its last line
+ */
+function itemEndOf(look: Look, node: SyntaxNode): number {
+    const first: Line = look.state.doc.lineAt(node.from);
+    const text: number = columnsOf(textIndentationOf(first.text) ?? "");
+    let line: Line = look.state.doc.lineAt(node.to);
+    while (line.number > first.number && spacerRule.test(line.text) && columnsOf(line.text) < text)
+        line = look.state.doc.line(line.number - 1);
+    return line.to;
+}
+
+/**
+ * List item: its lines in an `li`, up to where it ends, see {@link itemEndOf}, which draws its bullet or number as in
+ * the scripts view;
  * while the cursor is on its first line, without them, as its marker shows there as written, see {@link listMarkLook};
  * its fold arrow left of its bullet when it has sub-points, which folds them with its further lines.
  *
@@ -985,7 +1012,7 @@ function listLook(look: Look, node: SyntaxNode): boolean {
  */
 function itemLook(look: Look, node: SyntaxNode): boolean {
     const line: Line = look.state.doc.lineAt(node.from);
-    wrap(look, node, "li", touched(look, line.from, line.to) ? { class: "cm-source" } : {});
+    wrap(look, node, "li", touched(look, line.from, line.to) ? { class: "cm-source" } : {}, itemEndOf(look, node));
     if (node.getChild("BulletList") !== null || node.getChild("OrderedList") !== null)
         foldLook(look, line, true);
     return true;
