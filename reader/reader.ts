@@ -37,6 +37,7 @@
  * - `./trackers.ts`: Reads my sleep against my goals, my glasses of water, my neck sessions and what my meals gave
  *   on a day
  * - `./devices.ts`: Writes what each of my devices shows of the page into `Devices.md`
+ * - `./changes.ts`: Tells every open page the moment a file of my new system changes, so it loads anew what it shows
  * - `./page.ts`: Gives out the files of the page through Vite
  */
 
@@ -65,6 +66,7 @@ import {
 } from "./food.ts";
 import { trackersRead } from "./trackers.ts";
 import { deviceReport } from "./devices.ts";
+import { changesSend, changesWatch } from "./changes.ts";
 import { pageCreate } from "./page.ts";
 
 import type { IncomingMessage, ServerResponse, Server } from "node:http";
@@ -192,6 +194,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   all my meals.
  * - `DELETE /api/food/meals?meal=…`: Removes the meal from `Meals.md` and sends all my meals.
  * - `POST /api/devices`: Writes what the device of the body shows of the page into `Devices.md`.
+ * - `GET /api/changes`: Keeps the answer open and tells each change of a file of my new system as it comes,
+ *   see `changes.ts`.
  * - Any other address: Hands request to the page.
  *
  * A request as the page sends it:
@@ -320,6 +324,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         deviceReport(await json(request) as DeviceReport);
         responseSend(response, 200, null);
 
+    } else if (request.method === "GET" && url.pathname === "/api/changes") {
+        changesSend(response);
+
     } else if (request.method === "GET" && url.pathname === "/api/notes/modules") {
         responseSend(response, 200, modulesRead());
 
@@ -425,3 +432,4 @@ server.on("request", (request: IncomingMessage, response: ServerResponse): void 
 const port: number = Number(process.env.NOM_PORT ?? 3000);
 server.listen(port, "127.0.0.1", (): void => console.log(`http://127.0.0.1:${port}`));
 linksCheckStart();
+changesWatch();

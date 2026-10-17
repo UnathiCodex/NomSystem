@@ -1,0 +1,70 @@
+/**
+ * ## Changes
+ *
+ * Tells every open page the moment a file of my new system changes, whoever changed it: the reader, like a food
+ * renamed in every entry that holds it, a page of another device, or Syncthing bringing a change, so each page loads
+ * anew what it shows, see `src/changes.ts`, and never shows, nor writes back, what the files held before.
+ * A page asks `GET /api/changes` and keeps the answer open, a stream of server-sent events, one `data: changed`
+ * per change; changes coming within a tenth of a second of each other, like the entries a rename writes one by one,
+ * are told once, after the last. `Devices.md`, which a page writes when its size changes, see `devices.ts`,
+ * tells nothing, since no page shows it.
+ *
+ * - `node:fs`: Watches the three folders of the new system, every folder in them too.
+ * - `node:path`: Builds the path of a file changed.
+ * - `./sources.ts`: Names the three folders of the new system and `Devices.md`.
+ */
+
+import { existsSync, watch } from "node:fs";
+import { join } from "node:path";
+import { devicesFile, systemRoots } from "./sources.ts";
+
+import type { WatchEventType } from "node:fs";
+import type { ServerResponse } from "node:http";
+
+
+/**
+ * The open pages, each by the answer the reader keeps open for it.
+ */
+const pages: Set<ServerResponse> = new Set();
+
+/**
+ * Milliseconds without a change before the pages are told, so many changes in a row are told once.
+ */
+const quiet: number = 100;
+
+/**
+ * Timer of the next telling, waiting for {@link quiet}; `undefined` while none waits.
+ */
+let waiting: NodeJS.Timeout | undefined = undefined;
+
+/**
+ * Keeps the answer to a page open as a stream of server-sent events, one per change, until the page goes,
+ * see the top of this file; its head goes out at once, so the page knows it hears the reader.
+ *
+ * @param response - Answer to the page
+ */
+export function changesSend(response: ServerResponse): void {
+    response.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" });
+    response.flushHeaders();
+    pages.add(response);
+    response.on("close", (): void => {
+        pages.delete(response);
+    });
+}
+
+/**
+ * Watches those of the three folders of the new system that exist, as long as the reader runs: every change
+ * of a file in them but `Devices.md` waits for {@link quiet}, then tells every open page.
+ */
+export function changesWatch(): void {
+    systemRoots.filter((root: string): boolean => existsSync(root)).forEach((root: string): void => {
+        watch(root, { recursive: true }, (_event: WatchEventType, name: string | null): void => {
+            if (name !== null && join(root, name) === devicesFile)
+                return;
+            clearTimeout(waiting);
+            waiting = setTimeout((): void => pages.forEach((page: ServerResponse): void => {
+                page.write("data: changed\n\n");
+            }), quiet);
+        });
+    });
+}

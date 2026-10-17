@@ -22,6 +22,9 @@
  * The day opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today
  * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the food view, opens on that day,
  * which the address then keeps no more, see `today.ts`.
+ * The day loads anew the moment a file of my new system changes, whoever changed it, like a food renamed in the food
+ * view in every entry that holds it, see `../changes.ts`, so it never shows, nor writes back by a drag, what
+ * the files held before; a change that comes while a dialog is open waits until it closes, see {@link dayAgain}.
  * The grid runs over the calendar day, from 00:00 to 24:00, and opens at 06:00; an entry past midnight shows on both
  * days, cut at midnight, like a sleep from 23:00 to 07:00 at the bottom of 12 October and at the top of 13 October,
  * see {@link dayStart}.
@@ -47,6 +50,7 @@
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the day on to the new day
  *   while it shows today.
+ * - `../changes.ts`: Loads the day anew the moment a file of my new system changes.
  * - `../icons.ts`: Puts the icons of the arrows and of `+` into their buttons.
  * - `../timer.ts`: Shows the timer of a session running now in the bar of the day, `None` while none runs.
  * - `./swipe.ts`: Changes the shown day on a phone by a swipe sideways.
@@ -73,6 +77,7 @@ import { trackersSee } from "./trackers.ts";
 import { dateTextOf, timeOf, timesStart } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
+import { changesFollow } from "../changes.ts";
 import { iconOf, iconPut, plusPut } from "../icons.ts";
 import { timerSee, timerStart } from "../timer.ts";
 import { phone } from "../phone.ts";
@@ -247,6 +252,11 @@ function edgeScrollStart(entry: HTMLElement, pointer: MouseEvent): void {
  * see {@link entryDrag}; `null` while none turns.
  */
 let turning: { id: string; days: number } | null = null;
+
+/**
+ * Whether the day was to load anew while a dialog was open, so it loads once the dialog closes, see {@link dayAgain}.
+ */
+let missed: boolean = false;
 
 /**
  * Gives the fields of an entry as they are, at a new start and end, as the reader takes them after a drag.
@@ -721,20 +731,23 @@ function nowCenter(calendar: Calendar): void {
 
 /**
  * Loads the shown day again, as it lies in the files now, whenever the page becomes visible, like when I come back
- * to the app on my phone, see `todayFollow` in `today.ts`: its log, with its trackers, see `eventSourceSuccess`
- * in {@link dayStart}, its plan and its note; never while a dialog is open or I type in a field, like a point of my
- * note, so nothing typed gets lost.
+ * to the app on my phone, see `todayFollow` in `today.ts`, and the moment a file of my new system changes,
+ * see `../changes.ts`: its log, with its trackers, see `eventSourceSuccess` in {@link dayStart}, its plan, and its
+ * note but while I type in a field, like a point of my note, so nothing typed gets lost; nothing while a dialog is
+ * open, which keeps the entry as it opened, but once it closes, see {@link missed}.
  * - `typing`: Whether the focus stands in a field to type in.
  *
  * @param calendar - Calendar of the day
  */
 function dayAgain(calendar: Calendar): void {
     const typing: boolean = document.activeElement?.matches("input, textarea, [contenteditable='true']") ?? false;
-    if (typing || document.querySelector("dialog[open]") !== null)
+    missed = document.querySelector("dialog[open]") !== null;
+    if (missed)
         return;
     calendar.refetchEvents();
     boxesAgain(calendar);
-    dayNoteShow(dayOf(calendar.view.currentStart));
+    if (!typing)
+        dayNoteShow(dayOf(calendar.view.currentStart));
 }
 
 /**
@@ -940,6 +953,11 @@ export function dayStart(): void {
         calendar.gotoDate(day);
         nowCenter(calendar);
     }, (): void => todayButtonShow(dayOf(calendar.view.currentStart)), (): void => dayAgain(calendar));
+    changesFollow((): void => dayAgain(calendar));
+    document.addEventListener("close", (): void => {
+        if (missed)
+            dayAgain(calendar);
+    }, { capture: true });
     giftsStart();
     searchStart(calendar);
     timesStart();

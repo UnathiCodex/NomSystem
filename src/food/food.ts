@@ -19,6 +19,8 @@
  * see `search.ts`.
  * It opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today it moves on
  * with it; only a link like `/food?date=2026-10-10` opens on that day, see `today.ts`.
+ * The day loads anew the moment a file of my new system changes, whoever changed it, like a food renamed below
+ * or a meal changed beside it, see `../changes.ts`, so it always shows the entries as they lie in the log.
  *
  * - `./foods.ts`: Loads the meals of a day, writes amounts and makes elements.
  * - `./search.ts`: Finds foods, mine first, then on Open Food Facts, adds new ones and changes mine.
@@ -28,6 +30,7 @@
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the food view on to the new day
  *   while it shows today.
+ * - `../changes.ts`: Loads the day anew the moment a file of my new system changes.
  * - `../icons.ts`: Puts the arrows and the icon back to today into their buttons, their words as tooltip.
  * - `lucide`: The icons of the arrows and of today.
  * - `./food.css`: Look of the food view.
@@ -40,6 +43,7 @@ import { labelOf } from "../day/places.ts";
 import { dateTextOf } from "../day/times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
+import { changesFollow } from "../changes.ts";
 import { iconPut, plusPut } from "../icons.ts";
 import { CalendarCheck, ChevronLeft, ChevronRight } from "lucide";
 import "./food.css";
@@ -278,7 +282,8 @@ function dayMove(days: number): void {
 /**
  * Starts the food view after the router has put its HTML into the page:
  * the arrows and the icon back to today, the day a link asks for or today's calendar date, which moves on
- * to the new day by itself while it is shown, see `today.ts`, my meals and the food search.
+ * to the new day by itself while it is shown, see `today.ts`, and loads anew after every change of the files,
+ * see `../changes.ts`, my meals and the food search.
  * - `before`, `after`, `today`: Buttons to the day before and after, and back to today.
  */
 export function foodStart(): void {
@@ -305,4 +310,5 @@ export function foodStart(): void {
     document.getElementById("food-search")?.append(search);
     dayOpen(askedDayOf() ?? calendarTodayOf());
     todayFollow((): string => shown, dayOpen);
+    changesFollow((): void => dayOpen(shown));
 }

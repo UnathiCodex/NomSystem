@@ -26,13 +26,17 @@
  *   the name of the meal the small grey plus, like `Chili con Carne +`, which opens below its foods the search of my
  *   foods and of Open Food Facts by name or barcode, as the plus of a meal in an entry does, and closes it again;
  *   a food picked, a product taken into my foods first, changed for good in `Meals.md` at once, the search staying
- *   open and empty for the next, since I mostly add many; a click on the line but on its plus closes the meal
- *   again.
+ *   open and empty for the next, since I mostly add many, the cursor in it unless it stands in another field;
+ *   a click on the line but on its plus closes the meal again.
+ * - My meals load anew the moment a file of my new system changes, whoever changed it, like a food renamed in my
+ *   foods below, see `../changes.ts`, but not while the cursor stands in their list, so nothing typed there is lost;
+ *   so the section never shows, nor writes back, a meal as `Meals.md` held it before.
  *
  * - `./foods.ts`: Loads my meals, sends and removes meals, writes amounts and makes elements and buttons.
  * - `./search.ts`: The search of my foods and of Open Food Facts, which adds a food to a meal, and the head and lines
  *   of every list.
  * - `../search.ts`: Compares the text typed in the search of the meals with their names and foods.
+ * - `../changes.ts`: Loads my meals anew the moment a file of my new system changes.
  * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, and the plain question mark, their words
  *   as tooltip.
  * - `./meals.css`: Look of the section and of a meal opened.
@@ -46,6 +50,7 @@ import { editButtonsOf, editFieldOf, foodSearchOf, inlineFieldOf, listHeadOf, li
 import { crossPut, iconOf, iconPut, plusPut, QuestionMark } from "../icons.ts";
 import { Plus } from "lucide";
 import { matchesAll, wordsOf } from "../search.ts";
+import { changesFollow } from "../changes.ts";
 import "./meals.css";
 
 import type { Dish, Food } from "./foods.ts";
@@ -275,7 +280,8 @@ function gramsFieldOf(grams: number | null, name: string, portion: number | null
 
 /**
  * Builds the section of my meals in the food view, see the top of this file, loading my meals,
- * and again after every meal changed or removed.
+ * and again after every meal changed or removed, and after every change of a file of my new system
+ * while the cursor stands outside their list.
  * - `section`: The section.
  * - `search`: The search field of the meals, `Search meals` grey in it while empty.
  * - `list`: Place of the head and the lines of the meals.
@@ -435,7 +441,10 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
                     nothing: "Nothing found",
                 });
                 parts.append(foods);
-                queueMicrotask((): void => foods.querySelector("input")?.focus());
+                queueMicrotask((): void => {
+                    if (!(document.activeElement?.matches("input, textarea") ?? false))
+                        foods.querySelector("input")?.focus();
+                });
             }
             return [line, detail];
         });
@@ -490,5 +499,9 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
     }));
     section.append(heading, search, list);
     load();
+    changesFollow((): void => {
+        if (!list.contains(document.activeElement))
+            load();
+    });
     return section;
 }
