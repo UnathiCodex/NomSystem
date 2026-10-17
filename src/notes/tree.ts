@@ -303,9 +303,14 @@ function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: H
 
 /**
  * Shows one chapter of one module in the tree of my modules, see the top of this file: their names in their pickers,
- * the notes of that chapter below, both marked `picked`, every other module and chapter hidden, see `./notes.css`;
+ * the module as the day writes its date, the part of its folder name after its code small and grey above, as the
+ * weekday, its code bold below, like `BusinessAnalyticsMachineLearning` above `IN2028`, see `./notes.css`;
+ * the notes of that chapter below, both marked `picked`, every other module and chapter hidden;
  * a module without chapters shows its hint `No chapters yet` and no picker of chapters.
  * - `chapterPick`: The picker of the chapter.
+ * - `title`: Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`.
+ * - `words`, `code`: The rest of it after its code, and its code, like `BusinessAnalyticsMachineLearning`
+ *   and `IN2028`.
  *
  * @param tree - The tree
  * @param module - The module, see {@link moduleNodeOf}
@@ -319,8 +324,14 @@ export function chapterShow(tree: HTMLElement, module: HTMLElement, chapter: HTM
         other.classList.toggle("picked", other === chapter);
     });
     const chapterPick: HTMLButtonElement = tree.querySelector(".tree-pick-chapter") as HTMLButtonElement;
-    (tree.querySelector(".tree-pick-module > .tree-pick-name") as HTMLElement).textContent =
-        breakableOf(module.dataset.title ?? "");
+    const title: string = module.dataset.title ?? "";
+    const words: HTMLSpanElement = document.createElement("span");
+    const code: HTMLSpanElement = document.createElement("span");
+    words.className = "tree-pick-words";
+    words.textContent = breakableOf(title.slice(title.indexOf("_") + 1));
+    code.className = "tree-pick-code";
+    code.textContent = title.split("_")[0];
+    (tree.querySelector(".tree-pick-module > .tree-pick-name") as HTMLElement).replaceChildren(words, code);
     (chapterPick.firstElementChild as HTMLElement).textContent = breakableOf(chapter?.dataset.chapter ?? "");
     chapterPick.hidden = chapter === null;
 }
@@ -424,35 +435,94 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
 
 /**
  * Place of a block of a section in its round, see `../editor/round.ts`: done, the current one, later in the round,
- * or outside the round.
+ * outside the round, or outside it but opened from the tree and shown.
  */
-export type BlockMark = "done" | "current" | "round" | "other";
+export type BlockMark = "done" | "current" | "round" | "other" | "opened";
+
+/**
+ * Type word of a block of a section at the start of its heading, with the dot and space after it, like `Definition. `
+ * of `Definition. Population and Sample`, see `.claude/modules/learning-system.md`.
+ */
+export const kindRule: RegExp = /^(Definition|Algorithm|Example|Task)\.[ \t]+/;
+
+/**
+ * Builds the name of a block for the list of its section: its type word as a small grey box, then its name,
+ * rendered, without an older `(cold)`, like `Definition` boxed and then `Population and Sample`.
+ * - `kind`: The type word with the dot and space after it, `null` for a heading without one.
+ * - `name`: The name, rendered.
+ * - `box`: The box of the type word.
+ *
+ * @param heading - Heading as written
+ * @returns The name
+ */
+function blockNameOf(heading: string): Node[] {
+    const kind: RegExpExecArray | null = kindRule.exec(heading);
+    const name: HTMLSpanElement = document.createElement("span");
+    name.innerHTML = inlineHtmlOf(heading.slice(kind?.[0].length ?? 0).replace(/[ \t]*\(cold\)$/, ""));
+    if (kind === null)
+        return [name];
+    const box: HTMLSpanElement = document.createElement("span");
+    box.className = "block-kind";
+    box.textContent = kind[1];
+    return [box, name];
+}
 
 /**
  * Builds the list of the blocks of a section in their order, each linking to its heading by its heading as written,
- * without an older `(cold)`: a block done with a check after it, the current one in the calm grey of what is shown,
- * a later one of the round plain, one outside the round grey; the same list stands in the tree and, on a phone,
- * above the note.
+ * named by its type word as a small grey box and its name, see {@link blockNameOf}: a block done with a check after it,
+ * the one shown in the calm grey of what is shown, a later one of the round plain, one outside the round grey.
+ * Every block of the section stands in it, never hidden without a trace: once two or more blocks of one kind are
+ * outside the round, like the Examples and Tasks round 0 does not need, they fold into one grey line of their kind
+ * after its last block, like `Tasks · 7 more`, which opens them on a click, as a folder; one alone stays a line of its
+ * own, since folding it saves no room. A line I opened stays open while the list is built anew, and the one holding
+ * the block shown opens.
  * - `list`: The list.
- * - `link`: Link to a block.
+ * - `linkOf`: Makes the link to a block.
+ * - `kindOf`: Gives the type word of a block, empty for none.
+ * - `outside`: Whether a block is outside the round.
+ * - `folded`: The type words whose blocks outside the round fold into one line.
+ * - `inside`: The blocks of a type word outside the round.
+ * - `fold`: The line of a type word with its blocks.
  *
  * @param path - Path of the note
  * @param blocks - Headings of its blocks in their order, each with its place
+ * @param opened - Type words whose lines were open in the list before
  * @returns The list
  */
-export function roundListOf(path: string, blocks: [string, BlockMark][]): HTMLElement {
+export function roundListOf(path: string, blocks: [string, BlockMark][], opened: string[]): HTMLElement {
     const list: HTMLDivElement = document.createElement("div");
-    list.className = "tree-children tree-outline tree-round";
-    list.append(...blocks.map(([heading, mark]: [string, BlockMark]): HTMLAnchorElement => {
+    const linkOf: (block: [string, BlockMark]) => HTMLAnchorElement = ([heading, mark]: [string, BlockMark]): HTMLAnchorElement => {
         const link: HTMLAnchorElement = document.createElement("a");
         link.className = `tree-file tree-${mark}`;
         link.href = noteAddressOf(path, heading);
         link.dataset.heading = heading;
-        link.innerHTML = inlineHtmlOf(heading.replace(/[ \t]*\(cold\)$/, ""));
+        link.append(...blockNameOf(heading));
         if (mark === "done")
             link.append(iconOf(Check));
         return link;
-    }));
+    };
+    const kindOf: (block: [string, BlockMark]) => string = (block: [string, BlockMark]): string =>
+        kindRule.exec(block[0])?.[1] ?? "";
+    const outside: (block: [string, BlockMark]) => boolean = (block: [string, BlockMark]): boolean =>
+        block[1] === "other" || block[1] === "opened";
+    const folded: string[] = [...new Set(blocks.map(kindOf))].filter((kind: string): boolean => kind !== ""
+        && blocks.filter((block: [string, BlockMark]): boolean => kindOf(block) === kind && outside(block)).length > 1);
+    list.className = "tree-children tree-outline tree-round";
+    blocks.forEach((block: [string, BlockMark], index: number): void => {
+        const kind: string = kindOf(block);
+        if (!folded.includes(kind) || !outside(block))
+            list.append(linkOf(block));
+        if (!folded.includes(kind) || blocks.findLastIndex((other: [string, BlockMark]): boolean => kindOf(other) === kind) !== index)
+            return;
+        const inside: [string, BlockMark][] = blocks.filter((other: [string, BlockMark]): boolean =>
+            kindOf(other) === kind && outside(other));
+        const fold: HTMLDetailsElement = folderOf(`${kind}s · ${inside.length} more`);
+        fold.classList.add("tree-kind");
+        fold.dataset.kind = kind;
+        fold.open = opened.includes(kind) || inside.some((other: [string, BlockMark]): boolean => other[1] === "opened");
+        fold.lastElementChild?.append(...inside.map(linkOf));
+        list.append(fold);
+    });
     mathRender(list);
     return list;
 }
@@ -466,9 +536,10 @@ export function roundListOf(path: string, blocks: [string, BlockMark][]): HTMLEl
  * a cold task, a `Task.`, in a note written the older way `Task. … (cold)`, named also without `(cold)`, stands alone,
  * at the end of its section; there a plain `Task.` is worked or faded. An Example without a solution is theory.
  * The outline put before goes; a block I folded in it stays folded. A section shows the blocks of its round instead,
- * see {@link roundListOf}.
+ * see {@link roundListOf}, a line of a kind I opened staying open.
  * - `entry`: Entry of the note in the tree, `null` while it is none, like a note of a module not of the semester.
  * - `folded`: Names of the blocks folded in the outline before.
+ * - `kinds`: Type words of the lines of a kind open in the list of a section before.
  * - `outline`: The outline.
  * - `lines`: Lines of the note.
  * - `older`: Whether the note is written the older way.
@@ -486,13 +557,15 @@ export function roundListOf(path: string, blocks: [string, BlockMark][]): HTMLEl
  */
 export function outlineShow(tree: HTMLElement, path: string, text: string, round: [string, BlockMark][] | null): void {
     const entry: HTMLElement | null = tree.querySelector(`.tree-file.shown[data-path="${CSS.escape(path)}"]`);
-    const folded: string[] = [...tree.querySelectorAll<HTMLDetailsElement>(".tree-outline details.tree-folder:not([open])")]
+    const folded: string[] = [...tree.querySelectorAll<HTMLDetailsElement>(".tree-outline details.tree-folder:not(.tree-kind, [open])")]
         .map((folder: HTMLDetailsElement): string => folder.querySelector<HTMLElement>(".tree-file")?.dataset.heading ?? "");
+    const kinds: string[] = [...tree.querySelectorAll<HTMLDetailsElement>(".tree-round details.tree-kind[open]")]
+        .map((fold: HTMLDetailsElement): string => fold.dataset.kind ?? "");
     tree.querySelectorAll(".tree-outline").forEach((outline: Element): void => outline.remove());
     if (entry === null)
         return;
     if (round !== null) {
-        entry.after(roundListOf(path, round));
+        entry.after(roundListOf(path, round, kinds));
         return;
     }
 

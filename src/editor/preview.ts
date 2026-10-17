@@ -14,6 +14,8 @@
  * - Empty lines as high as the space the scripts view leaves between the blocks around them, the line of the cursor
  *   as high as a line, see {@link spaceLook}; the blank line before text that goes on in a point below its sub-points
  *   without height, see {@link paragraphLook}.
+ * - The type word of a block of a section at the start of a heading `##`, like `Definition. `, a small grey box before
+ *   the name, as in the tree, as written on the line of the cursor, see {@link headingLook}.
  * - Bold, italic, struck and code without `**`, `*`, `~~` and `` ` ``, Markdown links and wiki links
  *   `[[Note#Heading|Text]]` as their text; the markup of the piece the cursor touches shows.
  * - Line breaks `<br>` and break opportunities `<wbr>` drawn as in the scripts view, so `<br><wbr>` at the end of a line
@@ -48,7 +50,8 @@
  * - `@lezer/highlight`: Gives pieces of the syntax the classes of their look, see `./editor.css`.
  * - `../notes/math.ts`: Renders formulas as the scripts view does.
  * - `../notes/markdown.ts`: Renders tables, callouts, code blocks and HTML blocks as the scripts view does.
- * - `../notes/tree.ts`: Builds the address of a note in the scripts view, for a link to follow.
+ * - `../notes/tree.ts`: Builds the address of a note in the scripts view, for a link to follow, and tells the type word
+ *   of a block at the start of its heading.
  * - `./keys.ts`: Tells a spacer line and the indentation of the text of a list item, for where the item ends.
  * - `./steps.ts`: Tells a worked Example, whose solution comes unfolded.
  */
@@ -61,7 +64,7 @@ import {
 import { tagHighlighter, tags } from "@lezer/highlight";
 import { mathRender } from "../notes/math.ts";
 import { htmlOf } from "../notes/markdown.ts";
-import { noteAddressOf } from "../notes/tree.ts";
+import { kindRule, noteAddressOf } from "../notes/tree.ts";
 import { columnsOf, spacerRule, textIndentationOf } from "./keys.ts";
 import { workedIs } from "./steps.ts";
 
@@ -173,6 +176,11 @@ const numberMark: Decoration = Decoration.mark({ class: "cm-list-mark cm-list-nu
  * Markup `##` of a heading or `>` of a quote on the line of the cursor, left of the text, see `./editor.css`.
  */
 const hanging: Decoration = Decoration.mark({ class: "cm-hanging" });
+
+/**
+ * Type word of a block at the start of its heading, like `Definition`, as a small grey box, see `../notes/notes.css`.
+ */
+const kindBox: Decoration = Decoration.mark({ class: "block-kind" });
 
 /**
  * Spacer or other invisible character on the line of the cursor, drawn as a faint dot.
@@ -837,6 +845,10 @@ function foldLook(look: Look, line: Line, item: boolean): void {
 /**
  * Heading `##`: its line in an `h2`, as the scripts view draws it, its `##` hidden,
  * on the line of the cursor shown left of the text, which keeps its place; its fold arrow after its text.
+ * The type word of a block at its start, like `Definition` of `## Definition. Population and Sample`, a small grey
+ * box before the name, its dot and space hidden, while the cursor is not on the line, see {@link kindRule}.
+ * - `kind`: The type word with the dot and space after it, `null` for a heading without one.
+ * - `start`: Where the text of the heading starts.
  *
  * @param look - Look being built
  * @param node - Heading, like `ATXHeading2`
@@ -848,8 +860,15 @@ function headingLook(look: Look, node: SyntaxNode): boolean {
     wrap(look, node, `h${node.name.slice(-1)}`, {}, line.from + 1);
     if (mark !== null && touched(look, line.from, line.to))
         look.decorations.push(hanging.range(mark.from, markEndOf(look, mark)));
-    else if (mark !== null)
-        hide(look, mark.from, markEndOf(look, mark));
+    else if (mark !== null) {
+        const start: number = markEndOf(look, mark);
+        const kind: RegExpExecArray | null = node.name === "ATXHeading2" ? kindRule.exec(look.state.sliceDoc(start, line.to)) : null;
+        hide(look, mark.from, start);
+        if (kind !== null) {
+            look.decorations.push(kindBox.range(start, start + kind[1].length));
+            hide(look, start + kind[1].length, start + kind[0].length);
+        }
+    }
     foldLook(look, line, false);
     return true;
 }

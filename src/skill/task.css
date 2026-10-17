@@ -14,7 +14,7 @@
     flex-basis: 100%;
 }
 
-/* A quiet row, on a card or in a section, as a box of the day: its button `⋯` at the right, so its menu opens
+/* A quiet row, on a card, as a box of the day: its button `⋯` at the right, so its menu opens
    below it toward the page, the result of today grey before it, and the field of my comment below them */
 .task-quiet {
     justify-content: flex-end;
@@ -125,15 +125,57 @@ details.task-history a {
     visibility: hidden;
 }
 
-/* A step of a solution not shown yet, and below the solution Next step and Show all, like the buttons of a task */
+/* A step of a solution not shown yet, and below the solution Next step and Show all, like the buttons of a task,
+   at the right, as every button of a block of a section */
 .step-hidden {
     display: none;
 }
 
 .steps-buttons {
     display: flex;
+    justify-content: flex-end;
     gap: var(--gap);
     padding: 0.75rem 0 0.5rem;
+}
+
+/* Check and cross of a task of a section at the right end of the line of its heading, see `judgeOf` in `task.ts`:
+   two small buttons a little apart, as high as the heading's line and centred on it, its last line where it wraps,
+   the room for them kept free beside the text, see `.task-heading` in `../editor/editor.css`; the result of today
+   pressed, in the calm grey of what is picked with its soft line, as the round check once on */
+.task-judge {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 1lh;
+}
+
+.task-judge .chip-button[aria-pressed="true"] {
+    border-color: var(--chosen-line);
+    background: var(--chosen);
+}
+
+.task-judge .chip-button[aria-pressed="true"]:enabled:hover {
+    background: var(--chosen-over);
+}
+
+/* Field of my comment after Wrong in the menu below the cross, see `../menu.css`: one control high, as wide as a few
+   words, filled in the soft grey of a card without a frame; the hint that saving failed above it, grey */
+.task-reason input {
+    width: min(18rem, 80vw);
+    height: var(--control-height);
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--fill);
+}
+
+.task-reason p {
+    margin: 0 0 0.375rem;
+    padding: 0 0.75rem;
+    color: var(--text-muted);
 }
 
 /* Hint after the state while Right and Wrong hide, grey and small; gone once the solution is open */
@@ -147,18 +189,20 @@ details.task-history a {
     display: inline;
 }
 
-/* Phone: the buttons of a solution as they look, but a finger high to hit, each taking a tap 0.25rem above and below
-   it, which the room between two lines of buttons leaves free */
+/* Phone: the buttons of a solution and the check and cross of a task as they look, but a finger high to hit, each
+   taking a tap 0.25rem above and below it, which the room between two lines of buttons leaves free */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .steps-buttons button,
     .round-next,
-    .task-history > summary {
+    .task-history > summary,
+    .task-judge .chip-button {
         position: relative;
     }
 
     .steps-buttons button::after,
     .round-next::after,
-    .task-history > summary::after {
+    .task-history > summary::after,
+    .task-judge .chip-button::after {
         content: "";
         position: absolute;
         inset: -0.25rem 0;

@@ -8,8 +8,9 @@
 }
 
 /* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the editor, the scripts
-   view, each row in the text of the tree, see `--tree-text` in `../variants.css`, and one chip high
-   to click; the anchor of the menus of its pickers, which open beside it.
+   view, each row in the text of the tree, see `--tree-text` in `../variants.css`, and a little higher than a chip,
+   `--tree-row-height`, so its grey has room around the name; the anchor of the menus of its pickers, which open
+   beside it.
    Its framed rows, the search and the grey of the note shown or under the pointer, one gap beside the rail's
    buttons, their names a step in from them, `--content-indent`, as every text without a frame of its own,
    the room left of a name in a row `--tree-row-padding`, the room above and below the name of a picker
@@ -17,12 +18,13 @@
 .notes-tree {
     --tree-row-padding: calc(var(--content-indent) - var(--gap));
     --tree-pick-padding: 0.25rem;
+    --tree-row-height: calc(var(--chip-height) + 0.25rem);
     anchor-name: --tree;
     overflow-y: auto;
     padding: var(--gap) 0.75rem var(--gap) var(--gap);
     border-right: 1px solid var(--line);
     font-size: var(--tree-text);
-    line-height: var(--chip-height);
+    line-height: var(--tree-row-height);
 }
 
 /* Name of the root of the tree on top, NomSkillingmodules or NomManageplannings, a heading that never folds,
@@ -75,7 +77,7 @@
 .tree-pick,
 .tree-choice {
     display: block;
-    margin: 0.125rem 0;
+    margin: 0.1875rem 0;
     padding: 0 var(--tree-row-padding);
     border-radius: var(--radius);
     white-space: nowrap;
@@ -140,8 +142,28 @@
 }
 
 .tree-pick-module {
+    align-items: center;
     margin-bottom: 0.375rem;
     anchor-name: --tree-module;
+}
+
+/* The module on its picker as the day writes its date, see `.day-weekday` in `../base.css`: the rest of the name of
+   its folder small and grey above, as the weekday, a breath apart from its code below, bold, as the date, like
+   `BusinessAnalyticsMachineLearning` above `IN2028`, see `chapterShow` in `tree.ts`; each line ending in dots when
+   longer than the card */
+.tree-pick-words,
+.tree-pick-code {
+    display: block;
+    overflow: hidden;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+}
+
+.tree-pick-words {
+    margin-bottom: 0.125rem;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
 }
 
 .tree-pick-chapter {
@@ -173,7 +195,7 @@
     box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.5);
     overflow-y: auto;
     font-size: var(--tree-text);
-    line-height: var(--chip-height);
+    line-height: var(--tree-row-height);
 }
 
 .tree-menu-module {
@@ -292,6 +314,55 @@
 
 .tree-round .tree-other {
     color: var(--reading-marker);
+}
+
+/* A block outside the round opened from the tree, shown in the calm grey of what is shown, its name still grey */
+.tree-round .tree-opened {
+    background: var(--chosen);
+    color: var(--text-muted);
+}
+
+/* The line of a kind whose blocks lie outside the round, like `Tasks · 7 more`, grey as they are, its arrow before
+   it, a folder that opens them below it, see `roundListOf` in `tree.ts` */
+.tree-round .tree-kind > summary {
+    color: var(--reading-marker);
+}
+
+/* Type word of a block of a section, like `Definition`, a small grey box before its name, in the tree and on the line
+   of its heading in the note, see `blockNameOf` in `tree.ts` and `headingLook` in `../editor/preview.ts`: filled in the
+   soft grey of a card, its word in the grey of quiet text and the text's weight, a little apart from the name */
+.block-kind {
+    display: inline-block;
+    margin-right: 0.5em;
+    padding: 0 0.5em;
+    border-radius: 0.375rem;
+    background: var(--fill);
+    color: var(--text-muted);
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.6;
+    vertical-align: middle;
+}
+
+/* In the tree a step smaller than the name, every box as wide as the widest word, `Algorithm`, its word in the middle,
+   so the names after them start in one line; one grey lighter on a row under the pointer or shown, so it never melts
+   into the row's own grey; on a block outside the round as faint as its name */
+.tree-round .block-kind {
+    min-width: 5.75em;
+    font-size: 0.8em;
+    text-align: center;
+}
+
+.tree-round .tree-file:hover .block-kind {
+    background: var(--chosen);
+}
+
+.tree-round :is(.tree-current, .tree-opened) .block-kind {
+    background: var(--chosen-over);
+}
+
+.tree-round .tree-other .block-kind {
+    color: inherit;
 }
 
 /* Entry under the pointer one grey lighter; the note or file shown in the calm grey of what is picked */

@@ -5,33 +5,36 @@
  * that opens all its attempts, each with its day, its result and my comment on what went wrong, an older one also
  * with its time, its part, my effort, where I got stuck or why I skipped, and a link to the day; in the scripts view
  * and in a card, under the heading of the task, its row with one button `⋯` for the next attempt, as a box of the day
- * has, see `../menu.ts`.
+ * has, see `../menu.ts`; in a section, an Example or a Task of a round, a check and a cross on the line of its heading
+ * instead, see {@link judgeOf}.
  * Its menu writes into the skill entry of the moment, through the reader's one writer of attempts, the task judged
- * as a whole: Right at once, Wrong opens one short field below the task for my comment on what went wrong, which
+ * as a whole: Right at once, Wrong opens one short field for my comment on what went wrong, which
  * Enter writes with it, also empty, and Escape closes without writing; only in a session of its module, which the
  * dialog of a new entry starts while none runs, see `../editor/session.ts`.
- * The menu shows only once the solution of the task is open, so I judge against it, not by feeling, since
- * self-grading runs generous (León 2023); a task without a solution shows it always. A broken task I tell my tutor
+ * Right and Wrong work only once the solution of the task is open, so I judge against it, not by feeling, since
+ * self-grading runs generous (León 2023); a task without a solution takes them always. A broken task I tell my tutor
  * in the chat.
- * A card and a section in the editor keep the row quiet, as quiet as a box of the day: only the `⋯`, after it grey
- * the result of today once there is one, like `wrong`, no state, no hint and no history.
+ * A card keeps the row quiet, as quiet as a box of the day: only the `⋯`, after it grey the result of today once
+ * there is one, like `wrong`, no state, no hint and no history.
  *
  * - `./attempts.ts`: Sends attempts, and writes days out.
  * - `../editor/session.ts`: Makes sure a session of the module of the task runs before an attempt is written.
  * - `../icons.ts`: Puts icons, alone or with words, into buttons.
- * - `../menu.ts`: Puts the items for the next attempt behind one button `⋯`.
+ * - `../menu.ts`: Puts the items for the next attempt behind one button `⋯`, and opens the field of my comment below
+ *   the cross of a section as a menu.
  * - `lucide`: The icons of the history and of the items.
  * - `./task.css`: Look of the row and the history of a task.
  */
 
 import { attemptSend, dayTextOf } from "./attempts.ts";
 import { sessionEnsure } from "../editor/session.ts";
-import { iconOf, iconWordsOf } from "../icons.ts";
-import { menuItemOf, menuOf } from "../menu.ts";
+import { iconOf, iconPut, iconWordsOf } from "../icons.ts";
+import { menuAnchor, menuItemOf, menuOf } from "../menu.ts";
 import { Check, History, X } from "lucide";
 import "./task.css";
 
 import type { Attempt, SkillTask } from "./attempts.ts";
+import type { IconNode } from "lucide";
 
 
 /**
@@ -140,29 +143,30 @@ export function historyOf(task: SkillTask, counted: boolean): HTMLElement[] {
 
 /**
  * Writes an attempt at a task into the skill entry of the moment, then shows the task again, once a session of its
- * module runs, see `sessionEnsure` in `../editor/session.ts`; without one nothing is written and the row stays as it is.
- * The row of the task takes no clicks meanwhile, so a double click writes one attempt;
- * when the reader does not take the attempt, the row says so.
+ * module runs, see `sessionEnsure` in `../editor/session.ts`; without one nothing is written and the buttons stay as
+ * they are. The buttons of the task take no clicks meanwhile, so a double click writes one attempt;
+ * when the reader does not take the attempt, `failed` says so.
  * - {@link HTMLElement#inert}: Makes an element and its content take no clicks and no typing.
  *
- * @param row - Row of the task
+ * @param place - The buttons of the task: its row, or its check and cross
  * @param task - Task
  * @param result - Result of the attempt
  * @param comment - My comment on what went wrong, empty for none and for right
  * @param written - Shows the task again once the attempt is written
+ * @param failed - Says that saving failed, and lets the buttons take clicks again
  */
-function attemptWrite(row: HTMLElement, task: SkillTask, result: "right" | "wrong", comment: string,
-                      written: () => Promise<void>): void {
+function attemptWrite(place: HTMLElement, task: SkillTask, result: "right" | "wrong", comment: string,
+                      written: () => Promise<void>, failed: (error: unknown) => void): void {
 
-    row.inert = true;
+    place.inert = true;
     sessionEnsure(task.id.split("/")[0]).then(async (running: boolean): Promise<void> => {
         if (!running) {
-            row.inert = false;
+            place.inert = false;
             return;
         }
         await attemptSend({ task: task.id, result: result, comment: comment });
         await written();
-    }).catch((error: unknown): void => failShow(row, error));
+    }).catch(failed);
 }
 
 /**
@@ -196,7 +200,7 @@ function wrongShow(row: HTMLElement, task: SkillTask, written: () => Promise<voi
     input.autocomplete = "off";
     input.addEventListener("keydown", (event: KeyboardEvent): void => {
         if (event.key === "Enter")
-            attemptWrite(row, task, "wrong", input.value.trim(), written);
+            attemptWrite(row, task, "wrong", input.value.trim(), written, (error: unknown): void => failShow(row, error));
         else if (event.key === "Escape")
             form.hidden = true;
     });
@@ -218,7 +222,7 @@ function wrongShow(row: HTMLElement, task: SkillTask, written: () => Promise<voi
  * @param today - Today like `2026-10-10`
  * @param solution - Fold of the task's solution, `null` when it has none: whether it is open, and a `toggle` when that
  *   changes, like the fold of a card, or as the editor draws the row anew on each fold, see `../editor/tasks.ts`
- * @param card - Whether the row stands on a card or in a section, quiet
+ * @param card - Whether the row stands on a card, quiet
  * @param written - Shows the task again once an attempt is written
  * @returns Row
  */
@@ -228,7 +232,8 @@ export function taskRowOf(task: SkillTask, today: string, solution: (EventTarget
     const row: HTMLElement = elementOf("div", `task-row${card ? " task-quiet" : ""}`, "");
     const form: HTMLElement = elementOf("div", "task-form", "");
     const more: HTMLElement = menuOf([
-        menuItemOf(Check, "Right", (): void => attemptWrite(row, task, "right", "", written)),
+        menuItemOf(Check, "Right", (): void =>
+            attemptWrite(row, task, "right", "", written, (error: unknown): void => failShow(row, error))),
         menuItemOf(X, "Wrong", (): void => wrongShow(row, task, written)),
     ]);
     const judged: () => void = (): void => {
@@ -244,4 +249,92 @@ export function taskRowOf(task: SkillTask, today: string, solution: (EventTarget
     judged();
     solution?.addEventListener("toggle", judged);
     return row;
+}
+
+/**
+ * Makes a button of the check and the cross of a task, see {@link judgeOf}: one chip high and as wide, its icon
+ * in place of its word, which is its tooltip.
+ *
+ * @param icon - Icon, `Check` or `X`
+ * @param words - What it writes, `Right` or `Wrong`
+ * @returns Button
+ */
+function judgeButtonOf(icon: IconNode, words: string): HTMLButtonElement {
+    const button: HTMLButtonElement = document.createElement("button");
+    button.type = "button";
+    button.className = "chip-button";
+    iconPut(button, icon, words);
+    return button;
+}
+
+/**
+ * Builds the check and the cross of a task in a section, its results Right and Wrong, see the top of this file:
+ * two small buttons side by side, to stand at the right end of the line of its heading, see `../editor/tasks.ts`.
+ * The check writes Right at once and then goes on, as `Next` does; the cross opens below it the field of my comment
+ * on what went wrong, in the place and look of a menu, see `menuAnchor` in `../menu.ts`, which Enter writes with it,
+ * also empty, and Escape or a click beside it closes without writing. Both stay faint and off until the solution is
+ * open, so I judge against it; the result of today stands pressed, in the calm grey of what is picked, the cross with
+ * my comment as its tooltip.
+ * - `judge`: The check and the cross.
+ * - `right`, `wrong`: The check and the cross.
+ * - `reason`: The menu below the cross with the field of my comment.
+ * - `input`: The field.
+ * - `done`: The last attempt of today, whose result stands pressed.
+ * - `failed`: Says in the menu below the cross that saving failed, the field below it, to try again.
+ *
+ * @param task - Task
+ * @param today - Today like `2026-10-17`
+ * @param open - Whether its solution is open, also for a task without one
+ * @param written - Shows the task again once an attempt is written
+ * @param wentOn - Goes on as `Next` does, once a Right is written
+ * @returns The check and the cross
+ */
+export function judgeOf(task: SkillTask, today: string, open: boolean, written: () => Promise<void>,
+                        wentOn: () => void): HTMLElement {
+
+    const judge: HTMLElement = elementOf("span", "task-judge", "");
+    const right: HTMLButtonElement = judgeButtonOf(Check, "Right");
+    const wrong: HTMLButtonElement = judgeButtonOf(X, "Wrong");
+    const reason: HTMLElement = elementOf("div", "task-reason", "");
+    const input: HTMLInputElement = document.createElement("input");
+    const done: Attempt | undefined = task.attempts.findLast((attempt: Attempt): boolean =>
+        attempt.day === today && attempt.result !== "skipped");
+    const failed: (error: unknown) => void = (error: unknown): void => {
+        console.error(error);
+        reason.replaceChildren(elementOf("p", "", "Saving failed"), input);
+        judge.inert = false;
+        reason.showPopover();
+    };
+
+    input.type = "text";
+    input.placeholder = "What went wrong";
+    input.autocomplete = "off";
+    input.addEventListener("keydown", (event: KeyboardEvent): void => {
+        if (event.key !== "Enter")
+            return;
+        reason.hidePopover();
+        attemptWrite(judge, task, "wrong", input.value.trim(), written, failed);
+    });
+    reason.append(input);
+    menuAnchor(reason, wrong);
+    reason.addEventListener("toggle", (event: ToggleEvent): void => {
+        if (event.newState === "open")
+            input.focus();
+    });
+    right.addEventListener("click", (): void => attemptWrite(judge, task, "right", "", async (): Promise<void> => {
+        await written();
+        wentOn();
+    }, failed));
+    right.disabled = !open;
+    wrong.disabled = !open;
+    right.setAttribute("aria-pressed", String(done?.result === "right"));
+    wrong.setAttribute("aria-pressed", String(done !== undefined && done.result !== "right"));
+    if (done !== undefined && done.error !== "")
+        wrong.title = `Wrong: ${done.error}`;
+    if (!open) {
+        right.title = "Right once the solution is open";
+        wrong.title = "Wrong once the solution is open";
+    }
+    judge.append(right, wrong, reason);
+    return judge;
 }

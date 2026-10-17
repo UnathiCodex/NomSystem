@@ -8,11 +8,11 @@
     min-height: 0;
 }
 
-/* The file: the page of it in the middle, scrolls alone, with at least 2rem left and right of the page, as the scripts
-   view keeps around its note, so the text never touches the tree or the edge */
+/* The file: the page of it in the middle, scrolls alone, with at least 1.25rem left and right of the page, so the text
+   never touches the tree or the edge, yet keeps room on the laptop for the buttons at the right of a heading */
 .editor-file {
     overflow-y: auto;
-    padding-inline: 2rem;
+    padding-inline: 1.25rem;
 }
 
 /* Page of every file exactly as wide as a note in the scripts view, my reading width, in the middle, where the screen
@@ -81,18 +81,50 @@
     display: none;
 }
 
-/* Round of a section in the head where the name of a note stands, only its round, like `Round 1`, in the small grey
-   of the weekday above the date of the day, the round check and the save button at the right */
+/* Round of a section in the head where the name of a note stands, its round, like `Round 1`, in grey in the text of
+   controls, and beside it the session it writes into, like `Sat, 17.10.2026 · 21:40 – 22:40`, in the small grey of the
+   weekday above the date of the day, on the same line, see `sessionShow` in `round.ts`; the round check and the save
+   button at the right */
 .editor-round {
     flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.75rem;
     margin: 0;
     color: var(--text-muted);
+    font-size: var(--control-text);
+}
+
+.editor-session {
     font-size: 0.75rem;
 }
 
-/* Next below the current block of a section, like Next step of a solution, see `../skill/task.css` */
+/* Next below the current block of a section, like Next step of a solution, see `../skill/task.css`, at the right,
+   as every button of a block, under the check and cross of its heading and the round check and save button above */
 .round-next {
-    margin: 1.5rem 0 0.5rem;
+    display: block;
+    margin: 1.5rem 0 0.5rem auto;
+}
+
+/* Next off and faint below an Example or a Task without my result, as the round check before its Task has one, so
+   only the check or the cross of its heading goes on, see `waitingIs` in `round.ts` */
+.round-waiting .round-next {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* The line of the heading of a task of a section, with the room for its check and cross at its right kept free, so
+   a long heading wraps before them, see `.task-judge` in `../skill/task.css` */
+.editor-text .cm-editor .cm-line.task-heading {
+    position: relative;
+    padding-right: calc(2 * var(--chip-height) + 1.25rem);
+}
+
+/* The type word of a block on the line of its heading, see `.block-kind` in `../notes/notes.css`, about as big as the
+   text of the tree, whatever the size of the heading */
+.editor-text h2 .block-kind {
+    font-size: 0.55em;
 }
 
 /* Buttons of the head, square, one control high, outlined, as the buttons of the dialogs; the button of the tree

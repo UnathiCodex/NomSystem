@@ -8,14 +8,17 @@
  * ending with `(cold)`, shows a grey label in place of `(cold)`, like `cold · 2 done · 1 right`, while the cursor
  * is not on its heading.
  * Only a note with tasks of the semester has rows. A section, a note whose tasks make a section of the semester,
- * keeps its rows quiet, as a card does, without state, hint or numbers, and its `(cold)` hidden without a label,
- * since its round says what is due, see `./round.ts`, which hears of each load, see {@link tasksFollow}.
+ * has no rows but on the line of each heading of an Example or a Task, at its right end, a check and a cross, its
+ * results Right and Wrong, see `judgeOf` in `../skill/task.ts`, without state, hint or numbers, and its `(cold)`
+ * hidden without a label, since its round says what is due, see `./round.ts`, which hears of each load and each Right,
+ * see {@link tasksFollow}.
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold the tasks of the note and draw the rows as widgets between its lines.
  * - `@codemirror/language`: Tells whether a solution is folded.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due.
  * - `../today.ts`: Gives today's calendar date, for when a task is due.
- * - `../skill/task.ts`: Builds the row of a task and the label of a cold task.
+ * - `../skill/task.ts`: Builds the row of a task, the check and the cross of a task of a section, and the label
+ *   of a cold task.
  */
 
 import { StateEffect, StateField } from "@codemirror/state";
@@ -23,7 +26,7 @@ import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { foldedRanges } from "@codemirror/language";
 import { skillingLoad } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { coldLabelOf, taskRowOf } from "../skill/task.ts";
+import { coldLabelOf, judgeOf, taskRowOf } from "../skill/task.ts";
 
 import type { EditorState, Extension, Line, Range, SelectionRange, StateEffectType, Transaction } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
@@ -81,6 +84,16 @@ const tasksLoaded: StateEffectType<NoteTasks> = StateEffect.define<NoteTasks>();
  */
 let follower: ((view: EditorView, loaded: NoteTasks) => void) | null = null;
 
+/**
+ * Goes on after a Right of a task of a section, see {@link tasksFollow}, `null` for none.
+ */
+let goer: ((view: EditorView) => void) | null = null;
+
+/**
+ * Line of the heading of a task of a section, with room at its right for the check and the cross, see `./editor.css`.
+ */
+const judgedLine: Decoration = Decoration.line({ class: "task-heading" });
+
 
 /**
  * Row of a task under its heading, see `taskRowOf` in `../skill/task.ts`; Right and Wrong show while its solution
@@ -111,12 +124,11 @@ class RowWidget extends WidgetType {
 
     /**
      * Tells whether another row is the same, so the drawn one stays: the same task with the same attempts and state,
-     * its solution the same, quiet alike; so a load after a result draws only the row that changed, and the rows
+     * its solution the same; so a load after a result draws only the row that changed, and the rows
      * outside the screen keep their measured heights, which keeps the page where it is.
      */
     override eq(other: RowWidget): boolean {
-        return other.open === this.open && (other.loaded.section === null) === (this.loaded.section === null)
-            && JSON.stringify(other.task) === JSON.stringify(this.task);
+        return other.open === this.open && JSON.stringify(other.task) === JSON.stringify(this.task);
     }
 
     /**
@@ -124,12 +136,64 @@ class RowWidget extends WidgetType {
      */
     toDOM(view: EditorView): HTMLElement {
         return taskRowOf(this.task, this.loaded.today,
-            this.open === null ? null : Object.assign(new EventTarget(), { open: this.open }), this.loaded.section !== null,
+            this.open === null ? null : Object.assign(new EventTarget(), { open: this.open }), false,
             (): Promise<void> => tasksLoad(view, this.loaded.path));
     }
 
     /**
      * Keeps clicks and keys in the row from the editor, so its buttons and fields work as in the scripts view.
+     */
+    override ignoreEvent(): boolean {
+        return true;
+    }
+}
+
+/**
+ * Check and cross of a task of a section at the right end of the line of its heading, see `judgeOf`
+ * in `../skill/task.ts`; they work while its solution is unfolded, so a fold or an unfold draws them anew.
+ */
+class JudgeWidget extends WidgetType {
+    /**
+     * The task.
+     */
+    readonly task: SkillTask;
+
+    /**
+     * The tasks of the note.
+     */
+    readonly loaded: NoteTasks;
+
+    /**
+     * Whether its solution is unfolded, also for a task without one.
+     */
+    readonly open: boolean;
+
+    constructor(task: SkillTask, loaded: NoteTasks, open: boolean) {
+        super();
+        this.task = task;
+        this.loaded = loaded;
+        this.open = open;
+    }
+
+    /**
+     * Tells whether other buttons are the same, so the drawn ones stay: the same task with the same attempts,
+     * its solution the same.
+     */
+    override eq(other: JudgeWidget): boolean {
+        return other.open === this.open && JSON.stringify(other.task) === JSON.stringify(this.task);
+    }
+
+    /**
+     * Builds the buttons; each attempt written loads the tasks again, see {@link tasksLoad}, a Right then goes on,
+     * see {@link tasksFollow}.
+     */
+    toDOM(view: EditorView): HTMLElement {
+        return judgeOf(this.task, this.loaded.today, this.open, (): Promise<void> => tasksLoad(view, this.loaded.path),
+            (): void => goer?.(view));
+    }
+
+    /**
+     * Keeps clicks and keys in the buttons and the field of my comment from the editor.
      */
     override ignoreEvent(): boolean {
         return true;
@@ -195,7 +259,8 @@ function solutionOpenOf(state: EditorState, heading: Line): boolean | null {
 /**
  * Builds the rows of the note, see the top of this file: a row after the heading of each task,
  * as wide as the page, and the label of a cold task in place of its `(cold)`
- * while the cursor is not on its heading.
+ * while the cursor is not on its heading; in a section the check and the cross on the line of the heading instead
+ * of the row, after its fold arrow, so the cursor at the end of the heading stands at its text, see `./preview.ts`.
  * - `decorations`: The rows and labels found so far.
  * - `line`: A line of the note, and `text` the text of its heading `##`, `undefined` for none.
  * - `task`: The task of the heading, `undefined` for any other block.
@@ -223,21 +288,30 @@ function decorationsOf(state: EditorState, loaded: NoteTasks | null): Decoration
             range.from <= line.to && range.to >= line.from))
             decorations.push((loaded.section === null ? Decoration.replace({ widget: new ColdWidget(task) })
                 : Decoration.replace({})).range(line.from + cold.index, line.to));
-        decorations.push(Decoration.widget({
-            widget: new RowWidget(task, loaded, solutionOpenOf(state, line)), block: true, side: 1,
-        }).range(line.to));
+        if (loaded.section !== null) {
+            decorations.push(judgedLine.range(line.from));
+            decorations.push(Decoration.widget({
+                widget: new JudgeWidget(task, loaded, solutionOpenOf(state, line) ?? true), side: 2,
+            }).range(line.to));
+        } else {
+            decorations.push(Decoration.widget({
+                widget: new RowWidget(task, loaded, solutionOpenOf(state, line)), block: true, side: 1,
+            }).range(line.to));
+        }
     }
     return Decoration.set(decorations, true);
 }
 
 /**
- * Lets something hear each load of the tasks, after their rows are drawn, like the round of a section,
- * see `./round.ts`.
+ * Lets something hear each load of the tasks, after their rows are drawn, and each Right of a task of a section,
+ * once written and loaded, like the round of a section, see `./round.ts`.
  *
  * @param listener - Hears the editor and the tasks loaded
+ * @param right - Hears the editor after a Right
  */
-export function tasksFollow(listener: (view: EditorView, loaded: NoteTasks) => void): void {
+export function tasksFollow(listener: (view: EditorView, loaded: NoteTasks) => void, right: (view: EditorView) => void): void {
     follower = listener;
+    goer = right;
 }
 
 /**

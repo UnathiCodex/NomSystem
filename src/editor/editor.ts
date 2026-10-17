@@ -171,11 +171,6 @@ let view: EditorView;
 let outlineTree: HTMLElement | null = null;
 
 /**
- * Whether the note shown is a section, whose save button shows only while it has changes, see {@link stateShow}.
- */
-let sectionShown: boolean = false;
-
-/**
  * Waiting rebuild of the outline after a change of the text, so typing builds it anew once, half a second after
  * it rests.
  */
@@ -195,8 +190,8 @@ function phoneShow(shown: "file" | "tree"): void {
 
 /**
  * Shows whether the file has changes not yet saved: the save button in its full grey while it has, else faint,
- * in a section the save button only then, so beside the round check stands nothing more while nothing changed,
- * and beside it a notice when something went wrong, like `Not saved`, or for a file to read only.
+ * in a section too, beside the round check, and beside it a notice when something went wrong, like `Not saved`,
+ * or for a file to read only.
  * - {@link EditorState#sliceDoc}: Gives the text, its lines joined by the line break of the file.
  *
  * @param notice - Notice of the moment, like `Not saved`, empty for none
@@ -205,8 +200,6 @@ function stateShow(notice: string): void {
     const unsaved: boolean = view.state.sliceDoc() !== saved;
     const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
     save.classList.toggle("unsaved", unsaved);
-    if (sectionShown)
-        save.hidden = !unsaved;
     (document.getElementById("editor-state") as HTMLElement).textContent = notice;
 }
 
@@ -513,10 +506,8 @@ export async function editorStart(): Promise<void> {
     text.style.visibility = "hidden";
     tasksLoad(view, path).catch((error: unknown): void => console.error(error)).finally((): void => {
         text.style.visibility = "";
-        sectionShown = roundBlocksOf(view) !== null;
-        if (sectionShown)
-            stateShow("");
-        else
+        const sectionShown: boolean = roundBlocksOf(view) !== null;
+        if (!sectionShown)
             (document.getElementById("editor-title") as HTMLElement).textContent = title;
         if (!sectionShown)
             addressHeadingShow();

@@ -11,11 +11,13 @@
         <!-- Page of the file as wide as the room beside the tree, with little room left and right -->
         <div class="editor-page">
             <!-- Head: name of the file, whether its changes are saved, and the save button; for a section no name, since
-                 the tree shows the note, but its round, small and grey, and the round check beside the save button;
+                 the tree shows the note, but its round in grey, the session it writes into smaller beside it, see
+                 round.ts, and the round check beside the save button;
                  stays on top while scrolling; on a phone only the name or the round, which scrolls away with the file,
                  while the bar with the rest stands at the bottom, under the thumb, the button that shows the tree first -->
             <div class="editor-head" id="editor-head">
-                <p class="editor-round" id="editor-round" hidden></p>
+                <p class="editor-round" id="editor-round" hidden><span id="editor-round-label"></span><span
+                        class="editor-session" id="editor-session"></span></p>
                 <h1 class="editor-title" id="editor-title"></h1>
                 <div class="editor-bar">
                     <button type="button" class="editor-tree" id="editor-tree" aria-pressed="false"></button>

@@ -3,12 +3,16 @@
  *
  * The round of a section in the editor, the one view of a note: a section, a note with tasks of the semester, shows its
  * blocks, each `##` block, as the round holds them, never changing the text: only the current step stands on the page,
- * the text before and after it hidden, see {@link aloneOf}; the cold Task variants not due this round are folded away
- * whole. Under the current step stands `Next`: it checks a block without a result off, like theory, and opens the next;
- * a task stays unchecked until my result, which only its `⋯` writes. In the head stands only the round, like
- * `Round 1`, see {@link roundLineOf}; the tree lists the blocks with their places, see `roundListOf` in
- * `../notes/tree.ts`, and a click there shows a block alone, see {@link roundHeadingShow}.
- * What a round holds, only what it needs; the other blocks wait, grey in the tree:
+ * the text before and after it hidden, see {@link aloneOf}; every other block folded, the cold Task variants not due
+ * this round like the Examples. Under the current step stands `Next`: it checks a block without a result off, like
+ * theory, and opens the next; a task stays unchecked until my result, which only its check and cross on the line of its
+ * heading write, the check going on as `Next` does, see `../skill/task.ts`, so `Next` stays off below an Example or a
+ * Task until it has my result, and no block passes without one. In the head stands the round, like
+ * `Round 1`, see {@link roundLineOf}, and beside it the session it writes into, see {@link sessionShow}; the tree lists
+ * every block with its place, see `roundListOf` in `../notes/tree.ts`, and a click there shows a block alone, see
+ * {@link roundHeadingShow}.
+ * What a round holds, only what it needs; the other blocks wait, grey in the tree, those of one kind folded into one
+ * line there:
  * - round 0, while the section learns the ladder, until a cold Task first comes back on a later day: every theory
  *   block in the order of the note, the Algorithm among them, and an older note's worked Examples, then one Example
  *   with gaps, the first, which gives almost every step, then one Task alone;
@@ -35,8 +39,9 @@
  *   and draw `Next` as a widget below it.
  * - `@codemirror/language`: Folds and unfolds the blocks, as their arrows do.
  * - `../skill/attempts.ts`: Writes the days of the round line out.
- * - `./tasks.ts`: Hears each load of the tasks of the note, with its section.
- * - `./session.ts`: Makes sure a session of the module runs before `Next` or the round check writes.
+ * - `./tasks.ts`: Hears each load of the tasks of the note, with its section, and each Right.
+ * - `./session.ts`: Makes sure a session of the module runs before `Next` or the round check writes, and gives the
+ *   session running, with its day and times written out.
  * - `./today.ts`: Lists what a failure brings back as cards, by {@link fallbacksOf}, so Today agrees with the round.
  * - `../notes/tree.ts`: The places of the blocks the tree shows.
  */
@@ -45,13 +50,14 @@ import { EditorSelection, EditorState, Prec, StateEffect, StateField } from "@co
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { foldable, foldedRanges, foldEffect, unfoldEffect } from "@codemirror/language";
 import { tasksFollow } from "./tasks.ts";
-import { sessionEnsure } from "./session.ts";
+import { sessionEnsure, sessionOf, sessionTextOf } from "./session.ts";
 
 import type { Extension, Line, Range, SelectionRange, StateEffectType, Transaction, TransactionSpec } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
 import type { Attempt, Result, SkillSection, SkillTask } from "../skill/attempts.ts";
 import type { NoteTasks } from "./tasks.ts";
 import type { BlockMark } from "../notes/tree.ts";
+import type { Session } from "../timer.ts";
 
 
 /**
@@ -443,6 +449,18 @@ function resultlessIs(step: Step): boolean {
 }
 
 /**
+ * Tells whether a step waits for my result: an Example or a Task not done yet, see {@link doneIs}, so `Next` stays off
+ * below it, and its check, Right, or its cross, Wrong, is the way on, see `judgeOf` in `../skill/task.ts`.
+ *
+ * @param shown - The round
+ * @param step - Step
+ * @returns Whether it waits
+ */
+function waitingIs(shown: Round, step: Step): boolean {
+    return !resultlessIs(step) && !doneIs(shown, step);
+}
+
+/**
  * Gives the steps without a result before where I stand, which count as passed, see {@link resultlessIs}.
  * - `index`: Place of the step I stand at, none before the first step and for one no longer in the round.
  *
@@ -551,17 +569,6 @@ async function lineWrite(shown: Round, step: string): Promise<void> {
 }
 
 /**
- * Tells whether a block is a Task variant not due this round, not on the page.
- *
- * @param shown - The round
- * @param block - Block
- * @returns Whether it is hidden
- */
-function hiddenIs(shown: Round, block: Block): boolean {
-    return block.task?.kind === "cold" && block.task.id !== shown.section.cold;
-}
-
-/**
  * Gives what a block folds: from the end of its heading line to the end of its section.
  *
  * @param state - Text of the note
@@ -589,7 +596,7 @@ function foldedAt(state: EditorState, from: number): boolean {
 }
 
 /**
- * Writes the round line, quiet as the small grey text of the day: only the round, like `Round 1`.
+ * Writes the round line, quiet in the grey of the day: only the round, like `Round 1`.
  *
  * @param shown - The round
  * @returns The line
@@ -599,11 +606,28 @@ function roundLineOf(shown: Round): string {
 }
 
 /**
- * Shows the round as it stands: the round line, `Next` below the current block, none after the last,
+ * Shows beside the round line the session the round writes into, smaller, as the calendar shows an entry: its day
+ * and its times, like `Sat, 17.10.2026 · 21:40 – 22:40`; nothing while no session of the module runs, since reading
+ * needs none, see `./session.ts`. What it showed stays until the reader answers, so nothing flickers.
+ *
+ * @param shown - The round
+ */
+function sessionShow(shown: Round): void {
+    sessionOf(moduleOf(shown)).then((session: Session | null): void => {
+        (document.getElementById("editor-session") as HTMLElement).textContent =
+            session === null ? "" : sessionTextOf(session);
+    }).catch((error: unknown): void => console.error(error));
+}
+
+/**
+ * Shows the round as it stands: the round line with the session beside it, `Next` below the current block, none after
+ * the last, off while the step waits for my result, see {@link waitingIs} and `.round-waiting` in `./editor.css`,
  * and the places of the blocks in the tree.
  * - `steps`: The steps of the round.
  * - `current`: The current step.
  * - `line`: The round line.
+ * - `blocks`, `alone`: The blocks of the note and the one shown.
+ * - `next`: Whether `Next` stands below it.
  *
  * @param view - The editor
  * @param shown - The round
@@ -612,13 +636,16 @@ function roundDraw(view: EditorView, shown: Round): void {
     const steps: Step[] = roundStepsOf(view, shown);
     const current: Step | undefined = currentOf(shown, steps);
     const line: HTMLElement = document.getElementById("editor-round") as HTMLElement;
-    line.textContent = roundLineOf(shown);
+    (document.getElementById("editor-round-label") as HTMLElement).textContent = roundLineOf(shown);
     line.hidden = false;
+    sessionShow(shown);
     const blocks: Block[] = blocksOf(view.state, shown.loaded.tasks);
     const alone: Block | undefined = blocks.find((block: Block): boolean => block.heading === opened) ?? current?.block;
     const next: boolean = alone !== current?.block || (current !== undefined && steps.indexOf(current) < steps.length - 1);
     view.dispatch({ effects: nextMoved.of(alone === undefined ? null
         : { block: alone, end: endOf(view.state, alone), next: next }) });
+    (document.getElementById("editor-text") as HTMLElement).classList.toggle("round-waiting",
+        current !== undefined && alone === current.block && waitingIs(shown, current));
     closeShow(shown, steps);
     shown.changed();
 }
@@ -642,6 +669,7 @@ function blockOpen(view: EditorView, block: Block): void {
 
 /**
  * Goes on from the current step, see the top of this file: from a block shown from the tree, back to the current step;
+ * from an Example or a Task without my result not at all, see {@link waitingIs};
  * else, once a session of the module runs, see `sessionEnsure` in `./session.ts`, writes into the log which step comes
  * next, so a step without a result before it counts as passed, and shows it; the last step has no `Next`. Where I am
  * moves at once; a line the reader does not take shows in the head, see {@link failShow}; without a session, or once
@@ -668,7 +696,7 @@ async function roundNext(view: EditorView): Promise<void> {
     }
     opened = "";
     const following: Step | undefined = steps[steps.indexOf(current) + 1];
-    if (following === undefined)
+    if (following === undefined || waitingIs(shown, current))
         return;
     if (!await sessionEnsure(moduleOf(shown)) || round !== shown)
         return;
@@ -728,13 +756,13 @@ export function roundClose(): void {
 
 /**
  * Takes the tasks of the note as they load, see `tasksFollow` in `./tasks.ts`: for a section, the first time its round
- * from the log, where it goes on, see {@link resumedOf}, the blocks done and the current one open, the others folded, the Task variants not
- * due folded away whole, and where I am pinned to the current step, so a result moves nothing, only `Next` and a click;
- * each time after, like after a result, the round as it now stands.
+ * from the log, where it goes on, see {@link resumedOf}, the blocks done and the current one open, the others folded,
+ * the Task variants not due among them, and where I am pinned to the current step, so a result moves nothing, only
+ * `Next`, a click and the check of a Right; each time after, like after a result, the round as it now stands.
  * - `fresh`: Whether the round of this note shows for the first time.
  * - `blocks`, `steps`, `current`: Blocks of the note, steps of the round and the current one.
- * - `folds`, `unfolds`: Blocks to fold and to unfold.
- * - `hidden`: Stretches of Task variants not due, each from the end of the line above its heading.
+ * - `open`: Whether a block stays open.
+ * - `effects`: The blocks to fold.
  *
  * @param view - The editor
  * @param loaded - The tasks of the note with its section
@@ -764,12 +792,8 @@ function roundTake(view: EditorView, loaded: NoteTasks, changed: () => void): vo
         const effects: StateEffect<{ from: number; to: number }>[] = [];
         blocks.forEach((block: Block): void => {
             const body: { from: number; to: number } | null = bodyOf(view.state, block);
-            if (hiddenIs(shown, block)) {
-                const line: Line = view.state.doc.line(block.line);
-                effects.push(foldEffect.of({ from: Math.max(0, line.from - 1), to: body?.to ?? line.to }));
-            } else if (body !== null && !open(block) && !foldedAt(view.state, body.from)) {
+            if (body !== null && !open(block) && !foldedAt(view.state, body.from))
                 effects.push(foldEffect.of(body));
-            }
         });
         view.dispatch({ effects: effects });
         if (current !== undefined && current.block !== blocks[0])
@@ -779,10 +803,12 @@ function roundTake(view: EditorView, loaded: NoteTasks, changed: () => void): vo
 }
 
 /**
- * Gives the places of the blocks of the round shown in their order, for the tree: done, the one shown, which is the
- * current step unless one was opened from the tree, later in the round, or outside it; the Task variants not due
- * left out.
+ * Gives the places of the blocks of the round shown in their order, every block of the note, for the tree: done,
+ * the one shown, which is the current step unless one was opened from the tree, later in the round, or outside it,
+ * like a Task variant not due, also when opened from the tree and shown.
  * - `steps`, `current`: Steps of the round and the current one.
+ * - `alone`: Heading of the block shown.
+ * - `own`: The steps of a block.
  *
  * @param view - The editor
  * @returns Headings with their places, `null` for a note that is no section
@@ -795,11 +821,10 @@ export function roundBlocksOf(view: EditorView): [string, BlockMark][] | null {
     const current: Step | undefined = currentOf(shown, steps);
     const alone: string = opened !== "" ? opened : current?.block.heading ?? "";
     return blocksOf(view.state, shown.loaded.tasks)
-        .filter((block: Block): boolean => !hiddenIs(shown, block))
         .map((block: Block): [string, BlockMark] => {
             const own: Step[] = steps.filter((step: Step): boolean => step.block.heading === block.heading);
             if (alone === block.heading)
-                return [block.heading, "current"];
+                return [block.heading, own.length === 0 ? "opened" : "current"];
             if (own.length === 0)
                 return [block.heading, "other"];
             return [block.heading, own.every((step: Step): boolean => doneIs(shown, step)) ? "done" : "round"];
@@ -814,7 +839,7 @@ export function roundBlocksOf(view: EditorView): [string, BlockMark][] | null {
  *
  * @param view - The editor
  * @param heading - Heading as written
- * @returns Whether the round took it, not for a note that is no section or a Task variant not due
+ * @returns Whether the round took it, not for a note that is no section
  */
 export function roundHeadingShow(view: EditorView, heading: string): boolean {
     if (round === null)
@@ -822,7 +847,7 @@ export function roundHeadingShow(view: EditorView, heading: string): boolean {
     const shown: Round = round;
     const block: Block | undefined = blocksOf(view.state, shown.loaded.tasks)
         .find((candidate: Block): boolean => candidate.heading === heading);
-    if (block === undefined || hiddenIs(shown, block))
+    if (block === undefined)
         return false;
     const current: Step | undefined = currentOf(shown, roundStepsOf(view, shown));
     opened = current?.block.heading === heading ? "" : heading;
@@ -832,7 +857,8 @@ export function roundHeadingShow(view: EditorView, heading: string): boolean {
 }
 
 /**
- * Starts the round of the notes the editor shows: it hears each load of their tasks, see {@link roundTake}.
+ * Starts the round of the notes the editor shows: it hears each load of their tasks, see {@link roundTake}, and goes on
+ * after a Right as `Next` does, see {@link roundNext}.
  * - {@link EditorState.changeFilter}: Leaves changes out before they are applied.
  * - {@link EditorState.transactionFilter}: Changes a transaction before it is applied; {@link Prec.highest} runs
  *   {@link selectionKeep} after the other filters, which move the cursor too, so it has the last word.
@@ -841,7 +867,10 @@ export function roundHeadingShow(view: EditorView, heading: string): boolean {
  * @returns Extension for the editor: the block shown with `Next`, and what I write and select kept inside it
  */
 export function roundStart(changed: () => void): Extension {
-    tasksFollow((view: EditorView, loaded: NoteTasks): void => roundTake(view, loaded, changed));
+    tasksFollow((view: EditorView, loaded: NoteTasks): void => roundTake(view, loaded, changed),
+        (view: EditorView): void => {
+            roundNext(view).catch(failShow);
+        });
     return [alonePlace, EditorState.changeFilter.of(changesKeep),
         Prec.highest(EditorState.transactionFilter.of(selectionKeep))];
 }
