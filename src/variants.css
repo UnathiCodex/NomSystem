@@ -11,9 +11,10 @@
    `--chip-radius`, so it looks as round as a big one,
    controls side by side one control gap apart, so they never touch,
    icons one icon size big, notes with lines a bit higher than my Obsidian's;
-   the tree of the scripts a little smaller than the text of controls, `--tree-text`, 14 px beside their 16 px,
-   a step bigger than Obsidian's 13 px file explorer, so it reads easily while learning, and the names of my notes
-   and their headings still fit on their line;
+   the tree of the scripts and of my new system in the text of the page, `--tree-text`, 15 px, a little smaller
+   than the 16 px of controls and two steps bigger than Obsidian's 13 px file explorer, so it reads easily while
+   learning, the tree as wide as `IN2028_BusinessAnalyticsMachineLearning` needs, `--tree-width`, so the names
+   of my notes and their headings still fit on their line;
    what is picked or shown, and the main button of a dialog, a calm lighter grey with a soft line, never glaring white,
    the main button one grey lighter still under the pointer, `--chosen-over`, as far above `--chosen` as `--fill`
    above the page;
@@ -49,7 +50,7 @@
     --control-text: 1rem;
     --control-height: 2.875rem;
     --chip-height: 1.875rem;
-    --tree-text: 0.875rem;
+    --tree-text: var(--text-size);
     --control-padding: 1rem;
     --control-gap: 0.625rem;
     --icon-size: 1.125rem;
@@ -60,7 +61,7 @@
     --radius: 0.75rem;
     --chip-radius: 0.5rem;
     --note-width: 18rem;
-    --tree-width: 24rem;
+    --tree-width: 25rem;
     --reading-width: 45rem;
     color-scheme: dark;
 }
