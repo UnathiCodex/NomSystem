@@ -14,9 +14,9 @@
  * An older note keeps its meaning: an Example with only a `#### Solution` is worked, one without it theory,
  * and `## Completion. <name>` faded; a heading `## Task. <name> (cold)` is cold, `(cold)` no part of its name,
  * and each plain `## Task. <name>` there faded with `Given:` and `Missing:` lines, else worked.
- * Its source is the `>` line right below its heading,
- * like `> [[VO_UniversityLectureLessons/TUM_2025W/01_CourseOverview.pdf#page=45|VO 2025W 01_CourseOverview (slide 45)]]`;
- * a note not yet rewritten still starts it with a mode word, `> Original: …` or `> Generated: …`, which is left out.
+ * Its sources are the `>` lines right below its heading, one per source, each starting with its mode word,
+ * `Original:` or `Generated:`, which is left out,
+ * like `> Generated: [[VO_UniversityLectureLessons/TUM_2025W/01_CourseOverview.pdf#page=45|VO 2025W 01 CourseOverview (45)]]`.
  * The parts of a cold task, one per idea, are its numbered list items at the start of a line,
  * like `1. Sales $X_1,X_2,X_3$ of three days`, before its solution.
  *
@@ -145,8 +145,8 @@ export type Kind = "worked" | "faded" | "cold";
  * - `name`: Name in its heading, like `Airline Revenue Interval` of `## Task. Airline Revenue Interval`.
  * - `heading`: Its heading as written, like `Task. Airline Revenue Interval`, for a link to it.
  * - `kind`: Its {@link Kind}, by the type word of its heading.
- * - `source`: Its sources as written on its source line, without `> ` and an older mode word,
- *   like `[[…/01_CourseOverview.pdf#page=45|VO 2025W 01_CourseOverview (slide 45)]]`, empty without one.
+ * - `source`: Its sources as written on its source lines, each without `> ` and its mode word, joined by `, `,
+ *   like `[[…|VO 2025W 01 CourseOverview (38)]], [[…|VO 2025W 02 RegressionAnalysis (8)]]`, empty without one.
  * - `note`: Path of its note, as the scripts view takes it, like
  *   `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
@@ -622,8 +622,8 @@ const algorithmHeading: RegExp = /^##[ \t]+(Algorithm\.[ \t]+.+?)[ \t]*$/;
 const olderCold: RegExp = /^## Task\.[ \t]+.+[ \t]+\(cold\)[ \t]*$/;
 
 /**
- * Source line of a task, `> …` with its sources, an older one `> Original: …` or `> Generated: …`
- * with its mode word, which is left out.
+ * Source line of a task, one per source, `> Original: …` or `> Generated: …` with its mode word, which is left out,
+ * or `> …` without one.
  */
 const sourceLine: RegExp = /^>[ \t]*(?:(?:Original|Generated):[ \t]*)?(.*?)[ \t]*$/;
 
@@ -652,6 +652,23 @@ function partsOf(lines: string[], index: number): string[] {
     const end: number = lines.findIndex((line: string, at: number): boolean => at > index && line.startsWith("#"));
     const body: string[] = lines.slice(index + 1, end === -1 ? lines.length : end);
     return [...new Set(body.flatMap((line: string): string[] => partLine.exec(line)?.slice(1, 2) ?? []))];
+}
+
+/**
+ * Gives the sources of a task: its source lines, the `>` lines right below its heading, see {@link sourceLine},
+ * each without `> ` and its mode word, joined by `, `.
+ * - `quotes`: Lines right below the heading that start with `>`.
+ *
+ * @param lines - Lines of the note
+ * @param index - Line of the heading of the task
+ * @returns Sources, like `[[…|VO 2025W 01 CourseOverview (38)]], [[…|VO 2025W 02 RegressionAnalysis (8)]]`,
+ *   empty without one
+ */
+function sourceOf(lines: string[], index: number): string {
+    const end: number = lines.findIndex((line: string, at: number): boolean => at > index && !line.startsWith(">"));
+    const quotes: string[] = lines.slice(index + 1, end === -1 ? lines.length : end);
+    return quotes.map((line: string): string => sourceLine.exec(line)?.[1] ?? "")
+        .filter((source: string): boolean => source !== "").join(", ");
 }
 
 /**
@@ -708,7 +725,7 @@ function algorithmOf(note: string): string {
 }
 
 /**
- * Reads the tasks of a note in their order: each heading of a task with the source line below it, its kind,
+ * Reads the tasks of a note in their order: each heading of a task with its sources, see {@link sourceOf}, its kind,
  * see {@link kindOf}, and for a cold task its parts.
  * - `lines`: Lines of the note.
  * - `section`: Name of the note's section.
@@ -734,7 +751,7 @@ function noteTasksRead(code: string, chapter: string, note: string): Task[] {
             name: heading[3],
             heading: heading[1],
             kind: kind,
-            source: sourceLine.exec(lines[index + 1] ?? "")?.[1] ?? "",
+            source: sourceOf(lines, index),
             note: note,
             chapter: chapter,
             section: section,
