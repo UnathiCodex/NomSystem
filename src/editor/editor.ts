@@ -23,10 +23,10 @@
  * `/scripts?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md#…`,
  * so a reload and the back button of the browser stay on it, and a file of my new system by its path in the tree,
  * like `/edit?file=NomMetainformations/Foods.md`.
- * Saves only with its button, a check as the save of the dialogs, its tooltip `Save`, or Ctrl+S, never by itself,
- * refused when the file changed on the disk since it was read, and asks before leaving with changes unsaved, also
- * for another file of the tree; the button turns the calm grey of a main button while there are changes, and beside it
- * stands when it saved last, like `Saved 20:41`, or what went wrong.
+ * Saves only with its button, the plain floppy disk of saving, so the round's check is the only check, its tooltip
+ * `Save`, or Ctrl+S, never by itself, refused when the file changed on the disk since it was read, and asks before
+ * leaving with changes unsaved, also for another file of the tree; the button faint while nothing is to save, its full
+ * grey while there are changes, and beside it stands when it saved last, like `Saved 20:41`, or what went wrong.
  * A phone shows one thing at a time, as the day shows plan or log: the file, or the tree over it while the button
  * of the tree at the bottom is pressed, see {@link phoneShow}; the name of the file then scrolls away with it,
  * and the button of the tree, the notice and the save button stand at the bottom, see `./editor.css`.
@@ -48,7 +48,8 @@
  *   of a section with their places.
  * - `../day/choices.ts`: Marks where the long name of a file may go on below, on a phone.
  * - `../phone.ts`: Tells a phone, which shows the tree or the file, one at a time.
- * - `lucide`, `../icons.ts`: The check of the save button and the tree of the button that shows the tree on a phone.
+ * - `lucide`, `../icons.ts`: The floppy disk of the save button, the check of the round's button and the tree of the
+ *   button that shows the tree on a phone.
  * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images, and of the tree.
  * - `./editor.css`: Look of the editor.
  */
@@ -73,7 +74,7 @@ import { calendarTodayOf } from "../today.ts";
 import { timeOf } from "../day/times.ts";
 import { breakableOf } from "../day/choices.ts";
 import { phone } from "../phone.ts";
-import { Check, CornerDownLeft, ListTree } from "lucide";
+import { Check, CornerDownLeft, ListTree, Save } from "lucide";
 import { iconPut } from "../icons.ts";
 import "../notes/notes.css";
 import "./editor.css";
@@ -190,8 +191,8 @@ function phoneShow(shown: "file" | "tree"): void {
 }
 
 /**
- * Shows whether the file has changes not yet saved: the save button in the calm grey of a main button while it has,
- * in a section the save button only then, so beside the round check stands no second check while nothing changed,
+ * Shows whether the file has changes not yet saved: the save button in its full grey while it has, else faint,
+ * in a section the save button only then, so beside the round check stands nothing more while nothing changed,
  * and beside it a notice when something went wrong, like `Not saved`, or for a file to read only.
  * - {@link EditorState#sliceDoc}: Gives the text, its lines joined by the line break of the file.
  *
@@ -479,7 +480,7 @@ export async function editorStart(): Promise<void> {
     });
     if (opened.markdown)
         solutionsFold(view);
-    iconPut(save, Check, "Save");
+    iconPut(save, Save, "Save");
     save.addEventListener("click", noteSave);
     if (phone)
         save.addEventListener("pointerdown", (event: PointerEvent): void => event.preventDefault());

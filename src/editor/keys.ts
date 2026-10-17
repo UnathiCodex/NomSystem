@@ -2,13 +2,17 @@
  * ## Keys
  *
  * The keys of a Markdown file in the editor, as in Obsidian, see `./editor.ts`; they go before CodeMirror's usual keys:
- * - Enter continues a list, a task list or a quote on the next line, and on an empty item ends the list, one level
- *   at a time; on a further line of a point it starts the next point too, see {@link furtherContinue};
+ * - Enter continues a list, a task list or a quote on the next line, and on an empty item moves it one level out,
+ *   at the outermost level ends the list; on a further line of a point it starts the next point too, on a spacer line
+ *   the next point of its level, see {@link furtherContinue};
  *   Shift+Enter goes on in the same point on the next line, a spacer line without a new bullet,
  *   see {@link pointContinue}, which on a phone or tablet, whose keyboard has no Shift+Enter, a button does,
  *   see `./editor.ts`; Backspace right after the `-` of a new, empty item makes it the same spacer line,
- *   see {@link spacerBackward}, else right after the `-` of an item or the `>` of a quote takes it away; the first
- *   text typed on an empty spacer line takes the place of the spacer, see {@link spacerTyping}.
+ *   see {@link spacerBackward}, else right after the `-` of an item or the `>` of a quote takes it away;
+ *   Backspace on an empty spacer line moves it one level out, at the outermost level makes it a plain empty line,
+ *   see {@link spacerOutward}; so a list is left one level at a time, with a new bullet by Enter or without one by
+ *   Backspace. The first text typed on an empty spacer line takes the place of the spacer, but `- ` typed there
+ *   starts the next point of its level, see {@link spacerTyping}.
  * - Tab moves a list item one step in, Shift+Tab one step out, always with its sub-points and further lines,
  *   see {@link itemIndent}, and a spacer line one level, see {@link spacerIndent}; outside a list Tab writes a tab
  *   where the cursor is, on several lines picked it moves them all one step in, and Shift+Tab one step out.
@@ -52,6 +56,11 @@ const spacer: string = "⠀";
  * Spacer line: its indentation, then the spacer, maybe text after it.
  */
 export const spacerRule: RegExp = /^[ \t]*⠀/;
+
+/**
+ * Empty spacer line: its indentation and the spacer, nothing after it.
+ */
+const emptySpacerRule: RegExp = /^[ \t]*⠀$/;
 
 /**
  * Gives the indentation of the text of a point, as my notes indent a further line of it: its tabs and then as many
@@ -131,24 +140,35 @@ const spacerBackward: Command = (view: EditorView): boolean => {
 };
 
 /**
+ * Gives the points a line stands in, from the outermost to the innermost, see {@link itemOf}.
+ * - `item`: A point it stands in, from the innermost outwards.
+ * - `items`: The points found so far.
+ *
+ * @param state - Text
+ * @param line - The line
+ * @returns The points, `ListItem`, none outside a list
+ */
+function itemsOf(state: EditorState, line: Line): SyntaxNode[] {
+    const items: SyntaxNode[] = [];
+    for (let item: SyntaxNode | null = itemOf(state, line); item?.name === "ListItem"; item = item.parent?.parent ?? null)
+        items.unshift(item);
+    return items;
+}
+
+/**
  * Gives the levels a spacer line may stand at: the indentation of the text of each point it stands in,
- * from the outermost to the innermost. Markdown reads a spacer line right below a point into the text of the innermost
- * point above it, whatever its indentation, see {@link itemOf}; its level follows its indentation instead,
- * as with any line of a list: it belongs to the innermost point whose text it reaches.
+ * from the outermost to the innermost, see {@link itemsOf}. Markdown reads a spacer line right below a point into
+ * the text of the innermost point above it, whatever its indentation, see {@link itemOf}; its level follows its
+ * indentation instead, as with any line of a list: it belongs to the innermost point whose text it reaches.
  * So below `\t- θ` a spacer with the indentation of the text of `- Estimator` ends the point `θ`,
  * but stays in `Estimator`.
- * - `item`: A point it stands in, from the innermost outwards.
- * - `levels`: The indentations found so far.
  *
  * @param state - Text
  * @param line - The spacer line
  * @returns The indentations, none outside a list
  */
 function spacerLevelsOf(state: EditorState, line: Line): string[] {
-    const levels: string[] = [];
-    for (let item: SyntaxNode | null = itemOf(state, line); item?.name === "ListItem"; item = item.parent?.parent ?? null)
-        levels.unshift(textIndentationOf(state.doc.lineAt(item.from).text) ?? "");
-    return levels;
+    return itemsOf(state, line).map((item: SyntaxNode): string => textIndentationOf(state.doc.lineAt(item.from).text) ?? "");
 }
 
 /**
@@ -161,6 +181,56 @@ function spacerLevelsOf(state: EditorState, line: Line): string[] {
 function spacerLevelOf(levels: string[], line: Line): number {
     return levels.findLastIndex((indentation: string): boolean => columnsOf(indentation) <= columnsOf(line.text));
 }
+
+/**
+ * Finds the point a spacer line stands in by its level, see {@link spacerLevelOf}: the innermost point whose text it
+ * reaches, not always the innermost point above it, into whose text Markdown reads it; Enter and a `- ` typed on it
+ * start the next point after this one, see {@link furtherContinue} and {@link spacerTyping}.
+ * - `level`: Its level.
+ *
+ * @param state - Text
+ * @param line - The spacer line
+ * @returns The point, `ListItem`, `null` outside the list
+ */
+function spacerItemOf(state: EditorState, line: Line): SyntaxNode | null {
+    const level: number = spacerLevelOf(spacerLevelsOf(state, line), line);
+    return level >= 0 ? itemsOf(state, line)[level] : null;
+}
+
+/**
+ * Moves an empty spacer line one level out with Backspace, see {@link spacerLevelsOf}: from the text of a point to the
+ * text of the point it stands in, whose guide line then runs on through it, from the outermost point out of the list
+ * as a plain empty line; so Backspace leaves a list one level at a time, as Enter does on an empty item, never at once
+ * to the left edge, and from each level a `- ` typed or Enter goes on with the list of that level, see
+ * {@link spacerTyping}. With the cursor at the start of the line, and on any other line, it leaves the key to the next.
+ * - `range`: The cursor.
+ * - `line`: Its line.
+ * - `levels`: The levels the spacer may stand at.
+ * - `target`: Level it moves to, `-1` out of the list.
+ * - `insert`: What the line becomes.
+ *
+ * @param view - The editor
+ * @returns Whether it took the key
+ */
+const spacerOutward: Command = (view: EditorView): boolean => {
+    const range: SelectionRange = view.state.selection.main;
+    const line: Line = view.state.doc.lineAt(range.head);
+    if (!range.empty || range.head === line.from || !emptySpacerRule.test(line.text))
+        return false;
+    const levels: string[] = spacerLevelsOf(view.state, line);
+    const target: number = spacerLevelOf(levels, line) - 1;
+    if (target < -1)
+        return false;
+
+    const insert: string = target === -1 ? "" : levels[target] + spacer;
+    view.dispatch({
+        changes: { from: line.from, to: line.to, insert: insert },
+        selection: { anchor: line.from + insert.length },
+        scrollIntoView: true,
+        userEvent: "delete.dedent",
+    });
+    return true;
+};
 
 /**
  * Moves a spacer line one level in, Tab, or out, Shift+Tab, see {@link spacerLevelsOf}: out from the text of a point
@@ -198,14 +268,16 @@ function spacerIndent(inward: boolean): Command {
  * Starts the next point with Enter on a further line of a point, the lines written below its text, see
  * {@link pointContinue}, as Enter does on the line of its `-`, as Obsidian does: the new line takes the point's tabs
  * and its `-`, or its number counted on, like `2.` after `1.`, and what stood right of the cursor; an empty further
- * line becomes the new point itself, so no empty line stays behind. Anywhere else it leaves the key to the next,
- * CodeMirror's Markdown, which continues a list from the line of a `-`.
+ * line becomes the new point itself, so no empty line stays behind. On a spacer line the point is that of its level,
+ * see {@link spacerItemOf}, so Enter goes on with the list of the level Backspace moved it to, see
+ * {@link spacerOutward}. Anywhere else it leaves the key to the next, CodeMirror's Markdown, which continues a list
+ * from the line of a `-`.
  * - `range`: The cursor.
  * - `line`: Its line.
  * - `item`: The list item it stands in, `null` outside a list.
  * - `first`: The first line of the item, with its `-` or number.
- * - `blank`: Whether the line of the cursor holds nothing but the room of a further line, as Shift+Enter leaves it;
- *   the item is then that of the line above.
+ * - `blank`: Whether the line of the cursor holds nothing but the room of a further line, maybe with a spacer;
+ *   the item is then that of the line above, for a spacer line that of its level.
  * - `point`: Its tabs, then its `-`, or its number and the `.` or `)` after it; `null` for no point.
  * - `insert`: What the line of the new point begins with.
  *
@@ -215,9 +287,10 @@ function spacerIndent(inward: boolean): Command {
 const furtherContinue: Command = (view: EditorView): boolean => {
     const range: SelectionRange = view.state.selection.main;
     const line: Line = view.state.doc.lineAt(range.head);
-    const blank: boolean = line.length > 0 && line.text.trim() === "";
+    const blank: boolean = line.length > 0 && /^\s*⠀?$/.test(line.text);
     const item: SyntaxNode | null = !range.empty ? null
-        : blank && line.number > 1 ? itemOf(view.state, view.state.doc.line(line.number - 1)) : itemAt(view.state);
+        : spacerRule.test(line.text) ? spacerItemOf(view.state, line)
+            : blank && line.number > 1 ? itemOf(view.state, view.state.doc.line(line.number - 1)) : itemAt(view.state);
     if (item === null || view.state.doc.lineAt(item.from).number === line.number)
         return false;
 
@@ -458,17 +531,36 @@ function lineDown(command: Command): Command {
  * Lets the first text typed on an empty spacer line take the place of the spacer, see {@link spacer}: the line stays
  * in its point as a further line, its text under the point's text, not one blank further right, since the spacer is
  * needed only while the line is empty.
+ * A `-`, `*` or `+` typed first waits after the spacer, the line still a spacer line of its level: a space after it
+ * starts the next point of that level, see {@link spacerItemOf}, as Enter does, with the indentation of that point's
+ * `-`, so the `- ` stands where Backspace took it away, see {@link spacerOutward}, and Obsidian reads it as the next
+ * point of that level, not as a sub-point; any other text after it takes the place of the spacer too.
  * - `line`: The line typed on.
+ * - `waiting`: Indentation and `-`, `*` or `+` of a line where one waits after the spacer, `null` for none.
+ * - `item`: The point of the spacer's level, `null` for no space typed or no point.
+ * - `insert`: What the line becomes.
  *
  * @returns Handler of typed text
  */
 const spacerTyping: Extension = EditorView.inputHandler.of((view: EditorView, from: number, to: number,
                                                             text: string): boolean => {
     const line: Line = view.state.doc.lineAt(from);
-    if (from !== to || from !== line.to || !/^[ \t]*⠀$/.test(line.text) || /[\r\n]/.test(text))
+    if (from !== to || from !== line.to || /[\r\n]/.test(text))
         return false;
-    view.dispatch({ changes: { from: from - spacer.length, to: from, insert: text },
-        selection: { anchor: from - spacer.length + text.length }, userEvent: "input.type" });
+
+    const waiting: RegExpExecArray | null = /^([ \t]*)⠀([-*+])$/.exec(line.text);
+    let insert: string;
+    if (waiting !== null) {
+        const item: SyntaxNode | null = text === " " ? spacerItemOf(view.state, line) : null;
+        insert = item !== null ? (/^[ \t]*/.exec(view.state.doc.lineAt(item.from).text)?.[0] ?? "") + waiting[2] + " "
+            : waiting[1] + waiting[2] + text;
+    } else if (emptySpacerRule.test(line.text)) {
+        insert = line.text.slice(0, -spacer.length) + (/^[-*+]$/.test(text) ? spacer : "") + text;
+    } else {
+        return false;
+    }
+    view.dispatch({ changes: { from: line.from, to: line.to, insert: insert },
+        selection: { anchor: line.from + insert.length }, userEvent: "input.type" });
     return true;
 });
 
@@ -482,6 +574,7 @@ export const markdownKeys: Extension = [spacerTyping, Prec.high(keymap.of([
     { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
     { key: "Shift-Enter", run: pointContinue },
     { key: "Backspace", run: spacerBackward },
+    { key: "Backspace", run: spacerOutward },
     { key: "Backspace", run: deleteMarkupBackward },
     { key: "Tab", run: spacerIndent(true), shift: spacerIndent(false) },
     { key: "Tab", run: itemIndent(true), shift: itemIndent(false) },

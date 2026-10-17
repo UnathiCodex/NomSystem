@@ -95,8 +95,8 @@
     margin: 1.5rem 0 0.5rem;
 }
 
-/* Save button with its check, square, one control high, outlined, as the save of the dialogs;
-   in the calm grey of a main button while the note has unsaved changes; the button of the tree on a phone alike */
+/* Buttons of the head, square, one control high, outlined, as the buttons of the dialogs; the button of the tree
+   on a phone alike */
 .editor-save,
 .editor-close,
 .editor-newline,
@@ -114,9 +114,16 @@
     cursor: pointer;
 }
 
+/* Save button as the plain floppy disk of saving, in the grey of quiet text, without a frame, so the round's check
+   beside it stays the only check: faint while nothing is to save, its full grey while the note has unsaved changes */
+.editor-save {
+    border-color: transparent;
+    color: var(--text-muted);
+    opacity: 0.4;
+}
+
 .editor-save.unsaved {
-    border-color: var(--chosen-line);
-    background: var(--chosen);
+    opacity: 1;
 }
 
 /* The round check of a section, see `round.ts`: round, unlike the square save button, as the ring of a done box of
@@ -134,14 +141,13 @@
     cursor: default;
 }
 
-/* Under a pointer that hovers, the save button one grey lighter, as the buttons of the dialogs, see `.panel-buttons`
-   in `../day/day.css`: from the page's grey, or from its calm grey while the note has unsaved changes */
+/* Under a pointer that hovers, a button one grey lighter, as the buttons of the dialogs, see `.panel-buttons`
+   in `../day/day.css`: the save button from the page's grey, the round check from its calm grey */
 @media (hover: hover) {
     .editor-save:hover {
         background: var(--fill);
     }
 
-    .editor-save.unsaved:hover,
     .editor-close:not(:disabled):hover {
         background: var(--chosen-over);
     }
