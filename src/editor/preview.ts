@@ -11,9 +11,8 @@
  *   wrapped and further lines under its text, its guide lines and the line of quotes.
  *   Their `##`, `>`, indentation, `-` and `1.` are hidden; on the line of the cursor the `##` and `>` show left of the text,
  *   and the `-` or number of an item shows in place of its bullet or number, so the text never moves.
- * - Empty lines as high as the space the scripts view leaves between the blocks around them, the line of the cursor
- *   too, so nothing moves as the cursor comes and goes, see {@link spaceLook}; the blank line before text that goes on
- *   in a point below its sub-points without height, see {@link paragraphLook}.
+ * - Every empty line one line high, as I wrote it, so the space between two blocks shows how many empty lines stand
+ *   between them, like the one below the `Generated:` quote, see {@link spaceLook}.
  * - The type word of a block of a section at the start of a heading `##`, like `Definition. `, a small grey box before
  *   the name, as in the tree, as written on the line of the cursor, see {@link headingLook}.
  * - Bold, italic, struck and code without `**`, `*`, `~~` and `` ` ``, Markdown links and wiki links
@@ -210,7 +209,7 @@ const followable: Decoration = Decoration.mark({ class: "cm-follow" });
 const external: Decoration = Decoration.mark({ class: "cm-follow cm-external" });
 
 /**
- * Blank line without height, see {@link paragraphLook}.
+ * Blank line without height, see {@link spaceLook}.
  */
 const noHeight: Decoration = Decoration.line({ attributes: { style: "height: 0" } });
 
@@ -537,8 +536,8 @@ class BreakWidget extends WidgetType {
 
 /**
  * Tables, callouts, code blocks or HTML blocks right below each other, rendered as the scripts view renders them,
- * with their images, formulas and links, a link that leads nowhere faded, and with the space the scripts view leaves
- * above and below them.
+ * with their images, formulas and links, a link that leads nowhere faded, without space of their own above and below
+ * them, which only the empty lines around them give, as around any block, see `./editor.css`.
  */
 class BlockWidget extends WidgetType {
     /**
@@ -552,28 +551,14 @@ class BlockWidget extends WidgetType {
     readonly links: Links;
 
     /**
-     * Whether they stand right below a heading, which begins their section, so no space stands above them,
-     * as in the scripts view, see `./editor.css`.
-     */
-    readonly belowHeading: boolean;
-
-    /**
-     * Space the scripts view leaves above the block after them, in CSS, which takes in their own space below,
-     * see `./editor.css`.
-     */
-    readonly below: string;
-
-    /**
      * Length of their lines in the note, with their indentation, from the start of the first line to the end of the last.
      */
     readonly length: number;
 
-    constructor(markdown: string, links: Links, belowHeading: boolean, below: string, length: number) {
+    constructor(markdown: string, links: Links, length: number) {
         super();
         this.markdown = markdown;
         this.links = links;
-        this.belowHeading = belowHeading;
-        this.below = below;
         this.length = length;
     }
 
@@ -581,8 +566,7 @@ class BlockWidget extends WidgetType {
      * Tells whether other blocks look the same, so the rendered ones stay.
      */
     override eq(other: BlockWidget): boolean {
-        return other.markdown === this.markdown && other.belowHeading === this.belowHeading && other.below === this.below
-            && other.length === this.length && other.links === this.links;
+        return other.markdown === this.markdown && other.length === this.length && other.links === this.links;
     }
 
     /**
@@ -596,8 +580,7 @@ class BlockWidget extends WidgetType {
      */
     toDOM(view: EditorView): HTMLElement {
         const block: HTMLDivElement = document.createElement("div");
-        block.className = this.belowHeading ? "cm-rendered cm-below-heading" : "cm-rendered";
-        block.style.setProperty("--space-below", this.below);
+        block.className = "cm-rendered";
         block.innerHTML = htmlOf(this.markdown);
         block.querySelectorAll<HTMLImageElement>("img[data-link]").forEach((image: HTMLImageElement): void => {
             const path: string | null = this.links[image.dataset.link ?? ""] ?? null;
@@ -1107,13 +1090,9 @@ function listMarkLook(look: Look, node: SyntaxNode): boolean {
  * Paragraph: the indentation of its lines hidden, as the scripts view leaves it out, in a list item putting them
  * under the item's text, and with it the spacer of a spacer line, see `spacerRule` in `./keys.ts`, so the line is blank
  * without the room of a blank and the cursor on it stands where its text begins, never one blank further right.
- * A paragraph that goes on in a list item below its sub-points, after the blank line Markdown needs before it,
- * see `lineTyping` in `./keys.ts`, stands right below them as any further line: that blank line without height while
- * the cursor is not on it, which passes over it, see {@link caretPlaceOf}.
  * - `first`: The first line of the paragraph.
  * - `line`: One of its lines.
  * - `blank`: Its indentation, with the spacer of a spacer line.
- * - `above`: The line above its first line.
  *
  * @param look - Look being built
  * @param node - `Paragraph`, or `Task`, the paragraph of a task item
@@ -1129,27 +1108,7 @@ function paragraphLook(look: Look, node: SyntaxNode): boolean {
         const blank: number = /^[ \t]*⠀?/.exec(line.text)?.[0].length ?? 0;
         hide(look, line.from, line.from + blank);
     }
-
-    if (belowSubpointsIs(node)) {
-        const above: Line = look.state.doc.line(first.number - 1);
-        if (/^[ \t]*$/.test(above.text)) {
-            look.roomless.push(above.from);
-            if (!cursorOn(look, above))
-                look.decorations.push(noHeight.range(above.from));
-        }
-    }
     return true;
-}
-
-/**
- * Tells a paragraph that goes on in a list item below its sub-points, which Markdown begins only after a blank line,
- * see {@link paragraphLook}.
- *
- * @param node - `Paragraph`
- * @returns Whether it stands in a list item right after a list of sub-points
- */
-function belowSubpointsIs(node: SyntaxNode): boolean {
-    return node.parent?.name === "ListItem" && (node.prevSibling?.name === "BulletList" || node.prevSibling?.name === "OrderedList");
 }
 
 /**
@@ -1183,7 +1142,7 @@ function hiddenStartOf(state: EditorState, line: Line): number {
  * Keeps the cursor off what the look hides, so every key moves it where I see it: put into the hidden start of a line,
  * see {@link hiddenStartOf}, by a click, Home or an arrow up or down, it goes to where the text begins, on an empty
  * spacer line to its end; moved left out of the text of a line it goes on to the end of the line above, as from the
- * start of any line. An empty line drawn without height, see {@link spaceLook} and {@link paragraphLook}, it passes
+ * start of any line. An empty line drawn without height, see {@link spaceLook}, it passes
  * over in the direction it moved, so such a line never opens as the cursor comes. Only for a cursor moved alone, never
  * while text is picked or changed.
  * - `state`: Text and cursor before the move, the same text after it.
@@ -1294,38 +1253,9 @@ function quoteMarkLook(look: Look, node: SyntaxNode): boolean {
 }
 
 /**
- * Gives the space the scripts view leaves above a block of the note, by the rules of `../notes/notes.css`:
- * none above the first block, above a list and right below a heading, whose section it begins;
- * 1.5em above a paragraph, 1em above a quote; above a heading 1rem below a heading or an HTML block that is no table,
- * and below a callout, unless the heading is a `##`, whose section folds apart from the one before; else 2.5rem.
- * The text is 1rem big, so its em are rem.
- *
- * @param look - Look being built
- * @param block - Block, like a `Paragraph`
- * @param before - Block before it, `null` for the first
- * @returns Space in CSS, like `1.5rem`
- */
-function spaceAboveOf(look: Look, block: SyntaxNode, before: SyntaxNode | null): string {
-    const heading: RegExp = /Heading/;
-    if (before === null)
-        return "0rem";
-    if (heading.test(block.name))
-        return heading.test(before.name) || (before.name === "HTMLBlock" && !/^\s*<table/i.test(look.state.sliceDoc(before.from, before.to)))
-            || (calloutIs(look, before) && block.name !== "ATXHeading2") ? "1rem" : "2.5rem";
-    if (heading.test(before.name))
-        return "0rem";
-    if (block.name === "Paragraph")
-        return "1.5rem";
-    if (block.name === "Blockquote")
-        return "1rem";
-    return "0rem";
-}
-
-/**
  * Table, callout, code block or HTML block, with those right below it: their whole lines rendered as one while the
- * cursor is on none of them, so the space between them is that of the scripts view, no space above them right below
- * a heading, and below them the space the scripts view leaves above the next block of the note,
- * see {@link spaceAboveOf}.
+ * cursor is on none of them, so the space between them is that of the scripts view; above and below them only
+ * the empty lines around them, as around any block, see {@link spaceLook}.
  *
  * @param look - Look being built
  * @param node - `Table`, `FencedCode`, `HTMLBlock`, or a callout, `Blockquote`
@@ -1346,12 +1276,9 @@ function blockLook(look: Look, node: SyntaxNode): boolean {
 
     for (let block: SyntaxNode | null = node; block !== null && block.from <= last.from; block = block.nextSibling)
         look.rendered.push(block.from);
-    const below: string = last.nextSibling === null || node.parent?.name !== "Document"
-        ? "0rem" : spaceAboveOf(look, last.nextSibling, last);
     const markdown: string = look.state.sliceDoc(from, to);
     const indentation: RegExp = new RegExp(`^${/^[ \t]*/.exec(markdown)?.[0] ?? ""}`, "gm");
-    const belowHeading: boolean = /Heading/.test(node.prevSibling?.name ?? "");
-    const block: BlockWidget = new BlockWidget(markdown.replace(indentation, ""), look.links, belowHeading, below, to - from);
+    const block: BlockWidget = new BlockWidget(markdown.replace(indentation, ""), look.links, to - from);
     look.decorations.push(Decoration.replace({ widget: block, block: true }).range(from, to));
     return false;
 }
@@ -1432,48 +1359,29 @@ function belowFoldIs(look: Look, block: SyntaxNode, before: SyntaxNode | null): 
 }
 
 /**
- * Empty lines between the blocks of the note together as high as the space the scripts view leaves between them,
- * the larger of the space below the block before, 1em below a quote, and the space above the block after,
- * see {@link spaceAboveOf}, shared evenly by several, since the scripts view leaves the same space for any number
- * of them; without height next to a block rendered whole, which keeps its own space.
- * The empty line of the cursor keeps its height, so nothing moves as the cursor comes and goes, its line height the same,
- * so the cursor, as high as the text, stands in the middle of it. Where the scripts view leaves no space, like right
- * below a heading or above a list, the cursor passes over the empty lines, see {@link caretPlaceOf}, and only where
- * typing puts it, the line of the cursor is as high as a line, so I see where I type: Enter after a heading gives
- * a line the rest moves down for, as in Obsidian.
- * A heading right below the folded section of a heading of its level stands right below that heading, without the
- * room above a heading, so folded headings stand close below each other as a list, see {@link belowFoldIs}.
- * - `rendered`: Whether one of the two blocks is rendered whole.
- * - `folded`: Whether the block after is a heading right below such a folded section.
- * - `above`: The space above the block after, see {@link spaceAboveOf}.
- * - `roomless`: Whether the two blocks leave no space between them.
+ * Empty lines between the blocks of the note: each one line high, as every line, so the space between two blocks
+ * shows how many empty lines I wrote between them, like the one below the `Generated:` quote, and stays as it is
+ * when the cursor comes and goes. Only a heading right below the folded section of a heading of its level stands
+ * right below that heading, without the room above a heading and the empty lines between them without height,
+ * so folded headings stand close below each other as a list, see {@link belowFoldIs}; the cursor passes over those
+ * empty lines, see {@link caretPlaceOf}.
  * - `first`: Number of the first empty line after the block before.
- * - `count`: How many empty lines stand between the two blocks.
- * - `share`: Height of each of them.
- * - `line`: One of them.
+ * - `line`: One of the empty lines.
  *
  * @param look - Look being built
  */
 function spaceLook(look: Look): void {
     let before: SyntaxNode | null = null;
     for (let block: SyntaxNode | null = syntaxTree(look.state).topNode.firstChild; block !== null; block = block.nextSibling) {
-        const rendered: boolean = look.rendered.includes(block.from) || (before !== null && look.rendered.includes(before.from));
-        const folded: boolean = belowFoldIs(look, block, before);
-        if (folded)
+        if (before !== null && belowFoldIs(look, block, before)) {
             look.decorations.push(belowFold.range(look.state.doc.lineAt(block.from).from));
-        const above: string = spaceAboveOf(look, block, before);
-        const roomless: boolean = rendered || folded || (before?.name !== "Blockquote" && above === "0rem");
-        const height: string = roomless ? "0rem" : before?.name === "Blockquote" ? `max(1rem, ${above})` : above;
-        const first: number = before === null ? 1 : look.state.doc.lineAt(before.to).number + 1;
-        const count: number = look.state.doc.lineAt(block.from).number - first;
-        const share: string = `calc(${height} / ${Math.max(count, 1)})`;
-        const space: Decoration = Decoration.line({ attributes: { style: `height: ${share}; line-height: ${share}` } });
-        for (let number: number = first; number < first + count; number++) {
-            const line: Line = look.state.doc.line(number);
-            if (roomless)
+            const first: number = look.state.doc.lineAt(before.to).number + 1;
+            for (let number: number = first; number < look.state.doc.lineAt(block.from).number; number++) {
+                const line: Line = look.state.doc.line(number);
                 look.roomless.push(line.from);
-            if (!roomless || !cursorOn(look, line))
-                look.decorations.push(space.range(line.from));
+                if (!cursorOn(look, line))
+                    look.decorations.push(noHeight.range(line.from));
+            }
         }
         before = block;
     }

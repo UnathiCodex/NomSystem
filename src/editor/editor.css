@@ -459,8 +459,8 @@
 
 /* Table or HTML block rendered with the spaces, line breaks and word breaks of the scripts view,
    not those of the text around it, which would break a table in two and its words anywhere;
-   its own space above and below it kept inside, so CodeMirror measures it, the space below taking in
-   the space above the next block, `--space-below`, as the scripts view lets them overlap, see `./preview.ts` */
+   without space of its own above and below it, which only the empty lines around it give, as around any block,
+   see `spaceLook` in `./preview.ts` */
 .editor-text .cm-rendered {
     display: flow-root;
     white-space: normal;
@@ -468,15 +468,12 @@
     overflow-wrap: break-word;
 }
 
-.editor-text .cm-rendered::after {
-    content: "";
-    display: block;
-    margin-top: var(--space-below);
+.editor-text .cm-rendered > :first-child {
+    margin-top: 0;
 }
 
-/* Rendered right below a heading, which begins its section: no space above it, as in the scripts view */
-.editor-text .cm-rendered.cm-below-heading > :first-child {
-    margin-top: 0;
+.editor-text .cm-rendered > :last-child {
+    margin-bottom: 0;
 }
 
 /* Spacers and invisible characters on the line of the cursor invisible, as away from it: no faint line, which looked

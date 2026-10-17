@@ -591,7 +591,8 @@ function lineDown(command: Command): Command {
  * - Where Markdown would read the text into a deeper point than its level, see {@link lazyIs}, like text with the
  *   indentation of the text of `x̄` right below its sub-point `:=`, or text at the left edge right below a list,
  *   a blank line goes before it, which ends the deeper point, so the text belongs to `x̄`, or stands after the list,
- *   in Obsidian too; the editor draws that blank line inside a list without height, see `./preview.ts`.
+ *   in Obsidian too; the editor draws that blank line as every empty line, one line high, see `spaceLook`
+ *   in `./preview.ts`.
  * - `line`: The line typed on.
  * - `waiting`: Indentation and `-`, `*` or `+` of a line where one waits after the spacer, `null` for none.
  * - `empty`: Indentation of the line while it is an empty spacer line or an empty line below a list, `null` else.
