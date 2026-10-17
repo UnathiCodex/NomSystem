@@ -60,13 +60,6 @@
     cursor: pointer;
 }
 
-/* Line between two groups of items, like the efforts and the items for the next attempt of a task */
-.menu-line {
-    margin: 0.375rem 0;
-    border: 0;
-    border-top: 1px solid var(--line);
-}
-
 /* Phone: the button `⋯` as it looks, but a finger's width to hit, its own width and 0.5rem above and below;
    the items, a finger high already, only themselves, so no tap reaches beside them */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {

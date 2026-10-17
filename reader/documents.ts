@@ -17,12 +17,14 @@
  * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_…/TUM_2026W/04_LogisticRegression.pdf`,
  * an exercise or a tutorial its sheet in `TU_UniversityTutorExercises`, a homework its sheet
  * in `HU_UniversityHomeExercises`, and my own learning the notes of its chapters, like
- * `ATTACH;X-SHA256=…:NomSkillingmodules/IN2028_…/01_…/01_01_SampleMeanStandardError.md`, or of a chapter
+ * `ATTACH:NomSkillingmodules/IN2028_…/01_…/01_01_SampleMeanStandardError.md`, or of a chapter
  * without notes in the module those of its unchecked drafts, like
- * `ATTACH;X-SHA256=…:NomSystemdashboard/.claude/modules/drafts/IN2028_…/01_…/01_01_….md`.
+ * `ATTACH:NomSystemdashboard/.claude/modules/drafts/IN2028_…/01_…/01_01_….md`.
  * The name of the file says what it is and its `X-CHAPTER`s what the session was about, so a document has no name
- * of my own; a file keeps the fingerprint of its content, the SHA-256 of its bytes, as parameter, so the link
- * survives a rename. An older `X-TOPIC` beside the path is no more read, and goes once the entry changes.
+ * of my own; a file of the university keeps the fingerprint of its content, the SHA-256 of its bytes, as parameter,
+ * so the link survives a rename; a note has none, since I change my notes too often, and is found by its name,
+ * see {@link linksRepairOf}; a note an older entry links with its fingerprint keeps it.
+ * An older `X-TOPIC` beside the path is no more read, and goes once the entry changes.
  * The folder of a chapter is no `ATTACH`: an older entry that links one names that chapter, which is still read,
  * see {@link chaptersOf}, and becomes its `X-CHAPTER` once the entry changes; its `DESCRIPTION` is only my free note.
  * The folder of a module in an `ATTACH` of an older entry counts no more and goes once the entry changes too.
@@ -30,7 +32,8 @@
  * a module folder that is gone, like after a rename, is found again by the code of the entry's module,
  * see `moduleFolderOf` in `notes.ts`, and its `SUMMARY` names the module of the folder found; a document whose path no longer leads
  * to a file, like after a rename or a move into another folder of the module, is looked for by its fingerprint
- * among the module's documents, and a chapter by the name of its folder in the module folder found or its drafts.
+ * among the module's documents, a note without fingerprint by its name, like a draft once it is checked and lies
+ * in the module folder, and a chapter by the name of its folder in the module folder found or its drafts.
  * Each repair goes into the entry, every other line of the file as it is, and into the reader's console, with the old
  * and the new path. A link it cannot repair stays as written, like a document deleted or the folder of a project,
  * which has no code to find it by, and the skill view lists it, see {@link linksLostRead}.
@@ -343,6 +346,16 @@ export function chaptersOf(entry: Entry): string[] {
 }
 
 /**
+ * Tells whether a path leads to a note, a Markdown file, which a skill entry links without fingerprint.
+ *
+ * @param path - Path like `NomSkillingmodules/IN2028_…/01_…/01_01_SampleMeanStandardError.md`
+ * @returns Whether it ends in `.md`
+ */
+function noteIs(path: string): boolean {
+    return path.toLowerCase().endsWith(".md");
+}
+
+/**
  * Gives the path from `NomWorkspace` of a document of a module, as the reader offers it from the module folder:
  * a file of the module in its folder, a note of the drafts, with `Drafts/` before, in the folder of its drafts.
  *
@@ -375,9 +388,9 @@ export function documentLinksOf(links: Link[]): Link[] {
 
 /**
  * Builds the links of a skill entry, its `ATTACH`es, one line each, see the top of this file: the documents it used,
- * each a file of its module with its fingerprint, each once. A document the entry links already keeps its link
- * with its fingerprint, also when the reader could not find it any more; one it links without fingerprint,
- * like the slides a lecture of my plan links, gets its fingerprint, or stays as written while its file
+ * each a file of its module with its fingerprint, a note without, each once. A document the entry links already
+ * keeps its link with its fingerprint, also when the reader could not find it any more; a file it links without
+ * fingerprint, like the slides a lecture of my plan links, gets its fingerprint, or stays as written while its file
  * is not there yet, like the slides of a lecture to come.
  * The folder of its skill is the `ALTREP` of its `SUMMARY`, its chapters its `X-CHAPTER`s.
  * - `folder`: Folder of the skill from `NomWorkspace`, see {@link skillFolderOf}, `undefined` for none.
@@ -404,19 +417,21 @@ export function linksOf(code: string, documents: string[], links: Link[]): Link[
             return kept;
         if (module === "" || !moduleContentsRead(module).documents.includes(document))
             throw new Error(`No document ${document} in ${code}`);
-        return { path: path, fingerprint: fingerprintOf(diskOf(path)) };
+        return { path: path, fingerprint: noteIs(path) ? "" : fingerprintOf(diskOf(path)) };
     });
 }
 
 /**
  * Repairs the links of a skill entry that lead nowhere, see the top of this file: each document by its fingerprint
- * among the documents of the module of the entry, each folder of a chapter an older entry links by its name
- * in the module folder found now, else in its drafts, like after the module folder was renamed or a draft
- * was checked. The folder of a module in an older `ATTACH` stays as it is.
+ * among the documents of the module of the entry, each note without fingerprint by the name of its file among them,
+ * each folder of a chapter an older entry links by its name in the module folder found now, else in its drafts,
+ * like after the module folder was renamed or a draft was checked. The folder of a module in an older `ATTACH`
+ * stays as it is.
  * - `folder`: Name of the folder of the entry's module, as found now, `undefined` for none, like for a project.
  * - `repaired`: The links as repaired so far, in their order.
  * - `missing`: The links that stay as written.
- * - `name`: Name of the folder of a chapter.
+ * - `name`: Name of the folder of a chapter, or of the file of a note.
+ * - `note`: Path of the note of that name from the module folder, `undefined` for none.
  * - `chapter`: Path of the folder of a chapter of that name in the module folder found now, or in its drafts,
  *   `undefined` for none.
  * - `found`: Path of the document with the fingerprint from the module folder, `undefined` for none.
@@ -428,10 +443,18 @@ function linksRepairOf(entry: Entry): [Link[], Link[]] {
     const folder: string | undefined = moduleFolderOf(entry.module);
     const missing: Link[] = [];
     const repaired: Link[] = entry.links.map((link: Link): Link => {
-        if ((link.fingerprint === "" && !chapterLinkIs(link)) || existsSync(diskOf(link.path)))
+        if ((link.fingerprint === "" && !chapterLinkIs(link) && !noteIs(link.path)) || existsSync(diskOf(link.path)))
             return link;
+        const name: string = link.path.split("/").at(-1) ?? "";
+        if (link.fingerprint === "" && noteIs(link.path)) {
+            const note: string | undefined = folder === undefined ? undefined : moduleContentsRead(folder).documents
+                .find((document: string): boolean => document.split("/").at(-1) === name);
+            if (note !== undefined && folder !== undefined)
+                return { ...link, path: documentPathOf(folder, note) };
+            missing.push(link);
+            return link;
+        }
         if (link.fingerprint === "") {
-            const name: string = link.path.split("/").at(-1) ?? "";
             const chapter: string | undefined = folder === undefined ? undefined
                 : [`${modulesFolder}/${folder}/${name}`, `${draftsFolder}/${folder}/${name}`]
                     .find((path: string): boolean => existsSync(diskOf(path)));

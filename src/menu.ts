@@ -78,13 +78,3 @@ export function menuOf(items: HTMLElement[]): HTMLElement {
     place.append(more, menu);
     return place;
 }
-
-/**
- * Opens the menu of a button `⋯` by itself, below the button, like the question for my effort right after
- * an attempt.
- *
- * @param place - The button `⋯` with its menu, see {@link menuOf}
- */
-export function menuOpen(place: HTMLElement): void {
-    (place.querySelector(".menu") as HTMLElement).showPopover();
-}

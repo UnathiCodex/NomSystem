@@ -4,7 +4,7 @@
  * Loads my tasks with when each is due from the reader, and what a module offers a skill entry,
  * orders the tasks into groups by when they are due, writes days out as the page shows them,
  * and sends to the reader's one writer of skill entries: an attempt from a button of a task into the skill entry
- * of the moment, my effort on it from the tap after it, and a whole skill entry from the entry by category.
+ * of the moment, and a whole skill entry from the entry by category.
  *
  * - `../day/entries.ts`: Names who I was with in a skill entry.
  */
@@ -13,13 +13,13 @@ import type { Attendee } from "../day/entries.ts";
 
 
 /**
- * Result of an attempt: solved right, solved right with my tutor's help, solved wrong, stuck on the way,
- * or the task skipped.
+ * Result of an attempt: solved right or wrong; an older one may also be solved right with my tutor's help, stuck
+ * on the way, or the task skipped, which nothing writes any more.
  */
 export type Result = "right" | "guided" | "wrong" | "stuck" | "skipped";
 
 /**
- * My effort on an attempt, as one tap after it rates it.
+ * My effort on an older attempt, as one tap after it rated it; nothing rates it any more.
  */
 export type Effort = "low" | "medium" | "high";
 
@@ -27,16 +27,18 @@ export type Effort = "low" | "medium" | "high";
  * An attempt, as the reader sends it.
  *
  * - `day`: Day its skill entry started, like `2026-10-10`.
- * - `time`: Time of the tap, like `14:05`, empty for an attempt from the dialog.
- * - `part`: Part of a cold task it is about, like `2`, empty for the whole task.
+ * - `order`: Its place among all my attempts, the oldest first, so attempts of one day keep the order I made them in.
+ * - `time`: Time of the tap of an older attempt, like `14:05`, empty for any other.
+ * - `part`: Part of a cold task an older attempt is about, like `2`, empty for the whole task.
  * - `result`: Its {@link Result}.
- * - `effort`: My {@link Effort} on it, empty before I rated it and for a skip.
+ * - `effort`: My {@link Effort} on an older attempt, empty for none.
  * - `stuck`: Where I got stuck, like `step 3`, empty when not given.
  * - `skip`: Why I skipped the task, like `too hard`, empty when not given.
- * - `error`: What went wrong in a wrong attempt, my tutor's sentence from the log, empty when not given.
+ * - `error`: What went wrong in a wrong attempt, my short comment, empty when not given.
  */
 export type Attempt = {
     day: string;
+    order: number;
     time: string;
     part: string;
     result: Result;
@@ -107,8 +109,9 @@ export type SkillTask = Task & {
  * - `ladder`: Whether it still learns the ladder before the cold task: while no cold task has an attempt on an earlier day.
  * - `rightDue`: Day the cold task comes back after a right run today; empty without a cold task.
  * - `wrongDue`: Day it comes back after a failed run today; empty without a cold task.
- * - `seen`: Steps of the round shown I passed with `Next`, by their keys, from the log.
- * - `at`: Key of the step of the round shown I went on to with the last `Next`, empty for none yet.
+ * - `seen`: Steps of the round shown I passed with `Next`, by their keys, from older lines of the log; in today's
+ *   form the steps before the one I stand at count as passed.
+ * - `at`: Key of the step of the round shown I went on to with the last `Next`, where I stand, empty for none yet.
  * - `closed`: Whether I closed the round shown by hand.
  */
 export type SkillSection = {
@@ -214,9 +217,7 @@ export type Paper = {
  *   like `IN2028 Business Analytics Machine Learning` for `IN2028`.
  * - `paths`: The folder of each of them from `NomWorkspace`, which a skill entry links, shown grey below the skill
  *   picked, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
- * - `skips`: Reasons to pick when skipping a task.
  * - `types`: Types of a skill entry, like `VO`.
- * - `efforts`: Efforts to rate an attempt with, the lowest first.
  * - `lost`: Links of skill entries the reader could not repair at its last check.
  */
 export type Skilling = {
@@ -225,9 +226,7 @@ export type Skilling = {
     otherModules: string[];
     labels: { [name: string]: string };
     paths: { [name: string]: string };
-    skips: string[];
     types: string[];
-    efforts: Effort[];
     lost: LinkLost[];
 };
 
@@ -277,22 +276,16 @@ export type ModuleContents = {
 };
 
 /**
- * A new attempt to send, from a button of a task or as one of a skill entry.
+ * A new attempt to send, from a button of a task or as one of a skill entry: the task judged as a whole.
  *
  * - `task`: Identity of the task.
- * - `part`: Part of a cold task, like `2`, empty for the whole task.
- * - `result`: Its {@link Result}.
- * - `effort`: My {@link Effort} on it, empty when not rated, always for a skip.
- * - `stuck`: Where I got stuck, only with `stuck`, empty when not given.
- * - `skip`: Why I skipped the task, only with `skipped`: a reason of {@link Skilling}, my own words, or both.
+ * - `result`: Its result, `right` or `wrong`.
+ * - `comment`: My short comment on what went wrong, only with `wrong`, empty when not given.
  */
 export type AttemptNew = {
     task: string;
-    part: string;
-    result: Result;
-    effort: Effort | "";
-    stuck: string;
-    skip: string;
+    result: "right" | "wrong";
+    comment: string;
 };
 
 /**
@@ -350,7 +343,7 @@ export const skillName: string = "Skill";
 /**
  * Loads everything the skill view shows from the reader.
  *
- * @returns Modules with their tasks and the reasons to skip
+ * @returns Modules with their tasks and what the pickers offer
  * @throws {Error} - When the reader cannot answer
  */
 export async function skillingLoad(): Promise<Skilling> {
@@ -396,17 +389,6 @@ async function readerSend(method: string, address: string, body: object): Promis
  */
 export async function attemptSend(attempt: AttemptNew): Promise<void> {
     await readerSend("POST", "/api/skill/attempt", attempt);
-}
-
-/**
- * Sends my effort on the last attempt at a task to the reader, from the tap after the attempt.
- *
- * @param task - Identity of the task, like `IN2028/Airline Revenue Interval`
- * @param effort - My effort
- * @throws {Error} - When the reader does not take the effort
- */
-export async function effortSend(task: string, effort: Effort): Promise<void> {
-    await readerSend("POST", "/api/skill/effort", { task: task, effort: effort });
 }
 
 /**

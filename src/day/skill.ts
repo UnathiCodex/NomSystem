@@ -32,9 +32,9 @@
  * like `04_LogisticRegression.pdf`, which says what it is; the reader writes just its path as its `ATTACH`,
  * see `reader/documents.ts`. Picks a list does not offer, like an older entry's, stay as rows until I take them back.
  * The note is only my free note.
- * The tasks of the chapters picked come after the documents, the due ones first, then a result for each task picked:
- * Right, Wrong, Stuck with where I got stuck, or Skip with a reason, and after Right, Wrong or Stuck
- * one tap for my effort, low, medium or high; a task left without result is no attempt and is not written.
+ * The tasks of the chapters picked come after the documents, the due ones first, then a result for each task picked,
+ * the task judged as a whole: Right, or Wrong with a short field for my comment on what went wrong; a task left
+ * without result is no attempt and is not written.
  * Any type may hold attempts, like the tasks I solved in a tutorial. Every field may stay empty, the skill too.
  * Below the skill picked stands the folder of its skill, small and grey, as a place has its address below it,
  * the path its entry links, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, for a type on into
@@ -67,23 +67,21 @@ import type { Calendar } from "fullcalendar";
 import type { Choice } from "./choices.ts";
 import type { EntryFields } from "./entries.ts";
 import type {
-    AttemptNew, Effort, Group, Link, ModuleContents, Result, SkillModule, SkillTask, Skilling,
+    AttemptNew, Group, Link, ModuleContents, SkillModule, SkillTask, Skilling,
 } from "../skill/attempts.ts";
 
 
 /**
- * A task picked for the entry, with its result and my effort as picked so far.
+ * A task picked for the entry, with its result as picked so far.
  *
  * - `task`: Identity of the task, like `IN2028/Airline Revenue Interval`.
- * - `result`: Result, empty before it is picked.
- * - `effort`: My effort, empty before it is picked and for a skip.
- * - `detail`: Where I got stuck or why I skipped, empty when not given.
+ * - `result`: Result, right or wrong, empty before it is picked.
+ * - `comment`: My comment on what went wrong, empty when not given.
  */
 type AttemptPick = {
     task: string;
-    result: Result | "";
-    effort: Effort | "";
-    detail: string;
+    result: "right" | "wrong" | "";
+    comment: string;
 };
 
 /**
@@ -147,15 +145,13 @@ export type SkillValues = {
 const resultChoices: Choice[] = [
     { value: "right", text: "Right", group: "" },
     { value: "wrong", text: "Wrong", group: "" },
-    { value: "stuck", text: "Stuck", group: "" },
-    { value: "skipped", text: "Skip", group: "" },
 ];
 
 /**
  * Modules with their tasks and the lists to pick from, as the reader gave them when `Skill` was picked.
  */
 let skilling: Skilling = {
-    modules: [], skills: [], otherModules: [], labels: {}, paths: {}, skips: [], types: [], efforts: [], lost: [],
+    modules: [], skills: [], otherModules: [], labels: {}, paths: {}, types: [], lost: [],
 };
 
 /**
@@ -490,12 +486,11 @@ function taskChoicesOf(tasks: SkillTask[]): Choice[] {
 
 /**
  * Builds the result of a task picked: its name, whole in its tooltip, the line of its result, and below that line,
- * for Stuck, the field for where I got stuck, for Skip the line of the reasons, and after Right, Wrong or Stuck
- * the line of my effort, like `low effort`, each empty while nothing is picked.
- * - `detail`: Place of the field or the reasons, and of the efforts.
- * - `detailShow`: Shows the field or the reasons and the efforts for the result picked.
+ * for Wrong, the field for my comment on what went wrong.
+ * - `detail`: Place of the field.
+ * - `detailShow`: Shows the field for Wrong.
  *
- * @param pick - Task picked, changed as its result and effort are picked
+ * @param pick - Task picked, changed as its result and comment are picked
  * @param name - Name of the task
  * @param changed - Tells the dialog that what is picked changed
  * @returns Result of the task
@@ -505,37 +500,21 @@ function resultElementOf(pick: AttemptPick, name: string, changed: () => void): 
     const label: HTMLSpanElement = document.createElement("span");
     const detail: HTMLDivElement = document.createElement("div");
     const detailShow: () => void = (): void => {
-        const parts: HTMLElement[] = [];
-        if (pick.result === "stuck") {
-            const input: HTMLInputElement = document.createElement("input");
-            input.type = "text";
-            input.setAttribute("aria-label", "Where stuck");
-            input.autocomplete = "off";
-            input.value = pick.detail;
-            input.addEventListener("input", (): void => {
-                pick.detail = input.value.trim();
-            });
-            parts.push(input);
-        } else if (pick.result === "skipped") {
-            parts.push(choicesOf({
-                search: searchOf(skilling.skips.map(choiceOf)), picked: pick.detail === "" ? [] : [pick.detail],
-                many: false, adding: false,
-                pick: (values: string[]): void => {
-                    pick.detail = values[0] ?? "";
-                },
-            }));
+        if (pick.result !== "wrong") {
+            detail.replaceChildren();
+            return;
         }
-        if (pick.result !== "" && pick.result !== "skipped")
-            parts.push(choicesOf({
-                search: searchOf(skilling.efforts.map((effort: string): Choice =>
-                    ({ value: effort, text: `${effort} effort`, group: "" }))),
-                picked: pick.effort === "" ? [] : [pick.effort], many: false, adding: false,
-                pick: (values: string[]): void => {
-                    pick.effort = (values[0] ?? "") as Effort | "";
-                },
-            }));
-        detail.replaceChildren(...parts);
-        detail.querySelector("input")?.focus();
+        const input: HTMLInputElement = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "What went wrong";
+        input.setAttribute("aria-label", "What went wrong");
+        input.autocomplete = "off";
+        input.value = pick.comment;
+        input.addEventListener("input", (): void => {
+            pick.comment = input.value.trim();
+        });
+        detail.replaceChildren(input);
+        input.focus();
     };
 
     element.className = "skill-result";
@@ -546,9 +525,8 @@ function resultElementOf(pick: AttemptPick, name: string, changed: () => void): 
     element.append(label, choicesOf({
         search: searchOf(resultChoices), picked: pick.result === "" ? [] : [pick.result], many: false, adding: false,
         pick: (values: string[]): void => {
-            pick.result = (values[0] ?? "") as Result | "";
-            pick.detail = "";
-            pick.effort = "";
+            pick.result = values[0] === "right" || values[0] === "wrong" ? values[0] : "";
+            pick.comment = "";
             detailShow();
             changed();
         },
@@ -558,10 +536,12 @@ function resultElementOf(pick: AttemptPick, name: string, changed: () => void): 
 }
 
 /**
- * Builds the attempts of the entry being changed, which stay: one line per attempt, its task and result,
- * with my effort and where I got stuck or why I skipped.
- * - `parts`: An `X-ATTEMPT` cut at each `;`: task, result, effort, and where I got stuck or why I skipped,
- *   without the time of the tap a button wrote at its start, see {@link tapTime}.
+ * Builds the attempts of the entry being changed, which stay: one line per attempt, its task and result, with my
+ * comment on what went wrong, an older one also with my effort, where I got stuck or why I skipped.
+ * - `parts`: An `X-ATTEMPT` cut at each `;`: task, result and comment, of an older one task, result, effort, and where
+ *   I got stuck, why I skipped or what went wrong, without the time of the tap a button wrote at its start,
+ *   see {@link tapTime}.
+ * - `older`: Whether it is written the older way, its task with its module, see `reader/skill.ts`.
  *
  * @returns Attempts, none for an entry without attempts
  */
@@ -575,10 +555,11 @@ function loggedOf(): HTMLElement[] {
         const parts: string[] = value.split(";");
         if (tapTime.test(parts[0]))
             parts.shift();
-        const effort: string = parts[2] ?? "";
+        const older: boolean = parts[0].includes("/");
+        const effort: string = older ? parts[2] ?? "" : "";
         const item: HTMLLIElement = document.createElement("li");
         item.textContent = [parts[0].slice(parts[0].indexOf("/") + 1), parts[1], effort === "" ? "" : `${effort} effort`,
-            parts.slice(3).join(";")].filter((part: string): boolean => part !== "").join(" · ");
+            parts.slice(older ? 3 : 2).join(";")].filter((part: string): boolean => part !== "").join(" · ");
         return item;
     }));
     return [rowOf("Logged", list)];
@@ -639,7 +620,7 @@ function tasksOf(changed: () => void): HTMLElement[] {
         pick: (values: string[]): void => {
             picks.attempts = values.map((task: string): AttemptPick =>
                 picks.attempts.find((pick: AttemptPick): boolean => pick.task === task)
-                ?? { task: task, result: "", effort: "", detail: "" });
+                ?? { task: task, result: "", comment: "" });
             resultsShow();
             changed();
         },
@@ -916,15 +897,8 @@ export function skillModuleType(): ModuleType {
  * @throws {Error} - When the reader does not take the entry
  */
 export async function skillSave(calendar: Calendar, id: string, fields: EntryFields): Promise<void> {
-    const attempts: AttemptNew[] = picks.attempts.filter((pick: AttemptPick): boolean => pick.result !== "")
-        .map((pick: AttemptPick): AttemptNew => ({
-            task: pick.task,
-            part: "",
-            result: pick.result as Result,
-            effort: pick.result === "skipped" ? "" : pick.effort,
-            stuck: pick.result === "stuck" ? pick.detail : "",
-            skip: pick.result === "skipped" ? pick.detail : "",
-        }));
+    const attempts: AttemptNew[] = picks.attempts.flatMap((pick: AttemptPick): AttemptNew[] => pick.result === "" ? []
+        : [{ task: pick.task, result: pick.result, comment: pick.result === "wrong" ? pick.comment : "" }]);
 
     await skillEntrySend(id, {
         type: picks.type, module: picks.module, semester: fields.semester, chapters: picks.chapters,

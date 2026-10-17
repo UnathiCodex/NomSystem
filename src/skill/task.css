@@ -1,5 +1,5 @@
 /* Row of a task under its heading in the scripts view, calm and airy, everything from the left: when it is due,
-   its button `⋯` after it on the same line, see `../menu.css`; its history and the field of Stuck or Skip below,
+   its button `⋯` after it on the same line, see `../menu.css`; its history and the field of my comment below,
    each across the row; lines one gap apart, the button a gap and a half after when it is due */
 .task-row {
     display: flex;
@@ -15,7 +15,7 @@
 }
 
 /* A quiet row, on a card or in a section, as a box of the day: its button `⋯` at the right, so its menu opens
-   below it toward the page, the result of today grey before it */
+   below it toward the page, the result of today grey before it, and the field of my comment below them */
 .task-quiet {
     justify-content: flex-end;
     gap: 0.75rem;
@@ -24,6 +24,10 @@
 
 .task-quiet > .menu-place {
     order: 1;
+}
+
+.task-quiet > .task-form {
+    order: 2;
 }
 
 /* When the task is due, grey */
@@ -40,11 +44,9 @@
     vertical-align: middle;
 }
 
-/* Reasons to skip one chip high, filled in the soft grey of a card without a frame, as on the phone,
-   with a quarter more room beside their words, one grey lighter under the pointer; Next step and Show all
-   of a solution the same, Next of the round of a section, and the button of the history; each keeps its size, its frame there
-   but clear */
-.task-form button,
+/* Next step and Show all of a solution one chip high, filled in the soft grey of a card without a frame, as on the
+   phone, with a quarter more room beside their words, one grey lighter under the pointer; Next of the round
+   of a section and the button of the history the same; each keeps its size, its frame there but clear */
 .steps-buttons button,
 .round-next,
 .task-history > summary {
@@ -56,14 +58,13 @@
     cursor: pointer;
 }
 
-.task-form button:hover,
 .steps-buttons button:hover,
 .round-next:hover,
 .task-history > summary:hover {
     background: var(--fill-over);
 }
 
-/* Field of Stuck or Skip with the reasons to pick, or the hint that saving failed, one gap apart like the buttons */
+/* Field of my comment on what went wrong, or the hint that saving failed */
 .task-form {
     display: flex;
     flex-wrap: wrap;
@@ -118,35 +119,10 @@ details.task-history a {
     color: inherit;
 }
 
-/* Right, With tutor and Wrong of a task whose solution is still closed: hidden, so I judge against the solution,
-   not by feeling */
-.task-unjudged .task-judge {
-    display: none;
-}
-
-/* The button `⋯` of a task in the round of a section, which holds only Right and Wrong: hidden with them until
-   the solution is open, keeping its place, so nothing moves when it shows */
-.task-round.task-unjudged .menu-place {
+/* The button `⋯` of a task, which holds Right and Wrong, while its solution is still closed: hidden, keeping its
+   place, so nothing moves when it shows, and I judge against the solution, not by feeling */
+.task-unjudged .menu-place {
     visibility: hidden;
-}
-
-/* Line of a part of a cold task, across the row: its number, a check once it sits, then its button `⋯`;
-   one chip high also without it, like a part that sits on a card, so the lines stand equally apart */
-.task-part {
-    display: flex;
-    flex-basis: 100%;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--gap);
-    min-height: var(--chip-height);
-}
-
-.task-part-name {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    min-width: 3rem;
-    color: var(--text-muted);
 }
 
 /* A step of a solution not shown yet, and below the solution Next step and Show all, like the buttons of a task */
@@ -160,7 +136,7 @@ details.task-history a {
     padding: 0.75rem 0 0.5rem;
 }
 
-/* Hint after the state while Right, With tutor and Wrong hide, grey and small; gone once the solution is open */
+/* Hint after the state while Right and Wrong hide, grey and small; gone once the solution is open */
 .task-hint {
     display: none;
     font-size: 0.8em;
@@ -171,17 +147,15 @@ details.task-history a {
     display: inline;
 }
 
-/* Phone: the reasons to skip and the buttons of a solution as they look, but a finger high to hit, each taking a tap
-   0.25rem above and below it, which the room between two lines of buttons leaves free */
+/* Phone: the buttons of a solution as they look, but a finger high to hit, each taking a tap 0.25rem above and below
+   it, which the room between two lines of buttons leaves free */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
-    .task-form button,
     .steps-buttons button,
     .round-next,
     .task-history > summary {
         position: relative;
     }
 
-    .task-form button::after,
     .steps-buttons button::after,
     .round-next::after,
     .task-history > summary::after {

@@ -10,10 +10,10 @@
  * of its module, like the lecture's slides; a note opens in the scripts view, a PDF at the page its link names,
  * like `#page=10`, and a link that leads nowhere is faded and dotted, its tooltip naming what it looked for.
  * Images and embedded notes come from the reader, and the formulas are rendered last.
- * Under the heading of each task of the semester stands its row: when it is due, its history, the buttons for the next
- * attempt behind its `⋯`, and right after an attempt the question for my effort on it.
- * The parts of a cold task that sit in its run while others are still open, like 1. and 2. before 3., show greyed,
- * in its text and in its row, without their `⋯` there, so only the open parts can be answered.
+ * Under the heading of each task of the semester stands its row: when it is due, its history, and Right and Wrong
+ * for the next attempt behind its `⋯`, the task judged as a whole.
+ * The parts of a cold task that sit in its run while others are still open, like 1. and 2. before 3. of an older
+ * attempt at one part, show greyed in its text.
  * Its row stays quiet, without state, hint or numbers, see `../skill/task.ts`.
  *
  * - `./markdown.ts`: Turns the Markdown of a note into HTML, with Obsidian's syntax.
@@ -186,9 +186,9 @@ async function linksResolve(element: HTMLElement, note: LinkedNote, depth: numbe
 
 /**
  * Shows under the heading of each task of the shown note the row of the task: when it is due, its history,
- * the menu for the next attempt, which goes into the skill entry of the moment, Right, With tutor and Wrong once its
- * solution is open, and right after an attempt the question for my effort on it;
- * after each attempt and effort the rows load again. Only tasks of the modules of the semester have a row.
+ * the menu for the next attempt, which goes into the skill entry of the moment, Right and Wrong once its solution
+ * is open, Wrong with my short comment; after each attempt the rows load again. Only tasks of the modules
+ * of the semester have a row.
  * The text of each part of a cold task that sits in its run shows greyed while others are still open,
  * see {@link partsGrey}.
  * - `tasks`: Tasks of the note, the first of each name.
@@ -218,8 +218,7 @@ async function tasksShow(path: string): Promise<void> {
         const solution: HTMLDetailsElement | null =
             fold?.querySelector<HTMLDetailsElement>(":scope > .fold-content > details.fold") ?? null;
         fold?.querySelector(":scope > .fold-content")?.prepend(
-            taskRowOf(task, skilling.skips, skilling.efforts, today, solution, true, false,
-                (): Promise<void> => tasksShow(path)));
+            taskRowOf(task, today, solution, true, (): Promise<void> => tasksShow(path)));
     });
 }
 

@@ -16,14 +16,14 @@
  * - `../skill/attempts.ts`: Loads the tasks and sections with when each is due.
  * - `../notes/tree.ts`: Builds the address of a note at a heading.
  * - `../day/times.ts`: Writes the date as the day view does.
- * - `./round.ts`: The Completion a failed Task brings back, by the round's own pick.
+ * - `./round.ts`: The Completion a failed Task brings back, by the round's own pick, and when an attempt was made.
  * - `../day/boxes.css`: Look of the cards, those of the plan.
  */
 
 import { skillingLoad } from "../skill/attempts.ts";
 import { noteAddressOf } from "../notes/tree.ts";
 import { dateTextOf } from "../day/times.ts";
-import { fallbackOf } from "./round.ts";
+import { fallbackOf, timeOf } from "./round.ts";
 import "../day/boxes.css";
 
 import type { Attempt, SkillModule, SkillSection, SkillTask, Skilling } from "../skill/attempts.ts";
@@ -53,16 +53,6 @@ type Item = {
  */
 function wordsOf(section: SkillSection): string {
     return section.title.replace(/^\d+_\d+_/, "").replace(/(?<=[a-z])(?=[A-Z])/g, " ");
-}
-
-/**
- * Gives the time of an attempt to compare, like `2026-10-17 08:05`.
- *
- * @param attempt - Attempt
- * @returns Its day and time
- */
-function timeOf(attempt: Attempt): string {
-    return `${attempt.day} ${attempt.time}`;
 }
 
 /**

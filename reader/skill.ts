@@ -28,27 +28,32 @@
  * which behaves like a module without chapters and tasks, named by its folder, like `SUMMARY:WokFlow`;
  * the type may stay empty for any skill, like my own learning. Below them, each only when there is one:
  * - one `ATTACH` per real document it used, like the slides of a lecture, the sheet of an exercise or the notes
- *   of a chapter, just its path with the fingerprint of its content, so the link survives a rename,
- *   see `documents.ts`; its `DESCRIPTION` is only my free note;
+ *   of a chapter, just its path, a file of the university with the fingerprint of its content, so the link survives
+ *   a rename, a note without, since I change my notes too often, see `documents.ts`; the learning view attaches
+ *   the note of each section I learn in it, like
+ *   `ATTACH:NomSystemdashboard/.claude/modules/drafts/IN2028_…/01_RegressionAnalysis/01_01_SampleMeanEstimator.md`;
+ *   its `DESCRIPTION` is only my free note;
  * - its semester, `X-SEMESTER`, see `semesterFor` in `categories.ts`;
  * - one `X-CHAPTER` per chapter of my system it belongs to, of any type,
  *   like `X-CHAPTER:02_LogisticPoissonRegression`, several for a session over several chapters, like exam training,
  *   the chapters of the tasks of its attempts always among them; an older entry that links the folder of a chapter
  *   instead gets its `X-CHAPTER` once it changes, see `chaptersOf` in `documents.ts`;
  * - one `X-ATTEMPT` per attempt at a task of my notes, of any type, like the tasks I solved in a tutorial:
- *   the time of the tap in Berlin time when a button wrote it, in the form of the iCalendar format, like `140500`
- *   for 14:05, its task with the part of a cold task after `#`, its result, my effort, and a sentence: where I got stuck
- *   or why I skipped, or for a wrong one what went wrong, see {@link AttemptLine},
- *   like `X-ATTEMPT:140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2`; the learning view writes only right and
- *   wrong, and the sentence on a wrong one only my tutor writes, editing the log for later evaluation, never a button,
- *   like `X-ATTEMPT:140500;IN2028/Bakery Chain#1;wrong;;Step 2: weights add up to 1.2, not 1`;
- *   an older one with its time like `14:05`; an attempt from the dialog has no time,
- *   like `X-ATTEMPT:IN2028/Kiosk Sales Standard Error;right`;
+ *   the name of its task, whose module the summary names, its result, right or wrong, the task judged as a whole,
+ *   and for a wrong one my short comment on what went wrong, see {@link AttemptLine}, like
+ *   `X-ATTEMPT:Kiosk Chain;right` and `X-ATTEMPT:Kiosk Chain;wrong;Step 2: weights add up to 1.2, not 1`;
+ *   no time, since the entry has its start and its end, and the order of the lines is the order of the attempts.
+ *   An older one names its task with its module, may start with the time of the tap, like `140500` or `14:05`,
+ *   may name the part of a cold task after `#`, and has my effort before its sentence, where I got stuck, why
+ *   I skipped, or what went wrong, like `X-ATTEMPT:140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2`
+ *   or `X-ATTEMPT:IN2028/Kiosk Sales Standard Error;right`; it is read as it is, also its results guided, stuck
+ *   and skipped and its effort, which nothing writes any more;
+ * - one `X-ROUND` per section I learn in it, where I stand in its round, see {@link RoundLine}, written anew in its
+ *   place as I go on, like `X-ROUND:01_01_SampleMeanEstimator;1;Algorithm. Check an Estimator for Bias`, then
+ *   `X-ROUND:01_01_SampleMeanEstimator;1;done` once I closed the round;
  * - an older entry may hold one `X-TUTOR` per task I copied for my tutor in it, like
  *   `X-TUTOR:IN2028/Kiosk Sales Standard Error`, from when the views copied a task for my tutor; nothing writes
  *   them any more, and they are only read, so the chapters of their tasks still count among the entry's.
- * One tap after an attempt rates my effort, low, medium or high; until then it is empty and left out at the end,
- * like `X-ATTEMPT:140500;IN2028/Airline Revenue Interval;right`, and a skip has none.
  * A button of a task writes into the skill entry of the moment: the last one of the task's module that started before now
  * and ended at most half an hour ago, like a tutorial logged from the plan; it grows to the end of the quarter hour
  * of the attempt, so the half hour of a pause counts from the attempt.
@@ -61,11 +66,12 @@
  * (decisions 73 to 76 in `.claude/life/decisions.md`): a task of the ladder is new until tried, done once right,
  * and due 2 days after a wrong, stuck or guided attempt, until its section has its first cold run, after which
  * the ladder leaves the due list, since guidance hurts once a type is known (Tetzlaff 2025).
- * The cold task is one run of its section: each of its parts gets its own result, and the run counts once every part
- * sits, right on or after the day it was due; a failed part comes back alone 2 days later, and the section steps back
- * one run instead of to none (Rawson 2018). After the first run the section is due 7 days later, after the second
- * 21 days later; after the third it is ready, and comes back about 14 days before its exam, with one keep-up check
- * halfway when the exam lies more than 6 weeks off, see {@link exams} (Cepeda 2008, Rohrer 2005).
+ * The cold task is one run of its section: an attempt judges it as a whole, and the run counts once it is right
+ * on or after the day it was due; a failed one comes back 2 days later, and the section steps back one run instead
+ * of to none (Rawson 2018); an older attempt may judge one of its parts, and its run counted once every part sat.
+ * After the first run the section is due 7 days later, after the second 21 days later; after the third it is ready,
+ * and comes back about 14 days before its exam, with one keep-up check halfway when the exam lies more than 6 weeks
+ * off, see {@link exams} (Cepeda 2008, Rohrer 2005).
  * A right attempt before its day counts as none, so the runs stay spaced; a guided one, right with my tutor's help,
  * counts as none either, and the task is due 2 days later, cold.
  * A skipped task leaves the due list until its next attempt.
@@ -77,14 +83,16 @@
  * - `./day.ts`: Gives the log an entry belongs into, the log of its skill.
  * - `./documents.ts`: Builds the links of a skill entry, to the folder of its skill, to its documents
  *   with their fingerprints and to the folders of its chapters, and gives the links it could not repair.
- * - `./notes.ts`: Reads the modules of the semester with their chapters and notes, and every module folder.
+ * - `./notes.ts`: Reads the modules of the semester with their chapters and notes, and every module folder,
+ *   and names the folder of the drafts in a note's path.
  * - `./places.ts`: Gives the link of the place of a skill entry.
- * - `./sources.ts`: Names the log of the skill area and the skills of the semester, its modules and its projects.
+ * - `./sources.ts`: Names the log of the skill area and the skills of the semester, its modules and its projects,
+ *   and the folders of my modules and of their drafts.
  */
 
 import { boxDone, boxOpenFind, skillBoxesRead, skillBoxOf } from "./boxes.ts";
 import {
-    berlinDateOf, berlinTimeOf, dayAdd, entriesRead, entryAppend, entryChange, entryFind,
+    berlinDateOf, dayAdd, entriesRead, entryAppend, entryChange, entryFind,
     propertiesPut,
 } from "./calendar.ts";
 import { attendeesAllow, semesterFor, skillName, skillTypes } from "./categories.ts";
@@ -93,10 +101,12 @@ import {
     chaptersOf, documentLinksOf, linksLostRead, linksOf, skillFolderOf, skillLabelOf, titleOf,
 } from "./documents.ts";
 import {
-    codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead, papersRead,
+    codeOf, draftsName, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead, papersRead,
 } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
-import { activeModules, activeSkills, projectOf, skillLog, skillNameOf } from "./sources.ts";
+import {
+    activeModules, activeSkills, draftsFolder, modulesFolder, projectOf, skillLog, skillNameOf,
+} from "./sources.ts";
 
 import type { Box, BoxState } from "./boxes.ts";
 import type { Attendee, Entry, EntryFields, Link } from "./calendar.ts";
@@ -105,13 +115,13 @@ import type { Chapter, ModuleContents, NoteEntry, NotesModule, Paper } from "./n
 
 
 /**
- * Result of an attempt: solved right, solved right with my tutor's help, solved wrong, stuck on the way,
- * or the task skipped.
+ * Result of an attempt: solved right or wrong; an older one may also be solved right with my tutor's help, stuck
+ * on the way, or the task skipped, which nothing writes any more.
  */
 export type Result = "right" | "guided" | "wrong" | "stuck" | "skipped";
 
 /**
- * My effort on an attempt, as one tap after it rates it.
+ * My effort on an attempt, as one tap after it rated it in an older one; nothing rates it any more.
  */
 export type Effort = "low" | "medium" | "high";
 
@@ -156,17 +166,20 @@ export type Task = {
  * An attempt, as the views show it.
  *
  * - `day`: Day its skill entry started in Berlin time, like `2026-10-10`.
- * - `time`: Time of the tap in Berlin time, like `14:05`, empty for an attempt from the dialog.
- * - `part`: Part of a cold task it is about, like `2`, empty for the whole task.
+ * - `order`: Its place among all my attempts, the oldest first, by the order of the skill entries and of the lines
+ *   in each, so attempts of one day keep the order I made them in, also without a time.
+ * - `time`: Time of the tap in Berlin time, like `14:05`, of an older attempt, empty for any other.
+ * - `part`: Part of a cold task an older attempt is about, like `2`, empty for the whole task.
  * - `result`: Its {@link Result}.
- * - `effort`: My {@link Effort} on it, empty before I rated it and for a skip.
+ * - `effort`: My {@link Effort} on an older attempt, empty for none.
  * - `stuck`: Where I got stuck, like `step 3`, empty when not given.
  * - `skip`: Why I skipped the task, like `too hard`, empty when not given.
- * - `error`: What went wrong in a wrong attempt, my tutor's sentence, like `Step 2: weights add up to 1.2, not 1`,
+ * - `error`: What went wrong in a wrong attempt, my short comment, like `Step 2: weights add up to 1.2, not 1`,
  *   empty when not given.
  */
 export type Attempt = {
     day: string;
+    order: number;
     time: string;
     part: string;
     result: Result;
@@ -215,7 +228,8 @@ export type SkillTask = Task & {
  * - `rightDue`: Day the cold task comes back after a right run today, by the spacing, see {@link dueAfter};
  *   empty without a cold task.
  * - `wrongDue`: Day it comes back after a failed run today, 2 days later; empty without a cold task.
- * - `seen`: Steps of the round shown I passed with `Next`, by their keys, see {@link RoundLine}.
+ * - `seen`: Steps of the round shown I passed with `Next`, by their keys, from older lines `seen`, see
+ *   {@link RoundLine}; in today's form the steps before the one I stand at count as passed.
  * - `at`: Key of the step of the round shown I am at, by the last `Next`, empty for none yet.
  * - `closed`: Whether I closed the round shown by hand.
  */
@@ -236,26 +250,31 @@ export type SkillSection = {
 };
 
 /**
- * What I did in the round of a section, as a line `X-ROUND` of a skill entry of the log says it, so where I am lives
- * in the log alone, never in the browser or the note: its time, its section, its round, its kind, and its step,
- * like `091500;IN2028/01_01_SampleMeanEstimator;0;seen;Definition. Population and Sample`:
- * - `seen`: a step without a result, like theory, passed with `Next`;
- * - `at`: the step I went on to with `Next`, where the round goes on, also on another day;
- * - `closed`: the round closed by hand, without a step.
+ * Where I stand in the round of a section, as a line `X-ROUND` of a skill entry of the log says it, so where I am
+ * lives in the log alone, never in the browser or the note: one line per section in a skill entry, written anew in its
+ * place as I go on, its section, its round, the number of right runs of its Task before, and the step I went on to
+ * with `Next`, where the round goes on, also in another session, or `done` once I closed the round by hand,
+ * like `01_01_SampleMeanEstimator;1;Algorithm. Check an Estimator for Bias` and `01_01_SampleMeanEstimator;1;done`;
+ * the steps before it count as passed.
  * A step is named by its key, its heading as written, and for a step a failure brought back, the heading of the block
  * that failed after ` after `, like `Example. Unbiased Mean Check after Completion. Cautious Owner Estimate`.
  * Round 0 goes on over days until I close it; a later round, one Task and the fallback its failure brings, counts its
  * lines of its day only, since a failed run repeats the round on another day.
+ * An older line, one per thing I did, starts with its time and names the section with its module, then its round,
+ * its kind and its step, like `091500;IN2028/01_01_SampleMeanEstimator;0;seen;Definition. Population and Sample`:
+ * - `seen`: a step without a result, like theory, passed with `Next`;
+ * - `at`: the step I went on to with `Next`;
+ * - `closed`: the round closed by hand, without a step.
+ * A line of today's form reads as `at`, or as `closed` for `done`; one of an entry whose skill I changed later names
+ * the module of its section before `/`, like `IN2028/01_01_SampleMeanEstimator;1;done`, see {@link skillEntryEdit}.
  *
- * - `time`: Time of the line, like `091500`.
  * - `day`: Day of its skill entry.
- * - `section`: Its section, `<module>/<note name>`, like `IN2028/01_01_SampleMeanEstimator`.
+ * - `section`: Its section with its module, `<module>/<note name>`, like `IN2028/01_01_SampleMeanEstimator`.
  * - `round`: Its round.
  * - `kind`: What it says.
  * - `step`: Key of its step, empty for `closed`.
  */
 type RoundLine = {
-    time: string;
     day: string;
     section: string;
     round: number;
@@ -269,17 +288,15 @@ type RoundLine = {
 export type RoundKind = "seen" | "at" | "closed";
 
 /**
- * A line `X-ROUND` to write, as the scripts view sends it, see {@link roundAdd}.
+ * Where I stand in a round, as the scripts view sends it, see {@link roundAdd}.
  *
- * - `section`: Its section, like `IN2028/01_01_SampleMeanEstimator`.
+ * - `section`: Its section with its module, like `IN2028/01_01_SampleMeanEstimator`.
  * - `round`: Its round.
- * - `kind`: What it says.
- * - `step`: Key of its step, empty for `closed`.
+ * - `step`: Key of the step I went on to, or `done` once I closed the round.
  */
 export type RoundNew = {
     section: string;
     round: number;
-    kind: RoundKind;
     step: string;
 };
 
@@ -361,9 +378,7 @@ export type SkillModule = {
  * - `paths`: The folder of each of them from `NomWorkspace` by its name, which a skill entry links as the `ALTREP`
  *   of its `SUMMARY` and the dialog shows grey below the skill picked, like
  *   `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, see `skillFolderOf` in `documents.ts`.
- * - `skips`: Reasons to pick when skipping a task.
  * - `types`: Types of a skill entry, like `VO`.
- * - `efforts`: Efforts to rate an attempt with, the lowest first.
  * - `lost`: Links of skill entries the reader could not repair at its last check, see `documents.ts`.
  */
 export type Skilling = {
@@ -372,29 +387,22 @@ export type Skilling = {
     otherModules: string[];
     labels: { [name: string]: string };
     paths: { [name: string]: string };
-    skips: string[];
     types: string[];
-    efforts: Effort[];
     lost: LinkLost[];
 };
 
 /**
- * A new attempt, as a button of a task sends it, and as each attempt of a skill entry of the dialog comes.
+ * A new attempt, as a button of a task sends it, and as each attempt of a skill entry of the dialog comes:
+ * the task judged as a whole, right or wrong.
  *
  * - `task`: Identity of the task, see {@link Task}.
- * - `part`: Part of a cold task, like `2`, empty for the whole task.
- * - `result`: Its {@link Result}, like `guided` from `With tutor` of a task's menu.
- * - `effort`: My {@link Effort} on it, empty when not rated yet, always for a skip.
- * - `stuck`: Where I got stuck, only with `stuck`, empty when not given.
- * - `skip`: Why I skipped the task, only with `skipped`, like one of {@link skips} or my own words, empty when not given.
+ * - `result`: Its result, `right` or `wrong`.
+ * - `comment`: My short comment on what went wrong, only with `wrong`, empty when not given.
  */
 export type AttemptNew = {
     task: string;
-    part: string;
     result: Result;
-    effort: Effort | "";
-    stuck: string;
-    skip: string;
+    comment: string;
 };
 
 /**
@@ -445,17 +453,6 @@ export type SkillEntryNew = {
 export type SkillEntryChange = SkillEntryNew & { id: string };
 
 /**
- * My effort on the last attempt at a task, as the tap after the attempt sends it.
- *
- * - `task`: Identity of the task, see {@link Task}.
- * - `effort`: My {@link Effort}.
- */
-export type EffortNew = {
-    task: string;
-    effort: Effort;
-};
-
-/**
  * A session of mine running now, as the timer of the day shows it, see {@link sessionRead}.
  *
  * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
@@ -498,14 +495,16 @@ type LoggedAttempt = {
 /**
  * The parts of an `X-ATTEMPT`, see the top of this file and {@link attemptLineOf}.
  *
- * - `time`: Time of the tap, like `14:05`, written like `140500`, empty for none.
- * - `task`: Identity of the task, like `IN2028/Kiosk Chain Review`.
- * - `part`: Part of a cold task, like `2`, empty for the whole task.
- * - `result`: The result as written, like `stuck`.
- * - `effort`: My effort as written, empty for none.
- * - `detail`: Where I got stuck, why I skipped, or what went wrong, empty for none.
+ * - `older`: Whether it is written the older way, its task with its module, so it is written back that way.
+ * - `time`: Time of the tap of an older one, like `14:05`, written like `140500`, empty for none.
+ * - `task`: Identity of the task, with its module, like `IN2028/Kiosk Chain Review`.
+ * - `part`: Part of a cold task of an older one, like `2`, empty for the whole task.
+ * - `result`: The result as written, like `wrong`.
+ * - `effort`: My effort of an older one as written, empty for none.
+ * - `detail`: My comment on what went wrong, or of an older one where I got stuck or why I skipped, empty for none.
  */
 type AttemptLine = {
+    older: boolean;
     time: string;
     task: string;
     part: string;
@@ -515,24 +514,14 @@ type AttemptLine = {
 };
 
 /**
- * Results an attempt can have.
+ * Results a new attempt can have, the task judged as a whole.
  */
-const results: Result[] = ["right", "guided", "wrong", "stuck", "skipped"];
+const judged: Result[] = ["right", "wrong"];
 
 /**
- * Kinds of a line `X-ROUND`, see {@link RoundLine}.
+ * Step of a line `X-ROUND` once I closed its round, see {@link RoundLine}.
  */
-const roundKinds: RoundKind[] = ["seen", "at", "closed"];
-
-/**
- * Efforts to rate an attempt with, the lowest first.
- */
-const efforts: Effort[] = ["low", "medium", "high"];
-
-/**
- * Reasons to pick when skipping a task: signals for the AI, which fixes or throws away the skipped tasks in batches.
- */
-const skips: string[] = ["too hard", "too easy", "bad wording", "wrong", "not exam-relevant"];
+const roundDone: string = "done";
 
 /**
  * Days until a task is due again after a wrong or stuck attempt.
@@ -759,43 +748,59 @@ function skillEntriesRead(start: string, end: string): Entry[] {
 }
 
 /**
- * Cuts an `X-ATTEMPT` into its parts: the time of the tap first, when it has one, then the task with its part
- * after `#`, the result, my effort, and the rest where I got stuck or why I skipped, put together again,
- * since it may hold a `;`; a value without time, like one of the dialog, starts with its task.
+ * Cuts an `X-ATTEMPT` into its parts, see the top of this file: the name of its task, its result and my comment on
+ * what went wrong, put together again, since it may hold a `;`. An older one, whose task names its module before `/`,
+ * may start with the time of the tap, and has the part of a cold task after `#`, then the result, my effort,
+ * and the rest where I got stuck, why I skipped or what went wrong.
  * - `fields`: The value cut at each `;`, without the time.
  * - `tap`: Hours and minutes of the time, `null` for none.
  * - `time`: The time, like `14:05`, empty for none.
+ * - `named`: The task as written, with its part after `#` in an older one.
  * - `task`, `part`: The task and its part, the part `undefined` for none.
+ * - `older`: Whether it is written the older way.
  *
- * @param value - `X-ATTEMPT`, like `140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2`,
- *   or `14:05;…` of an older one
+ * @param value - `X-ATTEMPT`, like `Kiosk Chain;wrong;Step 2: weights add up to 1.2, not 1`, or of an older one
+ *   `140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2` or `14:05;…`
+ * @param module - Module of its skill entry, like `IN2028`, whose task it names
  * @returns Its parts
  */
-function attemptLineOf(value: string): AttemptLine {
+function attemptLineOf(value: string, module: string): AttemptLine {
     const fields: string[] = value.split(";");
     const tap: RegExpExecArray | null = tapTime.exec(fields[0]);
     const time: string = tap === null ? "" : `${tap[1]}:${tap[2]}`;
     if (time !== "")
         fields.shift();
-    const [task, part]: (string | undefined)[] = (fields[0] ?? "").split("#");
+    const named: string = fields[0] ?? "";
+    const older: boolean = named.includes("/");
+    if (!older)
+        return {
+            older: false, time: "", task: `${module}/${named}`, part: "", result: fields[1] ?? "", effort: "",
+            detail: fields.slice(2).join(";"),
+        };
+    const [task, part]: (string | undefined)[] = named.split("#");
     return {
-        time: time, task: task ?? "", part: part ?? "", result: fields[1] ?? "", effort: fields[2] ?? "",
+        older: true, time: time, task: task ?? "", part: part ?? "", result: fields[1] ?? "", effort: fields[2] ?? "",
         detail: fields.slice(3).join(";"),
     };
 }
 
 /**
- * Writes the parts of an `X-ATTEMPT` back into one value, see {@link attemptLineOf}: its time in the form
- * of the iCalendar format, like `140500` for 14:05, also the time of an older one written like `14:05`,
- * leaving out the time when there is none and the empty parts at the end, like an effort not rated yet.
- * - `fields`: Task with its part, result, effort and detail.
+ * Writes the parts of an `X-ATTEMPT` back into one value, see {@link attemptLineOf}: the name of its task, its result
+ * and my comment, like `Kiosk Chain;wrong;Step 2: weights add up to 1.2, not 1`; an older one the older way, its task
+ * with its module and its part, its time in the form of the iCalendar format, like `140500` for 14:05, also the time
+ * of one written like `14:05`; each leaving out the time when there is none and the empty parts at the end.
+ * - `named`: The task as written, without its module in today's form.
+ * - `fields`: Task with its part, result, effort and detail, without the effort in today's form.
  * - `end`: Number of them written, at least task and result.
  *
  * @param line - Parts of the attempt
- * @returns Value like `140500;IN2028/Kiosk Chain Review#2;stuck;;step 2` or `IN2028/Airline Revenue Interval;right`
+ * @returns Value like `Kiosk Chain;right` or `140500;IN2028/Kiosk Chain Review#2;stuck;;step 2`
  */
 function lineValueOf(line: AttemptLine): string {
-    const fields: string[] = [line.part === "" ? line.task : `${line.task}#${line.part}`, line.result, line.effort, line.detail];
+    const named: string = line.older ? line.task : line.task.slice(line.task.indexOf("/") + 1);
+    const fields: string[] = line.older
+        ? [line.part === "" ? named : `${named}#${line.part}`, line.result, line.effort, line.detail]
+        : [named, line.result, line.detail];
     let end: number = fields.length;
     while (end > 2 && fields[end - 1] === "")
         end--;
@@ -810,17 +815,20 @@ function lineValueOf(line: AttemptLine): string {
  * - `line`: Its parts.
  * - `result`: Result of the attempt.
  *
- * @param value - `X-ATTEMPT`, like `140500;IN2028/Kiosk Sales Standard Error;stuck;high;step 2`
+ * @param value - `X-ATTEMPT`, like `Kiosk Chain;wrong;Step 2: weights add up to 1.2, not 1`
  * @param day - Day its skill entry started in Berlin time
+ * @param module - Module of its skill entry, like `IN2028`
+ * @param order - Its place among all my attempts, see {@link Attempt}
  * @returns The attempt with its task
  */
-function attemptOf(value: string, day: string): LoggedAttempt {
-    const line: AttemptLine = attemptLineOf(value);
+function attemptOf(value: string, day: string, module: string, order: number): LoggedAttempt {
+    const line: AttemptLine = attemptLineOf(value, module);
     const result: Result = line.result as Result;
     return {
         task: line.task,
         attempt: {
-            day: day, time: line.time, part: line.part, result: result, effort: line.effort as Effort | "",
+            day: day, order: order, time: line.time, part: line.part, result: result,
+            effort: line.effort as Effort | "",
             stuck: result === "stuck" ? line.detail : "", skip: result === "skipped" ? line.detail : "",
             error: result === "wrong" ? line.detail : "",
         },
@@ -828,25 +836,27 @@ function attemptOf(value: string, day: string): LoggedAttempt {
 }
 
 /**
- * Reads the attempts of a skill entry from its `X-ATTEMPT`s, see {@link attemptOf}.
- * - `day`: Day the entry started in Berlin time, the day of each of its attempts.
- *
- * @param entry - Log entry `Skill`
- * @returns Its attempts in order
- */
-function loggedAttemptsOf(entry: Entry): LoggedAttempt[] {
-    const day: string = berlinDateOf(new Date(entry.start));
-    return entry.attempts.map((value: string): LoggedAttempt => attemptOf(value, day));
-}
-
-/**
- * Reads my attempts: those of the skill entries of the log up to now, in the order of their entries and within each.
+ * Reads my attempts: those of the skill entries of the log up to now, in the order of their entries and within each,
+ * each with its place in that order, see {@link attemptOf}.
+ * - `values`: The `X-ATTEMPT`s of every entry, each with its day and module.
  *
  * @returns Attempts with their tasks
  */
+function attemptsRead(): LoggedAttempt[] {
+    const values: [string, string, string][] = skillEntriesRead("1970-01-01T00:00:00Z", new Date().toISOString())
+        .flatMap((entry: Entry): [string, string, string][] =>
+            entry.attempts.map((value: string): [string, string, string] =>
+                [value, berlinDateOf(new Date(entry.start)), entry.module]));
+    return values.map(([value, day, module]: [string, string, string], index: number): LoggedAttempt =>
+        attemptOf(value, day, module, index));
+}
+
 /**
- * Reads the lines `X-ROUND` of all skill entries of the log, see {@link RoundLine}, the oldest first.
+ * Reads the lines `X-ROUND` of all skill entries of the log, see {@link RoundLine}, in the order of their entries
+ * and within each, the oldest first: one of today's form, its section without module, as where I stand, `at`,
+ * or `closed` for `done`; an older one with its time, the section with its module, and its kind.
  * - `day`: Day of a skill entry.
+ * - `fields`: A line cut at each `;`.
  *
  * @returns Lines in order
  */
@@ -854,16 +864,18 @@ function roundsRead(): RoundLine[] {
     return skillEntriesRead("1970-01-01T00:00:00Z", new Date().toISOString()).flatMap((entry: Entry): RoundLine[] => {
         const day: string = berlinDateOf(new Date(entry.start));
         return entry.rounds.map((value: string): RoundLine => {
-            const [time, section, round, kind, ...step]: string[] = value.split(";");
-            return { time: time ?? "", day: day, section: section ?? "", round: Number(round), kind: kind as RoundKind,
-                step: step.join(";") };
+            const fields: string[] = value.split(";");
+            if (tapTime.test(fields[0] ?? "")) {
+                const [, section, round, kind, ...step]: string[] = fields;
+                return { day: day, section: section ?? "", round: Number(round), kind: kind as RoundKind,
+                    step: step.join(";") };
+            }
+            const [, round, ...step]: string[] = fields;
+            const done: boolean = step.join(";") === roundDone;
+            return { day: day, section: roundSectionOf(value, entry.module), round: Number(round),
+                kind: done ? "closed" : "at", step: done ? "" : step.join(";") };
         });
-    }).sort((first: RoundLine, second: RoundLine): number =>
-        `${first.day} ${first.time}`.localeCompare(`${second.day} ${second.time}`));
-}
-
-function attemptsRead(): LoggedAttempt[] {
-    return skillEntriesRead("1970-01-01T00:00:00Z", new Date().toISOString()).flatMap(loggedAttemptsOf);
+    });
 }
 
 /**
@@ -993,8 +1005,7 @@ function coldScheduleOf(task: Task, attempts: Attempt[], exam: ExamDate): [Skill
  * @returns Attempts, the oldest first
  */
 function variantAttemptsOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attempt[]): Attempt[] {
-    return own.flatMap(attemptsOf).sort((first: Attempt, second: Attempt): number =>
-        `${first.day} ${first.time}`.localeCompare(`${second.day} ${second.time}`));
+    return own.flatMap(attemptsOf).sort((first: Attempt, second: Attempt): number => first.order - second.order);
 }
 
 /**
@@ -1142,8 +1153,8 @@ function examOf(module: string, boxes: Box[]): ExamDate {
  * of attempts on tasks no note holds any more; a module without chapter notes yet has no tasks.
  * Attempts on other modules count nowhere.
  * Also the entries of the plan of each module by type, see {@link plannedOf}, the skills of the semester and every
- * other module folder, the reasons to skip, the types of a skill entry and the efforts, for the pickers,
- * and the links the reader could not repair, see `documents.ts`.
+ * other module folder and the types of a skill entry, for the pickers, and the links the reader could not repair,
+ * see `documents.ts`.
  * - `attempts`: My attempts, in order.
  * - `boxes`: Skill boxes of the plan up to {@link plannedDays} days after today.
  * - `byTask`: The same attempts by the identity of their task.
@@ -1209,7 +1220,7 @@ export function skillingRead(): Skilling {
             [name, skillLabelOf(name)])),
         paths: Object.fromEntries([...skills, ...others].map((name: string): [string, string] =>
             [name, skillFolderOf(name) ?? ""])),
-        skips: skips, types: skillTypes, efforts: efforts, lost: linksLostRead(),
+        types: skillTypes, lost: linksLostRead(),
     };
 }
 
@@ -1245,35 +1256,28 @@ export function moduleRead(code: string): ModuleContents {
 }
 
 /**
- * Writes an attempt as its `X-ATTEMPT`, after checking it: the time of the tap, its task with its part,
- * its result, my effort, and where I got stuck or why I skipped, in one line without line breaks,
- * see {@link lineValueOf}.
+ * Writes an attempt as its `X-ATTEMPT`, after checking it: the name of its task, its result, right or wrong,
+ * and for a wrong one my comment, in one line without line breaks, like `Kiosk Chain;wrong;Step 2: weights add up
+ * to 1.2, not 1`, see {@link lineValueOf}.
  * - `task`: Task of the attempt, as its note holds it now.
- * - `detail`: Where I got stuck or why I skipped.
+ * - `comment`: My comment in one line.
  *
  * @param attempt - New attempt
  * @param tasks - Tasks of the modules of the semester
- * @param time - Time of the tap in Berlin time, like `14:05`, empty for an attempt from the dialog
- * @returns Value like `140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2`
- * @throws {Error} - When no note holds the task, the part is none of the task's, the result or effort is unknown,
- *   a skip comes with an effort, or a reason to skip or where I got stuck comes with another result
+ * @returns Value like `Kiosk Chain;right`
+ * @throws {Error} - When no note holds the task, the result is neither right nor wrong, or a comment comes with right
  */
-function attemptValueOf(attempt: AttemptNew, tasks: Task[], time: string): string {
+function attemptValueOf(attempt: AttemptNew, tasks: Task[]): string {
     const task: Task | undefined = tasks.find((candidate: Task): boolean => candidate.id === attempt.task);
     if (task === undefined)
         throw new Error(`No task ${attempt.task}`);
-    if (attempt.part !== "" && !task.parts.includes(attempt.part))
-        throw new Error(`No part ${attempt.part} of ${attempt.task}`);
-    if (!results.includes(attempt.result))
+    if (!judged.includes(attempt.result))
         throw new Error(`No result ${attempt.result}`);
-    if (attempt.effort !== "" && (!efforts.includes(attempt.effort) || attempt.result === "skipped"))
-        throw new Error(`No effort ${attempt.effort} with ${attempt.result}`);
-    if ((attempt.stuck !== "" && attempt.result !== "stuck") || (attempt.skip !== "" && attempt.result !== "skipped"))
-        throw new Error(`No detail with ${attempt.result}`);
-
-    const detail: string = `${attempt.stuck}${attempt.skip}`.replace(/\s+/g, " ").trim();
+    const comment: string = attempt.comment.replace(/\s+/g, " ").trim();
+    if (comment !== "" && attempt.result !== "wrong")
+        throw new Error(`No comment with ${attempt.result}`);
     return lineValueOf({
-        time: time, task: task.id, part: attempt.part, result: attempt.result, effort: attempt.effort, detail: detail,
+        older: false, time: "", task: task.id, part: "", result: attempt.result, effort: "", detail: comment,
     });
 }
 
@@ -1301,10 +1305,11 @@ function chaptersWith(chapters: string[], worked: string[], tasks: Task[]): stri
  * Gives the identities of the tasks of `X-ATTEMPT`s, see {@link attemptLineOf}.
  *
  * @param values - `X-ATTEMPT`s
+ * @param module - Module of their skill entry, like `IN2028`
  * @returns Identities, like `IN2028/Kiosk Chain Review`
  */
-function tasksOf(values: string[]): string[] {
-    return values.map((value: string): string => attemptLineOf(value).task);
+function tasksOf(values: string[], module: string): string[] {
+    return values.map((value: string): string => attemptLineOf(value, module).task);
 }
 
 /**
@@ -1331,7 +1336,7 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
         !offered.includes(chapter) && !kept.includes(chapter));
     if (unknown !== undefined)
         throw new Error(`No chapter ${unknown} in ${entry.module}`);
-    if (values.some((value: string): boolean => attemptLineOf(value).task.split("/")[0] !== entry.module))
+    if (values.some((value: string): boolean => attemptLineOf(value, entry.module).task.split("/")[0] !== entry.module))
         throw new Error(`Only attempts at tasks of ${entry.module}`);
     if (!attendeesAllow(entry.attendees ?? []))
         throw new Error(`No people ${(entry.attendees ?? []).map((attendee: Attendee): string => attendee.name)}`);
@@ -1360,7 +1365,7 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
  */
 export function skillEntryAdd(entry: SkillEntryNew): void {
     const tasks: Task[] = tasksRead();
-    const values: string[] = entry.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks, ""));
+    const values: string[] = entry.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks));
     const plan: Box | null = entry.planned === "" ? null : boxOpenFind(entry.planned);
     skillEntryCheck(entry, values, plan?.chapters ?? [], plan?.type ?? "");
 
@@ -1373,7 +1378,7 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
         semester: semesterFor(skillName, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note.trim(),
         start: new Date(entry.start), end: new Date(entry.end),
     };
-    const chapters: string[] = chaptersWith(entry.chapters, tasksOf(values), tasks);
+    const chapters: string[] = chaptersWith(entry.chapters, tasksOf(values, entry.module), tasks);
     const own: [string, string | Link][] = linksOf(entry.module, entry.documents, [])
         .map((link: Link): [string, Link] => ["attach", link]);
     own.push(...chapters.map((chapter: string): [string, string] => ["x-chapter", chapter]));
@@ -1392,12 +1397,15 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
  * follows its skill and type, see `titleOf` in `documents.ts`, and its links its skill and documents, see `linksOf`
  * there: a document it had keeps its link with its fingerprint, a new one gets its own; its chapters are its
  * `X-CHAPTER`s, the folders of chapters an older entry links going. Its place keeps its link while it stays the same,
- * see `placeLinkOf` in `places.ts`.
+ * see `placeLinkOf` in `places.ts`. The attempts it has keep their task, also once I change its skill: then each
+ * that names its task without module is written the older way, with its module, see {@link lineValueOf}, and each
+ * line `X-ROUND` of today's form names the module of its section, see {@link roundSectionOf}.
  * - `file`: `.ics` file of the entry.
  * - `old`: The entry as it is.
  * - `tasks`: Tasks of the modules of the semester.
  * - `added`: `X-ATTEMPT`s of the new attempts.
- * - `values`: `X-ATTEMPT`s it has, then the new ones.
+ * - `values`: `X-ATTEMPT`s it has, with their module once its skill changes, then the new ones.
+ * - `marks`: Its `X-ROUND`s, of today's form with the module of their section once its skill changes.
  * - `worked`: Identities of the tasks of its attempts and older copies for my tutor at tasks of its skill, whose chapters it covered.
  *
  * @param change - Changed skill entry as the page sends it
@@ -1410,17 +1418,22 @@ export function skillEntryEdit(change: SkillEntryChange): void {
     if (!old.editable || old.category !== skillName)
         throw new Error(`${old.title} is no skill entry of the new system`);
     const tasks: Task[] = tasksRead();
-    const added: string[] = change.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks, ""));
-    const values: string[] = [...old.attempts, ...added];
+    const added: string[] = change.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks));
+    const values: string[] = [...old.attempts.map((value: string): string => change.module === old.module ? value
+        : lineValueOf({ ...attemptLineOf(value, old.module), older: true })), ...added];
+    const marks: string[] = old.rounds.map((value: string): string => change.module === old.module
+        || tapTime.test(value.split(";")[0] ?? "") ? value
+        : [roundSectionOf(value, old.module), ...value.split(";").slice(1)].join(";"));
     skillEntryCheck(change, added, chaptersOf(old), old.type);
 
-    const worked: string[] = [...tasksOf(values), ...old.tutors]
+    const worked: string[] = [...tasksOf(values, change.module), ...old.tutors]
         .filter((task: string): boolean => task.split("/")[0] === change.module);
     const chapters: string[] = chaptersWith(change.chapters, worked, tasks);
     propertiesPut(file, old.id, [
         ["x-chapter", chapters],
         ["attach", linksOf(change.module, change.documents, old.links)],
         ["x-attempt", values],
+        ["x-round", marks],
     ]);
     const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" }, null);
     const fields: EntryFields = {
@@ -1436,37 +1449,52 @@ export function skillEntryEdit(change: SkillEntryChange): void {
 }
 
 /**
- * Writes attempts into the skill entry of the moment of a module, see the top of this file: adds the new `X-ATTEMPT`s
- * after those it has, with the chapters of their tasks, and moves its end to the end of the quarter hour
- * of now, if that is later. Without an open entry of the module, starts one covering the quarter hour of now:
- * logged from the open skill box of the module for now, with its type, which is done then, else without type.
+ * Writes attempts and where I stand in rounds into the skill entry of the moment of a module, see the top of this file:
+ * adds the new `X-ATTEMPT`s after those it has, puts each new `X-ROUND` in the place of the line of today's form
+ * of its section, or after the others when it has none, links the note of each section of them as an `ATTACH`
+ * without fingerprint, see {@link notePathOf}, with the chapters of their tasks, and moves its end to the end
+ * of the quarter hour of now, if that is later. Without an open entry of the module, starts one covering the quarter
+ * hour of now: logged from the open skill box of the module for now, with its type, which is done then, else without
+ * type.
  * - `quarter`: End of the quarter hour of now, now rounded up to the quarter hour.
+ * - `worked`: Identities of the tasks of the new lines, and for a line `X-ROUND` one task of its section.
+ * - `notes`: Links to the notes of their sections, each once, without fingerprint.
  * - `plan`: Open skill box of the module for now, see `skillBoxOf` in `boxes.ts`.
  * - `type`: Type of a new entry, the box's or none.
- * - `chapters`: Chapters of a new entry, those of the tasks of the new attempts, or of the open entry with them.
- * - `own`: The chapters, attempts and box of a new entry, as properties of my own.
+ * - `chapters`: Chapters of a new entry, those of the tasks of the new lines, or of the open entry with them.
+ * - `own`: The links, chapters, attempts, rounds and box of a new entry, as properties of my own.
  * - `start`: Start of a new entry, a quarter hour before its end.
  * - `semester`: Semester of a new entry, the box's or that of its day, which its link names too, see `titleOf`
  *   in `documents.ts`.
  * - `fields`: Fields and times of a new entry, which go into the log of the module, see `logFileOf` in `day.ts`.
  * - `values`: `X-ATTEMPT`s of the open entry with the new ones.
+ * - `marks`: `X-ROUND`s of the open entry with the new ones, each in the place of the one of its section.
+ * - `links`: Links of the open entry to files, without the folders of chapters an older entry links, see
+ *   `documentLinksOf` in `documents.ts`, then the notes it links not yet.
  * - `properties`: Properties of the open entry to write again, its chapters as `X-CHAPTER`s, with those of its older
- *   `X-TUTOR`s, which stay as they are, and its links to files, without the folders of chapters an older entry links, see `documentLinksOf` in `documents.ts`.
+ *   `X-TUTOR`s, which stay as they are.
  *
  * @param module - Module code, like `IN2028`
  * @param open - The skill entry of the moment of the module, `undefined` for none
  * @param attempts - New `X-ATTEMPT`s
+ * @param rounds - New `X-ROUND`s of today's form, at most one per section
  * @param tasks - Tasks of the modules of the semester
  * @param now - The moment
  */
 function momentWrite(module: string, open: Entry | undefined, attempts: string[], rounds: string[], tasks: Task[],
                      now: Date): void {
     const quarter: Date = new Date(Math.ceil(now.getTime() / quarterHour) * quarterHour);
+    const worked: string[] = [...tasksOf(attempts, module), ...roundTasksOf(rounds, module, tasks)];
+    const notes: Link[] = [...new Set(worked.flatMap((id: string): string[] => {
+        const task: Task | undefined = tasks.find((candidate: Task): boolean => candidate.id === id);
+        return task === undefined ? [] : [notePathOf(task)];
+    }))].map((path: string): Link => ({ path: path, fingerprint: "" }));
     if (open === undefined) {
         const plan: Box | undefined = skillBoxOf(module, now);
         const type: string = plan?.type ?? "";
-        const chapters: string[] = chaptersWith([], [...tasksOf(attempts), ...roundTasksOf(rounds, tasks)], tasks);
+        const chapters: string[] = chaptersWith([], worked, tasks);
         const own: [string, string | Link][] = [
+            ...notes.map((link: Link): [string, Link] => ["attach", link]),
             ...chapters.map((chapter: string): [string, string] => ["x-chapter", chapter]),
             ...attempts.map((value: string): [string, string] => ["x-attempt", value]),
             ...rounds.map((value: string): [string, string] => ["x-round", value]),
@@ -1490,12 +1518,18 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
     }
 
     const values: string[] = [...open.attempts, ...attempts];
-    const marks: string[] = [...open.rounds, ...rounds];
+    const marks: string[] = rounds.reduce((kept: string[], value: string): string[] => {
+        const index: number = kept.findIndex((other: string): boolean => !tapTime.test(other.split(";")[0] ?? "")
+            && roundSectionOf(other, module) === roundSectionOf(value, module));
+        return index === -1 ? [...kept, value] : kept.with(index, value);
+    }, open.rounds);
+    const links: Link[] = [...documentLinksOf(open.links), ...notes.filter((note: Link): boolean =>
+        !open.links.some((link: Link): boolean => link.path === note.path))];
     const chapters: string[] = chaptersWith(chaptersOf(open),
-        [...tasksOf(values), ...open.tutors, ...roundTasksOf(marks, tasks)], tasks);
+        [...tasksOf(values, module), ...open.tutors, ...roundTasksOf(marks, module, tasks)], tasks);
     const properties: [string, (string | Date | Link)[]][] = [
         ["x-chapter", chapters],
-        ["attach", documentLinksOf(open.links)],
+        ["attach", links],
         ["x-attempt", values],
         ["x-round", marks],
     ];
@@ -1503,6 +1537,18 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
         properties.push(["dtend", [quarter]]);
     const [file]: [string, Entry] = entryFind(skillLog, open.id);
     propertiesPut(file, open.id, properties);
+}
+
+/**
+ * Gives the path from `NomWorkspace` of the note of a task, as a skill entry links it: a note of the module folder
+ * in `NomSkillingmodules`, a draft in the folder of the drafts.
+ *
+ * @param task - Task
+ * @returns Path like `NomSystemdashboard/.claude/modules/drafts/IN2028_…/01_RegressionAnalysis/01_01_….md`
+ */
+function notePathOf(task: Task): string {
+    return task.note.startsWith(`${draftsName}/`)
+        ? `${draftsFolder}/${task.note.slice(draftsName.length + 1)}` : `${modulesFolder}/${task.note}`;
 }
 
 /**
@@ -1520,8 +1566,7 @@ function momentOf(module: string, now: Date): Entry | undefined {
 }
 
 /**
- * Writes an attempt from a button of a task into the skill entry of the moment, see {@link momentWrite},
- * with the time of the tap.
+ * Writes an attempt from a button of a task into the skill entry of the moment, see {@link momentWrite}.
  * - `tasks`: Tasks of the modules of the semester.
  * - `module`: Module code of its task, the part of its identity before `/`.
  * - `now`: The moment of the attempt.
@@ -1533,19 +1578,37 @@ export function attemptAdd(attempt: AttemptNew): void {
     const tasks: Task[] = tasksRead();
     const module: string = attempt.task.split("/")[0];
     const now: Date = new Date();
-    momentWrite(module, momentOf(module, now), [attemptValueOf(attempt, tasks, berlinTimeOf(now))], [], tasks, now);
+    momentWrite(module, momentOf(module, now), [attemptValueOf(attempt, tasks)], [], tasks, now);
 }
 
 /**
- * Gives a task of the section of each line `X-ROUND`, so the skill entry names the chapter of the section.
+ * Gives the section of a line `X-ROUND` with its module, see {@link RoundLine}: of today's form its first part after
+ * the module of its skill entry, unless it names its module itself, of an older one its second part, which does.
+ * - `fields`: The line cut at each `;`.
+ *
+ * @param value - Line `X-ROUND`, like `01_01_SampleMeanEstimator;1;done`
+ * @param module - Module of its skill entry, like `IN2028`
+ * @returns Section like `IN2028/01_01_SampleMeanEstimator`
+ */
+function roundSectionOf(value: string, module: string): string {
+    const fields: string[] = value.split(";");
+    if (tapTime.test(fields[0] ?? ""))
+        return fields[1] ?? "";
+    return (fields[0] ?? "").includes("/") ? fields[0] : `${module}/${fields[0] ?? ""}`;
+}
+
+/**
+ * Gives a task of the section of each line `X-ROUND`, so the skill entry names the chapter of the section
+ * and links its note.
  *
  * @param values - Lines `X-ROUND`
+ * @param module - Module of their skill entry, like `IN2028`
  * @param tasks - All tasks
  * @returns Identities of tasks, one per line whose section has tasks
  */
-function roundTasksOf(values: string[], tasks: Task[]): string[] {
+function roundTasksOf(values: string[], module: string, tasks: Task[]): string[] {
     return values.flatMap((value: string): string[] => {
-        const section: string = value.split(";")[1] ?? "";
+        const section: string = roundSectionOf(value, module);
         const task: Task | undefined = tasks.find((candidate: Task): boolean =>
             `${candidate.id.split("/")[0]}/${candidate.section}` === section);
         return task === undefined ? [] : [task.id];
@@ -1553,26 +1616,31 @@ function roundTasksOf(values: string[], tasks: Task[]): string[] {
 }
 
 /**
- * Writes a line `X-ROUND` into the skill entry of the moment of the module of its section, as an attempt is written,
- * see {@link attemptAdd} and {@link RoundLine}: the time in Berlin, its section, round, kind and step,
- * like `091500;IN2028/01_01_SampleMeanEstimator;0;at;Example. Ice Cream Kiosk`, a close without a step.
+ * Writes where I stand in the round of a section into the skill entry of the moment of its module, as an attempt
+ * is written, see {@link attemptAdd} and {@link RoundLine}: its line `X-ROUND` there, written anew in its place,
+ * its section without its module, its round and the step I went on to, like
+ * `01_01_SampleMeanEstimator;0;Example. Ice Cream Kiosk`, or `done` once I closed the round.
+ * - `module`: Module of the section, the part of it before `/`.
+ * - `name`: Name of the section, its note, the part after `/`.
+ * - `step`: The step in one line.
+ * - `value`: The line `X-ROUND`.
  *
- * @param line - The line
- * @throws {Error} - When no task names its section, its kind is none of `seen`, `at` and `closed`, or its round is no
- *   number from 0
+ * @param line - Where I stand
+ * @throws {Error} - When no task names its section, its round is no number from 0, or it names no step
  */
 export function roundAdd(line: RoundNew): void {
     const tasks: Task[] = tasksRead();
-    const module: string = line.section.split("/")[0];
-    if (!tasks.some((task: Task): boolean => `${module}/${task.section}` === line.section && task.id.startsWith(`${module}/`)))
+    const [module, name]: (string | undefined)[] = line.section.split("/");
+    if (!tasks.some((task: Task): boolean => task.id.startsWith(`${module}/`) && task.section === name))
         throw new Error(`No section ${line.section}`);
-    if (!roundKinds.includes(line.kind) || !Number.isInteger(line.round) || line.round < 0)
-        throw new Error(`No round line ${line.kind} of round ${line.round}`);
-    const step: string = line.kind === "closed" ? "" : line.step.replace(/\s+/g, " ").trim();
+    if (!Number.isInteger(line.round) || line.round < 0)
+        throw new Error(`No round ${line.round}`);
+    const step: string = line.step.replace(/\s+/g, " ").trim();
+    if (step === "")
+        throw new Error(`No step in ${line.section}`);
     const now: Date = new Date();
-    const value: string = [`${berlinTimeOf(now).replace(":", "")}00`, line.section, String(line.round), line.kind,
-        ...(step === "" ? [] : [step])].join(";");
-    momentWrite(module, momentOf(module, now), [], [value], tasks, now);
+    const value: string = [name, String(line.round), step].join(";");
+    momentWrite(module ?? "", momentOf(module ?? "", now), [], [value], tasks, now);
 }
 
 /**
@@ -1598,37 +1666,9 @@ export function sessionRead(): Session | null {
 }
 
 /**
- * Writes my effort into the last attempt at a task, the one the tap after it rates: writes its `X-ATTEMPT` again
- * with the effort, every other line as it is, see {@link lineValueOf}.
- * - `entry`: The last skill entry of the log holding an attempt at the task.
- * - `index`: Place of the last attempt at the task among the attempts of the entry.
- * - `line`: That attempt in its parts.
- * - `file`: `.ics` file of the entry.
- * - {@link Array#with}: Gives a copy of the attempts with one of them replaced.
- *
- * @param effort - Effort with its task
- * @throws {Error} - When the effort is unknown, the task has no attempt, or its last attempt is a skip
- */
-export function effortSet(effort: EffortNew): void {
-    if (!efforts.includes(effort.effort))
-        throw new Error(`No effort ${effort.effort}`);
-    const entry: Entry | undefined = skillEntriesRead("1970-01-01T00:00:00Z", new Date().toISOString())
-        .filter((candidate: Entry): boolean => tasksOf(candidate.attempts).includes(effort.task))
-        .at(-1);
-    if (entry === undefined)
-        throw new Error(`No attempt at ${effort.task}`);
-
-    const index: number = tasksOf(entry.attempts).lastIndexOf(effort.task);
-    const line: AttemptLine = attemptLineOf(entry.attempts[index]);
-    if (line.result === "skipped")
-        throw new Error(`No effort for a skip of ${effort.task}`);
-    const [file]: [string, Entry] = entryFind(skillLog, entry.id);
-    propertiesPut(file, entry.id, [["x-attempt", entry.attempts.with(index, lineValueOf({ ...line, effort: effort.effort }))]]);
-}
-
-/**
  * Renames a task in the log, in the same step as its heading in its note, so its history stays with it:
- * every attempt at it up to now gets the new identity in its `X-ATTEMPT`, every other line stays as it is.
+ * every attempt at it up to now gets the new identity in its `X-ATTEMPT`, one of today's form the new name,
+ * every other line stays as it is.
  * For the AI, not for a button; run in the folder of the dashboard like
  * `node -e 'import("./reader/skill.ts").then((skill) => console.log(skill.taskRename("IN2028/Old Name", "IN2028/New Name")))'`.
  * - `tasks`: Tasks of the modules of the semester.
@@ -1648,7 +1688,7 @@ export function taskRename(from: string, to: string): number {
     let renamed: number = 0;
     skillEntriesRead("1970-01-01T00:00:00Z", new Date().toISOString()).forEach((entry: Entry): void => {
         const values: string[] = entry.attempts.map((value: string): string => {
-            const line: AttemptLine = attemptLineOf(value);
+            const line: AttemptLine = attemptLineOf(value, entry.module);
             return line.task === from ? lineValueOf({ ...line, task: to }) : value;
         });
         const count: number = values.filter((value: string, index: number): boolean => value !== entry.attempts[index]).length;

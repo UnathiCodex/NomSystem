@@ -4,7 +4,7 @@
  * Icons for the obvious actions, like save, cancel, add, remove and history, from Lucide, the icon set of Obsidian;
  * only the icons used go into the page. A button with an icon keeps its words as tooltip and as its name
  * for screen readers; the icon draws in the grey of the button's text, one icon size big, see `variants.css`.
- * Where an icon would be unclear, like Right, Wrong, Stuck and Skip, the words stay.
+ * Where an icon would be unclear, like Right and Wrong, the words stay.
  * One plus adds one more and one `×` takes a value back, made only here, so they look and act the same everywhere,
  * for a meal, a food, a chapter, a type, a document or a way, see {@link plusPut} and {@link crossPut}.
  * A remove that asks once more shows a plain question mark, see {@link QuestionMark}.

@@ -14,13 +14,15 @@
  * - later: only the Task of today, once it is due.
  * A wrong, stuck or guided Completion brings back the Example shown longest ago right after it, and a wrong, stuck
  * or guided Task the Completion tried longest ago, the same day, see {@link longestAgoOf}.
- * Where I am lives in the log alone, never in the browser or the note: `Next` writes a line `seen` for a block without
- * a result, like theory, and a line `at` for the step it goes on to, and the reader gives them back with the section,
- * see `RoundLine` in `reader/skill.ts`, so a round goes on where I left it, in another sitting or on another day.
+ * Where I am lives in the log alone, never in the browser or the note: `Next` writes the step it goes on to, where
+ * I stand, into the one line `X-ROUND` of the section in the skill entry of the moment, written anew in its place,
+ * and the reader gives it back with the section, see `RoundLine` in `reader/skill.ts`, so a round goes on where I left
+ * it, in another sitting or on another day; the steps without a result before it, like theory, count as passed,
+ * as do those an older line `seen` names.
  * A task counts as done by the log: in the ladder by any attempt, a Task once nothing of it is due today.
  * A click on a block in the tree shows it alone, back or ahead, and `Next` returns to the current step; the last step
  * has no `Next`, since a round closes only by hand, with the round check in the head, see {@link roundClose}, once its
- * Task has a result; the close is a line `closed`, and Today follows.
+ * Task has a result; the close writes `done` where the step stood, and Today follows.
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold the place of `Next` and draw it as a widget below the current block.
  * - `@codemirror/language`: Folds and unfolds the blocks, as their arrows do.
@@ -63,7 +65,8 @@ type Step = {
  *
  * - `loaded`: The tasks of the note with its section, as loaded last.
  * - `section`: Its section.
- * - `seen`: Keys of the steps without a result passed with `Next`, as the log has them, with those written since.
+ * - `seen`: Keys of the steps without a result passed with `Next`: those before where I stand by the log, and those
+ *   an older line names, with those passed since.
  * - `at`: Key of the current step, pinned while the page shows, so a result moves nothing, only `Next`; empty for none.
  * - `changed`: Shows the places of the blocks anew, in the tree and on a phone.
  */
@@ -213,13 +216,14 @@ function blocksOf(state: EditorState, tasks: SkillTask[]): Block[] {
 }
 
 /**
- * Gives the time of an attempt to compare, like `2026-10-17 14:05`.
+ * Gives when an attempt was made, to compare, by its place among all my attempts, see `Attempt` in
+ * `../skill/attempts.ts`, so attempts of one day compare by the order I made them in, also without a time.
  *
  * @param attempt - Attempt
- * @returns Its day and time
+ * @returns Its place, written with nine digits, like `000000042`
  */
-function timeOf(attempt: Attempt): string {
-    return `${attempt.day} ${attempt.time}`;
+export function timeOf(attempt: Attempt): string {
+    return String(attempt.order).padStart(9, "0");
 }
 
 /**
@@ -299,6 +303,29 @@ function keyOf(step: Step): string {
 }
 
 /**
+ * Tells whether a step has no result of its own, theory or an Example brought back, so `Next` passes it.
+ *
+ * @param step - Step
+ * @returns Whether it has no result
+ */
+function resultlessIs(step: Step): boolean {
+    return step.block.task === null || (step.after !== "" && step.block.task.kind === "worked");
+}
+
+/**
+ * Gives the steps without a result before where I stand, which count as passed, see {@link resultlessIs}.
+ * - `index`: Place of the step I stand at, none before the first step and for one no longer in the round.
+ *
+ * @param steps - Steps of the round
+ * @param at - Key of the step I stand at by the log, empty for none
+ * @returns Their keys
+ */
+function passedOf(steps: Step[], at: string): string[] {
+    const index: number = steps.findIndex((step: Step): boolean => keyOf(step) === at);
+    return steps.slice(0, Math.max(0, index)).filter(resultlessIs).map(keyOf);
+}
+
+/**
  * Tells whether a step is done: theory and an Example brought back once passed with `Next`; the Task of the ladder
  * once tried, also on an earlier day of it, a later Task once nothing of it is due today, by its attempts of today; a Completion brought back once tried after the failure; any other task
  * of the ladder once tried, on any day of it.
@@ -311,7 +338,7 @@ function keyOf(step: Step): string {
 function doneIs(shown: Round, step: Step): boolean {
     const task: SkillTask | null = step.block.task;
     const today: string = shown.loaded.today;
-    if (task === null || (step.after !== "" && task.kind === "worked"))
+    if (task === null || resultlessIs(step))
         return shown.seen.includes(keyOf(step));
     if (task.kind === "cold" && shown.section.ladder)
         return task.attempts.length > 0;
@@ -367,20 +394,19 @@ function resumedOf(shown: Round, steps: Step[]): string {
 }
 
 /**
- * Writes a line `X-ROUND` of the round shown into the log, see `RoundLine` in `reader/skill.ts`.
+ * Writes where I stand in the round shown into the log, its line `X-ROUND`, see `RoundLine` in `reader/skill.ts`.
  *
  * @param shown - The round
- * @param kind - What it says: `seen`, `at` or `closed`
- * @param step - Key of its step, empty for `closed`
+ * @param step - Key of the step I went on to, or `done` once I closed the round
  * @returns When the reader has written it
  * @throws {Error} - When the reader does not write it
  */
-async function lineWrite(shown: Round, kind: "seen" | "at" | "closed", step: string): Promise<void> {
+async function lineWrite(shown: Round, step: string): Promise<void> {
     const response: Response = await fetch("/api/skill/round", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ section: `${shown.loaded.tasks[0]?.id.split("/")[0] ?? ""}/${shown.section.title}`,
-            round: shown.section.round, kind: kind, step: step }),
+            round: shown.section.round, step: step }),
     });
     if (!response.ok)
         throw new Error("The reader did not write the round");
@@ -478,8 +504,8 @@ function blockOpen(view: EditorView, block: Block): void {
 
 /**
  * Goes on from the current step, see the top of this file: from a block shown from the tree, back to the current step;
- * else writes into the log that a step without a result was passed and which step comes next, and shows it; the last
- * step has no `Next`. Where I am moves at once; a line the reader does not take shows in the head, see
+ * else writes into the log which step comes next, so a step without a result before it counts as passed, and shows
+ * it; the last step has no `Next`. Where I am moves at once; a line the reader does not take shows in the head, see
  * {@link failShow}.
  * - `steps`, `current`: The steps of the round and the current one.
  * - `following`: The step after it.
@@ -504,13 +530,11 @@ function roundNext(view: EditorView): void {
     const following: Step | undefined = steps[steps.indexOf(current) + 1];
     if (following === undefined)
         return;
-    const passed: boolean = (current.block.task === null || (current.after !== "" && current.block.task.kind === "worked"))
-        && !shown.seen.includes(keyOf(current));
+    const passed: boolean = resultlessIs(current) && !shown.seen.includes(keyOf(current));
     if (passed)
         shown.seen.push(keyOf(current));
     shown.at = keyOf(following);
-    (passed ? lineWrite(shown, "seen", keyOf(current)) : Promise.resolve())
-        .then((): Promise<void> => lineWrite(shown, "at", keyOf(following))).catch(failShow);
+    lineWrite(shown, keyOf(following)).catch(failShow);
     blockOpen(view, following.block);
     roundDraw(view, shown);
 }
@@ -543,13 +567,13 @@ function closeShow(shown: Round, steps: Step[]): void {
 }
 
 /**
- * Closes the round shown by hand, the round check in the head: writes the line `closed` into the log, then shows
+ * Closes the round shown by hand, the round check in the head: writes `done` where I stand into the log, then shows
  * Today, where the round stands done.
  */
 export function roundClose(): void {
     if (round === null)
         return;
-    lineWrite(round, "closed", "").then((): void => {
+    lineWrite(round, "done").then((): void => {
         location.href = todayAddress;
     }).catch(failShow);
 }
@@ -575,16 +599,17 @@ function roundTake(view: EditorView, loaded: NoteTasks, changed: () => void): vo
         return;
     }
     const fresh: boolean = round === null || round.loaded.path !== loaded.path;
+    const blocks: Block[] = blocksOf(view.state, loaded.tasks);
+    const steps: Step[] = stepsOf(blocks, section, loaded.today);
     round = {
         loaded: loaded, section: section, changed: changed,
-        seen: fresh ? [...section.seen] : round?.seen ?? [], at: fresh ? "" : round?.at ?? "",
+        seen: fresh ? [...section.seen, ...passedOf(steps, section.at)] : round?.seen ?? [],
+        at: fresh ? "" : round?.at ?? "",
     };
     if (fresh)
-        round.at = resumedOf(round, stepsOf(blocksOf(view.state, loaded.tasks), section, loaded.today));
+        round.at = resumedOf(round, steps);
     if (fresh) {
         const shown: Round = round;
-        const blocks: Block[] = blocksOf(view.state, loaded.tasks);
-        const steps: Step[] = stepsOf(blocks, section, loaded.today);
         const current: Step | undefined = currentOf(shown, steps);
         const open: (block: Block) => boolean = (block: Block): boolean => block === current?.block
             || steps.some((step: Step): boolean => step.block === block && doneIs(shown, step));
@@ -674,7 +699,7 @@ export function roundStart(changed: () => void): Extension {
  * the Completion tried longest ago, for Today, see `./today.ts`.
  *
  * @param tasks - Tasks of the section
- * @param before - Time of the failure, like `2026-10-17 08:05`
+ * @param before - When the failure was made, see {@link timeOf}
  * @returns The Completion, `undefined` for none
  */
 export function fallbackOf(tasks: SkillTask[], before: string): SkillTask | undefined {

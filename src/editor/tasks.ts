@@ -3,10 +3,10 @@
  *
  * The rows of the tasks of a note in the editor, as the scripts view showed them under their headings,
  * see `../skill/task.ts`: under the heading `##` of each task of the semester its row, when it is due, its history,
- * the menu for the next attempt, which goes into the skill entry of the moment, Right, With tutor and Wrong once its
- * solution is unfolded, and right after an attempt the question for my effort on it; after each attempt
- * and effort the rows load again. A cold task, its heading ending with `(cold)`, shows a grey label in place of
- * `(cold)`, like `cold · 2 done · 1 right`, while the cursor is not on its heading.
+ * the menu for the next attempt, which goes into the skill entry of the moment, Right and Wrong once its solution
+ * is unfolded, Wrong with my short comment; after each attempt the rows load again. A cold task, its heading
+ * ending with `(cold)`, shows a grey label in place of `(cold)`, like `cold · 2 done · 1 right`, while the cursor
+ * is not on its heading.
  * Only a note with tasks of the semester has rows. A section, a note whose tasks make a section of the semester,
  * keeps its rows quiet, as a card does, without state, hint or numbers, and its `(cold)` hidden without a label,
  * since its round says what is due, see `./round.ts`, which hears of each load, see {@link tasksFollow}.
@@ -27,7 +27,7 @@ import { coldLabelOf, taskRowOf } from "../skill/task.ts";
 
 import type { EditorState, Extension, Line, Range, SelectionRange, StateEffectType, Transaction } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
-import type { Effort, SkillModule, SkillSection, SkillTask, Skilling } from "../skill/attempts.ts";
+import type { SkillModule, SkillSection, SkillTask, Skilling } from "../skill/attempts.ts";
 
 
 /**
@@ -35,16 +35,12 @@ import type { Effort, SkillModule, SkillSection, SkillTask, Skilling } from "../
  *
  * - `path`: Path of the note, as the scripts view takes it.
  * - `tasks`: Its tasks of the semester, none for a note without.
- * - `skips`: Reasons to pick when skipping.
- * - `efforts`: Efforts to pick after an attempt, the lowest first.
  * - `today`: Today like `2026-10-10`.
  * - `section`: Its section, `null` for a note that is none.
  */
 export type NoteTasks = {
     path: string;
     tasks: SkillTask[];
-    skips: string[];
-    efforts: Effort[];
     today: string;
     section: SkillSection | null;
 };
@@ -124,12 +120,12 @@ class RowWidget extends WidgetType {
     }
 
     /**
-     * Builds the row; each attempt or effort written loads the rows again, see {@link tasksLoad}.
+     * Builds the row; each attempt written loads the rows again, see {@link tasksLoad}.
      */
     toDOM(view: EditorView): HTMLElement {
-        return taskRowOf(this.task, this.loaded.skips, this.loaded.efforts, this.loaded.today,
+        return taskRowOf(this.task, this.loaded.today,
             this.open === null ? null : Object.assign(new EventTarget(), { open: this.open }), this.loaded.section !== null,
-            this.loaded.section !== null, (): Promise<void> => tasksLoad(view, this.loaded.path));
+            (): Promise<void> => tasksLoad(view, this.loaded.path));
     }
 
     /**
@@ -260,8 +256,6 @@ export async function tasksLoad(view: EditorView, path: string): Promise<void> {
         path: path,
         tasks: skilling.modules.flatMap((module: SkillModule): SkillTask[] => module.tasks)
             .filter((task: SkillTask): boolean => task.note === path),
-        skips: skilling.skips,
-        efforts: skilling.efforts,
         today: calendarTodayOf(),
         section: skilling.modules.flatMap((module: SkillModule): SkillSection[] => module.sections)
             .find((section: SkillSection): boolean => section.note === path) ?? null,
