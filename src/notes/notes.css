@@ -11,9 +11,9 @@
    view, each row in the text of the tree, see `--tree-text` in `../variants.css`, and a little higher than a chip,
    `--tree-row-height`, so its grey has room around the name; the anchor of the menus of its pickers, which open
    beside it.
-   Its framed rows, the search and the grey of the note shown or under the pointer, as far from the rail's buttons
-   as from its line at the right, 0.625rem each, of which the rail's own room holds 0.25rem, so they take the width
-   of the tree, their names
+   Its framed rows, the search and the grey of the note shown or under the pointer, 0.625rem from the rail's buttons,
+   of which the rail's own room holds 0.25rem, and a little more, 1rem, from its line at the right, so they take
+   the width of the tree, their names
    `--tree-row-padding` in from their left edge,
    the room left of a name in a row `--tree-row-padding`, the room above and below the name of a picker
    `--tree-pick-padding` */
@@ -23,7 +23,7 @@
     --tree-row-height: calc(var(--chip-height) + 0.25rem);
     anchor-name: --tree;
     overflow-y: auto;
-    padding: var(--gap) 0.625rem var(--gap) 0.375rem;
+    padding: var(--gap) 1rem var(--gap) 0.375rem;
     border-right: 1px solid var(--line);
     font-size: var(--tree-text);
     line-height: var(--tree-row-height);
@@ -295,15 +295,15 @@
 
 /* The blocks of a section in its round, see `roundListOf` in tree.ts: a block of the round in the light text of a note,
    one done too, with a small check after it, the current one in the calm grey of what is picked, one outside the round
-   faint; none folds, each a step in under the note; their type boxes close to the left edge of their row, only 0.5rem
-   in, so the names keep more room at the right */
+   faint; none folds, each a step in under the note; their type boxes close to the left edge of their row, 0.75rem
+   in, so they have air around them and the names keep room at the right */
 .tree-round .tree-file {
-    padding-left: 0.5rem;
+    padding-left: 0.75rem;
     color: var(--text-main);
 }
 
 .tree-round .tree-kind > summary {
-    padding-left: 0.5rem;
+    padding-left: 0.75rem;
 }
 
 .tree-round .tree-done {
