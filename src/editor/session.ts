@@ -8,7 +8,7 @@
  * module picked, from now, to the minute, as long as my usual session, see `sessionMinutes` in `reader/trackers.ts`;
  * I fill and save it there as always, and the record follows into it. Cancelled, or saved as no session running now,
  * nothing is recorded and I stay where I was. A session of the module running now, now between its start and its end,
- * as the timer of the day shows it, see `../timer.ts`, counts without the dialog.
+ * counts without the dialog.
  * The dialog, its HTML from `../day/day.html`, its code and its look come into the page only the first time it opens,
  * so the scripts load no calendar before. The round shows the session it writes into beside its number, its day and
  * times as the calendar writes an entry, see {@link sessionTextOf}.
@@ -30,8 +30,23 @@ import type * as Categories from "../day/categories.ts";
 import type * as Trackers from "../day/trackers.ts";
 import type * as FullCalendar from "fullcalendar";
 import type * as TimeGrid from "fullcalendar/timegrid";
-import type { Session } from "../timer.ts";
 
+
+/**
+ * A session of a module running now, as the reader sends it, see `sessionRead` in `reader/skill.ts`.
+ *
+ * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
+ * - `type`: Its type, `HU`, empty for none, like my own learning or a project.
+ * - `title`: What its skill entry is as written, like `IN2028 Business Analytics Machine Learning (HU)`.
+ * - `start`, `end`: Start and end of its skill entry, as ISO instants.
+ */
+export type Session = {
+    module: string;
+    type: string;
+    title: string;
+    start: string;
+    end: string;
+};
 
 /**
  * The code of the dialog of a new entry, once the dialog is in the page and started, `null` before it opened first.

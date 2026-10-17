@@ -24,6 +24,7 @@
  * The dialog of a new box takes the median of how long the last entries like it really lasted as its length,
  * see {@link realMinutesRead}.
  * The search of the log reads every entry of it, see {@link logAllRead}.
+ * The timer of the day reads the entry running now, see {@link entryNowRead}.
  *
  * A meal of the log lists its foods as lines `X-FOOD`, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150`: appended
  * with the entry, and replaced as a whole when the entry changes; the reader counts what each meal gives, see `food.ts`.
@@ -244,6 +245,23 @@ export function dayEntriesRead(start: string, end: string): DayEntry[] {
         estimate: meals.get(entry.id)?.estimate ?? false,
         glass: glassIs(entry),
     }));
+}
+
+/**
+ * Reads the entry of the log running now, for the timer of the day, see `src/timer.ts`: of every category, as the log
+ * shows it, so no glass of water and nothing of a whole day; of several running at once the one begun last, like
+ * a meal during a session of learning, and the session again once the meal is over.
+ * - `now`: The moment, in milliseconds.
+ *
+ * @returns The entry, `null` while none runs
+ */
+export function entryNowRead(): Entry | null {
+    const now: number = Date.now();
+    return entriesRead(day.log, new Date(now).toISOString(), new Date(now + 1).toISOString())
+        .filter((entry: Entry): boolean => !entry.allDay && !glassIs(entry)
+            && Date.parse(entry.start) <= now && now < Date.parse(entry.end))
+        .sort((first: Entry, second: Entry): number => Date.parse(first.start) - Date.parse(second.start))
+        .at(-1) ?? null;
 }
 
 /**

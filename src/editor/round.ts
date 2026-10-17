@@ -58,7 +58,7 @@ import type { DecorationSet } from "@codemirror/view";
 import type { Attempt, Result, SkillSection, SkillTask } from "../skill/attempts.ts";
 import type { NoteTasks } from "./tasks.ts";
 import type { BlockMark } from "../notes/tree.ts";
-import type { Session } from "../timer.ts";
+import type { Session } from "./session.ts";
 
 
 /**

@@ -44,7 +44,7 @@
 import { createServer } from "node:http";
 import { json } from "node:stream/consumers";
 import {
-    boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, logAllRead, realMinutesRead,
+    boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, entryNowRead, logAllRead, realMinutesRead,
 } from "./day.ts";
 import {
     boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxSubmit, boxUniversity, boxUnpush,
@@ -124,6 +124,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * The range of the log comes as FullCalendar sends it, `start` and `end` with offset; the range of the plan as days.
  * - `GET /api/day/log?start=…&end=…`: Sends log entries of the range.
  * - `GET /api/day/all`: Sends every entry of the log, newest first, for its search.
+ * - `GET /api/day/now`: Sends the entry of the log running now, the one begun last of several, or `null`.
  * - `GET /api/day/boxes?start=…&end=…`: Sends the plan of each day from the first day to the day before the last,
  *   like `start=2026-10-13&end=2026-10-14` for one day: its birthdays and holidays with my gift ideas, and its boxes.
  * - `GET /api/day/carried?date=…`: Sends the boxes of the days before the date that are neither done nor cancelled.
@@ -179,7 +180,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   of the moment.
  * - `POST /api/skill/entry`: Writes skill entry of the body into the log.
  * - `PATCH /api/skill/entry`: Changes skill entry of the body, adding its new attempts.
- * - `GET /api/skill/session?module=…`: Sends the session running now, of the module when one is named, or `null`.
+ * - `GET /api/skill/session?module=…`: Sends the session of the module running now, or `null`.
  * - `GET /api/food/search?q=…&page=…&products=…`: Sends my foods for a name or barcode, the most eaten first,
  *   then a page of those of Open Food Facts, none for `products=0`.
  * - `POST /api/food/foods`: Adds food of the body to `Foods.md` and sends it as written.
@@ -222,6 +223,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     if (request.method === "GET" && url.pathname === "/api/day/log") {
         responseSend(response, 200, dayEntriesRead(start, end));
+
+    } else if (request.method === "GET" && url.pathname === "/api/day/now") {
+        responseSend(response, 200, entryNowRead());
 
     } else if (request.method === "GET" && url.pathname === "/api/day/all") {
         responseSend(response, 200, logAllRead());

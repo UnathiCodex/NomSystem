@@ -465,12 +465,12 @@ export type SkillEntryNew = {
 export type SkillEntryChange = SkillEntryNew & { id: string };
 
 /**
- * A session of mine running now, as the timer of the day shows it, see {@link sessionRead}.
+ * A session of a module running now, as the learning view reads it, see {@link sessionRead}.
  *
  * - `module`: Name of its skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, `HU`, empty for none, like my own learning or a project.
  * - `title`: What its skill entry is, as written, like `IN2028 Business Analytics Machine Learning (HU)`.
- * - `start`, `end`: Start and end of its skill entry, as ISO instants; the timer counts down to its end.
+ * - `start`, `end`: Start and end of its skill entry, as ISO instants; it runs until its end.
  */
 export type Session = {
     module: string;
@@ -1688,21 +1688,20 @@ export function roundAdd(line: RoundNew): void {
 }
 
 /**
- * Reads the session running now, for the timer of the day: the skill entry of the moment, of any module,
- * the last one of the log that started before now and ended at most {@link sessionPause} ago, as the buttons of a task
- * write into it, see {@link attemptAdd}, of every type, a lecture as my own learning, so the timer of the day
- * always shows the session I am in; for the learning view that of one module, see {@link momentOf}, into which
- * its round writes, so the learning view records only in a session of the module, see `src/editor/session.ts`.
+ * Reads the session of a module running now, for the learning view: its skill entry of the moment, see
+ * {@link momentOf}, of every type, a lecture as my own learning, into which its round writes, as the buttons of a task
+ * write into it, see {@link attemptAdd}, so the learning view records only in a session of the module,
+ * see `src/editor/session.ts`. The timer of the day shows any entry running now instead, see `entryNowRead`
+ * in `day.ts`.
  * - `now`: The moment.
  * - `open`: The skill entry of the moment.
  *
- * @param module - Code of a module, like `IN2028`, whose session alone counts; empty for any, as the timer asks
+ * @param module - Code of a module, like `IN2028`, whose session alone counts
  * @returns The session, `null` while none runs
  */
 export function sessionRead(module: string): Session | null {
     const now: Date = new Date();
-    const open: Entry | undefined = module !== "" ? momentOf(module, now)
-        : skillEntriesRead(new Date(now.getTime() - sessionPause).toISOString(), now.toISOString()).at(-1);
+    const open: Entry | undefined = momentOf(module, now);
     if (open === undefined)
         return null;
     return {
