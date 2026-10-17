@@ -17,9 +17,11 @@
  * Chapters come one after another once a skill is picked, see {@link chapterRowsOf}: the list of an empty row
  * `Chapter` offers the chapters of my system of the module, by the names of their folders, for every type, like
  * a lecture of `02_LogisticPoissonRegression` or exam training over several; a pick closes the list and makes
- * the row the chapter's, with a small × that takes it back, see `addedRowOf` in `choices.ts`, and unlocks its
- * documents; below them the next empty row `Chapter` adds the next. The reader writes one `X-CHAPTER` each,
- * and an entry keeps the name a chapter had, also once its folder has another name.
+ * the row the chapter's, its name a link that opens the chapter in the scripts view, without the module, which
+ * the summary names, with a small × that takes it back, see `addedRowOf` in `choices.ts`, and unlocks its
+ * documents; below them the next empty row `Chapter` adds the next. A module without chapters says so in the row,
+ * `No chapters yet`. The reader writes one `X-CHAPTER` each, and an entry keeps the name a chapter had, also once
+ * its folder has another name.
  * The documents are the real documents the entry used, several, each a row with a small ×, see `addedRowsOf`
  * in `choices.ts`: for my own learning, no type, the notes of each chapter picked right below it, those of the
  * module folder or, while it has none of that chapter, those of its unchecked drafts; for a type, once a chapter
@@ -35,7 +37,8 @@
  * one tap for my effort, low, medium or high; a task left without result is no attempt and is not written.
  * Any type may hold attempts, like the tasks I solved in a tutorial. Every field may stay empty, the skill too.
  * Below the skill picked stands the folder of its skill, small and grey, as a place has its address below it,
- * the path its entry links, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, a module opening
+ * the path its entry links, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, for a type on into
+ * the folder of its material and of the semester, like `…/VO_UniversityLectureLessons/TUM_2026W`, a module opening
  * in the scripts view, see {@link skillPathOf}. A skill entry of the log already logged shows its attempts, which stay;
  * new ones are added after them. Everything stays editable, its skill too, whose older attempts keep their task.
  * Saving sends a skill entry of the log to the reader's one writer of skill entries, with the times, the place
@@ -264,13 +267,39 @@ function documentPathsOf(links: Link[]): string[] {
 }
 
 /**
+ * Gives the folders of the material of the entry below the folder of its module, which its link goes on into,
+ * as the reader writes it, see `skillLinkOf` in `reader/documents.ts`: for a type the folder of its material,
+ * see {@link materialFolders}, and in it the folder of the semester of the entry, as far as the module holds files
+ * there, like `VO_UniversityLectureLessons` and `TUM_2026W`, or `VO_UniversityLectureLessons` alone while it holds
+ * no slides of that semester; none for my own learning, for a project and for a module without material of the type.
+ * - `folder`: Beginning of the name of the folder of the material of the type, `undefined` for none.
+ * - `semester`: Semester of the entry, like `2026W`.
+ * - `material`: Paths of the documents in the folder of the material, each parted by `/`.
+ * - `inSemester`: Path of a document in the folder of the semester there, `undefined` for none.
+ *
+ * @returns Names of the folders, like `VO_UniversityLectureLessons` and `TUM_2026W`, none for none
+ */
+function materialOf(): string[] {
+    const folder: string | undefined = materialFolders[picks.type];
+    const semester: string = skillSemesterOf(semesterDay);
+    const material: string[][] = folder === undefined ? [] : contents.documents
+        .map((path: string): string[] => path.split("/"))
+        .filter((parts: string[]): boolean => parts.length > 1 && parts[0].startsWith(folder));
+    const inSemester: string[] | undefined = material.find((parts: string[]): boolean =>
+        parts.length > 2 && /\d{4}[WS]/.exec(parts[1])?.[0] === semester);
+    return inSemester?.slice(0, 2) ?? material[0]?.slice(0, 1) ?? [];
+}
+
+/**
  * Makes the folder of the skill picked, small and grey below it, as a place has its address below it: the path
  * its entry links as the `ALTREP` of its `SUMMARY`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
- * for a module a link that opens the module in the scripts view in a new tab, underlined under the pointer, for
- * a project, which the scripts view has not, its path alone, like `NomManageplannings/NomFrequencediary`; none while
- * no skill is picked. Where it is wider than its row, as on a phone, it goes on below after a `/`, after a `_`
- * or between the words of a name, like `NomSkillingmodules/IN2028_Business` and `AnalyticsMachineLearning`,
- * never within a word, see {@link breakableOf}.
+ * for a type on into the folders of its material, see {@link materialOf}, like
+ * `NomSkillingmodules/MGT1372_EntrepreneurialBusiness/VO_UniversityLectureLessons/TUM_2026W`, so it follows the type
+ * and the semester as I pick them; for a module a link that opens the module in the scripts view in a new tab,
+ * underlined under the pointer, for a project, which the scripts view has not, its path alone, like
+ * `NomManageplannings/NomFrequencediary`; none while no skill is picked. Where it is wider than its row, as on
+ * a phone, it goes on below after a `/`, after a `_` or between the words of a name, like
+ * `NomSkillingmodules/IN2028_Business` and `AnalyticsMachineLearning`, never within a word, see {@link breakableOf}.
  * - `path`: The folder of the skill picked, empty for none.
  * - `address`: Its line.
  *
@@ -280,7 +309,7 @@ function skillPathOf(): HTMLElement[] {
     const path: string = skilling.paths[picks.module] ?? "";
     const address: HTMLAnchorElement = document.createElement("a");
     address.className = "entry-address";
-    address.textContent = breakableOf(path).replaceAll("/", "/\u200b");
+    address.textContent = breakableOf([path, ...materialOf()].join("/")).replaceAll("/", "/\u200b");
     if (path.startsWith(`${modulesFolder}/`)) {
         address.href = `/scripts?module=${encodeURIComponent(path.slice(modulesFolder.length + 1))}`;
         address.target = "_blank";
@@ -620,13 +649,16 @@ function tasksOf(changed: () => void): HTMLElement[] {
 /**
  * Builds the rows of the chapters of my system the entry belongs to and of its documents, in plan and log,
  * one chapter after another, see the top of this file, once a skill is picked: each chapter picked its row,
- * the first named `Chapter`, with a small × that takes it back, see `addedRowOf` in `choices.ts`, and for my own
+ * the first named `Chapter`, its name a link to it in the scripts view, see {@link chapterLinkOf}, with a small ×
+ * that takes it back, see `addedRowOf` in `choices.ts`, and for my own
  * learning the one plus right after its name, `Add a document` as its tooltip, and right below it, indented under
  * a thin grey line, its documents, the notes of that chapter, each with its ×, see {@link documentRowsOf}; for a type
  * the documents of its material once a chapter is picked, or while the entry has some, below all chapters; then,
  * while the module has chapters left, the list that adds one by the names of their folders, its plus beside the name
  * `Chapter`, `Add a chapter` as its tooltip, see `addRowOf` in `choices.ts`, as a meal adds its next food: every plus
- * right after what it adds to, none on a line of its own. A chapter keeps the name it has
+ * right after what it adds to, none on a line of its own; a module without any chapter folder, in it or in its drafts,
+ * like `MGT1372` before its chapters are written, holds a calm `No chapters yet` in the row `Chapter`, as the scripts
+ * view says it, so the row never just disappears; a project has no chapters and no row. A chapter keeps the name it has
  * in the entry, also once its folder has another name. Taking back a chapter of my own learning takes back
  * its notes too; documents of my own learning that belong to no chapter picked stay below, to be taken back.
  * Each change shows the fields again, the tasks of the chapters picked with them, see {@link tasksOf}.
@@ -652,7 +684,7 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
                 picks.documents = picks.documents.filter((path: string): boolean =>
                     chapterOfDocument(path) !== chapter);
             again();
-        });
+        }, chapterLinkOf(chapter));
         const documents: HTMLElement[] = own ? documentRowsOf(documentChoicesOf(chapter),
             picks.documents.filter((path: string): boolean => chapterOfDocument(path) === chapter), again, true) : [];
         const list: HTMLElement | undefined = documents.find((one: HTMLElement): boolean =>
@@ -678,7 +710,32 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
                 again();
             },
         })));
+    else if (contents.chapters.length === 0 && picks.chapters.length === 0 && contents.folder !== "")
+        rows.push(rowOf("Chapter", hintOf("No chapters yet")));
     return rows;
+}
+
+/**
+ * Gives the link of a chapter picked, which opens it in the scripts view in a new tab at its first note, of the module
+ * folder or, while it has none there, of its unchecked drafts, see `ModuleContents`, like
+ * `/scripts?path=IN2028_BusinessAnalyticsMachineLearning%2F01_RegressionAnalysis%2F01_01_….md`, the module already
+ * named by the summary above; none for a chapter without notes, like one whose folder has another name now.
+ * - `module`: Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`.
+ * - `note`: Path of the first note of the chapter from the module folder, `undefined` for none.
+ * - `path`: Path of that note as the scripts view takes it, from `NomSkillingmodules`, a draft with `Drafts/` before.
+ *
+ * @param chapter - Name of the chapter, like `01_RegressionAnalysis`
+ * @returns Address like `/scripts?path=…`, empty for none
+ */
+function chapterLinkOf(chapter: string): string {
+    const module: string = contents.folder.slice(modulesFolder.length + 1);
+    const note: string | undefined = contents.documents.find((path: string): boolean =>
+        chapterOfDocument(path) === chapter);
+    if (note === undefined)
+        return "";
+    const path: string = note.startsWith("Drafts/") ? `Drafts/${module}/${note.slice("Drafts/".length)}`
+        : `${module}/${note}`;
+    return `/scripts?path=${encodeURIComponent(path)}`;
 }
 
 /**

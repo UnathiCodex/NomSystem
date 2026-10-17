@@ -6,11 +6,12 @@
  * each link only points to more, the entry states its facts itself, see `calendar.ts`, like the chapters
  * of my system it belongs to, one `X-CHAPTER` each, like `X-CHAPTER:02_LogisticPoissonRegression`.
  * Its `SUMMARY` names its skill airy, a module by its code and the words of its title, see {@link skillLabelOf},
- * with its type in round brackets at the end when it has one, and links the folder of the skill as its `ALTREP`,
- * see {@link skillTitleOf}, like
- * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028 Business Analytics Machine Learning (VO)`,
- * my own learning without brackets, a project by its folder name, like
- * `SUMMARY;ALTREP="NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow":WokFlow`.
+ * with its type in round brackets at the end when it has one, see {@link skillTitleOf}, and links the folder
+ * of the skill as its `ALTREP`, for a module with a type on into the folder of the material of its type and of its
+ * semester, as far as they hold files, see {@link skillLinkOf}, like
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…/VO_UniversityLectureLessons/TUM_2026W":IN2028 Business Analytics
+ * Machine Learning (VO)`, my own learning without brackets, linking the module folder, a project by its folder name,
+ * like `SUMMARY;ALTREP="NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow":WokFlow`.
  * Every real document a skill entry used is one `ATTACH` holding just its path, see `Link` in `calendar.ts`,
  * as many as it used, in the same form for every kind: a lecture its slides, like
  * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_…/TUM_2026W/04_LogisticRegression.pdf`,
@@ -227,26 +228,59 @@ export function skillTitleOf(code: string, type: string): string {
 }
 
 /**
+ * Gives the link of a skill entry, the `ALTREP` of its `SUMMARY`: the folder of its skill, see {@link skillFolderOf},
+ * for a module with a type on into the folder of the material of that type, the one starting with the type and `_`,
+ * and in it into the folder of the semester of the entry, as far as the module holds files there, see
+ * `moduleContentsRead` in `notes.ts`, like `NomSkillingmodules/IN2028_…/VO_UniversityLectureLessons/TUM_2026W`
+ * for a lecture of `2026W`, or `NomSkillingmodules/MGT1372_…/VO_UniversityLectureLessons` while that folder holds
+ * no slides of `2026W`; the same link the dialog shows below the skill, see `skillPathOf` in `src/day/skill.ts`.
+ * - `folder`: Folder of the skill, empty for none.
+ * - `material`: Paths of the files in the folder of the material of the type, each parted by `/`.
+ * - `inSemester`: Path of a file in the folder of the semester there, `undefined` for none.
+ *
+ * @param code - Name of the skill, like `IN2028` or `WokFlow`
+ * @param type - Its type, like `VO`, empty for none, like my own learning
+ * @param semester - Its semester, like `2026W`, empty for none
+ * @returns Path like `NomSkillingmodules/IN2028_…/VO_UniversityLectureLessons/TUM_2026W`
+ *   or `NomProgramprojects/…/WokFlow`, empty for no skill
+ */
+export function skillLinkOf(code: string, type: string, semester: string): string {
+    const folder: string = skillFolderOf(code) ?? "";
+    if (type === "" || !moduleIs(folder))
+        return folder;
+    const material: string[][] = moduleContentsRead(folder.slice(modulesFolder.length + 1)).documents
+        .map((path: string): string[] => path.split("/"))
+        .filter((parts: string[]): boolean => parts.length > 1 && parts[0].startsWith(`${type}_`));
+    const inSemester: string[] | undefined = material.find((parts: string[]): boolean =>
+        semester !== "" && parts.length > 2 && /\d{4}[WS]/.exec(parts[1])?.[0] === semester);
+    return [folder, ...(inSemester?.slice(0, 2) ?? material[0]?.slice(0, 1) ?? [])].join("/");
+}
+
+/**
  * Gives what an entry or a box was as it is written, its `SUMMARY` and the `ALTREP` of it: for a skill entry
- * its skill and type, see {@link skillTitleOf}, linking the folder of its skill, see {@link skillFolderOf}, which
- * tells a module from a project, see `skillPartsOf` in `calendar.ts`, so no link is typed for it; for any other
+ * its skill and type, see {@link skillTitleOf}, linking the folder of its skill and of its material, see
+ * {@link skillLinkOf}, which tells a module from a project, see `skillPartsOf` in `calendar.ts`, so no link is typed
+ * for it; for any other
  * its what as sent with the link typed for it, like the page of an event, a web address, see `linkForm`
  * in `places.ts`, or, from a sender that knows no typed link, like the calendar after a drag, the link it had
  * in the entry or box it comes from while it is the same what, else none.
  * - `link`: The link typed, without spaces at its ends.
  *
- * @param fields - Category, what, the link typed for it, skill and type of the entry or the box, as sent;
- *   the link `undefined` from a sender that knows none
+ * @param fields - Category, what, the link typed for it, skill, type and semester of the entry or the box, as sent,
+ *   the semester as it is written, see `semesterFor` in `categories.ts`; the link `undefined` from a sender that
+ *   knows none
  * @param from - The entry or box it comes from, like the entry being changed or the box a log entry is logged from,
  *   `null` for none
  * @returns `SUMMARY` and `ALTREP`, like `IN2028 Business Analytics Machine Learning (VO)`
- *   and `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, or `Planungen` and an empty link
+ *   and `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning/VO_UniversityLectureLessons/TUM_2026W`,
+ *   or `Planungen` and an empty link
  * @throws {Error} - When the link typed is no web address
  */
-export function titleOf(fields: { category: string; title: string; titleLink?: string; module: string; type: string },
-                        from: { title: string; titleLink: string } | null): [string, string] {
+export function titleOf(fields: {
+    category: string; title: string; titleLink?: string; module: string; type: string; semester: string;
+}, from: { title: string; titleLink: string } | null): [string, string] {
     if (fields.category === skillName)
-        return [skillTitleOf(fields.module, fields.type), skillFolderOf(fields.module) ?? ""];
+        return [skillTitleOf(fields.module, fields.type), skillLinkOf(fields.module, fields.type, fields.semester)];
     if (fields.titleLink === undefined)
         return [fields.title, from !== null && from.title === fields.title ? from.titleLink : ""];
     const link: string = fields.titleLink.trim();

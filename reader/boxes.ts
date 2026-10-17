@@ -75,7 +75,8 @@
  * - `./calendar.ts`: Reads plan and log, writes to-dos, changes and removes them, and calculates with days.
  * - `./categories.ts`: Tells whether a box fits its category, names the category of skill entries,
  *   and gives the semester of a skill box.
- * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill, its links to documents,
+ * - `./documents.ts`: Writes what a skill box is, linking the folder of its skill and of its material, its links
+ *   to documents,
  *   reads its chapters, and gives the plan a box belongs into.
  * - `./notes.ts`: Finds the chapters of a module, which a skill box may name.
  * - `./places.ts`: Gives the link of the place of a box.
@@ -636,6 +637,7 @@ function boxLinksPut(file: string, id: string, box: BoxNew, old: Entry | null): 
  * Turns a box as the page sends it into the fields of its to-do: its place with its link, the one typed
  * for `Online` or the one the reader finds, see `placeLinkOf` in `places.ts`, and what a skill box is as the reader
  * writes it, see `titleOf` in `documents.ts`.
+ * - `semester`: Semester of a skill box as it is written, see `semesterFor` in `categories.ts`, empty for any other.
  * - `title`, `titleLink`: What it is, its `SUMMARY`, and the link of it.
  *
  * @param box - New or changed box
@@ -644,12 +646,13 @@ function boxLinksPut(file: string, id: string, box: BoxNew, old: Entry | null): 
  * @throws {Error} - When the link typed for `Online` is no web address
  */
 function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
-    const [title, titleLink]: [string, string] = titleOf(box, old);
+    const semester: string = semesterFor(box.category, box.semester, box.day);
+    const [title, titleLink]: [string, string] = titleOf({ ...box, semester: semester }, old);
     return {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
         locationLink: placeLinkOf(box.location, box.locationLink, old), from: box.from,
         attendees: box.attendees ?? old?.attendees ?? [],
-        module: box.module, type: box.type, semester: semesterFor(box.category, box.semester, box.day), note: box.note,
+        module: box.module, type: box.type, semester: semester, note: box.note,
         day: box.day, time: box.time === "" ? null : new Date(box.time), minutes: box.minutes, deadline: box.deadline,
     };
 }
@@ -758,6 +761,7 @@ export function boxUniversity(id: string, cancelled: boolean): void {
  * from Sat, 17.10.2026, 15:00 to Mon, 19.10.2026; a box moved earlier or with a deadline is not pushed.
  * - `target`: The plan file it belongs into now.
  * - `start`: New start of an event.
+ * - `semester`: Semester of a skill event as it is written, see `semesterFor` in `categories.ts`, empty for any other.
  * - `fields`: New fields and times of an event.
  *
  * @param change - The changed box as the page sends it
@@ -782,12 +786,13 @@ export function boxEdit(change: BoxChange): void {
     if (change.time === "" || change.minutes === null)
         throw new Error(`${entry.title} is an event of the plan and keeps its time and its duration`);
     const start: Date = new Date(change.time);
-    const [title, titleLink]: [string, string] = titleOf(change, entry);
+    const semester: string = semesterFor(change.category, change.semester, change.day);
+    const [title, titleLink]: [string, string] = titleOf({ ...change, semester: semester }, entry);
     const fields: EntryFields = {
         category: change.category, title: title, titleLink: titleLink, location: change.location,
         locationLink: placeLinkOf(change.location, change.locationLink, entry), from: change.from,
         attendees: change.attendees ?? entry.attendees,
-        module: change.module, type: change.type, semester: semesterFor(change.category, change.semester, change.day),
+        module: change.module, type: change.type, semester: semester,
         note: change.note,
         start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
     };

@@ -32,8 +32,8 @@
  * and `Way`, which take no new ones.
  * Every summary but that of `Skill` has a pencil `✎` beside it, as a place has, which shows below it its link to type,
  * like the page of an event, written as the `ALTREP` of its `SUMMARY` and shown small and grey below the summary,
- * opening it, see {@link summaryPartsOf}; the summary of `Skill` links the folder of its skill, which the reader
- * writes, since it tells a module from a project.
+ * opening it, see {@link summaryPartsOf}; the summary of `Skill` links the folder of its skill, for a type on into
+ * the folder of its material, which the reader writes, since it tells a module from a project, see `skill.ts`.
  * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first,
  * each by its name, like `TUM Innenstadt`, its address grey beside it in the list; a picked one is written with its address,
  * as one line, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`; its row shows its name with a pencil `✎`
@@ -94,7 +94,7 @@ import {
 import {
     skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPlaceShow, skillSave, skillSemesterOf,
 } from "./skill.ts";
-import { dateOf, dateParse, dateTextOf, lengthOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
+import { dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut, QuestionMark } from "../icons.ts";
 import { searchTextOf } from "../search.ts";
@@ -177,7 +177,7 @@ type EntryTarget = "log" | "box";
  * - `addresses`: Address of each name of `With` as the entry, the box or the box to log has it,
  *   or the one it is a copy of, like `sophale@invalid`; none for nobody.
  * - `titleLink`: Link of what it was, the `ALTREP` of its `SUMMARY`, as the entry, the box or the box to log has it,
- *   or the one it is a copy of, for a skill entry the folder of its skill; empty for none.
+ *   or the one it is a copy of, for a skill entry the folder of its skill or of its material; empty for none.
  * - `locationLink`: Link of its place, its `ALTREP`, as the entry, the box or the box to log has it,
  *   or the one it is a copy of; empty for none.
  * - `note`: Note of the entry.
@@ -258,7 +258,7 @@ let addedLine: string = "";
 /**
  * Link of what the entry or the box was, typed below its summary by its pencil, see {@link summaryPartsOf},
  * written as the `ALTREP` of its `SUMMARY`, like the page of an event; empty for none and for a skill entry,
- * whose link the reader writes, the folder of its skill.
+ * whose link the reader writes, the folder of its skill or of its material.
  */
 let summaryLink: string = "";
 
@@ -296,13 +296,13 @@ let removeAsked: boolean = false;
 let pain: string = "";
 
 /**
- * What the real minutes under the minutes of a box were loaded for last: its category, what, module and type,
- * so they load again only when one of them changes.
+ * What the real minutes of the last entries like a box were loaded for last: its category, what, module and type,
+ * so they load again only when one of them changes, see {@link realLoad}.
  */
 let realSeen: string = "";
 
 /**
- * Median of the real minutes of the last entries like a new box, see {@link realShow}, `null` while none is loaded.
+ * Median of the real minutes of the last entries like a new box, see {@link realLoad}, `null` while none is loaded.
  */
 let realMiddle: number | null = null;
 
@@ -389,16 +389,13 @@ function foodsListed(): boolean {
 function saveAllow(): void {
     (document.getElementById("entry-save") as HTMLButtonElement).disabled = chosen === null;
     summaryPartsShow();
-    realShow().catch((error: unknown): void => console.error(error));
+    realLoad().catch((error: unknown): void => console.error(error));
 }
 
 /**
- * Shows under the end of a box how long the last three entries like it really lasted, the latest first,
- * like `Real, last 3: 02h 30m · 02h 45m · 02h 20m`, see `lengthOf` in `times.ts`, so I plan by what happened,
- * not by a hope (Buehler 1994);
- * a new box gets their median as its length, see {@link endFill}. Hidden for an entry of the log and while none
- * is logged.
- * - `line`: The line under the end.
+ * Loads how long the last three entries like a box really lasted, and gives a new box their median as its length,
+ * see {@link endFill}, so I plan by what happened, not by a hope (Buehler 1994); the dialog shows them no more,
+ * since a line of minutes under the deadline only puzzled me. Nothing for an entry of the log and while none is logged.
  * - `texts`: Category, what, module and type picked.
  * - `key`: The same as one text, to load only when they change.
  * - `real`: Minutes of the last entries like the box, the latest first.
@@ -406,15 +403,13 @@ function saveAllow(): void {
  *
  * @throws {Error} - When the reader cannot answer
  */
-async function realShow(): Promise<void> {
-    const line: HTMLElement = document.getElementById("entry-real") as HTMLElement;
+async function realLoad(): Promise<void> {
     const texts: BoxFields = textsRead();
     const key: string = JSON.stringify([opened.target, texts.category, texts.title, texts.module, texts.type]);
     if (key === realSeen)
         return;
     realSeen = key;
     realMiddle = null;
-    line.hidden = true;
     if (opened.target !== "box" || texts.category === "")
         return;
 
@@ -428,14 +423,12 @@ async function realShow(): Promise<void> {
         return;
     const sorted: number[] = [...real].sort((first: number, second: number): number => first - second);
     realMiddle = sorted[Math.floor(real.length / 2)];
-    line.textContent = `Real, last ${real.length}: ${real.map(lengthOf).join(" · ")}`;
-    line.hidden = false;
     endFill();
 }
 
 /**
  * Fills the end of a new box while its time is empty, from its start and the median of the real minutes of the last
- * entries like it, see {@link realShow}, like `16:00` to `18:30` for 150 minutes, with its day; nothing for a box
+ * entries like it, see {@link realLoad}, like `16:00` to `18:30` for 150 minutes, with its day; nothing for a box
  * being changed, an entry of the log, a box without start time, or while no entry like it is logged.
  * - `end`: Field of the time of the end.
  * - `start`: Start of the box as typed.
@@ -1750,7 +1743,6 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     chosen = null;
     realSeen = "";
     realMiddle = null;
-    (document.getElementById("entry-real") as HTMLElement).hidden = true;
     removeAsked = false;
     pain = String(opening.entry?.extendedProps.pain ?? "");
 

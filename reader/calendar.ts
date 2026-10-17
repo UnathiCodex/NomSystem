@@ -41,8 +41,9 @@ import type { CalendarSource } from "./sources.ts";
  *   with its type in round brackets, like `IN2028 Business Analytics Machine Learning (VO)`, see {@link skillPartsOf};
  *   empty for an entry without `SUMMARY`.
  * - `titleLink`: Link of what it was, the standard parameter `ALTREP` of its `SUMMARY`: for a skill entry the folder
- *   of its skill from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
- *   see `documents.ts`; empty when it has none.
+ *   of its skill from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, for a type
+ *   on into the folder of its material, like `…/VO_UniversityLectureLessons/TUM_2026W`, see `skillLinkOf`
+ *   in `documents.ts`; empty when it has none.
  * - `location`: Place of the entry, its `LOCATION`, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`,
  *   or `Home Munich` in an older entry, empty when the event has none.
  * - `locationLink`: Link of its place, the standard parameter `ALTREP` of its `LOCATION`,
@@ -1506,9 +1507,12 @@ export function todoAppend(file: string, fields: TodoFields): string {
  * Puts the text fields that changed into the lines of an event or a to-do, a new place with its link,
  * see {@link textPropertyOf}; a place that stays keeps its line as it is, with its `ALTREP`. Who I was with,
  * once changed, replaces all its `ATTENDEE`s, see {@link attendeePropertyOf}.
+ * A `SUMMARY` whose link alone changed is written anew too, like that of a skill entry moved to another semester,
+ * whose link names the folder of its semester, see `skillLinkOf` in `documents.ts`.
  * A skill entry whose `SUMMARY` is written anew loses the lines `X-MODULE` and `X-TYPE` of an older entry,
  * since its `SUMMARY` names both now, see {@link skillPartsOf}.
  * - `textsOld`: Its text fields as read, with the names of their properties.
+ * - `relinked`: Whether the link of its `SUMMARY` changed.
  *
  * @param component - Lines of the event or the to-do, changed in place
  * @param entry - Its entry as read
@@ -1516,8 +1520,9 @@ export function todoAppend(file: string, fields: TodoFields): string {
  */
 function textsPut(component: string[], entry: Entry, fields: EntryTexts): void {
     const textsOld: [string, string][] = textsOf(entry);
+    const relinked: boolean = fields.titleLink !== entry.titleLink;
     textsOf(fields).forEach(([name, value]: [string, string], index: number): void => {
-        if (value !== textsOld[index][1])
+        if (value !== textsOld[index][1] || (name === "summary" && relinked))
             propertyPut(component, name, value === "" ? [] : [textPropertyOf(name, value, fields)]);
     });
     if (JSON.stringify(fields.attendees) !== JSON.stringify(entry.attendees))

@@ -405,13 +405,6 @@ fieldset.entry-times {
     display: none;
 }
 
-/* Real minutes of the last entries like a box, small and grey under its time, in line with the values */
-.entry-real {
-    margin: 0 0 0 var(--value-start);
-    font-size: 0.75rem;
-    color: var(--text-muted);
-}
-
 /* Hint in place of a picker, calm and grey, like No chapters yet for a module without chapter notes */
 .entry-none {
     margin: 0;
@@ -517,6 +510,12 @@ fieldset.entry-times {
 /* Date field as wide as a date like 23.10.2026 */
 .date-field {
     width: 10ch;
+}
+
+/* The day and the time of a deadline while empty, saying grey what they take, dd.mm.yyyy and hh:mm, see `day.html` */
+#entry-deadline input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
 }
 
 /* Start and end of a box faded while they are off, because the box has a deadline */

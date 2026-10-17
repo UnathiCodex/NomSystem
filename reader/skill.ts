@@ -21,8 +21,9 @@
  * A skill entry of the log is one block of learning of a type, as in the plan: a lecture or a tutorial I attended,
  * a homework sheet I worked on, or study, solving the tasks of my notes, of any module of `NomSkillingmodules`,
  * also one of another semester I attend: `CATEGORIES:Skill`, its `SUMMARY` the name of the folder of its module
- * with its type in round brackets, linking the folder as `ALTREP`, without `X-MODULE` and `X-TYPE`,
- * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028 Business Analytics Machine Learning (VO)`,
+ * with its type in round brackets, linking the folder, for a type on into that of its material, as `ALTREP`,
+ * without `X-MODULE` and `X-TYPE`,
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…/VO_…/TUM_2026W":IN2028 Business Analytics Machine Learning (VO)`,
  * see `documents.ts`; or a block of work on a project of the semester, see `activeSkills` in `sources.ts`,
  * which behaves like a module without chapters and tasks, named by its folder, like `SUMMARY:WokFlow`;
  * the type may stay empty for any skill, like my own learning. Below them, each only when there is one:
@@ -1445,6 +1446,8 @@ export function skillEntryEdit(change: SkillEntryChange): void {
  * - `chapters`: Chapters of a new entry, those of the tasks of the new attempts, or of the open entry with them.
  * - `own`: The chapters, attempts and box of a new entry, as properties of my own.
  * - `start`: Start of a new entry, a quarter hour before its end.
+ * - `semester`: Semester of a new entry, the box's or that of its day, which its link names too, see `titleOf`
+ *   in `documents.ts`.
  * - `fields`: Fields and times of a new entry, which go into the log of the module, see `logFileOf` in `day.ts`.
  * - `values`: `X-ATTEMPT`s of the open entry with the new ones.
  * - `properties`: Properties of the open entry to write again, its chapters as `X-CHAPTER`s, with those of its older
@@ -1471,12 +1474,13 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
         if (plan !== undefined)
             own.push(["related-to", plan.id]);
         const start: Date = new Date(quarter.getTime() - quarterHour);
+        const semester: string = semesterFor(skillName, plan?.semester ?? "", berlinDateOf(start));
         const [title, titleLink]: [string, string] =
-            titleOf({ category: skillName, title: "", module: module, type: type }, null);
+            titleOf({ category: skillName, title: "", module: module, type: type, semester: semester }, null);
         const fields: EntryFields = {
             category: skillName, title: title, titleLink: titleLink, location: plan?.location ?? "",
             locationLink: plan?.locationLink ?? "", from: "", attendees: plan?.attendees ?? [],
-            module: module, type: type, semester: semesterFor(skillName, plan?.semester ?? "", berlinDateOf(start)),
+            module: module, type: type, semester: semester,
             note: "", start: start, end: quarter,
         };
         entryAppend(logFileOf(fields), fields, own);

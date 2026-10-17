@@ -521,23 +521,32 @@ export function pairOf(first: HTMLElement, second: HTMLElement): HTMLDivElement 
 /**
  * Makes the row of a value picked of a field of several values, below the row of the field, see {@link addedRowsOf}:
  * its name, mostly none, its text, like `02_LogisticPoissonRegression`, going on below where it is wider than
- * its row, see {@link breakableOf}, and a small × that takes it back.
+ * its row, see {@link breakableOf}, a link when it has one, which opens what it names in a new tab, like a chapter
+ * in the scripts view, and a small × that takes it back.
  * - `text`: The text in its own element, its whole text in its tooltip.
+ * - `opening`: The text as a link, inside the element of the text, so a plus moved after the text stays outside
+ *   the link, see {@link lineMove}.
  * - `remove`: The ×.
  *
  * @param name - Name of the row, like `Chapter`, empty for none
  * @param text - Text of the value, like `04_LogisticRegression.pdf`
  * @param remove - Takes the value back
+ * @param link - Address the text opens, like `/scripts?path=…`, empty for none
  * @returns Row
  */
-export function addedRowOf(name: string, text: string, remove: () => void): HTMLDivElement {
+export function addedRowOf(name: string, text: string, remove: () => void, link: string): HTMLDivElement {
     const value: HTMLDivElement = document.createElement("div");
     const shown: HTMLSpanElement = document.createElement("span");
+    const opening: HTMLAnchorElement = document.createElement("a");
     const button: HTMLButtonElement = document.createElement("button");
     value.className = "picker-added";
     shown.className = "picker-added-text";
-    shown.textContent = breakableOf(text);
     shown.title = text;
+    opening.href = link;
+    opening.target = "_blank";
+    opening.rel = "noopener";
+    opening.textContent = breakableOf(text);
+    shown.append(link === "" ? breakableOf(text) : opening);
     button.type = "button";
     crossPut(button, `Remove ${text}`);
     button.addEventListener("click", remove);
@@ -568,7 +577,7 @@ export function addedRowsOf(name: string, setup: AddedSetup): HTMLDivElement[] {
     const nested: boolean = setup.nested ?? false;
     const added: HTMLDivElement[] = setup.picked.map((value: string, index: number): HTMLDivElement =>
         addedRowOf(!nested && index === 0 ? name : "", setup.textOf(value), (): void =>
-            setup.change(setup.picked.filter((other: string): boolean => other !== value))));
+            setup.change(setup.picked.filter((other: string): boolean => other !== value)), ""));
     let last: HTMLDivElement[] = setup.hint === undefined || setup.choices.length > 0 ? []
         : [rowOf(nested || added.length > 0 ? "" : name, setup.hint)];
     if (offered.length > 0) {

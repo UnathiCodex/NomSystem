@@ -21,7 +21,8 @@
  * the box again, and so does one click on the check of the done box, see {@link boxUndo}. An older log entry points
  * to its box with `X-PLANNED:<UID of the box>`, which is still read.
  *
- * The dialog of a box shows how long the last entries like it really lasted, see {@link realMinutesRead}.
+ * The dialog of a new box takes the median of how long the last entries like it really lasted as its length,
+ * see {@link realMinutesRead}.
  * The search of the log reads every entry of it, see {@link logAllRead}.
  *
  * A meal of the log lists its foods as lines `X-FOOD`, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150`: appended
@@ -148,7 +149,7 @@ export type DayEntry = Entry & {
 };
 
 /**
- * Number of the last entries like a box whose real minutes its dialog shows, see {@link realMinutesRead}.
+ * Number of the last entries like a box whose real minutes its dialog takes, see {@link realMinutesRead}.
  */
 const realCount: number = 3;
 
@@ -174,6 +175,7 @@ export function logFileOf(fields: { category: string; module: string; start: Dat
  * for `Online` or the one the reader finds, see `placeLinkOf` in `places.ts`, who I was with as sent, else as the box
  * or the entry being changed has them, and what a skill entry was as the reader writes it, see `titleOf`
  * in `documents.ts`.
+ * - `semester`: Semester of a skill entry as it is written, see `semesterFor` in `categories.ts`, empty for any other.
  * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
  *
  * @param entry - New or changed entry, with ISO instants
@@ -184,13 +186,13 @@ export function logFileOf(fields: { category: string; module: string; start: Dat
 function fieldsOf(entry: EntryNew, from: {
     title: string; titleLink: string; location: string; locationLink: string; attendees: Attendee[];
 } | null): EntryFields {
-    const [title, titleLink]: [string, string] = titleOf(entry, from);
+    const semester: string = semesterFor(entry.category, entry.semester, berlinDateOf(new Date(entry.start)));
+    const [title, titleLink]: [string, string] = titleOf({ ...entry, semester: semester }, from);
     return {
         category: entry.category, title: title, titleLink: titleLink, location: entry.location,
         locationLink: placeLinkOf(entry.location, entry.locationLink, from), from: entry.from,
         attendees: entry.attendees ?? from?.attendees ?? [],
-        module: entry.module, type: entry.type,
-        semester: semesterFor(entry.category, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note,
+        module: entry.module, type: entry.type, semester: semester, note: entry.note,
         start: new Date(entry.start), end: new Date(entry.end),
     };
 }
@@ -400,13 +402,14 @@ export function entryAdd(entry: EntryNew): string {
  * Logs a box at its real time, with one drop or one tap: a log entry of its category, what, place, people, and a skill
  * entry
  * with its skill and type, written as the reader writes them, see `titleOf` in `documents.ts`, linking the folder
- * of its skill, from the start to the end the day sends,
+ * of its skill and of its material, from the start to the end the day sends,
  * pointing to the box with `RELATED-TO`, after which the box is done, see `boxDone` in `boxes.ts`. Its note stays
  * empty, since the note of a log entry is my diary note about what happened; a skill box hands on its links
  * to documents, like the slides of a lecture, see `documents.ts`, and its chapters as `X-CHAPTER`s, also those
  * whose folders an older box links; more chapters and documents a skill entry gets later in the dialog.
  * - `box`: The box.
  * - `skill`: Whether it is a skill box, whose links go along.
+ * - `semester`: Semester of a skill entry as it is written, see `semesterFor` in `categories.ts`, empty for any other.
  * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
  * - `fields`: Fields and times of the log entry.
  * - `id`: Identifier of the new log entry.
@@ -421,11 +424,12 @@ export function boxLog(logged: BoxLogged): string {
         throw new Error(`${box.title} has no category; the dialog logs it`);
 
     const skill: boolean = box.category === skillName;
-    const [title, titleLink]: [string, string] = titleOf({ ...box, titleLink: undefined }, box);
+    const semester: string = semesterFor(box.category, box.semester, box.day);
+    const [title, titleLink]: [string, string] = titleOf({ ...box, titleLink: undefined, semester: semester }, box);
     const fields: EntryFields = {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
         locationLink: box.locationLink, from: box.from, attendees: box.attendees, module: box.module, type: box.type,
-        semester: semesterFor(box.category, box.semester, box.day), note: "",
+        semester: semester, note: "",
         start: new Date(logged.start), end: new Date(logged.end),
     };
     fieldsCheck(fields, [], box);

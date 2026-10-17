@@ -218,6 +218,17 @@
     overflow-wrap: anywhere;
 }
 
+/* The text of a value picked that opens what it names, like a chapter in the scripts view, in the colour of every
+   value, underlined under the pointer, as the folder of a skill below it, see `.entry-address` in `day.css` */
+.picker-added-text > a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.picker-added-text > a:hover {
+    text-decoration: underline;
+}
+
 /* The × of a value picked, which has no text of its own, on the line of its text, its icon level with the small
    letters, as an icon beside a word stands and as the × of a food, see `.meal-row` in `meal.css`, not above them */
 .picker-added > .cross-quiet {

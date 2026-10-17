@@ -88,9 +88,10 @@
 
 <!-- Entry by category for the log and the boxes of the plan, shown over the page, without a title, all its room
      for the fields: one column of rows in the order of the file, each its name grey at the left, all names equally
-     wide, and its value at the right, an empty field empty, without dash or placeholder: start and end fixed at the
-     top, then the category, below it the fields of the category one after another, the note always at the bottom,
-     and the buttons. A click on a row opens its list right under it, see choices.ts.
+     wide, and its value at the right, an empty field empty, without dash or placeholder, but the day and the time
+     of a deadline, which say grey what they take, dd.mm.yyyy and hh:mm, as nothing else shows it: start and end
+     fixed at the top, then the category, below it the fields of the category one after another, the note always
+     at the bottom, and the buttons. A click on a row opens its list right under it, see choices.ts.
      Enter in a field confirms only that field; the check or Ctrl+Enter saves, see categories.ts.
      Esc or a click beside the dialog closes it without saving -->
 <dialog class="panel entry-panel" id="entry" closedby="any">
@@ -121,14 +122,10 @@
             <label class="panel-field" id="entry-deadline"><span class="entry-name">Deadline</span>
                 <span class="entry-moment">
                     <input class="date-field" id="entry-deadline-day" type="text" inputmode="decimal"
-                           autocomplete="off" aria-label="Day of the deadline">
+                           autocomplete="off" placeholder="dd.mm.yyyy" aria-label="Day of the deadline">
                     <input class="time-field" id="entry-deadline-time" type="text" inputmode="numeric"
-                           autocomplete="off" aria-label="Time of the deadline"></span></label>
+                           autocomplete="off" placeholder="hh:mm" aria-label="Time of the deadline"></span></label>
         </fieldset>
-
-        <!-- How long the last entries like the box really lasted, small and grey under its minutes,
-             like Real, last 3: 150 · 165 · 140 min; hidden while none is logged -->
-        <p class="entry-real" id="entry-real" hidden></p>
 
         <!-- The category, one line; for a box only the categories I plan -->
         <div id="entry-category"></div>
