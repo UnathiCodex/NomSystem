@@ -1679,7 +1679,7 @@ export function roundAdd(line: RoundNew): void {
  * the last one of the log that started before now and ended at most {@link sessionPause} ago, as the buttons of a task
  * write into it, see {@link attemptAdd}, of every type, a lecture as my own learning, so the timer of the day
  * always shows the session I am in; for the learning view that of one module, see {@link momentOf}, into which
- * its round writes, so a section opens only in a session of its module, see `src/editor/session.ts`.
+ * its round writes, so the learning view records only in a session of the module, see `src/editor/session.ts`.
  * - `now`: The moment.
  * - `open`: The skill entry of the moment.
  *

@@ -8,7 +8,8 @@
  * has, see `../menu.ts`.
  * Its menu writes into the skill entry of the moment, through the reader's one writer of attempts, the task judged
  * as a whole: Right at once, Wrong opens one short field below the task for my comment on what went wrong, which
- * Enter writes with it, also empty, and Escape closes without writing.
+ * Enter writes with it, also empty, and Escape closes without writing; only in a session of its module, which the
+ * dialog of a new entry starts while none runs, see `../editor/session.ts`.
  * The menu shows only once the solution of the task is open, so I judge against it, not by feeling, since
  * self-grading runs generous (León 2023); a task without a solution shows it always. A broken task I tell my tutor
  * in the chat.
@@ -16,6 +17,7 @@
  * the result of today once there is one, like `wrong`, no state, no hint and no history.
  *
  * - `./attempts.ts`: Sends attempts, and writes days out.
+ * - `../editor/session.ts`: Makes sure a session of the module of the task runs before an attempt is written.
  * - `../icons.ts`: Puts icons, alone or with words, into buttons.
  * - `../menu.ts`: Puts the items for the next attempt behind one button `⋯`.
  * - `lucide`: The icons of the history and of the items.
@@ -23,6 +25,7 @@
  */
 
 import { attemptSend, dayTextOf } from "./attempts.ts";
+import { sessionEnsure } from "../editor/session.ts";
 import { iconOf, iconWordsOf } from "../icons.ts";
 import { menuItemOf, menuOf } from "../menu.ts";
 import { Check, History, X } from "lucide";
@@ -136,7 +139,8 @@ export function historyOf(task: SkillTask, counted: boolean): HTMLElement[] {
 }
 
 /**
- * Writes an attempt at a task into the skill entry of the moment, then shows the task again.
+ * Writes an attempt at a task into the skill entry of the moment, then shows the task again, once a session of its
+ * module runs, see `sessionEnsure` in `../editor/session.ts`; without one nothing is written and the row stays as it is.
  * The row of the task takes no clicks meanwhile, so a double click writes one attempt;
  * when the reader does not take the attempt, the row says so.
  * - {@link HTMLElement#inert}: Makes an element and its content take no clicks and no typing.
@@ -151,8 +155,14 @@ function attemptWrite(row: HTMLElement, task: SkillTask, result: "right" | "wron
                       written: () => Promise<void>): void {
 
     row.inert = true;
-    attemptSend({ task: task.id, result: result, comment: comment })
-        .then(written).catch((error: unknown): void => failShow(row, error));
+    sessionEnsure(task.id.split("/")[0]).then(async (running: boolean): Promise<void> => {
+        if (!running) {
+            row.inert = false;
+            return;
+        }
+        await attemptSend({ task: task.id, result: result, comment: comment });
+        await written();
+    }).catch((error: unknown): void => failShow(row, error));
 }
 
 /**

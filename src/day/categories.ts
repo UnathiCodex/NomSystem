@@ -1820,6 +1820,24 @@ export async function entryOpenNow(calendar: Calendar): Promise<void> {
 }
 
 /**
+ * Opens the dialog for a new skill entry of the log with start and end, `Skill` and its module picked, the rest as for
+ * any new entry, like the place where the last way ended: the session the learning view asks for before it records,
+ * see `../editor/session.ts`.
+ *
+ * @param module - Its module, like `IN2028`
+ * @param start - Start of the new entry
+ * @param end - End of the new entry
+ * @throws {Error} - When the reader gives no valid answer
+ */
+export async function entryOpenSkill(module: string, start: Date, end: Date): Promise<void> {
+    await entryShow({
+        target: "log", start: start, end: end, time: null, minutes: null, category: skillName,
+        values: { title: "", from: "", location: "", with: "" }, addresses: {}, titleLink: "", locationLink: "",
+        note: "", foods: [], skill: { ...skillNone, module: module }, plan: null, entry: null, box: null,
+    });
+}
+
+/**
  * Opens the dialog to log a box at a start and an end, like those of its drop into the log; a box with a category
  * comes with its category and fields picked as planned, its people too, a skill box with its skill, type, semester,
  * chapters and documents, see `skill.ts`, ready to save or to change, like a lecture with its chapters and slides;

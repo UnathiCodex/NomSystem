@@ -26,11 +26,14 @@
  * A click on a block in the tree shows it alone, back or ahead, and `Next` returns to the current step; the last step
  * has no `Next`, since a round closes only by hand, with the round check in the head, see {@link roundClose}, once its
  * Task has a result; the close writes `done` where the step stood, and Today follows.
+ * Reading a round needs no session, but `Next` and the round check write only in a session of the module, which
+ * the dialog of a new entry starts while none runs, see `./session.ts`; cancelled, I stay where I was.
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold the place of `Next` and draw it as a widget below the current block.
  * - `@codemirror/language`: Folds and unfolds the blocks, as their arrows do.
  * - `../skill/attempts.ts`: Writes the days of the round line out.
  * - `./tasks.ts`: Hears each load of the tasks of the note, with its section.
+ * - `./session.ts`: Makes sure a session of the module runs before `Next` or the round check writes.
  * - `./today.ts`: Lists what a failure brings back as cards, by {@link fallbacksOf}, so Today agrees with the round.
  * - `../notes/tree.ts`: The places of the blocks the tree shows.
  */
@@ -39,6 +42,7 @@ import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { foldable, foldedRanges, foldEffect, unfoldEffect } from "@codemirror/language";
 import { tasksFollow } from "./tasks.ts";
+import { sessionEnsure } from "./session.ts";
 
 import type { EditorState, Extension, Line, Range, StateEffectType, Transaction } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
@@ -156,7 +160,9 @@ class NextWidget extends WidgetType {
         next.type = "button";
         next.className = "round-next";
         next.textContent = "Next";
-        next.addEventListener("click", (): void => roundNext(view));
+        next.addEventListener("click", (): void => {
+            roundNext(view).catch(failShow);
+        });
         return next;
     }
 
@@ -445,6 +451,16 @@ function resumedOf(shown: Round, steps: Step[]): string {
 }
 
 /**
+ * Gives the module of the round shown, the part of the identities of its tasks before `/`.
+ *
+ * @param shown - The round
+ * @returns Module code like `IN2028`
+ */
+function moduleOf(shown: Round): string {
+    return shown.loaded.tasks[0]?.id.split("/")[0] ?? "";
+}
+
+/**
  * Writes where I stand in the round shown into the log, its line `X-ROUND`, see `RoundLine` in `reader/skill.ts`.
  *
  * @param shown - The round
@@ -456,7 +472,7 @@ async function lineWrite(shown: Round, step: string): Promise<void> {
     const response: Response = await fetch("/api/skill/round", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ section: `${shown.loaded.tasks[0]?.id.split("/")[0] ?? ""}/${shown.section.title}`,
+        body: JSON.stringify({ section: `${moduleOf(shown)}/${shown.section.title}`,
             round: shown.section.round, step: step }),
     });
     if (!response.ok)
@@ -555,15 +571,17 @@ function blockOpen(view: EditorView, block: Block): void {
 
 /**
  * Goes on from the current step, see the top of this file: from a block shown from the tree, back to the current step;
- * else writes into the log which step comes next, so a step without a result before it counts as passed, and shows
- * it; the last step has no `Next`. Where I am moves at once; a line the reader does not take shows in the head, see
- * {@link failShow}.
+ * else, once a session of the module runs, see `sessionEnsure` in `./session.ts`, writes into the log which step comes
+ * next, so a step without a result before it counts as passed, and shows it; the last step has no `Next`. Where I am
+ * moves at once; a line the reader does not take shows in the head, see {@link failShow}; without a session, or once
+ * the round was shown anew meanwhile, as after a result, nothing moves.
  * - `steps`, `current`: The steps of the round and the current one.
  * - `following`: The step after it.
  *
  * @param view - The editor
+ * @throws {Error} - When the reader cannot say whether a session runs
  */
-function roundNext(view: EditorView): void {
+async function roundNext(view: EditorView): Promise<void> {
     if (round === null)
         return;
     const shown: Round = round;
@@ -580,6 +598,8 @@ function roundNext(view: EditorView): void {
     opened = "";
     const following: Step | undefined = steps[steps.indexOf(current) + 1];
     if (following === undefined)
+        return;
+    if (!await sessionEnsure(moduleOf(shown)) || round !== shown)
         return;
     const passed: boolean = resultlessIs(current) && !shown.seen.includes(keyOf(current));
     if (passed)
@@ -618,13 +638,19 @@ function closeShow(shown: Round, steps: Step[]): void {
 }
 
 /**
- * Closes the round shown by hand, the round check in the head: writes `done` where I stand into the log, then shows
- * Today, where the round stands done.
+ * Closes the round shown by hand, the round check in the head, once a session of the module runs, see
+ * `sessionEnsure` in `./session.ts`: writes `done` where I stand into the log, then shows Today, where the round
+ * stands done.
+ * - `shown`: The round.
  */
 export function roundClose(): void {
     if (round === null)
         return;
-    lineWrite(round, "done").then((): void => {
+    const shown: Round = round;
+    sessionEnsure(moduleOf(shown)).then(async (running: boolean): Promise<void> => {
+        if (!running)
+            return;
+        await lineWrite(shown, "done");
         location.href = todayAddress;
     }).catch(failShow);
 }

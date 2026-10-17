@@ -1,44 +1,45 @@
 /**
  * ## Session
  *
- * No learning without a session: before I go through a section, with `Next`, a result or the round check, a session
- * of its module runs, the skill entry of the moment of the module, into which the round writes, see `reader/skill.ts`.
- * When a section opens and none runs now, the learning view asks one short question, as a card over the section
- * like a dialog of the day: how long, 25, 50 or 75 minutes, 75 picked, my session, or other minutes typed; then the
- * one writer of skill entries writes the Skill entry of the module, as the dialog of the day writes it, from now,
- * to the minute, until the length picked, see `skillEntrySend` in `../skill/attempts.ts`, and the section opens.
- * A session of the module that runs now, now between its start and its end, as the timer of the day shows it,
- * see `../timer.ts`, counts without a question. Cancel goes back to Today, since a section opens only in a session.
+ * No learning recorded without a session: before the learning view records something, where I stand with `Next`,
+ * a result or the round check, a session of the module runs, its skill entry of the moment, into which the record
+ * goes, see `reader/skill.ts`; reading a section needs none. While none runs, the day view's own dialog of a new entry
+ * opens over the page, the one I log every entry with in the calendar, see `../day/categories.ts`: `Skill` and the
+ * module picked, from now, to the minute, as long as my usual session, see `sessionMinutes` in `reader/trackers.ts`;
+ * I fill and save it there as always, and the record follows into it. Cancelled, or saved as no session running now,
+ * nothing is recorded and I stay where I was. A session of the module running now, now between its start and its end,
+ * as the timer of the day shows it, see `../timer.ts`, counts without the dialog.
+ * The dialog, its HTML from `../day/day.html`, its code and its look come into the page only the first time it opens,
+ * so the scripts load no calendar before.
  *
- * - `../skill/attempts.ts`: Loads the modules with their sections and names, and sends the new skill entry.
+ * - `../day/day.html?raw`: Html of the day as text, of which the dialog `#entry`.
+ * - `../day/categories.ts`: Starts the dialog and opens it for a new skill entry of the module.
+ * - `../day/trackers.ts`: Loads my settings, with the minutes of my usual session.
  * - `../day/times.ts`: Gives now to the minute, as the day view writes its entries.
- * - `lucide`, `../icons.ts`: The cross of Cancel and the check of Start.
- * - `./session.css`: Look of the question.
+ * - `../skill/attempts.ts`: Writes today's day in the form of the reader.
+ * - `fullcalendar`, `fullcalendar/timegrid`: A calendar of a day, never drawn, which the dialog's writes ask for,
+ *   to load its log again.
+ * - `../day/day.css`, `../day/choices.css`, `../day/meal.css`: Look of the dialog and of its fields.
  */
 
-import { skillEntrySend, skillingLoad } from "../skill/attempts.ts";
 import { nowOn } from "../day/times.ts";
-import { Check, X } from "lucide";
-import { iconPut } from "../icons.ts";
-import "./session.css";
+import { dayOf } from "../skill/attempts.ts";
 
-import type { SkillModule, SkillSection, Skilling } from "../skill/attempts.ts";
+import type * as Categories from "../day/categories.ts";
+import type * as Trackers from "../day/trackers.ts";
+import type * as FullCalendar from "fullcalendar";
+import type * as TimeGrid from "fullcalendar/timegrid";
 import type { Session } from "../timer.ts";
 
 
 /**
- * Lengths of a session to pick, in minutes; the last, 75, is my session and picked at first.
+ * The code of the dialog of a new entry, once the dialog is in the page and started, `null` before it opened first.
  */
-const lengths: number[] = [25, 50, 75];
-
-/**
- * Where Cancel goes: back to Today, see `./today.ts`.
- */
-const todayAddress: string = "/scripts";
+let dialogReady: Promise<typeof Categories> | null = null;
 
 
 /**
- * Loads the session of a module running now from the reader: its skill entry of the moment, see `sessionRead`
+ * Loads from the reader whether a session of a module runs now: its skill entry of the moment, see `sessionRead`
  * in `reader/skill.ts`, while its end lies after now.
  *
  * @param module - Code of the module, like `IN2028`
@@ -54,137 +55,53 @@ async function runningIs(module: string): Promise<boolean> {
 }
 
 /**
- * Makes an element with its class and text.
+ * Puts the dialog of a new entry of the day into the page and starts it, see `categoriesStart` in
+ * `../day/categories.ts`, with a calendar of a day as the day view has, but never drawn and without entries, since
+ * the learning view shows no log.
+ * - `looks`: The look of the dialog, loading meanwhile.
+ * - `html`, `categories`, `full`, `timeGrid`: The HTML of the day, with the dialog `#entry`, the code of the dialog,
+ *   that of the calendar and of its view of a day.
  *
- * @param tag - Its tag, like `p`
- * @param name - Its class
- * @param text - Its text, empty for none
- * @returns The element
+ * @returns The code of the dialog
  */
-function partOf<K extends keyof HTMLElementTagNameMap>(tag: K, name: string, text: string): HTMLElementTagNameMap[K] {
-    const part: HTMLElementTagNameMap[K] = document.createElement(tag);
-    part.className = name;
-    part.textContent = text;
-    return part;
+async function dialogStart(): Promise<typeof Categories> {
+    const looks: Promise<unknown[]> = Promise.all([
+        import("../day/day.css"), import("../day/choices.css"), import("../day/meal.css"),
+    ]);
+    const html: string = (await import("../day/day.html?raw")).default;
+    const categories: typeof Categories = await import("../day/categories.ts");
+    const full: typeof FullCalendar = await import("fullcalendar");
+    const timeGrid: typeof TimeGrid = await import("fullcalendar/timegrid");
+    await looks;
+    document.body.append(new DOMParser().parseFromString(html, "text/html").getElementById("entry") as HTMLElement);
+    categories.categoriesStart(new full.Calendar(document.createElement("div"),
+        { plugins: [timeGrid.default], initialView: "timeGridDay" }));
+    return categories;
 }
 
 /**
- * Asks how long the session is, see the top of this file: a row with what its entry will be, like
- * `IN2028 Business Analytics Machine Learning`, a row with the lengths and the field for other minutes, then Cancel
- * and Start; Enter starts too. A choice picks its length and empties the field, typing in the field picks its minutes,
- * Start off while the field holds no whole number of minutes from 1. Starting writes the entry and closes the question;
- * a write the reader refuses says so above the buttons, as a dialog of the day does.
- * - `dialog`: The question, modal over the section, so nothing of it can be gone through meanwhile.
- * - `picked`: The length picked of the choices, which counts while the field is empty.
- * - `choices`: The buttons of the lengths, in their `row`, and `field` the field for other minutes, with `other`
- *   around it.
- * - `minutesOf`: The minutes of the session, those typed or those picked, `0` for no whole number of minutes from 1.
- * - `show`: Shows what is picked, and turns Start on or off.
+ * Makes sure a session of a module runs before the learning view records something, see the top of this file:
+ * without one running now opens the dialog of a new entry for it and waits until it closes, saved or not.
+ * - `categories`, `trackers`: The code of the dialog and of my settings.
+ * - `minutes`: Minutes of my usual session.
+ * - `start`: Now, to the minute.
+ * - `closed`: Comes once the dialog closes.
  *
  * @param module - Code of the module, like `IN2028`
- * @param label - What its entry will be, like `IN2028 Business Analytics Machine Learning`
- * @returns When the entry is written
- */
-function lengthAsk(module: string, label: string): Promise<void> {
-    const dialog: HTMLDialogElement = partOf("dialog", "session-panel", "");
-    const form: HTMLFormElement = partOf("form", "session-form", "");
-    const what: HTMLElement = partOf("p", "session-row", "");
-    const length: HTMLElement = partOf("div", "session-row", "");
-    const row: HTMLElement = partOf("div", "session-choices", "");
-    const other: HTMLLabelElement = partOf("label", "session-other", "");
-    const field: HTMLInputElement = partOf("input", "", "");
-    const error: HTMLElement = partOf("p", "session-error", "Saving failed");
-    const buttons: HTMLElement = partOf("div", "session-buttons", "");
-    const cancel: HTMLButtonElement = partOf("button", "", "");
-    const start: HTMLButtonElement = partOf("button", "session-main", "");
-    let picked: number = lengths.at(-1) ?? 0;
-    const choices: HTMLButtonElement[] = lengths.map((minutes: number): HTMLButtonElement => {
-        const choice: HTMLButtonElement = partOf("button", "", `${minutes} min`);
-        choice.type = "button";
-        choice.addEventListener("click", (): void => {
-            picked = minutes;
-            field.value = "";
-            show();
-        });
-        return choice;
-    });
-    const minutesOf: () => number = (): number => field.value.trim() === "" ? picked
-        : /^\d+$/.test(field.value.trim()) ? Number(field.value.trim()) : 0;
-    const show: () => void = (): void => {
-        choices.forEach((choice: HTMLButtonElement, index: number): void =>
-            choice.setAttribute("aria-pressed", String(field.value.trim() === "" && lengths[index] === picked)));
-        other.classList.toggle("session-picked", field.value.trim() !== "");
-        start.disabled = minutesOf() < 1;
-    };
-
-    field.type = "text";
-    field.inputMode = "numeric";
-    field.autocomplete = "off";
-    field.placeholder = "Other";
-    field.setAttribute("aria-label", "Other minutes");
-    field.addEventListener("input", show);
-    other.append(field, " min");
-    row.append(...choices, other);
-    what.append(partOf("span", "session-name", "Skill"), partOf("span", "", label));
-    length.append(partOf("span", "session-name", "Length"), row);
-    error.hidden = true;
-    cancel.type = "button";
-    iconPut(cancel, X, "Cancel");
-    start.type = "submit";
-    iconPut(start, Check, "Start");
-    buttons.append(cancel, start);
-    form.append(what, length, error, buttons);
-    dialog.append(form);
-    (document.getElementById("editor") ?? document.body).append(dialog);
-    show();
-
-    const leave: () => void = (): void => {
-        location.href = todayAddress;
-    };
-    cancel.addEventListener("click", leave);
-    dialog.addEventListener("cancel", (event: Event): void => {
-        event.preventDefault();
-        leave();
-    });
-    return new Promise<void>((resolve: () => void): void => {
-        form.addEventListener("submit", (event: SubmitEvent): void => {
-            event.preventDefault();
-            const from: Date = nowOn(new Date());
-            start.disabled = true;
-            skillEntrySend("", {
-                type: "", module: module, semester: "", chapters: [], documents: [], attempts: [],
-                location: "", attendees: [], planned: "", note: "",
-                start: from, end: new Date(from.getTime() + minutesOf() * 60 * 1000),
-            }).then((): void => {
-                dialog.close();
-                dialog.remove();
-                resolve();
-            }).catch((failure: unknown): void => {
-                console.error(failure);
-                error.hidden = false;
-                show();
-            });
-        });
-        dialog.showModal();
-        start.focus({ focusVisible: false });
-    });
-}
-
-/**
- * Makes sure a session of the module of a section runs before I go through it, see the top of this file: without one
- * running now asks how long it is, and writes it.
- * - `skilling`: The modules of the semester with their sections and names.
- * - `module`: The module of the section, `undefined` for a note that is no section.
- *
- * @param path - Path of the note of the section, as the scripts view takes it
- * @returns When a session of its module runs
+ * @returns Whether a session of the module runs now, so the record may follow
  * @throws {Error} - When the reader cannot answer
  */
-export async function sessionEnsure(path: string): Promise<void> {
-    const skilling: Skilling = await skillingLoad();
-    const module: SkillModule | undefined = skilling.modules.find((candidate: SkillModule): boolean =>
-        candidate.sections.some((section: SkillSection): boolean => section.note === path));
-    if (module === undefined || await runningIs(module.code))
-        return;
-    await lengthAsk(module.code, skilling.labels[module.code] ?? module.code);
+export async function sessionEnsure(module: string): Promise<boolean> {
+    if (await runningIs(module))
+        return true;
+    dialogReady ??= dialogStart();
+    const categories: typeof Categories = await dialogReady;
+    const trackers: typeof Trackers = await import("../day/trackers.ts");
+    const minutes: number = (await trackers.trackersFetch(dayOf(new Date()))).settings.sessionMinutes;
+    const start: Date = nowOn(new Date());
+    const closed: Promise<void> = new Promise<void>((resolve: () => void): void =>
+        document.getElementById("entry")?.addEventListener("close", (): void => resolve(), { once: true }));
+    await categories.entryOpenSkill(module, start, new Date(start.getTime() + minutes * 60 * 1000));
+    await closed;
+    return await runningIs(module);
 }
