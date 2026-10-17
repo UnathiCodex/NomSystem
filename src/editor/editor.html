@@ -17,16 +17,24 @@
                 <h1 class="editor-title" id="editor-title"></h1>
                 <div class="editor-bar">
                     <button type="button" class="editor-tree" id="editor-tree" aria-pressed="false"></button>
+                    <!-- On a phone only: back to the day -->
+                    <a class="editor-day" href="/">Day</a>
                     <span class="editor-state" id="editor-state"></span>
                     <button type="button" class="editor-save" id="editor-save"></button>
                 </div>
             </div>
 
-            <!-- A section only: its round line, what this round holds and what comes next, see round.ts -->
-            <p class="editor-round" id="editor-round" hidden></p>
+            <!-- Today, while no note is open: the date as the day view shows it, and one card per item due,
+                 see today.ts -->
+            <section class="editor-today" id="editor-today" hidden>
+                <div class="day-bar">
+                    <h2 class="day-title"><span class="day-weekday"></span> <span class="day-date"></span></h2>
+                </div>
+                <div class="plan-boxes today-list"></div>
+            </section>
 
-            <!-- A section on a phone only, where the tree hides: its blocks with their places, folded, see editor.ts -->
-            <details class="editor-blocks" id="editor-blocks" hidden></details>
+            <!-- A section only: its round, like Round 1, see round.ts -->
+            <p class="editor-round" id="editor-round" hidden></p>
 
             <!-- Text of the file, CodeMirror inside; `markdown` gives the rendered pieces of a Markdown file the look
                  of the scripts view, `editor-plain` shows any other file as its plain text -->

@@ -619,6 +619,18 @@ fieldset.entry-times {
         color: var(--text-main);
     }
 
+    /* The way into the scripts, `Learn`, looking like the buttons beside it */
+    .day-learn {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        color: var(--text-muted);
+        font-size: var(--control-text);
+        text-decoration: none;
+    }
+
     .day-switch .chip-button {
         width: var(--control-height);
         height: var(--control-height);

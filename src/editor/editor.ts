@@ -15,10 +15,10 @@
  * file without a diff; an `.ics` file opens as its plain text, to read only, each block of it drawn one step in and its
  * entries apart, see `./ics.ts`; any other file shows in the tree, faint, and opens not.
  * A note of my modules shows the rows of its tasks under their headings, see `./tasks.ts`.
- * A section, a note with tasks of the semester, shows its round in the same view: its round line above the note,
- * the blocks of the round folded and opened as they stand, `Next` below the current one, and in the tree, in place
- * of the outline, its blocks with their places, a click opening one; on a phone, where the tree hides, the same list
- * above the note, see `./round.ts`.
+ * A section, a note with tasks of the semester, shows its round in the same view: its name in words, its round below
+ * it, like `Round 1`, then only the block due, `Next` below it, and in the tree, in place of the outline, its blocks
+ * with their places, a click opening one, see `./round.ts`.
+ * While no note is open, the page shows Today, the items due today as cards, see `./today.ts`.
  * The address names a note by its path in the scripts view and the heading to scroll to, like
  * `/scripts?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md#…`,
  * so a reload and the back button of the browser stay on it, and a file of my new system by its path in the tree,
@@ -65,7 +65,9 @@ import { headingShow, linksSet, livePreview, solutionsFold } from "./preview.ts"
 import { solutionSteps } from "./steps.ts";
 import { taskRows, tasksLoad } from "./tasks.ts";
 import { roundBlocksOf, roundHeadingShow, roundStart } from "./round.ts";
-import { outlineShow, roundListOf, treeShow } from "../notes/tree.ts";
+import { outlineShow, treeShow } from "../notes/tree.ts";
+import { todayShow } from "./today.ts";
+import { calendarTodayOf } from "../today.ts";
 import { timeOf } from "../day/times.ts";
 import { breakableOf } from "../day/choices.ts";
 import { phone } from "../phone.ts";
@@ -245,36 +247,13 @@ function keyDown(event: KeyboardEvent): void {
 }
 
 /**
- * Shows the blocks of a section with their places in its round above the note, for a phone, where the tree hides:
- * a fold, closed, its line the current block after the icon of the tree, opening the list the tree shows;
- * hidden for any other note, and on a computer, see `./editor.css`.
- * - `list`: The fold.
- * - `summary`: Its line.
- *
- * @param blocks - Headings of the blocks with their places, `null` for a note that is no section
- */
-function blocksShow(blocks: [string, BlockMark][] | null): void {
-    const list: HTMLDetailsElement = document.getElementById("editor-blocks") as HTMLDetailsElement;
-    list.hidden = blocks === null;
-    if (blocks === null)
-        return;
-    const summary: HTMLElement = document.createElement("summary");
-    iconPut(summary, ListTree, "Blocks");
-    summary.append(blocks.find(([, mark]: [string, BlockMark]): boolean => mark === "current")?.[0]
-        .replace(/[ \t]*\(cold\)$/, "") ?? "");
-    list.replaceChildren(summary, roundListOf(path, blocks));
-}
-
-/**
  * Builds the outline of a note in the tree anew, or for a section its blocks with their places in its round,
- * also above the note for a phone, see {@link blocksShow}.
  * - `blocks`: The blocks of a section with their places, `null` for any other note.
  */
 function outlineRefresh(): void {
     const blocks: [string, BlockMark][] | null = roundBlocksOf(view);
     if (outlineTree !== null)
         outlineShow(outlineTree, path, view.state.sliceDoc(), blocks);
-    blocksShow(blocks);
 }
 
 /**
@@ -388,7 +367,6 @@ function treeClick(event: MouseEvent): void {
     event.preventDefault();
     window.history.pushState(null, "", address);
     phoneShow("file");
-    (document.getElementById("editor-blocks") as HTMLDetailsElement).open = false;
     if (!roundHeadingShow(view, decodeURIComponent(address.hash.slice(1))))
         addressHeadingShow();
 }
@@ -429,9 +407,9 @@ export async function editorStart(): Promise<void> {
     const treeButton: HTMLButtonElement = document.getElementById("editor-tree") as HTMLButtonElement;
     path = file !== "" ? file : address.get("path") ?? "";
     saveAddress = file !== "" ? "/api/edit/file" : "/api/edit/note";
-    phoneShow(path === "" ? "tree" : "file");
+    phoneShow(path === "" && plannings ? "tree" : "file");
     iconPut(treeButton, ListTree, "Tree");
-    treeButton.disabled = path === "";
+    treeButton.disabled = path === "" && plannings;
     treeButton.addEventListener("click", (): void =>
         phoneShow(treeButton.getAttribute("aria-pressed") === "true" ? "file" : "tree"));
     const shown: Promise<void> = treeShow(tree, plannings ? "NomManageplannings" : "NomSkillingmodules", path,
@@ -439,6 +417,12 @@ export async function editorStart(): Promise<void> {
     shown.catch((error: unknown): void => console.error(error));
     (document.getElementById("editor-title") as HTMLElement).textContent =
         breakableOf(path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "");
+    if (path === "" && !plannings) {
+        save.hidden = true;
+        (document.getElementById("editor-head") as HTMLElement).hidden = true;
+        await todayShow(document.getElementById("editor-today") as HTMLElement, calendarTodayOf());
+        return;
+    }
     const opened: Opened | null = path === "" ? null : await openedRead(file);
     if (opened === null) {
         save.hidden = true;
@@ -477,14 +461,18 @@ export async function editorStart(): Promise<void> {
     text.style.visibility = "hidden";
     tasksLoad(view, path).catch((error: unknown): void => console.error(error)).finally((): void => {
         text.style.visibility = "";
-        if (location.hash !== "" || roundBlocksOf(view) === null)
+        if (roundBlocksOf(view) !== null)
+            (document.getElementById("editor-title") as HTMLElement).textContent = path.split("/").at(-1)
+                ?.replace(/\.md$/i, "").replace(/^\d+_\d+_/, "").replace(/(?<=[a-z])(?=[A-Z])/g, " ") ?? "";
+        if (roundBlocksOf(view) === null)
             addressHeadingShow();
+        else if (location.hash !== "")
+            roundHeadingShow(view, decodeURIComponent(location.hash.slice(1)));
     });
     shown.then((): void => {
         outlineTree = tree;
         outlineRefresh();
     }).catch((error: unknown): void => console.error(error));
     tree.addEventListener("click", treeClick);
-    document.getElementById("editor-blocks")?.addEventListener("click", treeClick);
     window.addEventListener("popstate", addressHeadingShow);
 }

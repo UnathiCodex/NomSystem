@@ -14,6 +14,18 @@
     flex-basis: 100%;
 }
 
+/* A quiet row, on a card or in a section, as a box of the day: its button `⋯` at the right, so its menu opens
+   below it toward the page, the result of today grey before it */
+.task-quiet {
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 0.5rem 0 1rem;
+}
+
+.task-quiet > .menu-place {
+    order: 1;
+}
+
 /* When the task is due, grey */
 .task-state {
     color: var(--text-muted);

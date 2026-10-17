@@ -30,10 +30,9 @@
 import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { foldable, foldedRanges, foldEffect, unfoldEffect } from "@codemirror/language";
-import { dayTextOf } from "../skill/attempts.ts";
 import { tasksFollow } from "./tasks.ts";
 
-import type { EditorState, Extension, Line, StateEffectType, Transaction } from "@codemirror/state";
+import type { EditorState, Extension, Line, Range, StateEffectType, Transaction } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
 import type { Attempt, Result, SkillSection, SkillTask } from "../skill/attempts.ts";
 import type { NoteTasks } from "./tasks.ts";
@@ -98,12 +97,24 @@ const failed: Result[] = ["wrong", "stuck", "guided"];
 /**
  * Effect of `Next` moving, to the end of a block, `null` for none.
  */
-const nextMoved: StateEffectType<number | null> = StateEffect.define<number | null>();
+const nextMoved: StateEffectType<{ block: Block; end: number } | null> =
+    StateEffect.define<{ block: Block; end: number } | null>();
 
 /**
  * The round shown, `null` for a note that is no section.
  */
 let round: Round | null = null;
+
+/**
+ * Heading of a block opened from the tree that is not the current step, shown alone in its place until `Next`;
+ * empty for none.
+ */
+let opened: string = "";
+
+/**
+ * Where to go once the round of today is done: back to Today, see `./today.ts`.
+ */
+const todayAddress: string = "/scripts";
 
 
 /**
@@ -146,13 +157,46 @@ const nextPlace: StateField<DecorationSet> = StateField.define<DecorationSet>({
     update: (place: DecorationSet, transaction: Transaction): DecorationSet => {
         for (const effect of transaction.effects)
             if (effect.is(nextMoved))
-                return effect.value === null ? Decoration.none
-                    : Decoration.set([Decoration.widget({ widget: new NextWidget(), block: true, side: 1 }).range(effect.value)]);
+                return effect.value === null ? Decoration.none : aloneOf(transaction.state, effect.value.block, effect.value.end);
         return place.map(transaction.changes);
     },
     provide: (field: StateField<DecorationSet>): Extension => EditorView.decorations.from(field),
 });
 
+
+/**
+ * Gives where a block ends: the end of its section, or of its heading line for a block with nothing below it.
+ *
+ * @param state - Text of the note
+ * @param block - Block
+ * @returns The place
+ */
+function endOf(state: EditorState, block: Block): number {
+    return bodyOf(state, block)?.to ?? state.doc.line(block.line).to;
+}
+
+/**
+ * Shows one block alone, as a card of Today asks: the text before it and after it hidden whole, `Next` below it,
+ * at the start of the line after it, so it never stands inside a folded solution at the block's end.
+ * - `start`: Start of its heading line.
+ * - `last`: Whether the block ends the note.
+ *
+ * @param state - Text of the note
+ * @param block - The block shown
+ * @param end - Where it ends
+ * @returns What to draw
+ */
+function aloneOf(state: EditorState, block: Block, end: number): DecorationSet {
+    const start: number = state.doc.line(block.line).from;
+    const last: boolean = end >= state.doc.length;
+    const marks: Range<Decoration>[] = [];
+    if (start > 0)
+        marks.push(Decoration.replace({ block: true }).range(0, start - 1));
+    marks.push(Decoration.widget({ widget: new NextWidget(), block: true, side: last ? 1 : -1 }).range(last ? end : end + 1));
+    if (!last)
+        marks.push(Decoration.replace({ block: true }).range(end + 1, state.doc.length));
+    return Decoration.set(marks);
+}
 
 /**
  * Reads the blocks of the note, each with its task.
@@ -374,38 +418,13 @@ function keep(shown: Round): void {
 }
 
 /**
- * Writes the round line, see the top of this file: in the ladder `Round 0 · today: theory, Examples, Completions,
- * then one Task alone`, later `Round 1 · one Task alone`, then what comes after a right and after a failed Task
- * with their days, or once the Task of today has its result, what comes next; between two rounds when the next comes.
- * - `cold`: The Task of today.
- * - `next`: Number of the next round.
- * - `wrong`, `right`: What follows a failed and a right Task.
+ * Writes the round line, quiet as the small grey text of the day: only the round, like `Round 1`.
  *
  * @param shown - The round
  * @returns The line
  */
 function roundLineOf(shown: Round): string {
-    const section: SkillSection = shown.section;
-    const today: string = shown.loaded.today;
-    const cold: SkillTask | undefined = shown.loaded.tasks.find((task: SkillTask): boolean => task.id === section.cold);
-    const head: string = section.ladder ? `Round ${section.round} · today: theory, Examples, Completions, then one Task alone`
-        : `Round ${section.round} · one Task alone`;
-    const wrong: (day: string) => string = (day: string): string =>
-        `wrong: a Completion right away, this round again on ${dayTextOf(day, true)}`;
-    const right: (day: string) => string = (day: string): string => `right: round ${section.round + 1} on ${dayTextOf(day, true)}`;
-    if (cold === undefined)
-        return head;
-    const tried: Attempt[] = cold.attempts.filter((attempt: Attempt): boolean =>
-        attempt.day === today && attempt.result !== "skipped");
-    if (tried.length > 0 && cold.due !== "" && cold.due > today)
-        return `${head} · ${failedAt(cold, today) === null ? right(cold.due) : wrong(cold.due)}`;
-    if (section.ladder)
-        return head;
-    if (cold.due === "")
-        return `Round ${section.round} · ready`;
-    if (cold.due > today)
-        return `Round ${section.round} · one Task alone on ${dayTextOf(cold.due, true)}`;
-    return `${head} · ${right(section.rightDue)} · ${wrong(section.wrongDue)}`;
+    return `Round ${shown.section.round}`;
 }
 
 /**
@@ -424,14 +443,15 @@ function roundDraw(view: EditorView, shown: Round): void {
     const line: HTMLElement = document.getElementById("editor-round") as HTMLElement;
     line.textContent = roundLineOf(shown);
     line.hidden = false;
-    view.dispatch({ effects: nextMoved.of(current === undefined ? null : bodyOf(view.state, current.block)?.to
-        ?? view.state.doc.line(current.block.line).to) });
+    const blocks: Block[] = blocksOf(view.state, shown.loaded.tasks);
+    const alone: Block | undefined = blocks.find((block: Block): boolean => block.heading === opened) ?? current?.block;
+    view.dispatch({ effects: nextMoved.of(alone === undefined ? null : { block: alone, end: endOf(view.state, alone) }) });
     shown.changed();
 }
 
 /**
- * Opens a block and scrolls to it, its heading right below the head of the editor, once the page is drawn anew,
- * since scrolling at once lands on the heights the editor guessed for the folds before it measured them.
+ * Opens a block, which then stands alone on the page, and scrolls the page to its top, so the name of the section
+ * and its round stay in sight above it, once the page is drawn anew.
  * - {@link requestAnimationFrame}: Waits until the page is drawn next.
  *
  * @param view - The editor
@@ -441,9 +461,9 @@ function blockOpen(view: EditorView, block: Block): void {
     const body: { from: number; to: number } | null = bodyOf(view.state, block);
     if (body !== null && foldedAt(view.state, body.from))
         view.dispatch({ effects: unfoldEffect.of(body) });
-    requestAnimationFrame((): void => view.dispatch({
-        effects: EditorView.scrollIntoView(view.state.doc.line(block.line).from, { y: "start" }),
-    }));
+    requestAnimationFrame((): void => {
+        (document.querySelector(".editor-file") as HTMLElement).scrollTop = 0;
+    });
 }
 
 /**
@@ -459,16 +479,29 @@ function roundNext(view: EditorView): void {
         return;
     const steps: Step[] = roundStepsOf(view, round);
     const current: Step | undefined = currentOf(round, steps);
-    if (current === undefined)
+    if (opened !== "" && opened !== current?.block.heading) {
+        opened = "";
+        if (current !== undefined)
+            blockOpen(view, current.block);
+        roundDraw(view, round);
         return;
+    }
+    opened = "";
+    if (current === undefined) {
+        location.href = todayAddress;
+        return;
+    }
     if ((current.block.task === null || (current.after !== "" && current.block.task.kind === "worked"))
         && !round.kept.seen.includes(keyOf(current)))
         round.kept.seen.push(keyOf(current));
     const following: Step | undefined = steps[steps.indexOf(current) + 1];
     round.kept.at = following === undefined ? "" : keyOf(following);
     keep(round);
-    if (following !== undefined)
-        blockOpen(view, following.block);
+    if (following === undefined) {
+        location.href = todayAddress;
+        return;
+    }
+    blockOpen(view, following.block);
     roundDraw(view, round);
 }
 
@@ -571,6 +604,7 @@ export function roundHeadingShow(view: EditorView, heading: string): boolean {
     if (block === undefined || hiddenIs(shown, block))
         return false;
     const own: Step[] = roundStepsOf(view, shown).filter((step: Step): boolean => step.block.heading === heading);
+    opened = own.length > 0 ? "" : heading;
     if (own.length > 0) {
         shown.kept.at = keyOf(own.find((step: Step): boolean => !doneIs(shown, step)) ?? own[0]);
         keep(shown);
@@ -589,4 +623,17 @@ export function roundHeadingShow(view: EditorView, heading: string): boolean {
 export function roundStart(changed: () => void): Extension {
     tasksFollow((view: EditorView, loaded: NoteTasks): void => roundTake(view, loaded, changed));
     return nextPlace;
+}
+
+/**
+ * Picks the task a failed Task brings back the same day, by the round's own pick, see {@link longestAgoOf}:
+ * the Completion tried longest ago, for Today, see `./today.ts`.
+ *
+ * @param tasks - Tasks of the section
+ * @param before - Time of the failure, like `2026-10-17 08:05`
+ * @returns The Completion, `undefined` for none
+ */
+export function fallbackOf(tasks: SkillTask[], before: string): SkillTask | undefined {
+    return longestAgoOf(tasks.filter((task: SkillTask): boolean => task.kind === "faded")
+        .map((task: SkillTask): Block => ({ heading: task.heading, line: 0, task: task })), before)?.task ?? undefined;
 }

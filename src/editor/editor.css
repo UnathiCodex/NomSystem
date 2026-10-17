@@ -81,22 +81,17 @@
     display: none;
 }
 
-/* Round line of a section below the head, what this round holds and what comes next, grey in the text of controls,
-   a line's room below it, going on below where it is long, never cut */
+/* Round line of a section below the head, only its round, like `Round 1`, in the small grey of the weekday above
+   the date of the day, a line's room below it */
 .editor-round {
     margin: 0 0 1rem;
     color: var(--text-muted);
-    font-size: var(--control-text);
+    font-size: 0.75rem;
 }
 
 /* Next below the current block of a section, like Next step of a solution, see `../skill/task.css` */
 .round-next {
     margin: 1.5rem 0 0.5rem;
-}
-
-/* The blocks of a section above the note, only on a phone, see the end of this file */
-.editor-blocks {
-    display: none;
 }
 
 /* Save button with its check, square, one control high, outlined, as the save of the dialogs;
@@ -136,6 +131,33 @@
 /* No button of the tree on a computer, which shows the tree beside the file anyway */
 .editor-tree {
     display: none;
+}
+
+/* Back to the day, on a phone only */
+.editor-day {
+    display: none;
+}
+
+/* Today, while no note is open, see `today.ts`: the date as the bar of the day, the cards below it a step apart,
+   as plan and log stand below the bar; a card a link without its line */
+.editor-today {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding-top: var(--gap);
+}
+
+.editor-today .day-bar {
+    min-height: var(--control-height);
+}
+
+.today-card {
+    color: inherit;
+    text-decoration: none;
+}
+
+.today-card .box-what {
+    font-weight: 600;
 }
 
 /* Text in the font and lines of the scripts view, without a frame when focused and without room around the lines;
@@ -447,37 +469,6 @@
         visibility: hidden;
     }
 
-    /* The blocks of a section above the note on a phone, where the tree hides: one line, the icon of the tree and
-       the current block, opening the list the tree shows, in its text and rows */
-    .editor-blocks:not([hidden]) {
-        --tree-row-padding: 0.75rem;
-        display: block;
-        margin: 0 0 1rem;
-        font-size: var(--tree-text);
-        line-height: var(--chip-height);
-    }
-
-    .editor-blocks > summary {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        min-height: var(--chip-height);
-        padding: 0 0.75rem;
-        border-radius: var(--radius);
-        background: var(--fill);
-        list-style: none;
-        cursor: pointer;
-    }
-
-    .editor-blocks > .tree-round {
-        margin-top: 0.5rem;
-    }
-
-    .editor-blocks .tree-file {
-        padding-block: 0.25rem;
-        line-height: 1.5;
-    }
-
     /* The file on a phone with the room of the day at its sides, a gap, not the 2rem of a computer */
     .editor-file {
         padding-inline: var(--gap);
@@ -530,6 +521,29 @@
 
     .editor-tree {
         display: inline-flex;
+    }
+
+    /* A card of Today on a phone as on the computer: its title, the code of its module below it, since it has no ring
+       and no button `⋯` for the grid of a box of the plan to place */
+    .today-card {
+        display: block;
+    }
+
+    .today-card .box-body {
+        display: block;
+    }
+
+    .editor-day {
+        display: inline-flex;
+        flex: none;
+        align-items: center;
+        height: var(--control-height);
+        padding: 0 var(--control-padding);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        color: var(--text-muted);
+        font-size: var(--control-text);
+        text-decoration: none;
     }
 
     .editor-tree[aria-pressed="true"] {
