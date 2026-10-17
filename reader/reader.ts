@@ -418,5 +418,9 @@ server.on("request", (request: IncomingMessage, response: ServerResponse): void 
         responseSend(response, 500, { error: "The reader failed" });
     });
 });
-server.listen(3000, "127.0.0.1", (): void => console.log("http://127.0.0.1:3000"));
+/**
+ * Port of the reader: environment variable `NOM_PORT` when set, like `3003` for a reader on a sample vault, else `3000`.
+ */
+const port: number = Number(process.env.NOM_PORT ?? 3000);
+server.listen(port, "127.0.0.1", (): void => console.log(`http://127.0.0.1:${port}`));
 linksCheckStart();
