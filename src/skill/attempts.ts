@@ -33,6 +33,7 @@ export type Effort = "low" | "medium" | "high";
  * - `effort`: My {@link Effort} on it, empty before I rated it and for a skip.
  * - `stuck`: Where I got stuck, like `step 3`, empty when not given.
  * - `skip`: Why I skipped the task, like `too hard`, empty when not given.
+ * - `error`: What went wrong in a wrong attempt, my tutor's sentence from the log, empty when not given.
  */
 export type Attempt = {
     day: string;
@@ -42,6 +43,7 @@ export type Attempt = {
     effort: Effort | "";
     stuck: string;
     skip: string;
+    error: string;
 };
 
 /**

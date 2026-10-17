@@ -129,7 +129,7 @@ class RowWidget extends WidgetType {
     toDOM(view: EditorView): HTMLElement {
         return taskRowOf(this.task, this.loaded.skips, this.loaded.efforts, this.loaded.today,
             this.open === null ? null : Object.assign(new EventTarget(), { open: this.open }), this.loaded.section !== null,
-            (): Promise<void> => tasksLoad(view, this.loaded.path));
+            this.loaded.section !== null, (): Promise<void> => tasksLoad(view, this.loaded.path));
     }
 
     /**

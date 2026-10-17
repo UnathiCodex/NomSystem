@@ -218,7 +218,8 @@ async function tasksShow(path: string): Promise<void> {
         const solution: HTMLDetailsElement | null =
             fold?.querySelector<HTMLDetailsElement>(":scope > .fold-content > details.fold") ?? null;
         fold?.querySelector(":scope > .fold-content")?.prepend(
-            taskRowOf(task, skilling.skips, skilling.efforts, today, solution, true, (): Promise<void> => tasksShow(path)));
+            taskRowOf(task, skilling.skips, skilling.efforts, today, solution, true, false,
+                (): Promise<void> => tasksShow(path)));
     });
 }
 

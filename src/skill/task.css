@@ -124,6 +124,12 @@ details.task-history a {
     display: none;
 }
 
+/* The button `⋯` of a task in the round of a section, which holds only Right and Wrong: hidden with them until
+   the solution is open, keeping its place, so nothing moves when it shows */
+.task-round.task-unjudged .menu-place {
+    visibility: hidden;
+}
+
 /* Line of a part of a cold task, across the row: its number, a check once it sits, then its button `⋯`;
    one chip high also without it, like a part that sits on a card, so the lines stand equally apart */
 .task-part {

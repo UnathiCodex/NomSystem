@@ -36,8 +36,11 @@
  *   instead gets its `X-CHAPTER` once it changes, see `chaptersOf` in `documents.ts`;
  * - one `X-ATTEMPT` per attempt at a task of my notes, of any type, like the tasks I solved in a tutorial:
  *   the time of the tap in Berlin time when a button wrote it, in the form of the iCalendar format, like `140500`
- *   for 14:05, its task with the part of a cold task after `#`, its result, my effort, and where I got stuck or why
- *   I skipped, see {@link AttemptLine}, like `X-ATTEMPT:140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2`,
+ *   for 14:05, its task with the part of a cold task after `#`, its result, my effort, and a sentence: where I got stuck
+ *   or why I skipped, or for a wrong one what went wrong, see {@link AttemptLine},
+ *   like `X-ATTEMPT:140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2`; the learning view writes only right and
+ *   wrong, and the sentence on a wrong one only my tutor writes, editing the log for later evaluation, never a button,
+ *   like `X-ATTEMPT:140500;IN2028/Bakery Chain#1;wrong;;Step 2: weights add up to 1.2, not 1`;
  *   an older one with its time like `14:05`; an attempt from the dialog has no time,
  *   like `X-ATTEMPT:IN2028/Kiosk Sales Standard Error;right`;
  * - an older entry may hold one `X-TUTOR` per task I copied for my tutor in it, like
@@ -158,6 +161,8 @@ export type Task = {
  * - `effort`: My {@link Effort} on it, empty before I rated it and for a skip.
  * - `stuck`: Where I got stuck, like `step 3`, empty when not given.
  * - `skip`: Why I skipped the task, like `too hard`, empty when not given.
+ * - `error`: What went wrong in a wrong attempt, my tutor's sentence, like `Step 2: weights add up to 1.2, not 1`,
+ *   empty when not given.
  */
 export type Attempt = {
     day: string;
@@ -167,6 +172,7 @@ export type Attempt = {
     effort: Effort | "";
     stuck: string;
     skip: string;
+    error: string;
 };
 
 /**
@@ -496,7 +502,7 @@ type LoggedAttempt = {
  * - `part`: Part of a cold task, like `2`, empty for the whole task.
  * - `result`: The result as written, like `stuck`.
  * - `effort`: My effort as written, empty for none.
- * - `detail`: Where I got stuck or why I skipped, empty for none.
+ * - `detail`: Where I got stuck, why I skipped, or what went wrong, empty for none.
  */
 type AttemptLine = {
     time: string;
@@ -815,6 +821,7 @@ function attemptOf(value: string, day: string): LoggedAttempt {
         attempt: {
             day: day, time: line.time, part: line.part, result: result, effort: line.effort as Effort | "",
             stuck: result === "stuck" ? line.detail : "", skip: result === "skipped" ? line.detail : "",
+            error: result === "wrong" ? line.detail : "",
         },
     };
 }

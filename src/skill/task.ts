@@ -15,8 +15,10 @@
  * since each part gets its own result, a check after a part that sits in the run; Skip stays for the whole task.
  * On a card, a part that sits has no `⋯` while others are still open, so only the open ones can be answered.
  * A card and a section in the editor keep the row quiet, as quiet as a box of the day: only the `⋯`, after it grey
- * the result of today once there is one, like `wrong`, no state, no hint, no history, and no question for my effort; Stuck and Skip write at once from the menu, without a field or reasons
- * opening below, since my effort and the reasons change no decision of the rules.
+ * the result of today once there is one, like `wrong`, no state, no hint, no history, and no question for my effort;
+ * on a card Stuck and Skip write at once from the menu, without a field or reasons opening below, since my effort and
+ * the reasons change no decision of the rules. In the round of a section the menu holds only Right and Wrong:
+ * a broken task I tell my tutor in the chat, and the sentence on what went wrong my tutor writes into the log.
  * Anywhere else, right after an attempt that is no skip, the menu of the task opens by itself with the question for my
  * effort on it on top, low, medium or high, and keeps it there as long as the attempt is of today and has none.
  *
@@ -116,16 +118,20 @@ export function coldLabelOf(task: SkillTask): HTMLElement {
 }
 
 /**
- * Writes the result of an attempt, after its part, with where I got stuck or why I skipped, and my effort when I rated it.
+ * Writes the result of an attempt, after its part, with what went wrong, where I got stuck or why I skipped, and my
+ * effort when I rated it.
  * - `result`: The result with where I got stuck or why I skipped.
  * - `part`: The part before it, empty for the whole task.
  *
  * @param attempt - Attempt
- * @returns Text like `right · low effort`, `2. stuck at step 3`, `right with tutor` or `skipped: too easy`
+ * @returns Text like `right · low effort`, `2. stuck at step 3`, `1. wrong: weights add up to 1.2`, `right with tutor`
+ *   or `skipped: too easy`
  */
 export function resultTextOf(attempt: Attempt): string {
     let result: string = attempt.result;
-    if (attempt.stuck !== "")
+    if (attempt.error !== "")
+        result = `wrong: ${attempt.error}`;
+    else if (attempt.stuck !== "")
         result = `stuck at ${attempt.stuck}`;
     else if (attempt.skip !== "")
         result = `skipped: ${attempt.skip}`;
@@ -306,25 +312,27 @@ function skipShow(row: HTMLElement, task: SkillTask, skips: string[], written: (
 
 /**
  * Makes the items Right, With tutor, Wrong and Stuck for a task or one of its parts; the first three as judges,
- * see {@link taskRowOf}.
+ * see {@link taskRowOf}; in the round of a section only Right and Wrong, both judges.
  *
  * @param row - Row of the task
  * @param task - Task
  * @param part - Part of a cold task, empty for the whole task
  * @param card - Whether the row stands quiet on a card or in a section, where Stuck writes at once, without a field
+ * @param round - Whether the row stands in the round of a section, which offers only Right and Wrong
  * @param written - Shows the task again once the attempt is written
  * @returns Items
  */
-function resultItemsOf(row: HTMLElement, task: SkillTask, part: string, card: boolean,
+function resultItemsOf(row: HTMLElement, task: SkillTask, part: string, card: boolean, round: boolean,
                        written: () => Promise<void>): HTMLButtonElement[] {
     const judges: HTMLButtonElement[] = [
         menuItemOf(Check, "Right", (): void => attemptWrite(row, task, part, "right", "", "", written)),
-        menuItemOf(HandHelping, "With tutor", (): void => attemptWrite(row, task, part, "guided", "", "", written)),
+        ...(round ? [] : [menuItemOf(HandHelping, "With tutor", (): void =>
+            attemptWrite(row, task, part, "guided", "", "", written))]),
         menuItemOf(X, "Wrong", (): void => attemptWrite(row, task, part, "wrong", "", "", written)),
     ];
     judges.forEach((item: HTMLButtonElement): void => item.classList.add("task-judge"));
-    return [...judges, menuItemOf(BrickWall, "Stuck", (): void => card ? attemptWrite(row, task, part, "stuck", "", "", written)
-        : stuckShow(row, task, part, written))];
+    return round ? judges : [...judges, menuItemOf(BrickWall, "Stuck", (): void => card
+        ? attemptWrite(row, task, part, "stuck", "", "", written) : stuckShow(row, task, part, written))];
 }
 
 /**
@@ -336,10 +344,12 @@ function resultItemsOf(row: HTMLElement, task: SkillTask, part: string, card: bo
  * @param row - Row of the task
  * @param task - Cold task with parts
  * @param card - Whether the row stands on a card
+ * @param round - Whether the row stands in the round of a section, see {@link resultItemsOf}
  * @param written - Shows the task again once the attempt is written
  * @returns Lines, across the row
  */
-function partLinesOf(row: HTMLElement, task: SkillTask, card: boolean, written: () => Promise<void>): HTMLElement[] {
+function partLinesOf(row: HTMLElement, task: SkillTask, card: boolean, round: boolean,
+                     written: () => Promise<void>): HTMLElement[] {
     return task.parts.map((part: string): HTMLElement => {
         const line: HTMLElement = elementOf("div", "task-part", "");
         const name: HTMLElement = elementOf("span", "task-part-name", `${part}.`);
@@ -347,7 +357,7 @@ function partLinesOf(row: HTMLElement, task: SkillTask, card: boolean, written: 
         if (sits)
             name.append(checkOf());
         name.title = sits ? "Sits in this run" : "Still to sit in this run";
-        line.append(name, ...(card && sits ? [] : [menuOf(resultItemsOf(row, task, part, card, written))]));
+        line.append(name, ...(card && sits ? [] : [menuOf(resultItemsOf(row, task, part, card, round, written))]));
         return line;
     });
 }
@@ -370,6 +380,9 @@ function checkOf(): HTMLElement {
  * and its history no number.
  * Right after an attempt, its menu opens by itself with the question for my effort on top, once the row stands
  * in the page.
+ * In the round of a section the menu holds only Right and Wrong, no Skip, and shows only once the solution is open,
+ * as Right and Wrong do anywhere, so I judge against the solution and never find an empty menu; a task without
+ * a solution shows it always. A broken task I tell my tutor in the chat.
  * - `efforts`: The question for my effort on top of the menu, none when there is nothing to rate.
  * - `more`: The button `⋯` of the task with its menu: the efforts, then Right, With tutor, Wrong and Stuck
  *   for a task without parts, then Skip.
@@ -384,22 +397,23 @@ function checkOf(): HTMLElement {
  *   changes, like the fold of a card, or as the editor draws the row anew on each fold, see `../editor/tasks.ts`
  * @param card - Whether the row stands on a card or in a section, quiet, where a part of a cold task that sits
  *   takes no answer
+ * @param round - Whether the row stands in the round of a section, see above
  * @param written - Shows the task again once an attempt or an effort is written
  * @returns Row
  */
 export function taskRowOf(task: SkillTask, skips: string[], efforts: Effort[], today: string,
-                          solution: (EventTarget & { open: boolean }) | null, card: boolean,
+                          solution: (EventTarget & { open: boolean }) | null, card: boolean, round: boolean,
                           written: () => Promise<void>): HTMLElement {
 
-    const row: HTMLElement = elementOf("div", card ? "task-row task-quiet" : "task-row", "");
+    const row: HTMLElement = elementOf("div", `task-row${card ? " task-quiet" : ""}${round ? " task-round" : ""}`, "");
     const form: HTMLElement = elementOf("div", "task-form", "");
     const parted: boolean = task.kind === "cold" && task.parts.length > 0;
     const asked: HTMLElement[] = card ? [] : effortItemsOf(row, task, efforts, today, written);
     const more: HTMLElement = menuOf([
         ...asked,
-        ...(parted ? [] : resultItemsOf(row, task, "", card, written)),
-        menuItemOf(SkipForward, "Skip", (): void => card ? attemptWrite(row, task, "", "skipped", "", "", written)
-            : skipShow(row, task, skips, written)),
+        ...(parted ? [] : resultItemsOf(row, task, "", card, round, written)),
+        ...(round ? [] : [menuItemOf(SkipForward, "Skip", (): void => card
+            ? attemptWrite(row, task, "", "skipped", "", "", written) : skipShow(row, task, skips, written))]),
     ]);
     const judged: () => void = (): void => {
         row.classList.toggle("task-unjudged", solution !== null && !solution.open);
@@ -410,7 +424,7 @@ export function taskRowOf(task: SkillTask, skips: string[], efforts: Effort[], t
     row.append(...(card ? [] : [elementOf("span", "task-state", stateTextOf(task, today)),
         elementOf("span", "task-hint", "Right and Wrong once the solution is open")]), more,
         ...(card && done !== undefined ? [elementOf("span", "task-state", resultTextOf(done))] : []),
-        ...(parted ? partLinesOf(row, task, card, written) : []), ...(card ? [] : historyOf(task, true)), form);
+        ...(parted ? partLinesOf(row, task, card, round, written) : []), ...(card ? [] : historyOf(task, true)), form);
     judged();
     solution?.addEventListener("toggle", judged);
     if (asked.length > 0 && effortAsked === task.id) {
