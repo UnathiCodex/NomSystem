@@ -12,9 +12,10 @@
  * of learning as much as a meal or a video; of several running at once the one begun last, like a meal during
  * a session, and the session again once the meal is over, see `entryNowRead` in `reader/day.ts`; it ends where
  * its entry ends.
- * The timer asks the reader again every minute, and each time the log was read, like after I saved, ended or removed
- * an entry or a file of my new system changed, so an entry whose time holds now shows at once, and one I end goes
- * back to `None`, see {@link timerSee}.
+ * The timer asks the reader again at every full minute, so its minutes change with the clock, whenever the page comes
+ * back into sight, like a tab I return to, whose timers the browser slowed, and each time the log was read, like after
+ * I saved, ended or removed an entry or a file of my new system changed, so an entry whose time holds now shows
+ * at once, and one I end goes back to `None`, see {@link timerSee} and {@link timerStart}.
  *
  * - `./day/boxes.ts`: Writes what an entry is, as the log shows it.
  * - `./day/times.ts`: Writes times of day and a length in hours and minutes.
@@ -99,10 +100,20 @@ export function timerSee(): void {
 }
 
 /**
- * Starts the timer of the day: shows it now, then every minute.
+ * Starts the timer of the day: shows it now, then at every full minute, like 23:06:00, and again whenever the page
+ * comes back into sight.
+ * - {@link setTimeout}: Calls a function once, after a number of milliseconds, here at the next full minute.
  * - {@link setInterval}: Calls a function again and again, after a number of milliseconds each time.
+ * - `visibilitychange`: Comes when the page is hidden or comes back into sight.
  */
 export function timerStart(): void {
     timerSee();
-    setInterval(timerSee, lookTime);
+    setTimeout((): void => {
+        timerSee();
+        setInterval(timerSee, lookTime);
+    }, lookTime - Date.now() % lookTime);
+    document.addEventListener("visibilitychange", (): void => {
+        if (document.visibilityState === "visible")
+            timerSee();
+    });
 }
