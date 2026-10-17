@@ -296,9 +296,9 @@
 /* The blocks of a section in its round, see `roundListOf` in tree.ts: a block of the round in the light text of a note,
    one done too, with a small check after it, the current one in the calm grey of what is picked, one outside the round
    faint; none folds, each a step in under the note; their type boxes close to the left edge of their row, only 0.5rem
-   and the room of a fold arrow in, so the names keep more room at the right */
+   in, so the names keep more room at the right */
 .tree-round .tree-file {
-    padding-left: calc(0.5rem + 1em);
+    padding-left: 0.5rem;
     color: var(--text-main);
 }
 
@@ -332,9 +332,15 @@
 }
 
 /* The line of a kind whose blocks lie outside the round, like `Task` boxed and `7 more · Tomorrow`, grey as they are,
-   its box as faint as theirs, its arrow before it, a folder that opens them below it, see `roundListOf` in `tree.ts` */
+   its box as faint as theirs, a folder that opens them below it by a click, see `roundListOf` in `tree.ts`; without
+   the arrow of a folder, since `7 more` already says that something is folded, so its box stands in line with those
+   of the blocks */
 .tree-round .tree-kind > summary {
     color: var(--reading-marker);
+}
+
+.tree-round .tree-kind > summary::before {
+    display: none;
 }
 
 /* Type word of a block of a section, like `Definition`, a small grey box before its name, in the tree and on the line
