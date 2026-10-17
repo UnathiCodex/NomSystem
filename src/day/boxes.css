@@ -237,7 +237,7 @@ button.box-ring.box-moved svg {
 
 /* Phone: a box a little closer around its lines in one grid, its ring and its button `⋯` a finger's width to hit,
    and its place on a line of its own */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     /* A box on a phone a little closer around its lines, in one grid: the ring at the left of what it is, its button
        `⋯` at the right of it, on the same line, so it takes no row of its own, and its time, place and topics below
        over the whole width beside the ring, under the button too; its lines stand in the grid themselves, a click on

@@ -12,7 +12,7 @@
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the scripts no calendar,
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
- * A phone, a screen as narrow as the phone layout of the stylesheets, which `phone.ts` tells, opens the day everywhere,
+ * A phone, a screen with the phone layout of the stylesheets, which `phone.ts` tells, opens the day everywhere,
  * its plan, its log and its daily note, nothing else, and `base.css` hides the areas, so the whole screen stays free;
  * every device tells the reader what it shows of the page, see {@link deviceReport}.
  *

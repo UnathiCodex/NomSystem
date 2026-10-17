@@ -663,7 +663,7 @@
 
 /* Phone: the card of a task over the whole screen, from its text down to its Solution and its row, with little room
    around it, a gap, as the plan of the day */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .notes-note {
         padding: var(--gap);
     }

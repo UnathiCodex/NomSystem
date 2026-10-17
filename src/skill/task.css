@@ -155,7 +155,7 @@ details.task-history a {
 
 /* Phone: the reasons to skip and the buttons of a solution as they look, but a finger high to hit, each taking a tap
    0.25rem above and below it, which the room between two lines of buttons leaves free */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .task-form button,
     .steps-buttons button,
     .round-next,

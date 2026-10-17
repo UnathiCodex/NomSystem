@@ -203,7 +203,7 @@ svg.route-arrow {
 }
 
 /* Phone: the lines of an entry closer to its edges, as low as a short entry's, a place never cut beside the time */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     /* Inside of an entry on a phone closer to its edges, 0.5rem left of its lines and 0.375rem right of them, a taller
        one 0.375rem above its first line, so a narrow entry, like `Food: Pizza Salami` over the right part
        of a workshop, keeps more of its width for its words; every line as low as a short entry's, 0.9rem, so half

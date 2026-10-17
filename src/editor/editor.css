@@ -423,7 +423,7 @@
 }
 
 /* Phone: the file alone over the whole screen, the tree over it while I ask for it, the bar at the bottom */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     /* The editor on a phone one thing at a time, as the day shows plan or log: the file over the whole screen, never
        the tree beside it, which widened the page beyond the screen; the tree over the file while the button of the tree
        is pressed, see `phoneShow` in `editor.ts`, so both keep where they were scrolled to; both end above the bar

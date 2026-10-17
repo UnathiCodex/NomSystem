@@ -300,7 +300,7 @@
 /* Phone: less room around the overview, and the name of a task or a section takes its whole line, its state below it
    at the right, so every task of a list has two lines; an entry of the plan, like `1 Tue, 13.10.2026, 09:30`, keeps
    its state on its line, like `Done`, since every entry of the plan is that short */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .skill {
         padding: var(--gap);
     }

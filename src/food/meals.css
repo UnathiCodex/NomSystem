@@ -73,7 +73,7 @@
    by category on a phone, the field of the grams just wide enough for four digits, so the name keeps the rest
    of the line, never breaking within a word, like `Tomatenm` and `ark` in a narrow column beside `Foods`;
    the field taking a tap 0.25rem left of its digits too, a finger wide, which takes no room of its line */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .dish-list .food-facts {
         grid-template-columns: minmax(0, 1fr);
     }

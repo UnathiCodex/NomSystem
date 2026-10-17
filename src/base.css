@@ -400,7 +400,7 @@ h3 {
 }
 
 /* Phone: only the day, see `main.ts`, so no areas at the left and the whole screen stays free */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     body {
         padding-left: 0;
     }

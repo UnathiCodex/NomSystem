@@ -535,7 +535,7 @@ fieldset.entry-times {
 
 /* Phone: plan or log, one at a time, one screen high, switched at the bottom, panels from below,
    the entry by category scrolling as a whole */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     /* The day on a phone one screen high: its bar on top, then plan, log or note, one at a time,
        filling the rest, the switch between them with its + at the bottom, under the thumb; the names of plan and log
        stand in the switch, so not above them */

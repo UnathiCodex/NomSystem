@@ -158,7 +158,7 @@
 }
 
 /* Phone: the note in the room of plan and log, scrolling as a whole, its names folding nothing */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     /* The note on a phone in the room of plan and log: my gratitude, my points about the day below it and the rest
        of the note below them, scrolling as a whole, so each as high as what it holds; each list keeps its name, which
        folds nothing here, since the note has a place of its own, so it shows no fold arrow and takes no tap */

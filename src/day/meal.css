@@ -106,7 +106,7 @@
 }
 
 /* Phone: a meal or a food on one line, its grams first, its foods indented less, the field of its grams narrower */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     /* A meal or a food of the entry by category on a phone on one line, its grams first, as a recipe writes them,
        like `125 g Hackfleisch`, so grams and kcal stand apart, at both ends of the name: its grams, its name,
        its kcal and ×; a name too long goes on below, never cut; the foods of a meal indented less,

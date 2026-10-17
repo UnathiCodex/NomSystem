@@ -194,7 +194,7 @@ body:has(> .food) {
 }
 
 /* Phone: less space at the sides */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .food {
         padding: var(--gap);
     }

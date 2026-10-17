@@ -362,7 +362,7 @@
 
 /* Phone: the result of a task below it, no empty line in a row without a value, a list rising from the bottom,
    its groups closer and its values with room above and below */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     /* The result of a task picked for a session on a phone below the task, as the value of a row stands below its
        name, so the name of the task keeps the whole width instead of two fifths, like `Unbiased Mean Check` on one
        line, and where I got stuck or why I skipped below the result */

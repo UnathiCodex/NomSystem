@@ -352,7 +352,7 @@ button.food-row:hover {
 /* Phone: the values of a food opened, of a new food and of a meal each its name small and grey above it, as the rows
    of a dialog on a phone, so a value takes the whole width, like the name `Hackfleisch gemischt zum Braten`
    in its field, never cut at its edge; a row 0.75rem below the one above it */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .food-facts {
         grid-template-columns: minmax(0, 1fr);
         row-gap: 0.25rem;

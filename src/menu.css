@@ -69,7 +69,7 @@
 
 /* Phone: the button `⋯` as it looks, but a finger's width to hit, its own width and 0.5rem above and below;
    the items, a finger high already, only themselves, so no tap reaches beside them */
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .menu-more {
         position: relative;
     }

@@ -72,7 +72,7 @@
     color: var(--text-main);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     /* The month on a phone with its days a finger high, its six weeks and the names of the days 15rem high,
        in place of a grid 1.8 times as wide as high, see `aspectRatio` in `month.ts`, whose days were hardly higher
        than their number; its arrows as small as they look, but taking a tap 0.5rem above and below them */
