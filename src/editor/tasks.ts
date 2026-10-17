@@ -7,7 +7,9 @@
  * solution is unfolded, and right after an attempt the question for my effort on it; after each attempt
  * and effort the rows load again. A cold task, its heading ending with `(cold)`, shows a grey label in place of
  * `(cold)`, like `cold · 2 done · 1 right`, while the cursor is not on its heading.
- * Only a note with tasks of the semester has rows.
+ * Only a note with tasks of the semester has rows. A section, a note whose tasks make a section of the semester,
+ * keeps its rows quiet, as a card does, without state, hint or numbers, and its `(cold)` hidden without a label,
+ * since its round says what is due, see `./round.ts`, which hears of each load, see {@link tasksFollow}.
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold the tasks of the note and draw the rows as widgets between its lines.
  * - `@codemirror/language`: Tells whether a solution is folded.
@@ -25,7 +27,7 @@ import { coldLabelOf, taskRowOf } from "../skill/task.ts";
 
 import type { EditorState, Extension, Line, Range, SelectionRange, StateEffectType, Transaction } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
-import type { Effort, SkillModule, SkillTask, Skilling } from "../skill/attempts.ts";
+import type { Effort, SkillModule, SkillSection, SkillTask, Skilling } from "../skill/attempts.ts";
 
 
 /**
@@ -36,13 +38,15 @@ import type { Effort, SkillModule, SkillTask, Skilling } from "../skill/attempts
  * - `skips`: Reasons to pick when skipping.
  * - `efforts`: Efforts to pick after an attempt, the lowest first.
  * - `today`: Today like `2026-10-10`.
+ * - `section`: Its section, `null` for a note that is none.
  */
-type NoteTasks = {
+export type NoteTasks = {
     path: string;
     tasks: SkillTask[];
     skips: string[];
     efforts: Effort[];
     today: string;
+    section: SkillSection | null;
 };
 
 /**
@@ -76,6 +80,11 @@ const coldMark: RegExp = /[ \t]*\(cold\)$/;
  */
 const tasksLoaded: StateEffectType<NoteTasks> = StateEffect.define<NoteTasks>();
 
+/**
+ * Hears each load of the tasks, see {@link tasksFollow}, `null` for none.
+ */
+let follower: ((view: EditorView, loaded: NoteTasks) => void) | null = null;
+
 
 /**
  * Row of a task under its heading, see `taskRowOf` in `../skill/task.ts`; Right and Wrong show while its solution
@@ -105,10 +114,13 @@ class RowWidget extends WidgetType {
     }
 
     /**
-     * Tells whether another row is the same, so the drawn one stays: the same task as loaded, its solution the same.
+     * Tells whether another row is the same, so the drawn one stays: the same task with the same attempts and state,
+     * its solution the same, quiet alike; so a load after a result draws only the row that changed, and the rows
+     * outside the screen keep their measured heights, which keeps the page where it is.
      */
     override eq(other: RowWidget): boolean {
-        return other.task === this.task && other.open === this.open;
+        return other.open === this.open && (other.loaded.section === null) === (this.loaded.section === null)
+            && JSON.stringify(other.task) === JSON.stringify(this.task);
     }
 
     /**
@@ -116,7 +128,7 @@ class RowWidget extends WidgetType {
      */
     toDOM(view: EditorView): HTMLElement {
         return taskRowOf(this.task, this.loaded.skips, this.loaded.efforts, this.loaded.today,
-            this.open === null ? null : Object.assign(new EventTarget(), { open: this.open }), false,
+            this.open === null ? null : Object.assign(new EventTarget(), { open: this.open }), this.loaded.section !== null,
             (): Promise<void> => tasksLoad(view, this.loaded.path));
     }
 
@@ -213,7 +225,8 @@ function decorationsOf(state: EditorState, loaded: NoteTasks | null): Decoration
         const cold: RegExpExecArray | null = task.kind === "cold" ? coldMark.exec(line.text) : null;
         if (cold !== null && !state.selection.ranges.some((range: SelectionRange): boolean =>
             range.from <= line.to && range.to >= line.from))
-            decorations.push(Decoration.replace({ widget: new ColdWidget(task) }).range(line.from + cold.index, line.to));
+            decorations.push((loaded.section === null ? Decoration.replace({ widget: new ColdWidget(task) })
+                : Decoration.replace({})).range(line.from + cold.index, line.to));
         decorations.push(Decoration.widget({
             widget: new RowWidget(task, loaded, solutionOpenOf(state, line)), block: true, side: 1,
         }).range(line.to));
@@ -222,9 +235,20 @@ function decorationsOf(state: EditorState, loaded: NoteTasks | null): Decoration
 }
 
 /**
+ * Lets something hear each load of the tasks, after their rows are drawn, like the round of a section,
+ * see `./round.ts`.
+ *
+ * @param listener - Hears the editor and the tasks loaded
+ */
+export function tasksFollow(listener: (view: EditorView, loaded: NoteTasks) => void): void {
+    follower = listener;
+}
+
+/**
  * Loads the tasks of the note from the reader and shows their rows, see the top of this file; without tasks of the
- * semester the note shows no rows.
+ * semester the note shows no rows. Then tells the one following, see {@link tasksFollow}.
  * - `skilling`: Everything the skill view shows, with every task of the semester.
+ * - `loaded`: The tasks of the note with its section.
  *
  * @param view - The editor
  * @param path - Path of the note, as the scripts view takes it
@@ -232,16 +256,18 @@ function decorationsOf(state: EditorState, loaded: NoteTasks | null): Decoration
  */
 export async function tasksLoad(view: EditorView, path: string): Promise<void> {
     const skilling: Skilling = await skillingLoad();
-    view.dispatch({
-        effects: tasksLoaded.of({
-            path: path,
-            tasks: skilling.modules.flatMap((module: SkillModule): SkillTask[] => module.tasks)
-                .filter((task: SkillTask): boolean => task.note === path),
-            skips: skilling.skips,
-            efforts: skilling.efforts,
-            today: calendarTodayOf(),
-        }),
-    });
+    const loaded: NoteTasks = {
+        path: path,
+        tasks: skilling.modules.flatMap((module: SkillModule): SkillTask[] => module.tasks)
+            .filter((task: SkillTask): boolean => task.note === path),
+        skips: skilling.skips,
+        efforts: skilling.efforts,
+        today: calendarTodayOf(),
+        section: skilling.modules.flatMap((module: SkillModule): SkillSection[] => module.sections)
+            .find((section: SkillSection): boolean => section.note === path) ?? null,
+    };
+    view.dispatch({ effects: tasksLoaded.of(loaded) });
+    follower?.(view, loaded);
 }
 
 /**

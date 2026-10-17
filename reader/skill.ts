@@ -201,7 +201,13 @@ export type SkillTask = Task & {
  * - `cold`: Identity of its cold task of today, the variant {@link variantIndexOf} gives, empty when it has none yet.
  * - `tasks`: Number of its tasks, the cold one included.
  * - `tried`: Number of its tasks I tried, skips not counted.
- * - `round`: Its round, see {@link roundOf}.
+ * - `round`: Its round, the runs of its cold task done before today, so it stays the whole day: round 0 until the first
+ *   right run, round 1 until the second, and so on; a failed run leaves it.
+ * - `ladder`: Whether it still learns the ladder, its theory, worked and faded tasks before the cold task: while no
+ *   cold task has an attempt on a day before today, see {@link attemptDaysOf}.
+ * - `rightDue`: Day the cold task comes back after a right run today, by the spacing, see {@link dueAfter};
+ *   empty without a cold task.
+ * - `wrongDue`: Day it comes back after a failed run today, 2 days later; empty without a cold task.
  */
 export type SkillSection = {
     title: string;
@@ -211,6 +217,9 @@ export type SkillSection = {
     tasks: number;
     tried: number;
     round: number;
+    ladder: boolean;
+    rightDue: string;
+    wrongDue: string;
 };
 
 /**
@@ -843,9 +852,9 @@ function ladderScheduleOf(task: Task, attempts: Attempt[], run: boolean): SkillT
  * @param task - Cold task
  * @param attempts - Its attempts, in order
  * @param exam - Exam of its module
- * @returns Task with when it is due, and whether its section ever had a run
+ * @returns Task with when it is due, and the runs its section ever had
  */
-function coldScheduleOf(task: Task, attempts: Attempt[], exam: ExamDate): [SkillTask, boolean] {
+function coldScheduleOf(task: Task, attempts: Attempt[], exam: ExamDate): [SkillTask, number] {
     const all: string[] = task.parts.length === 0 ? [""] : task.parts;
     let level: number = 0;
     let runs: number = 0;
@@ -887,7 +896,7 @@ function coldScheduleOf(task: Task, attempts: Attempt[], exam: ExamDate): [Skill
     return [{
         ...task, due: due, done: false, level: level, open: task.parts.length === 0 ? [] : [...dues.keys()],
         ready: level > spacingDays.length, skipped: skipped, attempts: attempts,
-    }, runs > 0];
+    }, runs];
 }
 
 /**
@@ -898,21 +907,20 @@ function coldScheduleOf(task: Task, attempts: Attempt[], exam: ExamDate): [Skill
  * @param attemptsOf - Attempts at a task
  * @returns Attempts, the oldest first
  */
-function variantAttemptsOf(own: Task[], attemptsOf: (task: Task) => Attempt[]): Attempt[] {
+function variantAttemptsOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attempt[]): Attempt[] {
     return own.flatMap(attemptsOf).sort((first: Attempt, second: Attempt): number =>
         `${first.day} ${first.time}`.localeCompare(`${second.day} ${second.time}`));
 }
 
 /**
- * Gives the round of a section: its days of attempts at its cold tasks before today, so round 0 lasts until a cold task
- * first comes back on a later day, and each later day of attempts starts the next round.
+ * Gives the days of attempts at the cold tasks of a section before today, skips left out.
  *
  * @param own - Cold tasks of a section, its variants, in the order of the note
  * @param attemptsOf - Attempts at a task
  * @param today - Today like `2026-10-17`
- * @returns Round, 0 at first
+ * @returns Number of days, 0 at first
  */
-function roundOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attempt[], today: string): number {
+function attemptDaysOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attempt[], today: string): number {
     const days: string[] = [...new Set(own.flatMap(attemptsOf)
         .filter((attempt: Attempt): boolean => attempt.result !== "skipped")
         .map((attempt: Attempt): string => attempt.day))].sort();
@@ -920,8 +928,9 @@ function roundOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attempt[], t
 }
 
 /**
- * Gives which variant of a section's cold task is due: each round takes the next variant, see {@link roundOf},
- * so a run never repeats the numbers of the run before; the variant of today stays while I'm at it.
+ * Gives which variant of a section's cold task is due: each new day of attempts takes the next variant,
+ * see {@link attemptDaysOf}, so a run never repeats the numbers of the run before; the variant of today stays while
+ * I'm at it.
  *
  * @param own - Cold tasks of a section, its variants, in the order of the note
  * @param attemptsOf - Attempts at a task
@@ -929,34 +938,42 @@ function roundOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attempt[], t
  * @returns Index of the variant in `own`
  */
 function variantIndexOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attempt[], today: string): number {
-    return roundOf(own, attemptsOf, today) % own.length;
+    return attemptDaysOf(own, attemptsOf, today) % own.length;
 }
 
 /**
- * Builds the sections of a module from its tasks, in their order: one per note, with its round and its cold task
- * of today, and how many of its tasks I tried.
+ * Builds the sections of a module from its tasks, in their order: one per note, with its round, whether it still
+ * learns the ladder, its cold task of today with the days it comes back after a right or a failed run today,
+ * and how many of its tasks I tried.
  * - `notes`: Tasks by their notes, in order.
- * - `colds`: Cold tasks of a note, its variants.
+ * - `colds`: Cold tasks of a note, its variants, and `cold` the first, which holds the level of all.
  * - `attemptsOf`: Attempts at a task.
  *
  * @param tasks - Tasks of the module with when each is due
  * @param today - Today like `2026-10-17`
+ * @param exam - Exam of the module
  * @returns Sections
  */
-function sectionsOf(tasks: SkillTask[], today: string): SkillSection[] {
+function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate): SkillSection[] {
     const notes: Map<string, SkillTask[]> = Map.groupBy(tasks, (task: SkillTask): string => task.note);
     const attemptsOf: (task: SkillTask) => Attempt[] = (task: SkillTask): Attempt[] => task.attempts;
     return [...notes.values()].map((own: SkillTask[]): SkillSection => {
         const colds: SkillTask[] = own.filter((task: SkillTask): boolean => task.kind === "cold");
+        const cold: SkillTask | undefined = colds[0];
         return {
             title: own[0].section,
             note: own[0].note,
             chapter: own[0].chapter,
-            cold: colds.length === 0 ? "" : colds[variantIndexOf(colds, attemptsOf, today)].id,
+            cold: cold === undefined ? "" : colds[variantIndexOf(colds, attemptsOf, today)].id,
             tasks: own.length,
             tried: own.filter((task: SkillTask): boolean =>
                 task.attempts.some((attempt: Attempt): boolean => attempt.result !== "skipped")).length,
-            round: roundOf(colds, attemptsOf, today),
+            round: cold === undefined ? 0 : coldScheduleOf(cold, variantAttemptsOf(colds, (task: SkillTask): Attempt[] =>
+                task.attempts.filter((attempt: Attempt): boolean => attempt.day < today)), exam)[1],
+            ladder: attemptDaysOf(colds, attemptsOf, today) === 0,
+            rightDue: cold === undefined ? ""
+                : dueAfter(Math.min(cold.level + 1, spacingDays.length + 1), today, exam),
+            wrongDue: cold === undefined ? "" : dayAdd(today, retryDays),
         };
     });
 }
@@ -1032,7 +1049,7 @@ function examOf(module: string, boxes: Box[]): ExamDate {
  * - `duplicates`: Tasks of a module whose name an earlier task has.
  * - `exam`: Exam of a module, see {@link examOf}.
  * - `attemptsOf`: Attempts at a task.
- * - `colds`: Cold tasks of a module with when each is due and whether its section had a run, by their notes,
+ * - `colds`: Cold tasks of a module with when each is due and the runs its section had, by their notes,
  *   the first of a note.
  * - `tasks`: Tasks of a module with when each is due.
  *
@@ -1057,12 +1074,12 @@ export function skillingRead(): Skilling {
             (byTask.get(task.id) ?? []).map((logged: LoggedAttempt): Attempt => logged.attempt);
         const variants: Map<string, Task[]> = Map.groupBy(unique.filter((task: Task): boolean => task.kind === "cold"),
             (task: Task): string => task.note);
-        const colds: Map<string, [SkillTask, boolean]> = new Map([...variants].map(([note, own]: [string, Task[]]):
-            [string, [SkillTask, boolean]] => [note, coldScheduleOf(own[0], variantAttemptsOf(own, attemptsOf), exam)]));
+        const colds: Map<string, [SkillTask, number]> = new Map([...variants].map(([note, own]: [string, Task[]]):
+            [string, [SkillTask, number]] => [note, coldScheduleOf(own[0], variantAttemptsOf(own, attemptsOf), exam)]));
         const today: string = berlinDateOf(new Date());
         const tasks: SkillTask[] = unique.map((task: Task): SkillTask => {
             if (task.kind !== "cold")
-                return ladderScheduleOf(task, attemptsOf(task), colds.get(task.note)?.[1] ?? false);
+                return ladderScheduleOf(task, attemptsOf(task), (colds.get(task.note)?.[1] ?? 0) > 0);
             const own: Task[] = variants.get(task.note) ?? [task];
             const run: SkillTask = colds.get(task.note)?.[0] ?? coldScheduleOf(task, attemptsOf(task), exam)[0];
             const current: boolean = own[variantIndexOf(own, attemptsOf, today)] === task;
@@ -1074,7 +1091,7 @@ export function skillingRead(): Skilling {
         const removed: number = attempts.filter((logged: LoggedAttempt): boolean => logged.task.split("/")[0] === module.code
             && !tasks.some((task: SkillTask): boolean => task.id === logged.task)).length;
         return {
-            code: module.code, title: module.title, exam: exam, tasks: tasks, sections: sectionsOf(tasks, today),
+            code: module.code, title: module.title, exam: exam, tasks: tasks, sections: sectionsOf(tasks, today, exam),
             duplicates: duplicates, removed: removed, planned: plannedOf(module.code, boxes),
             papers: papersRead(module.title),
         };

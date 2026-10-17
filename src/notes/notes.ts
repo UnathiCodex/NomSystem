@@ -15,7 +15,6 @@
  * The parts of a cold task that sit in its run while others are still open, like 1. and 2. before 3., show greyed,
  * in its text and in its row, without their `⋯` there, so only the open parts can be answered.
  * Its row stays quiet, without state, hint or numbers, see `../skill/task.ts`.
- * The learning path of a section renders its note the same way, see `./path.ts`.
  *
  * - `./markdown.ts`: Turns the Markdown of a note into HTML, with Obsidian's syntax.
  * - `./math.ts`: Renders the formulas, as Obsidian does.
@@ -44,7 +43,7 @@ import type { SkillModule, SkillTask, Skilling } from "../skill/attempts.ts";
  * - `text`: Markdown text of the note.
  * - `links`: For each link of the note as written, the path of the file it leads to, `null` when it leads nowhere.
  */
-export type LinkedNote = {
+type LinkedNote = {
     path: string;
     text: string;
     links: { [link: string]: string | null };
@@ -98,7 +97,7 @@ function noteRead(path: string): Promise<LinkedNote> {
  * @param heading - Heading as written, like `05.06. Definition. Eulersche Formel`
  * @returns Markdown of the section, empty when the note has no such heading
  */
-export function sectionOf(text: string, heading: string): string {
+function sectionOf(text: string, heading: string): string {
     const lines: string[] = text.split("\n");
     const levelOf: (line: string) => number = (line: string): number => /^(#{1,6})[ \t]/.exec(line)?.[1].length ?? 0;
     const start: number = lines.findIndex((line: string): boolean =>
@@ -164,7 +163,7 @@ async function embedShow(embed: HTMLElement, path: string | null, heading: strin
  * @param depth - How deep the note lies in embeds, the shown note being 0
  * @throws {Error} - When the reader cannot read an embedded note
  */
-export async function linksResolve(element: HTMLElement, note: LinkedNote, depth: number): Promise<void> {
+async function linksResolve(element: HTMLElement, note: LinkedNote, depth: number): Promise<void> {
     const embeds: Promise<void>[] = [];
     element.querySelectorAll<HTMLElement>("[data-link]").forEach((linked: HTMLElement): void => {
         const path: string | null = note.links[linked.dataset.link ?? ""] ?? null;
@@ -237,7 +236,7 @@ async function tasksShow(path: string): Promise<void> {
  *
  * @param text - Element of the shown note
  */
-export function stepsPut(text: HTMLElement): void {
+function stepsPut(text: HTMLElement): void {
     text.querySelectorAll<HTMLElement>("details.fold > .fold-content > details.fold > .fold-content").forEach(
         (content: HTMLElement): void => {
             const steps: HTMLElement[] = [...content.querySelectorAll<HTMLElement>(":scope > :not(ul, ol), li")];
@@ -276,7 +275,7 @@ export function stepsPut(text: HTMLElement): void {
  * @param fold - Fold of the task
  * @param task - The task
  */
-export function partsGrey(fold: HTMLElement, task: SkillTask): void {
+function partsGrey(fold: HTMLElement, task: SkillTask): void {
     if (task.kind !== "cold" || task.parts.length === 0)
         return;
     fold.querySelectorAll<HTMLOListElement>(":scope > .fold-content > ol").forEach((list: HTMLOListElement): void => {

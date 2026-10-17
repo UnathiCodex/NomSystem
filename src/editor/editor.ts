@@ -15,10 +15,10 @@
  * file without a diff; an `.ics` file opens as its plain text, to read only, each block of it drawn one step in and its
  * entries apart, see `./ics.ts`; any other file shows in the tree, faint, and opens not.
  * A note of my modules shows the rows of its tasks under their headings, see `./tasks.ts`.
- * A section, a note with tasks of the semester, opens as its learning path instead, one block at a time, its round
- * beside its name, a quiet `Show all` for the whole note, here to edit, and a navigator of its blocks on the right,
- * see `../notes/path.ts`; an address with
- * a heading, or with `all=1`, like `/scripts?path=…&all=1`, opens the whole note.
+ * A section, a note with tasks of the semester, shows its round in the same view: its round line above the note,
+ * the blocks of the round folded and opened as they stand, `Next` below the current one, and in the tree, in place
+ * of the outline, its blocks with their places, a click opening one; on a phone, where the tree hides, the same list
+ * above the note, see `./round.ts`.
  * The address names a note by its path in the scripts view and the heading to scroll to, like
  * `/scripts?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md#…`,
  * so a reload and the back button of the browser stay on it, and a file of my new system by its path in the tree,
@@ -42,8 +42,9 @@
  * - `./preview.ts`: Shows the Markdown as in the scripts view, folds its sections and scrolls to a heading.
  * - `./steps.ts`: Shows an unfolded solution one step at a time.
  * - `./tasks.ts`: Shows the rows of the tasks of a note.
- * - `../notes/path.ts`: Shows a section as its learning path.
- * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked, and the outline of a note.
+ * - `./round.ts`: Shows the round of a section in the note.
+ * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked, and the outline of a note or the blocks
+ *   of a section with their places.
  * - `../day/choices.ts`: Marks where the long name of a file may go on below, on a phone.
  * - `../phone.ts`: Tells a phone, which shows the tree or the file, one at a time.
  * - `lucide`, `../icons.ts`: The check of the save button and the tree of the button that shows the tree on a phone.
@@ -63,8 +64,8 @@ import { obsidianSyntax } from "./syntax.ts";
 import { headingShow, linksSet, livePreview, solutionsFold } from "./preview.ts";
 import { solutionSteps } from "./steps.ts";
 import { taskRows, tasksLoad } from "./tasks.ts";
-import { pathShow } from "../notes/path.ts";
-import { noteAddressOf, outlineShow, treeShow } from "../notes/tree.ts";
+import { roundBlocksOf, roundHeadingShow, roundStart } from "./round.ts";
+import { outlineShow, roundListOf, treeShow } from "../notes/tree.ts";
 import { timeOf } from "../day/times.ts";
 import { breakableOf } from "../day/choices.ts";
 import { phone } from "../phone.ts";
@@ -77,6 +78,7 @@ import type { Extension } from "@codemirror/state";
 import type { Rect, ViewUpdate } from "@codemirror/view";
 import type { LanguageSupport } from "@codemirror/language";
 import type { Links } from "./preview.ts";
+import type { BlockMark } from "../notes/tree.ts";
 
 
 /**
@@ -243,6 +245,39 @@ function keyDown(event: KeyboardEvent): void {
 }
 
 /**
+ * Shows the blocks of a section with their places in its round above the note, for a phone, where the tree hides:
+ * a fold, closed, its line the current block after the icon of the tree, opening the list the tree shows;
+ * hidden for any other note, and on a computer, see `./editor.css`.
+ * - `list`: The fold.
+ * - `summary`: Its line.
+ *
+ * @param blocks - Headings of the blocks with their places, `null` for a note that is no section
+ */
+function blocksShow(blocks: [string, BlockMark][] | null): void {
+    const list: HTMLDetailsElement = document.getElementById("editor-blocks") as HTMLDetailsElement;
+    list.hidden = blocks === null;
+    if (blocks === null)
+        return;
+    const summary: HTMLElement = document.createElement("summary");
+    iconPut(summary, ListTree, "Blocks");
+    summary.append(blocks.find(([, mark]: [string, BlockMark]): boolean => mark === "current")?.[0]
+        .replace(/[ \t]*\(cold\)$/, "") ?? "");
+    list.replaceChildren(summary, roundListOf(path, blocks));
+}
+
+/**
+ * Builds the outline of a note in the tree anew, or for a section its blocks with their places in its round,
+ * also above the note for a phone, see {@link blocksShow}.
+ * - `blocks`: The blocks of a section with their places, `null` for any other note.
+ */
+function outlineRefresh(): void {
+    const blocks: [string, BlockMark][] | null = roundBlocksOf(view);
+    if (outlineTree !== null)
+        outlineShow(outlineTree, path, view.state.sliceDoc(), blocks);
+    blocksShow(blocks);
+}
+
+/**
  * Builds the extensions of the editor for a file.
  * - `lineSeparator`: Splits and joins the lines by the line break of the file, `\r\n` or `\n`,
  *   so saving writes the line breaks as they were, also a single other one, which stays inside its line.
@@ -258,8 +293,9 @@ function keyDown(event: KeyboardEvent): void {
  *   with the file, and the bar at the bottom stands below the file, so the cursor needs no margin there.
  * - `solutionSteps`: The steps of an unfolded solution, one at a time, see `./steps.ts`.
  * - `taskRows`: The rows of the tasks of a note, once loaded, see `./tasks.ts`.
+ * - `roundStart`: The round of a section, see `./round.ts`, which shows the places of its blocks anew as it moves.
  * - `updateListener`: Shows whether the file has unsaved changes after each change of the text, and builds the outline
- *   of a note anew once the typing rests.
+ *   of a note anew once the typing rests, see {@link outlineRefresh}.
  *
  * @param opened - The file
  * @returns Extensions
@@ -277,17 +313,14 @@ function extensionsOf(opened: Opened): Extension[] {
         EditorView.darkTheme.of(true),
         EditorView.scrollMargins.of((): Partial<Rect> =>
             ({ top: phone ? 0 : (document.getElementById("editor-head") as HTMLElement).offsetHeight })),
-        ...(opened.markdown ? [livePreview(opened.links), solutionSteps, taskRows] : []),
+        ...(opened.markdown ? [livePreview(opened.links), solutionSteps, taskRows, roundStart(outlineRefresh)] : []),
         ...(/\.ics$/i.test(path) ? [icsLook()] : []),
         EditorView.updateListener.of((update: ViewUpdate): void => {
             if (!update.docChanged)
                 return;
             stateShow("");
             clearTimeout(outlineWait);
-            outlineWait = window.setTimeout((): void => {
-                if (outlineTree !== null)
-                    outlineShow(outlineTree, path, view.state.sliceDoc());
-            }, 500);
+            outlineWait = window.setTimeout(outlineRefresh, 500);
         }),
     ];
 }
@@ -319,27 +352,30 @@ async function openedRead(file: string): Promise<Opened | null> {
 }
 
 /**
- * Scrolls the note shown to the heading of the address, see `headingShow` in `./preview.ts`, or to its top;
- * on a phone, where the name of the note scrolls away with it, to its very top, so its name stays in sight.
+ * Scrolls the note shown to the heading of the address, see `headingShow` in `./preview.ts`, or to the very top of
+ * the page, so the round line of a section and on a phone the name of the note, which scrolls away with it, stay
+ * in sight.
  * - `heading`: The heading of the address, empty for none.
  */
 function addressHeadingShow(): void {
     const heading: string = decodeURIComponent(location.hash.slice(1));
-    if (phone && heading === "")
+    if (heading === "")
         (document.querySelector(".editor-file") as HTMLElement).scrollTop = 0;
     else
         headingShow(view, heading);
 }
 
 /**
- * Scrolls to a heading of the note shown on a click on a link to it in the tree, like in its outline, without loading
- * the page again, and keeps it in the address and the history of the browser; on a phone it shows the note in place
- * of the tree first, see {@link phoneShow}; links to other notes, and clicks with a key held, act as usual.
+ * Scrolls to a heading of the note shown on a click on a link to it in the tree, like in its outline, or in the list
+ * of blocks above the note on a phone, which then closes, without loading the page again, and keeps it in the address
+ * and the history of the browser; a block of a section opens in its round, see `roundHeadingShow` in `./round.ts`;
+ * on a phone it shows the note in place of the tree first, see {@link phoneShow}; links to other notes, and clicks
+ * with a key held, act as usual.
  * - {@link History#pushState}: Writes the address as a new step of the history, for the back button.
  * - `link`: The link clicked, `null` for none.
  * - `address`: Its address.
  *
- * @param event - Click inside the tree
+ * @param event - Click inside the tree or the list of blocks
  */
 function treeClick(event: MouseEvent): void {
     const link: HTMLAnchorElement | null = (event.target as Element).closest("a[href]");
@@ -352,43 +388,9 @@ function treeClick(event: MouseEvent): void {
     event.preventDefault();
     window.history.pushState(null, "", address);
     phoneShow("file");
-    addressHeadingShow();
-}
-
-/**
- * Shows the note as the learning path of its section in place of its text, see `../notes/path.ts`, when it is one:
- * its round beside its name, `Show all` in place of the save button, and its navigator on the right in place of
- * the outline in the tree, which would list blocks not in the round.
- * - `round`: Round of the section, `null` for a note that is no section.
- * - `label`: Its round, like `Round 0`.
- * - `all`: Link to the whole note.
- *
- * @param opened - The note
- * @returns Whether the note shows as a path
- */
-async function pathOpen(opened: Opened): Promise<boolean> {
-    const element: HTMLElement = document.getElementById("editor-path") as HTMLElement;
-    const round: number | null = await pathShow(element, document.getElementById("editor-navigator") as HTMLElement,
-        { path: path, text: opened.text, links: opened.links })
-        .catch((error: unknown): null => {
-            console.error(error);
-            return null;
-        });
-    if (round === null)
-        return false;
-
-    const label: HTMLElement = document.createElement("span");
-    const all: HTMLAnchorElement = document.getElementById("editor-all") as HTMLAnchorElement;
-    label.className = "editor-round";
-    label.textContent = `Round ${round}`;
-    (document.getElementById("editor-title") as HTMLElement).after(label);
-    all.href = `${noteAddressOf(path, "")}&all=1`;
-    all.hidden = false;
-    element.hidden = false;
-    (document.getElementById("editor") as HTMLElement).classList.add("editor-pathed");
-    (document.getElementById("editor-text") as HTMLElement).hidden = true;
-    (document.getElementById("editor-save") as HTMLElement).hidden = true;
-    return true;
+    (document.getElementById("editor-blocks") as HTMLDetailsElement).open = false;
+    if (!roundHeadingShow(view, decodeURIComponent(address.hash.slice(1))))
+        addressHeadingShow();
 }
 
 /**
@@ -399,8 +401,9 @@ async function pathOpen(opened: Opened): Promise<boolean> {
  * button, Ctrl+S, and a question before leaving with changes unsaved; a file to read only says so, a file that cannot
  * be read shows a hint instead, and so does the editor while it shows no file.
  * A note of my modules gets the rows of its tasks, see `./tasks.ts`, its outline in the tree, and scrolls to the
- * heading of the address, also when the back or forward button of the browser changes it; a section without heading
- * and without `all=1` in its address shows as its learning path instead, see {@link pathOpen}.
+ * heading of the address, also when the back or forward button of the browser changes it; a section its round,
+ * see `./round.ts`, its text hidden until its tasks are loaded, so its blocks fold before they show, scrolled to
+ * its current block unless the address names a heading.
  * A phone shows the file, or the tree while no file is named, and the button of the tree switches between them,
  * off while there is no file to go back to, see {@link phoneShow}; the name of the file may go on below between
  * its parts there, see `breakableOf` in `../day/choices.ts`.
@@ -444,9 +447,6 @@ export async function editorStart(): Promise<void> {
         return;
     }
 
-    if (!plannings && opened.markdown && !address.has("all") && location.hash === "" && await pathOpen(opened))
-        return;
-
     const text: HTMLElement = document.getElementById("editor-text") as HTMLElement;
     text.classList.toggle("markdown", opened.markdown);
     text.classList.toggle("editor-plain", !opened.markdown);
@@ -474,12 +474,17 @@ export async function editorStart(): Promise<void> {
     if (plannings || !opened.markdown)
         return;
 
-    tasksLoad(view, path).catch((error: unknown): void => console.error(error));
-    addressHeadingShow();
+    text.style.visibility = "hidden";
+    tasksLoad(view, path).catch((error: unknown): void => console.error(error)).finally((): void => {
+        text.style.visibility = "";
+        if (location.hash !== "" || roundBlocksOf(view) === null)
+            addressHeadingShow();
+    });
     shown.then((): void => {
         outlineTree = tree;
-        outlineShow(tree, path, view.state.sliceDoc());
+        outlineRefresh();
     }).catch((error: unknown): void => console.error(error));
     tree.addEventListener("click", treeClick);
+    document.getElementById("editor-blocks")?.addEventListener("click", treeClick);
     window.addEventListener("popstate", addressHeadingShow);
 }

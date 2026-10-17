@@ -17,7 +17,8 @@
  * all closed but those on the way to the file shown.
  * A search filters the tree as I type, as every list of the page has one, of my modules only the module picked,
  * see {@link searchStart}.
- * Under the note shown stands its outline, as Obsidian's outline, see {@link outlineShow}.
+ * Under the note shown stands its outline, as Obsidian's outline, see {@link outlineShow}; under a section its blocks
+ * in the places of its round, see {@link roundListOf}.
  * Each name stands on one line, one too long for it ending in dots; on a phone, whose tree is narrower than
  * a computer's, a name goes on below between its parts instead, like `IN2028_BusinessAnalytics` and `MachineLearning`,
  * see `breakableOf` in `../day/choices.ts`; its look is in `./notes.css`.
@@ -25,12 +26,15 @@
  * - `../search.ts`: Compares a typed text with the paths of the files and notes, as every search of the page does.
  * - `../day/choices.ts`: Marks where a long name may go on below.
  * - `./markdown.ts`, `./math.ts`: Render the headings of the outline, their formulas as in the note.
+ * - `lucide`, `../icons.ts`: The check of a block done in its round.
  */
 
 import { matchesAll, wordsOf } from "../search.ts";
 import { breakableOf } from "../day/choices.ts";
 import { inlineHtmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
+import { iconOf } from "../icons.ts";
+import { Check } from "lucide";
 
 
 /**
@@ -371,6 +375,41 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
 }
 
 /**
+ * Place of a block of a section in its round, see `../editor/round.ts`: done, the current one, later in the round,
+ * or outside the round.
+ */
+export type BlockMark = "done" | "current" | "round" | "other";
+
+/**
+ * Builds the list of the blocks of a section in their order, each linking to its heading by its heading as written,
+ * without an older `(cold)`: a block done with a check after it, the current one in the calm grey of what is shown,
+ * a later one of the round plain, one outside the round grey; the same list stands in the tree and, on a phone,
+ * above the note.
+ * - `list`: The list.
+ * - `link`: Link to a block.
+ *
+ * @param path - Path of the note
+ * @param blocks - Headings of its blocks in their order, each with its place
+ * @returns The list
+ */
+export function roundListOf(path: string, blocks: [string, BlockMark][]): HTMLElement {
+    const list: HTMLDivElement = document.createElement("div");
+    list.className = "tree-children tree-outline tree-round";
+    list.append(...blocks.map(([heading, mark]: [string, BlockMark]): HTMLAnchorElement => {
+        const link: HTMLAnchorElement = document.createElement("a");
+        link.className = `tree-file tree-${mark}`;
+        link.href = noteAddressOf(path, heading);
+        link.dataset.heading = heading;
+        link.innerHTML = inlineHtmlOf(heading.replace(/[ \t]*\(cold\)$/, ""));
+        if (mark === "done")
+            link.append(iconOf(Check));
+        return link;
+    }));
+    mathRender(list);
+    return list;
+}
+
+/**
  * Puts the outline of the note shown under its entry in the tree, as Obsidian's outline: each heading `##` in order,
  * linking to it, each worked or faded task under the block above it that is no task, like
  * `Definition. Standard Error of the Mean`, which then folds its tasks by its arrow and still links to its heading
@@ -378,7 +417,8 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
  * the note. A block without tasks below it stays a plain link, and so does a task without such a block above it;
  * a cold task, a `Task.`, in a note written the older way `Task. … (cold)`, named also without `(cold)`, stands alone,
  * at the end of its section; there a plain `Task.` is worked or faded. An Example without a solution is theory.
- * The outline put before goes; a block I folded in it stays folded.
+ * The outline put before goes; a block I folded in it stays folded. A section shows the blocks of its round instead,
+ * see {@link roundListOf}.
  * - `entry`: Entry of the note in the tree, `null` while it is none, like a note of a module not of the semester.
  * - `folded`: Names of the blocks folded in the outline before.
  * - `outline`: The outline.
@@ -394,14 +434,19 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
  * @param tree - The tree
  * @param path - Path of the note shown
  * @param text - Text of the note
+ * @param round - Headings of the blocks of a section with their places in its round, `null` for any other note
  */
-export function outlineShow(tree: HTMLElement, path: string, text: string): void {
+export function outlineShow(tree: HTMLElement, path: string, text: string, round: [string, BlockMark][] | null): void {
     const entry: HTMLElement | null = tree.querySelector(`.tree-file.shown[data-path="${CSS.escape(path)}"]`);
     const folded: string[] = [...tree.querySelectorAll<HTMLDetailsElement>(".tree-outline details.tree-folder:not([open])")]
         .map((folder: HTMLDetailsElement): string => folder.querySelector<HTMLElement>(".tree-file")?.dataset.heading ?? "");
     tree.querySelectorAll(".tree-outline").forEach((outline: Element): void => outline.remove());
     if (entry === null)
         return;
+    if (round !== null) {
+        entry.after(roundListOf(path, round));
+        return;
+    }
 
     const outline: HTMLDivElement = document.createElement("div");
     const lines: string[] = text.split(/\r?\n/);

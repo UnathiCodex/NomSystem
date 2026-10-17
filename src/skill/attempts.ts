@@ -101,7 +101,10 @@ export type SkillTask = Task & {
  * - `cold`: Identity of its cold task of today, the one variant due, empty when it has none yet.
  * - `tasks`: Number of its tasks.
  * - `tried`: Number of its tasks I tried.
- * - `round`: Its days of attempts at its cold tasks before today, 0 until a cold task first comes back.
+ * - `round`: Its round, the runs of its cold task done before today: a right run moves it on, a failed one leaves it.
+ * - `ladder`: Whether it still learns the ladder before the cold task: while no cold task has an attempt on an earlier day.
+ * - `rightDue`: Day the cold task comes back after a right run today; empty without a cold task.
+ * - `wrongDue`: Day it comes back after a failed run today; empty without a cold task.
  */
 export type SkillSection = {
     title: string;
@@ -111,6 +114,9 @@ export type SkillSection = {
     tasks: number;
     tried: number;
     round: number;
+    ladder: boolean;
+    rightDue: string;
+    wrongDue: string;
 };
 
 /**

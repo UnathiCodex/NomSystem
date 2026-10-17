@@ -29,7 +29,7 @@
  *   text, as in the scripts view, and each list item with sub-points folds them and its further lines by its arrow
  *   left of its bullet, shown under the pointer, as in Obsidian; one click folds, one click unfolds,
  *   see {@link FoldWidget}; a solution, the section under `#### Solution`, comes folded, see {@link solutionsFold},
- *   so I try a task before I see its solution.
+ *   so I try a task before I see its solution, but that of a worked Example, which I study whole.
  * A click on a rendered piece puts the cursor there, so it shows as text; while the editor is not focused,
  * like before the first click, the whole note shows rendered.
  * A click on a rendered link follows it, as in Obsidian, and so does a click with Ctrl held on a link shown as text,
@@ -48,6 +48,7 @@
  * - `../notes/markdown.ts`: Renders tables, callouts, code blocks and HTML blocks as the scripts view does.
  * - `../notes/tree.ts`: Builds the address of a note in the scripts view, for a link to follow.
  * - `./keys.ts`: Tells a spacer line and the indentation of the text of a list item, for where the item ends.
+ * - `./steps.ts`: Tells a worked Example, whose solution comes unfolded.
  */
 
 import { RangeSet, StateEffect, StateField } from "@codemirror/state";
@@ -60,6 +61,7 @@ import { mathRender } from "../notes/math.ts";
 import { htmlOf } from "../notes/markdown.ts";
 import { noteAddressOf } from "../notes/tree.ts";
 import { columnsOf, spacerRule, textIndentationOf } from "./keys.ts";
+import { workedIs } from "./steps.ts";
 
 import type { EditorState, Extension, Line, Range, SelectionRange, StateEffectType, Transaction } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
@@ -1325,7 +1327,7 @@ function foldToggle(view: EditorView, pos: number): void {
 
 /**
  * Folds every solution of the note, the section under each heading `#### Solution…`, as the scripts view shows
- * it at first, so I try a task before I see its solution; the whole note read first, as the editor reads at first
+ * it at first, so I try a task before I see its solution, but that of a worked Example; the whole note read first, as the editor reads at first
  * only what it shows.
  * - {@link forceParsing}: Reads the syntax of the note up to its end, for at most a second.
  * - `ranges`: The sections of the solutions.
@@ -1337,7 +1339,7 @@ export function solutionsFold(view: EditorView): void {
     const ranges: { from: number; to: number }[] = [];
     for (let number: number = 1; number <= view.state.doc.lines; number++) {
         const line: Line = view.state.doc.line(number);
-        const range: { from: number; to: number } | null = solutionRule.test(line.text)
+        const range: { from: number; to: number } | null = solutionRule.test(line.text) && !workedIs(view.state, line)
             ? foldable(view.state, line.from, line.to) : null;
         if (range !== null)
             ranges.push(range);

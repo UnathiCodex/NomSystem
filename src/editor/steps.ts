@@ -9,6 +9,8 @@
  * Hiding is only for reading: the text stays as it is, the cursor stays at the end of the last step shown, also after End,
  * and the cursor going into a hidden step, like by the arrow keys or a new line, shows the whole solution,
  * so I edit it as before.
+ * The solution of a worked Example, `## Example. …`, shows whole, spread out, since studying it whole is its point,
+ * see {@link workedIs}.
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold how many steps of each solution show, hide the others,
  *   and draw the buttons below the solution as a widget.
@@ -64,6 +66,16 @@ type More = {
  * Heading of a solution, like `#### Solution` or `#### Solution (own, unchecked)`, as the scripts view folds it.
  */
 const solutionRule: RegExp = /^####[ \t]+Solution\b/;
+
+/**
+ * Heading of a block, `##`.
+ */
+const blockRule: RegExp = /^##[ \t]/;
+
+/**
+ * Heading of a worked Example, `## Example.`, whose solution shows whole.
+ */
+const exampleRule: RegExp = /^##[ \t]+Example\./;
 
 /**
  * Lists, whose items are steps of their own.
@@ -176,7 +188,7 @@ function solutionsOf(state: EditorState): Solution[] {
     const solutions: Solution[] = [];
     for (let number: number = 1; number <= state.doc.lines; number++) {
         const line: Line = state.doc.line(number);
-        const section: { from: number; to: number } | null = solutionRule.test(line.text)
+        const section: { from: number; to: number } | null = solutionRule.test(line.text) && !workedIs(state, line)
             ? foldable(state, line.from, line.to) : null;
         let folded: boolean = false;
         foldedRanges(state).between(line.to, line.to, (from: number): void => {
@@ -186,6 +198,24 @@ function solutionsOf(state: EditorState): Solution[] {
             solutions.push(solutionOf(state, line, section.to));
     }
     return solutions;
+}
+
+/**
+ * Tells whether a line stands in a worked Example, the block under the nearest heading `##` above it being
+ * `## Example. …`, whose solution shows whole.
+ * - `number`: A line above it.
+ *
+ * @param state - Text of the note
+ * @param line - The line, like the heading of a solution
+ * @returns Whether it stands in a worked Example
+ */
+export function workedIs(state: EditorState, line: Line): boolean {
+    for (let number: number = line.number; number >= 1; number--) {
+        const text: string = state.doc.line(number).text;
+        if (blockRule.test(text))
+            return exampleRule.test(text);
+    }
+    return false;
 }
 
 /**

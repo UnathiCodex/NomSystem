@@ -19,20 +19,18 @@
                     <button type="button" class="editor-tree" id="editor-tree" aria-pressed="false"></button>
                     <span class="editor-state" id="editor-state"></span>
                     <button type="button" class="editor-save" id="editor-save"></button>
-                    <!-- Learning path only: the whole note, quiet -->
-                    <a class="editor-all" id="editor-all" hidden>Show all</a>
                 </div>
             </div>
+
+            <!-- A section only: its round line, what this round holds and what comes next, see round.ts -->
+            <p class="editor-round" id="editor-round" hidden></p>
+
+            <!-- A section on a phone only, where the tree hides: its blocks with their places, folded, see editor.ts -->
+            <details class="editor-blocks" id="editor-blocks" hidden></details>
 
             <!-- Text of the file, CodeMirror inside; `markdown` gives the rendered pieces of a Markdown file the look
                  of the scripts view, `editor-plain` shows any other file as its plain text -->
             <div class="editor-text markdown" id="editor-text"></div>
-
-            <!-- Learning path of a section in place of the text, one block at a time, see notes/path.ts -->
-            <div class="editor-path markdown" id="editor-path" hidden></div>
         </div>
     </div>
-
-    <!-- Learning path only: the navigator of its blocks on the right, see notes/path.ts -->
-    <nav class="editor-navigator" id="editor-navigator" hidden></nav>
 </div>

@@ -14,7 +14,7 @@
  * A cold task with parts, 1., 2., 3., has one line per part with its own `⋯` for Right, With tutor, Wrong and Stuck,
  * since each part gets its own result, a check after a part that sits in the run; Skip stays for the whole task.
  * On a card, a part that sits has no `⋯` while others are still open, so only the open ones can be answered.
- * A card and the learning path of a section keep the row quiet: no state, no hint and no number of attempts,
+ * A card and a section in the editor keep the row quiet: no state, no hint and no number of attempts,
  * only the `⋯` and the history behind its small button.
  * Right after an attempt that is no skip, the menu of the task opens by itself with the question for my effort on it
  * on top, low, medium or high, and keeps it there as long as the attempt is of today and has none.
@@ -378,7 +378,7 @@ function checkOf(): HTMLElement {
  * @param today - Today like `2026-10-10`
  * @param solution - Fold of the task's solution, `null` when it has none: whether it is open, and a `toggle` when that
  *   changes, like the fold of a card, or as the editor draws the row anew on each fold, see `../editor/tasks.ts`
- * @param card - Whether the row stands on a card or in a learning path, quiet, where a part of a cold task that sits
+ * @param card - Whether the row stands on a card or in a section, quiet, where a part of a cold task that sits
  *   takes no answer
  * @param written - Shows the task again once an attempt or an effort is written
  * @returns Row
