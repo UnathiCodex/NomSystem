@@ -13,7 +13,7 @@
  * a range selected in the time grid for that range, on a phone by a short press into the grid and pulling it down
  * over the time, as in Google Calendar, the range shown meanwhile as an entry with its start and end in front
  * of the others; a click on an entry changes it.
- * Entries are moved and resized by dragging, and the reader writes them back into their files.
+ * Entries are moved and resized by dragging, and the reader writes their new times alone into their files.
  * Entries look as Google Calendar shows them: what first, then the time, then the place, in one size, the time a light
  * grey, and a taller one its note below, see {@link entryContentOf};
  * a dish, a meal or a cooking, shows its summary, which leaves its drinks out. The kcal of a meal stay hidden
@@ -23,8 +23,8 @@
  * it moves on with it; only a link to a day, like `/?date=2026-07-03` from the food view, opens on that day,
  * which the address then keeps no more, see `today.ts`.
  * The day loads anew the moment a file of my new system changes, whoever changed it, like a food renamed in the food
- * view in every entry that holds it, see `../changes.ts`, so it never shows, nor writes back by a drag, what
- * the files held before; a change that comes while a dialog is open waits until it closes, see {@link dayAgain}.
+ * view in every entry that holds it, see `../changes.ts`, so it never shows what the files held before;
+ * a change that comes while a dialog is open waits until it closes, see {@link dayAgain}.
  * The grid runs over the calendar day, from 00:00 to 24:00, and opens at 06:00; an entry past midnight shows on both
  * days, cut at midnight, like a sleep from 23:00 to 07:00 at the bottom of 12 October and at the top of 13 October,
  * see {@link dayStart}.
@@ -36,7 +36,7 @@
  * - `fullcalendar/locales/en-gb`: English names of days, months and buttons, the day before the month.
  * - `./note.ts`: Shows the daily note of a day, with its Markdown renderer; loaded with `import()` after the calendar,
  *   see {@link noteStart}.
- * - `./entries.ts`: Sends changed entries to the reader.
+ * - `./entries.ts`: Sends moved entries to the reader.
  * - `./categories.ts`: Writes the log by category, each field picked from its own list.
  * - `./boxes.ts`: Shows the boxes of the day beside the log, logs a box dropped into it, and makes what an entry is.
  * - `./evening.ts`: Writes my gratitude and my points about the day into its daily note, any time of the day;
@@ -64,7 +64,7 @@ import timeGridPlugin from "fullcalendar/timegrid";
 import interactionPlugin from "fullcalendar/interaction";
 import themePlugin from "fullcalendar/themes/forma";
 import englishLocale from "fullcalendar/locales/en-gb";
-import { entryChange } from "./entries.ts";
+import { entryMove } from "./entries.ts";
 import { categoriesStart, entryOpen, entryOpenEdit, entryOpenNow } from "./categories.ts";
 import { boxesAgain, boxesSee, boxesStart, boxReceive, entryPartOf, shownWhatOf, whatOf } from "./boxes.ts";
 import { breakableOf } from "./choices.ts";
@@ -98,7 +98,6 @@ import type {
     DateSelectInfo, DatesSetInfo, EventApi, EventChangeInfo, EventClickInfo, EventDisplayInfo,
     EventDragStartInfo, EventDragStopInfo, EventInput, EventReceiveInfo, EventResizeStartInfo, EventSourceInput,
 } from "fullcalendar";
-import type { EntryFields } from "./entries.ts";
 
 
 /**
@@ -259,33 +258,9 @@ let turning: { id: string; days: number } | null = null;
 let missed: boolean = false;
 
 /**
- * Gives the fields of an entry as they are, at a new start and end, as the reader takes them after a drag.
- *
- * @param entry - The entry
- * @param start - Its new start
- * @param end - Its new end
- * @returns Its fields
- */
-function entryFieldsOf(entry: EventApi, start: Date, end: Date): EntryFields {
-    return {
-        category: entry.extendedProps.category ?? "",
-        title: entry.title,
-        location: entry.extendedProps.location ?? "",
-        from: entry.extendedProps.from ?? "",
-        module: entry.extendedProps.module ?? "",
-        type: entry.extendedProps.type ?? "",
-        semester: entry.extendedProps.semester ?? "",
-        note: entry.extendedProps.note ?? "",
-        foods: entry.extendedProps.foods ?? [],
-        planned: "",
-        start: start,
-        end: end,
-    };
-}
-
-/**
- * Writes an entry moved or resized by dragging into its file, with its fields as they were;
- * puts it back where it was when the reader does not take the change; a drop on the edge of the grid that turns it
+ * Writes the new start and end of an entry moved or resized by dragging into its file, every other field staying
+ * as the file holds it, see `entryMove` in `entries.ts`; puts it back where it was when the reader does not take
+ * the change; a drop on the edge of the grid that turns it
  * to another day, see {@link entryTurn}, it takes back, since the entry moves to that day instead.
  *
  * @param calendar - Calendar of the day
@@ -298,7 +273,7 @@ function entryDrag(calendar: Calendar, info: EventChangeInfo): void {
         info.revert();
         return;
     }
-    entryChange(calendar, entry.id, entryFieldsOf(entry, entry.start as Date, entry.end as Date))
+    entryMove(calendar, entry.id, entry.start as Date, entry.end as Date)
         .catch((error: unknown): void => {
             console.error(error);
             info.revert();
@@ -408,7 +383,7 @@ function entryTurn(calendar: Calendar, info: EventDragStopInfo): void {
     start.setDate(start.getDate() + days);
     end.setDate(end.getDate() + days);
     turning = { id: entry.id, days: days };
-    entryChange(calendar, entry.id, entryFieldsOf(entry, start, end))
+    entryMove(calendar, entry.id, start, end)
         .then((): void => calendar.incrementDate({ days: days }))
         .catch((error: unknown): void => console.error(error));
 }

@@ -148,6 +148,9 @@
         <!-- Hint when the reader does not take the entry -->
         <p class="panel-error" id="entry-error" hidden>Saving failed</p>
 
+        <!-- Hint when the entry changed in its file since the dialog opened, so the reader refused it, see entrySave -->
+        <p class="panel-error" id="entry-changed" hidden>Not saved: it changed on the disk, close and open it again</p>
+
         <!-- The copy at the left duplicates the entry or the box being changed, a new one filled in alike;
              the bin removes it, asking once more with a question mark; cancel closes the dialog, save sends the entry
              once its fields are picked; the pencil beside the box a log entry comes from, above, changes that box;

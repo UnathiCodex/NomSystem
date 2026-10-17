@@ -13,9 +13,9 @@
  * ### Modules
  * - `node:http`: Builds the server that answers the browser page
  * - `node:stream/consumers`: Reads a whole request body into one value
- * - `./day.ts`: Reads the log of a day and every entry of the log, adds, changes and removes its entries, adds the meal
- *   of a cooking, logs a box of the plan at its real time and takes it back, and reads how long entries like a box
- *   really lasted
+ * - `./day.ts`: Reads the log of a day and every entry of the log, adds, changes, moves and removes its entries, adds
+ *   the meal of a cooking, logs a box of the plan at its real time and takes it back, and reads how long entries like
+ *   a box really lasted
  * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, and the boxes carried along
  *   to a day, adds, changes and removes boxes, pushes them to the next day and drops them
  * - `./gifts.ts`: Writes my gift idea for a birthday or holiday as its `DESCRIPTION` into `Birthdays.ics`
@@ -44,7 +44,8 @@
 import { createServer } from "node:http";
 import { json } from "node:stream/consumers";
 import {
-    boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, entryNowRead, logAllRead, realMinutesRead,
+    boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, entryMove, entryNowRead, logAllRead,
+    realMinutesRead,
 } from "./day.ts";
 import {
     boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxSubmit, boxUniversity, boxUnpush,
@@ -71,7 +72,7 @@ import { pageCreate } from "./page.ts";
 
 import type { IncomingMessage, ServerResponse, Server } from "node:http";
 import type { ViteDevServer } from "vite";
-import type { BoxLogged, EntryChange, EntryNew } from "./day.ts";
+import type { BoxLogged, EntryChange, EntryMoved, EntryNew } from "./day.ts";
 import type { BoxChange, BoxNew } from "./boxes.ts";
 import type { Gift } from "./gifts.ts";
 import type { SectionNew } from "./note.ts";
@@ -139,7 +140,9 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/day/real?category=…&title=…&module=…&type=…`: Sends the minutes the last entries like a box
  *   really lasted, the latest first.
  * - `POST /api/day/log`: Adds entry of the body and sends its identifier.
- * - `PATCH /api/day/log`: Changes entry of the body.
+ * - `PATCH /api/day/log`: Changes entry of the body, refused with 409 when its file changed it since the dialog opened it.
+ * - `POST /api/day/moved`: Moves the entry named in the body to the start and end in the body, every other field
+ *   as its file holds it.
  * - `DELETE /api/day/log?id=…`: Removes entry of the identifier.
  * - `POST /api/day/boxes`: Adds box of the body and sends its identifier.
  * - `PATCH /api/day/boxes`: Changes box of the body.
@@ -262,7 +265,10 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, entryAdd(await json(request) as EntryNew));
 
     } else if (request.method === "PATCH" && url.pathname === "/api/day/log") {
-        entryEdit(await json(request) as EntryChange);
+        responseSend(response, entryEdit(await json(request) as EntryChange) ? 200 : 409, null);
+
+    } else if (request.method === "POST" && url.pathname === "/api/day/moved") {
+        entryMove(await json(request) as EntryMoved);
         responseSend(response, 200, null);
 
     } else if (request.method === "DELETE" && url.pathname === "/api/day/log") {

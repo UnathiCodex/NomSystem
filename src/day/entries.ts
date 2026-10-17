@@ -1,8 +1,10 @@
 /**
  * ## Entries
  *
- * Sends new, changed and removed entries of the log to the reader, the meal of a cooking, and the boxes of the plan:
- * new, changed and removed ones, a box logged at its real time or taken back, pushed to the next day or dropped.
+ * Sends new, changed, moved and removed entries of the log to the reader, the meal of a cooking, and the boxes
+ * of the plan: new, changed and removed ones, a box logged at its real time or taken back, pushed to the next day
+ * or dropped. A changed entry goes with the entry as the dialog opened it, so the reader refuses it once its file
+ * changed it since, and a moved one with its new times alone, so nothing the page holds from before is written back.
  * After a change of the log the log of the shown day loads again, so the page shows what the files hold,
  * and with it the boxes, which are done once a log entry points to them, see `boxes.ts`;
  * after a change of a box alone, its sender loads the boxes again itself.
@@ -10,7 +12,7 @@
  * - `fullcalendar`: Calendar that shows the log.
  */
 
-import type { Calendar } from "fullcalendar";
+import type { Calendar, EventApi } from "fullcalendar";
 
 
 /**
@@ -31,13 +33,12 @@ export type Attendee = {
  * - `category`: Category picked, `CATEGORIES`.
  * - `title`: What picked, `SUMMARY`.
  * - `titleLink`: Link of what it was, as typed or pasted below its summary, the `ALTREP` of its `SUMMARY`, like the page
- *   of an event, empty for none, a skill entry then linking the folder the reader writes; left out after a drag,
- *   so it keeps its link.
+ *   of an event, empty for none, a skill entry then linking the folder the reader writes; left out, it keeps its link.
  * - `location`: Place picked, `LOCATION`.
  * - `locationLink`: Link of the place `Online`, as typed or pasted, the `ALTREP` of its `LOCATION`; left out for any
- *   other place, whose link the reader finds itself, and after a drag, so the place keeps its link.
+ *   other place, whose link the reader finds itself, so the place keeps its link.
  * - `from`: Where a way starts, `X-FROM`.
- * - `attendees`: Who I was with, one `ATTENDEE` each, none for nobody; left out after a drag, so it keeps its people.
+ * - `attendees`: Who I was with, one `ATTENDEE` each, none for nobody; left out, it keeps its people.
  * - `module`: Module of a skill entry, like `IN2028`, written by the reader only in its `SUMMARY`,
  *   like `IN2028 Business Analytics Machine Learning (VO)`.
  * - `type`: Type of a skill entry, like `VO`, written only in its `SUMMARY`.
@@ -47,10 +48,9 @@ export type Attendee = {
  * - `foods`: Foods of a meal, its lines `X-FOOD` like `Reis;150`, none for any other entry.
  * - `planned`: Identifier of the box a new log entry is logged from, written as `RELATED-TO`, empty for none;
  *   the reader writes it only for a new entry.
- * - `pain`: My neck pain from 0 to 10 after `Neck long`, `X-PAIN`, empty for none; left out, it stays as it is,
- *   like after a drag.
+ * - `pain`: My neck pain from 0 to 10 after `Neck long`, `X-PAIN`, empty for none; left out, it stays as it is.
  * - `cooked`: For a meal drawn from a cooking, the identifier of that entry `Cook`, `X-COOKED`, empty for none;
- *   left out, it stays as it is, like after a drag.
+ *   left out, it stays as it is.
  * - `start`: Start of the entry.
  * - `end`: End of the entry, after the start.
  */
@@ -155,6 +155,35 @@ function bodyOf(fields: EntryFields): object {
 }
 
 /**
+ * Gives the fields and times of an entry of the log as the reader gave them, every field as its file held it then,
+ * like the entry as the dialog opened it, see {@link entryChange}.
+ *
+ * @param entry - Entry as the calendar shows it
+ * @returns Its fields and times
+ */
+export function entryFieldsOf(entry: EventApi): EntryFields {
+    return {
+        category: entry.extendedProps.category ?? "",
+        title: entry.title,
+        titleLink: entry.extendedProps.titleLink ?? "",
+        location: entry.extendedProps.location ?? "",
+        locationLink: entry.extendedProps.locationLink ?? "",
+        from: entry.extendedProps.from ?? "",
+        attendees: entry.extendedProps.attendees ?? [],
+        module: entry.extendedProps.module ?? "",
+        type: entry.extendedProps.type ?? "",
+        semester: entry.extendedProps.semester ?? "",
+        note: entry.extendedProps.note ?? "",
+        foods: entry.extendedProps.foods ?? [],
+        planned: entry.extendedProps.planned ?? "",
+        pain: entry.extendedProps.pain ?? "",
+        cooked: entry.extendedProps.cooked ?? "",
+        start: entry.start as Date,
+        end: entry.end as Date,
+    };
+}
+
+/**
  * Turns the fields of a box into the form the reader takes: its time as ISO instant, empty for none.
  *
  * @param fields - Fields of the box
@@ -177,15 +206,44 @@ export async function entryAdd(calendar: Calendar, fields: EntryFields): Promise
 }
 
 /**
- * Changes fields and times of an entry of the log.
+ * Changes fields and times of an entry of the log, only while its file holds it as the dialog opened it: the reader
+ * refuses the change with 409 once the file changed it since, like a food renamed in every entry, see `entryEdit`
+ * in `reader/day.ts`; the first save wins.
+ * - `response`: Answer of the reader.
  *
  * @param calendar - Calendar of the day
  * @param id - Identifier of the entry
  * @param fields - New fields and times
- * @throws {Error} - When the reader does not take the change
+ * @param base - Fields and times of the entry as the dialog opened it, see {@link entryFieldsOf}
+ * @returns Whether it is changed, `false` when its file changed it since the dialog opened it
+ * @throws {Error} - When the reader does not take the change for another reason
  */
-export async function entryChange(calendar: Calendar, id: string, fields: EntryFields): Promise<void> {
-    await logSend(calendar, "PATCH", "/api/day/log", { id: id, ...bodyOf(fields) });
+export async function entryChange(calendar: Calendar, id: string, fields: EntryFields,
+                                  base: EntryFields): Promise<boolean> {
+    const response: Response = await fetch("/api/day/log", {
+        method: "PATCH",
+        body: JSON.stringify({ id: id, ...bodyOf(fields), base: bodyOf(base) }),
+    });
+    if (response.status === 409)
+        return false;
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    calendar.getEventSourceById("log")?.refetch();
+    return true;
+}
+
+/**
+ * Moves an entry of the log to a new start and end, after a drag: sends its new times alone, and the reader keeps
+ * every other field as its file holds it, see `entryMove` in `reader/day.ts`.
+ *
+ * @param calendar - Calendar of the day
+ * @param id - Identifier of the entry
+ * @param start - Its new start
+ * @param end - Its new end
+ * @throws {Error} - When the reader does not move it, like a meal moved before the cooking it draws from
+ */
+export async function entryMove(calendar: Calendar, id: string, start: Date, end: Date): Promise<void> {
+    await logSend(calendar, "POST", "/api/day/moved", { id: id, start: start.toISOString(), end: end.toISOString() });
 }
 
 /**

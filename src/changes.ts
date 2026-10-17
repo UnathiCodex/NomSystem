@@ -3,8 +3,7 @@
  *
  * Loads what a view shows anew the moment a file of my new system changes, whoever changed it: this page, another
  * page, another device, or Claude through the reader, like a food renamed in every entry that holds it, since the
- * reader tells every open page so, see `reader/changes.ts`. So no view shows what the files held before, nor writes
- * it back, like a drag of an entry, which writes its foods as the page holds them.
+ * reader tells every open page so, see `reader/changes.ts`. So no view shows what the files held before.
  * The page hears the reader on one open answer for all its views; once it hears the reader again after losing it,
  * like a phone whose app lay in the background, or the reader started anew after a change of its code, every view
  * loads anew too, since a change may have come meanwhile.

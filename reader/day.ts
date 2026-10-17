@@ -12,6 +12,9 @@
  * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028 Business Analytics Machine Learning (VO)`,
  * without `X-TYPE` and `X-MODULE`, also one logged from a box, see `titleOf` in `documents.ts`;
  * its chapters, document and attempts the skill area writes, see `skill.ts`.
+ * A change from the dialog is written only while the file holds the entry as the dialog opened it, see
+ * {@link entryEdit}, and a drag writes only the new start and end, see {@link entryMove}, so no page writes back
+ * what the file held before, like a food renamed in every entry since.
  *
  * A box of the plan goes into the log at its real time, dragged there or logged as expected with one tap,
  * see {@link boxLog}: the log entry points to it with the standard `RELATED-TO:<UID of the box>`, for one date
@@ -66,17 +69,16 @@ import type { Meal } from "./food.ts";
  * - `category`: Category picked.
  * - `title`: What picked.
  * - `titleLink`: Link typed for what it was, like the page of an event, written as the `ALTREP` of its `SUMMARY`,
- *   see `titleOf` in `documents.ts`; left out by a sender that does not know it, like the calendar after a drag,
+ *   see `titleOf` in `documents.ts`; left out by a sender that does not know it, like a drag, see {@link entryMove},
  *   so what it was keeps its link; none for a skill entry, whose link the reader writes, the folder of its skill.
  * - `location`: Place picked.
  * - `locationLink`: Link of the place `Online`, as typed in the dialog, written as the `ALTREP` of its `LOCATION`,
  *   see `placeLinkOf` in `places.ts`;
  *   left out for any other place, whose link the reader finds itself, and by a sender that does not know it,
- *   like the calendar after a drag, so the place keeps its link.
+ *   like a drag, so the place keeps its link.
  * - `from`: Where a way starts.
  * - `attendees`: Who I was with, one `ATTENDEE` each, see `Attendee` in `calendar.ts`; left out by a sender that does
- *   not know it, like the calendar after a drag, so a changed entry keeps its people and one logged from a box takes
- *   those of the box.
+ *   not know it, like a drag, so a changed entry keeps its people and one logged from a box takes those of the box.
  * - `module`: Module of a skill entry, like `IN2028`, empty for any other entry.
  * - `type`: Type of a skill entry, like `VO`, empty for any other entry.
  * - `semester`: Semester of a skill entry, like `2026W`, the semester of its day when empty, see `semesterFor`
@@ -86,7 +88,7 @@ import type { Meal } from "./food.ts";
  * - `planned`: Identifier of the box a new log entry is logged from, see `entryIdOf` in `calendar.ts`,
  *   written as its `RELATED-TO`, empty for none; written only when the entry is added.
  * - `pain`: My neck pain from 0 to 10 after `Neck long`, its `X-PAIN`, like `5`, empty for none;
- *   left out by a sender that does not know it, like the calendar after a drag, so it stays as it is.
+ *   left out by a sender that does not know it, like a drag, so it stays as it is.
  * - `cooked`: For a meal drawn from a cooking, its `X-COOKED`, the identifier of the cooking, empty for none;
  *   left out by a sender that does not know it, so it stays as it is, see {@link cookedCheck}.
  * - `start`: Start as ISO instant.
@@ -113,10 +115,25 @@ export type EntryNew = {
 };
 
 /**
- * A changed entry, as the dialogs send it after editing and the calendar after dragging:
- * an {@link EntryNew} with the identifier `id` of the entry.
+ * A changed entry, as the dialog sends it after editing: an {@link EntryNew} with the identifier `id` of the entry
+ * and `base`, the entry as the dialog opened it, in the same form with every field as its file held it then,
+ * see {@link baseOf}, so the reader writes nothing older than the file, see {@link entryEdit}.
  */
-export type EntryChange = EntryNew & { id: string };
+export type EntryChange = EntryNew & { id: string; base: EntryNew };
+
+/**
+ * An entry moved or resized, as the calendar sends it after a drag: its new times alone, every other field staying
+ * as its file holds it, see {@link entryMove}.
+ *
+ * - `id`: Identifier of the entry.
+ * - `start`: New start as ISO instant.
+ * - `end`: New end as ISO instant, after the start.
+ */
+export type EntryMoved = {
+    id: string;
+    start: string;
+    end: string;
+};
 
 /**
  * A box logged at its real time, as the day sends it after a drop into the log or a tap on its ring.
@@ -195,6 +212,22 @@ function fieldsOf(entry: EntryNew, from: {
         attendees: entry.attendees ?? from?.attendees ?? [],
         module: entry.module, type: entry.type, semester: semester, note: entry.note,
         start: new Date(entry.start), end: new Date(entry.end),
+    };
+}
+
+/**
+ * Gives an entry of the log in the form the dialog sends it, every field as its file holds it: the form of `base`
+ * of an {@link EntryChange}, the entry as the dialog opened it, see {@link entryEdit}.
+ *
+ * @param entry - Entry as its file holds it
+ * @returns Its fields and times, with ISO instants
+ */
+function baseOf(entry: Entry): EntryNew {
+    return {
+        category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
+        locationLink: entry.locationLink, from: entry.from, attendees: entry.attendees, module: entry.module,
+        type: entry.type, semester: entry.semester, note: entry.note, foods: entry.foods, planned: entry.planned,
+        pain: entry.pain, cooked: entry.cooked, start: entry.start, end: entry.end,
     };
 }
 
@@ -513,17 +546,19 @@ export function boxUndo(id: string): void {
 }
 
 /**
- * Changes fields, foods, pain and times of an entry of the log, see {@link fieldsCheck}:
+ * Writes fields, foods, pain and times of an entry of the log, see {@link fieldsCheck}:
  * changed foods replace all lines `X-FOOD` of the entry first, a changed pain its `X-PAIN`, a changed cooking
  * of a meal its `X-COOKED`, see {@link cookedCheck}, then its fields and times change.
  * The entry moves into the log it belongs into now when that is another file, see {@link logFileOf}.
  *
- * @param change - Changed entry as the dialogs or the calendar send it, the calendar with the foods as they were
- * @throws {Error} - When there is no such entry, it may not be changed, the fields or foods are not allowed,
+ * @param file - `.ics` file of the entry
+ * @param entry - The entry as its file holds it
+ * @param change - Its fields and times as they are to be, as the dialog sends them, see {@link entryEdit},
+ *   or as a drag leaves them, see {@link entryMove}
+ * @throws {Error} - When it may not be changed, the fields or foods are not allowed,
  *   the link typed for `Online` is no web address, or the end is not after the start
  */
-export function entryEdit(change: EntryChange): void {
-    const [file, entry]: [string, Entry] = entryFind(day.log, change.id);
+function entryWrite(file: string, entry: Entry, change: EntryNew): void {
     if (!entry.editable)
         throw new Error(`${entry.title} may not be changed`);
 
@@ -543,6 +578,53 @@ export function entryEdit(change: EntryChange): void {
         cookedShare(change.cooked);
     if (fields.category === cookName)
         cookedShare(entry.id, entry.foods);
+}
+
+/**
+ * Changes an entry of the log as the dialog sends it, see {@link entryWrite}, only while its file holds it as the dialog
+ * opened it: every field of `base`, see {@link baseOf}, has to be the same in the file still, else nothing is written,
+ * so a save never writes back what the file held before, like a food renamed in every entry while the dialog was open,
+ * see `foodChange` in `food.ts`; the first save wins, and the dialog says so, see `entrySave`
+ * in `src/day/categories.ts`.
+ * - `file`, `entry`: Its `.ics` file and the entry as the file holds it.
+ * - `now`: The entry as the file holds it, in the form of `base`.
+ * - `fields`: Names of the fields of that form.
+ *
+ * @param change - Changed entry as the dialog sends it, with the entry as it opened
+ * @returns Whether it is written, `false` when its file changed it since the dialog opened it
+ * @throws {Error} - When there is no such entry, it may not be changed, the fields or foods are not allowed,
+ *   the link typed for `Online` is no web address, or the end is not after the start
+ */
+export function entryEdit(change: EntryChange): boolean {
+    const [file, entry]: [string, Entry] = entryFind(day.log, change.id);
+    const now: EntryNew = baseOf(entry);
+    const fields: (keyof EntryNew)[] = Object.keys(now) as (keyof EntryNew)[];
+    if (fields.some((field: keyof EntryNew): boolean =>
+        JSON.stringify(now[field]) !== JSON.stringify(change.base[field])))
+        return false;
+    entryWrite(file, entry, change);
+    return true;
+}
+
+/**
+ * Moves an entry of the log to a new start and end, as the calendar sends it after a drag, see {@link EntryMoved}:
+ * every other field stays as its file holds it, its link, the link of its place, its people, its pain and its cooking
+ * left out, so they stay too, see {@link EntryNew}; written as any change, see {@link entryWrite}, so an entry moved
+ * into another year moves into the log of that year, and a meal moved before the cooking it draws from is refused,
+ * see {@link cookedCheck}.
+ * - `file`, `entry`: Its `.ics` file and the entry as the file holds it.
+ *
+ * @param moved - The entry with its new start and end
+ * @throws {Error} - When there is no such entry, it may not be changed, the end is not after the start, or a meal
+ *   would start before the cooking it draws from
+ */
+export function entryMove(moved: EntryMoved): void {
+    const [file, entry]: [string, Entry] = entryFind(day.log, moved.id);
+    entryWrite(file, entry, {
+        category: entry.category, title: entry.title, location: entry.location, from: entry.from,
+        module: entry.module, type: entry.type, semester: entry.semester, note: entry.note, foods: entry.foods,
+        planned: "", start: moved.start, end: moved.end,
+    });
 }
 
 /**

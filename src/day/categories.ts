@@ -8,7 +8,8 @@
  * under it, then `Save`; an empty field stays empty, without dash or placeholder. Esc closes an open list, else
  * the dialog, and a click beside the dialog closes it without saving. Enter in a field confirms only that field,
  * and the entry saves only by its check or by Ctrl+Enter, see {@link enterTake}. A new entry opens with the list
- * of the categories open.
+ * of the categories open. A changed entry of the log saves only while its file still holds it as the dialog opened it,
+ * the first save winning, else the dialog says so above its buttons, see {@link entrySave}.
  * Every category has its `Summary`, the `SUMMARY` of its file, its `Place`, a way also `From` before its place,
  * and `With` right below its place, who I was with, see {@link withRowOf};
  * the summary of `Sleep` only `Night` or `Day`, a nap, that of `Way` my means of transport;
@@ -86,7 +87,7 @@
  */
 
 import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
-import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
+import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, entryFieldsOf } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import {
     addressPartsOf, labelOf, lineOf, mapsLinkIs, mapsLinkOf, onlineLineOf, onlineName, onlineOf, placeSend,
@@ -1593,13 +1594,26 @@ function boxFieldsRead(): BoxFields {
 }
 
 /**
- * Shows the hint that the reader did not take what the dialog sent.
+ * Shows a hint of the dialog, which stands below its rows, right above its buttons, see `day.html`, and scrolls
+ * the dialog down to it, so a long one, like a meal of many foods, shows it too instead of keeping it below its rows.
+ * - `dialog`: The dialog.
+ *
+ * @param id - Identifier of the hint, like `entry-error`
+ */
+function hintShow(id: string): void {
+    const dialog: HTMLDialogElement = document.getElementById("entry") as HTMLDialogElement;
+    document.getElementById(id)?.removeAttribute("hidden");
+    dialog.scrollTo({ top: dialog.scrollHeight });
+}
+
+/**
+ * Shows the hint that the reader did not take what the dialog sent, `Saving failed`, see {@link hintShow}.
  *
  * @param error - Error of the request
  */
 function errorShow(error: unknown): void {
     console.error(error);
-    document.getElementById("entry-error")?.removeAttribute("hidden");
+    hintShow("entry-error");
 }
 
 /**
@@ -1621,7 +1635,13 @@ async function boxSave(): Promise<void> {
 /**
  * Sends the new or changed entry to the reader, into the log, then closes the dialog; a box goes into the plan,
  * see {@link boxSave}. A skill entry goes to the one writer of skill entries, see `skill.ts`.
+ * A changed entry goes with the entry as the dialog opened it, and the reader writes it only while its file still
+ * holds it so, see `entryChange` in `entries.ts`: the first save wins. When the file changed it since, like Eier
+ * renamed on the phone while the dialog on the laptop showed Eier, nothing is saved and the dialog stays open, saying
+ * `Not saved: it changed on the disk, close and open it again`, see {@link hintShow}; opened again, it shows
+ * the entry as the file holds it, to change and save once more.
  * - `fields`: Fields, note and times of the dialog.
+ * - `saved`: Whether the reader wrote it, `false` when the file changed the entry since the dialog opened it.
  *
  * @param calendar - Calendar of the day
  * @throws {Error} - When the reader does not take the entry
@@ -1632,13 +1652,17 @@ async function entrySave(calendar: Calendar): Promise<void> {
         return;
     }
     const fields: EntryFields = fieldsRead();
+    let saved: boolean = true;
     if (chosen?.name === skillName)
         await skillSave(calendar, opened.entry?.id ?? "", fields);
     else if (opened.entry !== null)
-        await entryChange(calendar, opened.entry.id, fields);
+        saved = await entryChange(calendar, opened.entry.id, fields, entryFieldsOf(opened.entry));
     else
         await entryAdd(calendar, fields);
-    (document.getElementById("entry") as HTMLDialogElement).close();
+    if (saved)
+        (document.getElementById("entry") as HTMLDialogElement).close();
+    else
+        hintShow("entry-changed");
 }
 
 /**
@@ -1787,6 +1811,7 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     document.getElementById("entry-duplicate")?.toggleAttribute("hidden",
         opening.entry === null && opening.box === null);
     document.getElementById("entry-error")?.setAttribute("hidden", "");
+    document.getElementById("entry-changed")?.setAttribute("hidden", "");
     await categoryPick(categories.find((category: Category): boolean => category.name === opening.category) ?? null);
     categoryShow();
     if (!dialog.open)
