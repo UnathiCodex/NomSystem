@@ -65,6 +65,7 @@
  *   and gives the day of a date.
  * - `../today.ts`: Gives today's calendar date, which tells whether the day of a box is over.
  * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
+ * - `../menu.ts`: Puts the buttons of a box behind one button `⋯`.
  * - `../phone.ts`: Tells a phone, which shows a skill by its code alone.
  * - `lucide`: The icons plus, check, arrow, cross, undo, calendar crossed out and gift.
  * - `fullcalendar`: Calendar of the log the boxes are dropped into.
@@ -81,9 +82,10 @@ import { linkNameOf } from "../skill/links.ts";
 import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { iconOf, iconPut, iconWordsOf, plusPut } from "../icons.ts";
+import { iconOf, iconPut, plusPut } from "../icons.ts";
+import { menuItemOf, menuOf } from "../menu.ts";
 import { phone } from "../phone.ts";
-import { ArrowRight, CalendarOff, Check, Ellipsis, Gift, Undo2, X } from "lucide";
+import { ArrowRight, CalendarOff, Check, Gift, Undo2, X } from "lucide";
 
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
 import type { IconNode } from "lucide";
@@ -598,8 +600,7 @@ function logFailShow(error: unknown): void {
 
 /**
  * Makes one button of the menu of a box, its icon and then its words, like `To tomorrow`, which sends a change
- * of the box and then loads the list again.
- * - `button`: The button.
+ * of the box and then loads the list again, see `menuItemOf` in `../menu.ts`.
  *
  * @param calendar - Calendar of the day
  * @param icon - Icon, like `ArrowRight`
@@ -608,46 +609,23 @@ function logFailShow(error: unknown): void {
  * @returns The button
  */
 function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () => Promise<void>): HTMLButtonElement {
-    const button: HTMLButtonElement = document.createElement("button");
-    button.type = "button";
-    button.className = "box-action";
-    button.replaceChildren(...iconWordsOf(icon, words));
-    button.addEventListener("click", (): void => {
+    return menuItemOf(icon, words, (): void => {
         send().then((): Promise<void> => boxesLoad(calendar)).catch((error: unknown): void => console.error(error));
     });
-    return button;
 }
 
 /**
- * Puts the buttons of a box or a suggestion behind one button `⋯` at its right, see `.box-actions` in `boxes.css`,
- * on the computer as on a phone, so both show the same: it opens them as a small menu below it, each its icon and
- * its words, like `To tomorrow`, so the line of what the box is keeps its room; a click on one of them, or beside
- * the menu, closes it.
- * - `more`: The button `⋯`.
- * - `menu`: The menu, shown over the page as a popover, which closes by itself on a click beside it.
- * - `place`: Puts the menu below the button, its right edge under the button's.
+ * Puts the buttons of a box or a suggestion behind one button `⋯` at its right, see `../menu.ts`
+ * and `.box-actions` in `boxes.css`, so the line of what the box is keeps its room.
+ * - `place`: The button `⋯` with its menu.
  *
  * @param buttons - The buttons, like the arrow and the cross
  * @returns The button `⋯` with its menu
  */
 function actionsRowOf(buttons: HTMLButtonElement[]): HTMLElement {
-    const more: HTMLButtonElement = document.createElement("button");
-    const menu: HTMLElement = entryPartOf("div", "box-menu", buttons);
-    const place: () => void = (): void => {
-        const rect: DOMRect = more.getBoundingClientRect();
-        menu.style.top = `${rect.bottom}px`;
-        menu.style.right = `${document.documentElement.clientWidth - rect.right}px`;
-    };
-    more.type = "button";
-    more.className = "box-action";
-    iconPut(more, Ellipsis, "More");
-    more.addEventListener("click", (): void => {
-        place();
-        menu.togglePopover();
-    });
-    menu.popover = "auto";
-    menu.addEventListener("click", (): void => menu.hidePopover());
-    return entryPartOf("div", "box-actions", [more, menu]);
+    const place: HTMLElement = menuOf(buttons);
+    place.classList.add("box-actions");
+    return place;
 }
 
 /**

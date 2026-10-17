@@ -1,6 +1,6 @@
 /* Row of a task under its heading in the scripts view, calm and airy, everything from the left: when it is due,
-   its buttons after it on the same line while they fit, else on the next; its history and the field of Stuck or Skip
-   below, each across the row; lines one gap apart, the buttons a gap and a half after when it is due */
+   its button `⋯` after it on the same line, see `../menu.css`; its history and the field of Stuck or Skip below,
+   each across the row; lines one gap apart, the button a gap and a half after when it is due */
 .task-row {
     display: flex;
     flex-wrap: wrap;
@@ -28,17 +28,10 @@
     vertical-align: middle;
 }
 
-/* Buttons of a task side by side, one gap apart */
-.task-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--gap);
-}
-
-/* Buttons and reasons to skip one chip high, filled in the soft grey of a card without a frame, as on the phone,
+/* Reasons to skip one chip high, filled in the soft grey of a card without a frame, as on the phone,
    with a quarter more room beside their words, one grey lighter under the pointer; Next step and Show all
    of a solution the same, and the button of the history; each keeps its size, its frame there but clear */
-.task-row button,
+.task-form button,
 .steps-buttons button,
 .task-history > summary {
     min-height: var(--chip-height);
@@ -49,24 +42,10 @@
     cursor: pointer;
 }
 
-.task-row button:hover,
+.task-form button:hover,
 .steps-buttons button:hover,
 .task-history > summary:hover {
     background: var(--fill-over);
-}
-
-/* Tap for my effort right after an attempt, across the row: its name small and grey, then low, medium and high,
-   one gap apart like the buttons */
-.task-effort {
-    display: flex;
-    flex-basis: 100%;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--gap);
-}
-
-.task-effort-name {
-    color: var(--text-muted);
 }
 
 /* Field of Stuck or Skip with the reasons to pick, or the hint that saving failed, one gap apart like the buttons */
@@ -124,12 +103,13 @@ details.task-history a {
     color: inherit;
 }
 
-/* Right and Wrong of a task whose solution is still closed: hidden, so I judge against the solution, not by feeling */
+/* Right, With tutor and Wrong of a task whose solution is still closed: hidden, so I judge against the solution,
+   not by feeling */
 .task-unjudged .task-judge {
     display: none;
 }
 
-/* Line of a part of a cold task, across the row: its number, a check once it sits, then its buttons */
+/* Line of a part of a cold task, across the row: its number, a check once it sits, then its button `⋯` */
 .task-part {
     display: flex;
     flex-basis: 100%;
@@ -157,7 +137,7 @@ details.task-history a {
     padding: 0.75rem 0 0.5rem;
 }
 
-/* Hint after the state while Right and Wrong hide, grey and small; gone once the solution is open */
+/* Hint after the state while Right, With tutor and Wrong hide, grey and small; gone once the solution is open */
 .task-hint {
     display: none;
     font-size: 0.8em;
@@ -168,16 +148,16 @@ details.task-history a {
     display: inline;
 }
 
-/* Phone: the buttons of a task as they look, but a finger high to hit, each taking a tap 0.25rem above and below it,
-   which the room between two lines of buttons leaves free */
+/* Phone: the reasons to skip and the buttons of a solution as they look, but a finger high to hit, each taking a tap
+   0.25rem above and below it, which the room between two lines of buttons leaves free */
 @media (max-width: 900px) {
-    .task-row button,
+    .task-form button,
     .steps-buttons button,
     .task-history > summary {
         position: relative;
     }
 
-    .task-row button::after,
+    .task-form button::after,
     .steps-buttons button::after,
     .task-history > summary::after {
         content: "";
