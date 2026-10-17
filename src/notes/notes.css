@@ -89,7 +89,8 @@
 
 /* Pickers of my modules below the root, the module, then its chapter, see `pickerOf` in `tree.ts`: each a card
    of the day, filled in the soft grey of a card without a frame, one grey lighter under the pointer, a little higher
-   than a row, the name picked in bold, in the text of the tree, a step below the bold root, so what I picked stands
+   than a row, filled one grey lighter than a card elsewhere, `--fill-over`, the grey of the note shown below them,
+   the name picked in bold, in the text of the tree, a step below the bold root, so what I picked stands
    out from the notes below it, and the grey arrow of a folder at its right end, turned down, as a field to pick from,
    which opens its menu; the two cards a little apart, the notes a little further below them; each the anchor
    of its menu */
@@ -107,12 +108,12 @@
     display: flex;
     gap: 0.25rem;
     padding-block: var(--tree-pick-padding);
-    background: var(--fill);
+    background: var(--fill-over);
     font-weight: 600;
 }
 
 .tree-pick:hover {
-    background: var(--fill-over);
+    background: var(--chosen);
 }
 
 /* The name on a picker opens the overview of what is picked, the arrow its menu, see `pickerOf` in `tree.ts`: the name
@@ -310,16 +311,16 @@
 }
 
 .tree-round .tree-current {
-    background: var(--chosen);
+    background: var(--fill-over);
 }
 
 .tree-round .tree-other {
     color: var(--reading-marker);
 }
 
-/* A block outside the round opened from the tree, shown in the calm grey of what is shown, its name still grey */
+/* A block outside the round opened from the tree, shown in the grey of what is shown, its name still grey */
 .tree-round .tree-opened {
-    background: var(--chosen);
+    background: var(--fill-over);
     color: var(--text-muted);
 }
 
@@ -346,24 +347,26 @@
 }
 
 /* In the tree a step smaller than the name, every box as wide as the widest word, `Algorithm`, its word in the middle,
-   so the names after them start in one line; one grey lighter on the row shown, so it never melts into the row's own
-   grey, the same under the pointer, since the box itself is nothing to click; on a block outside the round as faint
-   as its name */
+   so the names after them start in one line; one grey lighter than a card, `--fill-over`, so it shows on a row under
+   the pointer too, and one grey lighter still on the row shown, so it never melts into the row's own grey; the same
+   under the pointer, since the box itself is nothing to click; on a block outside the round as faint as its name */
 .tree-round .block-kind {
     min-width: 5.75em;
+    background: var(--fill-over);
     font-size: 0.8em;
     text-align: center;
 }
 
 .tree-round :is(.tree-current, .tree-opened) .block-kind {
-    background: var(--chosen-over);
+    background: var(--chosen);
 }
 
 .tree-round :is(.tree-other, .tree-kind > summary) .block-kind {
     color: inherit;
 }
 
-/* Entry under the pointer one grey lighter; the note or file shown in the calm grey of what is picked */
+/* Entry under the pointer one grey lighter; the note or file shown in the grey of the pickers above it, `--fill-over`,
+   so what is picked and what is shown look alike, never brighter than they */
 .tree-folder > summary:hover,
 .tree-file:hover,
 .tree-choice:hover {
@@ -371,7 +374,7 @@
 }
 
 .tree-file.shown {
-    background: var(--chosen);
+    background: var(--fill-over);
 }
 
 /* The outline of the note shown, or the blocks of a section, folded away by a click on its entry, like a folder,
