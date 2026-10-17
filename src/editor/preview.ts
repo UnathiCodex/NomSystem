@@ -1269,7 +1269,7 @@ function spaceLook(look: Look): void {
 }
 
 /**
- * Shows the spacers and invisible characters on the lines of the cursor as faint dots, see {@link invisibleRule}.
+ * Keeps the spacers and invisible characters on the lines of the cursor invisible, see {@link invisibleRule}.
  *
  * @param look - Look being built
  */

@@ -56,7 +56,7 @@ import { brokenLinksRead, fileRead, linkedNoteRead, modulesRead } from "./notes.
 import { noteWrite } from "./edit.ts";
 import { systemFileRead, systemFileWrite, treeRead } from "./files.ts";
 import {
-    attemptAdd, effortSet, moduleRead, sessionRead, skillEntryAdd, skillEntryEdit, skillingRead,
+    attemptAdd, effortSet, roundAdd, moduleRead, sessionRead, skillEntryAdd, skillEntryEdit, skillingRead,
 } from "./skill.ts";
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
@@ -77,7 +77,7 @@ import type { Place, PlaceChanged } from "./places.ts";
 import type { DeviceReport } from "./devices.ts";
 import type { NotesFile } from "./notes.ts";
 import type { NoteChange } from "./edit.ts";
-import type { AttemptNew, EffortNew, SkillEntryChange, SkillEntryNew } from "./skill.ts";
+import type { AttemptNew, EffortNew, RoundNew, SkillEntryChange, SkillEntryNew } from "./skill.ts";
 import type { Food, FoodChanged } from "./food.ts";
 
 
@@ -173,6 +173,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/skill/module?code=…`: Sends the chapters and documents of the skill of the name, none for a project.
  * - `GET /api/skill/file?path=…`: Sends a file a skill entry links, by its path from `NomWorkspace`, read only.
  * - `POST /api/skill/attempt`: Writes attempt of the body into the skill entry of the moment.
+ * - `POST /api/skill/round`: Writes where I am in a round, a line `X-ROUND` of the body, into the skill entry
+ *   of the moment.
  * - `POST /api/skill/effort`: Writes the effort of the body into the last attempt at its task.
  * - `POST /api/skill/entry`: Writes skill entry of the body into the log.
  * - `PATCH /api/skill/entry`: Changes skill entry of the body, adding its new attempts.
@@ -354,6 +356,10 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "POST" && url.pathname === "/api/skill/attempt") {
         attemptAdd(await json(request) as AttemptNew);
+        responseSend(response, 200, null);
+
+    } else if (request.method === "POST" && url.pathname === "/api/skill/round") {
+        roundAdd(await json(request) as RoundNew);
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/skill/effort") {

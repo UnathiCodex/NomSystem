@@ -105,6 +105,9 @@ export type SkillTask = Task & {
  * - `ladder`: Whether it still learns the ladder before the cold task: while no cold task has an attempt on an earlier day.
  * - `rightDue`: Day the cold task comes back after a right run today; empty without a cold task.
  * - `wrongDue`: Day it comes back after a failed run today; empty without a cold task.
+ * - `seen`: Steps of the round shown I passed with `Next`, by their keys, from the log.
+ * - `at`: Key of the step of the round shown I went on to with the last `Next`, empty for none yet.
+ * - `closed`: Whether I closed the round shown by hand.
  */
 export type SkillSection = {
     title: string;
@@ -117,6 +120,9 @@ export type SkillSection = {
     ladder: boolean;
     rightDue: string;
     wrongDue: string;
+    seen: string[];
+    at: string;
+    closed: boolean;
 };
 
 /**

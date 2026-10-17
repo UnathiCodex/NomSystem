@@ -81,10 +81,11 @@
     display: none;
 }
 
-/* Round line of a section below the head, only its round, like `Round 1`, in the small grey of the weekday above
-   the date of the day, a line's room below it */
+/* Round of a section in the head where the name of a note stands, only its round, like `Round 1`, in the small grey
+   of the weekday above the date of the day, the round check and the save button at the right */
 .editor-round {
-    margin: 0 0 1rem;
+    flex: 1;
+    margin: 0;
     color: var(--text-muted);
     font-size: 0.75rem;
 }
@@ -97,6 +98,8 @@
 /* Save button with its check, square, one control high, outlined, as the save of the dialogs;
    in the calm grey of a main button while the note has unsaved changes; the button of the tree on a phone alike */
 .editor-save,
+.editor-close,
+.editor-newline,
 .editor-tree {
     display: inline-flex;
     flex: none;
@@ -116,6 +119,21 @@
     background: var(--chosen);
 }
 
+/* The round check of a section, see `round.ts`: round, unlike the square save button, as the ring of a done box of
+   the day; in the calm grey of a main button once the round's Task has a result, faint and off before */
+.editor-close {
+    border-color: var(--chosen-line);
+    border-radius: 50%;
+    background: var(--chosen);
+}
+
+.editor-close:disabled {
+    border-color: var(--line);
+    background: var(--background);
+    opacity: 0.4;
+    cursor: default;
+}
+
 /* Under a pointer that hovers, the save button one grey lighter, as the buttons of the dialogs, see `.panel-buttons`
    in `../day/day.css`: from the page's grey, or from its calm grey while the note has unsaved changes */
 @media (hover: hover) {
@@ -123,7 +141,8 @@
         background: var(--fill);
     }
 
-    .editor-save.unsaved:hover {
+    .editor-save.unsaved:hover,
+    .editor-close:not(:disabled):hover {
         background: var(--chosen-over);
     }
 }
@@ -154,6 +173,12 @@
 .today-card {
     color: inherit;
     text-decoration: none;
+}
+
+/* Over Today no head on a computer, the date standing where the name of a note stands; on a phone only its bar at the
+   bottom, with the button of the tree and the way back to the day, see the end of this file */
+.editor-on-today .editor-head {
+    display: none;
 }
 
 .today-card .box-what {
@@ -208,6 +233,12 @@
 
 .editor-text.markdown :is(h1, h2) > .cm-line {
     padding-top: 2em;
+}
+
+/* The heading of the block a section shows alone, the first on the page, without the room above a heading, so the
+   block stands right below the round, see `aloneOf` in `round.ts` */
+.editor-text.markdown :is(h1, h2) > .cm-line.round-first {
+    padding-top: 0;
 }
 
 .editor-text.markdown h3 > .cm-line {
@@ -400,20 +431,11 @@
     margin-top: 0;
 }
 
-/* Spacers and invisible characters on the line of the cursor as a short faint line on the baseline in the grey
-   of list markers, drawn over them, so nothing moves; never a dot, which at the start of a spacer line in a list
-   looked like a second bullet */
+/* Spacers and invisible characters on the line of the cursor invisible, as away from it: no faint line, which looked
+   odd, and never a dot, which at the start of a spacer line in a list looked like a second bullet; they keep their
+   room, so nothing moves */
 .editor-text .cm-spacer {
-    position: relative;
-}
-
-.editor-text .cm-spacer::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    bottom: 0.3em;
-    width: max(100%, 0.4em);
-    border-bottom: 1px solid var(--reading-marker);
+    color: transparent;
 }
 
 /* A file that is no Markdown, like an `.ics` file, as its plain text in a font of even width */
@@ -521,6 +543,12 @@
 
     .editor-tree {
         display: inline-flex;
+    }
+
+    .editor-on-today .editor-head {
+        display: block;
+        min-height: 0;
+        padding: 0;
     }
 
     /* A card of Today on a phone as on the computer: its title, the code of its module below it, since it has no ring

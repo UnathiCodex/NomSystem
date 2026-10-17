@@ -34,6 +34,16 @@
     line-height: var(--control-height);
 }
 
+/* The name of my modules on top, a link to Today, looking as the heading it is, one grey lighter under the pointer */
+.tree-root-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.tree-root-link:hover {
+    color: var(--text-muted);
+}
+
 /* Search of the tree below its root, one chip high and outlined like the search of a list, in the text of the tree,
    without the browser's own clear cross, which is no Lucide icon; Escape or deleting the text clears it */
 .tree-search {
@@ -236,14 +246,14 @@
 }
 
 /* The blocks of a section in its round, see `roundListOf` in tree.ts: a block of the round in the light text of a note,
-   one done grey with a small check after it, the current one in the calm grey of what is picked, one outside the round
+   one done too, with a small check after it, the current one in the calm grey of what is picked, one outside the round
    faint; none folds, each a step in under the note */
 .tree-round .tree-file {
     color: var(--text-main);
 }
 
 .tree-round .tree-done {
-    color: var(--text-muted);
+    color: var(--text-main);
 }
 
 .tree-round .tree-done > svg.lucide {

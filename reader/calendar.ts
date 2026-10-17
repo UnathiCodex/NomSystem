@@ -63,6 +63,9 @@ import type { CalendarSource } from "./sources.ts";
  *   in order, see {@link Link} and `documents.ts`; none when the event has none.
  * - `attempts`: Attempts of a skill entry of the log, its `X-ATTEMPT`s in order,
  *   like `140500;IN2028/Kiosk Sales Standard Error;stuck;high;step 2`, none when the event has none.
+ * - `rounds`: Where I am in the rounds of my sections, of a skill entry of the log, its `X-ROUND`s in order,
+ *   like `091500;IN2028/01_01_SampleMeanEstimator;0;seen;Definition. Population and Sample`, see `reader/skill.ts`;
+ *   none when the event has none.
  * - `tutors`: Tasks I copied for my tutor in an older skill entry of the log, its `X-TUTOR`s in order, only read,
  *   like `IN2028/Kiosk Sales Standard Error`, none when the event has none.
  * - `foods`: Foods of a meal or a cooking, its `X-FOOD`s in order, each a food of `Foods.md` by its name, brand
@@ -121,6 +124,7 @@ export type Entry = {
     chapters: string[];
     links: Link[];
     attempts: string[];
+    rounds: string[];
     tutors: string[];
     foods: string[];
     cooked: string;
@@ -330,9 +334,9 @@ const lineOrder: string[] = [
 
 /**
  * The last lines of every event and to-do, after every other `X-` line, in this order: the semester of a skill entry,
- * `X-SEMESTER`, then all its `X-CHAPTER`s, then all its `X-ATTEMPT`s.
+ * `X-SEMESTER`, then all its `X-CHAPTER`s, then all its `X-ATTEMPT`s, then all its `X-ROUND`s.
  */
-const lineEnding: string[] = ["X-SEMESTER", "X-CHAPTER", "X-ATTEMPT"];
+const lineEnding: string[] = ["X-SEMESTER", "X-CHAPTER", "X-ATTEMPT", "X-ROUND"];
 
 /**
  * The parameter `ALTREP` in double quotes, as the standard writes a link there, also one without `:`, like
@@ -575,6 +579,8 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
             path: String(property.getFirstValue()), fingerprint: String(property.getParameter("x-sha256") ?? ""),
         })),
         attempts: event.component.getAllProperties("x-attempt")
+            .map((property: ICAL.Property): string => String(property.getFirstValue())),
+        rounds: event.component.getAllProperties("x-round")
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
         tutors: event.component.getAllProperties("x-tutor")
             .map((property: ICAL.Property): string => String(property.getFirstValue())),

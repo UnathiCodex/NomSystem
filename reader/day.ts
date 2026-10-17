@@ -460,7 +460,7 @@ export function boxUndo(id: string): void {
             .find((entry: Entry): boolean => entry.planned === id);
     if (logged !== undefined) {
         const [file]: [string, Entry] = entryFind(day.log, logged.id);
-        if (logged.attempts.length > 0 || logged.tutors.length > 0 || logged.note.trim() !== "")
+        if (logged.attempts.length > 0 || logged.rounds.length > 0 || logged.tutors.length > 0 || logged.note.trim() !== "")
             propertiesPut(file, logged.id, [["related-to", []], ["x-planned", []]]);
         else
             entryRemove(file, logged.id);

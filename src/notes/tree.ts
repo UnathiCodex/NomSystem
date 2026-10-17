@@ -15,8 +15,9 @@
  * Of my modules the module and chapter of the note shown are picked; while none is shown, the module asked for,
  * else the first, with its first chapter. Of my new system its folders stand right below, folders first,
  * all closed but those on the way to the file shown.
- * A search filters the tree as I type, as every list of the page has one, of my modules only the module picked,
- * see {@link searchStart}.
+ * Of my new system a search filters the tree as I type, see {@link searchStart}; my modules have none, their chapter
+ * is short enough to see, and the name of their root on top opens Today, what I learn today, see
+ * `../editor/today.ts`.
  * Under the note shown stands its outline, as Obsidian's outline, see {@link outlineShow}; under a section its blocks
  * in the places of its round, see {@link roundListOf}.
  * Each name stands on one line, one too long for it ending in dots; on a phone, whose tree is narrower than
@@ -499,14 +500,16 @@ export type TreeRoot = "NomSkillingmodules" | "NomManageplannings";
 
 /**
  * Loads one root of the tree from the reader and shows it, see the top of this file: its name as a heading,
- * of my modules the pickers of module and chapter, see {@link pickerOf}, its search, see {@link searchStart},
+ * of my modules a link to Today, then the pickers of module and chapter, see {@link pickerOf}, of my new system its
+ * search, see {@link searchStart},
  * its folders or notes below, the file or note shown marked, see {@link treeMark}; in the modules, while none is shown,
  * the module asked for is picked, like the module of a skill entry clicked in the day, see `../skill/links.ts`,
  * else the first module, with its first chapter.
  * - `heading`: The name of the root on top.
- * - `search`: The search of the tree, below the pickers.
+ * - `search`: The search of my new system, below its name.
+ * - `today`: Of my modules the name of the root as a link to Today.
  * - `modules`: Of my modules the modules, each with its chapters and notes, see {@link moduleNodeOf}.
- * - `choose`: Picks a module or a chapter: shows it, see {@link chapterShow}, and empties the search;
+ * - `choose`: Picks a module or a chapter: shows it, see {@link chapterShow};
  *   a module with the chapter of the note shown, if it holds the note, else with its first chapter.
  * - `modulePick`, `chapterPick`: The pickers of module and chapter, each with its menu.
  * - `entries`: Of my new system its folders and files.
@@ -523,18 +526,25 @@ export async function treeShow(tree: HTMLElement, root: TreeRoot, shown: string,
     const heading: HTMLHeadingElement = document.createElement("h2");
     heading.className = "tree-root";
     heading.textContent = root;
-    const search: HTMLInputElement = document.createElement("input");
-    search.type = "search";
-    search.className = "tree-search";
-    search.placeholder = "Search";
-    search.autocomplete = "off";
     if (root === "NomManageplannings") {
+        const search: HTMLInputElement = document.createElement("input");
+        search.type = "search";
+        search.className = "tree-search";
+        search.placeholder = "Search";
+        search.autocomplete = "off";
         const entries: HTMLElement[] = (await readerAsk<FileNode[]>("/api/edit/tree")).map(fileNodeOf);
         tree.replaceChildren(heading, search, ...entries);
         searchStart(tree, search);
         treeMark(tree, shown);
         return;
     }
+
+    const today: HTMLAnchorElement = document.createElement("a");
+    today.className = "tree-root-link";
+    today.href = "/scripts";
+    today.title = "Today";
+    today.textContent = root;
+    heading.replaceChildren(today);
 
     const modules: HTMLDivElement[] = (await readerAsk<NotesModule[]>("/api/notes/modules")).map(moduleNodeOf);
     const choose: (choice: HTMLElement) => void = (choice: HTMLElement): void => {
@@ -543,16 +553,13 @@ export async function treeShow(tree: HTMLElement, root: TreeRoot, shown: string,
             : picked.querySelector(".tree-file.shown")?.closest<HTMLElement>(".tree-chapter")
                 ?? picked.querySelector(".tree-chapter");
         chapterShow(tree, picked, chapter);
-        search.value = "";
-        search.dispatchEvent(new Event("input"));
     };
     const modulePick: [HTMLButtonElement, HTMLDivElement] = pickerOf("module", (): HTMLElement[] => modules,
         (choice: HTMLElement): string => choice.dataset.title ?? "", choose);
     const chapterPick: [HTMLButtonElement, HTMLDivElement] = pickerOf("chapter", (): HTMLElement[] =>
         [...tree.querySelectorAll<HTMLElement>(".tree-module.picked > .tree-chapter")],
         (choice: HTMLElement): string => choice.dataset.chapter ?? "", choose);
-    tree.replaceChildren(heading, ...modulePick, ...chapterPick, search, ...modules);
-    searchStart(tree, search);
+    tree.replaceChildren(heading, ...modulePick, ...chapterPick, ...modules);
     if (treeMark(tree, shown) !== null || modules.length === 0)
         return;
     const asked: HTMLDivElement | undefined = modules.find((element: HTMLDivElement): boolean =>

@@ -59,19 +59,19 @@ import { indentUnit } from "@codemirror/language";
 import { markdown } from "@codemirror/lang-markdown";
 import { GFM } from "@lezer/markdown";
 import { icsLook } from "./ics.ts";
-import { markdownKeys } from "./keys.ts";
+import { markdownKeys, pointContinue } from "./keys.ts";
 import { obsidianSyntax } from "./syntax.ts";
 import { headingShow, linksSet, livePreview, solutionsFold } from "./preview.ts";
 import { solutionSteps } from "./steps.ts";
 import { taskRows, tasksLoad } from "./tasks.ts";
-import { roundBlocksOf, roundHeadingShow, roundStart } from "./round.ts";
+import { roundBlocksOf, roundClose, roundHeadingShow, roundStart } from "./round.ts";
 import { outlineShow, treeShow } from "../notes/tree.ts";
 import { todayShow } from "./today.ts";
 import { calendarTodayOf } from "../today.ts";
 import { timeOf } from "../day/times.ts";
 import { breakableOf } from "../day/choices.ts";
 import { phone } from "../phone.ts";
-import { Check, ListTree } from "lucide";
+import { Check, CornerDownLeft, ListTree } from "lucide";
 import { iconPut } from "../icons.ts";
 import "../notes/notes.css";
 import "./editor.css";
@@ -165,6 +165,11 @@ let view: EditorView;
 let outlineTree: HTMLElement | null = null;
 
 /**
+ * Whether the note shown is a section, whose save button shows only while it has changes, see {@link stateShow}.
+ */
+let sectionShown: boolean = false;
+
+/**
  * Waiting rebuild of the outline after a change of the text, so typing builds it anew once, half a second after
  * it rests.
  */
@@ -184,6 +189,7 @@ function phoneShow(shown: "file" | "tree"): void {
 
 /**
  * Shows whether the file has changes not yet saved: the save button in the calm grey of a main button while it has,
+ * in a section the save button only then, so beside the round check stands no second check while nothing changed,
  * and beside it a notice when something went wrong, like `Not saved`, or for a file to read only.
  * - {@link EditorState#sliceDoc}: Gives the text, its lines joined by the line break of the file.
  *
@@ -191,7 +197,10 @@ function phoneShow(shown: "file" | "tree"): void {
  */
 function stateShow(notice: string): void {
     const unsaved: boolean = view.state.sliceDoc() !== saved;
-    (document.getElementById("editor-save") as HTMLElement).classList.toggle("unsaved", unsaved);
+    const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
+    save.classList.toggle("unsaved", unsaved);
+    if (sectionShown)
+        save.hidden = !unsaved;
     (document.getElementById("editor-state") as HTMLElement).textContent = notice;
 }
 
@@ -235,6 +244,23 @@ async function noteSave(): Promise<void> {
 }
 
 /**
+ * Starts the button of a new line in the same point, on a phone or tablet, whose keyboard has no Shift+Enter: it writes
+ * what Shift+Enter writes, a line without a new bullet in the point of the cursor, its guide line running on, see
+ * `pointContinue` in `./keys.ts`; a finger on it keeps the cursor in the text, so the keyboard stays open.
+ * It shows while I write, see `updateListener` in {@link extensionsOf}.
+ * - `button`: The button, at the bottom beside the save button.
+ */
+function newlineStart(): void {
+    const button: HTMLButtonElement = document.getElementById("editor-newline") as HTMLButtonElement;
+    iconPut(button, CornerDownLeft, "New line in this point");
+    button.addEventListener("pointerdown", (event: PointerEvent): void => event.preventDefault());
+    button.addEventListener("click", (): void => {
+        pointContinue(view);
+        view.focus();
+    });
+}
+
+/**
  * Saves on Ctrl+S, Cmd+S on a Mac, also while the cursor is outside the text, instead of the browser saving the page.
  *
  * @param event - Key pressed anywhere in the page
@@ -274,7 +300,8 @@ function outlineRefresh(): void {
  * - `taskRows`: The rows of the tasks of a note, once loaded, see `./tasks.ts`.
  * - `roundStart`: The round of a section, see `./round.ts`, which shows the places of its blocks anew as it moves.
  * - `updateListener`: Shows whether the file has unsaved changes after each change of the text, and builds the outline
- *   of a note anew once the typing rests, see {@link outlineRefresh}.
+ *   of a note anew once the typing rests, see {@link outlineRefresh}; on a phone shows the button of a new line in
+ *   the same point while I write, see {@link newlineStart}.
  *
  * @param opened - The file
  * @returns Extensions
@@ -295,6 +322,9 @@ function extensionsOf(opened: Opened): Extension[] {
         ...(opened.markdown ? [livePreview(opened.links), solutionSteps, taskRows, roundStart(outlineRefresh)] : []),
         ...(/\.ics$/i.test(path) ? [icsLook()] : []),
         EditorView.updateListener.of((update: ViewUpdate): void => {
+            if (update.focusChanged)
+                (document.getElementById("editor-newline") as HTMLElement).hidden =
+                    !phone || !update.view.hasFocus || update.state.readOnly;
             if (!update.docChanged)
                 return;
             stateShow("");
@@ -345,9 +375,9 @@ function addressHeadingShow(): void {
 }
 
 /**
- * Scrolls to a heading of the note shown on a click on a link to it in the tree, like in its outline, or in the list
- * of blocks above the note on a phone, which then closes, without loading the page again, and keeps it in the address
- * and the history of the browser; a block of a section opens in its round, see `roundHeadingShow` in `./round.ts`;
+ * Scrolls to a heading of the note shown on a click on a link to it in the tree, like in its outline, without loading
+ * the page again, and keeps it in the address and the history of the browser; a block of a section shows alone in its
+ * round, see `roundHeadingShow` in `./round.ts`;
  * on a phone it shows the note in place of the tree first, see {@link phoneShow}; links to other notes, and clicks
  * with a key held, act as usual.
  * - {@link History#pushState}: Writes the address as a new step of the history, for the back button.
@@ -415,11 +445,16 @@ export async function editorStart(): Promise<void> {
     const shown: Promise<void> = treeShow(tree, plannings ? "NomManageplannings" : "NomSkillingmodules", path,
         address.get("module") ?? "");
     shown.catch((error: unknown): void => console.error(error));
-    (document.getElementById("editor-title") as HTMLElement).textContent =
-        breakableOf(path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "");
+    const title: string = breakableOf(path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "");
+    if (plannings)
+        (document.getElementById("editor-title") as HTMLElement).textContent = title;
+    const close: HTMLButtonElement = document.getElementById("editor-close") as HTMLButtonElement;
+    iconPut(close, Check, "Close the round");
+    close.addEventListener("click", roundClose);
+    newlineStart();
     if (path === "" && !plannings) {
         save.hidden = true;
-        (document.getElementById("editor-head") as HTMLElement).hidden = true;
+        (document.getElementById("editor") as HTMLElement).classList.add("editor-on-today");
         await todayShow(document.getElementById("editor-today") as HTMLElement, calendarTodayOf());
         return;
     }
@@ -461,10 +496,12 @@ export async function editorStart(): Promise<void> {
     text.style.visibility = "hidden";
     tasksLoad(view, path).catch((error: unknown): void => console.error(error)).finally((): void => {
         text.style.visibility = "";
-        if (roundBlocksOf(view) !== null)
-            (document.getElementById("editor-title") as HTMLElement).textContent = path.split("/").at(-1)
-                ?.replace(/\.md$/i, "").replace(/^\d+_\d+_/, "").replace(/(?<=[a-z])(?=[A-Z])/g, " ") ?? "";
-        if (roundBlocksOf(view) === null)
+        sectionShown = roundBlocksOf(view) !== null;
+        if (sectionShown)
+            stateShow("");
+        else
+            (document.getElementById("editor-title") as HTMLElement).textContent = title;
+        if (!sectionShown)
             addressHeadingShow();
         else if (location.hash !== "")
             roundHeadingShow(view, decodeURIComponent(location.hash.slice(1)));

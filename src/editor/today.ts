@@ -8,8 +8,10 @@
  * `Sample Mean Estimator · new`, below it grey the code of its module; a tap opens it, see `./round.ts`, which shows
  * only what is due. Nothing else.
  * The order is that of a session: the Tasks due first, each with the Completion its failure today brings back right
- * after it, then the section new today: the one begun on its ladder, else the first not yet begun.
- * An item done today stays in its place, grey, as a done box of the plan does.
+ * after it, then the section new today: the one begun on its ladder, by an attempt or a `Next`, else the first not yet
+ * begun. A tap opens the round where it stands, see `./round.ts`.
+ * An item stays in its place, grey, as a done box of the plan does, once its round is closed by hand; a fallback
+ * also once tried.
  *
  * - `../skill/attempts.ts`: Loads the tasks and sections with when each is due.
  * - `../notes/tree.ts`: Builds the address of a note at a heading.
@@ -87,23 +89,24 @@ function itemsOf(module: SkillModule, today: string): Item[] {
         const tried: Attempt[] = cold.attempts.filter((attempt: Attempt): boolean =>
             attempt.day === today && attempt.result !== "skipped");
         if (section.ladder) {
-            if (section.tried > 0)
+            if (section.tried > 0 || section.at !== "" || section.closed)
                 fresh.push({ title: `${wordsOf(section)} · new`, module: module.code,
-                    address: noteAddressOf(section.note, ""), done: tried.length > 0 });
+                    address: noteAddressOf(section.note, ""), done: section.closed });
             return;
         }
         if (tried.length === 0 && (cold.due === "" || cold.due > today))
             return;
         items.push({ title: `${wordsOf(section)} · Task · ${cold.name}`, module: module.code,
-            address: noteAddressOf(section.note, cold.heading), done: tried.length > 0 });
+            address: noteAddressOf(section.note, ""), done: section.closed });
         const failure: Attempt | undefined = tried.find((attempt: Attempt): boolean => attempt.result !== "right");
         const back: SkillTask | undefined = failure === undefined ? undefined : fallbackOf(tasks, timeOf(failure));
         if (failure !== undefined && back !== undefined)
             items.push({ title: `${wordsOf(section)} · Completion · ${back.name}`, module: module.code,
-                address: noteAddressOf(section.note, back.heading),
-                done: back.attempts.some((attempt: Attempt): boolean => timeOf(attempt) > timeOf(failure)) });
+                address: noteAddressOf(section.note, ""), done: section.closed
+                    || back.attempts.some((attempt: Attempt): boolean => timeOf(attempt) > timeOf(failure)) });
     });
-    const next: SkillSection | undefined = sections.find((section: SkillSection): boolean => section.tried === 0);
+    const next: SkillSection | undefined = sections.find((section: SkillSection): boolean =>
+        section.tried === 0 && section.at === "" && !section.closed);
     if (fresh.length === 0 && next !== undefined)
         fresh.push({ title: `${wordsOf(next)} · new`, module: module.code, address: noteAddressOf(next.note, ""), done: false });
     return [...items, ...fresh];

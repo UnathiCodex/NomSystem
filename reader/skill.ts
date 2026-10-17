@@ -208,6 +208,9 @@ export type SkillTask = Task & {
  * - `rightDue`: Day the cold task comes back after a right run today, by the spacing, see {@link dueAfter};
  *   empty without a cold task.
  * - `wrongDue`: Day it comes back after a failed run today, 2 days later; empty without a cold task.
+ * - `seen`: Steps of the round shown I passed with `Next`, by their keys, see {@link RoundLine}.
+ * - `at`: Key of the step of the round shown I am at, by the last `Next`, empty for none yet.
+ * - `closed`: Whether I closed the round shown by hand.
  */
 export type SkillSection = {
     title: string;
@@ -220,6 +223,57 @@ export type SkillSection = {
     ladder: boolean;
     rightDue: string;
     wrongDue: string;
+    seen: string[];
+    at: string;
+    closed: boolean;
+};
+
+/**
+ * What I did in the round of a section, as a line `X-ROUND` of a skill entry of the log says it, so where I am lives
+ * in the log alone, never in the browser or the note: its time, its section, its round, its kind, and its step,
+ * like `091500;IN2028/01_01_SampleMeanEstimator;0;seen;Definition. Population and Sample`:
+ * - `seen`: a step without a result, like theory, passed with `Next`;
+ * - `at`: the step I went on to with `Next`, where the round goes on, also on another day;
+ * - `closed`: the round closed by hand, without a step.
+ * A step is named by its key, its heading as written, and for a step a failure brought back, the heading of the block
+ * that failed after ` after `, like `Example. Unbiased Mean Check after Completion. Cautious Owner Estimate`.
+ * Round 0 goes on over days until I close it; a later round, one Task and the fallback its failure brings, counts its
+ * lines of its day only, since a failed run repeats the round on another day.
+ *
+ * - `time`: Time of the line, like `091500`.
+ * - `day`: Day of its skill entry.
+ * - `section`: Its section, `<module>/<note name>`, like `IN2028/01_01_SampleMeanEstimator`.
+ * - `round`: Its round.
+ * - `kind`: What it says.
+ * - `step`: Key of its step, empty for `closed`.
+ */
+type RoundLine = {
+    time: string;
+    day: string;
+    section: string;
+    round: number;
+    kind: RoundKind;
+    step: string;
+};
+
+/**
+ * What a line `X-ROUND` says, see {@link RoundLine}.
+ */
+export type RoundKind = "seen" | "at" | "closed";
+
+/**
+ * A line `X-ROUND` to write, as the scripts view sends it, see {@link roundAdd}.
+ *
+ * - `section`: Its section, like `IN2028/01_01_SampleMeanEstimator`.
+ * - `round`: Its round.
+ * - `kind`: What it says.
+ * - `step`: Key of its step, empty for `closed`.
+ */
+export type RoundNew = {
+    section: string;
+    round: number;
+    kind: RoundKind;
+    step: string;
 };
 
 /**
@@ -457,6 +511,11 @@ type AttemptLine = {
  * Results an attempt can have.
  */
 const results: Result[] = ["right", "guided", "wrong", "stuck", "skipped"];
+
+/**
+ * Kinds of a line `X-ROUND`, see {@link RoundLine}.
+ */
+const roundKinds: RoundKind[] = ["seen", "at", "closed"];
 
 /**
  * Efforts to rate an attempt with, the lowest first.
@@ -777,6 +836,24 @@ function loggedAttemptsOf(entry: Entry): LoggedAttempt[] {
  *
  * @returns Attempts with their tasks
  */
+/**
+ * Reads the lines `X-ROUND` of all skill entries of the log, see {@link RoundLine}, the oldest first.
+ * - `day`: Day of a skill entry.
+ *
+ * @returns Lines in order
+ */
+function roundsRead(): RoundLine[] {
+    return skillEntriesRead("1970-01-01T00:00:00Z", new Date().toISOString()).flatMap((entry: Entry): RoundLine[] => {
+        const day: string = berlinDateOf(new Date(entry.start));
+        return entry.rounds.map((value: string): RoundLine => {
+            const [time, section, round, kind, ...step]: string[] = value.split(";");
+            return { time: time ?? "", day: day, section: section ?? "", round: Number(round), kind: kind as RoundKind,
+                step: step.join(";") };
+        });
+    }).sort((first: RoundLine, second: RoundLine): number =>
+        `${first.day} ${first.time}`.localeCompare(`${second.day} ${second.time}`));
+}
+
 function attemptsRead(): LoggedAttempt[] {
     return skillEntriesRead("1970-01-01T00:00:00Z", new Date().toISOString()).flatMap(loggedAttemptsOf);
 }
@@ -944,36 +1021,53 @@ function variantIndexOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attem
 /**
  * Builds the sections of a module from its tasks, in their order: one per note, with its round, whether it still
  * learns the ladder, its cold task of today with the days it comes back after a right or a failed run today,
- * and how many of its tasks I tried.
+ * and how many of its tasks I tried, and where I am in the round shown, from the lines `X-ROUND` of the log alone,
+ * see {@link RoundLine}. Round 0, the ladder, lasts while no cold task has an attempt on a day before today, or while
+ * I began it with `Next` and have not closed it, so it goes on over days until my close; its Task is the first variant.
  * - `notes`: Tasks by their notes, in order.
  * - `colds`: Cold tasks of a note, its variants, and `cold` the first, which holds the level of all.
  * - `attemptsOf`: Attempts at a task.
+ * - `key`: The section as its lines name it, like `IN2028/01_01_SampleMeanEstimator`.
+ * - `first`: Its lines of round 0, and `begun` whether round 0 is begun and not closed.
+ * - `round`: The round shown: 0 on the ladder, else the runs of its cold task done before today.
+ * - `shown`: The lines of the round shown: all of round 0, or those of today of a later round.
  *
  * @param tasks - Tasks of the module with when each is due
  * @param today - Today like `2026-10-17`
  * @param exam - Exam of the module
+ * @param lines - Lines `X-ROUND` of the log, see {@link roundsRead}
  * @returns Sections
  */
-function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate): SkillSection[] {
+function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate, lines: RoundLine[]): SkillSection[] {
     const notes: Map<string, SkillTask[]> = Map.groupBy(tasks, (task: SkillTask): string => task.note);
     const attemptsOf: (task: SkillTask) => Attempt[] = (task: SkillTask): Attempt[] => task.attempts;
     return [...notes.values()].map((own: SkillTask[]): SkillSection => {
         const colds: SkillTask[] = own.filter((task: SkillTask): boolean => task.kind === "cold");
         const cold: SkillTask | undefined = colds[0];
+        const key: string = `${own[0].id.split("/")[0]}/${own[0].section}`;
+        const first: RoundLine[] = lines.filter((line: RoundLine): boolean => line.section === key && line.round === 0);
+        const begun: boolean = first.length > 0 && !first.some((line: RoundLine): boolean => line.kind === "closed");
+        const ladder: boolean = attemptDaysOf(colds, attemptsOf, today) === 0 || begun;
+        const round: number = ladder ? 0 : cold === undefined ? 0 : coldScheduleOf(cold, variantAttemptsOf(colds,
+            (task: SkillTask): Attempt[] => task.attempts.filter((attempt: Attempt): boolean => attempt.day < today)), exam)[1];
+        const shown: RoundLine[] = ladder ? first : lines.filter((line: RoundLine): boolean =>
+            line.section === key && line.round === round && line.day === today);
         return {
             title: own[0].section,
             note: own[0].note,
             chapter: own[0].chapter,
-            cold: cold === undefined ? "" : colds[variantIndexOf(colds, attemptsOf, today)].id,
+            cold: cold === undefined ? "" : ladder ? cold.id : colds[variantIndexOf(colds, attemptsOf, today)].id,
             tasks: own.length,
             tried: own.filter((task: SkillTask): boolean =>
                 task.attempts.some((attempt: Attempt): boolean => attempt.result !== "skipped")).length,
-            round: cold === undefined ? 0 : coldScheduleOf(cold, variantAttemptsOf(colds, (task: SkillTask): Attempt[] =>
-                task.attempts.filter((attempt: Attempt): boolean => attempt.day < today)), exam)[1],
-            ladder: attemptDaysOf(colds, attemptsOf, today) === 0,
+            round: round,
+            ladder: ladder,
             rightDue: cold === undefined ? ""
                 : dueAfter(Math.min(cold.level + 1, spacingDays.length + 1), today, exam),
             wrongDue: cold === undefined ? "" : dayAdd(today, retryDays),
+            seen: shown.filter((line: RoundLine): boolean => line.kind === "seen").map((line: RoundLine): string => line.step),
+            at: shown.findLast((line: RoundLine): boolean => line.kind === "at")?.step ?? "",
+            closed: shown.some((line: RoundLine): boolean => line.kind === "closed"),
         };
     });
 }
@@ -1058,6 +1152,7 @@ function examOf(module: string, boxes: Box[]): ExamDate {
  */
 export function skillingRead(): Skilling {
     const attempts: LoggedAttempt[] = attemptsRead();
+    const rounds: RoundLine[] = roundsRead();
     const byTask: Map<string, LoggedAttempt[]> = Map.groupBy(attempts, (logged: LoggedAttempt): string => logged.task);
     const boxes: Box[] = skillBoxesRead(dayAdd(berlinDateOf(new Date()), plannedDays));
     const modules: SkillModule[] = moduleTasksRead().map((module: ModuleTasks): SkillModule => {
@@ -1091,7 +1186,7 @@ export function skillingRead(): Skilling {
         const removed: number = attempts.filter((logged: LoggedAttempt): boolean => logged.task.split("/")[0] === module.code
             && !tasks.some((task: SkillTask): boolean => task.id === logged.task)).length;
         return {
-            code: module.code, title: module.title, exam: exam, tasks: tasks, sections: sectionsOf(tasks, today, exam),
+            code: module.code, title: module.title, exam: exam, tasks: tasks, sections: sectionsOf(tasks, today, exam, rounds),
             duplicates: duplicates, removed: removed, planned: plannedOf(module.code, boxes),
             papers: papersRead(module.title),
         };
@@ -1354,15 +1449,17 @@ export function skillEntryEdit(change: SkillEntryChange): void {
  * @param tasks - Tasks of the modules of the semester
  * @param now - The moment
  */
-function momentWrite(module: string, open: Entry | undefined, attempts: string[], tasks: Task[], now: Date): void {
+function momentWrite(module: string, open: Entry | undefined, attempts: string[], rounds: string[], tasks: Task[],
+                     now: Date): void {
     const quarter: Date = new Date(Math.ceil(now.getTime() / quarterHour) * quarterHour);
     if (open === undefined) {
         const plan: Box | undefined = skillBoxOf(module, now);
         const type: string = plan?.type ?? "";
-        const chapters: string[] = chaptersWith([], tasksOf(attempts), tasks);
+        const chapters: string[] = chaptersWith([], [...tasksOf(attempts), ...roundTasksOf(rounds, tasks)], tasks);
         const own: [string, string | Link][] = [
             ...chapters.map((chapter: string): [string, string] => ["x-chapter", chapter]),
             ...attempts.map((value: string): [string, string] => ["x-attempt", value]),
+            ...rounds.map((value: string): [string, string] => ["x-round", value]),
         ];
         if (plan !== undefined)
             own.push(["related-to", plan.id]);
@@ -1382,11 +1479,14 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
     }
 
     const values: string[] = [...open.attempts, ...attempts];
-    const chapters: string[] = chaptersWith(chaptersOf(open), [...tasksOf(values), ...open.tutors], tasks);
+    const marks: string[] = [...open.rounds, ...rounds];
+    const chapters: string[] = chaptersWith(chaptersOf(open),
+        [...tasksOf(values), ...open.tutors, ...roundTasksOf(marks, tasks)], tasks);
     const properties: [string, (string | Date | Link)[]][] = [
         ["x-chapter", chapters],
         ["attach", documentLinksOf(open.links)],
         ["x-attempt", values],
+        ["x-round", marks],
     ];
     if (quarter > new Date(open.end))
         properties.push(["dtend", [quarter]]);
@@ -1422,7 +1522,46 @@ export function attemptAdd(attempt: AttemptNew): void {
     const tasks: Task[] = tasksRead();
     const module: string = attempt.task.split("/")[0];
     const now: Date = new Date();
-    momentWrite(module, momentOf(module, now), [attemptValueOf(attempt, tasks, berlinTimeOf(now))], tasks, now);
+    momentWrite(module, momentOf(module, now), [attemptValueOf(attempt, tasks, berlinTimeOf(now))], [], tasks, now);
+}
+
+/**
+ * Gives a task of the section of each line `X-ROUND`, so the skill entry names the chapter of the section.
+ *
+ * @param values - Lines `X-ROUND`
+ * @param tasks - All tasks
+ * @returns Identities of tasks, one per line whose section has tasks
+ */
+function roundTasksOf(values: string[], tasks: Task[]): string[] {
+    return values.flatMap((value: string): string[] => {
+        const section: string = value.split(";")[1] ?? "";
+        const task: Task | undefined = tasks.find((candidate: Task): boolean =>
+            `${candidate.id.split("/")[0]}/${candidate.section}` === section);
+        return task === undefined ? [] : [task.id];
+    });
+}
+
+/**
+ * Writes a line `X-ROUND` into the skill entry of the moment of the module of its section, as an attempt is written,
+ * see {@link attemptAdd} and {@link RoundLine}: the time in Berlin, its section, round, kind and step,
+ * like `091500;IN2028/01_01_SampleMeanEstimator;0;at;Example. Ice Cream Kiosk`, a close without a step.
+ *
+ * @param line - The line
+ * @throws {Error} - When no task names its section, its kind is none of `seen`, `at` and `closed`, or its round is no
+ *   number from 0
+ */
+export function roundAdd(line: RoundNew): void {
+    const tasks: Task[] = tasksRead();
+    const module: string = line.section.split("/")[0];
+    if (!tasks.some((task: Task): boolean => `${module}/${task.section}` === line.section && task.id.startsWith(`${module}/`)))
+        throw new Error(`No section ${line.section}`);
+    if (!roundKinds.includes(line.kind) || !Number.isInteger(line.round) || line.round < 0)
+        throw new Error(`No round line ${line.kind} of round ${line.round}`);
+    const step: string = line.kind === "closed" ? "" : line.step.replace(/\s+/g, " ").trim();
+    const now: Date = new Date();
+    const value: string = [`${berlinTimeOf(now).replace(":", "")}00`, line.section, String(line.round), line.kind,
+        ...(step === "" ? [] : [step])].join(";");
+    momentWrite(module, momentOf(module, now), [], [value], tasks, now);
 }
 
 /**

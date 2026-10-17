@@ -5,8 +5,10 @@
  * - Enter continues a list, a task list or a quote on the next line, and on an empty item ends the list, one level
  *   at a time; on a further line of a point it starts the next point too, see {@link furtherContinue};
  *   Shift+Enter goes on in the same point on the next line, a spacer line without a new bullet,
- *   see {@link pointContinue}; Backspace right after the `-` of a new, empty item makes it the same spacer line,
- *   see {@link spacerBackward}, else right after the `-` of an item or the `>` of a quote takes it away.
+ *   see {@link pointContinue}, which on a phone or tablet, whose keyboard has no Shift+Enter, a button does,
+ *   see `./editor.ts`; Backspace right after the `-` of a new, empty item makes it the same spacer line,
+ *   see {@link spacerBackward}, else right after the `-` of an item or the `>` of a quote takes it away; the first
+ *   text typed on an empty spacer line takes the place of the spacer, see {@link spacerTyping}.
  * - Tab moves a list item one step in, Shift+Tab one step out, always with its sub-points and further lines,
  *   see {@link itemIndent}, and a spacer line one level, see {@link spacerIndent}; outside a list Tab writes a tab
  *   where the cursor is, on several lines picked it moves them all one step in, and Shift+Tab one step out.
@@ -28,7 +30,7 @@
  */
 
 import { EditorSelection, Prec, Transaction } from "@codemirror/state";
-import { keymap } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import {
     cursorLineDown, deleteLine, indentLess, indentMore, insertTab, moveLineDown, moveLineUp, selectLineDown,
 } from "@codemirror/commands";
@@ -36,7 +38,7 @@ import { foldedRanges, syntaxTree } from "@codemirror/language";
 import { deleteMarkupBackward, insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
 
 import type { ChangeSpec, EditorState, Extension, Line, SelectionRange, StateCommand } from "@codemirror/state";
-import type { Command, EditorView } from "@codemirror/view";
+import type { Command } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
 
 
@@ -89,7 +91,7 @@ export function columnsOf(text: string): number {
  * @param view - The editor
  * @returns `true`, as it always takes the key
  */
-const pointContinue: Command = (view: EditorView): boolean => {
+export const pointContinue: Command = (view: EditorView): boolean => {
     const line: Line = view.state.doc.lineAt(view.state.selection.main.head);
     const indentation: string = textIndentationOf(line.text) ?? /^[ \t]*/.exec(line.text)?.[0] ?? "";
     view.dispatch(view.state.update(view.state.replaceSelection(view.state.lineBreak + indentation
@@ -453,11 +455,29 @@ function lineDown(command: Command): Command {
 }
 
 /**
+ * Lets the first text typed on an empty spacer line take the place of the spacer, see {@link spacer}: the line stays
+ * in its point as a further line, its text under the point's text, not one blank further right, since the spacer is
+ * needed only while the line is empty.
+ * - `line`: The line typed on.
+ *
+ * @returns Handler of typed text
+ */
+const spacerTyping: Extension = EditorView.inputHandler.of((view: EditorView, from: number, to: number,
+                                                            text: string): boolean => {
+    const line: Line = view.state.doc.lineAt(from);
+    if (from !== to || from !== line.to || !/^[ \t]*⠀$/.test(line.text) || /[\r\n]/.test(text))
+        return false;
+    view.dispatch({ changes: { from: from - spacer.length, to: from, insert: text },
+        selection: { anchor: from - spacer.length + text.length }, userEvent: "input.type" });
+    return true;
+});
+
+/**
  * Keys of a Markdown file, see the top of this file; Enter, Tab and Shift+Tab, Alt+Up and Alt+Down try the list item
  * first, Backspace, Tab and Shift+Tab a spacer line before it, then the key goes on to the next command,
- * CodeMirror's own.
+ * CodeMirror's own; and the first text typed on an empty spacer line in place of the spacer, see {@link spacerTyping}.
  */
-export const markdownKeys: Extension = Prec.high(keymap.of([
+export const markdownKeys: Extension = [spacerTyping, Prec.high(keymap.of([
     { key: "Enter", run: furtherContinue },
     { key: "Enter", run: insertNewlineContinueMarkupCommand({ nonTightLists: false }) },
     { key: "Shift-Enter", run: pointContinue },
@@ -474,4 +494,4 @@ export const markdownKeys: Extension = Prec.high(keymap.of([
     { key: "Mod-i", run: markupToggle("*") },
     { key: "Mod-d", run: deleteLine },
     { key: "ArrowDown", run: lineDown(cursorLineDown), shift: lineDown(selectLineDown) },
-]));
+]))];

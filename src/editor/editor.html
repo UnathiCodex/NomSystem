@@ -10,16 +10,22 @@
     <div class="editor-file">
         <!-- Page of the file as wide as the room beside the tree, with little room left and right -->
         <div class="editor-page">
-            <!-- Head: name of the file, whether its changes are saved, and the save button;
-                 stays on top while scrolling; on a phone only the name, which scrolls away with the file, while the bar
-                 with the rest stands at the bottom, under the thumb, the button that shows the tree first -->
+            <!-- Head: name of the file, whether its changes are saved, and the save button; for a section no name, since
+                 the tree shows the note, but its round, small and grey, and the round check beside the save button;
+                 stays on top while scrolling; on a phone only the name or the round, which scrolls away with the file,
+                 while the bar with the rest stands at the bottom, under the thumb, the button that shows the tree first -->
             <div class="editor-head" id="editor-head">
+                <p class="editor-round" id="editor-round" hidden></p>
                 <h1 class="editor-title" id="editor-title"></h1>
                 <div class="editor-bar">
                     <button type="button" class="editor-tree" id="editor-tree" aria-pressed="false"></button>
                     <!-- On a phone only: back to the day -->
                     <a class="editor-day" href="/">Day</a>
                     <span class="editor-state" id="editor-state"></span>
+                    <!-- On a phone or tablet only, while I write: a new line in the same point, as Shift+Enter -->
+                    <button type="button" class="editor-newline" id="editor-newline" hidden></button>
+                    <!-- A section only: closes its round by hand, round as the ring of a done box, see round.ts -->
+                    <button type="button" class="editor-close" id="editor-close" hidden></button>
                     <button type="button" class="editor-save" id="editor-save"></button>
                 </div>
             </div>
@@ -32,9 +38,6 @@
                 </div>
                 <div class="plan-boxes today-list"></div>
             </section>
-
-            <!-- A section only: its round, like Round 1, see round.ts -->
-            <p class="editor-round" id="editor-round" hidden></p>
 
             <!-- Text of the file, CodeMirror inside; `markdown` gives the rendered pieces of a Markdown file the look
                  of the scripts view, `editor-plain` shows any other file as its plain text -->
