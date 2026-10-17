@@ -1,7 +1,9 @@
 /* Grey page, plan and log told apart by their grey, no colour; text in two tones only, white for what a thing is
    and its facts, like a name, its brand, its grams and its kcal, and one grey for times, places, the names of rows
    and hints, a fact in the same tone wherever it stands, that grey a little stronger than Obsidian's, so it reads
-   easily; the line at the left of indented parts, like the foods of a meal, 2 px and a little lighter than other
+   easily; every grey line and frame, like the frame of a field or a dialog, the lines of the time grid, the ring
+   of a round's check or the guides of a list, light enough to show on my PC monitor and still calm;
+   the line at the left of indented parts, like the foods of a meal, 2 px and a little lighter than other
    lines, `--guide`, so it shows;
    notes in the greys of my Obsidian's dark theme with my accent #969696, and in its reading width, the titles
    of callouts and the fold arrows of headings in Obsidian's grey of callout titles, `--reading-callout`;
@@ -31,18 +33,18 @@
     --background: #1e1e1e;
     --text-main: #ececec;
     --text-muted: #a8a8a8;
-    --line: #323232;
-    --guide: #4a4a4a;
+    --line: #3a3a3a;
+    --guide: #525252;
     --fill: #262626;
     --fill-over: #2e2e2e;
     --chosen: #3a3a3a;
-    --chosen-line: #5c5c5c;
+    --chosen-line: #646464;
     --chosen-over: #424242;
     --plan: #8a8a8a;
     --log: #cfcfcf;
     --reading-text: #dadada;
     --reading-marker: #666666;
-    --reading-guide: rgb(255 255 255 / 0.12);
+    --reading-guide: rgb(255 255 255 / 0.16);
     --reading-accent: #969696;
     --reading-link: #acacac;
     --reading-callout: #808080;
