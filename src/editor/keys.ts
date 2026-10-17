@@ -12,6 +12,8 @@
  *   where the cursor is, on several lines picked it moves them all one step in, and Shift+Tab one step out.
  * - Alt+Up and Alt+Down move the line of the cursor, or the lines picked, one line up or down; a list item goes
  *   with its sub-points and further lines past the item before or after it, see {@link itemMove}.
+ * - Ctrl+Shift+Up and Ctrl+Shift+Down move the line of the cursor, or the lines picked, one line up or down,
+ *   only them, as CodeMirror's Move line up and down.
  * - Ctrl+B and Ctrl+I make the text picked bold or italic, `**…**` and `*…*`, or take it back;
  *   with nothing picked the word at the cursor, see {@link markupToggle}.
  * - Ctrl+D takes away the line of the cursor, or the lines picked, as Obsidian's Delete paragraph.
@@ -19,7 +21,7 @@
  *
  * - `@codemirror/state`, `@codemirror/view`: The text with its cursor, and the keys.
  * - `@codemirror/commands`: CodeMirror's own commands: a tab at the cursor, indenting lines, deleting lines,
- *   moving a line down.
+ *   moving a line up or down.
  * - `@codemirror/language`: The syntax tree of the note, which tells where a list item begins and ends,
  *   and what is folded.
  * - `@codemirror/lang-markdown`: Continues a list on Enter and takes its markup away on Backspace.
@@ -27,7 +29,9 @@
 
 import { EditorSelection, Prec, Transaction } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
-import { cursorLineDown, deleteLine, indentLess, indentMore, insertTab, selectLineDown } from "@codemirror/commands";
+import {
+    cursorLineDown, deleteLine, indentLess, indentMore, insertTab, moveLineDown, moveLineUp, selectLineDown,
+} from "@codemirror/commands";
 import { foldedRanges, syntaxTree } from "@codemirror/language";
 import { deleteMarkupBackward, insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
 
@@ -464,6 +468,8 @@ export const markdownKeys: Extension = Prec.high(keymap.of([
     { key: "Tab", run: insertTab, shift: indentLess },
     { key: "Alt-ArrowUp", run: itemMove(false) },
     { key: "Alt-ArrowDown", run: itemMove(true) },
+    { key: "Mod-Shift-ArrowUp", run: moveLineUp },
+    { key: "Mod-Shift-ArrowDown", run: moveLineDown },
     { key: "Mod-b", run: markupToggle("**") },
     { key: "Mod-i", run: markupToggle("*") },
     { key: "Mod-d", run: deleteLine },
