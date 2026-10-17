@@ -14,7 +14,7 @@ import type { Attendee } from "../day/entries.ts";
 
 /**
  * Result of an attempt: solved right, solved right with my tutor's help, solved wrong, stuck on the way,
- * or the task skipped; the reader writes a right attempt after a copy for my tutor as guided.
+ * or the task skipped.
  */
 export type Result = "right" | "guided" | "wrong" | "stuck" | "skipped";
 
@@ -378,17 +378,6 @@ async function readerSend(method: string, address: string, body: object): Promis
  */
 export async function attemptSend(attempt: AttemptNew): Promise<void> {
     await readerSend("POST", "/api/skill/attempt", attempt);
-}
-
-/**
- * Tells the reader that I copied a task for my tutor, which it writes into the skill entry of the moment,
- * so a right attempt at it after that counts as guided.
- *
- * @param task - Identity of the task, like `IN2028/Airline Revenue Interval`
- * @throws {Error} - When the reader does not take it
- */
-export async function tutorSend(task: string): Promise<void> {
-    await readerSend("POST", "/api/skill/tutor", { task: task });
 }
 
 /**

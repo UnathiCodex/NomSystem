@@ -440,7 +440,7 @@ export function boxLog(logged: BoxLogged): string {
 
 /**
  * Takes a done box back to open, with one click on its check, see the top of this file: removes the log entry
- * written from it, as if I had not logged it; one that holds what I added since, attempts, copies for my tutor
+ * written from it, as if I had not logged it; one that holds what I added since, attempts, older copies for my tutor
  * or a note, stays in the log and only lets go of the box, its `RELATED-TO` or its older `X-PLANNED` taken out.
  * A to-do done in another app, `COMPLETED` without log entry, is `NEEDS-ACTION` again.
  * - `box`: The box with its state and the times of its log entry.

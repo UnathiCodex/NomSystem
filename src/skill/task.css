@@ -55,18 +55,6 @@
     background: var(--fill-over);
 }
 
-/* Copy for my tutor after the buttons: quiet, its icon alone in grey without a fill, round and one chip high;
-   `.task-row .task-tutor` wins over their fill, being more exact, but not over their grey under the pointer */
-.task-row .task-tutor {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--chip-height);
-    padding: 0;
-    background: none;
-    color: var(--text-muted);
-}
-
 /* Tap for my effort right after an attempt, across the row: its name small and grey, then low, medium and high,
    one gap apart like the buttons */
 .task-effort {
@@ -158,11 +146,6 @@ details.task-history a {
     color: var(--text-muted);
 }
 
-/* Row of a theory block, only its copy icon for my tutor, closer under its heading than the row of a task */
-.task-row.theory-row {
-    padding: 0.25rem 0 0;
-}
-
 /* A step of a solution not shown yet, and below the solution Next step and Show all, like the buttons of a task */
 .step-hidden {
     display: none;
@@ -186,7 +169,7 @@ details.task-history a {
 }
 
 /* Phone: the buttons of a task as they look, but a finger high to hit, each taking a tap 0.25rem above and below it,
-   which the room between two lines of buttons leaves free; the copy for my tutor 0.25rem beside it too */
+   which the room between two lines of buttons leaves free */
 @media (max-width: 900px) {
     .task-row button,
     .steps-buttons button,
@@ -200,9 +183,5 @@ details.task-history a {
         content: "";
         position: absolute;
         inset: -0.25rem 0;
-    }
-
-    .task-row button.task-tutor::after {
-        inset: -0.25rem;
     }
 }

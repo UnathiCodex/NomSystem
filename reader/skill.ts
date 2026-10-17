@@ -35,9 +35,9 @@
  *   I skipped, see {@link AttemptLine}, like `X-ATTEMPT:140500;IN2028/Kiosk Chain Review#2;stuck;high;step 2`,
  *   an older one with its time like `14:05`; an attempt from the dialog has no time,
  *   like `X-ATTEMPT:IN2028/Kiosk Sales Standard Error;right`;
- * - one `X-TUTOR` per task I copied for my tutor in it, like `X-TUTOR:IN2028/Kiosk Sales Standard Error`,
- *   so a right attempt at it after that is guided, see {@link tutorAdd}, and the copies per chapter show
- *   how often I needed help, which should fall from chapter to chapter.
+ * - an older entry may hold one `X-TUTOR` per task I copied for my tutor in it, like
+ *   `X-TUTOR:IN2028/Kiosk Sales Standard Error`, from when the views copied a task for my tutor; nothing writes
+ *   them any more, and they are only read, so the chapters of their tasks still count among the entry's.
  * One tap after an attempt rates my effort, low, medium or high; until then it is empty and left out at the end,
  * like `X-ATTEMPT:140500;IN2028/Airline Revenue Interval;right`, and a skip has none.
  * A button of a task writes into the skill entry of the moment: the last one of the task's module that started before now
@@ -57,8 +57,8 @@
  * one run instead of to none (Rawson 2018). After the first run the section is due 7 days later, after the second
  * 21 days later; after the third it is ready, and comes back about 14 days before its exam, with one keep-up check
  * halfway when the exam lies more than 6 weeks off, see {@link exams} (Cepeda 2008, Rohrer 2005).
- * A right attempt before its day counts as none, so the runs stay spaced; a guided one, right after I copied
- * the task for my tutor, counts as none either, and the task is due 2 days later, cold.
+ * A right attempt before its day counts as none, so the runs stay spaced; a guided one, right with my tutor's help,
+ * counts as none either, and the task is due 2 days later, cold.
  * A skipped task leaves the due list until its next attempt.
  *
  * - `./boxes.ts`: Finds the skill box of a module for now, marks a box done once a skill entry is logged from it,
@@ -300,7 +300,7 @@ export type Skilling = {
  *
  * - `task`: Identity of the task, see {@link Task}.
  * - `part`: Part of a cold task, like `2`, empty for the whole task.
- * - `result`: Its {@link Result}; a button sends `right`, which the reader writes as `guided` after a copy for my tutor.
+ * - `result`: Its {@link Result}, like `guided` from `With tutor` of a task's menu.
  * - `effort`: My {@link Effort} on it, empty when not rated yet, always for a skip.
  * - `stuck`: Where I got stuck, only with `stuck`, empty when not given.
  * - `skip`: Why I skipped the task, only with `skipped`, like one of {@link skips} or my own words, empty when not given.
@@ -1041,7 +1041,7 @@ function attemptValueOf(attempt: AttemptNew, tasks: Task[], time: string): strin
 }
 
 /**
- * Lists the chapters of a skill entry: those picked, then the chapters of the tasks of its attempts and tutors,
+ * Lists the chapters of a skill entry: those picked, then the chapters of the tasks of its attempts and older copies for my tutor,
  * each once, since an entry covers the chapters of the tasks I worked on in it.
  * - `solved`: Chapter of each task, as its note lies now; none for a task no note holds any more.
  *
@@ -1161,7 +1161,7 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
  * - `tasks`: Tasks of the modules of the semester.
  * - `added`: `X-ATTEMPT`s of the new attempts.
  * - `values`: `X-ATTEMPT`s it has, then the new ones.
- * - `worked`: Identities of the tasks of its attempts and tutors at tasks of its skill, whose chapters it covered.
+ * - `worked`: Identities of the tasks of its attempts and older copies for my tutor at tasks of its skill, whose chapters it covered.
  *
  * @param change - Changed skill entry as the page sends it
  * @throws {Error} - When there is no such skill entry in the log of the new system, a new attempt is not right,
@@ -1199,42 +1199,36 @@ export function skillEntryEdit(change: SkillEntryChange): void {
 }
 
 /**
- * Writes lines into the skill entry of the moment of a module, see the top of this file: adds the new `X-ATTEMPT`s
- * and `X-TUTOR`s after those it has, with the chapters of their tasks, and moves its end to the end of the quarter hour
+ * Writes attempts into the skill entry of the moment of a module, see the top of this file: adds the new `X-ATTEMPT`s
+ * after those it has, with the chapters of their tasks, and moves its end to the end of the quarter hour
  * of now, if that is later. Without an open entry of the module, starts one covering the quarter hour of now:
  * logged from the open skill box of the module for now, with its type, which is done then, else without type.
  * - `quarter`: End of the quarter hour of now, now rounded up to the quarter hour.
  * - `plan`: Open skill box of the module for now, see `skillBoxOf` in `boxes.ts`.
  * - `type`: Type of a new entry, the box's or none.
- * - `worked`: Identities of the tasks of the new lines.
- * - `chapters`: Chapters of a new entry, those of the tasks of the new lines, or of the open entry with them.
- * - `own`: The chapters, attempts, tutors and box of a new entry, as properties of my own.
+ * - `chapters`: Chapters of a new entry, those of the tasks of the new attempts, or of the open entry with them.
+ * - `own`: The chapters, attempts and box of a new entry, as properties of my own.
  * - `start`: Start of a new entry, a quarter hour before its end.
  * - `fields`: Fields and times of a new entry, which go into the log of the module, see `logFileOf` in `day.ts`.
  * - `values`: `X-ATTEMPT`s of the open entry with the new ones.
- * - `properties`: Properties of the open entry to write again, its chapters as `X-CHAPTER`s and its links
- *   to files, without the folders of chapters an older entry links, see `documentLinksOf` in `documents.ts`.
+ * - `properties`: Properties of the open entry to write again, its chapters as `X-CHAPTER`s, with those of its older
+ *   `X-TUTOR`s, which stay as they are, and its links to files, without the folders of chapters an older entry links, see `documentLinksOf` in `documents.ts`.
  *
  * @param module - Module code, like `IN2028`
  * @param open - The skill entry of the moment of the module, `undefined` for none
  * @param attempts - New `X-ATTEMPT`s
- * @param tutors - New `X-TUTOR`s, identities of tasks
  * @param tasks - Tasks of the modules of the semester
  * @param now - The moment
  */
-function momentWrite(module: string, open: Entry | undefined, attempts: string[], tutors: string[], tasks: Task[],
-                     now: Date): void {
-
+function momentWrite(module: string, open: Entry | undefined, attempts: string[], tasks: Task[], now: Date): void {
     const quarter: Date = new Date(Math.ceil(now.getTime() / quarterHour) * quarterHour);
-    const worked: string[] = [...tasksOf(attempts), ...tutors];
     if (open === undefined) {
         const plan: Box | undefined = skillBoxOf(module, now);
         const type: string = plan?.type ?? "";
-        const chapters: string[] = chaptersWith([], worked, tasks);
+        const chapters: string[] = chaptersWith([], tasksOf(attempts), tasks);
         const own: [string, string | Link][] = [
             ...chapters.map((chapter: string): [string, string] => ["x-chapter", chapter]),
             ...attempts.map((value: string): [string, string] => ["x-attempt", value]),
-            ...tutors.map((task: string): [string, string] => ["x-tutor", task]),
         ];
         if (plan !== undefined)
             own.push(["related-to", plan.id]);
@@ -1254,13 +1248,11 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
     }
 
     const values: string[] = [...open.attempts, ...attempts];
-    const chapters: string[] =
-        chaptersWith(chaptersOf(open), [...tasksOf(values), ...open.tutors, ...worked], tasks);
+    const chapters: string[] = chaptersWith(chaptersOf(open), [...tasksOf(values), ...open.tutors], tasks);
     const properties: [string, (string | Date | Link)[]][] = [
         ["x-chapter", chapters],
         ["attach", documentLinksOf(open.links)],
         ["x-attempt", values],
-        ["x-tutor", [...open.tutors, ...tutors]],
     ];
     if (quarter > new Date(open.end))
         properties.push(["dtend", [quarter]]);
@@ -1284,13 +1276,10 @@ function momentOf(module: string, now: Date): Entry | undefined {
 
 /**
  * Writes an attempt from a button of a task into the skill entry of the moment, see {@link momentWrite},
- * with the time of the tap; a right attempt at a task I copied for my tutor in that entry is written as guided,
- * since it was solved with help and counts as no hit, see the top of this file.
+ * with the time of the tap.
  * - `tasks`: Tasks of the modules of the semester.
  * - `module`: Module code of its task, the part of its identity before `/`.
  * - `now`: The moment of the attempt.
- * - `open`: The skill entry of the moment.
- * - `guided`: Whether a right attempt was helped, its task copied for my tutor in the entry.
  *
  * @param attempt - Attempt as the page sends it
  * @throws {Error} - When the attempt is not right, see {@link attemptValueOf}
@@ -1299,28 +1288,7 @@ export function attemptAdd(attempt: AttemptNew): void {
     const tasks: Task[] = tasksRead();
     const module: string = attempt.task.split("/")[0];
     const now: Date = new Date();
-    const open: Entry | undefined = momentOf(module, now);
-    const guided: boolean = attempt.result === "right" && (open?.tutors.includes(attempt.task) ?? false);
-    momentWrite(module, open,
-        [attemptValueOf({ ...attempt, result: guided ? "guided" : attempt.result }, tasks, berlinTimeOf(now))],
-        [], tasks, now);
-}
-
-/**
- * Writes that I copied a task for my tutor into the skill entry of the moment, as an `X-TUTOR`, see {@link momentWrite},
- * once per copy, so a right attempt at it after that is guided, see {@link attemptAdd}.
- * - `tasks`: Tasks of the modules of the semester.
- *
- * @param task - Identity of the task, like `IN2028/Kiosk Sales Standard Error`
- * @throws {Error} - When no note holds the task
- */
-export function tutorAdd(task: string): void {
-    const tasks: Task[] = tasksRead();
-    if (!tasks.some((candidate: Task): boolean => candidate.id === task))
-        throw new Error(`No task ${task}`);
-    const module: string = task.split("/")[0];
-    const now: Date = new Date();
-    momentWrite(module, momentOf(module, now), [], [task], tasks, now);
+    momentWrite(module, momentOf(module, now), [attemptValueOf(attempt, tasks, berlinTimeOf(now))], tasks, now);
 }
 
 /**
@@ -1376,8 +1344,7 @@ export function effortSet(effort: EffortNew): void {
 
 /**
  * Renames a task in the log, in the same step as its heading in its note, so its history stays with it:
- * every attempt at it up to now gets the new identity in its `X-ATTEMPT`, and every copy for my tutor in its `X-TUTOR`,
- * every other line stays as it is.
+ * every attempt at it up to now gets the new identity in its `X-ATTEMPT`, every other line stays as it is.
  * For the AI, not for a button; run in the folder of the dashboard like
  * `node -e 'import("./reader/skill.ts").then((skill) => console.log(skill.taskRename("IN2028/Old Name", "IN2028/New Name")))'`.
  * - `tasks`: Tasks of the modules of the semester.
@@ -1400,12 +1367,11 @@ export function taskRename(from: string, to: string): number {
             const line: AttemptLine = attemptLineOf(value);
             return line.task === from ? lineValueOf({ ...line, task: to }) : value;
         });
-        const tutors: string[] = entry.tutors.map((task: string): string => task === from ? to : task);
         const count: number = values.filter((value: string, index: number): boolean => value !== entry.attempts[index]).length;
-        if (count === 0 && tutors.join("\n") === entry.tutors.join("\n"))
+        if (count === 0)
             return;
         const [file]: [string, Entry] = entryFind(skillLog, entry.id);
-        propertiesPut(file, entry.id, [["x-attempt", values], ["x-tutor", tutors]]);
+        propertiesPut(file, entry.id, [["x-attempt", values]]);
         renamed += count;
     });
     return renamed;

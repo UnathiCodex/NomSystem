@@ -28,7 +28,7 @@
  * - `./edit.ts`: Writes a draft note as I edited it, and keeps the change as a diff
  * - `./files.ts`: Lists the files of my new system for the editor, reads one and writes a Markdown file back
  * - `./skill.ts`: Reads the tasks of my chapter notes with when each is due and what a module offers a skill entry,
- *   writes skill entries, attempts, efforts and copies for my tutor into the log, and reads the session running now
+ *   writes skill entries, attempts and efforts into the log, and reads the session running now
  * - `./documents.ts`: Checks the links of the skill entries at the start and every night, repairing what it can,
  *   and reads a file a skill entry links
  * - `./suggestions.ts`: Suggests study sessions as boxes for the plan of a day, never written until I accept one
@@ -56,7 +56,7 @@ import { brokenLinksRead, fileRead, linkedNoteRead, modulesRead } from "./notes.
 import { noteWrite } from "./edit.ts";
 import { systemFileRead, systemFileWrite, treeRead } from "./files.ts";
 import {
-    attemptAdd, effortSet, moduleRead, sessionRead, skillEntryAdd, skillEntryEdit, skillingRead, tutorAdd,
+    attemptAdd, effortSet, moduleRead, sessionRead, skillEntryAdd, skillEntryEdit, skillingRead,
 } from "./skill.ts";
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
 import { suggestionsRead } from "./suggestions.ts";
@@ -174,7 +174,6 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/skill/file?path=…`: Sends a file a skill entry links, by its path from `NomWorkspace`, read only.
  * - `POST /api/skill/attempt`: Writes attempt of the body into the skill entry of the moment.
  * - `POST /api/skill/effort`: Writes the effort of the body into the last attempt at its task.
- * - `POST /api/skill/tutor`: Writes that I copied the task of the body for my tutor into the skill entry of the moment.
  * - `POST /api/skill/entry`: Writes skill entry of the body into the log.
  * - `PATCH /api/skill/entry`: Changes skill entry of the body, adding its new attempts.
  * - `GET /api/skill/session`: Sends the session running now, or `null`.
@@ -359,10 +358,6 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "POST" && url.pathname === "/api/skill/effort") {
         effortSet(await json(request) as EffortNew);
-        responseSend(response, 200, null);
-
-    } else if (request.method === "POST" && url.pathname === "/api/skill/tutor") {
-        tutorAdd((await json(request) as { task: string }).task);
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/skill/entry") {

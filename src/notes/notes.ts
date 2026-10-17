@@ -11,7 +11,7 @@
  * like `#page=10`, and a link that leads nowhere is faded and dotted, its tooltip naming what it looked for.
  * Images and embedded notes come from the reader, and the formulas are rendered last.
  * Under the heading of each task of the semester stands its row: when it is due, its history, the buttons for the next
- * attempt, the copy icon for my tutor, and right after an attempt the tap for my effort on it.
+ * attempt behind its `⋯`, and right after an attempt the question for my effort on it.
  * A cold task, its heading ending with `(cold)`, shows a grey label beside its heading in place of `(cold)`,
  * like `cold · 2 done · 1 right`.
  *
@@ -20,9 +20,7 @@
  * - `./tree.ts`: Builds the address of a note in the scripts view.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due.
  * - `../today.ts`: Gives today's calendar date, for when a task is due.
- * - `../skill/task.ts`: Builds the row of a task with its buttons, the label of a cold task, and the copy icon.
- * - `./tutor.ts`: Writes the text for my tutor about a task or a theory block, which its copy icon puts
- *   on the clipboard.
+ * - `../skill/task.ts`: Builds the row of a task with its menu, and the label of a cold task.
  * - `./notes.css`: Look of the notes.
  */
 
@@ -31,8 +29,7 @@ import { mathRender } from "./math.ts";
 import { noteAddressOf } from "./tree.ts";
 import { skillingLoad } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { coldLabelOf, taskRowOf, tutorCopyOf } from "../skill/task.ts";
-import { theoryTextOf, tutorTextOf } from "./tutor.ts";
+import { coldLabelOf, taskRowOf } from "../skill/task.ts";
 import "./notes.css";
 
 import type { SkillModule, SkillTask, Skilling } from "../skill/attempts.ts";
@@ -194,60 +191,38 @@ async function linksResolve(element: HTMLElement, note: LinkedNote, depth: numbe
 
 /**
  * Shows under the heading of each task of the shown note the row of the task: when it is due, its history,
- * the buttons for the next attempt, which go into the skill entry of the moment, Right and Wrong once its solution
- * is open, the copy icon for my tutor, and right after an attempt the tap for my effort on it;
+ * the menu for the next attempt, which goes into the skill entry of the moment, Right, With tutor and Wrong once its
+ * solution is open, and right after an attempt the question for my effort on it;
  * after each attempt and effort the rows load again. Only tasks of the modules of the semester have a row.
- * A theory block, a block that is no task, gets the copy icon alone beside its heading, see `tutor.ts`.
  * - `tasks`: Tasks of the note, the first of each name.
  * - `today`: Today like `2026-10-10`.
  * - `fold`: Fold of a block.
  * - `solution`: Fold of the solution of a task, the fold inside its block, `null` for none.
  *
  * @param path - Path of the shown note
- * @param note - Markdown text of the shown note, for the text for my tutor
  * @throws {Error} - When the reader cannot read the tasks
  */
-async function tasksShow(path: string, note: string): Promise<void> {
+async function tasksShow(path: string): Promise<void> {
     const skilling: Skilling = await skillingLoad();
     const tasks: SkillTask[] = skilling.modules.flatMap((module: SkillModule): SkillTask[] => module.tasks)
         .filter((task: SkillTask): boolean => task.note === path);
     const today: string = calendarTodayOf();
     const text: HTMLElement = document.getElementById("notes-text") as HTMLElement;
-    text.querySelectorAll(".task-row, .theory-row").forEach((row: Element): void => row.remove());
+    text.querySelectorAll(".task-row").forEach((row: Element): void => row.remove());
     text.querySelectorAll<HTMLElement>(":scope > .fold > summary > h2").forEach((heading: HTMLElement): void => {
         const fold: HTMLElement | null = heading.closest(".fold");
         const task: SkillTask | undefined = tasks.find((candidate: SkillTask): boolean =>
             candidate.heading === heading.dataset.heading);
-        if (task === undefined) {
-            if (tasks.length > 0 && !(heading.dataset.heading ?? "").startsWith("Task."))
-                fold?.querySelector(":scope > .fold-content")?.prepend(theoryRowOf(heading.dataset.heading ?? "", note));
+        if (task === undefined)
             return;
-        }
 
         if (task.cold)
             coldLabelPut(heading, task);
         const solution: HTMLDetailsElement | null =
             fold?.querySelector<HTMLDetailsElement>(":scope > .fold-content > details.fold") ?? null;
         fold?.querySelector(":scope > .fold-content")?.prepend(
-            taskRowOf(task, skilling.skips, skilling.efforts, today, (): string => tutorTextOf(task, note), solution,
-                (): Promise<void> => tasksShow(path, note)));
+            taskRowOf(task, skilling.skips, skilling.efforts, today, solution, (): Promise<void> => tasksShow(path)));
     });
-}
-
-/**
- * Builds the row of a theory block: the quiet copy icon alone, which puts the block with its instruction
- * for my tutor on the clipboard, see `theoryTextOf` in `tutor.ts`.
- * - `row`: The row, at the right.
- *
- * @param heading - Heading of the block as written
- * @param note - Markdown text of the note
- * @returns Row
- */
-function theoryRowOf(heading: string, note: string): HTMLElement {
-    const row: HTMLElement = document.createElement("div");
-    row.className = "task-row theory-row";
-    row.append(tutorCopyOf((): string => theoryTextOf(heading, note), async (): Promise<void> => {}));
-    return row;
 }
 
 /**
@@ -347,7 +322,7 @@ async function noteShow(path: string, heading: string): Promise<void> {
     await linksResolve(text, note, 0);
     mathRender(text);
     stepsPut(text);
-    await tasksShow(path, note.text).catch((error: unknown): void => console.error(error));
+    await tasksShow(path).catch((error: unknown): void => console.error(error));
     cardSet(path, heading);
     headingShow(heading);
 }

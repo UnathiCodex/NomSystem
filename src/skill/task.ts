@@ -14,28 +14,19 @@
  * result, a check after a part that sits in the run; Skip stays for the whole task.
  * Right after an attempt that is no skip, the row offers one tap for my effort on it, low, medium or high,
  * as long as the attempt is of today and has none.
- * After the buttons, a quiet copy icon puts the text for my tutor on the clipboard, the task with my attempts
- * and the theory of its note, to paste into the Claude app on my second screen, see `../notes/tutor.ts`;
- * it also tells the reader, so a right attempt after it counts as guided, not as a hit.
  *
- * - `./attempts.ts`: Sends attempts, efforts and copies for my tutor, and writes days out.
+ * - `./attempts.ts`: Sends attempts and efforts, and writes days out.
  * - `../icons.ts`: Puts icons, alone or with words, into buttons.
- * - `lucide`: The icons of the history, of copying and of the check after it.
+ * - `lucide`: The icons of the history and of the check after a part that sits.
  * - `./task.css`: Look of the row and the history of a task.
  */
 
-import { attemptSend, dayTextOf, effortSend, tutorSend } from "./attempts.ts";
+import { attemptSend, dayTextOf, effortSend } from "./attempts.ts";
 import { iconPut, iconWordsOf } from "../icons.ts";
-import { Check, Copy, History } from "lucide";
+import { Check, History } from "lucide";
 import "./task.css";
 
 import type { Attempt, Effort, Result, SkillTask } from "./attempts.ts";
-
-
-/**
- * Milliseconds the check stands in place of the copy icon after copying.
- */
-const copiedTime: number = 2000;
 
 
 /**
@@ -289,32 +280,6 @@ function skipShow(row: HTMLElement, task: SkillTask, skips: string[], written: (
 }
 
 /**
- * Makes the quiet copy icon of a block, which puts the text for my tutor on the clipboard, and then does
- * what else the copy means, like telling the reader; a check stands in its place for a moment after copying,
- * so I see it worked.
- * - {@link Clipboard#writeText}: Puts a text on the clipboard; the page may, being served from `127.0.0.1`,
- *   `localhost` or over HTTPS.
- *
- * @param tutor - Text for my tutor, see `../notes/tutor.ts`
- * @param copied - What else to do once it is copied
- * @returns Button
- */
-export function tutorCopyOf(tutor: () => string, copied: () => Promise<void>): HTMLButtonElement {
-    const button: HTMLButtonElement = document.createElement("button");
-    button.type = "button";
-    button.className = "task-tutor";
-    iconPut(button, Copy, "Copy for tutor");
-    button.addEventListener("click", (): void => {
-        navigator.clipboard.writeText(tutor()).then((): Promise<void> => {
-            iconPut(button, Check, "Copied");
-            setTimeout((): void => iconPut(button, Copy, "Copy for tutor"), copiedTime);
-            return copied();
-        }).catch((error: unknown): void => console.error(error));
-    });
-    return button;
-}
-
-/**
  * Makes Right, Wrong and Stuck for a task or one of its parts; Right and Wrong as judges, see {@link taskRowOf}.
  *
  * @param row - Row of the task
@@ -365,8 +330,8 @@ function checkOf(): HTMLElement {
 }
 
 /**
- * Builds the row of a task under its heading in the scripts view: when it is due at the left, the buttons at the right
- * with the copy icon for my tutor after them, for a cold task with parts one line of buttons per part below them,
+ * Builds the row of a task under its heading in the scripts view: when it is due at the left, the buttons at the right,
+ * for a cold task with parts one line of buttons per part below them,
  * then the tap for my effort on the attempt just made, its history and the place for the field of Stuck and Skip,
  * each across the row. Right and Wrong hide until the solution is open, and the row marks itself so meanwhile,
  * a grey hint after the state saying so, see `task.css`.
@@ -376,13 +341,12 @@ function checkOf(): HTMLElement {
  * @param skips - Reasons to pick when skipping
  * @param efforts - Efforts to pick after an attempt, the lowest first
  * @param today - Today like `2026-10-10`
- * @param tutor - Gives the text for my tutor, which the copy icon puts on the clipboard
  * @param solution - Fold of the task's solution, `null` when it has none: whether it is open, and a `toggle` when that
  *   changes, like the fold of a card, or as the editor draws the row anew on each fold, see `../editor/tasks.ts`
  * @param written - Shows the task again once an attempt or an effort is written
  * @returns Row
  */
-export function taskRowOf(task: SkillTask, skips: string[], efforts: Effort[], today: string, tutor: () => string,
+export function taskRowOf(task: SkillTask, skips: string[], efforts: Effort[], today: string,
                           solution: (EventTarget & { open: boolean }) | null, written: () => Promise<void>): HTMLElement {
 
     const row: HTMLElement = elementOf("div", "task-row", "");
@@ -396,7 +360,6 @@ export function taskRowOf(task: SkillTask, skips: string[], efforts: Effort[], t
     buttons.append(
         ...(parted ? [] : resultButtonsOf(row, task, "", written)),
         buttonOf("Skip", (): void => skipShow(row, task, skips, written)),
-        tutorCopyOf(tutor, (): Promise<void> => tutorSend(task.id)),
     );
     form.hidden = true;
     row.append(elementOf("span", "task-state", stateTextOf(task, today)),

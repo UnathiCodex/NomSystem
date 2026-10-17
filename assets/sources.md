@@ -31,7 +31,7 @@ The page draws them from the npm package `lucide`, see `src/icons.ts`; the five 
 | [glass-water.svg](icons/glass-water.svg) | Water tracker |
 | [check.svg](icons/check.svg) | Save, a box done, a task that sits |
 | [x.svg](icons/x.svg) | Cancel, skip, remove a food |
-| [copy.svg](icons/copy.svg) | Duplicate, copy a task for my tutor |
+| [copy.svg](icons/copy.svg) | Duplicate |
 | [trash.svg](icons/trash.svg) | Remove |
 | [circle-question-mark.svg](icons/circle-question-mark.svg) | Really remove? |
 | [undo-2.svg](icons/undo-2.svg) | Take back |

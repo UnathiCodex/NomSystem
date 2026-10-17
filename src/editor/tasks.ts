@@ -3,19 +3,17 @@
  *
  * The rows of the tasks of a note in the editor, as the scripts view showed them under their headings,
  * see `../skill/task.ts`: under the heading `##` of each task of the semester its row, when it is due, its history,
- * the buttons for the next attempt, which go into the skill entry of the moment, Right and Wrong once its solution
- * is unfolded, the copy icon for my tutor, and right after an attempt the tap for my effort on it; after each attempt
- * and effort the rows load again. Under the heading of a theory block, a block that is no task, stands its copy icon
- * alone, see `../notes/tutor.ts`. A cold task, its heading ending with `(cold)`, shows a grey label in place of
+ * the menu for the next attempt, which goes into the skill entry of the moment, Right, With tutor and Wrong once its
+ * solution is unfolded, and right after an attempt the question for my effort on it; after each attempt
+ * and effort the rows load again. A cold task, its heading ending with `(cold)`, shows a grey label in place of
  * `(cold)`, like `cold · 2 done · 1 right`, while the cursor is not on its heading.
- * Only a note with tasks of the semester has rows; the text for my tutor is the note as it stands in the editor.
+ * Only a note with tasks of the semester has rows.
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold the tasks of the note and draw the rows as widgets between its lines.
  * - `@codemirror/language`: Tells whether a solution is folded.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due.
  * - `../today.ts`: Gives today's calendar date, for when a task is due.
- * - `../skill/task.ts`: Builds the row of a task, the label of a cold task, and the copy icon.
- * - `../notes/tutor.ts`: Writes the text for my tutor about a task or a theory block.
+ * - `../skill/task.ts`: Builds the row of a task and the label of a cold task.
  */
 
 import { StateEffect, StateField } from "@codemirror/state";
@@ -23,8 +21,7 @@ import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { foldedRanges } from "@codemirror/language";
 import { skillingLoad } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { coldLabelOf, taskRowOf, tutorCopyOf } from "../skill/task.ts";
-import { theoryTextOf, tutorTextOf } from "../notes/tutor.ts";
+import { coldLabelOf, taskRowOf } from "../skill/task.ts";
 
 import type { EditorState, Extension, Line, Range, SelectionRange, StateEffectType, Transaction } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
@@ -52,7 +49,7 @@ type NoteTasks = {
  * The rows of the note: its tasks and the widgets drawn for them.
  *
  * - `loaded`: The tasks of the note, `null` before they are loaded.
- * - `decorations`: The rows, theory rows and labels of cold tasks.
+ * - `decorations`: The rows and labels of cold tasks.
  */
 type Rows = {
     loaded: NoteTasks | null;
@@ -115,60 +112,16 @@ class RowWidget extends WidgetType {
     }
 
     /**
-     * Builds the row; its copy icon writes the text for my tutor from the note as it stands, and each attempt
-     * or effort written loads the rows again, see {@link tasksLoad}.
+     * Builds the row; each attempt or effort written loads the rows again, see {@link tasksLoad}.
      */
     toDOM(view: EditorView): HTMLElement {
         return taskRowOf(this.task, this.loaded.skips, this.loaded.efforts, this.loaded.today,
-            (): string => tutorTextOf(this.task, view.state.sliceDoc()),
             this.open === null ? null : Object.assign(new EventTarget(), { open: this.open }),
             (): Promise<void> => tasksLoad(view, this.loaded.path));
     }
 
     /**
      * Keeps clicks and keys in the row from the editor, so its buttons and fields work as in the scripts view.
-     */
-    override ignoreEvent(): boolean {
-        return true;
-    }
-}
-
-/**
- * Row of a theory block under its heading: the quiet copy icon alone, which puts the block with its instruction
- * for my tutor on the clipboard, see `theoryTextOf` in `../notes/tutor.ts`.
- */
-class TheoryWidget extends WidgetType {
-    /**
-     * Heading of the block as written, like `Definition. Standard Error of the Mean`.
-     */
-    readonly heading: string;
-
-    constructor(heading: string) {
-        super();
-        this.heading = heading;
-    }
-
-    /**
-     * Tells whether another row is that of the same block, so the drawn one stays.
-     */
-    override eq(other: TheoryWidget): boolean {
-        return other.heading === this.heading;
-    }
-
-    /**
-     * Builds the row, its copy icon writing the text for my tutor from the note as it stands.
-     * - `row`: The row.
-     */
-    toDOM(view: EditorView): HTMLElement {
-        const row: HTMLElement = document.createElement("div");
-        row.className = "task-row theory-row";
-        row.append(tutorCopyOf((): string => theoryTextOf(this.heading, view.state.sliceDoc()),
-            async (): Promise<void> => {}));
-        return row;
-    }
-
-    /**
-     * Keeps a click on the copy icon from the editor.
      */
     override ignoreEvent(): boolean {
         return true;
@@ -232,12 +185,12 @@ function solutionOpenOf(state: EditorState, heading: Line): boolean | null {
 }
 
 /**
- * Builds the rows of the note, see the top of this file: a row after the heading of each task, a theory row after
- * the heading of each other block, both as wide as the page, and the label of a cold task in place of its `(cold)`
+ * Builds the rows of the note, see the top of this file: a row after the heading of each task,
+ * as wide as the page, and the label of a cold task in place of its `(cold)`
  * while the cursor is not on its heading.
  * - `decorations`: The rows and labels found so far.
  * - `line`: A line of the note, and `text` the text of its heading `##`, `undefined` for none.
- * - `task`: The task of the heading, `undefined` for a theory block.
+ * - `task`: The task of the heading, `undefined` for any other block.
  * - `cold`: Where `(cold)` stands in the heading of a cold task, `null` for no such task.
  *
  * @param state - Text, cursor and folds of the note
@@ -255,10 +208,6 @@ function decorationsOf(state: EditorState, loaded: NoteTasks | null): Decoration
         if (text === undefined)
             continue;
         const task: SkillTask | undefined = loaded.tasks.find((candidate: SkillTask): boolean => candidate.heading === text);
-        if (task === undefined && !text.startsWith("Task.")) {
-            decorations.push(Decoration.widget({ widget: new TheoryWidget(text), block: true, side: 1 }).range(line.to));
-            continue;
-        }
         if (task === undefined)
             continue;
         const cold: RegExpExecArray | null = task.cold ? coldMark.exec(line.text) : null;
