@@ -7,12 +7,14 @@
  * Only the modules of the semester have tasks, see `activeModules`; their chapters and tasks are read live
  * from the folders every time, so a changed chapter changes the views too, and no list of them is kept anywhere.
  * A task is a block of a note of a chapter folder like `01_RegressionAnalysis`, in the drafts or in my modules,
- * its kind by the type word of its heading: `## Example. <name>` with a `#### Solution` is worked, whose solution
- * opens one step at a time, an Example without one being theory; `## Completion. <name>` is faded, its `Given:` and
- * `Missing:` lines saying what it gives and what I fill in; `## Task. <name>` is cold, the one I solve alone, one of its
- * variants due per round. A note still written the older way, with a heading `## Task. <name> (cold)`, keeps its
- * meaning: that one is cold, `(cold)` no part of its name, and each plain `## Task. <name>` faded with `Given:` and
- * `Missing:` lines, else worked. Its source is the `>` line right below its heading,
+ * its kind by the type word of its heading: `## Example. <name>` with `Given:` and `Missing:` lines is faded,
+ * an example with gaps, those lines saying what it gives and what I fill in; `## Task. <name>` is cold, the one
+ * I solve alone, one of its variants due per round; a `## Definition.` and the `## Algorithm.`, the one worked
+ * example, are theory.
+ * An older note keeps its meaning: an Example with only a `#### Solution` is worked, one without it theory,
+ * and `## Completion. <name>` faded; a heading `## Task. <name> (cold)` is cold, `(cold)` no part of its name,
+ * and each plain `## Task. <name>` there faded with `Given:` and `Missing:` lines, else worked.
+ * Its source is the `>` line right below its heading,
  * like `> [[VO_UniversityLectureLessons/TUM_2025W/01_CourseOverview.pdf#page=45|VO 2025W 01_CourseOverview (slide 45)]]`;
  * a note not yet rewritten still starts it with a mode word, `> Original: …` or `> Generated: …`, which is left out.
  * The parts of a cold task, one per idea, are its numbered list items at the start of a line,
@@ -69,7 +71,8 @@
  * The cold task is one run of its section: an attempt judges it as a whole, and the run counts once it is right
  * on or after the day it was due; a failed one comes back 2 days later, and the section steps back one run instead
  * of to none (Rawson 2018); an older attempt may judge one of its parts, and its run counted once every part sat.
- * After the first run the section is due 7 days later, after the second 21 days later; after the third it is ready,
+ * After the first run, mostly the Task of round 0, the section is due 1 day later, after the second 7 days later,
+ * after the third 21 days later; after the fourth it is ready, three runs spaced after the first,
  * and comes back about 14 days before its exam, with one keep-up check halfway when the exam lies more than 6 weeks
  * off, see {@link exams} (Cepeda 2008, Rohrer 2005).
  * A right attempt before its day counts as none, so the runs stay spaced; a guided one, right with my tutor's help,
@@ -195,10 +198,10 @@ export type Attempt = {
  * - `due`: Day it is due next, like `2026-10-12`; empty when nothing is due: a task never tried, a task of the ladder
  *   done or behind its section's first cold run, and a ready cold task until its exam comes near.
  * - `done`: For a task of the ladder, whether I solved it right once, or its section has a cold run.
- * - `level`: For a cold task, the runs of its section that count, 0 to 3.
+ * - `level`: For a cold task, the runs of its section that count, 0 to 4.
  * - `open`: For a cold task, its parts still to sit in its run, all of them when none sits yet;
  *   none for a task without parts.
- * - `ready`: For a cold task, whether its section has its three runs, spaced as the protocol says.
+ * - `ready`: For a cold task, whether its section has its four runs, spaced as the protocol says.
  * - `skipped`: Whether its last attempt skipped it, which takes it out of the due list.
  * - `attempts`: All its attempts, the latest last.
  */
@@ -219,6 +222,8 @@ export type SkillTask = Task & {
  * - `note`: Path of its note, as the scripts view takes it.
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
  * - `cold`: Identity of its cold task of today, the variant {@link variantIndexOf} gives, empty when it has none yet.
+ * - `algorithm`: Heading of its Algorithm as written, the one worked example, at the bottom of its ladder, like
+ *   `Algorithm. Check an Estimator for Bias`, see {@link algorithmOf}; empty for none.
  * - `tasks`: Number of its tasks, the cold one included.
  * - `tried`: Number of its tasks I tried, skips not counted.
  * - `round`: Its round, the runs of its cold task done before today, so it stays the whole day: round 0 until the first
@@ -238,6 +243,7 @@ export type SkillSection = {
     note: string;
     chapter: string;
     cold: string;
+    algorithm: string;
     tasks: number;
     tried: number;
     round: number;
@@ -257,8 +263,8 @@ export type SkillSection = {
  * like `01_01_SampleMeanEstimator;1;Algorithm. Check an Estimator for Bias` and `01_01_SampleMeanEstimator;1;done`;
  * the steps before it count as passed.
  * A step is named by its key, its heading as written, and for a step a failure brought back, the heading of the block
- * that failed after ` after `, like `Example. Unbiased Mean Check after Completion. Cautious Owner Estimate`.
- * Round 0 goes on over days until I close it; a later round, one Task and the fallback its failure brings, counts its
+ * whose failure began the way down after ` after `, like `Example. Kiosk Double Count after Task. Juice Bar`.
+ * Round 0 goes on over days until I close it; a later round, one Task and what its failure brings back, counts its
  * lines of its day only, since a failed run repeats the round on another day.
  * An older line, one per thing I did, starts with its time and names the section with its module, then its round,
  * its kind and its step, like `091500;IN2028/01_01_SampleMeanEstimator;0;seen;Definition. Population and Sample`:
@@ -529,10 +535,11 @@ const roundDone: string = "done";
 const retryDays: number = 2;
 
 /**
- * Days until a section is due again after its first and its second run;
- * after the third, one more than there are gaps, it is ready and due before its exam, see {@link examDueOf}.
+ * Days until a section is due again after its first, second and third right run: the next round tomorrow, then after
+ * 7 and after 21 days; after the fourth, one more than there are gaps, it is ready and due before its exam,
+ * see {@link dueAfter}.
  */
-const spacingDays: number[] = [7, 21];
+const spacingDays: number[] = [1, 7, 21];
 
 /**
  * Days before its exam a ready section comes back once more, cold.
@@ -599,6 +606,11 @@ const sessionPause: number = 30 * 60 * 1000;
 const taskHeading: RegExp = /^## ((Example|Completion|Task)\.[ \t]+(.+?)(?:[ \t]+(\(cold\)))?)[ \t]*$/;
 
 /**
+ * Heading of the Algorithm of a note, `## Algorithm. <name>`, the one worked example: the heading as written.
+ */
+const algorithmHeading: RegExp = /^##[ \t]+(Algorithm\.[ \t]+.+?)[ \t]*$/;
+
+/**
  * Heading of a cold task written the older way, `## Task. <name> (cold)`, which marks the whole note as written so.
  */
 const olderCold: RegExp = /^## Task\.[ \t]+.+[ \t]+\(cold\)[ \t]*$/;
@@ -649,9 +661,11 @@ function blockOf(lines: string[], index: number): string[] {
 }
 
 /**
- * Tells the kind of a task by the type word of its heading, see the top of this file; a note written the older way
- * makes `(cold)` cold, and a plain `Task.` faded or worked by its lines. An Example without a solution is theory.
+ * Tells the kind of a task by the type word of its heading, see the top of this file: an Example with gaps faded,
+ * an older one with only a solution worked, one without it theory; a note written the older way makes `(cold)` cold,
+ * and a plain `Task.` faded or worked by its lines.
  * - `block`: Lines of the block.
+ * - `gapped`: Whether it has `Given:` and `Missing:` lines.
  *
  * @param word - Type word of the heading, like `Example`
  * @param cold - Whether the heading ends with `(cold)`
@@ -662,14 +676,29 @@ function blockOf(lines: string[], index: number): string[] {
  */
 function kindOf(word: string, cold: boolean, older: boolean, lines: string[], index: number): Kind | null {
     const block: string[] = blockOf(lines, index);
+    const gapped: boolean = block.some((line: string): boolean => line.startsWith("Given:"))
+        && block.some((line: string): boolean => line.startsWith("Missing:"));
     if (word === "Example")
-        return block.some((line: string): boolean => /^####[ \t]+Solution\b/.test(line)) ? "worked" : null;
+        return gapped ? "faded"
+            : block.some((line: string): boolean => /^####[ \t]+Solution\b/.test(line)) ? "worked" : null;
     if (word === "Completion")
         return "faded";
     if (!older || cold)
         return "cold";
-    return block.some((line: string): boolean => line.startsWith("Given:"))
-        && block.some((line: string): boolean => line.startsWith("Missing:")) ? "faded" : "worked";
+    return gapped ? "faded" : "worked";
+}
+
+/**
+ * Gives the heading of the Algorithm of a note, its first `## Algorithm. <name>`, see {@link algorithmHeading}.
+ *
+ * @param note - Path of the note, as the scripts view takes it
+ * @returns Heading as written, like `Algorithm. Check an Estimator for Bias`, empty for none
+ * @throws {Error} - When the note cannot be read
+ */
+function algorithmOf(note: string): string {
+    return fileRead(note).content.toString("utf8").split(/\r?\n/)
+        .map((line: string): string => algorithmHeading.exec(line)?.[1] ?? "")
+        .find((heading: string): boolean => heading !== "") ?? "";
 }
 
 /**
@@ -890,9 +919,10 @@ function daysBetween(from: string, to: string): number {
 }
 
 /**
- * Tells when a section is due after a run on a day, see the top of this file: after the first 7 days later,
- * after the second 21 days later; once ready, {@link examDays} before its exam, with a keep-up check halfway
- * while the exam lies more than {@link keepUpDays} off, and nothing once that last check before the exam is done.
+ * Tells when a section is due after a run on a day, see the top of this file: after the first 1 day later,
+ * after the second 7, after the third 21 days later; once ready, {@link examDays} before its exam, with a keep-up
+ * check halfway while the exam lies more than {@link keepUpDays} off, and nothing once that last check before the exam
+ * is done.
  * - `check`: Day of the last check, before the exam.
  *
  * @param level - Runs that count, the new one included
@@ -1040,8 +1070,8 @@ function variantIndexOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attem
 /**
  * Builds the sections of a module from its tasks, in their order: one per note, with its round, whether it still
  * learns the ladder, its cold task of today with the days it comes back after a right or a failed run today,
- * and how many of its tasks I tried, and where I am in the round shown, from the lines `X-ROUND` of the log alone,
- * see {@link RoundLine}. Round 0, the ladder, lasts while no cold task has an attempt on a day before today, or while
+ * the heading of its Algorithm, and how many of its tasks I tried, and where I am in the round shown, from the lines
+ * `X-ROUND` of the log alone, see {@link RoundLine}. Round 0, the ladder, lasts while no cold task has an attempt on a day before today, or while
  * I began it with `Next` and have not closed it, so it goes on over days until my close; its Task is the first variant.
  * - `notes`: Tasks by their notes, in order.
  * - `colds`: Cold tasks of a note, its variants, and `cold` the first, which holds the level of all.
@@ -1076,6 +1106,7 @@ function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate, lines: Ro
             note: own[0].note,
             chapter: own[0].chapter,
             cold: cold === undefined ? "" : ladder ? cold.id : colds[variantIndexOf(colds, attemptsOf, today)].id,
+            algorithm: algorithmOf(own[0].note),
             tasks: own.length,
             tried: own.filter((task: SkillTask): boolean =>
                 task.attempts.some((attempt: Attempt): boolean => attempt.result !== "skipped")).length,

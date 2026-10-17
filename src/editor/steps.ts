@@ -9,8 +9,9 @@
  * Hiding is only for reading: the text stays as it is, the cursor stays at the end of the last step shown, also after End,
  * and the cursor going into a hidden step, like by the arrow keys or a new line, shows the whole solution,
  * so I edit it as before.
- * The solution of a worked Example, `## Example. …`, shows whole, spread out, since studying it whole is its point,
- * see {@link workedIs}.
+ * The solution of a worked Example, `## Example. …` in an older note, without `Given:` and `Missing:` lines, shows
+ * whole, spread out, since studying it whole is its point, see {@link workedIs}; an Example with gaps folds its
+ * solution like a Task.
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold how many steps of each solution show, hide the others,
  *   and draw the buttons below the solution as a widget.
@@ -202,7 +203,8 @@ function solutionsOf(state: EditorState): Solution[] {
 
 /**
  * Tells whether a line stands in a worked Example, the block under the nearest heading `##` above it being
- * `## Example. …`, whose solution shows whole.
+ * `## Example. …` without `Given:` and `Missing:` lines above the line, whose solution shows whole.
+ * - `given`, `missing`: Whether a line `Given:` or `Missing:` stands between the heading and the line.
  * - `number`: A line above it.
  *
  * @param state - Text of the note
@@ -210,10 +212,14 @@ function solutionsOf(state: EditorState): Solution[] {
  * @returns Whether it stands in a worked Example
  */
 export function workedIs(state: EditorState, line: Line): boolean {
+    let given: boolean = false;
+    let missing: boolean = false;
     for (let number: number = line.number; number >= 1; number--) {
         const text: string = state.doc.line(number).text;
         if (blockRule.test(text))
-            return exampleRule.test(text);
+            return exampleRule.test(text) && !(given && missing);
+        given ||= text.startsWith("Given:");
+        missing ||= text.startsWith("Missing:");
     }
     return false;
 }

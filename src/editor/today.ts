@@ -4,29 +4,31 @@
  * What the scripts view shows while no note is open: the day of learning, looking like the day view, see `../day/`:
  * the date as its bar shows it, the weekday small and grey above it, and one list below, each item due today a card
  * as a box of the plan, see `.box` in `../day/boxes.css`: its title the section in words and what is due, like
- * `Sample Mean Estimator · Task · Bakery Chain`, `Sample Mean Estimator · Completion · Cautious Owner Estimate` or
+ * `Sample Mean Estimator · Task · Bakery Chain`, `Sample Mean Estimator · Example · Kiosk Half Trend` or
  * `Sample Mean Estimator · new`, below it grey the code of its module; a tap opens it, see `./round.ts`, which shows
  * only what is due. Nothing else.
- * The order is that of a session: the Tasks due first, each with the Completion its failure today brings back right
- * after it, then the section new today: the one begun on its ladder, by an attempt or a `Next`, else the first not yet
- * begun. A tap opens the round where it stands, see `./round.ts`.
- * An item stays in its place, grey, as a done box of the plan does, once its round is closed by hand; a fallback
- * also once tried.
+ * The order is that of a session: the Tasks due first, each with what its failure today brings back right after it,
+ * by the round's own ladder, one Example easier each, see `fallbacksOf` in `./round.ts`, then the section new today:
+ * the one begun on its ladder, by an attempt or a `Next`, else the first not yet begun. A tap opens the round where
+ * it stands, see `./round.ts`.
+ * An item stays in its place, grey, as a done box of the plan does, once its round is closed by hand; an Example
+ * brought back also once tried.
  *
  * - `../skill/attempts.ts`: Loads the tasks and sections with when each is due.
  * - `../notes/tree.ts`: Builds the address of a note at a heading.
  * - `../day/times.ts`: Writes the date as the day view does.
- * - `./round.ts`: The Completion a failed Task brings back, by the round's own pick, and when an attempt was made.
+ * - `./round.ts`: What a failed Task brings back, by the round's own ladder, and when an attempt was made.
  * - `../day/boxes.css`: Look of the cards, those of the plan.
  */
 
 import { skillingLoad } from "../skill/attempts.ts";
 import { noteAddressOf } from "../notes/tree.ts";
 import { dateTextOf } from "../day/times.ts";
-import { fallbackOf, timeOf } from "./round.ts";
+import { fallbacksOf, timeOf } from "./round.ts";
 import "../day/boxes.css";
 
 import type { Attempt, SkillModule, SkillSection, SkillTask, Skilling } from "../skill/attempts.ts";
+import type { Fallback } from "./round.ts";
 
 
 /**
@@ -57,11 +59,10 @@ function wordsOf(section: SkillSection): string {
 
 /**
  * Builds the items of a module for today, see the top of this file.
- * - `items`, `fresh`: The Tasks with their fallbacks, and the new sections.
+ * - `items`, `fresh`: The Tasks with what their failures bring back, and the new sections.
  * - `tasks`, `cold`: Tasks of a section and its Task of today.
  * - `tried`: Its attempts at that Task today, skips left out.
- * - `failure`: The first of them that failed, `undefined` for none.
- * - `back`: The Completion that failure brings back.
+ * - `again`: Whether what a failure brought back was tried after it.
  *
  * @param module - Module
  * @param today - Today like `2026-10-17`
@@ -88,12 +89,12 @@ function itemsOf(module: SkillModule, today: string): Item[] {
             return;
         items.push({ title: `${wordsOf(section)} · Task · ${cold.name}`, module: module.code,
             address: noteAddressOf(section.note, ""), done: section.closed });
-        const failure: Attempt | undefined = tried.find((attempt: Attempt): boolean => attempt.result !== "right");
-        const back: SkillTask | undefined = failure === undefined ? undefined : fallbackOf(tasks, timeOf(failure));
-        if (failure !== undefined && back !== undefined)
-            items.push({ title: `${wordsOf(section)} · Completion · ${back.name}`, module: module.code,
-                address: noteAddressOf(section.note, ""), done: section.closed
-                    || back.attempts.some((attempt: Attempt): boolean => timeOf(attempt) > timeOf(failure)) });
+        fallbacksOf(tasks, section.algorithm, cold, today).forEach((fallback: Fallback): void => {
+            const again: boolean = fallback.task?.attempts.some((attempt: Attempt): boolean =>
+                timeOf(attempt) > fallback.since) ?? false;
+            items.push({ title: `${wordsOf(section)} · ${fallback.heading.replace(/^(\w+)\.[ \t]+/, "$1 · ")}`,
+                module: module.code, address: noteAddressOf(section.note, ""), done: section.closed || again });
+        });
     });
     const next: SkillSection | undefined = sections.find((section: SkillSection): boolean =>
         section.tried === 0 && section.at === "" && !section.closed);

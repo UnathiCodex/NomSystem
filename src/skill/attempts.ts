@@ -59,8 +59,8 @@ export type Attempt = {
  * - `note`: Path of its note, as the scripts view takes it.
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
  * - `section`: Name of its section, its note, like `01_01_SampleMeanStandardError`.
- * - `kind`: Its kind by the type word of its heading: worked, an Example with a solution; faded, a Completion;
- *   or cold, a Task.
+ * - `kind`: Its kind by the type word of its heading: faded, an Example with gaps, or an older Completion; worked,
+ *   an older Example with only a solution; or cold, a Task.
  * - `parts`: Numbers of the parts of a cold task, like `1`, `2` and `3`, none for any other task.
  */
 export type Task = {
@@ -80,9 +80,9 @@ export type Task = {
  *
  * - `due`: Day it is due next, like `2026-10-12`; empty when nothing is due, like for a task never tried.
  * - `done`: For a task of the ladder, whether I solved it right once, or its section has a cold run.
- * - `level`: For a cold task, the runs of its section that count, 0 to 3.
+ * - `level`: For a cold task, the runs of its section that count, 0 to 4.
  * - `open`: For a cold task, its parts still to sit in its run; none for a task without parts.
- * - `ready`: For a cold task, whether its section has its three runs.
+ * - `ready`: For a cold task, whether its section has its four runs.
  * - `skipped`: Whether its last attempt skipped it.
  * - `attempts`: All its attempts, the latest last.
  */
@@ -103,6 +103,8 @@ export type SkillTask = Task & {
  * - `note`: Path of its note.
  * - `chapter`: Name of its chapter.
  * - `cold`: Identity of its cold task of today, the one variant due, empty when it has none yet.
+ * - `algorithm`: Heading of its Algorithm as written, the one worked example, at the bottom of its ladder;
+ *   empty for none.
  * - `tasks`: Number of its tasks.
  * - `tried`: Number of its tasks I tried.
  * - `round`: Its round, the runs of its cold task done before today: a right run moves it on, a failed one leaves it.
@@ -119,6 +121,7 @@ export type SkillSection = {
     note: string;
     chapter: string;
     cold: string;
+    algorithm: string;
     tasks: number;
     tried: number;
     round: number;
