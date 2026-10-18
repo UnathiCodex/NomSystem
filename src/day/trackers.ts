@@ -57,9 +57,7 @@ import type { Totals } from "../food/foods.ts";
  * - `waterMl`: Millilitres of water I want a day.
  * - `bedtimeVaried`: Minutes my bedtime may vary over the week, up or down, for its check.
  * - `neckLongWeek`: Long neck sessions I want in seven days; a short one, or a long, on every study day.
- * - `sessionMinutes`: Minutes of one suggested study session.
- * - `studyMinutes`: Minutes of learning a day at most, lectures included.
- * - `focusMinutes`: Minutes of a session after which its timer suggests a short break.
+ * - `sessionMinutes`: Minutes of one study session.
  */
 type TrackerSettings = {
     sleepHours: number;
@@ -69,8 +67,6 @@ type TrackerSettings = {
     bedtimeVaried: number;
     neckLongWeek: number;
     sessionMinutes: number;
-    studyMinutes: number;
-    focusMinutes: number;
 };
 
 /**

@@ -186,8 +186,8 @@
     }
 }
 
-/* Today, while no note is open, see `today.ts`: the date as the bar of the day, the cards below it a step apart,
-   as plan and log stand below the bar; a card a link without its line */
+/* Today, while no note is open, see `today.ts`: the date as the bar of the day, the entries below it a step apart,
+   as plan and log stand below the bar */
 .editor-today {
     display: flex;
     flex-direction: column;
@@ -199,18 +199,69 @@
     min-height: var(--control-height);
 }
 
-.today-card {
-    color: inherit;
+/* An entry of a chapter, as its box in the plan but no button itself: it stays as it is under the pointer, and only
+   its notes are links */
+.today-entry .box-body {
+    cursor: default;
+}
+
+@media (hover: hover) {
+    .today-entry:hover {
+        background: var(--fill);
+    }
+}
+
+/* The middle dot between the parts of its grey line, as the day view draws it, see `.entry-parted` in `day.css` */
+.today-entry .entry-parted::before {
+    content: "·";
+    margin-inline: 0.5em;
+}
+
+/* Notes to do of an entry, each a small box of its own below the grey line, a little lighter than the entry,
+   on one line, ending in `…` where it is too long, a link without its line; lighter still under the pointer;
+   grey once done */
+.today-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-top: 0.625rem;
+}
+
+.today-note {
+    overflow: hidden;
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--chip-radius);
+    background: var(--chosen);
+    color: var(--text-main);
     text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.today-note:hover {
+    background: var(--chosen-over);
+}
+
+.today-note-done {
+    color: var(--text-muted);
+}
+
+/* What is due, `Task`, `Example` or `NEW`, in a smaller box of its own between the section and the name,
+   framed in the grey of a line, its words small and grey */
+.today-kind {
+    display: inline-block;
+    margin: 0 0.5rem;
+    padding: 0 0.375rem;
+    border: 1px solid var(--chosen-line);
+    border-radius: calc(var(--chip-radius) / 2);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    line-height: 1.25rem;
 }
 
 /* Over Today no head, the date standing where the name of a note stands */
 .editor-on-today .editor-head {
     display: none;
-}
-
-.today-card .box-what {
-    font-weight: 600;
 }
 
 /* Text in the font and lines of the scripts view, without a frame when focused and without room around the lines;

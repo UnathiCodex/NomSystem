@@ -5,15 +5,17 @@
  * its birthdays and holidays at the top, each looking like a box, with my gift idea for it beside it, when I have one,
  * see `gifts.ts`, then the boxes one after another like the stations of the day, as real as the log:
  * those with an expected time by their time, like my lectures, a cancelled one faded in its place, then those with
- * a deadline, then those without either, then tomorrow's suggested study sessions, dashed, see `suggestions.ts`,
- * and the cancelled boxes without time last; on today below them the boxes carried along, see below.
+ * a deadline, then those without either, like the chapters I learn today, which the reader puts there itself,
+ * see `reader/suggestions.ts`, and the cancelled boxes without time last; on today below them the boxes carried along,
+ * see below.
  * Every box has the same lines, open or done: its category in bold with a colon and what,
- * like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`, as an entry of the log does, then grey its expected time,
- * its length only where no end shows it, with its place after them, by its label alone,
- * like `11:30 – 13:00 · Audimax im Galileo` or `01h 15m · Home Munich`, the place opening its link on a click when
- * it has one; then what it is about, each of its chapters and documents on a line of its own with a bullet,
- * by the last part of its path, like `02_LogisticPoissonRegression` and `04_LogisticPoissonRegression.pdf`, none
- * for a lecture, whose topic is not known before; a line without anything to say is left out.
+ * like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`, as an entry of the log does, on one line, ending in `…`
+ * where it is too long; then grey its expected time, its length only where no end shows it, with its place
+ * and its chapters after them, its place by its label alone, its chapters in words,
+ * like `11:30 – 13:00 · Audimax im Galileo` or `01h 00m · 01 Regression Analysis`, the place opening its link
+ * on a click when it has one; then the documents it will use, each on a line of its own with a bullet, by the last part
+ * of its path, like `04_LogisticPoissonRegression.pdf`, none for a lecture, whose slides are not known before;
+ * a line without anything to say is left out.
  * No line counts the pushes or asks about them: a box goes on as often as I push it, and one I no longer want
  * I skip myself.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
@@ -52,12 +54,11 @@
  * a category; a box that cannot be changed, like an occurrence of a weekly lecture, is logged like any other,
  * and opens the entry by category of the log when clicked.
  * The list loads again when the shown day or its log changes, since a box is done once a log entry points to it,
- * when the entry by category closes, and after a push, a cancel or a suggestion accepted.
+ * when the entry by category closes, and after a push or a cancel.
  *
  * - `fullcalendar/interaction`: Drags the boxes into the log.
  * - `./entries.ts`: Sends logged, taken back, pushed and cancelled boxes to the reader, and names who I will be with.
  * - `./categories.ts`: Opens the entry by category for a new box, a box to change, and a box to log through it.
- * - `./suggestions.ts`: Loads the study sessions suggested for tomorrow, accepts and dismisses them.
  * - `./gifts.ts`: Opens the dialog of the gift idea for a birthday or holiday.
  * - `./places.ts`: Gives the name of the place of a box, a link when it has one.
  * - `./times.ts`: Gives the times a box is logged at with one tap, and writes times of day.
@@ -76,10 +77,9 @@ import { Draggable } from "fullcalendar/interaction";
 import { boxDrop, boxLog, boxPush, boxSubmit, boxUndo, boxUniversity } from "./entries.ts";
 import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
 import { breakableOf } from "./choices.ts";
-import { suggestionAccept, suggestionDismiss, suggestionOpen, suggestionsLoad } from "./suggestions.ts";
 import { giftOpen } from "./gifts.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
-import { linkNameOf } from "../skill/links.ts";
+import { chapterNameOf, linkNameOf } from "../skill/links.ts";
 import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
@@ -91,7 +91,6 @@ import { ArrowRight, CalendarOff, Check, Gift, Undo2, X } from "lucide";
 
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
 import type { IconNode } from "lucide";
-import type { Suggestion } from "./suggestions.ts";
 import type { Attendee } from "./entries.ts";
 import type { Link } from "../skill/attempts.ts";
 
@@ -233,17 +232,6 @@ export type PlanDay = {
  * The plan of the shown day, as loaded last.
  */
 let shown: PlanDay = { day: "", occasions: [], boxes: [] };
-
-/**
- * The study sessions suggested for the shown day, as loaded last, none for any day but tomorrow.
- */
-let suggested: Suggestion[] = [];
-
-/**
- * Whether the plan shows the suggested study sessions, see `suggestions.ts`: not until I have talked them through,
- * then `true`.
- */
-const suggestionsShown: boolean = false;
 
 /**
  * The boxes carried along to the shown day, as loaded last: those of the days before it, neither done nor cancelled,
@@ -405,18 +393,19 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
 /**
  * Makes the lines of a box, the same whether it is open or done, see the top
  * of this file, as an entry of the log has them: what it is in bold, see {@link whatOf},
- * like **`Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`**, see {@link shownWhatOf}, its long names breakable,
- * see `breakableOf` in `choices.ts`; then its time in the light grey of a time, its parts apart by a middle dot
+ * like **`Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`**, see {@link shownWhatOf}, on one line, see `.box-what`
+ * in `boxes.css`; then its time in the light grey of a time, its parts apart by a middle dot
  * with room on both sides, see {@link timePartsOf}, and after it its place in the darker grey, by its label alone,
  * its address hidden, like `16:00 – 17:30 · Audimax im Galileo`, a way its route, like `Home Munich → TUM Garching`,
- * see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click instead of the box; then its topics,
- * one per line with a bullet, see {@link topicsOf}; a line without anything to say is left out, a line wider than
- * the box goes on below, see `.box-what` in `boxes.css`.
+ * see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click instead of the box, and its chapters
+ * in words, like `01 Regression Analysis`, see `chapterNameOf` in `../skill/links.ts`; then its documents, one per line
+ * with a bullet, see {@link topicsOf}; a line without anything to say is left out.
  * - `what`: What it is as shown.
  * - `times`: The parts of its time, the first plain, each further one after its dot, see `.entry-parted` in `day.css`.
  * - `place`: The label of its place or the route of a way, empty for none.
- * - `meta`: Its time and its place, as far as it has them, the place after a dot when a time stands before it.
- * - `topics`: Its chapters and documents.
+ * - `rest`: Its place and its chapters, each after a dot when something stands before it.
+ * - `meta`: Its time, its place and its chapters, as far as it has them.
+ * - `topics`: Its documents.
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
@@ -428,14 +417,18 @@ function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] 
     const times: (string | Node)[] = timePartsOf(box, day, nearShown).map((part: string, index: number):
         string | Node => index === 0 ? part : entryPartOf("span", "entry-parted", [part]));
     const place: string = whereOf(box.category, box.from, box.location);
+    const rest: (string | Node)[][] = [
+        ...(place === "" ? [] : [whereLinkedOf(box.category, box.from, box.location, box.locationLink)]),
+        ...box.chapters.map((chapter: string): string[] => [chapterNameOf(chapter)]),
+    ];
     const meta: HTMLElement[] = [
         ...(times.length === 0 ? [] : [entryPartOf("span", "box-part box-time", times)]),
-        ...(place === "" ? [] : [entryPartOf("span", times.length === 0 ? "box-part" : "box-part entry-parted",
-            whereLinkedOf(box.category, box.from, box.location, box.locationLink))]),
+        ...rest.map((parts: (string | Node)[], index: number): HTMLElement =>
+            entryPartOf("span", times.length === 0 && index === 0 ? "box-part" : "box-part entry-parted", parts)),
     ];
     const topics: string[] = topicsOf(box);
     return [
-        entryPartOf("div", "box-what", whatOf(box.category, what === box.category ? "" : breakableOf(what))),
+        entryPartOf("div", "box-what", whatOf(box.category, what === box.category ? "" : what)),
         ...(meta.length === 0 ? [] : [entryPartOf("div", "box-meta", meta)]),
         ...(topics.length === 0 ? [] : [entryPartOf("ul", "box-topics", topics.map((topic: string): HTMLElement =>
             entryPartOf("li", "", [breakableOf(topic)])))]),
@@ -443,26 +436,22 @@ function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] 
 }
 
 /**
- * Gives what a box is about, as I planned it: each of its chapters by the name of its folder, like
- * `02_LogisticPoissonRegression`, then each document it links by its name, the last part of its path, like `04_LogisticPoissonRegression.pdf`;
- * a folder it links, which an older box may, shows as its chapter or not at all, see `chaptersOf`
- * in `reader/documents.ts`.
+ * Gives the documents a box will use, as I planned them, each by its name, the last part of its path,
+ * like `04_LogisticPoissonRegression.pdf`; a folder it links, which an older box may, shows as its chapter
+ * or not at all, see `chaptersOf` in `reader/documents.ts`.
  *
  * @param box - The box
- * @returns Its chapters and documents, in order, none for none
+ * @returns Its documents, in order, none for none
  */
 function topicsOf(box: Box): string[] {
-    return [
-        ...box.chapters,
-        ...box.links.filter((link: Link): boolean => link.fingerprint !== "").map(linkNameOf),
-    ];
+    return box.links.filter((link: Link): boolean => link.fingerprint !== "").map(linkNameOf);
 }
 
 /**
  * Makes the birthdays and holidays of a day, each above its boxes looking like a box, see {@link boxElementOf},
  * so it reads as an appointment of the day: its category in bold with a colon as what a box is, like
  * **`Birthday:`**` Karlbauer Florian`, see {@link whatOf}, and beside it, after a middle dot, my gift idea for it,
- * when I have one, like `· Concert tickets`, going on below where the line is too narrow, as what a box is does;
+ * when I have one, like `· Concert tickets`, ending in `…` where the line is too narrow, as what a box is does;
  * in the place of the ring an empty one, so its line starts where those of the boxes do, and no buttons, since it is
  * never logged. A click on it opens the dialog of its gift idea, see `gifts.ts`, and one without an idea shows
  * the gift at its right under the pointer.
@@ -611,7 +600,7 @@ function actionOf(calendar: Calendar, icon: IconNode, words: string, send: () =>
 }
 
 /**
- * Puts the buttons of a box or a suggestion behind one button `⋯` at its right, see `../menu.ts`
+ * Puts the buttons of a box behind one button `⋯` at its right, see `../menu.ts`
  * and `.box-actions` in `boxes.css`, so the line of what the box is keeps its room.
  * - `place`: The button `⋯` with its menu.
  *
@@ -696,37 +685,6 @@ function boxElementOf(calendar: Calendar, box: Box, index: number, carriedShown:
 }
 
 /**
- * Makes a suggested study session of the list, dashed: what it is, named as a box is, see {@link shownWhatOf},
- * like `Skill: IN2028_BusinessAnalyticsMachineLearning`, on a phone `Skill: IN2028`, its long name broken only where
- * its parts meet, see `breakableOf` in `choices.ts`; its expected duration, and at its right `⋯`, whose menu plans it
- * with the check and dismisses it with the cross; a click on it opens the entry by category of a new box filled in
- * as suggested, see `suggestions.ts`.
- * - `element`: The suggestion.
- * - `what`: What it is as shown.
- * - `body`: Its lines.
- *
- * @param calendar - Calendar of the day
- * @param suggestion - The suggestion
- * @returns The suggestion
- */
-function suggestionElementOf(calendar: Calendar, suggestion: Suggestion): HTMLElement {
-    const element: HTMLElement = entryPartOf("div", "box box-suggested", []);
-    const what: string = shownWhatOf(skillName, suggestion.title, suggestion.module, "");
-    const body: HTMLElement = entryPartOf("div", "box-body", [
-        entryPartOf("div", "box-what", whatOf(skillName, breakableOf(what))),
-        entryPartOf("div", "box-meta", [`${lengthOf(suggestion.minutes)} · suggested`]),
-    ]);
-    body.addEventListener("click", (): void => {
-        suggestionOpen(suggestion, calendar.view.currentStart).catch((error: unknown): void => console.error(error));
-    });
-    element.append(entryPartOf("span", "box-ring", []), body, actionsRowOf([
-        actionOf(calendar, Check, "Plan it", (): Promise<void> => suggestionAccept(suggestion, shown.day)),
-        actionOf(calendar, X, "Dismiss", async (): Promise<void> => suggestionDismiss(suggestion)),
-    ]));
-    return element;
-}
-
-/**
  * Gives the boxes of the list in the order of their places: those of the shown day, then those carried along,
  * so the place of a box dragged into the log names it, see {@link boxReceive}.
  *
@@ -738,9 +696,9 @@ function listedOf(): Box[] {
 
 /**
  * Shows the plan of the shown day in the list: its birthdays and holidays, its boxes that are not cancelled,
- * the suggested study sessions, then the cancelled boxes, a calm hint when the day has none of them;
+ * then the cancelled boxes, a calm hint when the day has none of them;
  * below them, on today, the boxes carried along under `Carried along`, when there are any.
- * - `elements`: Boxes and suggestions as elements, in order.
+ * - `elements`: Birthdays, holidays and boxes as elements, in order.
  * - `boxes`: The boxes as elements, each with its place among the boxes of the day.
  * - `dropped`: Whether a box is cancelled.
  * - `carriedElements`: The heading and the boxes carried along, none when there are none.
@@ -754,7 +712,6 @@ function boxesShow(calendar: Calendar): void {
     const elements: HTMLElement[] = [
         ...occasionsOf(shown.occasions, giftOpen),
         ...boxes.filter((element: HTMLElement, index: number): boolean => !dropped(shown.boxes[index])),
-        ...suggested.map((suggestion: Suggestion): HTMLElement => suggestionElementOf(calendar, suggestion)),
         ...boxes.filter((element: HTMLElement, index: number): boolean => dropped(shown.boxes[index])),
     ];
     const carriedElements: HTMLElement[] = carried.length === 0 ? [] : [
@@ -767,11 +724,10 @@ function boxesShow(calendar: Calendar): void {
 }
 
 /**
- * Loads the plan of the shown day, its suggested study sessions and, on today, the boxes carried along to it,
+ * Loads the plan of the shown day and, on today, the boxes carried along to it,
  * and shows them, unless another day is shown meanwhile, without the hint of a box not logged, see {@link logFailShow}.
  * - `day`: The shown day.
  * - `plans`: Its plan, the one day of the range.
- * - `suggestions`: Its suggested study sessions.
  * - `carriedNow`: The boxes carried along to it, none for any day but today.
  *
  * @param calendar - Calendar of the day
@@ -779,14 +735,13 @@ function boxesShow(calendar: Calendar): void {
  */
 async function boxesLoad(calendar: Calendar): Promise<void> {
     const day: string = dayOf(calendar.view.currentStart);
-    const [plans, suggestions, carriedNow]: [PlanDay[], Suggestion[], Box[]] = await Promise.all([
-        boxesFetch(day, dayOf(calendar.view.currentEnd)), suggestionsShown ? suggestionsLoad(day) : Promise.resolve([]),
+    const [plans, carriedNow]: [PlanDay[], Box[]] = await Promise.all([
+        boxesFetch(day, dayOf(calendar.view.currentEnd)),
         day === calendarTodayOf() ? carriedFetch(day) : Promise.resolve([]),
     ]);
     if (day !== dayOf(calendar.view.currentStart))
         return;
     shown = plans[0];
-    suggested = suggestions;
     carried = carriedNow;
     document.getElementById("plan-error")?.setAttribute("hidden", "");
     boxesShow(calendar);

@@ -19,7 +19,7 @@
 
 /* Birthday or holiday, above the boxes of its day, looking like one of them, see `.box`, so it reads as
    an appointment: its name white and bold as what a box is, and beside it, after the middle dot, my gift idea
-   in the grey of a time, going on below where the line is too narrow, see `occasionsOf` in `boxes.ts`;
+   in the grey of a time, ending in `…` where the line is too narrow, see `occasionsOf` in `boxes.ts`;
    a click anywhere on it opens its gift idea, and one without an idea shows the gift after its name under
    the pointer, as high as a letter, its middle on the middle of the letters, like the arrow of a route */
 .occasion {
@@ -63,10 +63,9 @@
     cursor: grab;
 }
 
-/* Under a pointer that hovers, a box turns one grey lighter, a suggested session from the page's ground to the grey
-   of a card, fading in over 150 ms after 100 ms and back over 150 ms as soon as the pointer leaves, as an entry of
-   the log, so the plan answers the pointer as the log does; its ring and its button `⋯` have no ground of their own,
-   so they lie on it, see `.box-ring` and `.menu-more` in `menu.css` */
+/* Under a pointer that hovers, a box turns one grey lighter, fading in over 150 ms after 100 ms and back over 150 ms
+   as soon as the pointer leaves, as an entry of the log, so the plan answers the pointer as the log does; its ring
+   and its button `⋯` have no ground of their own, so they lie on it, see `.box-ring` and `.menu-more` in `menu.css` */
 @media (hover: hover) {
     .box {
         transition: background-color 150ms;
@@ -76,30 +75,30 @@
         background: var(--fill-over);
         transition: background-color 150ms 100ms;
     }
-
-    .box-suggested:hover {
-        background: var(--fill);
-    }
 }
 
-/* Lines of a box: what it is, then grey its time and length and its place, never cut: a line wider than the box
-   goes on below, broken where a word ends, where the parts of a long name meet, like `IN0004_Einfuehrung`
-   and `Rechnerarchitektur`, see `breakableOf` in `choices.ts`, or within a part still too long;
-   a click on them changes the box */
+/* Lines of a box: what it is on one white line, ending in `…` where it is too long, like
+   `Skill: IN2028 Business Analytics Mach…`, never on a second line; then grey its time and length, its place
+   and its chapters; a click on them changes the box */
 .box-body {
     flex: 1;
     min-width: 0;
     cursor: pointer;
 }
 
-.box-what,
+.box-what {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .box-part {
     overflow-wrap: anywhere;
 }
 
-/* Grey line of a box, its time and after it its place, apart by the middle dot, on one line as in the log: the time
-   whole, the place giving way with an ellipsis where the line is too narrow; both in the one grey of the page;
-   on a phone the place on a line of its own, see the end of this file */
+/* Grey line of a box, its time and after it its place and its chapters, apart by the middle dot, on one line as in
+   the log: the time whole, the place and chapters giving way with an ellipsis where the line is too narrow; all in
+   the one grey of the page; on a phone each on a line of its own, see the end of this file */
 .box-meta {
     display: flex;
     font-size: 0.8125rem;
@@ -219,16 +218,8 @@ button.box-ring.box-moved svg {
     color: var(--text-muted);
 }
 
-/* Suggested study session: dashed in the grey of the plan on the page's ground, without the fill of a card,
-   since it is not planned yet */
-.box-suggested {
-    border-style: dashed;
-    border-color: var(--plan);
-    background: none;
-}
-
 /* Buttons of a box behind one plain button `⋯` at its right, see `menu.css`, on the computer as on a phone,
-   centred on the line of what the box is: push and skip, take back, or plan and dismiss a suggestion */
+   centred on the line of what the box is: push and skip, or take back */
 .box-actions {
     display: flex;
     flex: none;
@@ -241,8 +232,7 @@ button.box-ring.box-moved svg {
     /* A box on a phone a little closer around its lines, in one grid: the ring at the left of what it is, its button
        `⋯` at the right of it, on the same line, so it takes no row of its own, and its time, place and topics below
        over the whole width beside the ring, under the button too; its lines stand in the grid themselves, a click on
-       them changing the box as before; what it is goes on below where the button leaves it too little room, like
-       `Skill: MGT1372 (VO)` */
+       them changing the box as before; what it is ends in `…` before the button */
     .box {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
@@ -281,7 +271,7 @@ button.box-ring.box-moved svg {
         inset: -0.625rem;
     }
 
-    /* The place of a box on a phone on a line of its own below its time, whole, without the dot */
+    /* The place and the chapters of a box on a phone each on a line of its own below its time, whole, without the dot */
     .box-meta {
         flex-direction: column;
     }

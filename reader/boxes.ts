@@ -963,22 +963,52 @@ export function boxReopen(id: string): void {
 }
 
 /**
- * Finds the open skill box of a module for a moment, which the attempts of that moment log, see `skill.ts`:
- * one of the new system whose expected time and duration hold the moment, like a tutorial, else one without time
- * of that day, like a study session; never one with a deadline, like a homework sheet, which I log myself,
- * nor one occurrence of a series, like a weekly lecture.
- * - `boxes`: Open skill boxes of the module of the day without deadline, in the new system.
+ * Tells whether a box is an open skill box of a module I log from my learning, see {@link skillBoxOf}: of the new
+ * system, neither with a deadline, like a homework sheet, which I log myself, nor one occurrence of a series,
+ * like a weekly lecture.
+ *
+ * @param box - The box
+ * @param module - Module code, like `IN2028`
+ * @returns Whether it is one
+ */
+function skillBoxOpen(box: Box, module: string): boolean {
+    return box.category === skillName && box.module === module && box.state === "open" && box.editable
+        && !box.series && box.deadline === "";
+}
+
+/**
+ * Finds the open study box of a module for a day, one without time, like the box of a chapter the plan of today
+ * holds, see `suggestions.ts`: of that day, else one carried along to it, see {@link boxesCarried}, the earliest
+ * first; a box with chapters only for learning in one of them, see {@link skillBoxOpen}.
+ * - `fits`: Whether a box is one.
  *
  * @param module - Module code, like `IN2028`
- * @param now - The moment, like now
+ * @param date - The day, like `2026-10-22`
+ * @param chapters - Chapters I learn, like `01_RegressionAnalysis`, none when not known yet
  * @returns The box, `undefined` when there is none
  */
-export function skillBoxOf(module: string, now: Date): Box | undefined {
-    const date: string = berlinDateOf(now);
-    const boxes: Box[] = boxesRead(date, dayAdd(date, 1))[0].boxes.filter((box: Box): boolean =>
-        box.category === skillName && box.module === module && box.state === "open" && box.editable
-        && !box.series && box.deadline === "");
-    return boxes.find((box: Box): boolean => box.time !== "" && box.minutes !== null
-            && Date.parse(box.time) <= now.getTime() && now.getTime() < Date.parse(box.time) + box.minutes * minuteLength)
-        ?? boxes.find((box: Box): boolean => box.time === "");
+export function studyBoxOf(module: string, date: string, chapters: string[]): Box | undefined {
+    const fits: (box: Box) => boolean = (box: Box): boolean => skillBoxOpen(box, module) && box.time === ""
+        && (chapters.length === 0 || box.chapters.length === 0
+            || box.chapters.some((chapter: string): boolean => chapters.includes(chapter)));
+    return boxesRead(date, dayAdd(date, 1))[0].boxes.find(fits) ?? boxesCarried(date).find(fits);
+}
+
+/**
+ * Finds the open skill box of a module for a moment, which the attempts of that moment log, see `skill.ts`:
+ * one whose expected time and duration hold the moment, like a tutorial, else a study box, see {@link studyBoxOf}.
+ * - `now`: The moment as milliseconds.
+ *
+ * @param module - Module code, like `IN2028`
+ * @param moment - The moment, like now
+ * @param chapters - Chapters of what I learn in it, like `01_RegressionAnalysis`
+ * @returns The box, `undefined` when there is none
+ */
+export function skillBoxOf(module: string, moment: Date, chapters: string[]): Box | undefined {
+    const date: string = berlinDateOf(moment);
+    const now: number = moment.getTime();
+    return boxesRead(date, dayAdd(date, 1))[0].boxes.find((box: Box): boolean => skillBoxOpen(box, module)
+            && box.time !== "" && box.minutes !== null
+            && Date.parse(box.time) <= now && now < Date.parse(box.time) + box.minutes * minuteLength)
+        ?? studyBoxOf(module, date, chapters);
 }

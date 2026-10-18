@@ -92,7 +92,7 @@
  *   and the folder of my modules.
  */
 
-import { boxDone, boxOpenFind, skillBoxesRead, skillBoxOf } from "./boxes.ts";
+import { boxDone, boxOpenFind, skillBoxesRead, skillBoxOf, studyBoxOf } from "./boxes.ts";
 import {
     berlinDateOf, dayAdd, entriesRead, entryAppend, entryChange, entryFind,
     propertiesPut,
@@ -238,6 +238,8 @@ export type SkillTask = Task & {
  * - `closed`: Whether I closed the round shown by hand.
  * - `days`: Days I learned it, the oldest first: those of the skill entries with an attempt at one of its tasks,
  *   skips not counted, or a line `X-ROUND` of it, like `2026-10-11`.
+ * - `today`: What of it is due today, see {@link todayMarked}: `task`, its Task of today, `new`, its round 0,
+ *   or empty for nothing.
  */
 export type SkillSection = {
     title: string;
@@ -255,7 +257,13 @@ export type SkillSection = {
     at: string;
     closed: boolean;
     days: string[];
+    today: SectionToday;
 };
+
+/**
+ * What of a section is due today, see {@link todayMarked}.
+ */
+export type SectionToday = "task" | "new" | "";
 
 /**
  * Where I stand in the round of a section, as a line `X-ROUND` of a skill entry of the log says it, so where I am
@@ -558,6 +566,12 @@ const examDays: number = 14;
  * since without one 70 % fell to 24 % in 9 weeks (Rohrer 2005).
  */
 const keepUpDays: number = 42;
+
+/**
+ * Round every section of a chapter must stand in before the next chapter begins, see {@link todayMarked}: 2,
+ * so each had its Task of round 0 and of round 1 right; whether 2 or 3 is still open.
+ */
+const chapterOpenRound: number = 2;
 
 /**
  * Estimated exams of the modules of the semester whose exam the university has not named yet, by their codes;
@@ -1115,7 +1129,7 @@ function variantIndexOf<T extends Task>(own: T[], attemptsOf: (task: T) => Attem
 function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate, lines: RoundLine[]): SkillSection[] {
     const notes: Map<string, SkillTask[]> = Map.groupBy(tasks, (task: SkillTask): string => task.note);
     const attemptsOf: (task: SkillTask) => Attempt[] = (task: SkillTask): Attempt[] => task.attempts;
-    return [...notes.values()].map((own: SkillTask[]): SkillSection => {
+    return todayMarked([...notes.values()].map((own: SkillTask[]): SkillSection => {
         const colds: SkillTask[] = own.filter((task: SkillTask): boolean => task.kind === "cold");
         const cold: SkillTask | undefined = colds[0];
         const key: string = `${own[0].id.split("/")[0]}/${own[0].section}`;
@@ -1149,8 +1163,56 @@ function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate, lines: Ro
             at: shown.findLast((line: RoundLine): boolean => line.kind === "at")?.step ?? "",
             closed: shown.some((line: RoundLine): boolean => line.kind === "closed"),
             days: [...new Set(days)].sort(),
+            today: "",
         };
+    }), tasks, today);
+}
+
+/**
+ * Marks what of each section of a module is due today, which Learn lists and the plan of today holds,
+ * see `src/editor/today.ts` and `suggestions.ts`: `task` for a section past round 0 whose Task of today is due,
+ * or which I tried today; `new` for a section on round 0 I began, by an attempt, a `Next` or its close, and while
+ * there is none, for the first section not begun yet, one a day, when its chapter has begun: the first chapter,
+ * or one whose chapter before has every section in round {@link chapterOpenRound} or later.
+ * - `cold`: The Task of today of a section, `undefined` for none.
+ * - `begun`: Whether a section on round 0 is begun.
+ * - `marked`: The sections with their Tasks and begun rounds 0 marked.
+ * - `next`: The first section not begun yet, `undefined` for none.
+ * - `before`: The sections of the chapter before that of `next`, none for the first chapter.
+ *
+ * @param sections - Sections of a module in the order of their notes, nothing marked yet
+ * @param tasks - Tasks of the module with when each is due
+ * @param today - Today like `2026-10-17`
+ * @returns The sections, marked
+ */
+function todayMarked(sections: SkillSection[], tasks: SkillTask[], today: string): SkillSection[] {
+    const cold: (section: SkillSection) => SkillTask | undefined = (section: SkillSection): SkillTask | undefined =>
+        section.cold === "" ? undefined : tasks.find((task: SkillTask): boolean => task.id === section.cold);
+    const begun: (section: SkillSection) => boolean = (section: SkillSection): boolean =>
+        section.tried > 0 || section.at !== "" || section.closed;
+    const marked: SkillSection[] = sections.map((section: SkillSection): SkillSection => {
+        const task: SkillTask | undefined = cold(section);
+        if (task === undefined)
+            return section;
+        if (section.ladder)
+            return begun(section) ? { ...section, today: "new" } : section;
+        const due: boolean = task.due !== "" && task.due <= today;
+        const tried: boolean = task.attempts.some((attempt: Attempt): boolean =>
+            attempt.day === today && attempt.result !== "skipped");
+        return due || tried ? { ...section, today: "task" } : section;
     });
+    if (marked.some((section: SkillSection): boolean => section.today === "new"))
+        return marked;
+    const next: SkillSection | undefined = marked.find((section: SkillSection): boolean =>
+        cold(section) !== undefined && !begun(section));
+    if (next === undefined)
+        return marked;
+    const chapters: string[] = [...new Set(marked.map((section: SkillSection): string => section.chapter))];
+    const before: SkillSection[] = marked.filter((section: SkillSection): boolean => cold(section) !== undefined
+        && section.chapter === chapters[chapters.indexOf(next.chapter) - 1]);
+    return before.every((section: SkillSection): boolean => section.round >= chapterOpenRound)
+        ? marked.map((section: SkillSection): SkillSection => section === next ? { ...section, today: "new" } : section)
+        : marked;
 }
 
 /**
@@ -1411,7 +1473,9 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
  * by category: `CATEGORIES` is `Skill`, `SUMMARY` its module and type with the folder of its skill as `ALTREP`,
  * like `IN2028 Business Analytics Machine Learning (VO)`, see `titleOf` in `documents.ts`, its place and note,
  * the documents it used, see `linksOf` in `documents.ts`, one `X-CHAPTER` per chapter,
- * see {@link chaptersWith}, one `X-ATTEMPT` per attempt, and the box it is logged from, which is done then.
+ * see {@link chaptersWith}, one `X-ATTEMPT` per attempt, and the box it is logged from, which is done then;
+ * my own learning, without type and box, like the session the learning view opens, is logged from the study box
+ * of its module and day, see `studyBoxOf` in `boxes.ts`, so learning does the box of the plan.
  * - `tasks`: Tasks of the modules of the semester.
  * - `values`: `X-ATTEMPT`s of the entry.
  * - `chapters`: Its chapters, those picked and those of its attempts.
@@ -1428,7 +1492,10 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
 export function skillEntryAdd(entry: SkillEntryNew): void {
     const tasks: Task[] = tasksRead();
     const values: string[] = entry.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks));
-    const plan: Box | null = entry.planned === "" ? null : boxOpenFind(entry.planned);
+    const chapters: string[] = chaptersWith(entry.chapters, tasksOf(values, entry.module), tasks);
+    const plan: Box | null = entry.planned !== "" ? boxOpenFind(entry.planned)
+        : entry.module !== "" && entry.type === ""
+            ? studyBoxOf(entry.module, berlinDateOf(new Date(entry.start)), chapters) ?? null : null;
     skillEntryCheck(entry, values, plan?.chapters ?? [], plan?.type ?? "");
 
     const [title, titleLink]: [string, string] = titleOf({ ...entry, category: skillName, title: "" }, null);
@@ -1440,16 +1507,15 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
         semester: semesterFor(skillName, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note.trim(),
         start: new Date(entry.start), end: new Date(entry.end),
     };
-    const chapters: string[] = chaptersWith(entry.chapters, tasksOf(values, entry.module), tasks);
     const own: [string, string | Link][] = linksOf(entry.module, entry.documents, [])
         .map((link: Link): [string, Link] => ["attach", link]);
     own.push(...chapters.map((chapter: string): [string, string] => ["x-chapter", chapter]));
     own.push(...values.map((value: string): [string, string] => ["x-attempt", value]));
-    if (entry.planned !== "")
-        own.push(["related-to", entry.planned]);
+    if (plan !== null)
+        own.push(["related-to", plan.id]);
     entryAppend(logFileOf(fields), fields, own);
-    if (entry.planned !== "")
-        boxDone(entry.planned);
+    if (plan !== null)
+        boxDone(plan.id);
 }
 
 /**
@@ -1528,7 +1594,7 @@ export function skillEntryEdit(change: SkillEntryChange): boolean {
  * - `quarter`: End of the quarter hour of now, now rounded up to the quarter hour.
  * - `worked`: Identities of the tasks of the new lines, and for a line `X-ROUND` one task of its section.
  * - `notes`: Links to the notes of their sections, each once, without fingerprint.
- * - `plan`: Open skill box of the module for now, see `skillBoxOf` in `boxes.ts`.
+ * - `plan`: Open skill box of the module for now and the chapters of the new lines, see `skillBoxOf` in `boxes.ts`.
  * - `type`: Type of a new entry, the box's or none.
  * - `chapters`: Chapters of a new entry, those of the tasks of the new lines, or of the open entry with them.
  * - `own`: The links, chapters, attempts, rounds and box of a new entry, as properties of my own.
@@ -1559,9 +1625,9 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
         return task === undefined ? [] : [notePathOf(task)];
     }))].map((path: string): Link => ({ path: path, fingerprint: "" }));
     if (open === undefined) {
-        const plan: Box | undefined = skillBoxOf(module, now);
-        const type: string = plan?.type ?? "";
         const chapters: string[] = chaptersWith([], worked, tasks);
+        const plan: Box | undefined = skillBoxOf(module, now, chapters);
+        const type: string = plan?.type ?? "";
         const own: [string, string | Link][] = [
             ...notes.map((link: Link): [string, Link] => ["attach", link]),
             ...chapters.map((chapter: string): [string, string] => ["x-chapter", chapter]),

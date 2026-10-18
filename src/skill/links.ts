@@ -2,8 +2,9 @@
  * ## Links
  *
  * Names a link of a skill entry, a document it used, by its name, the last part of its path,
- * like `04_LogisticPoissonRegression.pdf`, as a box lists its documents, see `../day/boxes.ts`; and names the folder
- * of my modules, whose modules open in the scripts view, see `../day/skill.ts`.
+ * like `04_LogisticPoissonRegression.pdf`, as a box lists its documents, see `../day/boxes.ts`, and a chapter in words,
+ * as a box and Learn show it, see `../editor/today.ts`; and names the folder of my modules, whose modules open
+ * in the scripts view, see `../day/skill.ts`.
  *
  * - `./attempts.ts`: Names a link as the reader sends it.
  */
@@ -25,4 +26,14 @@ export const modulesFolder: string = "NomSkillingmodules";
  */
 export function linkNameOf(link: Link): string {
     return link.path.split("/").at(-1) ?? link.path;
+}
+
+/**
+ * Gives the name of a chapter in words, its number before them.
+ *
+ * @param chapter - Name of the folder of a chapter, like `01_RegressionAnalysis`
+ * @returns Name, like `01 Regression Analysis`
+ */
+export function chapterNameOf(chapter: string): string {
+    return chapter.replace("_", " ").replace(/(?<=[a-z])(?=[A-Z])/g, " ");
 }

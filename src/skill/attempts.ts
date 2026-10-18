@@ -119,6 +119,8 @@ export type SkillTask = Task & {
  * - `at`: Key of the step of the round shown I went on to with the last `Next`, where I stand, empty for none yet.
  * - `closed`: Whether I closed the round shown by hand.
  * - `days`: Days I learned it, by its attempts and its lines in the log, the oldest first, like `2026-10-11`.
+ * - `today`: What of it is due today: `task`, its Task of today, `new`, its round 0, or empty for nothing,
+ *   see `todayMarked` in `reader/skill.ts`.
  */
 export type SkillSection = {
     title: string;
@@ -136,6 +138,7 @@ export type SkillSection = {
     at: string;
     closed: boolean;
     days: string[];
+    today: "task" | "new" | "";
 };
 
 /**

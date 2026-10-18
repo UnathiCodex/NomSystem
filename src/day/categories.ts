@@ -62,7 +62,6 @@
  * the day of a deadline is typed.
  * The dialog opens for the log from `+` below the time grid, from a range selected in the time grid,
  * and from a log entry that can be changed, to change it; for a box from `+` below the list of boxes,
- * from a suggested study session, filled in as suggested, see `suggestions.ts`,
  * and from a box that can be changed, to change it, or to log it instead, filled in as planned;
  * one that cannot, like an occurrence of a weekly lecture, opens it to be logged. A log entry logged from a box points
  * to it, also to an occurrence of a series, see `entries.ts`;
@@ -1933,24 +1932,6 @@ export async function boxOpenNew(day: Date): Promise<void> {
         target: "box", start: day, end: day, time: null, minutes: null, category: null,
         values: { title: "", from: "", location: "", with: "" }, addresses: {}, titleLink: "", locationLink: "",
         note: "", foods: [], skill: skillNone, plan: null, entry: null, box: null,
-    });
-}
-
-/**
- * Opens the dialog for a new box from a suggested study session, filled in as suggested: `Skill`, its module and type
- * picked and its duration typed, without time, so I change it before saving, which accepts it, see `suggestions.ts`.
- *
- * @param day - A date on the day of the suggestion
- * @param module - Its module, like `IN2028`
- * @param type - Its type, empty for my own learning
- * @param minutes - Its expected duration
- * @throws {Error} - When the reader gives no valid answer
- */
-export async function boxOpenSuggestion(day: Date, module: string, type: string, minutes: number): Promise<void> {
-    await entryShow({
-        target: "box", start: day, end: day, time: null, minutes: minutes, category: skillName,
-        values: { title: "", from: "", location: "", with: "" }, addresses: {}, titleLink: "", locationLink: "",
-        note: "", foods: [], skill: { ...skillNone, module: module, type: type }, plan: null, entry: null, box: null,
     });
 }
 

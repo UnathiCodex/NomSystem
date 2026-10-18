@@ -32,7 +32,7 @@
  *   writes skill entries, attempts and where I stand in rounds into the log, and reads the session running now
  * - `./documents.ts`: Checks the links of the skill entries at the start and every night, repairing what it can,
  *   and reads a file a skill entry links
- * - `./suggestions.ts`: Suggests study sessions as boxes for the plan of a day, never written until I accept one
+ * - `./suggestions.ts`: Writes the chapters due today into the plan of today, one box each
  * - `./food.ts`: Finds foods, mine first, then on Open Food Facts, adds foods to `Foods.md` and renames them,
  *   adds meals to `Meals.md`, reads the meals of a day, my meals, and the grams I logged each food with last
  * - `./trackers.ts`: Reads my sleep against my goals, my glasses of water, my neck sessions and what my meals gave
@@ -62,7 +62,7 @@ import {
     attemptAdd, roundAdd, moduleRead, sessionRead, skillEntryAdd, skillEntryEdit, skillingRead,
 } from "./skill.ts";
 import { linkedFileRead, linksCheckStart } from "./documents.ts";
-import { suggestionsRead } from "./suggestions.ts";
+import { suggestionsWrite } from "./suggestions.ts";
 import {
     dishAdd, dishesRead, dishRemove, dishRename, foodAdd, foodChange, foodDayRead, foodRemove, foodsFind, gramsRead,
 } from "./food.ts";
@@ -128,7 +128,9 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/day/all`: Sends every entry of the log, newest first, for its search.
  * - `GET /api/day/now`: Sends the entry of the log running now, the one begun last of several, or `null`.
  * - `GET /api/day/boxes?start=…&end=…`: Sends the plan of each day from the first day to the day before the last,
- *   like `start=2026-10-13&end=2026-10-14` for one day: its birthdays and holidays with my gift ideas, and its boxes.
+ *   like `start=2026-10-13&end=2026-10-14` for one day: its birthdays and holidays with my gift ideas, and its boxes;
+ *   first writes the chapters due today into the plan of today, see `suggestions.ts`, as `/api/day/carried`
+ *   and `/api/skill/tasks` do too.
  * - `GET /api/day/carried?date=…`: Sends the boxes of the days before the date that are neither done nor cancelled.
  * - `GET /api/day/note?date=…`: Sends the daily note of the date, or `null` for a day without note.
  * - `GET /api/day/sections?date=…`: Sends my gratitude and my points about the day of the daily note of the date
@@ -137,7 +139,6 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/day/way-end?before=…`: Sends where the last way before the instant ended.
  * - `GET /api/day/trackers?date=…`: Sends my sleep, my glasses of water, my neck sessions and what my meals gave
  *   on the date, with my goals.
- * - `GET /api/day/suggestions?date=…`: Sends the study sessions suggested for the plan of the date.
  * - `GET /api/day/real?category=…&title=…&module=…&type=…`: Sends the minutes the last entries like a box
  *   really lasted, the latest first.
  * - `POST /api/day/log`: Adds entry of the body and sends its identifier.
@@ -177,7 +178,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `PUT /api/edit/file`: Writes Markdown file of the body into the three folders of my new system, without a diff,
  *   refused with 409 when its file changed since the editor read it.
  * - `GET /api/skill/tasks`: Sends the modules with their tasks, when each is due, every module folder,
- *   and the types.
+ *   and the types, for Learn, which shows the boxes of today it writes first.
  * - `GET /api/skill/module?code=…`: Sends the chapters and documents of the skill of the name, none for a project.
  * - `GET /api/skill/file?path=…`: Sends a file a skill entry links, by its path from `NomWorkspace`, read only.
  * - `POST /api/skill/attempt`: Writes attempt of the body into the skill entry of the moment.
@@ -237,9 +238,11 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, logAllRead());
 
     } else if (request.method === "GET" && url.pathname === "/api/day/boxes") {
+        suggestionsWrite();
         responseSend(response, 200, boxesRead(start, end));
 
     } else if (request.method === "GET" && url.pathname === "/api/day/carried") {
+        suggestionsWrite();
         responseSend(response, 200, boxesCarried(date));
 
     } else if (request.method === "GET" && url.pathname === "/api/day/note") {
@@ -256,9 +259,6 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "GET" && url.pathname === "/api/day/trackers") {
         responseSend(response, 200, trackersRead(date));
-
-    } else if (request.method === "GET" && url.pathname === "/api/day/suggestions") {
-        responseSend(response, 200, suggestionsRead(date));
 
     } else if (request.method === "GET" && url.pathname === "/api/day/real") {
         responseSend(response, 200, realMinutesRead(url.searchParams.get("category") ?? "",
@@ -365,6 +365,7 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, systemFileWrite(await json(request) as NoteChange) ? 200 : 409, null);
 
     } else if (request.method === "GET" && url.pathname === "/api/skill/tasks") {
+        suggestionsWrite();
         responseSend(response, 200, skillingRead());
 
     } else if (request.method === "GET" && url.pathname === "/api/skill/module") {

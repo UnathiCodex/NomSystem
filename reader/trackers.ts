@@ -47,11 +47,8 @@ import type { FoodDay, Totals } from "./food.ts";
  * - `waterMl`: Millilitres of water I want a day.
  * - `bedtimeVaried`: Minutes my bedtime may vary over the week, up or down, for its check.
  * - `neckLongWeek`: Long neck sessions I want in seven days; a short one, or a long, on every study day.
- * - `sessionMinutes`: Minutes of one study session the plan of tomorrow suggests, see `suggestions.ts`.
- * - `studyMinutes`: Minutes of learning a day at most, the skill boxes planned that day included, like lectures;
- *   the suggested study sessions fill the rest.
- * - `focusMinutes`: Minutes of a session after which its timer suggests a short break away from the phone;
- *   also the shortest study session suggested.
+ * - `sessionMinutes`: Minutes of one study session, as the box of a chapter in the plan of today has them,
+ *   see `suggestions.ts`, and as a session the learning view opens.
  */
 export type TrackerSettings = {
     sleepHours: number;
@@ -61,8 +58,6 @@ export type TrackerSettings = {
     bedtimeVaried: number;
     neckLongWeek: number;
     sessionMinutes: number;
-    studyMinutes: number;
-    focusMinutes: number;
 };
 
 /**
@@ -153,14 +148,11 @@ export type Trackers = {
  * and the regularity of sleep with lower mortality, more than its length (Windred 2024).
  * A short neck session, or a long one, on every study day, and 3 long ones in seven days, since regular strengthening
  * eased neck pain after 10 to 20 weeks (Gross 2015) and about once a week did nothing (Jones 2024).
- * My learning: study sessions of 60 minutes, at most 4 hours of learning a day, lectures included,
- * and a short break after 45 minutes of a session; these numbers are my choice, not findings: no study sets
- * a daily dose, four hours is a reasoned ceiling, and no trial tested 45 minutes (`.claude/studies/science.md`,
- * point 9 and the session timer in its list for the dashboard).
+ * My learning: study sessions of 60 minutes, my choice, not a finding (`.claude/studies/science.md`, point 9).
  */
 export const settings: TrackerSettings = {
     sleepHours: 8, sleepBand: [7, 9], glassMl: 250, waterMl: 2500, bedtimeVaried: 30, neckLongWeek: 3,
-    sessionMinutes: 60, studyMinutes: 240, focusMinutes: 45,
+    sessionMinutes: 60,
 };
 
 /**

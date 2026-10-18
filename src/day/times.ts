@@ -40,7 +40,7 @@ export function timeOf(date: Date): string {
 
 /**
  * Writes a length of time in hours and minutes, each two digits, like `07h 30m` or `08h 00m`, as every length
- * of the page shows it: the sleep, the timer of a session, a box without times, a suggested session and the real
+ * of the page shows it: the sleep, the timer of a session, a box without times and the real
  * minutes in the dialog of a box; a space that never breaks between hours and minutes, so a length stays on one line.
  *
  * @param minutes - Whole minutes, like 450
