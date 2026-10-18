@@ -32,6 +32,7 @@
  * - `../today.ts`: Gives today's calendar date.
  * - `../icons.ts`: Makes the icons of the buttons.
  * - `../phone.ts`: Tells a phone, which leaves the number of the meals out.
+ * - `../reader.ts`: Asks the reader.
  * - `lucide`: The icons minus and check.
  * - `fullcalendar`: Calendar that shows the day.
  */
@@ -43,6 +44,7 @@ import { dayOf } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf } from "../icons.ts";
 import { phone } from "../phone.ts";
+import { readerAsk } from "../reader.ts";
 import { Check, Minus } from "lucide";
 
 import type { Calendar } from "fullcalendar";
@@ -339,10 +341,7 @@ function neckOf(trackers: Trackers): HTMLElement {
  * @throws {Error} - When the reader cannot answer
  */
 export async function trackersFetch(day: string): Promise<Trackers> {
-    const response: Response = await fetch(`/api/day/trackers?date=${day}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Trackers;
+    return readerAsk<Trackers>(`/api/day/trackers?date=${day}`);
 }
 
 /**

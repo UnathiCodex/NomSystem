@@ -7,9 +7,11 @@
  * Loads and writes those two sections; the reader writes them into the note of the day, see `reader/note.ts`.
  *
  * - `marked`: Turns Markdown into HTML.
+ * - `../reader.ts`: Asks the reader.
  */
 
 import { Marked } from "marked";
+import { readerAsk } from "../reader.ts";
 
 
 /**
@@ -59,10 +61,7 @@ export async function noteShow(date: string): Promise<void> {
  * @throws {Error} - When the reader gives no valid answer
  */
 export async function sectionsLoad(date: string): Promise<{ [title in SectionTitle]: string }> {
-    const response: Response = await fetch(`/api/day/sections?date=${date}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json();
+    return readerAsk<{ [title in SectionTitle]: string }>(`/api/day/sections?date=${date}`);
 }
 
 /**

@@ -14,12 +14,14 @@
  * - `./categories.ts`: Opens the entry by category of a new box from a suggestion.
  * - `../skill/attempts.ts`: Names the category of skill entries and writes a date as a day.
  * - `../today.ts`: Gives today's calendar date.
+ * - `../reader.ts`: Asks the reader.
  */
 
 import { boxAdd } from "./entries.ts";
 import { boxOpenSuggestion } from "./categories.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
+import { readerAsk } from "../reader.ts";
 
 
 /**
@@ -74,10 +76,7 @@ export async function suggestionsLoad(day: string): Promise<Suggestion[]> {
     if (day !== tomorrowOf())
         return [];
 
-    const response: Response = await fetch(`/api/day/suggestions?date=${day}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    const suggestions: SuggestionSent[] = await response.json();
+    const suggestions: SuggestionSent[] = await readerAsk<SuggestionSent[]>(`/api/day/suggestions?date=${day}`);
     const counts: Map<string, number> = new Map();
     return suggestions
         .map((suggestion: SuggestionSent): Suggestion => {

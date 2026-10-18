@@ -25,10 +25,12 @@
  *
  * - `lucide`: The arrow of a route.
  * - `../icons.ts`: Makes the element of an icon.
+ * - `../reader.ts`: Asks the reader.
  */
 
 import { ArrowRight } from "lucide";
 import { iconOf } from "../icons.ts";
+import { readerAsk } from "../reader.ts";
 
 
 /**
@@ -310,12 +312,9 @@ export function addressPartsOf(address: string): [string, string, string] {
  * @throws {Error} - When the reader does not take it, like for a name another place has or a link that is none
  */
 export async function placeSend(place: Place, old: string): Promise<Place> {
-    const response: Response = await fetch("/api/day/places", {
+    return readerAsk<Place>("/api/day/places", {
         method: old === "" ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(old === "" ? place : { ...place, old: old }),
     });
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Place;
 }

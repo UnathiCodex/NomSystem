@@ -19,10 +19,12 @@
  *
  * - `./day/boxes.ts`: Writes what an entry is, as the log shows it.
  * - `./day/times.ts`: Writes times of day and a length in hours and minutes.
+ * - `./reader.ts`: Asks the reader.
  */
 
 import { entryPartOf, shownWhatOf, whatOf } from "./day/boxes.ts";
 import { lengthOf, timeOf } from "./day/times.ts";
+import { readerAsk } from "./reader.ts";
 
 
 /**
@@ -56,10 +58,7 @@ const lookTime: number = 60 * 1000;
  * @throws {Error} - When the reader cannot answer
  */
 async function runningLoad(): Promise<Running | null> {
-    const response: Response = await fetch("/api/day/now");
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Running | null;
+    return readerAsk<Running | null>("/api/day/now");
 }
 
 /**

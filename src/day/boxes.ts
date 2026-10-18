@@ -67,6 +67,7 @@
  * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
  * - `../menu.ts`: Puts the buttons of a box behind one button `⋯`.
  * - `../phone.ts`: Tells a phone, which shows a skill by its code alone.
+ * - `../reader.ts`: Asks the reader.
  * - `lucide`: The icons plus, check, arrow, cross, undo, calendar crossed out and gift.
  * - `fullcalendar`: Calendar of the log the boxes are dropped into.
  */
@@ -85,6 +86,7 @@ import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut, plusPut } from "../icons.ts";
 import { menuItemOf, menuOf } from "../menu.ts";
 import { phone } from "../phone.ts";
+import { readerAsk } from "../reader.ts";
 import { ArrowRight, CalendarOff, Check, Gift, Undo2, X } from "lucide";
 
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
@@ -320,10 +322,7 @@ export function shownWhatOf(category: string, title: string, module: string, typ
  * @throws {Error} - When the reader cannot answer
  */
 export async function boxesFetch(start: string, end: string): Promise<PlanDay[]> {
-    const response: Response = await fetch(`/api/day/boxes?start=${start}&end=${end}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as PlanDay[];
+    return readerAsk<PlanDay[]>(`/api/day/boxes?start=${start}&end=${end}`);
 }
 
 /**
@@ -335,10 +334,7 @@ export async function boxesFetch(start: string, end: string): Promise<PlanDay[]>
  * @throws {Error} - When the reader cannot answer
  */
 async function carriedFetch(day: string): Promise<Box[]> {
-    const response: Response = await fetch(`/api/day/carried?date=${day}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Box[];
+    return readerAsk<Box[]>(`/api/day/carried?date=${day}`);
 }
 
 /**

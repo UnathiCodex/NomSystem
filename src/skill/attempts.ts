@@ -7,7 +7,10 @@
  * of the moment, and a whole skill entry from the entry by category.
  *
  * - `../day/entries.ts`: Names who I was with in a skill entry.
+ * - `../reader.ts`: Asks the reader.
  */
+
+import { readerAsk } from "../reader.ts";
 
 import type { Attendee } from "../day/entries.ts";
 
@@ -355,10 +358,7 @@ export const skillName: string = "Skill";
  * @throws {Error} - When the reader cannot answer
  */
 export async function skillingLoad(): Promise<Skilling> {
-    const response: Response = await fetch("/api/skill/tasks");
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Skilling;
+    return readerAsk<Skilling>("/api/skill/tasks");
 }
 
 /**
@@ -369,10 +369,7 @@ export async function skillingLoad(): Promise<Skilling> {
  * @throws {Error} - When the reader cannot answer, like for a module without folder
  */
 export async function moduleLoad(code: string): Promise<ModuleContents> {
-    const response: Response = await fetch(`/api/skill/module?code=${encodeURIComponent(code)}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as ModuleContents;
+    return readerAsk<ModuleContents>(`/api/skill/module?code=${encodeURIComponent(code)}`);
 }
 
 /**

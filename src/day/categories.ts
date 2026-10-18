@@ -82,6 +82,7 @@
  * - `../icons.ts`: Shows the icons of the copy, the bin and its question, Cancel and Save in their buttons,
  *   and the pencil of a place and of a summary; makes the plain question mark of the bin.
  * - `../search.ts`: Writes a name without accents for its standard address in `With`.
+ * - `../reader.ts`: Asks the reader.
  * - `lucide`: The icons of the copy, the bin, Cancel, Save and the pencil.
  * - `fullcalendar`: Calendar that shows the entries.
  */
@@ -101,6 +102,7 @@ import { dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } f
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut, QuestionMark } from "../icons.ts";
 import { searchTextOf } from "../search.ts";
+import { readerAsk } from "../reader.ts";
 import { Check, Copy, Pencil, Trash, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
@@ -424,12 +426,9 @@ async function realLoad(): Promise<void> {
     if (opened.target !== "box" || texts.category === "")
         return;
 
-    const response: Response = await fetch(`/api/day/real?${new URLSearchParams({
+    const real: number[] = await readerAsk<number[]>(`/api/day/real?${new URLSearchParams({
         category: texts.category, title: texts.title, module: texts.module, type: texts.type,
     })}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    const real: number[] = await response.json() as number[];
     if (key !== realSeen || real.length === 0)
         return;
     const sorted: number[] = [...real].sort((first: number, second: number): number => first - second);

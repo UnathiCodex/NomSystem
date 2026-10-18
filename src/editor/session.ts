@@ -18,6 +18,7 @@
  * - `../day/trackers.ts`: Loads my settings, with the minutes of my usual session.
  * - `../day/times.ts`: Gives now to the minute, as the day view writes its entries, and writes a time out.
  * - `../skill/attempts.ts`: Writes today's day in the form of the reader, and a day out as the page shows it.
+ * - `../reader.ts`: Asks the reader.
  * - `fullcalendar`, `fullcalendar/timegrid`: A calendar of a day, never drawn, which the dialog's writes ask for,
  *   to load its log again.
  * - `../day/day.css`, `../day/choices.css`, `../day/meal.css`: Look of the dialog and of its fields.
@@ -25,6 +26,7 @@
 
 import { nowOn, timeOf } from "../day/times.ts";
 import { dayOf, dayTextOf } from "../skill/attempts.ts";
+import { readerAsk } from "../reader.ts";
 
 import type * as Categories from "../day/categories.ts";
 import type * as Trackers from "../day/trackers.ts";
@@ -64,10 +66,8 @@ let dialogReady: Promise<typeof Categories> | null = null;
  * @throws {Error} - When the reader cannot answer
  */
 export async function sessionOf(module: string): Promise<Session | null> {
-    const response: Response = await fetch(`/api/skill/session?module=${encodeURIComponent(module)}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    const session: Session | null = await response.json() as Session | null;
+    const session: Session | null =
+        await readerAsk<Session | null>(`/api/skill/session?module=${encodeURIComponent(module)}`);
     return session !== null && Date.parse(session.end) > Date.now() ? session : null;
 }
 

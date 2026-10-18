@@ -56,6 +56,7 @@
  * - `../food/search.ts`: The food search, the lines of every list, and a food of mine opened to change it.
  * - `../icons.ts`: Puts the one plus, the one `×` and the pencil into the buttons, their words as tooltip, and makes
  *   the plus of a new meal.
+ * - `../reader.ts`: Asks the reader.
  * - `lucide`: The icons of the plus and the pencil.
  */
 
@@ -68,6 +69,7 @@ import {
 import { dishesFound, dishNameOf, kcalTextOf, mealNameOf } from "../food/meals.ts";
 import { foodDetailOf, foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
 import { crossPut, iconOf, iconPut, plusPut } from "../icons.ts";
+import { readerAsk } from "../reader.ts";
 import { Pencil, Plus } from "lucide";
 
 import type { Choice } from "./choices.ts";
@@ -850,10 +852,8 @@ async function cookingsLoad(start: Date, id: string): Promise<Cooking[]> {
     const days: number = cookingDays * 24 * 60 * 60 * 1000;
     const from: Date = new Date(start.getTime() - days);
     const until: Date = new Date(start.getTime() + days);
-    const response: Response = await fetch(`/api/day/log?start=${from.toISOString()}&end=${until.toISOString()}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    const entries: (Cooking & { cooked?: string })[] = await response.json() as (Cooking & { cooked?: string })[];
+    const entries: (Cooking & { cooked?: string })[] = await readerAsk<(Cooking & { cooked?: string })[]>(
+        `/api/day/log?start=${from.toISOString()}&end=${until.toISOString()}`);
     return entries
         .filter((entry: Cooking): boolean => entry.category === cookName && entry.foods.length > 0
             && Date.parse(entry.start) < start.getTime())
