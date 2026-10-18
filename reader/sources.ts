@@ -9,9 +9,10 @@
  * in my modules and my projects, see {@link activeSkills} and `documents.ts`, and nothing that is not listed here;
  * every file at its own place, none from a copy elsewhere, like a draft in `.claude`.
  * It writes only into the three folders of the new system, see {@link writeAllowed}, and the editor into the notes
- * of my modules, see {@link notes}; the editor shows the tree of `NomManageplannings` but for my old system,
- * and opens only the files of the three folders, see {@link systemFiles}. A file or folder of the new system
- * that is missing, like `Birthdays.ics` or the log of a year without entries, counts as empty.
+ * of my modules and the file of my corrections, see {@link editor}; the editor shows the tree
+ * of `NomManageplannings` but for my old system, and opens only the files of the three folders,
+ * see {@link systemFiles}. A file or folder of the new system that is missing, like `Birthdays.ics` or the log
+ * of a year without entries, counts as empty.
  *
  * - `node:os`: Gives the home folder.
  * - `node:path`: Builds file paths for the operating system.
@@ -93,8 +94,8 @@ export const dataRoot: string = join(manageRoot, "NomMetainformations");
 export const devicesFile: string = join(dataRoot, "Devices.md");
 
 /**
- * The three folders of my new system, the only ones the reader writes into, but for the notes of my modules,
- * which the editor writes, see {@link notes}.
+ * The three folders of my new system, the only ones the reader writes into, but for the notes of my modules
+ * and the file of my corrections, which the editor writes, see {@link editor}.
  */
 export const systemRoots: string[] = [calendarRoot, diaryRoot, dataRoot];
 
@@ -123,8 +124,8 @@ export const planEnding: string = "_Plan.ics";
 export const modulesFolder: string = "NomSkillingmodules";
 
 /**
- * Sources of the notes area, read for it; only the editor writes, a note of my modules as I saved it, see `edit.ts`;
- * each module in them is a vault of its own, as in Obsidian.
+ * Sources of the notes area, read for it; only the editor writes, a note of my modules as I saved it,
+ * see {@link editor}; each module in them is a vault of its own, as in Obsidian.
  *
  * - `modules`: My modules, `NomSkillingmodules`, one folder per module with its notes.
  */
@@ -137,6 +138,26 @@ export type NotesSources = {
  */
 export const notes: NotesSources = {
     modules: join(vault, modulesFolder),
+};
+
+/**
+ * Places the editor writes, the only ones besides the three folders of the new system, see {@link systemRoots}.
+ *
+ * - `modules`: My modules, each note right at its place, the modules of {@link notes}.
+ * - `corrections`: My corrections, one file, `.claude/modules/corrections.diff` of this project, out of Git,
+ *   each save of a note of my modules added at its end as a unified diff, for the AI to turn into rules of my style.
+ */
+export type EditorSources = {
+    modules: string;
+    corrections: string;
+};
+
+/**
+ * {@link EditorSources} as they lie in the vault.
+ */
+export const editor: EditorSources = {
+    modules: notes.modules,
+    corrections: join(vault, "NomSystemdashboard", ".claude", "modules", "corrections.diff"),
 };
 
 /**

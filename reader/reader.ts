@@ -25,7 +25,8 @@
  * - `./places.ts`: Adds a place with its address to `Places.md`, and changes one
  * - `./notes.ts`: Reads the modules of the semester, the notes and files of my modules and the links that lead nowhere,
  *   read only
- * - `./edit.ts`: Writes a note of my modules as I edited it, at its place in `NomSkillingmodules`
+ * - `./edit.ts`: Writes a note of my modules as I edited it, at its place in `NomSkillingmodules`,
+ *   and keeps the change as a diff
  * - `./files.ts`: Lists the files of my new system for the editor, reads one and writes a Markdown file back
  * - `./skill.ts`: Reads the tasks of my chapter notes with when each is due and what a module offers a skill entry,
  *   writes skill entries, attempts and where I stand in rounds into the log, and reads the session running now
@@ -169,7 +170,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/notes/note?path=…`: Sends a note with the files its links lead to.
  * - `GET /api/notes/file?path=…`: Sends a file of my modules, like an image of a note.
  * - `GET /api/notes/broken`: Sends the links that lead nowhere in the notes of the semester, each with its note.
- * - `PUT /api/edit/note`: Writes note of my modules of the body, without a diff,
+ * - `PUT /api/edit/note`: Writes note of my modules of the body, its change kept as a diff,
  *   refused with 409 when its file changed since the editor read it.
  * - `GET /api/edit/tree`: Sends the tree of `NomManageplannings` for the editor, without my old system, read only.
  * - `GET /api/edit/file?path=…`: Sends a file of the three folders of my new system, Markdown or `.ics`.
