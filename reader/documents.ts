@@ -12,7 +12,7 @@
  * {@link skillLinkOf}, like
  * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…/VO_UniversityLectureLessons/TUM_2026W":IN2028 Business Analytics
  * Machine Learning (VO)`, my own learning without brackets, linking the module folder, a project by its folder name,
- * like `SUMMARY;ALTREP="NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow":WokFlow`.
+ * like `SUMMARY;ALTREP="NomProgramprojects/AsiaWok_Wokflow_2026":WokFlow`.
  * Every real document a skill entry used is one `ATTACH` holding just its path, see `Link` in `calendar.ts`,
  * as many as it used, in the same form for every kind: a lecture its slides, like
  * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_…/TUM_2026W/04_LogisticRegression.pdf`,

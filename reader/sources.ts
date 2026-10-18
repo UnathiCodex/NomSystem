@@ -188,7 +188,7 @@ export const systemFiles: SystemFilesSources = {
 /**
  * Skills of the semester, 2026W, each by its folder from `NomWorkspace`, written with `/`: my modules
  * in `NomSkillingmodules`, the pilot first, then my projects,
- * like `NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow`, and the time I spend logging, planning and
+ * like `NomProgramprojects/AsiaWok_Wokflow_2026`, and the time I spend logging, planning and
  * thinking about my day, `NomFrequencediary`, linking the folder of my diary.
  * The Skill picker offers them first, in this order, a module by its code, the part of its folder name before `_`,
  * like `IN2028`, a project by its folder name, like `WokFlow`; the menu of the scripts view and the skill area show
@@ -205,7 +205,7 @@ export const activeSkills: string[] = [
     "NomSkillingmodules/MGT1373_AppliedEconometrics",
     "NomSkillingmodules/IN0004_EinfuehrungRechnerarchitektur",
     "NomSkillingmodules/MGT1372_EntrepreneurialBusiness",
-    "NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow",
+    "NomProgramprojects/AsiaWok_Wokflow_2026",
     "NomSystemdashboard",
     "NomManageplannings/NomFrequencediary",
 ];
@@ -226,7 +226,7 @@ export function moduleIs(skill: string): boolean {
  * - `folder`: Name of the folder, the last part of its path.
  *
  * @param skill - Folder from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`
- *   or `NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow`
+ *   or `NomProgramprojects/AsiaWok_Wokflow_2026`
  * @returns Name, like `IN2028` or `WokFlow`
  */
 export function skillNameOf(skill: string): string {
@@ -238,7 +238,7 @@ export function skillNameOf(skill: string): string {
  * Finds a project of the semester by its name, see {@link skillNameOf}.
  *
  * @param name - Name of the project, like `WokFlow`
- * @returns Its folder from `NomWorkspace`, like `NomProgramprojects/AsiaWok_Bonierungssystem_2026/WokFlow`,
+ * @returns Its folder from `NomWorkspace`, like `NomProgramprojects/AsiaWok_Wokflow_2026`,
  *   `undefined` when no project of the semester has the name
  */
 export function projectOf(name: string): string | undefined {
