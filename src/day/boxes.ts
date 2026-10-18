@@ -17,7 +17,8 @@
  * like `01 Regression Analysis`; then the documents it will use, each on a line of its own with a bullet, by the last
  * part of its path, like `04_LogisticPoissonRegression.pdf`, none for a lecture, whose slides are not known before,
  * and none for a note, like those a box of the chapters due today links, see `reader/suggestions.ts`;
- * a line without anything to say is left out.
+ * a line without anything to say is left out. Every line stays one line, ending in `…` where it is too long,
+ * like a long place, so a box keeps its few lines.
  * No line counts the pushes or asks about them: a box goes on as often as I push it, and one I no longer want
  * I skip myself.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,

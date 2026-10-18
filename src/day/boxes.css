@@ -46,13 +46,15 @@
     visibility: visible;
 }
 
-/* A box: its lines and at their right its `⋯` or its state in one row, a card filled in the soft grey of a card without a frame,
-   with round corners, like the cards of the phone, with air around its lines, so the plan looks as real as the log;
-   an open box as bright on a day that is over as on today; an open box is grabbed to drag it into the log */
+/* A box in one grid, on the computer as on a phone: what it is on its first line and at the right of it its `⋯` or its
+   state, on the same line, so the button takes no row of its own, and its other lines below over the whole width,
+   under the button too; a card filled in the soft grey of a card without a frame, with round corners, like the cards
+   of the phone, with air around its lines, so the plan looks as real as the log; an open box as bright on a day that is
+   over as on today; an open box is grabbed to drag it into the log */
 .box {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 0.75rem;
     padding: 0.875rem 1rem;
     border: 1px solid transparent;
     border-radius: var(--radius);
@@ -78,27 +80,29 @@
     }
 }
 
-/* Lines of a box: what it is on one white line, ending in `…` where it is too long, like
-   `Skill: IN2028 Business Analytics Mach…`, never on a second line; then grey its time and length, its place
-   and its chapters; a click on them changes the box */
+/* Lines of a box: what it is on one white line, then grey its time and length, its place, its chapters
+   and its documents; every line, and every part of one, ending in `…` where it is too long, like
+   `Skill: IN2028 Business Analytics Mach…`, never on a second line, so a box keeps its few lines; its lines stand
+   in the grid themselves, a click on them changing the box */
 .box-body {
-    flex: 1;
-    min-width: 0;
+    display: contents;
     cursor: pointer;
 }
 
 .box-what {
+    grid-row: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.box-part {
-    overflow-wrap: anywhere;
+.box-meta,
+.box-topics {
+    grid-column: 1 / -1;
 }
 
-/* Grey line of a box, its time and after it its place, apart by the middle dot, on one line as in the log: the time
-   whole, the place giving way with an ellipsis where the line is too narrow; both in the one grey of the page;
+/* Grey line of a box, its time and after it its place, apart by the middle dot, on one line as in the log: the place
+   giving way first, the time only where it alone is too long; both in the one grey of the page;
    the chapters of a skill box below it alike, `.box-chapters`; on a phone each part on a line of its own, see the end
    of this file */
 .box-meta {
@@ -111,14 +115,14 @@
 .box-part {
     flex: none;
     max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .box-part.entry-parted {
     flex: 0 1 auto;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .box-time {
@@ -136,7 +140,9 @@
 }
 
 .box-topics li {
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* State of a box no longer open, at its right in the place of `⋯`, see `stateOf` in `boxes.ts`: one small grey icon,
@@ -196,44 +202,24 @@ button.box-state:hover {
 }
 
 /* Buttons of a box behind one plain button `⋯` at its right, see `menu.css`, on the computer as on a phone,
-   centred on the line of what the box is: push and skip, or take back */
+   centred on the line of what the box is, as its state is: log, move, cancel and skip */
 .box-actions {
     display: flex;
-    flex: none;
     margin-block: -0.375rem;
 }
 
-/* Phone: a box a little closer around its lines in one grid, its button `⋯` and its state a finger's width to hit,
+.box-actions,
+.box-state {
+    grid-row: 1;
+    grid-column: 2;
+}
+
+/* Phone: a box a little closer around its lines, its button `⋯` and its state a finger's width to hit,
    and its place on a line of its own */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
-    /* A box on a phone a little closer around its lines, in one grid: its button `⋯` or its state at the right
-       of what it is, on the same line, so it takes no row of its own, and its time, place and topics below over
-       the whole width, under the button too; its lines stand in the grid themselves, a click on them changing
-       the box as before; what it is ends in `…` before the button */
     .box {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
         gap: 0 0.625rem;
         padding: 0.75rem 0.875rem;
-    }
-
-    .box-body {
-        display: contents;
-    }
-
-    .box-what {
-        grid-row: 1;
-    }
-
-    .box-meta,
-    .box-topics {
-        grid-column: 1 / -1;
-    }
-
-    .box-actions,
-    .box-state {
-        grid-row: 1;
-        grid-column: 2;
     }
 
     /* The state of a box on a phone as it looks, but a finger's width to hit, as `⋯`: its own width and 0.5rem
@@ -252,13 +238,10 @@ button.box-state:hover {
         inset: -0.5rem 0;
     }
 
-    /* The place and the chapters of a box on a phone each on a line of its own below its time, whole, without the dot */
+    /* The place and the chapters of a box on a phone each on a line of its own below its time, without the dot,
+       ending in `…` like every line */
     .box-meta {
         flex-direction: column;
-    }
-
-    .box-part.entry-parted {
-        white-space: normal;
     }
 
     .box-meta > .entry-parted::before {
