@@ -6,7 +6,11 @@
  * them, loads the meals of a day with what they give, writes amounts as the page shows them,
  * and makes the elements and buttons of both, the names of foods with their brackets kept alike in a list:
  * for the food view and the entry by category of the day alike.
+ *
+ * - `../reader.ts`: Asks the reader.
  */
+
+import { readerAsk } from "../reader.ts";
 
 
 /**
@@ -241,11 +245,8 @@ export type FoodDay = Totals & {
  * @throws {Error} - When the reader cannot answer
  */
 export async function foodsFind(query: string, page: number, products: boolean): Promise<FoodsFound> {
-    const response: Response = await fetch(
+    return readerAsk<FoodsFound>(
         `/api/food/search?q=${encodeURIComponent(query)}&page=${page}&products=${products ? 1 : 0}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as FoodsFound;
 }
 
 /**
@@ -255,10 +256,7 @@ export async function foodsFind(query: string, page: number, products: boolean):
  * @throws {Error} - When the reader cannot answer
  */
 export async function dishesLoad(): Promise<Dish[]> {
-    const response: Response = await fetch("/api/food/meals");
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Dish[];
+    return readerAsk<Dish[]>("/api/food/meals");
 }
 
 /**
@@ -272,12 +270,9 @@ export async function dishesLoad(): Promise<Dish[]> {
  */
 export async function dishSend(name: string, foods: string[], short?: string, grams?: (number | null)[]):
     Promise<Dish[]> {
-    const response: Response = await fetch("/api/food/meals", {
+    return readerAsk<Dish[]>("/api/food/meals", {
         method: "POST", body: JSON.stringify({ name: name, foods: foods, short: short, grams: grams }),
     });
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Dish[];
 }
 
 /**
@@ -289,12 +284,7 @@ export async function dishSend(name: string, foods: string[], short?: string, gr
  * @throws {Error} - When the reader does not take the name, like an empty one or that of another meal of mine
  */
 export async function dishRename(old: string, name: string): Promise<Dish[]> {
-    const response: Response = await fetch("/api/food/meals", {
-        method: "PATCH", body: JSON.stringify({ old: old, name: name }),
-    });
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Dish[];
+    return readerAsk<Dish[]>("/api/food/meals", { method: "PATCH", body: JSON.stringify({ old: old, name: name }) });
 }
 
 /**
@@ -305,10 +295,7 @@ export async function dishRename(old: string, name: string): Promise<Dish[]> {
  * @throws {Error} - When the reader does not remove the meal
  */
 export async function dishDelete(name: string): Promise<Dish[]> {
-    const response: Response = await fetch(`/api/food/meals?meal=${encodeURIComponent(name)}`, { method: "DELETE" });
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Dish[];
+    return readerAsk<Dish[]>(`/api/food/meals?meal=${encodeURIComponent(name)}`, { method: "DELETE" });
 }
 
 /**
@@ -322,10 +309,7 @@ export async function dishDelete(name: string): Promise<Dish[]> {
  *   of one of mine
  */
 export async function foodSend(food: Food): Promise<Food> {
-    const response: Response = await fetch("/api/food/foods", { method: "POST", body: JSON.stringify(food) });
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Food;
+    return readerAsk<Food>("/api/food/foods", { method: "POST", body: JSON.stringify(food) });
 }
 
 /**
@@ -337,9 +321,7 @@ export async function foodSend(food: Food): Promise<Food> {
  */
 export async function foodDelete(food: Food): Promise<void> {
     const query: URLSearchParams = new URLSearchParams({ name: food.name, brand: food.brand, store: food.store });
-    const response: Response = await fetch(`/api/food/foods?${query}`, { method: "DELETE" });
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
+    await readerAsk<null>(`/api/food/foods?${query}`, { method: "DELETE" });
 }
 
 /**
@@ -353,12 +335,9 @@ export async function foodDelete(food: Food): Promise<void> {
  *   with that brand and store
  */
 export async function foodChange(food: Food, changes: FoodChanges): Promise<Food> {
-    const response: Response = await fetch("/api/food/foods", {
+    return readerAsk<Food>("/api/food/foods", {
         method: "PATCH", body: JSON.stringify({ old: { name: food.name, brand: food.brand, store: food.store }, ...changes }),
     });
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as Food;
 }
 
 /**
@@ -371,10 +350,8 @@ export async function foodChange(food: Food, changes: FoodChanges): Promise<Food
  * @throws {Error} - When the reader cannot answer
  */
 export async function gramsLoad(category: string): Promise<Map<string, number>> {
-    const response: Response = await fetch(`/api/food/grams?category=${encodeURIComponent(category)}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return new Map(Object.entries(await response.json() as { [key: string]: number }));
+    return new Map(Object.entries(
+        await readerAsk<{ [key: string]: number }>(`/api/food/grams?category=${encodeURIComponent(category)}`)));
 }
 
 /**
@@ -385,10 +362,7 @@ export async function gramsLoad(category: string): Promise<Map<string, number>> 
  * @throws {Error} - When the reader cannot answer
  */
 export async function foodDayLoad(day: string): Promise<FoodDay> {
-    const response: Response = await fetch(`/api/food/day?date=${day}`);
-    if (!response.ok)
-        throw new Error(`Reader answered ${response.status}`);
-    return await response.json() as FoodDay;
+    return readerAsk<FoodDay>(`/api/food/day?date=${day}`);
 }
 
 /**
