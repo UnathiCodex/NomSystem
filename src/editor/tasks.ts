@@ -102,10 +102,10 @@ const judgedLine: Decoration = Decoration.line({ class: "task-heading" });
 
 
 /**
- * Row of a task under its heading, see `taskRowOf` in `../skill/task.ts`; Right and Wrong show while its solution
- * is unfolded, so a fold or an unfold draws the row anew.
+ * A widget of a task, its row or its check and cross, drawn anew only when the task, its attempts or the fold of its
+ * solution change.
  */
-class RowWidget extends WidgetType {
+abstract class TaskWidget<Open extends boolean | null> extends WidgetType {
     /**
      * The task.
      */
@@ -117,11 +117,11 @@ class RowWidget extends WidgetType {
     readonly loaded: NoteTasks;
 
     /**
-     * Whether its solution is unfolded, `null` for a task without a solution.
+     * Whether its solution is unfolded; for a row `null` for a task without a solution.
      */
-    readonly open: boolean | null;
+    readonly open: Open;
 
-    constructor(task: SkillTask, loaded: NoteTasks, open: boolean | null) {
+    constructor(task: SkillTask, loaded: NoteTasks, open: Open) {
         super();
         this.task = task;
         this.loaded = loaded;
@@ -129,14 +129,27 @@ class RowWidget extends WidgetType {
     }
 
     /**
-     * Tells whether another row is the same, so the drawn one stays: the same task with the same attempts and state,
-     * its solution the same; so a load after a result draws only the row that changed, and the rows
+     * Tells whether another widget is the same, so the drawn one stays: the same task with the same attempts and state,
+     * its solution the same; so a load after a result draws only the widget that changed, and the rows
      * outside the screen keep their measured heights, which keeps the page where it is.
      */
-    override eq(other: RowWidget): boolean {
+    override eq(other: TaskWidget<Open>): boolean {
         return other.open === this.open && JSON.stringify(other.task) === JSON.stringify(this.task);
     }
 
+    /**
+     * Keeps clicks and keys in the widget from the editor, so its buttons and fields work as in the scripts view.
+     */
+    override ignoreEvent(): boolean {
+        return true;
+    }
+}
+
+/**
+ * Row of a task under its heading, see `taskRowOf` in `../skill/task.ts`; Right and Wrong show while its solution
+ * is unfolded, so a fold or an unfold draws the row anew.
+ */
+class RowWidget extends TaskWidget<boolean | null> {
     /**
      * Builds the row; each attempt written loads the rows again, see {@link tasksLoad}.
      */
@@ -145,50 +158,13 @@ class RowWidget extends WidgetType {
             this.open === null ? null : Object.assign(new EventTarget(), { open: this.open }), false,
             (): Promise<void> => tasksLoad(view, this.loaded.path));
     }
-
-    /**
-     * Keeps clicks and keys in the row from the editor, so its buttons and fields work as in the scripts view.
-     */
-    override ignoreEvent(): boolean {
-        return true;
-    }
 }
 
 /**
  * Check and cross of a task of a section at the right end of the line of its heading, see `judgeOf`
  * in `../skill/task.ts`; they work while its solution is unfolded, so a fold or an unfold draws them anew.
  */
-class JudgeWidget extends WidgetType {
-    /**
-     * The task.
-     */
-    readonly task: SkillTask;
-
-    /**
-     * The tasks of the note.
-     */
-    readonly loaded: NoteTasks;
-
-    /**
-     * Whether its solution is unfolded, also for a task without one.
-     */
-    readonly open: boolean;
-
-    constructor(task: SkillTask, loaded: NoteTasks, open: boolean) {
-        super();
-        this.task = task;
-        this.loaded = loaded;
-        this.open = open;
-    }
-
-    /**
-     * Tells whether other buttons are the same, so the drawn ones stay: the same task with the same attempts,
-     * its solution the same.
-     */
-    override eq(other: JudgeWidget): boolean {
-        return other.open === this.open && JSON.stringify(other.task) === JSON.stringify(this.task);
-    }
-
+class JudgeWidget extends TaskWidget<boolean> {
     /**
      * Builds the buttons; each attempt written loads the tasks again, see {@link tasksLoad}, a Right then goes on,
      * see {@link tasksFollow}.
@@ -196,13 +172,6 @@ class JudgeWidget extends WidgetType {
     toDOM(view: EditorView): HTMLElement {
         return judgeOf(this.task, this.loaded.today, this.open, (): Promise<void> => tasksLoad(view, this.loaded.path),
             (): void => goer?.(view));
-    }
-
-    /**
-     * Keeps clicks and keys in the buttons and the field of my comment from the editor.
-     */
-    override ignoreEvent(): boolean {
-        return true;
     }
 }
 
