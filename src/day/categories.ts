@@ -1810,8 +1810,8 @@ function timesShow(opening: EntryOpening): void {
 /**
  * Shows the dialog as an opening says, a new one without category with the list of the categories open.
  * It has no title: below its fields, small and grey, the box a log entry comes from, with a pencil beside it to change
- * that box instead, when it can be changed; at the bottom the copy and the bin at the left, then for an open box being
- * changed the ring with its check, which logs it, as its ring in the plan does, then cancel and save, see `day.html`.
+ * that box instead, when it can be changed; at the bottom the copy and the bin at the left, then cancel and save,
+ * see `day.html`.
  * The first button, which the dialog focuses as it opens, loses the focus again, so its ring never looks like a pick.
  * - `dialog`: The dialog, open already when one of those two buttons opens it anew.
  * - {@link HTMLDialogElement#showModal}: Shows the dialog over the page, `Esc` closes it.
@@ -2096,7 +2096,7 @@ function enterTake(): void {
 /**
  * Starts the entry by category after the router has put its HTML into the page:
  * the copy duplicates the entry or the box being changed, see {@link entryDuplicate}, the pencil beside the box being
- * logged changes that box; the dialog logs no box, since the ring of the box in the plan does that already;
+ * logged changes that box; the dialog logs no box, since the menu of the box in the plan does that already;
  * typing a deadline turns start and end of a box off, see {@link deadlineSee}; typing the day, start or end
  * fills the day of the end, see {@link endDayFill}, until I type that day myself, and a start typed for a new box
  * its end, see {@link endFill}; typing a day of a skill entry gives it the semester of that day while I picked none,

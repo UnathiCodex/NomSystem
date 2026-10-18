@@ -7,7 +7,8 @@
  * at the right the trackers of the day, my sleep, my glasses of water and my food, and below them the daily note
  * with my gratitude and my points about the day at its top; a phone shows only plan or log, see {@link phoneShow}.
  * A click on the date opens a month to pick any day from, see `month.ts`.
- * A box goes into the log at its real time by dragging it there, or as expected with one tap on its ring.
+ * A box goes into the log at its real time by dragging it there, or as expected with one tap on `Log as expected`
+ * in its menu `⋯`.
  * The log is written by category: `+` below the time grid opens the entry by category for the last half hour,
  * a range selected in the time grid for that range, on a phone by a short press into the grid and pulling it down
  * over the time, as in Google Calendar, the range shown meanwhile as an entry with its start and end in front

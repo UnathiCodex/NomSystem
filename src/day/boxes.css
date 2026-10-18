@@ -138,8 +138,9 @@
     overflow-wrap: anywhere;
 }
 
-/* Ring of a box, as high as its first line: for an open box a button, an empty ring in the grey of the plan
-   like the circle of a to-do, lighter under the pointer with its check showing, which logs the box as expected;
+/* Ring of a box, as high as its first line: for an open box only its place, empty, since its menu logs it;
+   for a box with a deadline a button, an empty ring in the grey of the plan like the circle of a to-do,
+   lighter under the pointer with its check showing, which ticks it submitted;
    for a done box a button too, its grey check, see `.box-checked`; for a cancelled box its grey mark without edge,
    the calendar crossed out or the cross, see `ringOf` in `boxes.ts`, for a box pushed away the arrow, a button
    looking the same, see `.box-moved`; without a ground of its own, so it lies on its box;
