@@ -289,8 +289,9 @@ function gramsFieldOf(grams: number | null, name: string, portion: number | null
  * - `open`: Name of the meal opened, in small letters, empty for none.
  * - `adding`: Name of the meal whose search of my foods shows, in small letters, empty for none.
  * - `asked`: Name of the meal whose `×` asked `Really remove?`, in small letters, empty for none.
+ * - `take`: Shows my meals as the reader sends them.
  * - `load`: Loads my meals again and shows them.
- * - `change`: Sends a meal with its foods changed for good and shows my meals as the reader sends them.
+ * - `send`: Sends a meal changed for good, its foods, and where given its short title and grams, and shows my meals.
  * - `toggle`: Opens a meal, or closes it again, its search of my foods with it.
  * - `show`: Shows the meals found for the words typed in the search, all of them for none typed, or a hint when none
  *   is found; the row of the meal opened no button but a row that a click closes again, since its plus stands inside it.
@@ -311,27 +312,19 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
     let fresh: string = "";
     let naming: boolean = false;
 
+    const take: (meals: Dish[]) => void = (meals: Dish[]): void => {
+        dishes = meals;
+        show();
+    };
     const load: () => void = (): void => {
-        dishesLoad().then((meals: Dish[]): void => {
-            dishes = meals;
-            show();
-        }).catch((error: unknown): void => {
+        dishesLoad().then(take).catch((error: unknown): void => {
             console.error(error);
             list.replaceChildren(elementOf("p", "food-none", "The meals cannot be read"));
         });
     };
-    const send: (dish: Dish, foods: string[], short: string, grams: (number | null)[]) => void = (dish: Dish,
-        foods: string[], short: string, grams: (number | null)[]): void => {
-        dishSend(dish.name, foods, short, grams).then((meals: Dish[]): void => {
-            dishes = meals;
-            show();
-        }).catch((error: unknown): void => console.error(error));
-    };
-    const change: (dish: Dish, foods: string[]) => void = (dish: Dish, foods: string[]): void => {
-        dishSend(dish.name, foods).then((meals: Dish[]): void => {
-            dishes = meals;
-            show();
-        }).catch((error: unknown): void => console.error(error));
+    const send: (dish: Dish, foods: string[], short?: string, grams?: (number | null)[]) => void = (dish: Dish,
+        foods: string[], short?: string, grams?: (number | null)[]): void => {
+        dishSend(dish.name, foods, short, grams).then(take).catch((error: unknown): void => console.error(error));
     };
     const toggle: (key: string) => void = (key: string): void => {
         open = open === key ? "" : key;
@@ -370,10 +363,7 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
                     return;
                 }
                 asked = "";
-                dishDelete(dish.name).then((meals: Dish[]): void => {
-                    dishes = meals;
-                    show();
-                }).catch((error: unknown): void => console.error(error));
+                dishDelete(dish.name).then(take).catch((error: unknown): void => console.error(error));
             });
             const [line, row]: [HTMLElement, HTMLElement] = listLineOf(name, dish.kcal,
                 open === key ? null : (): void => toggle(key), remove);
@@ -402,9 +392,8 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
                 }
                 detail.inert = true;
                 dishRename(dish.name, rename.value).then((meals: Dish[]): void => {
-                    dishes = meals;
                     open = mealNameOf(rename.value).toLowerCase();
-                    show();
+                    take(meals);
                 }).catch((reason: unknown): void => {
                     console.error(reason);
                     error.hidden = false;
@@ -426,7 +415,7 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
                 const [name, brand, store]: string[] = food.split(";");
                 const part: HTMLElement = partOf(food, grams, unitOf(dish.kinds[index] ?? "Eat"), dish.foods.length > 1
                     ? removeOf(`Remove ${name}`, (): void =>
-                        change(dish, dish.foods.filter((other: string): boolean => other !== food)))
+                        send(dish, dish.foods.filter((other: string): boolean => other !== food)))
                     : null, (): void => foodOpen({ name: name, brand: brand ?? "", store: store ?? "" }));
                 return part;
             }));
@@ -434,7 +423,7 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
                 const foods: HTMLElement = foodSearchOf({
                     pick: (food: Food): void => {
                         const added: string = `${food.name};${food.brand};${food.store}`;
-                        change(dish, [...dish.foods.filter((other: string): boolean => other !== added), added]);
+                        send(dish, [...dish.foods.filter((other: string): boolean => other !== added), added]);
                     },
                     meals: null,
                     products: true,
