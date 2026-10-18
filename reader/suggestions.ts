@@ -6,7 +6,9 @@
  * chapters Learn shows, see `src/editor/today.ts`. A box of my own learning, without type and without time,
  * like a to-do, since only its length matters, not when: one study session, see `sessionMinutes` in `trackers.ts`,
  * like `SUMMARY:IN2028 Business Analytics Machine Learning` with `X-CHAPTER:01_RegressionAnalysis`
- * and `ESTIMATED-DURATION:PT1H`, see `boxes.ts`; its real length the log keeps.
+ * and `ESTIMATED-DURATION:PT1H`, see `boxes.ts`, and one `ATTACH` per note of the chapter with something due,
+ * at most one Task each, like `ATTACH:NomSkillingmodules/IN2028_…/01_RegressionAnalysis/01_01_SampleMeanEstimator.md`,
+ * as it stands when the box is written; its real length the log keeps.
  * A chapter gets no box while the plan of today holds one of it, open, done, skipped or pushed away, nor while a box
  * of it from a day before is still open: that one is carried along until I do it, see `boxesCarried` in `boxes.ts`.
  * Learning does the box: the session the learning view opens and the attempts of a session are logged from it,
@@ -34,7 +36,8 @@ import type { SkillModule, SkillSection } from "./skill.ts";
  * Writes the boxes of the chapters due today into the plan of today, see the top of this file.
  * - `today`: Today in Berlin time.
  * - `boxes`: Skill boxes of today, in any state, and those carried along to it, which are open.
- * - `chapters`: Chapters of a module with something due today, in their order.
+ * - `due`: Sections of a module with something due today, in their order.
+ * - `chapters`: Their chapters, in their order.
  *
  * @throws {Error} - When a folder, a note, the log or the plan cannot be read, or a box cannot be written
  */
@@ -43,9 +46,8 @@ export function suggestionsWrite(): void {
     const boxes: Box[] = [...boxesRead(today, dayAdd(today, 1))[0].boxes, ...boxesCarried(today)]
         .filter((box: Box): boolean => box.category === skillName);
     skillingRead().modules.forEach((module: SkillModule): void => {
-        const chapters: string[] = [...new Set(module.sections
-            .filter((section: SkillSection): boolean => section.today !== "")
-            .map((section: SkillSection): string => section.chapter))];
+        const due: SkillSection[] = module.sections.filter((section: SkillSection): boolean => section.today !== "");
+        const chapters: string[] = [...new Set(due.map((section: SkillSection): string => section.chapter))];
         chapters
             .filter((chapter: string): boolean => !boxes.some((box: Box): boolean =>
                 box.module === module.code && box.chapters.includes(chapter)))
@@ -53,7 +55,9 @@ export function suggestionsWrite(): void {
                 boxAdd({
                     category: skillName, title: "", location: "", from: "", module: module.code, type: "",
                     semester: "", note: "", day: today, time: "", minutes: settings.sessionMinutes, deadline: "",
-                    chapters: [chapter], documents: [],
+                    chapters: [chapter], documents: due
+                        .filter((section: SkillSection): boolean => section.chapter === chapter)
+                        .map((section: SkillSection): string => section.note.split("/").slice(1).join("/")),
                 });
             });
     });

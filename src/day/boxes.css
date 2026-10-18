@@ -96,9 +96,10 @@
     overflow-wrap: anywhere;
 }
 
-/* Grey line of a box, its time and after it its place and its chapters, apart by the middle dot, on one line as in
-   the log: the time whole, the place and chapters giving way with an ellipsis where the line is too narrow; all in
-   the one grey of the page; on a phone each on a line of its own, see the end of this file */
+/* Grey line of a box, its time and after it its place, apart by the middle dot, on one line as in the log: the time
+   whole, the place giving way with an ellipsis where the line is too narrow; both in the one grey of the page;
+   the chapters of a skill box below it alike, `.box-chapters`; on a phone each part on a line of its own, see the end
+   of this file */
 .box-meta {
     display: flex;
     font-size: 0.8125rem;

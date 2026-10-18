@@ -10,11 +10,12 @@
  * see below.
  * Every box has the same lines, open or done: its category in bold with a colon and what,
  * like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`, as an entry of the log does, on one line, ending in `…`
- * where it is too long; then grey its expected time, its length only where no end shows it, with its place
- * and its chapters after them, its place by its label alone, its chapters in words,
- * like `11:30 – 13:00 · Audimax im Galileo` or `01h 00m · 01 Regression Analysis`, the place opening its link
- * on a click when it has one; then the documents it will use, each on a line of its own with a bullet, by the last part
- * of its path, like `04_LogisticPoissonRegression.pdf`, none for a lecture, whose slides are not known before;
+ * where it is too long; then grey its expected time, its length only where no end shows it, with its place after them,
+ * by its label alone, like `11:30 – 13:00 · Audimax im Galileo` or `01h 00m · Home Munich`, the place opening its link
+ * on a click when it has one; then its chapters in words, each opening its overview in the scripts view,
+ * like `01 Regression Analysis`; then the documents it will use, each on a line of its own with a bullet, by the last
+ * part of its path, like `04_LogisticPoissonRegression.pdf`, none for a lecture, whose slides are not known before,
+ * and none for a note, like those a box of the chapters due today links, see `reader/suggestions.ts`;
  * a line without anything to say is left out.
  * No line counts the pushes or asks about them: a box goes on as often as I push it, and one I no longer want
  * I skip myself.
@@ -79,7 +80,7 @@ import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
 import { breakableOf } from "./choices.ts";
 import { giftOpen } from "./gifts.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
-import { chapterNameOf, linkNameOf } from "../skill/links.ts";
+import { chapterNameOf, linkNameOf, modulesFolder } from "../skill/links.ts";
 import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
@@ -397,14 +398,14 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
  * in `boxes.css`; then its time in the light grey of a time, its parts apart by a middle dot
  * with room on both sides, see {@link timePartsOf}, and after it its place in the darker grey, by its label alone,
  * its address hidden, like `16:00 – 17:30 · Audimax im Galileo`, a way its route, like `Home Munich → TUM Garching`,
- * see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click instead of the box, and its chapters
- * in words, like `01 Regression Analysis`, see `chapterNameOf` in `../skill/links.ts`; then its documents, one per line
- * with a bullet, see {@link topicsOf}; a line without anything to say is left out.
+ * see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click instead of the box; then its chapters
+ * on a line of their own in the same grey, apart by a middle dot, see {@link chaptersOf}; then its documents, one per
+ * line with a bullet, see {@link topicsOf}; a line without anything to say is left out.
  * - `what`: What it is as shown.
  * - `times`: The parts of its time, the first plain, each further one after its dot, see `.entry-parted` in `day.css`.
  * - `place`: The label of its place or the route of a way, empty for none.
- * - `rest`: Its place and its chapters, each after a dot when something stands before it.
- * - `meta`: Its time, its place and its chapters, as far as it has them.
+ * - `meta`: Its time and its place, as far as it has them, the place after a dot when a time stands before it.
+ * - `chapters`: Its chapters, each after a dot but the first.
  * - `topics`: Its documents.
  *
  * @param box - The box
@@ -417,22 +418,50 @@ function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] 
     const times: (string | Node)[] = timePartsOf(box, day, nearShown).map((part: string, index: number):
         string | Node => index === 0 ? part : entryPartOf("span", "entry-parted", [part]));
     const place: string = whereOf(box.category, box.from, box.location);
-    const rest: (string | Node)[][] = [
-        ...(place === "" ? [] : [whereLinkedOf(box.category, box.from, box.location, box.locationLink)]),
-        ...box.chapters.map((chapter: string): string[] => [chapterNameOf(chapter)]),
-    ];
     const meta: HTMLElement[] = [
         ...(times.length === 0 ? [] : [entryPartOf("span", "box-part box-time", times)]),
-        ...rest.map((parts: (string | Node)[], index: number): HTMLElement =>
-            entryPartOf("span", times.length === 0 && index === 0 ? "box-part" : "box-part entry-parted", parts)),
+        ...(place === "" ? [] : [entryPartOf("span", times.length === 0 ? "box-part" : "box-part entry-parted",
+            whereLinkedOf(box.category, box.from, box.location, box.locationLink))]),
     ];
+    const chapters: HTMLElement[] = chaptersOf(box).map((chapter: Node, index: number): HTMLElement =>
+        entryPartOf("span", index === 0 ? "box-part" : "box-part entry-parted", [chapter]));
     const topics: string[] = topicsOf(box);
     return [
         entryPartOf("div", "box-what", whatOf(box.category, what === box.category ? "" : what)),
         ...(meta.length === 0 ? [] : [entryPartOf("div", "box-meta", meta)]),
+        ...(chapters.length === 0 ? [] : [entryPartOf("div", "box-meta box-chapters", chapters)]),
         ...(topics.length === 0 ? [] : [entryPartOf("ul", "box-topics", topics.map((topic: string): HTMLElement =>
             entryPartOf("li", "", [breakableOf(topic)])))]),
     ];
+}
+
+/**
+ * Gives the chapters of a skill box in words, like `01 Regression Analysis` for `01_RegressionAnalysis`,
+ * see `chapterNameOf` in `../skill/links.ts`, each a link that opens its overview in the scripts view in a new tab,
+ * like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`, as the place opens
+ * its link, instead of the box; plain on a phone, which has no scripts view, and for a box whose summary links
+ * no module folder.
+ * - `module`: Name of the folder of its module, the part of the link of its summary after `NomSkillingmodules/`,
+ *   like `IN2028_BusinessAnalyticsMachineLearning`, empty for none.
+ * - `anchor`: The link of a chapter.
+ *
+ * @param box - The box
+ * @returns Its chapters, in order, none for none
+ */
+function chaptersOf(box: Box): Node[] {
+    const [folder, module]: string[] = box.titleLink.split("/");
+    return box.chapters.map((chapter: string): Node => {
+        if (phone || folder !== modulesFolder || module === undefined)
+            return document.createTextNode(chapterNameOf(chapter));
+        const anchor: HTMLAnchorElement = document.createElement("a");
+        anchor.className = "chapter-link";
+        anchor.href = `/scripts?module=${encodeURIComponent(module)}&chapter=${encodeURIComponent(chapter)}`;
+        anchor.target = "_blank";
+        anchor.rel = "noopener";
+        anchor.textContent = chapterNameOf(chapter);
+        anchor.addEventListener("click", (event: MouseEvent): void => event.stopPropagation());
+        return anchor;
+    });
 }
 
 /**

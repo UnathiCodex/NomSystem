@@ -190,15 +190,17 @@ svg.route-arrow {
     vertical-align: -0.15em;
 }
 
-/* Place with a link, its `ALTREP`, in an entry or a box, like `8120.01.101 (Audimax im Galileo)`: in the grey
-   of its line, underlined under a pointer, so it shows that a click opens its link, see `whereLinkedOf`
-   in `places.ts` */
-.place-link {
+/* Place with a link, its `ALTREP`, in an entry or a box, like `8120.01.101 (Audimax im Galileo)`, and the chapter
+   of a box, like `01 Regression Analysis`: in the grey of its line, underlined under a pointer, so it shows that
+   a click opens its link, see `whereLinkedOf` in `places.ts` and `chaptersOf` in `boxes.ts` */
+.place-link,
+.chapter-link {
     color: inherit;
     text-decoration: none;
 }
 
-.place-link:hover {
+.place-link:hover,
+.chapter-link:hover {
     text-decoration: underline;
 }
 
