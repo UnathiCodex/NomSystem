@@ -6,7 +6,7 @@
  * `NomSystemprevious`, at any depth, nor a hidden file or folder, like `.obsidian`, nor a symbolic link.
  * Reads and writes only inside the three folders of my new system, see `systemFiles` in `sources.ts`:
  * a Markdown file, like `NomMetainformations/Foods.md` or a daily note, to edit, written exactly as sent,
- * without a diff, since only the notes of my modules keep diffs, see `edit.ts`; an `.ics` file only to read.
+ * without a diff, as a note of my modules, see `edit.ts`; an `.ics` file only to read.
  * Paths are written from `NomManageplannings` with `/`, like `NomManagecalendar/Living/2026_Log.ics`.
  *
  * - `node:fs`: Lists folders, reads and writes files.
