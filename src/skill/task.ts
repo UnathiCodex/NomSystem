@@ -20,6 +20,7 @@
  * - `./attempts.ts`: Sends attempts, and writes days out.
  * - `../editor/session.ts`: Makes sure a session of the module of the task runs before an attempt is written.
  * - `../icons.ts`: Puts icons, alone or with words, into buttons.
+ * - `../food/foods.ts`: Makes elements.
  * - `../menu.ts`: Puts the items for the next attempt behind one button `⋯`, and opens the field of my comment below
  *   the cross of a section as a menu.
  * - `lucide`: The icons of the history and of the items.
@@ -29,6 +30,7 @@
 import { attemptSend, dayTextOf } from "./attempts.ts";
 import { sessionEnsure } from "../editor/session.ts";
 import { iconOf, iconPut, iconWordsOf } from "../icons.ts";
+import { elementOf } from "../food/foods.ts";
 import { menuAnchor, menuItemOf, menuOf } from "../menu.ts";
 import { Check, History, X } from "lucide";
 import "./task.css";
@@ -36,21 +38,6 @@ import "./task.css";
 import type { Attempt, SkillTask } from "./attempts.ts";
 import type { IconNode } from "lucide";
 
-
-/**
- * Makes an element with a class and a text.
- *
- * @param tag - Name of the element, like `div`
- * @param className - Class, empty for none
- * @param text - Text, empty for none
- * @returns Element
- */
-function elementOf(tag: string, className: string, text: string): HTMLElement {
-    const element: HTMLElement = document.createElement(tag);
-    element.className = className;
-    element.textContent = text;
-    return element;
-}
 
 /**
  * Tells when a task is due, as a line of its own, where no group of due tasks names it, see `reader/skill.ts`:

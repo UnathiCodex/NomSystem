@@ -27,6 +27,7 @@
  * - `./today.ts`: What Today lists, and the name of a section in words.
  * - `../notes/tree.ts`: The addresses of a note and of an overview, and shows a chapter in the tree.
  * - `../day/choices.ts`: Marks where a long name may go on below.
+ * - `../food/foods.ts`: Makes elements.
  * - `../day/boxes.css`: Look of the cards, those of the plan.
  * - `./overview.css`: Look of the overview.
  */
@@ -35,6 +36,7 @@ import { dayTextOf, skillingLoad } from "../skill/attempts.ts";
 import { itemsOf, wordsOf } from "./today.ts";
 import { chapterShow, noteAddressOf, overviewAddressOf } from "../notes/tree.ts";
 import { breakableOf } from "../day/choices.ts";
+import { elementOf } from "../food/foods.ts";
 import "../day/boxes.css";
 import "./overview.css";
 
@@ -68,21 +70,6 @@ type SectionState = {
  */
 const dayList: Intl.ListFormat = new Intl.ListFormat("en-GB", { type: "conjunction" });
 
-
-/**
- * Makes an element with a class and a text.
- *
- * @param tag - Name of the element, like `div`
- * @param className - Class, empty for none
- * @param text - Text, empty for none
- * @returns Element
- */
-function elementOf(tag: string, className: string, text: string): HTMLElement {
-    const element: HTMLElement = document.createElement(tag);
-    element.className = className;
-    element.textContent = text;
-    return element;
-}
 
 /**
  * Tells where a section stands, see the top of this file.

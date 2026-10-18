@@ -38,6 +38,7 @@
  * - `../today.ts`: Gives today's calendar date, for when a task is due and whether an entry of the plan
  *   is still to come.
  * - `../day/times.ts`: Writes the time of an entry of the plan, as the day does.
+ * - `../food/foods.ts`: Makes elements.
  * - `../day/choices.ts`: Marks where the name of a module or a section may go on over a next line, as on a phone,
  *   like `IN0004_Einfuehrung` and `Rechnerarchitektur`, never within a word.
  * - `./task.ts`: Tells when a task is due.
@@ -49,6 +50,7 @@
 import { dayTextOf, skillingLoad } from "./attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { timeOf } from "../day/times.ts";
+import { elementOf } from "../food/foods.ts";
 import { breakableOf } from "../day/choices.ts";
 import { stateTextOf } from "./task.ts";
 import { phone } from "../phone.ts";
@@ -65,21 +67,6 @@ import type {
  */
 const formula: RegExp = /\$(?![\s$])((?:\\.|[^\\$])+?)(?<!\s)\$(?!\d)/;
 
-
-/**
- * Makes an element with a class and a text.
- *
- * @param tag - Name of the element, like `div`
- * @param className - Class, empty for none
- * @param text - Text, empty for none
- * @returns Element
- */
-function elementOf(tag: string, className: string, text: string): HTMLElement {
-    const element: HTMLElement = document.createElement(tag);
-    element.className = className;
-    element.textContent = text;
-    return element;
-}
 
 /**
  * Puts a text into an element, each formula `$…$` of it as an element of the class `math` with its TeX,
