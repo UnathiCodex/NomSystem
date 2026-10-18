@@ -149,7 +149,7 @@ export type EntryMoved = {
 };
 
 /**
- * A box logged at its real time, as the day sends it after a drop into the log or a tap on its ring.
+ * A box logged at its real time, as the day sends it after a drop into the log or a tap on `Log` in its menu.
  *
  * - `box`: Identifier of the box.
  * - `start`: Real start as ISO instant.

@@ -932,8 +932,9 @@ export function boxDone(id: string): void {
 }
 
 /**
- * Ticks a box with a deadline submitted, like a homework sheet I handed in, with one tap on its ring, or takes
- * the tick back: it becomes `COMPLETED`, as of now, or `NEEDS-ACTION` again, its sessions staying in the log.
+ * Ticks a box with a deadline submitted, like a homework sheet I handed in, with one tap on `Submit` in its menu,
+ * or takes the tick back with one on its word `Submitted`: it becomes `COMPLETED`, as of now, or `NEEDS-ACTION` again,
+ * its sessions staying in the log.
  *
  * @param id - Identifier of the box, like `sheet-3@nomsystem`
  * @param submitted - Whether to tick it submitted, else to take the tick back

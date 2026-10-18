@@ -155,8 +155,8 @@
     opacity: 1;
 }
 
-/* The round check of a section, see `round.ts`: round, unlike the square save button, as the ring of a done box of
-   the day; in the calm grey of a main button once the round's Task has a result, off before: its ring in the grey
+/* The round check of a section, see `round.ts`: round, unlike the square save button;
+   in the calm grey of a main button once the round's Task has a result, off before: its ring in the grey
    of every frame, so it still shows as a ring, only its check faint */
 .editor-close {
     border-color: var(--chosen-line);

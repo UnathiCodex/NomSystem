@@ -719,8 +719,8 @@ function failShow(error: unknown): void {
 }
 
 /**
- * Shows the round check in the head, see {@link roundClose}: round, unlike the square save button beside it, as the ring
- * of a done box of the day; on once the round's Task has a result and the way down its failure brings back has ended,
+ * Shows the round check in the head, see {@link roundClose}: round, unlike the square save button beside it;
+ * on once the round's Task has a result and the way down its failure brings back has ended,
  * see {@link fallbacksOf}, in the calm grey of a main button then, as the save button with changes; off and faint
  * before; hidden once the round is closed or for a round without steps. The way down has ended once its last Example
  * is right, or once it reached the bottom, the Algorithm, which as the last step has no `Next` and passes by the round

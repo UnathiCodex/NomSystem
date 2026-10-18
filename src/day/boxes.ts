@@ -23,32 +23,32 @@
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
  * and on the day of its deadline always, done or not, and looks like every other box, its deadline on a line of its own
  * below its length and place, with how near it is, like `Deadline: Fri, 23.10.2026 · 12:00 · in 3 days`, its day
- * left out on that day itself, like `Deadline: 12:00 · today`, see {@link deadlinePartsOf}; it has no arrow, since it stays on the day of its deadline. Its sessions are dragged into the log, as many as it
- * needs, and leave it open; its ring ticks it submitted, which alone makes it done, see `reader/boxes.ts`.
+ * left out on that day itself, like `Deadline: 12:00 · today`, see {@link deadlinePartsOf}; it has no `Move`, since it
+ * stays on the day of its deadline. Its sessions are dragged into the log, as many as it needs, and leave it open;
+ * `Submit` in its menu ticks it submitted, which alone makes it done, see `reader/boxes.ts`.
  * An open box is dragged into the log at the real time: the reader writes a log entry like it, pointing to it,
  * as long as its expected duration, else half an hour, and I resize the entry when it lasted otherwise.
  * An open box shows `⋯` at its right, not only under the pointer, whose menu holds all it can do: first
  * `Log`, which logs it as expected with one tap, from its expected time, else ending now, see `times.ts`, then like skip,
- * see below; the ring at its left is no second button for that, an open box keeps its place empty, so its lines stand
- * where those of a done box do, only a box with a deadline has its ring there, which ticks it submitted;
+ * see below; nothing stands at its left, so its lines start at the edge of the card, as those of every box do;
  * when the reader does not log a box dropped or tapped, a hint says so above the list until it loads again.
- * Everything undoes with one click: the check of a done box takes it back to open, removing its log entry
- * unless that holds what I added since, see `boxUndo` in `entries.ts`, and the arrow back of a skipped or pushed box.
- * A done box keeps exactly the lines it had open, only greyed with the check in its ring; its real time and length
+ * A box no longer open shows in that place one small grey word for its state, like `Logged` or `Skipped`,
+ * see {@link stateOf}, and a click on it takes that back, so everything undoes with one click: a logged box goes back
+ * to open, its log entry removed unless that holds what I added since, see `boxUndo` in `entries.ts`.
+ * A done box keeps exactly the lines it had open, only greyed with its word; its real time and length
  * the log shows. An open box is as bright on a day that is over as on today, so a day before looks like today.
- * An open box that can be changed is skipped, cancelled, with its cross, or pushed to the next day,
- * one whose day is over to tomorrow, with its arrow, both in the menu of its `⋯`; a skipped box stays in its file,
- * see `reader/boxes.ts`, and shows greyed, never struck through, at the end of the list, where its arrow
- * back takes it back.
+ * An open box that can be changed is skipped, cancelled, with `Skip`, or pushed to the next day,
+ * one whose day is over to tomorrow, with `Move`, both in the menu of its `⋯`; a skipped box stays in its file,
+ * see `reader/boxes.ts`, and shows greyed, never struck through, at the end of the list, where its word
+ * takes it back.
  * A pushed box stays greyed on each day it left, once per push, with the start and the length it had there,
- * see `leftBoxesOf` in `reader/boxes.ts`, the arrow in its ring, which leads to the day it stands on now, as a click
- * on its lines does; the last of them has the arrow back, which takes that push back. Skipped, cancelled
- * by the university and pushed look and work alike, greyed with their mark in the ring and the arrow back,
- * and none of them is carried along.
+ * see `leftBoxesOf` in `reader/boxes.ts`; a click on its lines leads to the day it stands on now, and the word
+ * of the last of them takes that push back. Skipped, cancelled by the university and pushed look and work alike,
+ * greyed with their word, and none of them is carried along.
  * A box neither done nor cancelled stays on its day once that is over and is carried
  * along on today: below the list of today, under `Carried along`, each with its day, like `Mon, 12.10.2026 · 00h 45m`,
  * the earliest first, see `boxesCarried` in `reader/boxes.ts`, until I do it, dragged into the log or as expected,
- * cancel it with its cross, or push it with its arrow, there and on its own day alike, which takes it to tomorrow,
+ * cancel it with `Skip`, or push it with `Move`, there and on its own day alike, which takes it to tomorrow,
  * the day after today, not the day after its own, see `boxPush` in `reader/boxes.ts`; a click on it changes it,
  * like its day. It never moves into the next days by itself.
  * `+` beside the name of the plan opens the entry by category for a new box of the shown day; a click on a box changes it,
@@ -72,7 +72,7 @@
  * - `../menu.ts`: Puts the buttons of a box behind one button `⋯`.
  * - `../phone.ts`: Tells a phone, which shows a skill by its code alone.
  * - `../reader.ts`: Asks the reader.
- * - `lucide`: The icons plus, check, arrow, cross, undo, calendar crossed out and gift.
+ * - `lucide`: The icons plus, check, arrow, cross, calendar crossed out and gift.
  * - `fullcalendar`: Calendar of the log the boxes are dropped into.
  */
 
@@ -86,11 +86,11 @@ import { chapterNameOf, linkNameOf, modulesFolder } from "../skill/links.ts";
 import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { iconOf, iconPut, plusPut } from "../icons.ts";
+import { iconOf, plusPut } from "../icons.ts";
 import { menuItemOf, menuOf } from "../menu.ts";
 import { phone } from "../phone.ts";
 import { readerAsk } from "../reader.ts";
-import { ArrowRight, CalendarOff, Check, Gift, Undo2, X } from "lucide";
+import { ArrowRight, CalendarOff, Check, Gift, X } from "lucide";
 
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
 import type { IconNode } from "lucide";
@@ -195,8 +195,8 @@ export type Push = {
 /**
  * Where a box went that shows greyed on a day it was pushed from, as the reader sends it.
  *
- * - `day`: The day it stands on now, like `2026-10-17`, where its ring leads.
- * - `last`: Whether it is its last push and the box is still open, so its arrow back takes the push back.
+ * - `day`: The day it stands on now, like `2026-10-17`, where a click on its lines leads.
+ * - `last`: Whether it is its last push and the box is still open, so its word takes the push back.
  */
 export type Moved = {
     day: string;
@@ -351,7 +351,7 @@ function nearOf(box: Box, day: string): string {
  * which a middle dot parts, the same whether it is open or done, since the log shows its real time: its own day
  * when it is carried along to a later day, like `Mon, 12.10.2026`, its expected start and end, else its expected
  * duration, like `01h 15m`, see `lengthOf` in `times.ts`, never how often it was pushed; that a box was cancelled
- * or pushed away shows its mark in the place of its ring, see {@link ringOf}.
+ * or pushed away shows its word at its right, see {@link stateOf}.
  * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
  * - `start`: Its expected start, `null` for none.
  * - `when`: Its expected start and end, or its start alone without duration, empty for neither.
@@ -497,10 +497,9 @@ function topicsOf(box: Box): string[] {
  * Makes the birthdays and holidays of a day, each above its boxes looking like a box, see {@link boxElementOf},
  * so it reads as an appointment of the day: its category in bold with a colon as what a box is, like
  * **`Birthday:`**` Karlbauer Florian`, see {@link whatOf}, and beside it, after a middle dot, my gift idea for it,
- * when I have one, like `· Concert tickets`, ending in `…` where the line is too narrow, as what a box is does;
- * in the place of the ring an empty one, so its line starts where those of the boxes do, and no buttons, since it is
- * never logged. A click on it opens the dialog of its gift idea, see `gifts.ts`, and one without an idea shows
- * the gift at its right under the pointer.
+ * when I have one, like `· Concert tickets`, ending in `…` where the line is too narrow, as what a box is does,
+ * and no buttons, since it is never logged. A click on it opens the dialog of its gift idea, see `gifts.ts`,
+ * and one without an idea shows the gift at its right under the pointer.
  * - `after`: My gift idea after its dot, else the gift under the pointer.
  * - `element`: A birthday or holiday with its idea.
  *
@@ -512,9 +511,8 @@ function occasionsOf(occasions: Occasion[], open: (occasion: Occasion) => void):
     return occasions.map((occasion: Occasion): HTMLElement => {
         const after: HTMLElement = occasion.gift === "" ? entryPartOf("span", "occasion-hint", [iconOf(Gift)])
             : entryPartOf("span", "entry-parted occasion-gift", [occasion.gift]);
-        const element: HTMLElement = entryPartOf("div", "box occasion", [entryPartOf("span", "box-ring", []),
-            entryPartOf("div", "box-body", [
-                entryPartOf("div", "box-what", [...whatOf(occasion.category, occasion.title), after])])]);
+        const element: HTMLElement = entryPartOf("div", "box occasion", [entryPartOf("div", "box-body", [
+            entryPartOf("div", "box-what", [...whatOf(occasion.category, occasion.title), after])])]);
         element.title = occasion.gift === "" ? "Gift idea" : "Change gift idea";
         element.addEventListener("click", (): void => open(occasion));
         return element;
@@ -536,8 +534,8 @@ async function boxTap(calendar: Calendar, box: Box): Promise<void> {
 }
 
 /**
- * Acts on a click on what a box is: a box greyed on a day it was pushed from leads to the day it stands on now,
- * as its ring does, see {@link ringOf}; a box that can be changed, also one occurrence of a series, opens the entry
+ * Acts on a click on what a box is: a box greyed on a day it was pushed from leads to the day it stands on now;
+ * a box that can be changed, also one occurrence of a series, opens the entry
  * by category to change it, an open one that cannot, like a lecture of a file outside the new system, the entry
  * by category of the log at the times of a tap, see {@link boxTap}.
  * - `start`, `end`: The times of a tap.
@@ -558,60 +556,55 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
 }
 
 /**
- * Makes the ring at the left of a box: for an open box its place, empty and no button, since `Log`
- * in its menu logs it, see {@link actionsOf}, so its lines stand where those of a done box do; for a done box its check,
- * grey, a button, which takes it back to open, see `boxUndo` in `entries.ts`; for a box with a deadline an empty ring
- * like the circle of a to-do, its check showing under the pointer, a button, which ticks it submitted, and its check
- * once ticked, which takes the tick back, see `boxSubmit` in `entries.ts`, its sessions staying in the log;
- * for a box cancelled its grey mark in that place, no button: the calendar crossed out for one the university
- * cancelled, as on the button that cancels it, the cross for one I skipped, its tooltip saying which, so no word
- * in its line has to; for a box greyed on a day it was pushed from the arrow, as on the button that pushes it,
- * grey like a mark, but a button, which leads to the day the box stands on now, its tooltip naming that day,
- * like `Now on Sat, 17.10.2026`, see `.box-moved` in `boxes.css`.
- * - `mark`: The mark of a cancelled box.
- * - `ring`: The button.
- * - `moved`: Where a pushed box went.
+ * Makes the state of a box no longer open, at its right in the place of the menu `⋯` of an open box,
+ * see {@link actionsOf}: one small grey word, `Logged` for a done box, `Submitted` for a done box with a deadline,
+ * `Skipped` for one I skipped, `Cancelled` for one the university cancelled, `Moved` for one greyed on a day it was
+ * pushed from, see {@link stateWordOf}; a click on it takes that back, as the menu did it: a done box back to open,
+ * see `boxUndo` in `entries.ts`, a box with a deadline its tick, see `boxSubmit`, a skipped or cancelled box
+ * back to open, and a box greyed on the day of its last push that push; only the word, without button, for a box
+ * greyed on the day of an earlier push, since only the last push can be taken back, and for a box that cannot
+ * be changed, but for a done one.
  *
  * @param calendar - Calendar of the day
- * @param box - The box
- * @returns The ring
+ * @param box - The box, no longer open
+ * @returns Its word
  */
-function ringOf(calendar: Calendar, box: Box): HTMLElement {
-    if (box.state === "dropped" || box.state === "university") {
-        const mark: HTMLElement = entryPartOf("span", "box-ring", []);
-        iconPut(mark, box.state === "university" ? CalendarOff : X,
-            box.state === "university" ? "Cancelled by university" : "Skipped");
-        return mark;
-    }
-    if (box.state === "open" && box.deadline === "")
-        return entryPartOf("span", "box-ring", []);
+function stateOf(calendar: Calendar, box: Box): HTMLElement {
+    if (box.state === "done")
+        return box.deadline === "" ? stateWordOf(calendar, "Logged", (): Promise<void> => boxUndo(calendar, box.id))
+            : stateWordOf(calendar, "Submitted", (): Promise<void> => boxSubmit(box.id, false));
+    if (box.state === "dropped")
+        return stateWordOf(calendar, "Skipped", box.editable ? (): Promise<void> => boxDrop(box.id, false) : null);
+    if (box.state === "university")
+        return stateWordOf(calendar, "Cancelled",
+            box.editable ? (): Promise<void> => boxUniversity(box.id, false) : null);
+    return stateWordOf(calendar, "Moved",
+        box.editable && box.moved?.last === true ? (): Promise<void> => boxPush(box.id, false) : null);
+}
 
-    const ring: HTMLButtonElement = document.createElement("button");
-    ring.type = "button";
-    ring.className = "box-ring";
-    if (box.moved !== null) {
-        const moved: Moved = box.moved;
-        ring.classList.add("box-moved");
-        iconPut(ring, ArrowRight, `Now on ${dayTextOf(moved.day, true)}`);
-        ring.addEventListener("click", (): void => calendar.gotoDate(moved.day));
-        return ring;
-    }
-    if (box.deadline !== "") {
-        ring.classList.toggle("box-checked", box.state === "done");
-        iconPut(ring, Check, box.state === "done" ? "Not submitted" : "Submitted");
-        ring.addEventListener("click", (): void => {
-            boxSubmit(box.id, box.state !== "done").then((): Promise<void> => boxesLoad(calendar))
-                .catch((error: unknown): void => console.error(error));
-        });
-        return ring;
-    }
-    ring.classList.add("box-checked");
-    iconPut(ring, Check, "Not done");
-    ring.addEventListener("click", (): void => {
-        boxUndo(calendar, box.id).then((): Promise<void> => boxesLoad(calendar))
-            .catch((error: unknown): void => console.error(error));
+/**
+ * Makes the word of the state of a box, see {@link stateOf}: a button where the state can be taken back,
+ * its tooltip `Take back`, which a click does and then loads the list again, lighter under the pointer like `⋯`,
+ * see `.box-state` in `boxes.css`; else the word alone.
+ * - `button`: The word as button.
+ *
+ * @param calendar - Calendar of the day
+ * @param word - The word, like `Logged`
+ * @param back - Sends taking it back to the reader, `null` where it cannot be taken back
+ * @returns The word
+ */
+function stateWordOf(calendar: Calendar, word: string, back: (() => Promise<void>) | null): HTMLElement {
+    if (back === null)
+        return entryPartOf("span", "box-state", [word]);
+    const button: HTMLButtonElement = document.createElement("button");
+    button.type = "button";
+    button.className = "box-state";
+    button.title = "Take back";
+    button.append(word);
+    button.addEventListener("click", (): void => {
+        back().then((): Promise<void> => boxesLoad(calendar)).catch((error: unknown): void => console.error(error));
     });
-    return ring;
+    return button;
 }
 
 /**
@@ -656,57 +649,45 @@ function actionsRowOf(buttons: HTMLButtonElement[]): HTMLElement {
 }
 
 /**
- * Makes the menu of a box, behind its button `⋯`, see {@link actionsRowOf}: for an open box first `Log`,
- * the one button that logs it with one tap, see {@link boxTap}, its ring having none, see {@link ringOf},
- * also for an open box that cannot be changed, like a lecture of a file outside the new system, whose menu holds
- * nothing else, a hint above the list saying when the reader does not log it, see {@link logFailShow};
- * then the arrow, which pushes it to the next day, one whose day is over to tomorrow, also one carried along,
- * see `boxPush` in `reader/boxes.ts`, both but for a box with a deadline, which stays on the day of its deadline
- * and whose ring ticks it submitted,
- * then the cross, skip, which cancels it, and for a lecture, an exercise, a tutorial or a sheet,
- * see {@link numberedTypes}, before it the calendar crossed out, which marks it cancelled by the university,
- * see `boxUniversity` in `entries.ts`; for a skipped box, and one the university cancelled, the arrow back,
- * which takes it back, and for a box greyed on the day of its last push, which takes that push back, see `boxPush`
- * in `entries.ts`; none for a box greyed on the day of an earlier push, since only the last push can be taken back,
- * for a done box, whose check takes it back, see {@link ringOf}, and for any other box that cannot be changed.
- * One occurrence of a series has them too and changes alone, the series staying.
+ * Makes the menu of an open box, behind its button `⋯`, see {@link actionsRowOf}: first `Log`, the one button
+ * that logs it with one tap, see {@link boxTap}, a hint above the list saying when the reader does not log it,
+ * see {@link logFailShow}, for a box with a deadline `Submit` instead, which ticks it submitted, its sessions staying
+ * in the log, see `boxSubmit` in `entries.ts`, both also for a box that cannot be changed, like a lecture of a file
+ * outside the new system, whose menu holds nothing else; then `Move`, which pushes it to the next day, one whose day
+ * is over to tomorrow, also one carried along, see `boxPush` in `reader/boxes.ts`, but for a box with a deadline,
+ * which stays on the day of its deadline; then for a lecture, an exercise, a tutorial or a sheet,
+ * see {@link numberedTypes}, `Cancel`, which marks it cancelled by the university, see `boxUniversity`
+ * in `entries.ts`; last `Skip`, which cancels it. A box no longer open shows its state in that place instead,
+ * see {@link stateOf}. One occurrence of a series has them too and changes alone, the series staying.
+ * - `first`: `Log`, or `Submit` for a box with a deadline.
  *
  * @param calendar - Calendar of the day
- * @param box - The box
- * @returns The button `⋯` with its menu, none for a box without
+ * @param box - The box, open
+ * @returns The button `⋯` with its menu
  */
-function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
-    const logged: HTMLButtonElement[] = box.state === "open" && box.deadline === ""
-        ? [menuItemOf(Check, "Log", (): void => {
+function actionsOf(calendar: Calendar, box: Box): HTMLElement {
+    const first: HTMLButtonElement = box.deadline === ""
+        ? menuItemOf(Check, "Log", (): void => {
             boxTap(calendar, box).catch(logFailShow);
-        })] : [];
+        })
+        : actionOf(calendar, Check, "Submit", (): Promise<void> => boxSubmit(box.id, true));
     if (!box.editable)
-        return logged.length > 0 ? [actionsRowOf(logged)] : [];
-    if (box.state === "done")
-        return [];
-    if (box.state === "dropped")
-        return [actionsRowOf([actionOf(calendar, Undo2, "Take back", (): Promise<void> => boxDrop(box.id, false))])];
-    if (box.state === "university")
-        return [actionsRowOf([actionOf(calendar, Undo2, "Not cancelled by university",
-            (): Promise<void> => boxUniversity(box.id, false))])];
-    if (box.state === "pushed")
-        return box.moved?.last !== true ? []
-            : [actionsRowOf([actionOf(calendar, Undo2, "Take back", (): Promise<void> => boxPush(box.id, false))])];
-    return [actionsRowOf([
-        ...logged,
+        return actionsRowOf([first]);
+    return actionsRowOf([
+        first,
         ...(box.deadline !== "" ? []
             : [actionOf(calendar, ArrowRight, "Move", (): Promise<void> => boxPush(box.id, true))]),
         ...(box.category === skillName && numberedTypes.includes(box.type)
             ? [actionOf(calendar, CalendarOff, "Cancel", (): Promise<void> =>
                 boxUniversity(box.id, true))] : []),
         actionOf(calendar, X, "Skip", (): Promise<void> => boxDrop(box.id, true)),
-    ])];
+    ]);
 }
 
 /**
- * Makes a box of the list: its ring, see {@link ringOf}, its lines, see {@link boxContentOf}, which change it
- * when clicked, see {@link boxClick}, and its buttons, see {@link actionsOf}; in the list carried along
- * with its own day and without how near its deadline is, since its deadline line names it.
+ * Makes a box of the list: its lines, see {@link boxContentOf}, which change it when clicked, see {@link boxClick},
+ * and at their right its menu `⋯` while open, see {@link actionsOf}, else its state, see {@link stateOf};
+ * in the list carried along with its own day and without how near its deadline is, since its deadline line names it.
  * An open box has the class `box-draggable`, so it can be dragged into the log, see {@link boxesStart},
  * and keeps its place in the list, its category, its title and its minutes in the log as data of its element.
  * - `element`: The box.
@@ -730,7 +711,7 @@ function boxElementOf(calendar: Calendar, box: Box, index: number, carriedShown:
     body.addEventListener("click", (): void => {
         boxClick(calendar, box).catch((error: unknown): void => console.error(error));
     });
-    element.append(ringOf(calendar, box), body, ...actionsOf(calendar, box));
+    element.append(body, box.state === "open" ? actionsOf(calendar, box) : stateOf(calendar, box));
     return element;
 }
 
