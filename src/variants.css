@@ -20,11 +20,13 @@
    learning, the tree as wide as `IN2028_BusinessAnalyticsMachineLearning` needs, `--tree-width`, so the names
    of my notes and their headings still fit on their line;
    what is picked or shown, and the main button of a dialog, a calm lighter grey with a soft line, never glaring white,
-   the main button one grey lighter still under the pointer, `--chosen-over`, as far above `--chosen` as `--fill`
+   the main button one grey lighter still under the pointer, `--chosen-over`, as far above `--chosen` as `--row-over`
    above the page;
-   a card, filled in the soft grey `--fill` without a frame, one grey lighter under the pointer, `--fill-over`,
-   halfway to the calm grey of what is picked, so a tile, a box or a button of the rail lights up without looking
-   picked;
+   a card, filled in the soft grey `--fill` without a frame, as the module and chapter cards of the tree, one grey
+   lighter under the pointer, `--fill-over`, halfway to the calm grey of what is picked, so a tile, a box or a button
+   of the rail lights up without looking picked;
+   a row of the tree under the pointer a grey below a card, `--row-over`, so it never looks like the note shown, which
+   has the grey of a card;
    content without a frame of its own, like the plan of the day or the meals of a day, a step in from the rail's
    buttons, `--content-indent`, while a framed control, like the arrows of a date, stands one gap beside them,
    since text without a frame looks too close there; the same step in every view.
@@ -37,8 +39,9 @@
     --text-muted: #a8a8a8;
     --line: #4a4a4a;
     --guide: #5e5e5e;
-    --fill: #262626;
-    --fill-over: #2e2e2e;
+    --fill: #2e2e2e;
+    --fill-over: #343434;
+    --row-over: #262626;
     --chosen: #3a3a3a;
     --chosen-line: #747474;
     --chosen-over: #424242;
