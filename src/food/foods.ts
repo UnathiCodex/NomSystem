@@ -383,6 +383,17 @@ export function amountOf(value: number | null, digits: number): string {
 }
 
 /**
+ * Writes the key of a food, by which a line `X-FOOD` finds it, as the reader does: its name, brand and store
+ * parted by `;`, in small letters.
+ *
+ * @param food - Food or food picked
+ * @returns Key like `skyr natur;k-classic;kaufland`
+ */
+export function keyOf(food: { name: string; brand: string; store: string }): string {
+    return `${food.name};${food.brand};${food.store}`.toLowerCase();
+}
+
+/**
  * Makes an element with a class and a text.
  *
  * @param tag - Name of the element, like `div`

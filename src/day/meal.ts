@@ -50,7 +50,7 @@
  * - `./times.ts`: Writes the day and time of a cooking.
  * - `../skill/attempts.ts`: Gives the day of an instant.
  * - `../food/foods.ts`: Finds my foods, loads my meals and the grams I logged each food with last, sends a meal,
- *   writes amounts and makes elements and buttons.
+ *   writes amounts and the key of a food, and makes elements and buttons.
  * - `../food/meals.ts`: Finds my meals for a search, writes the name of a meal as the reader does, and kcal as the
  *   page writes them.
  * - `../food/search.ts`: The food search, the lines of every list, and a food of mine opened to change it.
@@ -64,7 +64,8 @@ import { choicesOf, listOf, listOpen, rowOf, searchOf } from "./choices.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import {
-    buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodsFind, gramsLoad, portionGramsOf, summaryOf, unitOf,
+    buttonOf, dishDelete, dishesLoad, dishSend, elementOf, foodsFind, gramsLoad, keyOf, portionGramsOf, summaryOf,
+    unitOf,
 } from "../food/foods.ts";
 import { dishesFound, dishNameOf, kcalTextOf, mealNameOf } from "../food/meals.ts";
 import { foodDetailOf, foodSearchClear, foodSearchOf, listLineOf } from "../food/search.ts";
@@ -261,17 +262,6 @@ let gramsFields: WeakMap<FoodPick, HTMLInputElement> = new WeakMap();
  */
 let blockPluses: WeakMap<MealPick, HTMLButtonElement> = new WeakMap();
 
-
-/**
- * Writes the key of a food, by which a line `X-FOOD` finds it, as the reader does: its name, brand and store
- * parted by `;`, in small letters, like `skyr natur;k-classic;kaufland`.
- *
- * @param food - Food or food picked
- * @returns Key
- */
-function keyOf(food: { name: string; brand: string; store: string }): string {
-    return `${food.name};${food.brand};${food.store}`.toLowerCase();
-}
 
 /**
  * Keeps a food among my foods by its key and, unless a food of its name came first, by its name alone,

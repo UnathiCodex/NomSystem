@@ -29,14 +29,16 @@
  * by hand only in the food view, by the plus beside the name `Foods`, see {@link foodNewShow}.
  * Nothing in the search is a form or sends one, so it can stand inside the form of a dialog.
  *
- * - `./foods.ts`: Finds foods, sends new and renamed foods, writes amounts and makes elements and buttons.
+ * - `./foods.ts`: Finds foods, sends new and renamed foods, writes amounts and the key of a food, and makes elements
+ *   and buttons.
  * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
  * - `lucide`: The icons save and cancel.
  * - `./search.css`: Look of the search and of every list of meals or foods, the same wherever they stand.
  */
 
 import {
-    amountOf, bracketsWatch, buttonOf, elementOf, foodChange, foodDelete, foodNameOf, foodSend, foodsFind, unitOf,
+    amountOf, bracketsWatch, buttonOf, elementOf, foodChange, foodDelete, foodNameOf, foodSend, foodsFind, keyOf,
+    unitOf,
 } from "./foods.ts";
 import { crossPut, iconOf, iconPut, QuestionMark } from "../icons.ts";
 import { Check, Plus, X } from "lucide";
@@ -123,16 +125,6 @@ function fieldsOf(kind: Kind): [string, string, string][] {
  */
 const searches: WeakMap<HTMLElement, Search> = new WeakMap();
 
-
-/**
- * Writes the key of a food: its name, brand and store parted by `;`, in small letters, as the reader keys it.
- *
- * @param food - Food
- * @returns Key like `skyr natur;k-classic;kaufland`
- */
-function keyOf(food: { name: string; brand: string; store: string }): string {
-    return `${food.name};${food.brand};${food.store}`.toLowerCase();
-}
 
 /**
  * Makes the head of a list or a section of meals or foods, small and grey, in the columns of its lines, see
