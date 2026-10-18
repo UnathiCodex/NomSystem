@@ -29,7 +29,7 @@
  * - `../search.ts`: Compares a typed text with the paths of the files and notes, as every search of the page does.
  * - `../day/choices.ts`: Marks where a long name may go on below.
  * - `./markdown.ts`, `./math.ts`: Render the headings of the outline, their formulas as in the note.
- * - `lucide`, `../icons.ts`: The check of a block done in its round.
+ * - `lucide`, `../icons.ts`: The check and the cross of a block done in its round.
  * - `../reader.ts`: Asks the reader for the tree.
  */
 
@@ -38,7 +38,7 @@ import { breakableOf } from "../day/choices.ts";
 import { inlineHtmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
 import { iconOf } from "../icons.ts";
-import { Check } from "lucide";
+import { Check, X } from "lucide";
 import { readerAsk } from "../reader.ts";
 
 
@@ -408,10 +408,11 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
 }
 
 /**
- * Place of a block of a section in its round, see `../editor/round.ts`: done, the current one, later in the round,
- * outside the round, or outside it but opened from the tree and shown.
+ * Place of a block of a section in its round, see `../editor/round.ts`: done, done with its last result failed, like
+ * a Task after Wrong, the current one, later in the round, outside the round, or outside it but opened from the tree
+ * and shown.
  */
-export type BlockMark = "done" | "current" | "round" | "other" | "opened";
+export type BlockMark = "done" | "wrong" | "current" | "round" | "other" | "opened";
 
 /**
  * Type word of a block of a section at the start of its heading, with the dot and space after it, like `Definition. `
@@ -452,7 +453,8 @@ function kindBoxOf(kind: string): HTMLSpanElement {
 /**
  * Builds the list of the blocks of a section in their order, each linking to its heading by its heading as written,
  * named by its type word as a small grey box and its name, see {@link blockNameOf}: a block done with a check after it,
- * the one shown in the calm grey of what is shown, a later one of the round plain, one outside the round grey.
+ * or with a cross, the one its heading line has, once its last result failed, like `Food Truck` after Wrong, the one
+ * shown in the calm grey of what is shown, a later one of the round plain, one outside the round grey.
  * Every block of the section stands in it, never hidden without a trace: once two or more blocks of one kind are
  * outside the round, like the Examples and Tasks round 0 does not need, they fold into one grey line of their kind
  * after its last block, its type word boxed as on their lines and how many, like `Task` boxed and `7 more`, the line
@@ -481,8 +483,8 @@ export function roundListOf(path: string, blocks: [string, BlockMark][], opened:
         link.href = noteAddressOf(path, heading);
         link.dataset.heading = heading;
         link.append(...blockNameOf(heading));
-        if (mark === "done")
-            link.append(iconOf(Check));
+        if (mark === "done" || mark === "wrong")
+            link.append(iconOf(mark === "done" ? Check : X));
         return link;
     };
     const kindOf: (block: [string, BlockMark]) => string = (block: [string, BlockMark]): string =>

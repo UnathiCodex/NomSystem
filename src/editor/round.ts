@@ -809,10 +809,12 @@ function roundTake(view: EditorView, loaded: NoteTasks, changed: () => void): vo
 
 /**
  * Gives the places of the blocks of the round shown in their order, every block of the note, for the tree: done,
- * the current step, also while I look at another block, which keeps its own place, its check too, later in the round,
- * or outside it, like a Task variant not due, also when opened from the tree and shown.
+ * wrong once its last result failed, like `Task. Food Truck` after Wrong, so the tree shows the cross its heading
+ * line shows, the current step, also while I look at another block, which keeps its own place, its check or cross
+ * too, later in the round, or outside it, like a Task variant not due, also when opened from the tree and shown.
  * - `steps`, `current`: Steps of the round and the current one.
  * - `own`: The steps of a block.
+ * - `last`: The last attempt at a block done, skips left out, `undefined` for none, like for theory.
  *
  * @param view - The editor
  * @returns Headings with their places, `null` for a note that is no section
@@ -830,7 +832,11 @@ export function roundBlocksOf(view: EditorView): [string, BlockMark][] | null {
                 return [block.heading, opened === block.heading ? "opened" : "other"];
             if (current?.block.heading === block.heading)
                 return [block.heading, "current"];
-            return [block.heading, own.every((step: Step): boolean => doneIs(shown, step)) ? "done" : "round"];
+            if (!own.every((step: Step): boolean => doneIs(shown, step)))
+                return [block.heading, "round"];
+            const last: Attempt | undefined = block.task?.attempts.findLast((attempt: Attempt): boolean =>
+                attempt.result !== "skipped");
+            return [block.heading, last !== undefined && failed.includes(last.result) ? "wrong" : "done"];
         });
 }
 
