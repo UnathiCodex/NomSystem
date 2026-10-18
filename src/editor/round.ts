@@ -32,8 +32,9 @@
  * under a heading `####` like `#### Ice Cream Kiosk`, stands open in the round that holds the block, so the first time
  * I map it onto the theory; a block looked up, by a link or from the tree outside that round, shows its scene folded,
  * the theory a clean card, its arrow opening it, see {@link blockOpen}; the last step has no `Next`, since a round closes
- * only by hand, with the round check in the head, see {@link roundClose}, once its Task has a result; the close writes
- * `done` where the step stood, and Today follows; once closed, a block opened has no `Next`, with no step to return to.
+ * only by hand, with the round check in the head, see {@link roundClose}, once its Task has a result and what a failure
+ * of it brought back is done, see {@link closeShow}; the close writes `done` where the step stood, and Today follows;
+ * once closed, a block opened has no `Next`, with no step to return to.
  * Reading a round needs no session, but `Next` and the round check write only in a session of the module, which
  * the dialog of a new entry starts while none runs, see `./session.ts`; cancelled, I stay where I was.
  * I write only in the block shown, see {@link changesKeep} and {@link selectionKeep}, so no key, cut or drag takes
@@ -719,19 +720,25 @@ function failShow(error: unknown): void {
 
 /**
  * Shows the round check in the head, see {@link roundClose}: round, unlike the square save button beside it, as the ring
- * of a done box of the day; on while the round's Task has a result, in the calm grey of a main button then, as the save
- * button with changes; off and faint before; hidden once the round is closed or for a round without steps.
- * - `cold`: The Task of the round.
+ * of a done box of the day; on once the round's Task has a result and the way down its failure brings back has ended,
+ * see {@link fallbacksOf}, in the calm grey of a main button then, as the save button with changes; off and faint
+ * before; hidden once the round is closed or for a round without steps. The way down has ended once its last Example
+ * is right, or once it reached the bottom, the Algorithm, which as the last step has no `Next` and passes by the round
+ * check itself, so I close the round standing on it: after Wrong on `Task. Food Truck` the check stays off until
+ * `Example. Kiosk Half Trend` is right, or, wrong on down, until the Algorithm stands.
+ * - `cold`: Place of the Task of the round, the steps after it those its failure brings back.
  *
  * @param shown - The round
  * @param steps - Its steps
  */
 function closeShow(shown: Round, steps: Step[]): void {
     const close: HTMLButtonElement = document.getElementById("editor-close") as HTMLButtonElement;
-    const cold: Step | undefined = steps.find((step: Step): boolean => step.block.task?.kind === "cold" && step.after === "");
+    const cold: number = steps.findIndex((step: Step): boolean => step.block.task?.kind === "cold" && step.after === "");
     close.hidden = shown.section.closed || steps.length === 0;
-    close.disabled = cold === undefined || !doneIs(shown, cold);
-    close.title = close.disabled ? "Close the round once its Task has a result" : "Close the round";
+    close.disabled = cold === -1 || !steps.slice(cold).every((step: Step): boolean => doneIs(shown, step)
+        || (resultlessIs(step) && keyOf(step) === shown.at));
+    close.title = close.disabled ? "Close the round once its Task and what a failure brings back are done"
+        : "Close the round";
 }
 
 /**
