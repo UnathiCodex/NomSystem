@@ -58,7 +58,7 @@
  *   of a block at the start of its heading.
  * - `./keys.ts`: Tells a spacer line and the indentation of the text of a list item, for where the item ends.
  * - `./round.ts`: Shows a block of a section alone, for a link to its heading.
- * - `./steps.ts`: Tells a worked Example, whose solution comes unfolded.
+ * - `./steps.ts`: Tells a worked Example, whose solution comes unfolded, and whether a section is folded.
  */
 
 import { EditorState, RangeSet, StateEffect, StateField } from "@codemirror/state";
@@ -72,7 +72,7 @@ import { htmlOf, punctuationRule } from "../notes/markdown.ts";
 import { kindRule, noteAddressOf } from "../notes/tree.ts";
 import { columnsOf, spacerRule, textIndentationOf } from "./keys.ts";
 import { roundHeadingShow } from "./round.ts";
-import { workedIs } from "./steps.ts";
+import { foldedAt, workedIs } from "./steps.ts";
 
 import type { Extension, Line, Range, SelectionRange, StateEffectType, Transaction, TransactionSpec } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
@@ -824,8 +824,6 @@ function wrap(look: Look, node: SyntaxNode, tagName: string, attributes: { [name
  * Puts the fold arrow of a heading after its text, or of a list item at the start of its line, from where `./editor.css`
  * moves it left of its bullet, when the line folds something, see {@link FoldWidget}.
  * - {@link foldable}: Gives what a line folds, by CodeMirror's Markdown, `null` for nothing.
- * - {@link foldedRanges}: The parts of the note folded now.
- * - `folded`: Whether the line's section is folded now.
  *
  * @param look - Look being built
  * @param line - Line of the heading or the list item
@@ -835,12 +833,8 @@ function foldLook(look: Look, line: Line, item: boolean): void {
     if (foldable(look.state, line.from, line.to) === null)
         return;
 
-    let folded: boolean = false;
-    foldedRanges(look.state).between(line.to, line.to, (from: number): void => {
-        folded ||= from === line.to;
-    });
-    look.decorations.push(Decoration.widget({ widget: new FoldWidget(item, folded), side: item ? -1 : 1 })
-        .range(item ? line.from : line.to));
+    look.decorations.push(Decoration.widget({ widget: new FoldWidget(item, foldedAt(look.state, line.to)),
+        side: item ? -1 : 1 }).range(item ? line.from : line.to));
 }
 
 /**

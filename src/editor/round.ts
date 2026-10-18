@@ -42,6 +42,7 @@
  * - `@codemirror/state`, `@codemirror/view`: Hold the block shown, keep what I write and select inside it,
  *   and draw `Next` as a widget below it.
  * - `@codemirror/language`: Folds and unfolds the blocks, as their arrows do.
+ * - `./steps.ts`: Tells whether a block is folded.
  * - `../skill/attempts.ts`: Writes the days of the round line out, and the day of the next Task for the tree.
  * - `./tasks.ts`: Reads the blocks of the note with their tasks, and hears each load of the tasks, with its section,
  *   and each Right.
@@ -53,8 +54,9 @@
 
 import { EditorSelection, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
-import { foldable, foldedRanges, foldEffect, unfoldEffect } from "@codemirror/language";
+import { foldable, foldEffect, unfoldEffect } from "@codemirror/language";
 import { blocksOf, tasksFollow } from "./tasks.ts";
+import { foldedAt } from "./steps.ts";
 import { sessionEnsure, sessionOf, sessionTextOf } from "./session.ts";
 import { dayOf, dayTextOf } from "../skill/attempts.ts";
 
@@ -580,21 +582,6 @@ function scenesOf(state: EditorState, block: Block): { from: number; to: number 
             scenes.push(scene);
     }
     return scenes;
-}
-
-/**
- * Tells whether something folded starts at a place.
- *
- * @param state - Folds of the note
- * @param from - The place
- * @returns Whether it is folded
- */
-function foldedAt(state: EditorState, from: number): boolean {
-    let found: boolean = false;
-    foldedRanges(state).between(from, from, (start: number): void => {
-        found ||= start === from;
-    });
-    return found;
 }
 
 /**

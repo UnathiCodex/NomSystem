@@ -14,7 +14,8 @@
  * see {@link tasksFollow}.
  *
  * - `@codemirror/state`, `@codemirror/view`: Hold the tasks of the note and draw the rows as widgets between its lines.
- * - `@codemirror/language`: Tells whether a solution is folded.
+ * - `@codemirror/language`: Tells when something folds or unfolds.
+ * - `./steps.ts`: The heading of a solution, and whether it is folded.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due.
  * - `../today.ts`: Gives today's calendar date, for when a task is due.
  * - `../skill/task.ts`: Builds the row of a task, the check and the cross of a task of a section, and the label
@@ -24,6 +25,7 @@
 import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { foldedRanges } from "@codemirror/language";
+import { foldedAt, solutionRule } from "./steps.ts";
 import { skillingLoad } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { coldLabelOf, judgeOf, taskRowOf } from "../skill/task.ts";
@@ -72,11 +74,6 @@ type Rows = {
  * Heading `##` of a block, with its text as written.
  */
 const blockRule: RegExp = /^##[ \t]+(.+?)[ \t]*$/;
-
-/**
- * Heading of a solution, like `#### Solution` or `#### Solution (own, unchecked)`, as the scripts view folds it.
- */
-const solutionRule: RegExp = /^####[ \t]+Solution\b/;
 
 /**
  * End of the heading of a cold task, `(cold)` with the space before it, like in `Task. Kiosk Chain Review (cold)`.
@@ -243,7 +240,6 @@ class ColdWidget extends WidgetType {
  * Tells whether the solution of a task is unfolded: the first heading `#### Solution…` of its block, from its heading
  * to the next heading `##`.
  * - `line`: A line of the block.
- * - `open`: Whether its solution is unfolded, `null` while none is found.
  *
  * @param state - Text and folds of the note
  * @param heading - Line of the heading of the task
@@ -256,11 +252,7 @@ function solutionOpenOf(state: EditorState, heading: Line): boolean | null {
             return null;
         if (!solutionRule.test(line.text))
             continue;
-        let open: boolean = true;
-        foldedRanges(state).between(line.to, line.to, (from: number): void => {
-            open &&= from !== line.to;
-        });
-        return open;
+        return !foldedAt(state, line.to);
     }
     return null;
 }

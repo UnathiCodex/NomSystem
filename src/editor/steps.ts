@@ -66,7 +66,7 @@ type More = {
 /**
  * Heading of a solution, like `#### Solution` or `#### Solution (own, unchecked)`, as the scripts view folds it.
  */
-const solutionRule: RegExp = /^####[ \t]+Solution\b/;
+export const solutionRule: RegExp = /^####[ \t]+Solution\b/;
 
 /**
  * Heading of a block, `##`.
@@ -177,10 +177,24 @@ function solutionOf(state: EditorState, heading: Line, to: number): Solution {
 }
 
 /**
+ * Tells whether something folded starts at a place, like the section of a heading at the end of its line.
+ *
+ * @param state - Folds of the note
+ * @param from - The place
+ * @returns Whether it is folded
+ */
+export function foldedAt(state: EditorState, from: number): boolean {
+    let found: boolean = false;
+    foldedRanges(state).between(from, from, (start: number): void => {
+        found ||= start === from;
+    });
+    return found;
+}
+
+/**
  * Finds the unfolded solutions of the note with their steps.
  * - `line`: A line of the note, the heading of a solution.
  * - `section`: Its section, from the end of its heading, `null` for none.
- * - `folded`: Whether its section is folded.
  *
  * @param state - Text, syntax tree and folds of the note
  * @returns The solutions
@@ -191,11 +205,7 @@ function solutionsOf(state: EditorState): Solution[] {
         const line: Line = state.doc.line(number);
         const section: { from: number; to: number } | null = solutionRule.test(line.text) && !workedIs(state, line)
             ? foldable(state, line.from, line.to) : null;
-        let folded: boolean = false;
-        foldedRanges(state).between(line.to, line.to, (from: number): void => {
-            folded ||= from === line.to;
-        });
-        if (section !== null && !folded)
+        if (section !== null && !foldedAt(state, line.to))
             solutions.push(solutionOf(state, line, section.to));
     }
     return solutions;
