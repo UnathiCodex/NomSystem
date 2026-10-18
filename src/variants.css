@@ -27,9 +27,9 @@
    of the rail lights up without looking picked;
    a row of the tree under the pointer a grey below a card, `--row-over`, so it never looks like the note shown, which
    has the grey of a card;
-   content without a frame of its own, like the plan of the day or the meals of a day, a step in from the rail's
-   buttons, `--content-indent`, while a framed control, like the arrows of a date, stands one gap beside them,
-   since text without a frame looks too close there; the same step in every view.
+   a framed control, like the arrows of a date, one gap beside the rail's buttons, and content without a frame of its
+   own, like the plan of the day or the meals of a day, a step further in, `--content-indent`, since text without
+   a frame looks too close there; the same step in every view.
    Every size is in rem, the root font size, so that one size scales the whole page:
    125 % of the browser's 16 px, the look of Chrome's zoom at 125 %, also for the time grid and the formulas */
 :root {
@@ -39,8 +39,8 @@
     --text-muted: #a8a8a8;
     --line: #4a4a4a;
     --guide: #5e5e5e;
-    --fill: #2e2e2e;
-    --fill-over: #343434;
+    --fill: #323232;
+    --fill-over: #363636;
     --row-over: #262626;
     --chosen: #3a3a3a;
     --chosen-line: #747474;
@@ -63,7 +63,7 @@
     --icon-size: 1.125rem;
     --reading-line-height: 2.2;
     --gap: 1rem;
-    --content-indent: calc(2 * var(--gap));
+    --content-indent: var(--gap);
     --slot-margin: 0.5rem;
     --radius: 0.75rem;
     --chip-radius: 0.5rem;

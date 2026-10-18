@@ -71,8 +71,8 @@
     min-height: 0;
 }
 
-/* The plan, my gratitude and the rest of the note below them a step from the rail's buttons, `--content-indent`,
-   as the meals of the food view, while the arrows of the date stand one gap beside them */
+/* The plan, my gratitude and the rest of the note below them a step further in than the arrows of the date,
+   `--content-indent`, as the meals of the food view */
 #day-plan,
 .note-boxes > .day-column:first-child,
 .day-note {

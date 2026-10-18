@@ -18,7 +18,7 @@
    the room left of a name in a row `--tree-row-padding`, the room above and below the name of a picker
    `--tree-pick-padding` */
 .notes-tree {
-    --tree-row-padding: calc(var(--content-indent) - var(--gap));
+    --tree-row-padding: 1rem;
     --tree-pick-padding: 0.25rem;
     --tree-row-height: calc(var(--chip-height) + 0.25rem);
     anchor-name: --tree;

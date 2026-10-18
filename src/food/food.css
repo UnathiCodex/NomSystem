@@ -13,9 +13,8 @@
     padding: var(--gap) var(--gap) calc(4 * var(--gap));
 }
 
-/* The day's totals and meals a step from the rail's buttons, `--content-indent`, not right beside them, as the date
-   bar's framed arrows may stand, nor as far in as the date; the step comes on top of the day's 31rem, so its columns
-   keep their room */
+/* The day's totals and meals a step further in than the date bar's framed arrows, `--content-indent`, yet not as far
+   in as the date; the step comes on top of the day's 31rem, so its columns keep their room */
 .food-day {
     flex: 0 1 calc(31rem + var(--content-indent));
     min-width: 0;

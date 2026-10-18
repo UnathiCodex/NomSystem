@@ -7,11 +7,12 @@
     line-height: 1rem;
 }
 
-/* Entries a grey lighter than the fill of the page, their edge in the grey of the log, 4px apart, so two entries
+/* Entries one grey lighter than a card, `--fill-over`, never as light as what is picked, so a range being selected
+   stands out over them, see `.entry-selection`; their edge in the grey of the log, 4px apart, so two entries
    one right after the other, like a skill from 10:00 to 10:30 and a way from 10:30, stand apart at a glance */
 .entry {
     margin-bottom: 4px;
-    background-color: color-mix(in oklab, var(--fill) 95%, var(--text-main));
+    background-color: var(--fill-over);
 }
 
 /* A short entry, of a quarter hour, keeps the theme's 1px below it, since 4px would cut its one line */
@@ -28,7 +29,7 @@
     }
 
     .entry:hover {
-        background-color: color-mix(in oklab, var(--fill) 89%, var(--text-main));
+        background-color: color-mix(in oklab, var(--fill-over) 94%, var(--text-main));
         transition: background-color 150ms 100ms;
     }
 }
