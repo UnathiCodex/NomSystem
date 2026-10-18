@@ -221,15 +221,11 @@
     background: var(--chosen);
 }
 
-/* Of my modules only the module and chapter picked, see `chapterShow` in `tree.ts`; while I search, every chapter
-   of the module picked, see `searchStart`; the notes in line with the names of the pickers */
+/* Of my modules only the module and chapter picked, see `chapterShow` in `tree.ts`; the notes in line with the names
+   of the pickers */
 .tree-module:not(.picked),
 .tree-chapter:not(.picked) {
     display: none;
-}
-
-.tree-searching .tree-chapter:not(.tree-unfound) {
-    display: block;
 }
 
 .tree-chapter > .tree-file {

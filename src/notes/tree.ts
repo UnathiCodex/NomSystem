@@ -358,34 +358,25 @@ export function treeMark(tree: HTMLElement, shown: string): HTMLElement | null {
 }
 
 /**
- * Starts the search of the tree: as I type, only the files and notes whose path holds each typed word show,
- * of my modules only those of the module picked, of every chapter of it, like `regression` the notes
- * of `01_RegressionAnalysis` and `02_LogisticPoissonRegression`, of my new system every folder on the way to them open;
- * the outline of the note shown and the hint `No chapters yet` hidden; the folders open before the search open again
- * once it is empty, and only the chapter picked shows again. Enter opens the first file or note shown, as a click on it
- * does, Escape empties the search.
+ * Starts the search of my new system: as I type, only the files whose path holds each typed word show, every folder
+ * on the way to them open; the folders open before the search open again once it is empty. Enter opens the first
+ * file shown that opens, as a click on it does, Escape empties the search.
  * - `opened`: The folders open before the search, `null` while nothing is typed.
- * - `scope`: Where it searches: the module picked, else the whole tree.
- * - `show`: Shows the tree for the typed text, `tree-searching` on the tree while something is typed,
- *   so every chapter of the module picked shows, see `./notes.css`.
- * - `searched`: The files and notes searched, without the headings of the outline.
+ * - `files`: The files of the tree.
+ * - `show`: Shows the tree for the typed text.
  *
  * @param tree - The tree
  * @param search - Its search field
  */
 function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
     let opened: Set<HTMLDetailsElement> | null = null;
-    const scope: () => HTMLElement = (): HTMLElement =>
-        tree.querySelector<HTMLElement>(".tree-module.picked") ?? tree;
-    const searched: () => HTMLElement[] = (): HTMLElement[] => [...scope().querySelectorAll<HTMLElement>(".tree-file")]
-        .filter((file: HTMLElement): boolean => file.closest(".tree-outline") === null);
+    const files: () => HTMLElement[] = (): HTMLElement[] => [...tree.querySelectorAll<HTMLElement>(".tree-file")];
     const show: () => void = (): void => {
         const words: string[] = wordsOf(search.value);
-        const folders: HTMLDetailsElement[] = [...tree.querySelectorAll<HTMLDetailsElement>("details.tree-folder")]
-            .filter((folder: HTMLDetailsElement): boolean => folder.closest(".tree-outline") === null);
-        tree.classList.toggle("tree-searching", words.length > 0);
+        const folders: HTMLDetailsElement[] = [...tree.querySelectorAll<HTMLDetailsElement>("details.tree-folder")];
         if (words.length === 0) {
-            tree.querySelectorAll(".tree-unfound").forEach((element: Element): void => element.classList.remove("tree-unfound"));
+            tree.querySelectorAll(".tree-unfound").forEach((element: Element): void =>
+                element.classList.remove("tree-unfound"));
             if (opened !== null)
                 folders.forEach((folder: HTMLDetailsElement): void => {
                     folder.open = opened?.has(folder) ?? false;
@@ -394,25 +385,20 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
             return;
         }
         opened ??= new Set(folders.filter((folder: HTMLDetailsElement): boolean => folder.open));
-        searched().forEach((file: HTMLElement): void => {
-            file.classList.toggle("tree-unfound", !matchesAll(file.dataset.path ?? file.textContent ?? "", words));
+        files().forEach((file: HTMLElement): void => {
+            file.classList.toggle("tree-unfound", !matchesAll(file.dataset.path ?? "", words));
         });
-        tree.querySelectorAll(".tree-outline, .tree-none").forEach((element: Element): void => element.classList.add("tree-unfound"));
         folders.forEach((folder: HTMLDetailsElement): void => {
-            const found: boolean = [...folder.querySelectorAll<HTMLElement>(".tree-file:not(.tree-unfound)")]
-                .some((file: HTMLElement): boolean => file.closest(".tree-outline") === null);
+            const found: boolean = folder.querySelector(".tree-file:not(.tree-unfound)") !== null;
             folder.classList.toggle("tree-unfound", !found);
             if (found)
                 folder.open = true;
-        });
-        scope().querySelectorAll<HTMLElement>(".tree-chapter").forEach((chapter: HTMLElement): void => {
-            chapter.classList.toggle("tree-unfound", chapter.querySelector(".tree-file:not(.tree-unfound)") === null);
         });
     };
     search.addEventListener("input", show);
     search.addEventListener("keydown", (event: KeyboardEvent): void => {
         if (event.key === "Enter")
-            searched().find((file: HTMLElement): boolean =>
+            files().find((file: HTMLElement): boolean =>
                 file instanceof HTMLAnchorElement && !file.classList.contains("tree-unfound"))?.click();
         else if (event.key === "Escape") {
             search.value = "";

@@ -2,7 +2,7 @@
  * ## Search
  *
  * How every search of the page compares a typed text with what it searches, alike everywhere: the lists of the
- * dialogs, see `./day/choices.ts`, and the trees of Scripts and Plannings, see `./notes/tree.ts`.
+ * dialogs, see `./day/choices.ts`, and the tree of Plannings, see `./notes/tree.ts`.
  * A text matches when it holds each typed word, in small letters and without accents, so `munchen` finds `München`
  * and `2028 regression` finds the notes of `IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis`.
  */
