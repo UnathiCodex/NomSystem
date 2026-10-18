@@ -601,10 +601,11 @@ fieldset.entry-times {
         padding-left: 0;
     }
 
-    /* Switch between plan and log at the bottom, under the thumb: one pill one control high, filled in the soft grey
+    /* Switch between plan and log at the bottom, under the thumb: one bar one control high, filled in the soft grey
        of a card, the two side by side inside it, equally wide, grey, the shown one light on the calm grey of what
-       is picked; right of it the + of the shown plan or log, round, in that calm grey too, so a thumb finds it
-       at once */
+       is picked; right of it the + of the shown plan or log, square, in that calm grey too, so a thumb finds it
+       at once; all of them rectangles with the round corners of every button on a phone, `--chip-radius`, see
+       `../variants.css` */
     .day-switch {
         display: flex;
         align-items: center;
@@ -617,14 +618,14 @@ fieldset.entry-times {
         gap: 0.25rem;
         height: var(--control-height);
         padding: 0.25rem;
-        border-radius: 999px;
+        border-radius: var(--chip-radius);
         background: var(--fill);
     }
 
     .day-views button {
         flex: 1;
         border: 0;
-        border-radius: 999px;
+        border-radius: var(--chip-radius);
         background: none;
         color: var(--text-muted);
         font-size: var(--control-text);
@@ -640,22 +641,24 @@ fieldset.entry-times {
         width: var(--control-height);
         height: var(--control-height);
         border-color: var(--chosen-line);
-        border-radius: 50%;
         background: var(--chosen);
     }
 
-    /* The date of the day on a phone at the left of its bar, see `.day-bar` in `../base.css` */
+    /* The date of the day on a phone at the left of its bar, see `.day-bar` in `../base.css`, with the round corners
+       of every button there */
     #day-title {
         min-width: 0;
+        border-radius: var(--chip-radius);
         padding-left: 0;
         text-align: left;
     }
 
-    /* Buttons of a panel in one row across, round, the icon ones beside those with words, which share the rest equally,
-       each its word on one line, a little smaller, so `Edit plan` keeps room inside its frame; always in sight
-       at the bottom of the dialog, under the thumb, while its rows scroll above them, like the foods of a long meal:
-       on the background of the dialog, so a row scrolled under them hides behind them, 0.5rem of it above the buttons,
-       the rest of their room above them as before, and the dialog's own room below them */
+    /* Buttons of a panel in one row across, with the round corners of every button on a phone, the icon ones beside
+       those with words, which share the rest equally, each its word on one line, a little smaller, so `Edit plan`
+       keeps room inside its frame; always in sight at the bottom of the dialog, under the thumb, while its rows
+       scroll above them, like the foods of a long meal: on the background of the dialog, so a row scrolled under
+       them hides behind them, 0.5rem of it above the buttons, the rest of their room above them as before, and
+       the dialog's own room below them */
     .panel-buttons {
         position: sticky;
         bottom: -0.5rem;
@@ -672,7 +675,7 @@ fieldset.entry-times {
 
     .panel-buttons button {
         padding: 0 0.25rem;
-        border-radius: 999px;
+        border-radius: var(--chip-radius);
         font-size: 0.875rem;
     }
 

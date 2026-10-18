@@ -351,8 +351,14 @@ button.food-row:hover {
 
 /* Phone: the values of a food opened, of a new food and of a meal each its name small and grey above it, as the rows
    of a dialog on a phone, so a value takes the whole width, like the name `Hackfleisch gemischt zum Braten`
-   in its field, never cut at its edge; a row 0.75rem below the one above it */
+   in its field, never cut at its edge; a row 0.75rem below the one above it; a line of a list and More with the round
+   corners of every button on a phone, see `../variants.css` */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
+    .food-row,
+    .food-more-button {
+        border-radius: var(--chip-radius);
+    }
+
     .food-facts {
         grid-template-columns: minmax(0, 1fr);
         row-gap: 0.25rem;

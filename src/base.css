@@ -449,6 +449,12 @@ h3 {
         inset: var(--tap);
     }
 
+    /* The plus with the text typed at the end of a list on a phone a rectangle with the round corners of every
+       button there, `--chip-radius`, see `variants.css` */
+    .picker-new {
+        border-radius: var(--chip-radius);
+    }
+
     /* A swipe down at the top of the log never pulls the page to load it again, as Chrome does in a tab, which would
        lose what I am typing: the page itself never scrolls on a phone, so it takes no swipe passed on by the log */
     html {

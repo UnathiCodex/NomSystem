@@ -61,10 +61,16 @@
 }
 
 /* Phone: the button `⋯` as it looks, but a finger's width to hit, its own width and 0.5rem above and below;
-   the items, a finger high already, only themselves, so no tap reaches beside them */
+   the items, a finger high already, only themselves, so no tap reaches beside them; both with the round corners
+   of every button on a phone, `--chip-radius`, see `variants.css` */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .menu-more {
         position: relative;
+    }
+
+    .menu-more,
+    .menu-item {
+        border-radius: var(--chip-radius);
     }
 
     .menu-more::after {

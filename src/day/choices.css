@@ -420,9 +420,11 @@
 
     /* A value of a list on a phone with room above and below it, so a value going on over two lines stands apart
        from the next one; its detail, like the address of a place, small and grey on a line of its own below
-       its name, as a place's address stands below it in the dialog, instead of beside it going on below */
+       its name, as a place's address stands below it in the dialog, instead of beside it going on below; with
+       the round corners of every button on a phone, see `../variants.css` */
     .picker-list button {
         padding-block: 0.375rem;
+        border-radius: var(--chip-radius);
     }
 
     .picker-detail {
