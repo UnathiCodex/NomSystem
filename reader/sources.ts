@@ -4,7 +4,8 @@
  * Names every folder and file the reader reads, and every address on the web it asks, grouped by area.
  * My new system is three folders in `NomManageplannings`, see {@link systemRoots}: `NomManagecalendar` for plan
  * and log, {@link calendarRoot}, `NomFrequencediary` for the daily notes, {@link diaryRoot}, and `NomMetainformations`
- * for my foods and places, {@link dataRoot}; my old system, `NomSystemprevious`, lies beside them and is never read.
+ * for my foods, places, workouts, videos and weight, {@link dataRoot}; my old system, `NomSystemprevious`, lies beside
+ * them and is never read.
  * The reader reads only the new system, my modules, see {@link notes}, and the files the skill entries link,
  * in my modules and my projects, see {@link activeSkills} and `documents.ts`, and nothing that is not listed here;
  * every file at its own place, none from a copy elsewhere, like a draft in `.claude`.
@@ -330,6 +331,43 @@ export const food: FoodSources = {
     log: [{ folder: calendarRoot, ending: logEnding }],
     search: "https://search.openfoodfacts.org/search",
     product: "https://world.openfoodfacts.org/api/v2/product/",
+};
+
+/**
+ * Sources of the sport area.
+ *
+ * - `workouts`: My workouts, `Workouts.md` in {@link dataRoot}, one Markdown table with one row per part of a workout,
+ *   an exercise or a video, which the reader writes as I add workouts, see `sport.ts`.
+ * - `exercises`: My exercises, `Exercises.md` in {@link dataRoot}, one Markdown table with one row per exercise,
+ *   which the reader writes as I add exercises, see `sport.ts`.
+ * - `videos`: My videos, `Videos.md` in {@link dataRoot}, one Markdown table with one row per video,
+ *   which the reader writes as I add videos, see `sport.ts`.
+ * - `weights`: My weight, `Weights.md` in {@link dataRoot}, one Markdown table with one row per day I weighed myself,
+ *   which the reader writes as I change my weight in the sport area, see `sport.ts`; each person's own, never
+ *   in the code.
+ * - `log`: Log of the new system, where each session is an entry of the category `Sport`, in the log of its year
+ *   in `Living/`.
+ * - `video`: oEmbed of YouTube, which gives the title and the channel of a video by its link put after the address.
+ */
+export type SportSources = {
+    workouts: string;
+    exercises: string;
+    videos: string;
+    weights: string;
+    log: CalendarSource[];
+    video: string;
+};
+
+/**
+ * {@link SportSources} as they lie in the vault and on the web.
+ */
+export const sport: SportSources = {
+    workouts: join(dataRoot, "Workouts.md"),
+    exercises: join(dataRoot, "Exercises.md"),
+    videos: join(dataRoot, "Videos.md"),
+    weights: join(dataRoot, "Weights.md"),
+    log: [{ folder: calendarRoot, ending: logEnding }],
+    video: "https://www.youtube.com/oembed",
 };
 
 /**

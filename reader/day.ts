@@ -35,6 +35,9 @@
  * which counts nothing; a meal drawn from it holds `X-COOKED:<UID of the Cook entry>` and the foods it ate with their
  * grams, so each keeps its foods in its own lines, which follow every change of the cooking, see {@link cookedShare};
  * a link only ever points back in time, see {@link cookedCheck}.
+ * A session of sport, `Sport`, holds what I did as its own lines, its exercises `X-EXERCISE` and its videos `X-VIDEO`,
+ * each with its workout, see `sport.ts`: appended with the entry, and each kind replaced as a whole when the entry
+ * changes it; the `X-WORKOUT` of a session written before goes once the entry changes.
  *
  * - `./boxes.ts`: Finds a box of the plan, an open one, and marks a box done or open again.
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
@@ -42,6 +45,7 @@
  * - `./documents.ts`: Writes what a skill entry was, linking the folder of its skill, gives its chapters,
  *   and the log an entry belongs into.
  * - `./food.ts`: Tells what meals give and whether a line `X-FOOD` is well formed.
+ * - `./sport.ts`: Tells whether the lines of a session of sport are well formed.
  * - `./sources.ts`: Names every folder and file the reader reads.
  * - `./trackers.ts`: Tells whether an entry is a glass of water.
  */
@@ -55,6 +59,7 @@ import { attendeesAllow, categoryAllows, semesterFor, skillName } from "./catego
 import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
 import { foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
 import { placeLinkOf } from "./places.ts";
+import { sportPartsAllow } from "./sport.ts";
 import { day, logEnding } from "./sources.ts";
 import { glassIs } from "./trackers.ts";
 
@@ -91,6 +96,11 @@ import type { Meal } from "./food.ts";
  *   left out by a sender that does not know it, like a drag, so it stays as it is.
  * - `cooked`: For a meal drawn from a cooking, its `X-COOKED`, the identifier of the cooking, empty for none;
  *   left out by a sender that does not know it, so it stays as it is, see {@link cookedCheck}.
+ * - `workout`: For a session of sport, the workout it did, its `X-WORKOUT`, like `Push`, empty for none.
+ * - `exercises`: For a session of sport, its exercises, its lines `X-EXERCISE` like `Bench press;3;10;40`.
+ * - `videos`: For a session of sport, its videos, its lines `X-VIDEO` like `Pilates;Lidia Mera;25;https://…`.
+ *   The three left out by a sender that does not know them, like the calendar after a drag, so they stay as they are,
+ *   see {@link sportCheck}.
  * - `start`: Start as ISO instant.
  * - `end`: End as ISO instant, after the start.
  */
@@ -110,6 +120,9 @@ export type EntryNew = {
     planned: string;
     pain?: string;
     cooked?: string;
+    workout?: string;
+    exercises?: string[];
+    videos?: string[];
     start: string;
     end: string;
 };
@@ -295,6 +308,20 @@ export function logAllRead(): Entry[] {
 }
 
 /**
+ * Checks what a session of sport did as the dialog sends it, see `sportPartsAllow` in `sport.ts`.
+ *
+ * @param category - Category of the entry, like `Sport`
+ * @param workout - Its workout, empty for none
+ * @param exercises - Its lines `X-EXERCISE`
+ * @param videos - Its lines `X-VIDEO`
+ * @throws {Error} - When the entry is no session of sport or a line is not well formed
+ */
+function sportCheck(category: string, workout: string, exercises: string[], videos: string[]): void {
+    if (!sportPartsAllow(category, workout, exercises, videos))
+        throw new Error(`No session ${JSON.stringify({ workout, exercises, videos })} for ${category}`);
+}
+
+/**
  * Checks my neck pain as the dialog sends it: a whole number from 0 to 10, or empty for none.
  *
  * @param pain - Pain, like `5`
@@ -421,10 +448,12 @@ export function realMinutesRead(category: string, title: string, module: string,
  * per food, see {@link fieldsCheck}; an entry logged from a box with its `RELATED-TO`, after which the box is done,
  * see `boxDone` in `boxes.ts`;
  * a long neck session with my pain as `X-PAIN`, see {@link painCheck}; a meal drawn from a cooking with its
- * `X-COOKED`, see {@link cookedCheck}.
+ * `X-COOKED`, see {@link cookedCheck}; a session of sport with its workout, exercises and videos,
+ * see {@link sportCheck}.
  * - `pain`: My pain, empty for none.
  * - `cooked`: Identifier of the cooking a meal draws from, empty for none.
- * - `own`: Properties of my own beyond the fields: the foods, the box, the pain and the cooking.
+ * - `workout`, `exercises`, `videos`: What a session of sport did, empty and none for any other entry.
+ * - `own`: Properties of my own beyond the fields: the foods, the box, the pain, the cooking and what a session did.
  * - `id`: Identifier of the new entry.
  *
  * @param entry - Entry as the entry by category or the counter of glasses sends it
@@ -441,6 +470,10 @@ export function entryAdd(entry: EntryNew): string {
     painCheck(pain);
     const cooked: string = entry.cooked ?? "";
     cookedCheck(fields.category, fields.start, cooked);
+    const workout: string = (entry.workout ?? "").trim();
+    const exercises: string[] = entry.exercises ?? [];
+    const videos: string[] = entry.videos ?? [];
+    sportCheck(fields.category, workout, exercises, videos);
     const own: [string, string | Link][] = entry.foods.map((food: string): [string, string] => ["x-food", food]);
     if (entry.planned !== "")
         own.push(["related-to", entry.planned]);
@@ -448,6 +481,10 @@ export function entryAdd(entry: EntryNew): string {
         own.push(["x-pain", pain]);
     if (cooked !== "")
         own.push(["x-cooked", cooked]);
+    if (workout !== "")
+        own.push(["x-workout", workout]);
+    own.push(...exercises.map((line: string): [string, string] => ["x-exercise", line]),
+        ...videos.map((line: string): [string, string] => ["x-video", line]));
     const id: string = entryAppend(logFileOf(fields), fields, own);
     if (entry.planned !== "")
         boxDone(entry.planned);
@@ -532,7 +569,8 @@ export function boxUndo(id: string): void {
 /**
  * Writes fields, foods, pain and times of an entry of the log, see {@link fieldsCheck}:
  * changed foods replace all lines `X-FOOD` of the entry first, a changed pain its `X-PAIN`, a changed cooking
- * of a meal its `X-COOKED`, see {@link cookedCheck}, then its fields and times change.
+ * of a meal its `X-COOKED`, see {@link cookedCheck}, a changed workout, exercises or videos of a session of sport
+ * their lines, see {@link sportCheck}, then its fields and times change.
  * The entry moves into the log it belongs into now when that is another file, see {@link logFileOf}.
  *
  * @param file - `.ics` file of the entry
@@ -556,6 +594,16 @@ function entryWrite(file: string, entry: Entry, change: EntryNew): void {
         propertiesPut(file, entry.id, [["x-pain", change.pain === "" ? [] : [change.pain]]]);
     if (change.cooked !== undefined && change.cooked !== entry.cooked)
         propertiesPut(file, entry.id, [["x-cooked", change.cooked === "" ? [] : [change.cooked]]]);
+    const workout: string = (change.workout ?? entry.workout ?? "").trim();
+    const exercises: string[] = change.exercises ?? entry.exercises ?? [];
+    const videos: string[] = change.videos ?? entry.videos ?? [];
+    sportCheck(fields.category, workout, exercises, videos);
+    if (workout !== (entry.workout ?? ""))
+        propertiesPut(file, entry.id, [["x-workout", workout === "" ? [] : [workout]]]);
+    if (exercises.join("\n") !== (entry.exercises ?? []).join("\n"))
+        propertiesPut(file, entry.id, [["x-exercise", exercises]]);
+    if (videos.join("\n") !== (entry.videos ?? []).join("\n"))
+        propertiesPut(file, entry.id, [["x-video", videos]]);
     entryChange(file, entry, fields, logFileOf(fields));
     cookedShare(entry.cooked);
     if (change.cooked !== undefined && change.cooked !== entry.cooked)
@@ -588,8 +636,9 @@ export function entryEdit(change: EntryChange): boolean {
 
 /**
  * Moves an entry of the log to a new start and end, as the calendar sends it after a drag, see {@link EntryMoved}:
- * every other field stays as its file holds it, its link, the link of its place, its people, its pain and its cooking
- * left out, so they stay too, see {@link EntryNew}; written as any change, see {@link entryWrite}, so an entry moved
+ * every other field stays as its file holds it, its link, the link of its place, its people, its pain, its cooking
+ * and the workout, exercises and videos of a session of sport left out, so they stay too, see {@link EntryNew};
+ * written as any change, see {@link entryWrite}, so an entry moved
  * into another year moves into the log of that year, and a meal moved before the cooking it draws from is refused,
  * see {@link cookedCheck}.
  * - `file`, `entry`: Its `.ics` file and the entry as the file holds it.

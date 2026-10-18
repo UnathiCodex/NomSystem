@@ -19,6 +19,8 @@
  * with its own list, my meals of `Meals.md` and my foods, like `Käsesalat, Brot`, see `meal.ts`;
  * and `Cook` below them one tap for the meal eaten right after it, which the reader adds with the cooking,
  * pointing to it.
+ * `Sport` in the log has below its place its workout, its exercises and its videos, see `sport.ts`, and no note,
+ * since what I did stands in its rows.
  * `Skill` is a skill and a type or none side by side, like `IN2028` and `VO` or the project `WokFlow`, in plan and log,
  * written by the reader as the folder of its skill with the type in brackets, like
  * `IN2028 Business Analytics Machine Learning (VO)`, its place and its semester; in the log also
@@ -72,6 +74,7 @@
  * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top.
  * - `./entries.ts`: Sends new, changed and removed entries to the reader, and names who I was with.
  * - `./meal.ts`: A meal of the log: its summary and its meals and foods, picked from one search, and its new meals.
+ * - `./sport.ts`: A session of sport of the log: its workout, its exercises and its videos.
  * - `./places.ts`: The dialog of a place, which adds a new one with its address to `Places.md` or changes mine.
  * - `./skill.ts`: The fields of `Skill`: skill and type, place, semester, chapters, documents,
  *   and in the log attempts; the folder its summary links while I type no link.
@@ -89,6 +92,7 @@
 import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
 import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
+import { sportName, sportOpen, sportRead, sportRowsOf } from "./sport.ts";
 import {
     addressPartsOf, labelOf, lineOf, mapsLinkIs, mapsLinkOf, onlineLineOf, onlineName, onlineOf, placeSend,
     standardLinkOf,
@@ -1286,8 +1290,18 @@ function fieldsShow(): void {
         .filter((field: Field): boolean => field.key === "title").flatMap(fieldRowsOf));
     document.getElementById("entry-more")?.replaceChildren(...fields
         .filter((field: Field): boolean => field.key !== "title").flatMap(fieldRowsOf),
-        ...painRowOf());
+        ...painRowOf(), ...sportShown() ? sportRowsOf(saveAllow) : []);
+    document.getElementById("entry-note")?.closest(".panel-field")?.toggleAttribute("hidden", sportShown());
     saveAllow();
+}
+
+/**
+ * Tells whether the dialog shows a session of sport, with its workout, exercises and videos, see `sport.ts`.
+ *
+ * @returns Whether `Sport` is picked for the log
+ */
+function sportShown(): boolean {
+    return chosen?.name === sportName && opened.target === "log";
 }
 
 /**
@@ -1345,7 +1359,8 @@ async function wayEndFill(category: Category): Promise<void> {
  * changed, see `meal.ts`, built before its fields show, unless another category was picked meanwhile;
  * `Skill` shows its skill and type before the times, and its place, semester, chapters, documents and attempts
  * after them,
- * see `skill.ts`.
+ * see `skill.ts`; `Sport` in the log loads my workouts, exercises and videos, with those of the session being changed,
+ * see `sport.ts`.
  * - `changing`: Whether the dialog changes a meal, whose foods and what the meal starts with.
  * - `built`: The rows of the meal, its summary with its link, see {@link mealLinkPut}.
  *
@@ -1386,6 +1401,11 @@ async function categoryPick(category: Category | null): Promise<void> {
             return;
         meal = built;
         mealLinkPut(built[0]);
+    }
+    if (category?.name === sportName && opened.target === "log") {
+        await sportOpen(opened.category === sportName ? opened.entry?.extendedProps ?? null : null);
+        if (chosen !== category)
+            return;
     }
     fieldsShow();
 }
@@ -1545,6 +1565,7 @@ function fieldsRead(): EntryFields {
         cooked: chosen?.name === foodName ? mealCooked() : "",
         planned: opened.entry === null ? opened.plan?.id ?? "" : "",
         pain: neckLongPicked() ? pain : "",
+        ...sportShown() ? sportRead() : { workout: "", exercises: [], videos: [] },
         start: start,
         end: end,
     };

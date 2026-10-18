@@ -51,6 +51,9 @@ export type Attendee = {
  * - `pain`: My neck pain from 0 to 10 after `Neck long`, `X-PAIN`, empty for none; left out, it stays as it is.
  * - `cooked`: For a meal drawn from a cooking, the identifier of that entry `Cook`, `X-COOKED`, empty for none;
  *   left out, it stays as it is.
+ * - `workout`, `exercises`, `videos`: What a session of sport did, its `X-WORKOUT` of before, like `Push`, and its
+ *   lines `X-EXERCISE` and `X-VIDEO`, see `sport.ts`; empty and none for any other entry; left out, they stay as
+ *   they are.
  * - `start`: Start of the entry.
  * - `end`: End of the entry, after the start.
  */
@@ -70,6 +73,9 @@ export type EntryFields = {
     planned: string;
     pain?: string;
     cooked?: string;
+    workout?: string;
+    exercises?: string[];
+    videos?: string[];
     start: Date;
     end: Date;
 };

@@ -35,6 +35,9 @@
  * - `./suggestions.ts`: Writes the chapters due today into the plan of today, one box each
  * - `./food.ts`: Finds foods, mine first, then on Open Food Facts, adds foods to `Foods.md` and renames them,
  *   adds meals to `Meals.md`, reads the meals of a day, my meals, and the grams I logged each food with last
+ * - `./sport.ts`: Reads the sessions of a day with what they burned, keeps my workouts in `Workouts.md`, my exercises
+ *   in `Exercises.md`, my videos in `Videos.md` and my weight in `Weights.md`, and asks YouTube for the title
+ *   and channel of a link
  * - `./trackers.ts`: Reads my sleep against my goals, my glasses of water, my neck sessions and what my meals gave
  *   on a day
  * - `./devices.ts`: Writes what each of my devices shows of the page into `Devices.md`
@@ -66,6 +69,10 @@ import { suggestionsWrite } from "./suggestions.ts";
 import {
     dishAdd, dishesRead, dishRemove, dishRename, foodAdd, foodChange, foodDayRead, foodRemove, foodsFind, gramsRead,
 } from "./food.ts";
+import {
+    exerciseAdd, exerciseChange, exerciseRemove, mineRead, sportDayRead, videoFind, videoRemove, videoSave, weightSave,
+    workoutRemove, workoutSave,
+} from "./sport.ts";
 import { trackersRead } from "./trackers.ts";
 import { deviceReport } from "./devices.ts";
 import { changesSend, changesWatch } from "./changes.ts";
@@ -201,6 +208,22 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `PATCH /api/food/meals`: Renames the meal of the body, its old name and its new one, wherever it stands, and sends
  *   all my meals.
  * - `DELETE /api/food/meals?meal=…`: Removes the meal from `Meals.md` and sends all my meals.
+ * - `GET /api/sport/day?date=…`: Sends the sessions of the date with what they took, and my weight on it.
+ * - `POST /api/sport/weight`: Writes my weight of the day of the body into `Weights.md` and sends the sessions of the day.
+ * - `GET /api/sport/mine`: Sends my workouts, exercises and videos, and the kinds of a video.
+ * - `POST /api/sport/workouts`: Writes the workout of the body, its name and parts, and where sent its old name,
+ *   into `Workouts.md`, new or changed, and sends all of mine.
+ * - `DELETE /api/sport/workouts?name=…`: Removes the workout from `Workouts.md` and sends all of mine.
+ * - `GET /api/sport/video?link=…`: Asks YouTube for the title and channel of the link and sends them.
+ * - `POST /api/sport/videos`: Writes the video of the body into `Videos.md`, new or changed, and sends all of mine.
+ * - `DELETE /api/sport/videos?link=…&title=…`: Removes the video from `Videos.md` and from my workouts, and sends
+ *   all of mine.
+ * - `POST /api/sport/exercises`: Adds the exercise of the body, a variant of its own, to `Exercises.md` and sends
+ *   all of mine.
+ * - `PATCH /api/sport/exercises`: Writes the new sets, repetitions and kilograms of the variant of the body, as it was,
+ *   into `Exercises.md` and my workouts, and sends all of mine.
+ * - `DELETE /api/sport/exercises?name=…&sets=…&reps=…&kg=…`: Removes the variant from `Exercises.md` and from
+ *   my workouts, and sends all of mine.
  * - `POST /api/devices`: Writes what the device of the body shows of the page into `Devices.md`.
  * - `GET /api/changes`: Keeps the answer open and tells each change of a file of my new system as it comes,
  *   see `changes.ts`.
@@ -425,6 +448,45 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "DELETE" && url.pathname === "/api/food/meals") {
         responseSend(response, 200, dishRemove(url.searchParams.get("meal") ?? ""));
+
+    } else if (request.method === "GET" && url.pathname === "/api/sport/day") {
+        responseSend(response, 200, sportDayRead(date));
+
+    } else if (request.method === "POST" && url.pathname === "/api/sport/weight") {
+        responseSend(response, 200, weightSave(await json(request) as { day?: string; kg?: unknown }));
+
+    } else if (request.method === "GET" && url.pathname === "/api/sport/mine") {
+        responseSend(response, 200, mineRead());
+
+    } else if (request.method === "POST" && url.pathname === "/api/sport/workouts") {
+        responseSend(response, 200, workoutSave(await json(request) as { old?: string; name?: string; parts?: unknown[] }));
+
+    } else if (request.method === "DELETE" && url.pathname === "/api/sport/workouts") {
+        responseSend(response, 200, workoutRemove(url.searchParams.get("name") ?? ""));
+
+    } else if (request.method === "GET" && url.pathname === "/api/sport/video") {
+        responseSend(response, 200, await videoFind(url.searchParams.get("link") ?? ""));
+
+    } else if (request.method === "POST" && url.pathname === "/api/sport/videos") {
+        responseSend(response, 200, videoSave(await json(request) as { title?: string; channel?: string;
+            minutes?: unknown; kind?: string; link?: string; oldLink?: string; oldTitle?: string }));
+
+    } else if (request.method === "DELETE" && url.pathname === "/api/sport/videos") {
+        responseSend(response, 200, videoRemove({ link: url.searchParams.get("link") ?? "",
+            title: url.searchParams.get("title") ?? "" }));
+
+    } else if (request.method === "POST" && url.pathname === "/api/sport/exercises") {
+        responseSend(response, 200, exerciseAdd(await json(request) as { name?: string; sets?: string; reps?: string;
+            kg?: string }));
+
+    } else if (request.method === "PATCH" && url.pathname === "/api/sport/exercises") {
+        responseSend(response, 200, exerciseChange(await json(request) as { old?: { name?: string; sets?: string;
+            reps?: string; kg?: string }; sets?: string; reps?: string; kg?: string }));
+
+    } else if (request.method === "DELETE" && url.pathname === "/api/sport/exercises") {
+        responseSend(response, 200, exerciseRemove({ name: url.searchParams.get("name") ?? "",
+            sets: url.searchParams.get("sets") ?? "", reps: url.searchParams.get("reps") ?? "",
+            kg: url.searchParams.get("kg") ?? "" }));
 
     } else {
         page.middlewares(request, response);

@@ -77,6 +77,12 @@ import type { CalendarSource } from "./sources.ts";
  * - `cooked`: For a meal drawn from a cooking, the identifier of that entry `Cook`, its `X-COOKED`;
  *   empty when the event has none.
  * - `pain`: My neck pain from 0 to 10 after a long neck session, its `X-PAIN`, like `5`, empty when the event has none.
+ * - `workout`: Workout of mine a session of sport did, its `X-WORKOUT`, like `Push`, empty when the event has none,
+ *   see `sport.ts`.
+ * - `exercises`: Exercises of a session, its `X-EXERCISE`s in order, each its name, sets, repetitions and kilograms,
+ *   like `Bench press;3;10;40`, none when the event has none.
+ * - `videos`: Videos of a session, its `X-VIDEO`s in order, each its title, channel, minutes and link,
+ *   like `Full Body Pilates;Lidia Mera;25;https://www.youtube.com/watch?v=…`, none when the event has none.
  * - `planned`: Identifier of the box a log entry was logged from, see {@link plannedOf}: the `UID` of its
  *   `RELATED-TO`, like `study-13@nomsystem`, for one date of a series with that date after `#`,
  *   like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z` of
@@ -136,6 +142,9 @@ export type Entry = {
     foods: string[];
     cooked: string;
     pain: string;
+    workout: string;
+    exercises: string[];
+    videos: string[];
     planned: string;
     note: string;
     todo: boolean;
@@ -601,6 +610,11 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
             .map((property: ICAL.Property): string => String(property.getFirstValue())),
         cooked: String(event.component.getFirstPropertyValue("x-cooked") ?? ""),
         pain: String(event.component.getFirstPropertyValue("x-pain") ?? ""),
+        workout: String(event.component.getFirstPropertyValue("x-workout") ?? ""),
+        exercises: event.component.getAllProperties("x-exercise")
+            .map((property: ICAL.Property): string => String(property.getFirstValue())),
+        videos: event.component.getAllProperties("x-video")
+            .map((property: ICAL.Property): string => String(property.getFirstValue())),
         planned: plannedOf(event.component),
         note: event.description ?? "",
         todo: todo,

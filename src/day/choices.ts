@@ -78,6 +78,7 @@ export type Choice = {
  * - `empty`: What the line shows, grey, while nothing is picked; nothing when left out, as every field of the entry
  *   by category has it.
  * - `noun`: What a value is, like `place` or `summary`, for the search field, `Search or add a place`,
+ *   `an` before a vowel, like `Search or add an exercise`,
  *   and for the tooltip of the plus, `New place`; `value` when left out.
  * - `aside`: Elements beside the line, like the pencil of a place; none when left out.
  * - `below`: Elements below the line and above the list, like the address of a place; none when left out.
@@ -457,7 +458,7 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     box.className = "picker-box";
     input.type = "search";
     input.className = "picker-search";
-    input.placeholder = setup.adding ? `Search or add a ${noun}` : "Search";
+    input.placeholder = setup.adding ? `Search or add ${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}` : "Search";
     input.autocomplete = "off";
     list.className = "picker-list";
     newButton.type = "button";

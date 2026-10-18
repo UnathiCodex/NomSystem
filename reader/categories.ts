@@ -27,6 +27,9 @@
  * `Sleep` takes only two whats, `Night` and `Day`, a nap, see {@link sleepWhats}, and no new ones,
  * so the sleep tracker tells a nap from a night, see `trackers.ts`; `Way` takes only my means of transport,
  * see {@link transports}.
+ * `Sport` is a session of sport, not the moving of every day, which ways on foot or by bike are: it takes only its
+ * kinds, `Gym` and `Home workout`, see `sportKinds` in `sport.ts`, so the sport area knows what each burns, and its
+ * place, but no `With`, since I do sport alone; a box of the plan may have it, since a session is something I intend.
  * `Skill` has only the fields `Place`, like the room of a lecture, and `With`: in plan and log a skill, a module
  * by its code or a project by its name, and a type or none, which the dialog picks itself, written as its skill airy
  * with the type in brackets, like `IN2028 Business Analytics Machine Learning (VO)` or `WokFlow`,
@@ -39,15 +42,18 @@
  *
  * - `./calendar.ts`: Reads `.ics` files into entries, and names the category of skill entries.
  * - `./places.ts`: Reads my places from `Places.md`.
+ * - `./sport.ts`: Names the category of a session and its kinds.
  * - `./sources.ts`: Names every folder and file the reader reads.
  */
 
 import { entriesRead, skillName } from "./calendar.ts";
 import { labelOf, lineOf, onlineName, placesRead, roomsRead } from "./places.ts";
+import { sportKinds, sportName } from "./sport.ts";
 import { day } from "./sources.ts";
 
 import type { Attendee, Entry, EntryTexts } from "./calendar.ts";
 import type { Place } from "./places.ts";
+import type { SportKind } from "./sport.ts";
 
 
 /**
@@ -252,6 +258,16 @@ const categories: Category[] = [
             { name: "Summary", key: "title", values: ["Shower"], steps: {}, fixed: false },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
             withField,
+        ],
+    },
+    {
+        name: sportName,
+        fields: [
+            {
+                name: "Summary", key: "title", values: sportKinds.map((kind: SportKind): string => kind.name),
+                steps: {}, fixed: true,
+            },
+            { name: "Place", key: "location", values: [], steps: {}, fixed: false },
         ],
     },
     categoryOf("Meditate"),
