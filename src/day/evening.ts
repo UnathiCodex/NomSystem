@@ -117,7 +117,7 @@ async function boxesSave(): Promise<void> {
 /**
  * Shows my gratitude and my points about a day, after saving what was typed for the day shown before;
  * its texts count as saved as the points show them, so only what I type saves, never a list only shown,
- * like a point of two lines that a phone shows on one, see `points.ts`.
+ * like a point with two spaces in a row, which reading the list writes as one, see `points.ts`.
  * - `sections`: Sections of the day's note.
  *
  * @param day - Day like `2026-10-10`

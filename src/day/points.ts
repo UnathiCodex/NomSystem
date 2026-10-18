@@ -12,14 +12,7 @@
  * goes to the end of the last.
  * The section keeps the points as its own list, one `- ` line each, see `reader/note.ts`, a new line of a point
  * as its further line, two spaces in, under its text, as my notes write it.
- * On a phone a point takes no new line: its further line follows its text after a space, so the narrow screen breaks
- * no point where it has room, and every new line its keyboard types starts the next point, also the Enter that ends
- * a word still being typed, which the keyboard sends without its key; a point written there is saved on one line.
- *
- * - `../phone.ts`: Tells a phone, whose points take no new line.
  */
-
-import { phone } from "../phone.ts";
 
 
 /**
@@ -70,7 +63,7 @@ function caretPut(field: HTMLTextAreaElement, at: number): void {
 
 /**
  * Shows the text of a section as points, one empty point for none.
- * - `points`: Texts of the points, a further line on a new line of its point, on a phone after a space.
+ * - `points`: Texts of the points, a further line on a new line of its point.
  *
  * @param list - List of points
  * @param text - Text of the section as the reader gives it, one point per line, a further line indented
@@ -81,7 +74,7 @@ export function pointsShow(list: HTMLElement, text: string): void {
         if (line.trim() === "")
             continue;
         if (/^\s/.test(line) && points.length > 0)
-            points[points.length - 1] = `${points[points.length - 1]}${phone ? " " : "\n"}${line.trim()}`;
+            points[points.length - 1] = `${points[points.length - 1]}\n${line.trim()}`;
         else
             points.push(line.replace(marker, "").trim());
     }
@@ -186,7 +179,6 @@ function keyHandle(list: HTMLElement, field: HTMLTextAreaElement, event: Keyboar
 /**
  * Makes a list a list of points, see the top of this file; its points are shown by {@link pointsShow}.
  * - `keydown`: Handles Enter, Backspace and the arrows in a point.
- * - `beforeinput`: On a phone starts the next point in place of a new line its keyboard types without the key Enter.
  * - `input`: Splits a point into one per line after a paste or a drop of several lines, not after Shift+Enter,
  *   whose new line stays in its point, and tells of the change.
  * - `focusout`: Tells that the focus left the list, not when it only went to another of its points.
@@ -200,13 +192,6 @@ export function pointsStart(list: HTMLElement, changed: () => void, left: () => 
     list.addEventListener("keydown", (event: KeyboardEvent): void => {
         if (event.target instanceof HTMLTextAreaElement)
             keyHandle(list, event.target, event, changed);
-    });
-    list.addEventListener("beforeinput", (event: InputEvent): void => {
-        if (phone && event.target instanceof HTMLTextAreaElement
-            && ["insertLineBreak", "insertParagraph"].includes(event.inputType)) {
-            event.preventDefault();
-            pointNext(event.target, changed);
-        }
     });
     list.addEventListener("input", (event: Event): void => {
         if (event.target instanceof HTMLTextAreaElement && event instanceof InputEvent

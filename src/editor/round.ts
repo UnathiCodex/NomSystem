@@ -107,7 +107,7 @@ export type Fallback = {
  * - `seen`: Keys of the steps without a result passed with `Next`: those before where I stand by the log, and those
  *   an older line names, with those passed since.
  * - `at`: Key of the current step, pinned while the page shows, so a result moves nothing, only `Next`; empty for none.
- * - `changed`: Shows the places of the blocks anew, in the tree and on a phone.
+ * - `changed`: Shows the places of the blocks anew in the tree.
  */
 type Round = {
     loaded: NoteTasks;
@@ -898,7 +898,7 @@ export function roundHeadingShow(view: EditorView, heading: string, linked: bool
  * - {@link EditorState.transactionFilter}: Changes a transaction before it is applied; {@link Prec.highest} runs
  *   {@link selectionKeep} after the other filters, which move the cursor too, so it has the last word.
  *
- * @param changed - Shows the places of the blocks anew, in the tree and on a phone
+ * @param changed - Shows the places of the blocks anew in the tree
  * @returns Extension for the editor: the block shown with `Next`, and what I write and select kept inside it
  */
 export function roundStart(changed: () => void): Extension {

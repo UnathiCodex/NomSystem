@@ -115,7 +115,7 @@ body {
 
 /* Areas at the left edge of the screen, as far from the edge as from the top, a gap, one below the other, so the area
    keeps the whole height: one upright pill one control wide, filled in the soft grey of a card, like the switch of
-   plan, log and note on a phone, see `day/day.css`; in it each area a round button with its icon, its name as tooltip,
+   plan and log on a phone, see `day/day.css`; in it each area a round button with its icon, its name as tooltip,
    see `main.ts`, frameless, grey, lighter under the pointer, the shown one light on the calm grey of what is picked */
 .areas {
     position: fixed;
@@ -399,7 +399,7 @@ h3 {
     font-weight: 600;
 }
 
-/* Phone: only the day, see `main.ts`, so no areas at the left and the whole screen stays free */
+/* Phone: only plan and log of the day, see `main.ts`, so no areas at the left and the whole screen stays free */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     body {
         padding-left: 0;

@@ -6,8 +6,7 @@
  *   at the outermost level ends the list; on a further line of a point it starts the next point too, on a spacer line
  *   the next point of its level, see {@link furtherContinue};
  *   Shift+Enter goes on in the same point on the next line, a spacer line without a new bullet,
- *   see {@link pointContinue}, which on a phone or tablet, whose keyboard has no Shift+Enter, a button does,
- *   see `./editor.ts`; Backspace right after the `-` of a new, empty item makes it the same spacer line,
+ *   see {@link pointContinue}; Backspace right after the `-` of a new, empty item makes it the same spacer line,
  *   see {@link spacerBackward}, else right after the `-` of an item or the `>` of a quote takes it away;
  *   Backspace on an empty spacer line moves it one level out, at the outermost level makes it a plain empty line,
  *   see {@link spacerOutward}, and on the last character of a further line leaves it a spacer line, see
@@ -170,7 +169,7 @@ function listChange(view: EditorView, spec: TransactionSpec): void {
  * @param view - The editor
  * @returns `true`, as it always takes the key
  */
-export const pointContinue: Command = (view: EditorView): boolean => {
+const pointContinue: Command = (view: EditorView): boolean => {
     const line: Line = view.state.doc.lineAt(view.state.selection.main.head);
     const indentation: string = textIndentationOf(line.text) ?? /^[ \t]*/.exec(line.text)?.[0] ?? "";
     view.dispatch(view.state.update(view.state.replaceSelection(view.state.lineBreak + indentation

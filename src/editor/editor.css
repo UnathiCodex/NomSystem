@@ -61,13 +61,6 @@
     text-overflow: ellipsis;
 }
 
-/* Bar of the notice and the save button, with the button that shows the tree first: on a computer no box of its own,
-   the notice and the save button standing in the head beside the name; on a phone at the bottom of the screen,
-   see the end of this file */
-.editor-bar {
-    display: contents;
-}
-
 /* Notice beside the save button when something went wrong, like `Not saved`, or for a file to read only, grey
    in the text of controls */
 .editor-state {
@@ -134,12 +127,9 @@
     cursor: default;
 }
 
-/* Buttons of the head, square, one control high, outlined, as the buttons of the dialogs; the button of the tree
-   on a phone alike */
+/* Buttons of the head, square, one control high, outlined, as the buttons of the dialogs */
 .editor-save,
-.editor-close,
-.editor-newline,
-.editor-tree {
+.editor-close {
     display: inline-flex;
     flex: none;
     align-items: center;
@@ -196,16 +186,6 @@
     }
 }
 
-/* No button of the tree on a computer, which shows the tree beside the file anyway */
-.editor-tree {
-    display: none;
-}
-
-/* Back to the day, on a phone only */
-.editor-day {
-    display: none;
-}
-
 /* Today, while no note is open, see `today.ts`: the date as the bar of the day, the cards below it a step apart,
    as plan and log stand below the bar; a card a link without its line */
 .editor-today {
@@ -224,8 +204,7 @@
     text-decoration: none;
 }
 
-/* Over Today no head on a computer, the date standing where the name of a note stands; on a phone only its bar at the
-   bottom, with the button of the tree and the way back to the day, see the end of this file */
+/* Over Today no head, the date standing where the name of a note stands */
 .editor-on-today .editor-head {
     display: none;
 }
@@ -516,133 +495,4 @@
 
 .editor-text .cm-editor .cm-line.ics-entry {
     padding-top: 1lh;
-}
-
-/* Phone: the file alone over the whole screen, the tree over it while I ask for it, the bar at the bottom */
-@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
-    /* The editor on a phone one thing at a time, as the day shows plan or log: the file over the whole screen, never
-       the tree beside it, which widened the page beyond the screen; the tree over the file while the button of the tree
-       is pressed, see `phoneShow` in `editor.ts`, so both keep where they were scrolled to; both end above the bar
-       at the bottom, its height `--bar-height`, one control and a gap above and below it, as the switch of the day */
-    .editor {
-        --bar-height: calc(var(--control-height) + 2 * var(--gap));
-        grid-template-columns: minmax(0, 1fr);
-        padding-bottom: var(--bar-height);
-    }
-
-    .editor .notes-tree {
-        position: fixed;
-        inset: 0 0 var(--bar-height);
-        z-index: 2;
-        padding-inline: var(--gap);
-        border-right: 0;
-        background: var(--background);
-    }
-
-    .editor:not([data-shown="tree"]) .notes-tree {
-        visibility: hidden;
-    }
-
-    /* The file on a phone with the room of the day at its sides, a gap, not the 2rem of a computer */
-    .editor-file {
-        padding-inline: var(--gap);
-    }
-
-    /* The name of the file on a phone on top of the file, scrolling away with it, so the file keeps the screen;
-       whole, going on below between the parts of a long name, like `01_01_SampleMean` and `StandardError`,
-       never cut, see `breakableOf` in `../day/choices.ts`; as far from the top as the date of the day, and only
-       as high as the name, since the save button stands in the bar */
-    .editor-head {
-        position: static;
-        min-height: 0;
-        padding-top: var(--gap);
-        box-shadow: none;
-        clip-path: none;
-    }
-
-    .editor-title {
-        overflow: visible;
-        white-space: normal;
-    }
-
-    /* The first heading of a file on a phone right below its name, without the room above a heading, as a computer
-       shows a file at first, where that room lies under the head; one heading below another keeps it */
-    .editor-text .cm-content > :is(h1, h2):first-child > .cm-line {
-        padding-top: 0;
-    }
-
-    /* The markup `##` of a heading on the line of the cursor on a phone before its text, as Obsidian shows it,
-       not left of it, where the narrow room beside the file cut it at the edge of the screen */
-    .editor-text :is(h1, h2, h3, h4, h5, h6) .cm-hanging {
-        position: static;
-        transform: none;
-    }
-
-    /* The bar on a phone at the bottom of the screen, under the thumb, above the keyboard while one is open, as
-       the switch of plan and log on the day: the button of the tree at the left, in the calm grey of what is picked
-       while the tree is shown, the save button at the right, the notice between them, hidden while the tree is shown,
-       since it tells of the file */
-    .editor-bar {
-        position: fixed;
-        inset: auto 0 0;
-        z-index: 3;
-        display: flex;
-        align-items: center;
-        gap: var(--control-gap);
-        padding: var(--gap);
-        background: var(--background);
-    }
-
-    .editor-tree {
-        display: inline-flex;
-    }
-
-    .editor-on-today .editor-head {
-        display: block;
-        min-height: 0;
-        padding: 0;
-    }
-
-    /* A card of Today on a phone as on the computer: its title, the code of its module below it, since it has no ring
-       and no button `⋯` for the grid of a box of the plan to place */
-    .today-card {
-        display: block;
-    }
-
-    .today-card .box-body {
-        display: block;
-    }
-
-    .editor-day {
-        display: inline-flex;
-        flex: none;
-        align-items: center;
-        height: var(--control-height);
-        padding: 0 var(--control-padding);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        color: var(--text-muted);
-        font-size: var(--control-text);
-        text-decoration: none;
-    }
-
-    .editor-tree[aria-pressed="true"] {
-        border-color: var(--chosen-line);
-        background: var(--chosen);
-    }
-
-    .editor-tree:disabled {
-        opacity: 0.4;
-        cursor: default;
-    }
-
-    .editor-state {
-        flex: 1;
-        min-width: 0;
-        line-height: 1.2;
-    }
-
-    .editor[data-shown="tree"] .editor-state {
-        visibility: hidden;
-    }
 }

@@ -5,7 +5,7 @@
  * in a soft frame like them: while an entry of the log runs, what it is at the left, as the log shows it,
  * like `Skill: NomSystemdashboard` or `Food: Brotzeit Nachspeise`, and how long it still runs at the right, in hours
  * and minutes, like `01h 23m`; while none runs `None` and `00h 00m`, `None` in the white and bold of an entry's what,
- * so I see at once what runs, and the bar never jumps; on a phone on a line of its own.
+ * so I see at once what runs, and the bar never jumps; none on a phone.
  * Where the room is too small for the whole name, like on my laptop, it is cut with an ellipsis at its end,
  * like `Skill: WI0219_InvestitionFin…`, the time always whole; a short code would not work for every name.
  * The entry running now is one of every category but a glass of water, which the log does not show, a session

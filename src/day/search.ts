@@ -2,8 +2,8 @@
  * ## Search of the log
  *
  * Finds entries in my whole log, not only the shown day, like every `Talk` to add who was there with `With`:
- * a small button beside `Log +` opens the search, on a phone a button in the bar while the log shows, and what
- * I type finds every entry that holds each typed word in its summary, its category, its place, its people or its day,
+ * a small button beside `Log +` opens the search, and what I type finds every entry that holds each typed word
+ * in its summary, its category, its place, its people or its day,
  * as every search of the page compares, see `../search.ts`, like `Talk Sophale` or `Talk 10.2026`, never in its note. The results stand newest first,
  * each what it was, like `Talk: Artificial Intelligence`, and below it small and grey its day, its time, its place
  * and who I was with, like `Friday, 16.10.2026 · 13:45 – 14:15 · Mensa Leopoldstraße · Kicktipp`. A click on a result
@@ -102,15 +102,14 @@ function searchedOf(entry: LogEntry): string {
  * Builds a result: what the entry was in the bold of the log, like `Talk: Artificial Intelligence`, see `whatOf`
  * in `boxes.ts`, and below it, small and grey, its day with its weekday written out, its time, its place by its label
  * and who I was with, parted by middle dots,
- * like `Friday, 16.10.2026 · 13:45 – 14:15 · Mensa Leopoldstraße · Kicktipp`; no place or nobody leaves its part out;
- * a phone shows place and people on a line of their own, see `day.css`.
+ * like `Friday, 16.10.2026 · 13:45 – 14:15 · Mensa Leopoldstraße · Kicktipp`; no place or nobody leaves its part out.
  * - `start`, `end`: Start and end of the entry.
  * - `day`: Day of its start, like `2026-10-16`.
  * - `weekday`: Its weekday, like `Friday`.
  * - `place`: Its place by its label, see `whereOf` in `places.ts`, empty for none.
  * - `people`: The names of who I was with, like `Sophale, Willi`, empty for nobody.
  * - `where`: Its place and who I was with, those it has.
- * - `meta`: The grey line below what it was, its day and time, then where, which a phone shows on a line of its own.
+ * - `meta`: The grey line below what it was, its day and time, then where.
  * - `button`: The result, which opens the entry.
  *
  * @param calendar - Calendar of the day
@@ -129,7 +128,7 @@ function resultOf(calendar: Calendar, entry: LogEntry): HTMLLIElement {
         [`${weekday}, ${dateTextOf(day)}`,
             entryPartOf("span", "entry-parted", [`${timeOf(start)} – ${timeOf(end)}`])])]);
     if (where.length > 0)
-        meta.append(entryPartOf("span", "search-where entry-parted", [where[0],
+        meta.append(entryPartOf("span", "entry-parted", [where[0],
             ...where.slice(1).map((part: string): HTMLElement => entryPartOf("span", "entry-parted", [part]))]));
     const button: HTMLButtonElement = document.createElement("button");
     button.type = "button";
@@ -235,21 +234,18 @@ async function resultOpen(calendar: Calendar, entry: LogEntry): Promise<void> {
 
 /**
  * Starts the search after the router has put the HTML of the day into the page: puts its dialog into the page,
- * its buttons open it, beside `Log +` and in the bar of a phone, what I type shows its results at once, and the dialog
- * of an entry opened from it brings it back when it closes.
- * - `buttons`: The buttons that open the search.
+ * its button beside `Log +` opens it, what I type shows its results at once, and the dialog of an entry opened from it
+ * brings it back when it closes.
+ * - `button`: The button that opens the search.
  *
  * @param calendar - Calendar of the day
  */
 export function searchStart(calendar: Calendar): void {
     document.body.insertAdjacentHTML("beforeend", searchHtml);
-    const buttons: HTMLElement[] = ["log-search", "day-search"]
-        .map((id: string): HTMLElement => document.getElementById(id) as HTMLElement);
-    buttons.forEach((button: HTMLElement): void => {
-        iconPut(button, Search, "Search the log");
-        button.addEventListener("click", (): void => {
-            searchOpen(calendar).catch((error: unknown): void => console.error(error));
-        });
+    const button: HTMLElement = document.getElementById("log-search") as HTMLElement;
+    iconPut(button, Search, "Search the log");
+    button.addEventListener("click", (): void => {
+        searchOpen(calendar).catch((error: unknown): void => console.error(error));
     });
     document.getElementById("search-text")?.addEventListener("input", (): void => resultsShow(calendar));
     document.getElementById("entry")?.addEventListener("close", (): void => {

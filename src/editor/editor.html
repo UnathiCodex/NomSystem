@@ -1,6 +1,5 @@
 <!-- Editor: the tree on the left, the file on the right, a note of my modules or a file of my new system as its text,
-     its Markdown shown as in the notes away from the cursor, saved exactly as edited; on a phone the file alone,
-     the tree over it while I ask for it, see `data-shown` in editor.ts -->
+     its Markdown shown as in the notes away from the cursor, saved exactly as edited -->
 <div class="editor" id="editor">
     <!-- Tree of NomManageplannings for a file of my new system and at /plannings, of NomSkillingmodules for a note,
          see notes/tree.ts -->
@@ -12,24 +11,15 @@
         <div class="editor-page">
             <!-- Head: name of the file, whether its changes are saved, and the save button; for a section no name, since
                  the tree shows the note, but its round in grey, the session it writes into smaller beside it, see
-                 round.ts, and the round check beside the save button;
-                 stays on top while scrolling; on a phone only the name or the round, which scrolls away with the file,
-                 while the bar with the rest stands at the bottom, under the thumb, the button that shows the tree first -->
+                 round.ts, and the round check beside the save button; stays on top while scrolling -->
             <div class="editor-head" id="editor-head">
                 <p class="editor-round" id="editor-round" hidden><span id="editor-round-label"></span><span
                         class="editor-session" id="editor-session"></span></p>
                 <h1 class="editor-title" id="editor-title"></h1>
-                <div class="editor-bar">
-                    <button type="button" class="editor-tree" id="editor-tree" aria-pressed="false"></button>
-                    <!-- On a phone only: back to the day -->
-                    <a class="editor-day" href="/">Day</a>
-                    <span class="editor-state" id="editor-state"></span>
-                    <!-- On a phone or tablet only, while I write: a new line in the same point, as Shift+Enter -->
-                    <button type="button" class="editor-newline" id="editor-newline" hidden></button>
-                    <!-- A section only: closes its round by hand, round as the ring of a done box, see round.ts -->
-                    <button type="button" class="editor-close" id="editor-close" hidden></button>
-                    <button type="button" class="editor-save" id="editor-save"></button>
-                </div>
+                <span class="editor-state" id="editor-state"></span>
+                <!-- A section only: closes its round by hand, round as the ring of a done box, see round.ts -->
+                <button type="button" class="editor-close" id="editor-close" hidden></button>
+                <button type="button" class="editor-save" id="editor-save"></button>
             </div>
 
             <!-- Today, while no note is open: the date as the day view shows it, and one card per item due,

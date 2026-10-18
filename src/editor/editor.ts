@@ -31,9 +31,6 @@
  * `Save`, or Ctrl+S, never by itself, refused when the file changed on the disk since it was read, and asks before
  * leaving with changes unsaved, also for another file of the tree; the button faint while nothing is to save, its full
  * grey while there are changes, and beside it stands when it saved last, like `Saved 20:41`, or what went wrong.
- * A phone shows one thing at a time, as the day shows plan or log: the file, or the tree over it while the button
- * of the tree at the bottom is pressed, see {@link phoneShow}; the name of the file then scrolls away with it,
- * and the button of the tree, the notice and the save button stand at the bottom, see `./editor.css`.
  *
  * - `@codemirror/state`, `@codemirror/view`: The editor, CodeMirror 6, the engine of Obsidian's editor.
  * - `@codemirror/commands`: Undo, redo and the usual keys, Tab indenting a line.
@@ -50,10 +47,7 @@
  * - `./overview.ts`: Shows the overview of a module or of a chapter, and its chapter in the tree.
  * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked, and the outline of a note or the blocks
  *   of a section with their places.
- * - `../day/choices.ts`: Marks where the long name of a file may go on below, on a phone.
- * - `../phone.ts`: Tells a phone, which shows the tree or the file, one at a time.
- * - `lucide`, `../icons.ts`: The floppy disk of the save button, the check of the round's button and the tree of the
- *   button that shows the tree on a phone.
+ * - `lucide`, `../icons.ts`: The floppy disk of the save button and the check of the round's button.
  * - `../notes/notes.css`: Look of the notes, for the rendered formulas, tables and images, and of the tree.
  * - `./editor.css`: Look of the editor.
  */
@@ -65,7 +59,7 @@ import { indentUnit } from "@codemirror/language";
 import { markdown } from "@codemirror/lang-markdown";
 import { GFM } from "@lezer/markdown";
 import { icsLook } from "./ics.ts";
-import { markdownKeys, pointContinue } from "./keys.ts";
+import { markdownKeys } from "./keys.ts";
 import { obsidianSyntax } from "./syntax.ts";
 import { headingShow, linksSet, livePreview, solutionsFold } from "./preview.ts";
 import { solutionSteps } from "./steps.ts";
@@ -76,9 +70,7 @@ import { todayShow } from "./today.ts";
 import { overviewShow, overviewTreeShow } from "./overview.ts";
 import { calendarTodayOf } from "../today.ts";
 import { timeOf } from "../day/times.ts";
-import { breakableOf } from "../day/choices.ts";
-import { phone } from "../phone.ts";
-import { Check, CornerDownLeft, ListTree, Save } from "lucide";
+import { Check, Save } from "lucide";
 import { iconPut } from "../icons.ts";
 import "../notes/notes.css";
 import "./editor.css";
@@ -179,17 +171,6 @@ let outlineWait: number = 0;
 
 
 /**
- * Shows on a phone the file or the tree over it, see `.editor` in `./editor.css`, the button of the tree pressed
- * while the tree is shown; a computer shows both side by side anyway.
- *
- * @param shown - What to show, `file` or `tree`
- */
-function phoneShow(shown: "file" | "tree"): void {
-    (document.getElementById("editor") as HTMLElement).dataset.shown = shown;
-    document.getElementById("editor-tree")?.setAttribute("aria-pressed", String(shown === "tree"));
-}
-
-/**
  * Shows whether the file has changes not yet saved: the save button in its full grey while it has, else faint,
  * in a section too, beside the round check, and beside it a notice when something went wrong, like `Not saved`,
  * or for a file to read only.
@@ -244,23 +225,6 @@ async function noteSave(): Promise<void> {
 }
 
 /**
- * Starts the button of a new line in the same point, on a phone or tablet, whose keyboard has no Shift+Enter: it writes
- * what Shift+Enter writes, a line without a new bullet in the point of the cursor, its guide line running on, see
- * `pointContinue` in `./keys.ts`; a finger on it keeps the cursor in the text, so the keyboard stays open.
- * It shows while I write, see `updateListener` in {@link extensionsOf}.
- * - `button`: The button, at the bottom beside the save button.
- */
-function newlineStart(): void {
-    const button: HTMLButtonElement = document.getElementById("editor-newline") as HTMLButtonElement;
-    iconPut(button, CornerDownLeft, "New line in this point");
-    button.addEventListener("pointerdown", (event: PointerEvent): void => event.preventDefault());
-    button.addEventListener("click", (): void => {
-        pointContinue(view);
-        view.focus();
-    });
-}
-
-/**
  * Saves on Ctrl+S, Cmd+S on a Mac, also while the cursor is outside the text, instead of the browser saving the page.
  *
  * @param event - Key pressed anywhere in the page
@@ -295,14 +259,12 @@ function outlineRefresh(): void {
  * - `lineWrapping`: Wraps long lines at the reading width, as the scripts view does, so I see where a line overflows.
  * - `darkTheme`: Draws cursor and selection for a dark page.
  * - `scrollMargins`: Keeps the cursor below the head with the name and the save button, which stays on top
- *   while the file scrolls, so moving up never hides the cursor under it; on a phone the name scrolls away
- *   with the file, and the bar at the bottom stands below the file, so the cursor needs no margin there.
+ *   while the file scrolls, so moving up never hides the cursor under it.
  * - `solutionSteps`: The steps of an unfolded solution, one at a time, see `./steps.ts`.
  * - `taskRows`: The rows of the tasks of a note, once loaded, see `./tasks.ts`.
  * - `roundStart`: The round of a section, see `./round.ts`, which shows the places of its blocks anew as it moves.
  * - `updateListener`: Shows whether the file has unsaved changes after each change of the text, and builds the outline
- *   of a note anew once the typing rests, see {@link outlineRefresh}; on a phone shows the button of a new line in
- *   the same point while I write, see {@link newlineStart}.
+ *   of a note anew once the typing rests, see {@link outlineRefresh}.
  *
  * @param opened - The file
  * @returns Extensions
@@ -319,13 +281,10 @@ function extensionsOf(opened: Opened): Extension[] {
         EditorView.lineWrapping,
         EditorView.darkTheme.of(true),
         EditorView.scrollMargins.of((): Partial<Rect> =>
-            ({ top: phone ? 0 : (document.getElementById("editor-head") as HTMLElement).offsetHeight })),
+            ({ top: (document.getElementById("editor-head") as HTMLElement).offsetHeight })),
         ...(opened.markdown ? [livePreview(opened.links), solutionSteps, taskRows, roundStart(outlineRefresh)] : []),
         ...(/\.ics$/i.test(path) ? [icsLook()] : []),
         EditorView.updateListener.of((update: ViewUpdate): void => {
-            if (update.focusChanged)
-                (document.getElementById("editor-newline") as HTMLElement).hidden =
-                    !phone || !update.view.hasFocus || update.state.readOnly;
             if (!update.docChanged)
                 return;
             stateShow("");
@@ -363,8 +322,7 @@ async function openedRead(file: string): Promise<Opened | null> {
 
 /**
  * Scrolls the note shown to the heading of the address, see `headingShow` in `./preview.ts`, or to the very top of
- * the page, so the round line of a section and on a phone the name of the note, which scrolls away with it, stay
- * in sight.
+ * the page, so the round line of a section stays in sight.
  * - `heading`: The heading of the address, empty for none.
  */
 function addressHeadingShow(): void {
@@ -379,9 +337,7 @@ function addressHeadingShow(): void {
  * Scrolls to a heading of the note shown on a click on a link to it in the tree, like in its outline, without loading
  * the page again, and keeps it in the address and the history of the browser; a block of a section shows alone in its
  * round, see `roundHeadingShow` in `./round.ts`, and stays out of the address, so a reload returns to where the round
- * stands;
- * on a phone it shows the note in place of the tree first, see {@link phoneShow}; links to other notes, and clicks
- * with a key held, act as usual.
+ * stands; links to other notes, and clicks with a key held, act as usual.
  * - {@link History#pushState}: Writes the address as a new step of the history, for the back button.
  * - `link`: The link clicked, `null` for none.
  * - `address`: Its address.
@@ -397,7 +353,6 @@ function treeClick(event: MouseEvent): void {
     if (address.pathname !== "/scripts" || address.searchParams.get("path") !== path)
         return;
     event.preventDefault();
-    phoneShow("file");
     if (roundHeadingShow(view, decodeURIComponent(address.hash.slice(1)), false))
         return;
     window.history.pushState(null, "", address);
@@ -418,18 +373,12 @@ function treeClick(event: MouseEvent): void {
  * see `./round.ts`, its text hidden until its tasks are loaded, so its blocks fold before they show, scrolled to
  * its current block unless the address names a heading, whose block it shows once as looked up, the heading then
  * dropped from the address, see {@link History#replaceState}.
- * A phone shows the file, or the tree while no file is named, and the button of the tree switches between them,
- * off while there is no file to go back to, see {@link phoneShow}; the name of the file may go on below between
- * its parts there, see `breakableOf` in `../day/choices.ts`.
  * - `address`: The parameters of the address.
  * - `file`: Path of the file of my new system, empty for a note.
  * - `plannings`: Whether the editor shows my new system, for one of its files or at `/plannings`; else my modules.
  * - `tree`: Place of the tree, and `shown` the tree once it is shown.
- * - `treeButton`: The button that shows the tree on a phone.
  * - `opened`: The file read.
  * - `text`: Element of the text, with the look of the notes for Markdown, else of plain text.
- * - `pointerdown`: Comes when a finger touches the save button on a phone; `preventDefault` keeps the cursor
- *   in the text, so the keyboard stays open and I write on after saving.
  * - `beforeunload`: Comes before the page closes or loads again, also for another file of the tree;
  *   `preventDefault` makes the browser ask.
  * - `popstate`: Comes when the back or forward button of the browser changes the address.
@@ -440,24 +389,17 @@ export async function editorStart(): Promise<void> {
     const save: HTMLElement = document.getElementById("editor-save") as HTMLElement;
     const plannings: boolean = file !== "" || location.pathname === "/plannings";
     const tree: HTMLElement = document.getElementById("notes-tree") as HTMLElement;
-    const treeButton: HTMLButtonElement = document.getElementById("editor-tree") as HTMLButtonElement;
     path = file !== "" ? file : address.get("path") ?? "";
     saveAddress = file !== "" ? "/api/edit/file" : "/api/edit/note";
-    phoneShow(path === "" && plannings ? "tree" : "file");
-    iconPut(treeButton, ListTree, "Tree");
-    treeButton.disabled = path === "" && plannings;
-    treeButton.addEventListener("click", (): void =>
-        phoneShow(treeButton.getAttribute("aria-pressed") === "true" ? "file" : "tree"));
     const shown: Promise<void> = treeShow(tree, plannings ? "NomManageplannings" : "NomSkillingmodules", path,
         address.get("module") ?? "");
     shown.catch((error: unknown): void => console.error(error));
-    const title: string = breakableOf(path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "");
+    const title: string = path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";
     if (plannings)
         (document.getElementById("editor-title") as HTMLElement).textContent = title;
     const close: HTMLButtonElement = document.getElementById("editor-close") as HTMLButtonElement;
     iconPut(close, Check, "Close the round");
     close.addEventListener("click", roundClose);
-    newlineStart();
     if (path === "" && !plannings) {
         save.hidden = true;
         (document.getElementById("editor") as HTMLElement).classList.add("editor-on-today");
@@ -493,8 +435,6 @@ export async function editorStart(): Promise<void> {
         solutionsFold(view);
     iconPut(save, Save, "Save");
     save.addEventListener("click", noteSave);
-    if (phone)
-        save.addEventListener("pointerdown", (event: PointerEvent): void => event.preventDefault());
     save.hidden = view.state.readOnly;
     if (!view.state.readOnly)
         stateShow("");

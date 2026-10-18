@@ -39,10 +39,9 @@
  *   is still to come.
  * - `../day/times.ts`: Writes the time of an entry of the plan, as the day does.
  * - `../food/foods.ts`: Makes elements.
- * - `../day/choices.ts`: Marks where the name of a module or a section may go on over a next line, as on a phone,
- *   like `IN0004_Einfuehrung` and `Rechnerarchitektur`, never within a word.
+ * - `../day/choices.ts`: Marks where the name of a module or a section may go on over a next line, where it is wider
+ *   than its line, like `IN0004_Einfuehrung` and `Rechnerarchitektur`, never within a word.
  * - `./task.ts`: Tells when a task is due.
- * - `../phone.ts`: Tells a phone, where the path of a link not found goes on below between its parts.
  * - `../notes/math.ts`: Renders the formulas as the scripts view does, loaded only when there is one.
  * - `./skill.css`: Look of the skill view.
  */
@@ -53,7 +52,6 @@ import { timeOf } from "../day/times.ts";
 import { elementOf } from "../food/foods.ts";
 import { breakableOf } from "../day/choices.ts";
 import { stateTextOf } from "./task.ts";
-import { phone } from "../phone.ts";
 import "./skill.css";
 
 import type {
@@ -449,12 +447,9 @@ function examsOf(modules: SkillModule[], today: string): HTMLElement {
 }
 
 /**
- * Builds the list of the links of skill entries the reader could not repair, see the top of this file; on a phone
- * a path wider than its line goes on below after a `/`, after a `_` or between the words of a name, like
- * `NomSkillingmodules/MGT1372_Entrepreneurial` and `Business`, never within a word, see {@link breakableOf},
- * while a computer keeps a path whole on a line of its own.
+ * Builds the list of the links of skill entries the reader could not repair, see the top of this file, each path
+ * whole on a line of its own.
  * - `part`: The list with its heading.
- * - `pathOf`: The path of a link as shown.
  *
  * @param lost - Lost links in the order of their entries
  * @returns The list, none while there are none
@@ -463,10 +458,8 @@ function lostOf(lost: LinkLost[]): HTMLElement[] {
     if (lost.length === 0)
         return [];
     const part: HTMLElement = elementOf("section", "skill-lost", "");
-    const pathOf: (path: string) => string = (path: string): string =>
-        phone ? breakableOf(path).replaceAll("/", "/\u200b") : path;
     part.append(elementOf("h3", "", "Links not found"), ...lost.map((link: LinkLost): HTMLElement =>
-        elementOf("p", "skill-notice", `${dayTextOf(link.day, false)} ${link.skill}: ${pathOf(link.path)}`)));
+        elementOf("p", "skill-notice", `${dayTextOf(link.day, false)} ${link.skill}: ${link.path}`)));
     return [part];
 }
 

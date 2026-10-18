@@ -1,5 +1,5 @@
 /* Daily note below plan and log: my gratitude and my points about the day as lists of points, their names
-   folding them, and the rest of the note below them, read only; on a phone in the room of plan and log */
+   folding them, and the rest of the note below them, read only; none on a phone */
 /* Rest of the daily note below my gratitude and my points about the day, read only, over the whole width,
    scrolling alone when it is longer than a fifth of the screen; nothing for a note that holds only them */
 .day-note {
@@ -68,7 +68,7 @@
 /* A list of points of the note as Markdown shows a list, a card filled in the soft grey of a card like a box of the
    plan, its frame transparent, so its points keep their place: a grey bullet before each point, its text in a field
    of its own without frame, as wide as the list, wrapping and growing with its text, see `points.ts`; both lists
-   equally high, scrolling alone when longer than a third of the screen, on a phone as high as their points */
+   equally high, scrolling alone when longer than a third of the screen */
 .note-points {
     flex: 1;
     max-height: 33dvh;
@@ -157,32 +157,9 @@
     color: var(--text-muted);
 }
 
-/* Phone: the note in the room of plan and log, scrolling as a whole, its names folding nothing */
+/* Phone: no note, since a phone shows only plan and log, see `../main.ts` */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
-    /* The note on a phone in the room of plan and log: my gratitude, my points about the day below it and the rest
-       of the note below them, scrolling as a whole, so each as high as what it holds; each list keeps its name, which
-       folds nothing here, since the note has a place of its own, so it shows no fold arrow and takes no tap */
     .note-boxes {
-        grid-template-columns: minmax(0, 1fr);
-        align-content: start;
-        min-height: 0;
-        overflow-y: auto;
-    }
-
-    .note-points {
-        max-height: none;
-    }
-
-    .day-note {
-        max-height: none;
-        overflow-y: visible;
-    }
-
-    .note-fold {
-        pointer-events: none;
-    }
-
-    .note-fold::before {
-        content: none;
+        display: none;
     }
 }

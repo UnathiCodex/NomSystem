@@ -20,7 +20,7 @@
  *   a section I never learned grey, as a box not for now, unless Today offers it; a tap on a card opens the section.
  * Everything is computed from the log by the reader, see `reader/skill.ts`, and what Today lists by Today's own rule;
  * nothing is kept here. The counts stand here and not at a task, so a task shows only itself, see `../skill/task.ts`.
- * Where the page is narrow, as on a phone, a card holds its name on top and its values below it in one grey line,
+ * Where the page is narrow, as on the laptop, a card holds its name on top and its values below it in one grey line,
  * each named, like `Round 2 · Today · 5 right · 1 wrong`.
  *
  * - `../skill/attempts.ts`: Loads the modules with their tasks and sections, and writes days out.

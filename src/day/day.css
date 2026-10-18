@@ -515,8 +515,7 @@ fieldset.entry-times {
 
 /* Part of a line after a middle dot, like `· 05:15 – 05:45` or `· Home Munich` in the log, or `· 90 min` in a box:
    the dot drawn before it with half a letter of space on both sides, which a line in parts would drop as spaces
-   at the start of a part; here and not in `log.css`, before `search.css`, so a result of the search on a phone
-   still drops it before its place */
+   at the start of a part */
 .entry-parted::before {
     content: "·";
     margin-inline: 0.5em;
@@ -557,9 +556,9 @@ fieldset.entry-times {
 /* Phone: plan or log, one at a time, one screen high, switched at the bottom, panels from below,
    the entry by category scrolling as a whole */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
-    /* The day on a phone one screen high: its bar on top, then plan, log or note, one at a time,
-       filling the rest, the switch between them with its + at the bottom, under the thumb; the names of plan and log
-       stand in the switch, so not above them */
+    /* The day on a phone one screen high: its bar on top, then plan or log, one at a time, filling the rest,
+       the switch between them with its + at the bottom, under the thumb; the names of plan and log stand
+       in the switch, so not above them */
     .day {
         grid-template-rows: minmax(0, 1fr);
     }
@@ -572,43 +571,40 @@ fieldset.entry-times {
         display: none;
     }
 
-    /* Plan, log or note on a phone follow the finger while a swipe sideways changes the day, see `swipe.ts`: moved
+    /* Plan or log on a phone follow the finger while a swipe sideways changes the day, see `swipe.ts`: moved
        sideways by `--swipe`, sliding out and back, but right under the finger while it moves; the day cuts them
-       at the edges of the screen, and the time grid, the plan and the note scroll only up and down, so a move
-       sideways is the swipe's */
+       at the edges of the screen, and the time grid and the plan scroll only up and down, so a move sideways is
+       the swipe's */
     .day {
         overflow: clip;
     }
 
-    .day-main > :is(.day-column, .note-boxes) {
+    .day-main > .day-column {
         translate: var(--swipe, 0px) 0;
         transition: translate 180ms ease-out;
         touch-action: pan-y;
     }
 
-    .day-main.day-swiping > :is(.day-column, .note-boxes) {
+    .day-main.day-swiping > .day-column {
         transition: none;
     }
 
-    .day-main[data-shown="plan"] :is(#day-log, .note-boxes),
-    .day-main[data-shown="log"] :is(#day-plan, .note-boxes),
-    .day-main[data-shown="note"] :is(#day-plan, #day-log) {
+    .day-main[data-shown="plan"] #day-log,
+    .day-main[data-shown="log"] #day-plan {
         display: none;
     }
 
-    /* The plan and the note on a phone over the whole width, as the log and the switch below them, so their boxes
-       stand as far from both edges of the screen: no step in from the rail's buttons, `--content-indent`, since
-       a phone has no rail */
-    #day-plan,
-    .note-boxes > .day-column:first-child,
-    .day-note {
+    /* The plan on a phone over the whole width, as the log and the switch below them, so its boxes stand as far
+       from both edges of the screen: no step in from the rail's buttons, `--content-indent`, since a phone has
+       no rail */
+    #day-plan {
         padding-left: 0;
     }
 
-    /* Switch between plan, log and note at the bottom, under the thumb: one pill one control high, filled in the soft
-       grey of a card, the three side by side inside it, equally wide, grey, the shown one light on the calm grey
-       of what is picked; right of it the + of the shown plan or log, round, in that calm grey too, so a thumb finds
-       it at once, faded while the note shows */
+    /* Switch between plan and log at the bottom, under the thumb: one pill one control high, filled in the soft grey
+       of a card, the two side by side inside it, equally wide, grey, the shown one light on the calm grey of what
+       is picked; right of it the + of the shown plan or log, round, in that calm grey too, so a thumb finds it
+       at once */
     .day-switch {
         display: flex;
         align-items: center;
@@ -640,18 +636,6 @@ fieldset.entry-times {
         color: var(--text-main);
     }
 
-    /* The way into the scripts, `Learn`, looking like the buttons beside it */
-    .day-learn {
-        display: flex;
-        flex: 1;
-        align-items: center;
-        justify-content: center;
-        border-radius: 999px;
-        color: var(--text-muted);
-        font-size: var(--control-text);
-        text-decoration: none;
-    }
-
     .day-switch .chip-button {
         width: var(--control-height);
         height: var(--control-height);
@@ -660,13 +644,7 @@ fieldset.entry-times {
         background: var(--chosen);
     }
 
-    /* The bar of the day on a phone as every bar of a day there, see `.day-bar` in `../base.css`, and below it
-       the trackers and the timer of a session, each on a line of its own over the whole width */
-    .day-nav {
-        flex-wrap: wrap;
-        row-gap: 0.75rem;
-    }
-
+    /* The date of the day on a phone at the left of its bar, see `.day-bar` in `../base.css` */
     #day-title {
         min-width: 0;
         padding-left: 0;

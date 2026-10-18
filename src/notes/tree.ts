@@ -20,9 +20,7 @@
  * Under the note shown stands its outline, as Obsidian's outline, see {@link outlineShow}; under a section its blocks
  * in the places of its round, see {@link roundListOf}; a click on the note shown folds them away, as a folder closes,
  * and a further click opens them again, see {@link outlineFold}.
- * Each name stands on one line, one too long for it ending in dots; on a phone, whose tree is narrower than
- * a computer's, a name goes on below between its parts instead, like `IN2028_BusinessAnalytics` and `MachineLearning`,
- * see `breakableOf` in `../day/choices.ts`; its look is in `./notes.css`.
+ * Each name stands on one line, one too long for it ending in dots; its look is in `./notes.css`.
  *
  * - `../search.ts`: Compares a typed text with the paths of the files and notes, as every search of the page does.
  * - `../day/choices.ts`: Marks where a long name may go on below.

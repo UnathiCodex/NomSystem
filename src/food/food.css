@@ -2,8 +2,7 @@
    side by side where both fit, else one below the other, beside the areas at the left edge; the day 31rem wide,
    each food with its brand and store on its line, the numbers close to the names, its times above its meals;
    my meals and foods all the rest, each row flat, its name and its kcal;
-   the page itself scrolls, no box of its own, so the wheel, a swipe, the keys and the scrollbar all scroll it,
-   on a computer and on a phone alike */
+   the page itself scrolls, no box of its own, so the wheel, a swipe, the keys and the scrollbar all scroll it */
 .food {
     display: flex;
     flex-wrap: wrap;
@@ -191,58 +190,4 @@ body:has(> .food) {
 .food-none {
     margin: 0.25rem 0 0;
     color: var(--text-muted);
-}
-
-/* Phone: less space at the sides */
-@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
-    .food {
-        padding: var(--gap);
-    }
-
-    /* The date of the bar on a phone only as wide as itself, as on the day, see `.day-bar` in `../base.css` */
-    .food-day-title {
-        min-width: 0;
-        anchor-name: --day-date;
-    }
-
-    /* The start of an entry on a phone, which leads to its day, as it looks, but a finger's width to hit, taking a tap
-       up into the room above it and a little below it; the plus beside Meals and Foods 0.75rem left and right of it,
-       see `--tap` in `../base.css` */
-    .food-time {
-        position: relative;
-    }
-
-    .food-time::after {
-        content: "";
-        position: absolute;
-        inset: -0.625rem 0 -0.25rem;
-    }
-
-    .food-heading .plus-quiet {
-        --tap: 0 -0.75rem;
-    }
-
-    /* The day on a phone over the whole width, no step in from the rail's buttons, since a phone has no rail;
-       its column of numbers only as wide as each number, like `50 g`, standing at its right anyway, so the names
-       keep the rest of the line and a food like `Kidney Bohnen dunkelrot` needs fewer lines */
-    .food-day {
-        padding-left: 0;
-    }
-
-    .food-line,
-    .food-entry {
-        grid-template-columns: minmax(0, 1fr) auto;
-    }
-
-    /* The totals of the day on a phone always in the same two lines, whatever the width of the screen: the meals
-       and their energy on the first, protein, carbs and fat below them, in three columns */
-    .food-totals {
-        display: grid;
-        grid-template-columns: repeat(3, auto);
-        justify-content: start;
-    }
-
-    .food-total:nth-child(2) {
-        grid-column: span 2;
-    }
 }

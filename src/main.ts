@@ -13,7 +13,7 @@
  * and puts the area's HTML into the page only once its code and its look are loaded, so it never shows unstyled;
  * the look of the whole page, `base.css` and `variants.css`, comes linked in `index.html` before any script.
  * A phone, a screen with the phone layout of the stylesheets, which `phone.ts` tells, opens the day everywhere,
- * its plan, its log and its daily note, and the scripts, which its button `Learn` opens to Today, and `base.css` hides the areas, so the whole screen stays free;
+ * its plan and its log alone, and `base.css` hides the areas, so the whole screen stays free;
  * every device tells the reader what it shows of the page, see {@link deviceReport}.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
@@ -62,7 +62,7 @@ let deviceWait: number = 0;
 const address: URLSearchParams = new URLSearchParams(location.search);
 if (location.pathname === "/notes" || (location.pathname === "/edit" && address.has("path")))
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
-const areas: string[] = phone ? ["/scripts"] : ["/scripts", "/plannings", "/skill", "/food", "/edit"];
+const areas: string[] = phone ? [] : ["/scripts", "/plannings", "/skill", "/food", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
 const marked: string = area === "/edit" ? "/plannings" : area;
 document.querySelector(`.areas a[href="${marked}"]`)?.setAttribute("aria-current", "page");

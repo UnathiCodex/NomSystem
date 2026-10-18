@@ -5,8 +5,7 @@
  * not as a calendar but as a calm list of boxes, see `boxes.ts`; above both the date of the day between its arrows,
  * with a small icon back to today on any other day;
  * at the right the trackers of the day, my sleep, my glasses of water and my food, and below them the daily note
- * with my gratitude and my points about the day at its top, which a phone shows in place of plan and log,
- * see {@link phoneShow}.
+ * with my gratitude and my points about the day at its top; a phone shows only plan or log, see {@link phoneShow}.
  * A click on the date opens a month to pick any day from, see `month.ts`.
  * A box goes into the log at its real time by dragging it there, or as expected with one tap on its ring.
  * The log is written by category: `+` below the time grid opens the entry by category for the last half hour,
@@ -665,20 +664,18 @@ function todayButtonShow(date: string): void {
 }
 
 /**
- * Shows plan, log or note on a phone, one at a time, see `.day-switch` in `day.css`, the button of the shown one
- * picked, and `+` off while the note shows, since it adds a box or an entry; the time grid, which measures itself
- * again once it shows, scrolls to now then, see {@link nowCenter}.
- * - `main`: Plan, log and note with their bar, which `day.css` shows one of by its `data-shown`.
+ * Shows plan or log on a phone, one at a time, see `.day-switch` in `day.css`, the button of the shown one picked;
+ * the time grid, which measures itself again once it shows, scrolls to now then, see {@link nowCenter}.
+ * - `main`: Plan and log with their bar, which `day.css` shows one of by its `data-shown`.
  *
  * @param calendar - Calendar of the day
- * @param shown - `plan`, `log` or `note`
+ * @param shown - `plan` or `log`
  */
-function phoneShow(calendar: Calendar, shown: "plan" | "log" | "note"): void {
+function phoneShow(calendar: Calendar, shown: "plan" | "log"): void {
     const main: HTMLElement = document.getElementById("day-main") as HTMLElement;
     main.dataset.shown = shown;
-    for (const part of ["plan", "log", "note"])
+    for (const part of ["plan", "log"])
         document.getElementById(`day-show-${part}`)?.setAttribute("aria-pressed", String(shown === part));
-    (document.getElementById("day-new") as HTMLButtonElement).disabled = shown === "note";
     if (shown === "log")
         nowCenter(calendar);
 }
@@ -752,7 +749,7 @@ async function noteStart(calendar: Calendar): Promise<void> {
  * the arrows beside the date above plan and log move the calendar by a day, the icon beside it back to today,
  * the date opens the month to pick a day from, `+` below the time grid opens the entry by category of the log
  * for the last half hour, the search beside it the search of the whole log, see `search.ts`; on a phone the buttons
- * at the bottom switch between plan, log and note, see {@link phoneShow}, and their `+` starts a box or an entry
+ * at the bottom switch between plan and log, see {@link phoneShow}, and their `+` starts a box or an entry
  * of the shown plan or log, and a swipe sideways changes the day in place of the arrows, see `swipe.ts`;
  * it shows the daily note, see {@link noteStart}, and the timer of a session, see `timer.ts`; while it shows today,
  * the day moves on to the new day by itself, now centred again, see `todayFollow` in `today.ts`, and while it shows
@@ -901,7 +898,6 @@ export function dayStart(): void {
     iconPut(document.getElementById("day-new") as HTMLElement, Plus, "New box or entry");
     document.getElementById("day-show-plan")?.addEventListener("click", (): void => phoneShow(calendar, "plan"));
     document.getElementById("day-show-log")?.addEventListener("click", (): void => phoneShow(calendar, "log"));
-    document.getElementById("day-show-note")?.addEventListener("click", (): void => phoneShow(calendar, "note"));
     document.getElementById("day-new")?.addEventListener("click", (): void => {
         const shown: string = (document.getElementById("day-main") as HTMLElement).dataset.shown ?? "plan";
         document.getElementById(shown === "log" ? "log-new" : "plan-new")?.click();

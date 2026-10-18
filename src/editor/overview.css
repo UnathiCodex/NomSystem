@@ -141,7 +141,7 @@
     display: none;
 }
 
-/* A narrow page, as on a phone: a card its name on top and its values below it in one grey line, each named,
+/* A narrow page: a card its name on top and its values below it in one grey line, each named,
    apart by a middle dot at the end of the value before it, so a line going on below starts with a value, like
    `Round 2 · Today · 5 right · 1 wrong`, then the days I learned it; no row of names; narrow means too little room
    left for the name beside the columns, as on the laptop */

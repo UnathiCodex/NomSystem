@@ -188,23 +188,3 @@ details.task-history a {
 .task-unjudged .task-hint {
     display: inline;
 }
-
-/* Phone: the buttons of a solution and the check and cross of a task as they look, but a finger high to hit, each
-   taking a tap 0.25rem above and below it, which the room between two lines of buttons leaves free */
-@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
-    .steps-buttons button,
-    .round-next,
-    .task-history > summary,
-    .task-judge .chip-button {
-        position: relative;
-    }
-
-    .steps-buttons button::after,
-    .round-next::after,
-    .task-history > summary::after,
-    .task-judge .chip-button::after {
-        content: "";
-        position: absolute;
-        inset: -0.25rem 0;
-    }
-}
