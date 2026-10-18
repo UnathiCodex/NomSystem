@@ -455,9 +455,9 @@ function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] 
 
 /**
  * Gives the chapters of a skill box in words, like `01 Regression Analysis` for `01_RegressionAnalysis`,
- * see `chapterNameOf` in `../skill/links.ts`, each a link that opens its overview in the scripts view in a new tab,
- * like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`, as the place opens
- * its link, instead of the box; plain on a phone, which has no scripts view, and for a box whose summary links
+ * see `chapterNameOf` in `../skill/links.ts`, each a link that opens its overview in the scripts view in this window,
+ * never a second one, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`,
+ * instead of the box, as the place opens its link; plain on a phone, which has no scripts view, and for a box whose summary links
  * no module folder.
  * - `module`: Name of the folder of its module, the part of the link of its summary after `NomSkillingmodules/`,
  *   like `IN2028_BusinessAnalyticsMachineLearning`, empty for none.
@@ -474,8 +474,6 @@ function chaptersOf(box: Box): Node[] {
         const anchor: HTMLAnchorElement = document.createElement("a");
         anchor.className = "chapter-link";
         anchor.href = `/scripts?module=${encodeURIComponent(module)}&chapter=${encodeURIComponent(chapter)}`;
-        anchor.target = "_blank";
-        anchor.rel = "noopener";
         anchor.textContent = chapterNameOf(chapter);
         anchor.addEventListener("click", (event: MouseEvent): void => event.stopPropagation());
         return anchor;

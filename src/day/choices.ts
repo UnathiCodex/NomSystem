@@ -522,8 +522,8 @@ export function pairOf(first: HTMLElement, second: HTMLElement): HTMLDivElement 
 /**
  * Makes the row of a value picked of a field of several values, below the row of the field, see {@link addedRowsOf}:
  * its name, mostly none, its text, like `02_LogisticPoissonRegression`, going on below where it is wider than
- * its row, see {@link breakableOf}, a link when it has one, which opens what it names in a new tab, like a chapter
- * in the scripts view, and a small × that takes it back.
+ * its row, see {@link breakableOf}, a link when it has one, which opens what it names in this window, never a second
+ * one, like a chapter in the scripts view, and a small × that takes it back.
  * - `text`: The text in its own element, its whole text in its tooltip.
  * - `opening`: The text as a link, inside the element of the text, so a plus moved after the text stays outside
  *   the link, see {@link lineMove}.
@@ -544,8 +544,6 @@ export function addedRowOf(name: string, text: string, remove: () => void, link:
     shown.className = "picker-added-text";
     shown.title = text;
     opening.href = link;
-    opening.target = "_blank";
-    opening.rel = "noopener";
     opening.textContent = breakableOf(text);
     shown.append(link === "" ? breakableOf(text) : opening);
     button.type = "button";

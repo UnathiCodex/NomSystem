@@ -702,7 +702,7 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
 }
 
 /**
- * Gives the link of a chapter picked, which opens it in the scripts view in a new tab at its first note, like
+ * Gives the link of a chapter picked, which opens it in the scripts view in this window at its first note, like
  * `/scripts?path=IN2028_BusinessAnalyticsMachineLearning%2F01_RegressionAnalysis%2F01_01_….md`, the module already
  * named by the summary above; none for a chapter without notes, like one whose folder has another name now.
  * - `module`: Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`.
