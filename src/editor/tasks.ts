@@ -49,6 +49,15 @@ export type NoteTasks = {
 };
 
 /**
+ * A `##` block of the note: its heading as written, the number of its line, and its task, `null` for theory.
+ */
+export type Block = {
+    heading: string;
+    line: number;
+    task: SkillTask | null;
+};
+
+/**
  * The rows of the note: its tasks and the widgets drawn for them.
  *
  * - `loaded`: The tasks of the note, `null` before they are loaded.
@@ -257,13 +266,30 @@ function solutionOpenOf(state: EditorState, heading: Line): boolean | null {
 }
 
 /**
+ * Reads the blocks of the note, each with its task.
+ *
+ * @param state - Text of the note
+ * @param tasks - Its tasks
+ * @returns Blocks in their order
+ */
+export function blocksOf(state: EditorState, tasks: SkillTask[]): Block[] {
+    const blocks: Block[] = [];
+    for (let number: number = 1; number <= state.doc.lines; number++) {
+        const heading: string | undefined = blockRule.exec(state.doc.line(number).text)?.[1];
+        if (heading !== undefined)
+            blocks.push({ heading: heading, line: number,
+                task: tasks.find((task: SkillTask): boolean => task.heading === heading) ?? null });
+    }
+    return blocks;
+}
+
+/**
  * Builds the rows of the note, see the top of this file: a row after the heading of each task,
  * as wide as the page, and the label of a cold task in place of its `(cold)`
  * while the cursor is not on its heading; in a section the check and the cross on the line of the heading instead
  * of the row, after its fold arrow, so the cursor at the end of the heading stands at its text, see `./preview.ts`.
  * - `decorations`: The rows and labels found so far.
- * - `line`: A line of the note, and `text` the text of its heading `##`, `undefined` for none.
- * - `task`: The task of the heading, `undefined` for any other block.
+ * - `block`: A block of the note with a task, `task` the task, `line` the line of its heading.
  * - `cold`: Where `(cold)` stands in the heading of a cold task, `null` for no such task.
  *
  * @param state - Text, cursor and folds of the note
@@ -275,14 +301,11 @@ function decorationsOf(state: EditorState, loaded: NoteTasks | null): Decoration
         return Decoration.none;
 
     const decorations: Range<Decoration>[] = [];
-    for (let number: number = 1; number <= state.doc.lines; number++) {
-        const line: Line = state.doc.line(number);
-        const text: string | undefined = blockRule.exec(line.text)?.[1];
-        if (text === undefined)
+    for (const block of blocksOf(state, loaded.tasks)) {
+        if (block.task === null)
             continue;
-        const task: SkillTask | undefined = loaded.tasks.find((candidate: SkillTask): boolean => candidate.heading === text);
-        if (task === undefined)
-            continue;
+        const task: SkillTask = block.task;
+        const line: Line = state.doc.line(block.line);
         const cold: RegExpExecArray | null = task.kind === "cold" ? coldMark.exec(line.text) : null;
         if (cold !== null && !state.selection.ranges.some((range: SelectionRange): boolean =>
             range.from <= line.to && range.to >= line.from))

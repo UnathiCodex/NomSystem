@@ -43,7 +43,8 @@
  *   and draw `Next` as a widget below it.
  * - `@codemirror/language`: Folds and unfolds the blocks, as their arrows do.
  * - `../skill/attempts.ts`: Writes the days of the round line out, and the day of the next Task for the tree.
- * - `./tasks.ts`: Hears each load of the tasks of the note, with its section, and each Right.
+ * - `./tasks.ts`: Reads the blocks of the note with their tasks, and hears each load of the tasks, with its section,
+ *   and each Right.
  * - `./session.ts`: Makes sure a session of the module runs before `Next` or the round check writes, and gives the
  *   session running, with its day and times written out.
  * - `./today.ts`: Lists what a failure brings back as cards, by {@link fallbacksOf}, so Today agrees with the round.
@@ -53,26 +54,17 @@
 import { EditorSelection, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { foldable, foldedRanges, foldEffect, unfoldEffect } from "@codemirror/language";
-import { tasksFollow } from "./tasks.ts";
+import { blocksOf, tasksFollow } from "./tasks.ts";
 import { sessionEnsure, sessionOf, sessionTextOf } from "./session.ts";
 import { dayOf, dayTextOf } from "../skill/attempts.ts";
 
 import type { Extension, Line, Range, SelectionRange, StateEffectType, Transaction, TransactionSpec } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
 import type { Attempt, Result, SkillSection, SkillTask } from "../skill/attempts.ts";
-import type { NoteTasks } from "./tasks.ts";
+import type { Block, NoteTasks } from "./tasks.ts";
 import type { BlockMark } from "../notes/tree.ts";
 import type { Session } from "./session.ts";
 
-
-/**
- * A `##` block of the note: its heading as written, the number of its line, and its task, `null` for theory.
- */
-type Block = {
-    heading: string;
-    line: number;
-    task: SkillTask | null;
-};
 
 /**
  * A step of the round: its block, and for one a failure brought back the heading of the block whose failure began
@@ -134,11 +126,6 @@ type Alone = {
     to: number;
     decorations: DecorationSet;
 };
-
-/**
- * Heading `##` of a block, with its text as written.
- */
-const blockRule: RegExp = /^##[ \t]+(.+?)[ \t]*$/;
 
 /**
  * Heading `##` of a block whose sections under a heading `####` are scenes, like `#### Ice Cream Kiosk`.
@@ -314,24 +301,6 @@ function aloneOf(state: EditorState, block: Block, end: number, next: boolean): 
     if (!last)
         marks.push(Decoration.replace({ block: true }).range(end + 1, state.doc.length));
     return { from: start, to: end, decorations: Decoration.set(marks) };
-}
-
-/**
- * Reads the blocks of the note, each with its task.
- *
- * @param state - Text of the note
- * @param tasks - Its tasks
- * @returns Blocks in their order
- */
-function blocksOf(state: EditorState, tasks: SkillTask[]): Block[] {
-    const blocks: Block[] = [];
-    for (let number: number = 1; number <= state.doc.lines; number++) {
-        const heading: string | undefined = blockRule.exec(state.doc.line(number).text)?.[1];
-        if (heading !== undefined)
-            blocks.push({ heading: heading, line: number,
-                task: tasks.find((task: SkillTask): boolean => task.heading === heading) ?? null });
-    }
-    return blocks;
 }
 
 /**
