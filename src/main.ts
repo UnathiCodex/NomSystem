@@ -6,7 +6,7 @@
  * the scripts, my notes of my modules in the editor, always writing, at `/scripts`, a due task of the skill area
  * as a card at `/scripts?…&card=1`, my new system at `/plannings`, the skill area at `/skill`, the food area at `/food`,
  * the editor of the files of my new system at `/edit`, the day everywhere else; older addresses of the scripts,
- * `/notes` and a draft at `/edit?path=…`, open them too and become `/scripts`.
+ * `/notes` and a note at `/edit?path=…`, open them too and become `/scripts`.
  * The editor shows a file of my new system under the link of `/plannings`, which opens the editor without a file,
  * and a note of my modules under that of `/scripts`, see `editor/editor.ts`.
  * Loads the code of the shown area only, with `import()`, so the day loads no MathJax and the scripts no calendar,

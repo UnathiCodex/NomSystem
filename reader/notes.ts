@@ -1,28 +1,26 @@
 /**
  * ## Notes
  *
- * Reads my modules and the drafts for the scripts view, read only: the modules of the semester with their chapters
+ * Reads my modules for the scripts view, read only: the modules of the semester with their chapters
  * and notes for the menu, a note with the files its links lead to, the links of the notes that lead nowhere,
  * and single files, like the images of a note; for the skill entries of the day, every module folder
  * with its chapters and the university's documents in it.
- * Each module is a vault of its own, as in Obsidian, so a link leads to a file of the same module;
- * the drafts of a module lie in it as if they were its own folders, so a draft links to the lecture's slides
- * as it will once it moves into the module. A note of any module can be read, also of one that is not in the menu.
- * Paths come and go with `/`: from `NomSkillingmodules`, like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/Tangens.svg`,
- * and from the drafts with `Drafts/` before, like `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/…`.
+ * Each module is a vault of its own, as in Obsidian, so a link leads to a file of the same module.
+ * A note of any module can be read, also of one that is not in the menu.
+ * Paths come and go with `/` from `NomSkillingmodules`,
+ * like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/Tangens.svg`.
  * Hidden files and folders, like `.obsidian`, stay out, as in Obsidian.
  * A missing folder counts as empty, like a module of the semester whose folder is not made yet, or `NomSkillingmodules`
  * itself; a missing note or file is an error.
  *
  * - `node:fs`: Reads files and folders on the disk.
  * - `node:path`: Builds file paths, `posix` with `/` for paths inside the modules.
- * - `./sources.ts`: Names the folders of the drafts and of my modules for the scripts view, and the modules
- *   of the semester.
+ * - `./sources.ts`: Names the folder of my modules for the scripts view, and the modules of the semester.
  */
 
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { extname, join, posix, sep } from "node:path";
-import { activeModules, draftsFolder, modulesFolder, notes } from "./sources.ts";
+import { activeModules, modulesFolder, notes } from "./sources.ts";
 
 import type { Dirent } from "node:fs";
 
@@ -39,7 +37,7 @@ export type NoteEntry = {
 };
 
 /**
- * A chapter of a module with its notes, from the module and its drafts together.
+ * A chapter of a module with its notes.
  *
  * - `title`: Its name, the name of its folder as it is, like `01_RegressionAnalysis`.
  * - `notes`: Its notes, sorted as Obsidian's file explorer does.
@@ -105,19 +103,13 @@ export type BrokenLink = {
  *
  * - `folder`: The module folder from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`,
  *   empty for a project.
- * - `drafts`: The folder of its drafts from `NomWorkspace`, like
- *   `NomSystemdashboard/.claude/modules/drafts/IN2028_BusinessAnalyticsMachineLearning`, empty for a project.
- * - `chapters`: Names of its chapter folders and of those of its drafts, also of the empty ones,
- *   like `05_DecisionTreesEnsembles`, in order.
+ * - `chapters`: Names of its chapter folders, also of the empty ones, like `05_DecisionTreesEnsembles`, in order.
  * - `documents`: Its files outside the chapter folders, the university's material, and the notes of its chapters,
  *   by their paths from the module folder, like `VO_UniversityLectureLessons/TUM_2025W/04_….pdf`
- *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, the notes of a chapter without notes there
- *   from its drafts, with `Drafts/` before, like `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`,
- *   in order.
+ *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, in order.
  */
 export type ModuleContents = {
     folder: string;
-    drafts: string;
     chapters: string[];
     documents: string[];
 };
@@ -195,35 +187,19 @@ const chapterFolder: RegExp = /^\d{2}_/;
  */
 const moduleFolder: RegExp = /^[A-Z]+\d+_/;
 
-/**
- * First part of the paths of the drafts; a module folder named so would be taken for them.
- */
-export const draftsName: string = "Drafts";
-
 
 /**
- * Tells whether a path lies in the drafts, see {@link draftsName}.
+ * Builds the place of a path on the disk, inside `NomSkillingmodules`, as written, without following links.
  *
- * @param path - Path like `Drafts/IN2028_BusinessAnalyticsMachineLearning`
- * @returns Whether it starts with `Drafts`
- */
-function inDrafts(path: string): boolean {
-    return path.split("/")[0] === draftsName;
-}
-
-/**
- * Builds the place of a path on the disk, inside the drafts or `NomSkillingmodules`, as written,
- * without following links.
- *
- * @param path - Path like `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis`
- * @returns Place on the disk, like `…/drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis`
+ * @param path - Path like `IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis`
+ * @returns Place on the disk, like `…/NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis`
  */
 function placeOf(path: string): string {
-    return join(inDrafts(path) ? notes.drafts : notes.modules, inDrafts(path) ? path.slice(draftsName.length) : path);
+    return join(notes.modules, path);
 }
 
 /**
- * Turns a path into the path on the disk, only when it stays inside the drafts or `NomSkillingmodules`.
+ * Turns a path into the path on the disk, only when it stays inside `NomSkillingmodules`.
  * - {@link realpathSync}: Makes a path absolute and follows symbolic links, so no link leads outside.
  *
  * @param path - Path like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen`
@@ -235,10 +211,10 @@ function diskPathOf(path: string): string {
     if (path.split("/").some((part: string): boolean => part.startsWith(".")))
         throw new Error(`No hidden path and no way up: ${path}`);
 
-    const root: string = realpathSync(inDrafts(path) ? notes.drafts : notes.modules);
+    const root: string = realpathSync(notes.modules);
     const file: string = realpathSync(placeOf(path));
     if (file !== root && !file.startsWith(`${root}${sep}`))
-        throw new Error(`No reading outside the drafts and the modules: ${path}`);
+        throw new Error(`No reading outside the modules: ${path}`);
     return file;
 }
 
@@ -246,22 +222,10 @@ function diskPathOf(path: string): string {
  * Gives the module of a path, the vault its links stay in.
  *
  * @param path - Path like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/05_07_TrigonometrischeFunktionen.md`
- * @returns Path of its module, like `MA0902_ReelleAnalysisInformatik` or `Drafts/IN2028_BusinessAnalyticsMachineLearning`
+ * @returns Path of its module, like `MA0902_ReelleAnalysisInformatik`
  */
 function moduleOf(path: string): string {
-    return path.split("/").slice(0, inDrafts(path) ? 2 : 1).join("/");
-}
-
-/**
- * Gives the folders of a module: the module in my modules, and in the drafts when it has drafts there.
- *
- * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
- * @returns Paths like `IN2028_BusinessAnalyticsMachineLearning` and `Drafts/IN2028_BusinessAnalyticsMachineLearning`
- */
-function foldersOf(module: string): string[] {
-    if (existsSync(join(notes.drafts, module)))
-        return [module, `${draftsName}/${module}`];
-    return [module];
+    return path.split("/")[0];
 }
 
 /**
@@ -301,27 +265,15 @@ function filesRead(folder: string): string[] {
 }
 
 /**
- * Lists the files the links of a note may lead to, by their paths in its module, each with its path,
- * see the top of this file: the files of its module, and for a draft first those of its module in the drafts,
- * then those of the module in `NomSkillingmodules`, as if the drafts lay in it; a path in both leads to the draft.
- * - `roots`: The module, and for a draft also the module in `NomSkillingmodules` when it has a folder there.
- * - `files`: Path of each file by its path in the module, as found so far.
- * - `inModule`: Path of a file in its module.
+ * Lists the files the links of a note may lead to, the files of its module, by their paths in it, each with its path,
+ * see the top of this file.
  *
- * @param module - Path of the module of the note, like `Drafts/IN2028_BusinessAnalyticsMachineLearning`
+ * @param module - Path of the module of the note, like `IN2028_BusinessAnalyticsMachineLearning`
  * @returns Path of each file, like `IN2028_BusinessAnalyticsMachineLearning/VO_UniversityLectureLessons/TUM_2025W/…`,
- *   by its path in the module, like `VO_UniversityLectureLessons/TUM_2025W/…`, the drafts' first
+ *   by its path in the module, like `VO_UniversityLectureLessons/TUM_2025W/…`
  */
 function vaultFilesRead(module: string): Map<string, string> {
-    const roots: string[] = inDrafts(module) && existsSync(join(notes.modules, module.slice(draftsName.length + 1)))
-        ? [module, module.slice(draftsName.length + 1)] : [module];
-    const files: Map<string, string> = new Map();
-    roots.forEach((root: string): void => filesRead(root).forEach((file: string): void => {
-        const inModule: string = file.slice(root.length + 1);
-        if (!files.has(inModule))
-            files.set(inModule, file);
-    }));
-    return files;
+    return new Map(filesRead(module).map((file: string): [string, string] => [file.slice(module.length + 1), file]));
 }
 
 /**
@@ -392,41 +344,29 @@ function linkDecode(link: string): string {
 
 /**
  * Reads the modules of the semester, see {@link activeModules}, each with its chapters and their notes, for the menu:
- * the chapter folders, like `01_RegressionAnalysis`, of the module and of its drafts together, a chapter in both once,
- * each with its notes, the `.md` files right in it. Chapters without notes stay out, and so do the other folders,
- * like `FA_UniversityModuleExaminations` with the university's material, and the other files, like images.
- * - `chapters`: Notes by the folder of their chapter.
+ * the chapter folders of the module, like `01_RegressionAnalysis`, each with its notes, the `.md` files right in it.
+ * Chapters without notes stay out, and so do the other folders, like `FA_UniversityModuleExaminations`
+ * with the university's material, and the other files, like images.
  *
  * @returns Modules in the order of the list, a module whose folder is missing without chapters
  */
 export function modulesRead(): NotesModule[] {
-    return activeModules.map((module: string): NotesModule => {
-        const chapters: Map<string, NoteEntry[]> = new Map();
-        foldersOf(module).forEach((folder: string): void => {
-            entriesRead(folder)
-                .filter((chapter: Dirent): boolean => chapter.isDirectory() && chapterFolder.test(chapter.name))
-                .forEach((chapter: Dirent): void => {
-                    const path: string = `${folder}/${chapter.name}`;
-                    const entries: NoteEntry[] = entriesRead(path)
-                        .filter((note: Dirent): boolean => !note.isDirectory() && note.name.toLowerCase().endsWith(".md"))
-                        .map((note: Dirent): NoteEntry => ({ name: note.name, path: `${path}/${note.name}` }));
-                    chapters.set(chapter.name, [...chapters.get(chapter.name) ?? [], ...entries]);
-                });
-        });
-
-        return {
-            name: module,
-            title: module,
-            chapters: [...chapters.keys()]
-                .sort(collator.compare)
-                .map((chapter: string): Chapter => ({
-                    title: chapter,
-                    notes: (chapters.get(chapter) ?? []).sort((first: NoteEntry, second: NoteEntry): number =>
-                        collator.compare(first.name, second.name)),
-                }))
-                .filter((chapter: Chapter): boolean => chapter.notes.length > 0),
-        };
-    });
+    return activeModules.map((module: string): NotesModule => ({
+        name: module,
+        title: module,
+        chapters: entriesRead(module)
+            .filter((chapter: Dirent): boolean => chapter.isDirectory() && chapterFolder.test(chapter.name))
+            .map((chapter: Dirent): Chapter => ({
+                title: chapter.name,
+                notes: entriesRead(`${module}/${chapter.name}`)
+                    .filter((note: Dirent): boolean => !note.isDirectory() && note.name.toLowerCase().endsWith(".md"))
+                    .map((note: Dirent): NoteEntry =>
+                        ({ name: note.name, path: `${module}/${chapter.name}/${note.name}` }))
+                    .sort((first: NoteEntry, second: NoteEntry): number => collator.compare(first.name, second.name)),
+            }))
+            .sort((first: Chapter, second: Chapter): number => collator.compare(first.title, second.title))
+            .filter((chapter: Chapter): boolean => chapter.notes.length > 0),
+    }));
 }
 
 /**
@@ -453,39 +393,30 @@ export function moduleFolderOf(code: string): string | undefined {
 }
 
 /**
- * Reads what a module folder holds for a skill entry, see {@link ModuleContents}: the chapter folders of the module
- * and of its drafts together, a chapter in both once, and as documents every file of the module outside them,
- * like the lecture's slides, and the notes of its chapters in the module folder, like
- * `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, but not their images; a chapter without notes there
- * gives the notes of its unchecked drafts, like `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
- * - `chapters`: Names of the chapter folders, each once, in order.
- * - `notesOf`: Paths of the notes right in a folder, like `IN2028_…/01_RegressionAnalysis/01_01_….md`.
- * - `notes`: Paths of the notes of every chapter, from the module folder or, with `Drafts/` before, from its drafts.
+ * Reads what a module folder holds for a skill entry, see {@link ModuleContents}: the chapter folders of the module,
+ * and as documents every file of the module outside them, like the lecture's slides, and the notes of its chapters,
+ * like `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, but not their images.
+ * - `chapters`: Names of the chapter folders, in order.
+ * - `notes`: Paths of the notes of every chapter from the module folder.
  * - `material`: Paths of the files of the module outside its chapter folders.
  *
  * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
  * @returns Chapters and documents of the module, none for a missing folder
  */
 export function moduleContentsRead(module: string): ModuleContents {
-    const chapters: string[] = [...new Set(foldersOf(module).flatMap((folder: string): string[] => entriesRead(folder)
+    const chapters: string[] = entriesRead(module)
         .filter((entry: Dirent): boolean => entry.isDirectory() && chapterFolder.test(entry.name))
-        .map((entry: Dirent): string => entry.name)))].sort(collator.compare);
-    const notesOf: (folder: string) => string[] = (folder: string): string[] => entriesRead(folder)
+        .map((entry: Dirent): string => entry.name).sort(collator.compare);
+    const notes: string[] = chapters.flatMap((chapter: string): string[] => entriesRead(`${module}/${chapter}`)
         .filter((note: Dirent): boolean => !note.isDirectory() && note.name.toLowerCase().endsWith(".md"))
-        .map((note: Dirent): string => `${folder}/${note.name}`);
-    const notes: string[] = chapters.flatMap((chapter: string): string[] => {
-        const own: string[] = notesOf(`${module}/${chapter}`)
-            .map((note: string): string => note.slice(module.length + 1));
-        return own.length > 0 ? own : notesOf(`${draftsName}/${module}/${chapter}`)
-            .map((note: string): string => `${draftsName}/${note.slice(draftsName.length + module.length + 2)}`);
-    });
+        .map((note: Dirent): string => `${chapter}/${note.name}`));
     const material: string[] = entriesRead(module)
         .flatMap((entry: Dirent): string[] => entry.isDirectory()
             ? (chapterFolder.test(entry.name) ? [] : filesRead(`${module}/${entry.name}`))
             : [`${module}/${entry.name}`])
         .map((file: string): string => file.slice(module.length + 1));
     return {
-        folder: `${modulesFolder}/${module}`, drafts: `${draftsFolder}/${module}`,
+        folder: `${modulesFolder}/${module}`,
         chapters: chapters, documents: [...material, ...notes].sort(collator.compare),
     };
 }
@@ -560,13 +491,13 @@ function linksOf(text: string, path: string, files: Map<string, string>): { [lin
 
 /**
  * Reads a note with the files its wiki links, embeds, Markdown links and images lead to, see {@link linksOf}:
- * within its module, a draft also within its module in `NomSkillingmodules`, see {@link vaultFilesRead}.
+ * within its module, see {@link vaultFilesRead}.
  * Lists the files of its module once, which takes up to a few hundred milliseconds in a module with code.
  *
  * @param path - Path of the note, like
  *   `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/05_07_TrigonometrischeFunktionen.md`
  * @returns Note with its links
- * @throws {Error} - When the note lies outside the drafts and `NomSkillingmodules`, or is missing
+ * @throws {Error} - When the note lies outside `NomSkillingmodules`, or is missing
  */
 export function linkedNoteRead(path: string): LinkedNote {
     const text: string = readFileSync(diskPathOf(path), "utf8");
@@ -574,11 +505,11 @@ export function linkedNoteRead(path: string): LinkedNote {
 }
 
 /**
- * Reads the links that lead nowhere in the notes of the semester, the chapter notes of the modules and their drafts
+ * Reads the links that lead nowhere in the notes of the semester, the chapter notes of the modules
  * the menu shows, each link once per note, like a link to a slide whose file was renamed.
- * Lists the files of each module and of its drafts once.
+ * Lists the files of each module once.
  * - `vaults`: Files the links may lead to, by the path of the module of a note, as listed so far.
- * - `root`: Path of the module of a note, like `Drafts/IN2028_BusinessAnalyticsMachineLearning`.
+ * - `root`: Path of the module of a note, like `IN2028_BusinessAnalyticsMachineLearning`.
  * - `files`: Files the links of the note may lead to.
  *
  * @returns Links that lead nowhere, by the order of the menu
@@ -613,7 +544,7 @@ export function contentTypeOf(file: string): string {
  *
  * @param path - Path like `MA0902_ReelleAnalysisInformatik/05_WichtigeFunktionstypen/Tangens.svg`
  * @returns File with its content type
- * @throws {Error} - When the file lies outside the drafts and `NomSkillingmodules`, or is missing
+ * @throws {Error} - When the file lies outside `NomSkillingmodules`, or is missing
  */
 export function fileRead(path: string): NotesFile {
     const file: string = diskPathOf(path);

@@ -23,15 +23,14 @@
  * `No chapters yet`. The reader writes one `X-CHAPTER` each, and an entry keeps the name a chapter had, also once
  * its folder has another name.
  * The documents are the real documents the entry used, several, each a row with a small ×, see `addedRowsOf`
- * in `choices.ts`: for my own learning, no type, the notes of each chapter picked right below it, those of the
- * module folder or, while it has none of that chapter, those of its unchecked drafts; for a type, once a chapter
- * is picked, below all chapters the files of the folder fitting the type and the semester, see {@link materialFolders},
- * the folder of the semester like `TUM_2026W` for `2026W`: a lecture's slides in `VO_UniversityLectureLessons`,
- * the sheet of an exercise or a tutorial in `TU_UniversityTutorExercises`, a homework's in
- * `HU_UniversityHomeExercises`; a project offers none. Each document picked is its row showing the name of its file,
- * like `04_LogisticRegression.pdf`, which says what it is; the reader writes just its path as its `ATTACH`,
- * see `reader/documents.ts`. Picks a list does not offer, like an older entry's, stay as rows until I take them back.
- * The note is only my free note.
+ * in `choices.ts`: for my own learning, no type, the notes of each chapter picked right below it; for a type,
+ * once a chapter is picked, below all chapters the files of the folder fitting the type and the semester,
+ * see {@link materialFolders}, the folder of the semester like `TUM_2026W` for `2026W`: a lecture's slides
+ * in `VO_UniversityLectureLessons`, the sheet of an exercise or a tutorial in `TU_UniversityTutorExercises`,
+ * a homework's in `HU_UniversityHomeExercises`; a project offers none. Each document picked is its row showing
+ * the name of its file, like `04_LogisticRegression.pdf`, which says what it is; the reader writes just its path
+ * as its `ATTACH`, see `reader/documents.ts`. Picks a list does not offer, like an older entry's, stay as rows
+ * until I take them back. The note is only my free note.
  * The tasks of the chapters picked come after the documents, the due ones first, then a result for each task picked,
  * the task judged as a whole: Right, or Wrong with a short field for my comment on what went wrong; a task left
  * without result is no attempt and is not written.
@@ -176,10 +175,9 @@ const materialFolders: { [type: string]: string } = {
 
 /**
  * Path of a note of a chapter from the module folder, its chapter folder caught, like `01_RegressionAnalysis`
- * of `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, also of a note of the drafts with `Drafts/` before,
- * like `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`, see `ModuleContents`.
+ * of `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, see `ModuleContents`.
  */
-const chapterNote: RegExp = /^(?:Drafts\/)?(\d{2}_[^/]*)\/[^/]+$/;
+const chapterNote: RegExp = /^(\d{2}_[^/]*)\/[^/]+$/;
 
 /**
  * Day of the dialog, like `2026-10-13`, whose semester the entry has while I pick none, see {@link skillDaySet}.
@@ -215,7 +213,7 @@ let shownIn: SkillShown | null = null;
 /**
  * Chapters and documents of the skill picked, as the reader gave them, none before a skill is picked and for a project.
  */
-let contents: ModuleContents = { folder: "", drafts: "", chapters: [], documents: [] };
+let contents: ModuleContents = { folder: "", chapters: [], documents: [] };
 
 /**
  * Time of the tap at the start of an `X-ATTEMPT` a button wrote, like `140500` for 14:05, or `14:05` in an older one,
@@ -248,22 +246,19 @@ let asPlanned: boolean = false;
 
 /**
  * Gives the paths of the documents of a skill entry or a box from its links, as the Documents list offers them,
- * see `ModuleContents`: its files in the folder of its module from that folder, its notes of the drafts of
- * the module with `Drafts/` before; a file with its fingerprint, or one in a folder of material, like the slides
- * a lecture of my plan links without fingerprint, never the folder of a chapter, which lies right in the module.
- * - `rest`: Path of a link from the folder of the module or of its drafts, `null` for a link in neither.
+ * see `ModuleContents`: its files in the folder of its module from that folder; a file with its fingerprint,
+ * or one in a folder of material, like the slides a lecture of my plan links without fingerprint, never the folder
+ * of a chapter, which lies right in the module.
+ * - `rest`: Path of a link from the folder of the module, `null` for a link outside it.
  *
  * @param links - Links of the entry, like `NomSkillingmodules/IN2028_…/VO_…/04_….pdf`
  * @returns Paths like `VO_UniversityLectureLessons/TUM_2025W/04_LogisticPoissonRegression.pdf`
- *   or `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`, in their order
+ *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, in their order
  */
 function documentPathsOf(links: Link[]): string[] {
     return links.flatMap((link: Link): string[] => {
-        let rest: string | null = null;
-        if (contents.folder !== "" && link.path.startsWith(`${contents.folder}/`))
-            rest = link.path.slice(contents.folder.length + 1);
-        else if (contents.drafts !== "" && link.path.startsWith(`${contents.drafts}/`))
-            rest = `Drafts/${link.path.slice(contents.drafts.length + 1)}`;
+        const rest: string | null = contents.folder !== "" && link.path.startsWith(`${contents.folder}/`)
+            ? link.path.slice(contents.folder.length + 1) : null;
         return rest !== null && (link.fingerprint !== "" || rest.includes("/")) ? [rest] : [];
     });
 }
@@ -421,8 +416,7 @@ function documentSemesterOf(path: string): string {
 
 /**
  * Gives the chapter a document belongs to, by the name of the folder of a note of a chapter,
- * like `01_RegressionAnalysis` of `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`,
- * or of `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`, see {@link chapterNote}.
+ * like `01_RegressionAnalysis` of `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`, see {@link chapterNote}.
  *
  * @param path - Path of a document from the module folder
  * @returns Name of its chapter, empty for a document of no chapter, like the slides of a lecture
@@ -433,10 +427,9 @@ function chapterOfDocument(path: string): string {
 
 /**
  * Gives the documents a Documents list offers, see the top of this file: for my own learning the notes of a chapter,
- * see {@link chapterOfDocument}, those of the module or else of its drafts, like
- * `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`; for a type the files of the folder of its material,
- * see {@link materialFolders}, in the folder of the semester of the entry, like `TUM_2026W` for `2026W`;
- * each by path, in the order of their paths.
+ * see {@link chapterOfDocument}, like `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`; for a type
+ * the files of the folder of its material, see {@link materialFolders}, in the folder of the semester of the entry,
+ * like `TUM_2026W` for `2026W`; each by path, in the order of their paths.
  * - `folder`: Beginning of the name of the folder of the material of the type, empty for my own learning.
  * - `semester`: Semester of the entry, like `2026W`.
  *
@@ -455,7 +448,7 @@ function documentsOfferedOf(chapter: string): string[] {
 /**
  * Builds the choices of a Documents list, see {@link documentsOfferedOf}, each its path as value, the name of its file
  * as text, and as group for a file of material the folders between the folder of its material and it, like
- * `04_LogisticPoissonRegression.pdf` under `TUM_2026W`, for a note of the drafts `Unchecked draft`.
+ * `04_LogisticPoissonRegression.pdf` under `TUM_2026W`, none for a note.
  * - `parts`: Parts of the path of a document.
  *
  * @param chapter - Chapter whose notes my own learning offers, like `01_RegressionAnalysis`
@@ -465,9 +458,7 @@ function documentChoicesOf(chapter: string): Choice[] {
     return documentsOfferedOf(chapter).map((path: string): Choice => {
         const parts: string[] = path.split("/");
         if (chapterOfDocument(path) !== "")
-            return {
-                value: path, text: parts.at(-1) ?? path, group: path.startsWith("Drafts/") ? "Unchecked draft" : "",
-            };
+            return { value: path, text: parts.at(-1) ?? path, group: "" };
         return { value: path, text: parts.at(-1) ?? path, group: parts.slice(1, -1).join("/") };
     });
 }
@@ -589,7 +580,7 @@ function loggedOf(): HTMLElement[] {
  */
 async function contentsLoad(): Promise<void> {
     const module: string = picks.module;
-    const none: ModuleContents = { folder: "", drafts: "", chapters: [], documents: [] };
+    const none: ModuleContents = { folder: "", chapters: [], documents: [] };
     const loaded: ModuleContents = module === "" ? none
         : await moduleLoad(module).catch((error: unknown): ModuleContents => {
             console.error(error);
@@ -651,7 +642,7 @@ function tasksOf(changed: () => void): HTMLElement[] {
  * the documents of its material once a chapter is picked, or while the entry has some, below all chapters; then,
  * while the module has chapters left, the list that adds one by the names of their folders, its plus beside the name
  * `Chapter`, `Add a chapter` as its tooltip, see `addRowOf` in `choices.ts`, as a meal adds its next food: every plus
- * right after what it adds to, none on a line of its own; a module without any chapter folder, in it or in its drafts,
+ * right after what it adds to, none on a line of its own; a module without any chapter folder,
  * like `MGT1372` before its chapters are written, holds a calm `No chapters yet` in the row `Chapter`, as the scripts
  * view says it, so the row never just disappears; a project has no chapters and no row. A chapter keeps the name it has
  * in the entry, also once its folder has another name. Taking back a chapter of my own learning takes back
@@ -711,13 +702,11 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
 }
 
 /**
- * Gives the link of a chapter picked, which opens it in the scripts view in a new tab at its first note, of the module
- * folder or, while it has none there, of its unchecked drafts, see `ModuleContents`, like
+ * Gives the link of a chapter picked, which opens it in the scripts view in a new tab at its first note, like
  * `/scripts?path=IN2028_BusinessAnalyticsMachineLearning%2F01_RegressionAnalysis%2F01_01_….md`, the module already
  * named by the summary above; none for a chapter without notes, like one whose folder has another name now.
  * - `module`: Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`.
  * - `note`: Path of the first note of the chapter from the module folder, `undefined` for none.
- * - `path`: Path of that note as the scripts view takes it, from `NomSkillingmodules`, a draft with `Drafts/` before.
  *
  * @param chapter - Name of the chapter, like `01_RegressionAnalysis`
  * @returns Address like `/scripts?path=…`, empty for none
@@ -728,9 +717,7 @@ function chapterLinkOf(chapter: string): string {
         chapterOfDocument(path) === chapter);
     if (note === undefined)
         return "";
-    const path: string = note.startsWith("Drafts/") ? `Drafts/${module}/${note.slice("Drafts/".length)}`
-        : `${module}/${note}`;
-    return `/scripts?path=${encodeURIComponent(path)}`;
+    return `/scripts?path=${encodeURIComponent(`${module}/${note}`)}`;
 }
 
 /**

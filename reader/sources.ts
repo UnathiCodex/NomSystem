@@ -5,13 +5,13 @@
  * My new system is three folders in `NomManageplannings`, see {@link systemRoots}: `NomManagecalendar` for plan
  * and log, {@link calendarRoot}, `NomFrequencediary` for the daily notes, {@link diaryRoot}, and `NomMetainformations`
  * for my foods and places, {@link dataRoot}; my old system, `NomSystemprevious`, lies beside them and is never read.
- * The reader reads only the new system, my modules and the drafts, see {@link notes}, and the files the skill
- * entries link, in my modules and my projects, see {@link activeSkills} and `documents.ts`, and nothing that is
- * not listed here.
- * It writes only into the three folders of the new system, see {@link writeAllowed}, and the editor into the drafts,
- * see {@link editor}; the editor shows the tree of `NomManageplannings` but for my old system, and opens only
- * the files of the three folders, see {@link systemFiles}. A file or folder of the new system that is missing,
- * like `Birthdays.ics` or the log of a year without entries, counts as empty.
+ * The reader reads only the new system, my modules, see {@link notes}, and the files the skill entries link,
+ * in my modules and my projects, see {@link activeSkills} and `documents.ts`, and nothing that is not listed here;
+ * every file at its own place, none from a copy elsewhere, like a draft in `.claude`.
+ * It writes only into the three folders of the new system, see {@link writeAllowed}, and the editor into the notes
+ * of my modules, see {@link notes}; the editor shows the tree of `NomManageplannings` but for my old system,
+ * and opens only the files of the three folders, see {@link systemFiles}. A file or folder of the new system
+ * that is missing, like `Birthdays.ics` or the log of a year without entries, counts as empty.
  *
  * - `node:os`: Gives the home folder.
  * - `node:path`: Builds file paths for the operating system.
@@ -93,7 +93,8 @@ export const dataRoot: string = join(manageRoot, "NomMetainformations");
 export const devicesFile: string = join(dataRoot, "Devices.md");
 
 /**
- * The three folders of my new system, the only ones the reader writes into, but for the drafts of the editor.
+ * The three folders of my new system, the only ones the reader writes into, but for the notes of my modules,
+ * which the editor writes, see {@link notes}.
  */
 export const systemRoots: string[] = [calendarRoot, diaryRoot, dataRoot];
 
@@ -122,20 +123,12 @@ export const planEnding: string = "_Plan.ics";
 export const modulesFolder: string = "NomSkillingmodules";
 
 /**
- * Folder of the drafts of my chapters in `NomWorkspace`, parted by `/`, one folder per module, see {@link notes}.
- */
-export const draftsFolder: string = "NomSystemdashboard/.claude/modules/drafts";
-
-/**
- * Sources of the notes area, read only for it; only the editor writes, and only the drafts, see {@link editor};
+ * Sources of the notes area, read for it; only the editor writes, a note of my modules as I saved it, see `edit.ts`;
  * each module in them is a vault of its own, as in Obsidian.
  *
- * - `drafts`: Unchecked chapter drafts, one folder per module, in `.claude/modules/drafts` of this project;
- *   may be missing.
  * - `modules`: My modules, `NomSkillingmodules`, one folder per module with its notes.
  */
 export type NotesSources = {
-    drafts: string;
     modules: string;
 };
 
@@ -143,29 +136,7 @@ export type NotesSources = {
  * {@link NotesSources} as they lie in the vault.
  */
 export const notes: NotesSources = {
-    drafts: join(vault, ...draftsFolder.split("/")),
     modules: join(vault, modulesFolder),
-};
-
-/**
- * Places the editor writes, the only ones besides the three folders of the new system, see {@link systemRoots}:
- * the drafts, never my modules.
- *
- * - `drafts`: Unchecked drafts I correct, the drafts of {@link notes}.
- * - `edits`: My corrections, one unified diff per save, in the hidden folder `.edits` of the drafts,
- *   for the AI to turn into rules of my style.
- */
-export type EditorSources = {
-    drafts: string;
-    edits: string;
-};
-
-/**
- * {@link EditorSources} as they lie in the vault.
- */
-export const editor: EditorSources = {
-    drafts: notes.drafts,
-    edits: join(notes.drafts, ".edits"),
 };
 
 /**

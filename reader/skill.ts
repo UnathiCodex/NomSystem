@@ -6,7 +6,7 @@
  * for the scripts view and the entry by category alike.
  * Only the modules of the semester have tasks, see `activeModules`; their chapters and tasks are read live
  * from the folders every time, so a changed chapter changes the views too, and no list of them is kept anywhere.
- * A task is a block of a note of a chapter folder like `01_RegressionAnalysis`, in the drafts or in my modules,
+ * A task is a block of a note of a chapter folder like `01_RegressionAnalysis` in my modules,
  * its kind by the type word of its heading: `## Example. <name>` with `Given:` and `Missing:` lines is faded,
  * an example with gaps, those lines saying what it gives and what I fill in; `## Task. <name>` is cold, the one
  * I solve alone, one of its variants due per round; a `## Definition.` and the `## Algorithm.`, the one worked
@@ -33,7 +33,7 @@
  *   of a chapter, just its path, a file of the university with the fingerprint of its content, so the link survives
  *   a rename, a note without, since I change my notes too often, see `documents.ts`; the learning view attaches
  *   the note of each section I learn in it, like
- *   `ATTACH:NomSystemdashboard/.claude/modules/drafts/IN2028_…/01_RegressionAnalysis/01_01_SampleMeanEstimator.md`;
+ *   `ATTACH:NomSkillingmodules/IN2028_…/01_RegressionAnalysis/01_01_SampleMeanEstimator.md`;
  *   its `DESCRIPTION` is only my free note;
  * - its semester, `X-SEMESTER`, see `semesterFor` in `categories.ts`;
  * - one `X-CHAPTER` per chapter of my system it belongs to, of any type,
@@ -86,11 +86,10 @@
  * - `./day.ts`: Gives the log an entry belongs into, the log of its skill.
  * - `./documents.ts`: Builds the links of a skill entry, to the folder of its skill, to its documents
  *   with their fingerprints and to the folders of its chapters, and gives the links it could not repair.
- * - `./notes.ts`: Reads the modules of the semester with their chapters and notes, and every module folder,
- *   and names the folder of the drafts in a note's path.
+ * - `./notes.ts`: Reads the modules of the semester with their chapters and notes, and every module folder.
  * - `./places.ts`: Gives the link of the place of a skill entry.
  * - `./sources.ts`: Names the log of the skill area and the skills of the semester, its modules and its projects,
- *   and the folders of my modules and of their drafts.
+ *   and the folder of my modules.
  */
 
 import { boxDone, boxOpenFind, skillBoxesRead, skillBoxOf } from "./boxes.ts";
@@ -104,11 +103,11 @@ import {
     chaptersOf, documentLinksOf, linksLostRead, linksOf, skillFolderOf, skillLabelOf, titleOf,
 } from "./documents.ts";
 import {
-    codeOf, draftsName, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead, papersRead,
+    codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead, papersRead,
 } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
 import {
-    activeModules, activeSkills, draftsFolder, modulesFolder, projectOf, skillLog, skillNameOf,
+    activeModules, activeSkills, modulesFolder, projectOf, skillLog, skillNameOf,
 } from "./sources.ts";
 
 import type { Box, BoxState } from "./boxes.ts";
@@ -148,7 +147,7 @@ export type Kind = "worked" | "faded" | "cold";
  * - `source`: Its sources as written on its source lines, each without `> ` and its mode word, joined by `, `,
  *   like `[[…|VO 2025W 01 CourseOverview (38)]], [[…|VO 2025W 02 RegressionAnalysis (8)]]`, empty without one.
  * - `note`: Path of its note, as the scripts view takes it, like
- *   `Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`.
+ *   `IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_SampleMeanEstimator.md`.
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
  * - `section`: Name of its section, its note, like `01_01_SampleMeanStandardError`.
  * - `parts`: Numbers of the parts of a cold task, like `1`, `2` and `3`, none for one without parts and any other task.
@@ -763,7 +762,7 @@ function noteTasksRead(code: string, chapter: string, note: string): Task[] {
 }
 
 /**
- * Reads the modules of the semester with their tasks, live from the folders: every chapter of the module and its drafts,
+ * Reads the modules of the semester with their tasks, live from the folders: every chapter of the module,
  * every note in the chapter, every task in the note, in the order of the menu of the scripts view.
  *
  * @returns Modules, also those without tasks
@@ -1314,7 +1313,7 @@ function folderOf(code: string): string {
  */
 export function moduleRead(code: string): ModuleContents {
     if (projectOf(code) !== undefined)
-        return { folder: "", drafts: "", chapters: [], documents: [] };
+        return { folder: "", chapters: [], documents: [] };
     return moduleContentsRead(folderOf(code));
 }
 
@@ -1610,15 +1609,13 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
 }
 
 /**
- * Gives the path from `NomWorkspace` of the note of a task, as a skill entry links it: a note of the module folder
- * in `NomSkillingmodules`, a draft in the folder of the drafts.
+ * Gives the path from `NomWorkspace` of the note of a task, as a skill entry links it, in `NomSkillingmodules`.
  *
  * @param task - Task
- * @returns Path like `NomSystemdashboard/.claude/modules/drafts/IN2028_…/01_RegressionAnalysis/01_01_….md`
+ * @returns Path like `NomSkillingmodules/IN2028_…/01_RegressionAnalysis/01_01_….md`
  */
 function notePathOf(task: Task): string {
-    return task.note.startsWith(`${draftsName}/`)
-        ? `${draftsFolder}/${task.note.slice(draftsName.length + 1)}` : `${modulesFolder}/${task.note}`;
+    return `${modulesFolder}/${task.note}`;
 }
 
 /**

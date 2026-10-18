@@ -6,7 +6,7 @@
  * `NomSystemprevious`, at any depth, nor a hidden file or folder, like `.obsidian`, nor a symbolic link.
  * Reads and writes only inside the three folders of my new system, see `systemFiles` in `sources.ts`:
  * a Markdown file, like `NomMetainformations/Foods.md` or a daily note, to edit, written exactly as sent,
- * without a diff, since only my module drafts keep diffs, see `edit.ts`; an `.ics` file only to read.
+ * without a diff, as a note of my modules, see `edit.ts`; an `.ics` file only to read.
  * Paths are written from `NomManageplannings` with `/`, like `NomManagecalendar/Living/2026_Log.ics`.
  *
  * - `node:fs`: Lists folders, reads and writes files.
@@ -139,7 +139,7 @@ export function treeRead(): FileNode[] {
  * @param path - Path like `NomMetainformations/Foods.md`
  * @param endings - Endings it may have, like `.md`
  * @returns File on the disk
- * @throws {Error} - When the path has a part left out, like `NomSystemprevious`, `.edits` or `..`, or a `\`,
+ * @throws {Error} - When the path has a part left out, like `NomSystemprevious`, `.obsidian` or `..`, or a `\`,
  *   has none of the endings, lies outside the three folders, or nothing lies there
  */
 function systemFileOf(path: string, endings: string[]): string {

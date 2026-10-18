@@ -6,9 +6,9 @@
  * which type it is and why, its solution, folded, opening one step per click, see {@link stepsPut}, its row with
  * the buttons for the next attempt, and a link to the whole note in the scripts view, which is the editor,
  * always writing, see `../editor/editor.ts`; this card is the one view that only reads a note.
- * Its links lead to notes and files of the same module, as the reader resolved them, a draft's also to the files
- * of its module, like the lecture's slides; a note opens in the scripts view, a PDF at the page its link names,
- * like `#page=10`, and a link that leads nowhere is faded and dotted, its tooltip naming what it looked for.
+ * Its links lead to notes and files of the same module, as the reader resolved them, like the lecture's slides;
+ * a note opens in the scripts view, a PDF at the page its link names, like `#page=10`, and a link that leads nowhere
+ * is faded and dotted, its tooltip naming what it looked for.
  * Images and embedded notes come from the reader, and the formulas are rendered last.
  * Under the heading of each task of the semester stands its row: when it is due, its history, and Right and Wrong
  * for the next attempt behind its `⋯`, the task judged as a whole.

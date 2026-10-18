@@ -6,8 +6,8 @@
  * with no view beside it to read only; a due task of the skill view opens as a card, see `../notes/notes.ts`.
  * It edits the text of the file itself: saving writes exactly the edited text, nothing reformatted,
  * tabs, spacers `⠀` and soft hyphens, spaces at the ends of lines and the line breaks of the file as they were.
- * Of my modules the reader writes only the unchecked drafts and keeps each change as a diff, so the AI learns my style
- * from my corrections; any other note of my modules opens to read only.
+ * A note of my modules is saved right into its file in `NomSkillingmodules`, without a diff,
+ * as a file of my new system.
  * On the left the tree of one root, see `../notes/tree.ts`: `NomSkillingmodules` at `/scripts`, the outline of the note
  * under it, built anew as I write, whose headings scroll the note to them without loading the page again;
  * `NomManageplannings` for a file of my new system and at `/plannings`, where a click on a Markdown file of the three
@@ -23,7 +23,7 @@
  * `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`, it shows its overview,
  * where each of its sections stands, see `./overview.ts`.
  * The address names a note by its path in the scripts view and the heading to scroll to, like
- * `/scripts?path=Drafts/IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md#…`,
+ * `/scripts?path=IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_SampleMeanEstimator.md#…`,
  * so a reload and the back button of the browser stay on it, and a file of my new system by its path in the tree,
  * like `/edit?file=NomMetainformations/Foods.md`; a section opens where its round stands, a block it shows from the
  * tree or a link staying out of the address, so a reload returns there.
@@ -117,13 +117,13 @@ type SystemFile = {
 };
 
 /**
- * The file the editor shows, a draft note or a file of my new system, see {@link openedRead}.
+ * The file the editor shows, a note of my modules or a file of my new system, see {@link openedRead}.
  *
  * - `text`: Its text, as it lies in the file.
  * - `links`: For a note of my modules the files its links lead to; none for a file of my new system,
  *   whose links stay as they are written.
  * - `markdown`: Whether it is Markdown, shown with its preview; else its plain text, like an `.ics` file.
- * - `editable`: Whether I may change it: a draft note or a Markdown file of my new system.
+ * - `editable`: Whether I may change it: a note of my modules or a Markdown file of my new system.
  */
 type Opened = {
     text: string;
@@ -146,7 +146,7 @@ const markdownSupport: LanguageSupport =
 let path: string = "";
 
 /**
- * Address of the reader that writes the file: `/api/edit/note` for a draft, which keeps a diff,
+ * Address of the reader that writes the file: `/api/edit/note` for a note of my modules,
  * `/api/edit/file` for a file of my new system.
  */
 let saveAddress: string = "/api/edit/note";
@@ -206,7 +206,7 @@ function stateShow(notice: string): void {
 
 /**
  * Saves the file: sends its text to the reader with the text it had when read or saved last;
- * the reader writes it when the file has not changed since, a draft with its change as a diff;
+ * the reader writes it when the file has not changed since;
  * then says so beside the button with the time, like `Saved 20:41`, until the next change,
  * and a note takes the files its links lead to anew, so a link written since works, see `./preview.ts`.
  * Does nothing while a save is on its way, when nothing changed, or for a file to read only.
@@ -287,7 +287,7 @@ function outlineRefresh(): void {
  * Builds the extensions of the editor for a file.
  * - `lineSeparator`: Splits and joins the lines by the line break of the file, `\r\n` or `\n`,
  *   so saving writes the line breaks as they were, also a single other one, which stays inside its line.
- * - `readOnly`: Lets me read a note that is no draft, or an `.ics` file, never change it.
+ * - `readOnly`: Lets me read an `.ics` file, never change it.
  * - `markdownSupport`, `markdownKeys`, `livePreview`: Read a Markdown file as Markdown, take its keys as in Obsidian,
  *   see `./keys.ts`, and show it as in the scripts view;
  *   any other file stays its plain text, an `.ics` file with its blocks one step in, see `./ics.ts`.
@@ -358,7 +358,7 @@ async function openedRead(file: string): Promise<Opened | null> {
     if (!response.ok)
         return null;
     const note: LinkedNote = await response.json() as LinkedNote;
-    return { text: note.text, links: note.links, markdown: true, editable: path.startsWith("Drafts/") };
+    return { text: note.text, links: note.links, markdown: true, editable: true };
 }
 
 /**
@@ -499,7 +499,7 @@ export async function editorStart(): Promise<void> {
     if (!view.state.readOnly)
         stateShow("");
     else
-        stateShow(file === "" ? "Read only: only drafts can be edited" : "Read only");
+        stateShow("Read only");
     window.addEventListener("keydown", keyDown);
     window.addEventListener("beforeunload", (event: BeforeUnloadEvent): void => {
         if (view.state.sliceDoc() !== saved)

@@ -4,11 +4,9 @@
  * The tree on the left of the editor, see `../editor/editor.ts`, which is the scripts view too,
  * as Obsidian's file explorer, of one of two roots at a time, each an area of its own in the rail:
  * - `NomSkillingmodules`, the book, the modules of the semester, one at a time, since I learn one module at a time:
- *   right below the name of the root the module picked, then its chapter picked, of its folder and of its drafts
- *   together, each a picker whose arrow brings its menu down below it and whose name opens its overview,
- *   see {@link pickerOf}, then the notes of that chapter
- *   as a plain list, nothing folding, which open in the scripts view to write; of my modules the reader writes only
- *   the drafts;
+ *   right below the name of the root the module picked, then its chapter picked, each a picker whose arrow brings
+ *   its menu down below it and whose name opens its overview, see {@link pickerOf}, then the notes of that chapter
+ *   as a plain list, nothing folding, which open in the scripts view to write, saved right into their files;
  * - `NomManageplannings`, the open folder, my new system, as the reader lists it, without my old system
  *   `NomSystemprevious`, see `reader/files.ts`: a Markdown file, like `Foods.md`, opens in the editor to edit,
  *   an `.ics` file as its plain text to read, any other file shows faint and opens not.
@@ -63,7 +61,7 @@ type FileNode = {
  * A note of a chapter, as the reader sends it.
  *
  * - `name`: Name of the file, like `01_01_EstimatorConfidenceInterval.md`.
- * - `path`: Path, from `NomSkillingmodules`, or with `Drafts/` before for a draft.
+ * - `path`: Path, from `NomSkillingmodules`.
  */
 type NoteEntry = {
     name: string;

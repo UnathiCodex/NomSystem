@@ -18,9 +18,7 @@
  * `ATTACH;X-SHA256=9f86d081…:NomSkillingmodules/IN2028_…/VO_…/TUM_2026W/04_LogisticRegression.pdf`,
  * an exercise or a tutorial its sheet in `TU_UniversityTutorExercises`, a homework its sheet
  * in `HU_UniversityHomeExercises`, and my own learning the notes of its chapters, like
- * `ATTACH:NomSkillingmodules/IN2028_…/01_…/01_01_SampleMeanStandardError.md`, or of a chapter
- * without notes in the module those of its unchecked drafts, like
- * `ATTACH:NomSystemdashboard/.claude/modules/drafts/IN2028_…/01_…/01_01_….md`.
+ * `ATTACH:NomSkillingmodules/IN2028_…/01_…/01_01_SampleMeanStandardError.md`.
  * The name of the file says what it is and its `X-CHAPTER`s what the session was about, so a document has no name
  * of my own; a file of the university keeps the fingerprint of its content, the SHA-256 of its bytes, as parameter,
  * so the link survives a rename; a note has none, since I change my notes too often, and is found by its name,
@@ -34,8 +32,9 @@
  * see `moduleFolderOf` in `notes.ts`, and its `SUMMARY` names the module of the folder found, also that of an entry
  * linking a web address I typed, which keeps it, since a web page is on no disk; a document whose path no longer leads
  * to a file, like after a rename or a move into another folder of the module, is looked for by its fingerprint
- * among the module's documents, a note without fingerprint by its name, like a draft once it is checked and lies
- * in the module folder, and a chapter by the name of its folder in the module folder found or its drafts.
+ * among the module's documents, a note without fingerprint by its name, like one an older entry links among
+ * my drafts in `.claude`, once it lies in the module folder, and a chapter by the name of its folder
+ * in the module folder found.
  * Each repair goes into the entry, every other line of the file as it is, and into the reader's console, with the old
  * and the new path. A link it cannot repair stays as written, like a document deleted or the folder of a project,
  * which has no code to find it by, and the skill view lists it, see {@link linksLostRead}.
@@ -52,7 +51,7 @@
  *   writes its start and the days in Berlin time, and names the category of skill entries.
  * - `./notes.ts`: Finds the folder of a module by its code and of a chapter by its name, lists the documents
  *   of a module, names a folder to read, and gives the content type of a file.
- * - `./sources.ts`: Names `NomWorkspace`, the folders of my modules and of their drafts, the skills of the semester
+ * - `./sources.ts`: Names `NomWorkspace`, the folder of my modules, the skills of the semester
  *   and the log of the skill area, and builds the paths of the files of plan and log of a year and of a skill.
  */
 
@@ -62,11 +61,9 @@ import { createHash } from "node:crypto";
 import {
     berlinDateOf, berlinInstantOf, berlinTimeOf, dayAdd, entriesRead, entryChange, entryFind, propertiesPut, skillName,
 } from "./calendar.ts";
+import { chapterNameOf, codeOf, contentTypeOf, moduleContentsRead, moduleFolderOf } from "./notes.ts";
 import {
-    chapterNameOf, codeOf, contentTypeOf, draftsName, moduleContentsRead, moduleFolderOf,
-} from "./notes.ts";
-import {
-    activeModules, draftsFolder, moduleIs, modulesFolder, projectOf, skillFileOf, skillLog, vault, yearFileOf,
+    activeModules, moduleIs, modulesFolder, projectOf, skillFileOf, skillLog, vault, yearFileOf,
 } from "./sources.ts";
 
 import { linkForm } from "./places.ts";
@@ -317,20 +314,17 @@ export function calendarFileOf(fields: { category: string; module: string }, dat
 
 /**
  * Tells whether a link is one to the folder of a chapter, which an older entry has: a folder, without fingerprint,
- * named like a chapter, right in the folder of a module or of its drafts, unlike the folder of a module itself
+ * named like a chapter, right in the folder of a module, unlike the folder of a module itself
  * in an `ATTACH` of an older entry, which counts no more.
  * - `parts`: The parts of its path.
- * - `inModule`, `inDrafts`: Whether it lies right in the folder of a module, or of its drafts.
  *
  * @param link - Link of a skill entry
  * @returns Whether it links a chapter
  */
 function chapterLinkIs(link: Link): boolean {
     const parts: string[] = link.path.split("/");
-    const inModule: boolean = moduleIs(link.path) && parts.length === 3;
-    const inDrafts: boolean =
-        link.path.startsWith(`${draftsFolder}/`) && parts.length === draftsFolder.split("/").length + 2;
-    return link.fingerprint === "" && (inModule || inDrafts) && /^\d{2}_/.test(parts[parts.length - 1]);
+    return link.fingerprint === "" && moduleIs(link.path) && parts.length === 3
+        && /^\d{2}_/.test(parts[parts.length - 1]);
 }
 
 /**
@@ -359,19 +353,15 @@ function noteIs(path: string): boolean {
 }
 
 /**
- * Gives the path from `NomWorkspace` of a document of a module, as the reader offers it from the module folder:
- * a file of the module in its folder, a note of the drafts, with `Drafts/` before, in the folder of its drafts.
+ * Gives the path from `NomWorkspace` of a document of a module, as the reader offers it from the module folder.
  *
  * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
  * @param document - Path from the module folder, like `VO_…/04_LogisticRegression.pdf`
- *   or `Drafts/01_RegressionAnalysis/01_01_EstimatorConfidenceInterval.md`
+ *   or `01_RegressionAnalysis/01_01_SampleMeanStandardError.md`
  * @returns Path like `NomSkillingmodules/IN2028_…/VO_…/04_LogisticRegression.pdf`
- *   or `NomSystemdashboard/.claude/modules/drafts/IN2028_…/01_RegressionAnalysis/01_01_….md`
  */
 function documentPathOf(module: string, document: string): string {
-    return document.startsWith(`${draftsName}/`)
-        ? `${draftsFolder}/${module}/${document.slice(draftsName.length + 1)}`
-        : `${modulesFolder}/${module}/${document}`;
+    return `${modulesFolder}/${module}/${document}`;
 }
 
 /**
@@ -427,16 +417,14 @@ export function linksOf(code: string, documents: string[], links: Link[]): Link[
 /**
  * Repairs the links of a skill entry that lead nowhere, see the top of this file: each document by its fingerprint
  * among the documents of the module of the entry, each note without fingerprint by the name of its file among them,
- * each folder of a chapter an older entry links by its name in the module folder found now, else in its drafts,
- * like after the module folder was renamed or a draft was checked. The folder of a module in an older `ATTACH`
- * stays as it is.
+ * each folder of a chapter an older entry links by its name in the module folder found now, like after the module
+ * folder was renamed. The folder of a module in an older `ATTACH` stays as it is.
  * - `folder`: Name of the folder of the entry's module, as found now, `undefined` for none, like for a project.
  * - `repaired`: The links as repaired so far, in their order.
  * - `missing`: The links that stay as written.
  * - `name`: Name of the folder of a chapter, or of the file of a note.
  * - `note`: Path of the note of that name from the module folder, `undefined` for none.
- * - `chapter`: Path of the folder of a chapter of that name in the module folder found now, or in its drafts,
- *   `undefined` for none.
+ * - `chapter`: Path of the folder of a chapter of that name in the module folder found now, `undefined` for none.
  * - `found`: Path of the document with the fingerprint from the module folder, `undefined` for none.
  *
  * @param entry - Skill entry of the log
@@ -458,10 +446,8 @@ function linksRepairOf(entry: Entry): [Link[], Link[]] {
             return link;
         }
         if (link.fingerprint === "") {
-            const chapter: string | undefined = folder === undefined ? undefined
-                : [`${modulesFolder}/${folder}/${name}`, `${draftsFolder}/${folder}/${name}`]
-                    .find((path: string): boolean => existsSync(diskOf(path)));
-            if (chapter !== undefined)
+            const chapter: string | undefined = folder === undefined ? undefined : `${modulesFolder}/${folder}/${name}`;
+            if (chapter !== undefined && existsSync(diskOf(chapter)))
                 return { ...link, path: chapter };
             missing.push(link);
             return link;
@@ -615,11 +601,11 @@ export function linksLostRead(): LinkLost[] {
 
 /**
  * Reads a file a skill entry of the log links, to send it read only, so the page opens it in the browser's own viewer,
- * like the slides of a lecture as PDF; no other file, and none outside `NomWorkspace` or hidden, like `.git`,
- * but a note of my drafts, whose folder lies in `.claude`, see `draftsFolder` in `sources.ts`.
+ * like the slides of a lecture as PDF; no other file, and none outside `NomWorkspace` or hidden, like `.git`
+ * or `.claude`.
  * - `linked`: Whether a skill entry of the whole log links the file, see {@link linksCheck}.
  * - `file`: Path of the file on the disk.
- * - `hidden`: Whether a part of the path starts with `.`, like `..` or `.git`, outside the folder of my drafts.
+ * - `hidden`: Whether a part of the path starts with `.`, like `..` or `.git`.
  *
  * @param path - Path from `NomWorkspace`, like `NomSkillingmodules/IN2028_…/VO_…/04_LogisticPoissonRegression.pdf`
  * @returns File with its content type
@@ -629,8 +615,7 @@ export function linkedFileRead(path: string): NotesFile {
     const linked: boolean = logRead().some((entry: Entry): boolean =>
         entry.links.some((link: Link): boolean => link.fingerprint !== "" && link.path === path));
     const file: string = diskOf(path);
-    const hidden: boolean = (path.startsWith(`${draftsFolder}/`) ? path.slice(draftsFolder.length + 1) : path)
-        .split("/").some((part: string): boolean => part.startsWith("."));
+    const hidden: boolean = path.split("/").some((part: string): boolean => part.startsWith("."));
     if (!linked || hidden || !resolve(file).startsWith(`${resolve(vault)}${sep}`))
         throw new Error(`No linked file ${path}`);
     return { type: contentTypeOf(file), content: readFileSync(file) };
