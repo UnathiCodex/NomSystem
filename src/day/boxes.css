@@ -54,13 +54,15 @@
 /* A box in one grid, on the computer as on a phone: what it is on its first line and at the right of it its `⋯` or its
    state, on the same line, so the button takes no row of its own, and its other lines below over the whole width,
    under the button too; a card filled in the soft grey of a card without a frame, with round corners, like the cards
-   of the phone, with air around its lines, so the plan looks as real as the log; an open box as bright on a day that is
+   of the phone, with air around its lines, so the plan looks as real as the log, a little more at their left and right
+   than above and below; its lines 0.125rem lower than in its middle, more above them than below, since its first line
+   is bold and white and its last small and grey, so they would look too high; an open box as bright on a day that is
    over as on today; an open box is grabbed to drag it into the log */
 .box {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0 0.75rem;
-    padding: 0.875rem 1rem;
+    padding: 1rem 1.25rem 0.75rem;
     border: 1px solid transparent;
     border-radius: var(--radius);
     background: var(--fill);
@@ -223,12 +225,12 @@ button.box-state:hover {
     margin-right: -0.75rem;
 }
 
-/* Phone: a box a little closer around its lines, its button `⋯` and its state a finger's width to hit,
-   and its place on a line of its own */
+/* Phone: a box a little closer around its lines, its lines 0.125rem lower as on the computer, its button `⋯` and its
+   state a finger's width to hit, and its place on a line of its own */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .box {
         gap: 0 0.625rem;
-        padding: 0.75rem 0.875rem;
+        padding: 0.875rem 1.125rem 0.625rem;
     }
 
     /* The boxes on a phone over the whole width of the screen, without room for a scrollbar, which lies over them */
