@@ -2,21 +2,29 @@
  * ## Devices
  *
  * Writes what each of my devices shows of the page into `Devices.md`, so the dashboard is shaped for each of them:
- * one Markdown table, as `Places.md`, one row per device, its system and browser, like `Linux, Chrome`, its page
+ * one Markdown table, as `Places.md`, one row per device, its name in my tailnet, like `vuenvy`, its page
  * in CSS pixels, like `1920 × 1003`, its scale, like `2` for a 4K screen at 200 %, its screen in CSS pixels,
- * like `1920 × 1080`, whether it runs as the installed app, and when its page had that size first, like
+ * like `1920 × 1080`, whether it runs as the installed app, and since when its row holds these sizes, like
  * `13.10.2026 23:20`.
- * A device is its system and browser, its screen, its scale and whether it is the app; a report with another size
- * of its page writes its row anew, the same size leaves the file as it is, and a new device gets a row of its own
- * at the end; the reader creates the file with the first report. The browser of Claude's screenshots, which names
- * itself `HeadlessChrome`, is no device of mine and writes nothing.
+ * A device is what Tailscale names it: `tailscale serve` hands every request of my devices on to the reader with
+ * the Tailscale address of its device in `X-Forwarded-For`, which `tailscale whois` names. A report with other sizes
+ * writes the row of its device anew, the same sizes leave the file as it is, and a device without row yet gets one
+ * at the end; the reader creates the file with the first report. A request without that address, which reached
+ * the reader without Tailscale, like the browser of Claude's screenshots on skriptum, and one of skriptum itself
+ * write nothing, since I never look at the dashboard on skriptum.
  *
+ * - `node:child_process`: Asks Tailscale for the name of a device.
+ * - `node:util`: Lets that be awaited.
+ * - `node:os`: Gives the name of skriptum, which writes nothing.
  * - `node:fs`: Reads and writes `Devices.md`.
  * - `node:path`: Gives the folder of the file.
  * - `./calendar.ts`: Writes the day and the time of now in Berlin time.
  * - `./sources.ts`: Names `Devices.md` and tells which files the reader may write.
  */
 
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { hostname } from "node:os";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { berlinDateOf, berlinTimeOf } from "./calendar.ts";
@@ -30,7 +38,6 @@ import { devicesFile, writeAllowed } from "./sources.ts";
  * - `scale`: Device pixels per CSS pixel, like 2 for a 4K screen at 200 %.
  * - `screenWidth`, `screenHeight`: Size of the screen in CSS pixels, like 1920 and 1080.
  * - `app`: Whether the page runs as the installed app, in a window of its own.
- * - `agent`: User agent of the browser, which names its system and itself.
  */
 export type DeviceReport = {
     width: number;
@@ -39,7 +46,6 @@ export type DeviceReport = {
     screenWidth: number;
     screenHeight: number;
     app: boolean;
-    agent: string;
 };
 
 /**
@@ -47,47 +53,35 @@ export type DeviceReport = {
  */
 const fileHead: string[] = ["| Device | Page | Scale | Screen | App | Since |", "|---|---|---|---|---|---|"];
 
-/**
- * Systems by what their user agent holds, the first that matches naming it; Android before Linux, whose name
- * an Android browser holds too.
- */
-const systems: [string, RegExp][] = [["Android", /Android/], ["iOS", /iPhone|iPad/], ["Windows", /Windows/],
-    ["macOS", /Mac OS X/], ["ChromeOS", /CrOS/], ["Linux", /Linux/]];
 
 /**
- * Browsers by what their user agent holds, the first that matches naming it; Edge before Chrome, whose name Edge
- * holds too.
- */
-const browsers: [string, RegExp][] = [["Edge", /Edg\//], ["Firefox", /Firefox\//], ["Chrome", /Chrome\//],
-    ["Safari", /Safari\//]];
-
-
-/**
- * Names a device by its system and browser, read from its user agent.
+ * Names a device by its Tailscale address, as my tailnet names it.
+ * - `whois`: What Tailscale knows of the address, its `Node.ComputedName` the name.
  *
- * @param agent - User agent, like `Mozilla/5.0 (X11; Linux x86_64) … Chrome/141.0.0.0 Safari/537.36`
- * @returns Name like `Linux, Chrome`, `Other` for what it does not know
+ * @param address - Tailscale address of the device, like `100.125.80.0`
+ * @returns Its name, like `vuenvy`
+ * @throws {Error} - When Tailscale does not know the address
  */
-function deviceNameOf(agent: string): string {
-    const system: string = systems.find(([, form]: [string, RegExp]): boolean => form.test(agent))?.[0] ?? "Other";
-    const browser: string = browsers.find(([, form]: [string, RegExp]): boolean => form.test(agent))?.[0] ?? "Other";
-    return `${system}, ${browser}`;
+async function deviceNameOf(address: string): Promise<string> {
+    const { stdout }: { stdout: string } = await promisify(execFile)("tailscale", ["whois", "--json", address]);
+    const whois: { Node: { ComputedName: string } } = JSON.parse(stdout);
+    return whois.Node.ComputedName;
 }
 
 /**
- * Gives the cells of a device that make it this device, its name, its scale, its screen and whether it is the app.
+ * Gives the cells of a row of `Devices.md`, without the edges of the table.
  *
- * @param row - Row of `Devices.md`
- * @returns The four cells in one text
+ * @param row - Row, like `| vuenvy | 1601 × 822 | 1.2 | 1600 × 900 | yes | 19.10.2026 00:06 |`
+ * @returns Its cells, like `vuenvy`, `1601 × 822`, `1.2`, `1600 × 900`, `yes` and `19.10.2026 00:06`
  */
-function keyOf(row: string): string {
-    const cells: string[] = row.split("|").slice(1, -1).map((cell: string): string => cell.trim());
-    return [cells[0], cells[2], cells[3], cells[4]].join("|");
+function cellsOf(row: string): string[] {
+    return row.split("|").slice(1, -1).map((cell: string): string => cell.trim());
 }
 
 /**
  * Writes the report of a device into its row of `Devices.md`, see the top of this file, every other line staying
  * as it is.
+ * - `name`: Name of the device in my tailnet.
  * - `sizes`: The numbers of the report, each checked.
  * - `now`: The moment, whose day and time in Berlin time the row holds.
  * - `row`: The row of the device as the report gives it.
@@ -95,11 +89,15 @@ function keyOf(row: string): string {
  * - `index`: Index of the row of the device, -1 for none.
  *
  * @param report - Report as the page sends it
- * @throws {Error} - When a size is no number above 0, or the file lies outside the new system
+ * @param address - Tailscale address of the device, from `X-Forwarded-For`, empty for a request without Tailscale
+ * @throws {Error} - When Tailscale does not know the address, a size is no number above 0, or the file lies
+ *   outside the new system
  */
-export function deviceReport(report: DeviceReport): void {
-    const agent: string = String(report.agent ?? "");
-    if (agent.includes("HeadlessChrome"))
+export async function deviceReport(report: DeviceReport, address: string): Promise<void> {
+    if (address === "")
+        return;
+    const name: string = await deviceNameOf(address);
+    if (name === hostname())
         return;
     const sizes: number[] = [report.width, report.height, report.scale, report.screenWidth, report.screenHeight];
     if (!sizes.every((size: unknown): boolean => typeof size === "number" && Number.isFinite(size) && size > 0))
@@ -108,7 +106,7 @@ export function deviceReport(report: DeviceReport): void {
         throw new Error(`No writing outside the new system: ${devicesFile}`);
 
     const now: Date = new Date();
-    const row: string = `| ${deviceNameOf(agent)} | ${Math.round(report.width)} × ${Math.round(report.height)} `
+    const row: string = `| ${name} | ${Math.round(report.width)} × ${Math.round(report.height)} `
         + `| ${Math.round(report.scale * 100) / 100} `
         + `| ${Math.round(report.screenWidth)} × ${Math.round(report.screenHeight)} `
         + `| ${report.app === true ? "yes" : "no"} `
@@ -116,8 +114,8 @@ export function deviceReport(report: DeviceReport): void {
     const lines: string[] =
         existsSync(devicesFile) ? readFileSync(devicesFile, "utf8").split("\n") : [...fileHead, ""];
     const index: number = lines.findIndex((line: string): boolean =>
-        line.startsWith("|") && !line.startsWith("|---") && keyOf(line) === keyOf(row));
-    if (index !== -1 && lines[index].split("|")[2].trim() === row.split("|")[2].trim())
+        line.startsWith("|") && !line.startsWith("|---") && cellsOf(line)[0] === name);
+    if (index !== -1 && cellsOf(lines[index]).slice(0, 5).join("|") === cellsOf(row).slice(0, 5).join("|"))
         return;
     if (index === -1)
         lines.splice(lines.findLastIndex((line: string): boolean => line.startsWith("|")) + 1, 0, row);

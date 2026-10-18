@@ -51,7 +51,7 @@ import { phone } from "./phone.ts";
 function deviceReport(): void {
     navigator.sendBeacon("/api/devices", JSON.stringify({
         width: innerWidth, height: innerHeight, scale: devicePixelRatio, screenWidth: screen.width,
-        screenHeight: screen.height, app: matchMedia("(display-mode: standalone)").matches, agent: navigator.userAgent,
+        screenHeight: screen.height, app: matchMedia("(display-mode: standalone)").matches,
     }));
 }
 

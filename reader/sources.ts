@@ -89,8 +89,8 @@ export const diaryRoot: string = join(manageRoot, "NomFrequencediary");
 export const dataRoot: string = join(manageRoot, "NomMetainformations");
 
 /**
- * My devices, `Devices.md` in {@link dataRoot}: one Markdown table with one row per device, what it shows
- * of the page, which the reader writes as each of my devices reports it, see `devices.ts`.
+ * My devices, `Devices.md` in {@link dataRoot}: one Markdown table with one row per device of my tailnet,
+ * what it shows of the page, which the reader writes as each of my devices reports it, see `devices.ts`.
  */
 export const devicesFile: string = join(dataRoot, "Devices.md");
 

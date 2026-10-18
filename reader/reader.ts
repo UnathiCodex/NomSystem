@@ -224,7 +224,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   into `Exercises.md` and my workouts, and sends all of mine.
  * - `DELETE /api/sport/exercises?name=…&sets=…&reps=…&kg=…`: Removes the variant from `Exercises.md` and from
  *   my workouts, and sends all of mine.
- * - `POST /api/devices`: Writes what the device of the body shows of the page into `Devices.md`.
+ * - `POST /api/devices`: Writes what the device of the body shows of the page into `Devices.md`, the device named
+ *   by Tailscale from the address `tailscale serve` adds to the request.
  * - `GET /api/changes`: Keeps the answer open and tells each change of a file of my new system as it comes,
  *   see `changes.ts`.
  * - Any other address: Hands request to the page.
@@ -357,7 +358,7 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, placeChange(await json(request) as PlaceChanged));
 
     } else if (request.method === "POST" && url.pathname === "/api/devices") {
-        deviceReport(await json(request) as DeviceReport);
+        await deviceReport(await json(request) as DeviceReport, String(request.headers["x-forwarded-for"] ?? ""));
         responseSend(response, 200, null);
 
     } else if (request.method === "GET" && url.pathname === "/api/changes") {
