@@ -139,23 +139,28 @@
     overflow-wrap: anywhere;
 }
 
-/* State of a box no longer open, at its right in the place of `⋯`, see `stateOf` in `boxes.ts`: one small word
-   in the grey of its time, like `Logged`, its right edge where the dots of `⋯` end, as high as `⋯` and centred
-   on the line of what the box is like it, see `.box-actions`; without frame or ground, so it lies on its box;
-   a button where a click takes it back, lighter under the pointer like `⋯`, see `menu.css` */
+/* State of a box no longer open, at its right in the place of `⋯`, see `stateOf` in `boxes.ts`: one small grey icon,
+   like the cross of a skipped box, as large as `⋯` and in its place, centred on the line of what the box is
+   like it, see `.box-actions` and `.menu-more` in `menu.css`; without frame or ground, so it lies on its box;
+   a button where a click takes it back, lighter under the pointer like `⋯` */
 .box-state {
     display: inline-flex;
     flex: none;
     align-items: center;
+    justify-content: center;
+    width: 2.125rem;
     height: 2rem;
     margin-block: -0.375rem;
-    padding: 0 0.625rem;
+    padding: 0;
     border: 0;
     border-radius: 999px;
     background: none;
     color: var(--text-muted);
-    font: inherit;
-    font-size: 0.8125rem;
+}
+
+.box-state svg.lucide {
+    width: 0.875rem;
+    height: 0.875rem;
 }
 
 button.box-state {
@@ -174,7 +179,7 @@ button.box-state:hover {
 
 /* Cancelled box, skipped by me or cancelled by the university, like a lecture that does not take place,
    and a box on a day it was pushed from: only faded, never struck through, all three alike;
-   its word says which, see `.box-state` */
+   its icon says which, see `.box-state` */
 .box-dropped,
 .box-university,
 .box-pushed {
