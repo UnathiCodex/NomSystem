@@ -417,7 +417,7 @@ export type BlockMark = "done" | "current" | "round" | "other" | "opened";
  * Type word of a block of a section at the start of its heading, with the dot and space after it, like `Definition. `
  * of `Definition. Population and Sample`, see `.claude/modules/learning-system.md`.
  */
-export const kindRule: RegExp = /^(Definition|Algorithm|Example|Task)\.[ \t]+/;
+export const kindRule: RegExp = /^(Definition|Lemma|Algorithm|Example|Task)\.[ \t]+/;
 
 /**
  * Builds the name of a block for the list of its section: its type word as a small grey box, then its name,
