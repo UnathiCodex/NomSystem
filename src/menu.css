@@ -27,7 +27,7 @@
 
 /* The menu: right under its button, its right edge under the button's, with the background, line and soft shadow
    of every menu of a list, see `.picker-box`; each item a row one control high, its icon and then its words,
-   like `To tomorrow` */
+   like `Move` */
 .menu {
     position: fixed;
     inset: auto;

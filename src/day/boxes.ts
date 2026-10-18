@@ -28,7 +28,7 @@
  * An open box is dragged into the log at the real time: the reader writes a log entry like it, pointing to it,
  * as long as its expected duration, else half an hour, and I resize the entry when it lasted otherwise.
  * An open box shows `⋯` at its right, not only under the pointer, whose menu holds all it can do: first
- * `Log as expected`, which logs it with one tap, from its expected time, else ending now, see `times.ts`, then like skip,
+ * `Log`, which logs it as expected with one tap, from its expected time, else ending now, see `times.ts`, then like skip,
  * see below; the ring at its left is no second button for that, an open box keeps its place empty, so its lines stand
  * where those of a done box do, only a box with a deadline has its ring there, which ticks it submitted;
  * when the reader does not log a box dropped or tapped, a hint says so above the list until it loads again.
@@ -558,7 +558,7 @@ async function boxClick(calendar: Calendar, box: Box): Promise<void> {
 }
 
 /**
- * Makes the ring at the left of a box: for an open box its place, empty and no button, since `Log as expected`
+ * Makes the ring at the left of a box: for an open box its place, empty and no button, since `Log`
  * in its menu logs it, see {@link actionsOf}, so its lines stand where those of a done box do; for a done box its check,
  * grey, a button, which takes it back to open, see `boxUndo` in `entries.ts`; for a box with a deadline an empty ring
  * like the circle of a to-do, its check showing under the pointer, a button, which ticks it submitted, and its check
@@ -626,12 +626,12 @@ function logFailShow(error: unknown): void {
 }
 
 /**
- * Makes one button of the menu of a box, its icon and then its words, like `To tomorrow`, which sends a change
+ * Makes one button of the menu of a box, its icon and then its words, like `Move`, which sends a change
  * of the box and then loads the list again, see `menuItemOf` in `../menu.ts`.
  *
  * @param calendar - Calendar of the day
  * @param icon - Icon, like `ArrowRight`
- * @param words - What it does, like `To tomorrow`
+ * @param words - What it does, like `Move`
  * @param send - Sends the change to the reader
  * @returns The button
  */
@@ -656,7 +656,7 @@ function actionsRowOf(buttons: HTMLButtonElement[]): HTMLElement {
 }
 
 /**
- * Makes the menu of a box, behind its button `⋯`, see {@link actionsRowOf}: for an open box first `Log as expected`,
+ * Makes the menu of a box, behind its button `⋯`, see {@link actionsRowOf}: for an open box first `Log`,
  * the one button that logs it with one tap, see {@link boxTap}, its ring having none, see {@link ringOf},
  * also for an open box that cannot be changed, like a lecture of a file outside the new system, whose menu holds
  * nothing else, a hint above the list saying when the reader does not log it, see {@link logFailShow};
@@ -677,7 +677,7 @@ function actionsRowOf(buttons: HTMLButtonElement[]): HTMLElement {
  */
 function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
     const logged: HTMLButtonElement[] = box.state === "open" && box.deadline === ""
-        ? [menuItemOf(Check, "Log as expected", (): void => {
+        ? [menuItemOf(Check, "Log", (): void => {
             boxTap(calendar, box).catch(logFailShow);
         })] : [];
     if (!box.editable)
@@ -695,9 +695,9 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement[] {
     return [actionsRowOf([
         ...logged,
         ...(box.deadline !== "" ? []
-            : [actionOf(calendar, ArrowRight, "To tomorrow", (): Promise<void> => boxPush(box.id, true))]),
+            : [actionOf(calendar, ArrowRight, "Move", (): Promise<void> => boxPush(box.id, true))]),
         ...(box.category === skillName && numberedTypes.includes(box.type)
-            ? [actionOf(calendar, CalendarOff, "Cancelled by university", (): Promise<void> =>
+            ? [actionOf(calendar, CalendarOff, "Cancel", (): Promise<void> =>
                 boxUniversity(box.id, true))] : []),
         actionOf(calendar, X, "Skip", (): Promise<void> => boxDrop(box.id, true)),
     ])];

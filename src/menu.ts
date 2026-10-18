@@ -2,7 +2,7 @@
  * ## Menu
  *
  * One plain button `⋯` that holds what a thing can do, on the computer as on a phone, so both show the same:
- * a click opens its items as a small menu below it, each its icon and then its words, like `To tomorrow`,
+ * a click opens its items as a small menu below it, each its icon and then its words, like `Move`,
  * so the line beside it keeps its room; a click on an item, or beside the menu, closes it.
  * A box of the day has one, see `day/boxes.ts`, and a task, see `skill/task.ts`, whose field of my comment after Wrong
  * opens below its cross in the same place and look, see {@link menuAnchor}.
@@ -20,10 +20,10 @@ import type { IconNode } from "lucide";
 
 
 /**
- * Makes one item of a menu, its icon and then its words, like `To tomorrow`.
+ * Makes one item of a menu, its icon and then its words, like `Move`.
  *
  * @param icon - Icon, like `ArrowRight`
- * @param words - What it does, like `To tomorrow`
+ * @param words - What it does, like `Move`
  * @param click - What a click does
  * @returns Item
  */
@@ -73,7 +73,7 @@ export function menuAnchor(menu: HTMLElement, button: HTMLButtonElement): void {
  * - `more`: The button `⋯`, which opens and closes the menu, see {@link menuAnchor}.
  * - `menu`: The menu, which a click on an item closes.
  *
- * @param items - Items, like `To tomorrow` and `Skip`
+ * @param items - Items, like `Move` and `Skip`
  * @returns The button `⋯` with its menu
  */
 export function menuOf(items: HTMLElement[]): HTMLElement {
