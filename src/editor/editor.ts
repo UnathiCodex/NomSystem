@@ -6,8 +6,8 @@
  * with no view beside it to read only; a due task of the skill view opens as a card, see `../notes/notes.ts`.
  * It edits the text of the file itself: saving writes exactly the edited text, nothing reformatted,
  * tabs, spacers `⠀` and soft hyphens, spaces at the ends of lines and the line breaks of the file as they were.
- * A note of my modules is saved right into its file in `NomSkillingmodules`, without a diff,
- * as a file of my new system.
+ * A note of my modules is saved right into its file in `NomSkillingmodules`, and the reader keeps each change
+ * as a diff, so the AI learns my style from my corrections.
  * On the left the tree of one root, see `../notes/tree.ts`: `NomSkillingmodules` at `/scripts`, the outline of the note
  * under it, built anew as I write, whose headings scroll the note to them without loading the page again;
  * `NomManageplannings` for a file of my new system and at `/plannings`, where a click on a Markdown file of the three
@@ -146,7 +146,7 @@ const markdownSupport: LanguageSupport =
 let path: string = "";
 
 /**
- * Address of the reader that writes the file: `/api/edit/note` for a note of my modules,
+ * Address of the reader that writes the file: `/api/edit/note` for a note of my modules, which keeps a diff,
  * `/api/edit/file` for a file of my new system.
  */
 let saveAddress: string = "/api/edit/note";
@@ -206,7 +206,7 @@ function stateShow(notice: string): void {
 
 /**
  * Saves the file: sends its text to the reader with the text it had when read or saved last;
- * the reader writes it when the file has not changed since;
+ * the reader writes it when the file has not changed since, a note of my modules with its change as a diff;
  * then says so beside the button with the time, like `Saved 20:41`, until the next change,
  * and a note takes the files its links lead to anew, so a link written since works, see `./preview.ts`.
  * Does nothing while a save is on its way, when nothing changed, or for a file to read only.
