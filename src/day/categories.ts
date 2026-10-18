@@ -457,6 +457,21 @@ function endFill(): void {
 }
 
 /**
+ * Puts the end of a session of sport at its start and the minutes of its videos after, as `sport.ts` asks while
+ * it holds only videos, like `18:00` to `18:30` for two videos of 15 minutes, with its day; nothing while the start
+ * has no time.
+ *
+ * @param minutes - Minutes of its videos together
+ */
+function endFit(minutes: number): void {
+    if (timeFieldRead(document.getElementById("entry-start") as HTMLInputElement) === "")
+        return;
+    timeFieldShow(document.getElementById("entry-end") as HTMLInputElement,
+        new Date(startRead().getTime() + minutes * 60 * 1000));
+    endDayFill();
+}
+
+/**
  * Tells whether a field is one of a place, see {@link placeKeys}.
  *
  * @param field - Field of a category, like `From`
@@ -1291,7 +1306,7 @@ function fieldsShow(): void {
         .filter((field: Field): boolean => field.key === "title").flatMap(fieldRowsOf));
     document.getElementById("entry-more")?.replaceChildren(...fields
         .filter((field: Field): boolean => field.key !== "title").flatMap(fieldRowsOf),
-        ...painRowOf(), ...sportShown() ? sportRowsOf(saveAllow) : []);
+        ...painRowOf(), ...sportShown() ? sportRowsOf(saveAllow, endFit) : []);
     document.getElementById("entry-note")?.closest(".panel-field")?.toggleAttribute("hidden", sportShown());
     saveAllow();
 }

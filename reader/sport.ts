@@ -12,7 +12,8 @@
  * what I did that day, whatever I change in my workouts and videos later, see {@link sportPartsAllow}; a session
  * written before named its one workout as `X-WORKOUT`, like `Push`, which its lines without a workout belong to.
  * It burned what its kind burns above rest in its minutes at my weight of its day, a home workout with videos what
- * each video burns in its minutes by its kind in `Videos.md`, see {@link kcalOf}:
+ * each video burns in its minutes by its kind in `Videos.md` and its minutes beyond them, like the exercises I did
+ * around them, what a home workout burns, see {@link kcalOf}:
  * (MET − 1) × kg × hours, the MET of its kind from the 2024 Adult Compendium of Physical Activities
  * (Herrmann 2024, pacompendium.com), less the 1 MET I burn at rest anyway, so a session counts only what the sport
  * added and nothing twice; an estimate, which the page writes with `~`, since even the kcal of a watch on the wrist
@@ -827,7 +828,9 @@ export function mineRead(): Mine {
  * in Berlin time, from 00:00 to 00:00, read from noon the day before to noon the day after, which holds the whole day;
  * each its minutes, its workout, exercises and videos, and the kcal it burned at my weight of the day,
  * see {@link kcalOf}: a home workout with videos what each video burns in its minutes by its kind in `Videos.md`,
- * a video I no longer have by the kind of the session, else the whole session by its kind.
+ * a video I no longer have by the kind of the session, and its minutes beyond its videos by its kind, like 60 minutes
+ * with a video of 30 its other 30 as a home workout, none should it be shorter than its videos; else the whole
+ * session by its kind.
  * - `noon`: Noon of the day in UTC, in milliseconds.
  * - `kg`: My weight of the day.
  * - `mine`: My videos, whose kinds tell what a video of a session burns.
@@ -865,11 +868,14 @@ export function sportDayRead(date: string): SportDay {
             const metOf: (video: SessionVideo) => number = (video: SessionVideo): number => videoKinds
                 .find((known: SportKind): boolean => known.name === mine.find((other: Video): boolean =>
                     isVideo({ kind: "Video", name: video.title, link: video.link }, other))?.kind)?.met ?? kind?.met ?? 0;
+            const watched: number = videos.reduce((sum: number, video: SessionVideo): number =>
+                sum + (video.minutes ?? 0), 0);
             return {
                 id: entry.id, start: entry.start, end: entry.end, kind: entry.title, minutes: minutes,
                 kcal: kind === undefined ? null : kind.name === "Home workout" && videos.length > 0 && kg !== null
                     ? videos.reduce((sum: number, video: SessionVideo): number =>
                         sum + (kcalOf(metOf(video), video.minutes ?? 0, kg) ?? 0), 0)
+                        + (kcalOf(kind.met, Math.max(0, minutes - watched), kg) ?? 0)
                     : kcalOf(kind.met, minutes, kg),
                 workout: workouts.length > 0 ? workouts.join(", ") : before, exercises: exercises, videos: videos,
             };

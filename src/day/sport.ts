@@ -20,6 +20,9 @@
  *   to type; a row of a video its title with its channel grey in brackets, its minutes in the field, its kcal
  *   and its `×`. On a phone the fields come first, as the grams of a food do, like `3 × 10 reps  Dips  kg`.
  *   A video comes only with a workout, which takes it in the sport area by its link, see `../sport/lists.ts`.
+ * - Its time: while the session holds only videos, its end follows them as I change its parts, its start and their
+ *   minutes, like `18:00` to `18:30` for two videos of 15 minutes, so a slot drawn too long in the log does not stay;
+ *   with an exercise beside them it stays as I typed it, since only I know how long the exercises took.
  * No `With`, since I do sport alone, and no note, which the dialog hides for a session, see `categories.ts`.
  * The dialog writes each exercise as a line `X-EXERCISE`, its name, sets, repetitions and kilograms, then the workout
  * it belongs to, parted by `;`, like `Bench press;3;10;40;Push` or `Squat;3;8;50;` alone, and each video as a line
@@ -126,6 +129,11 @@ const place: HTMLElement = elementOf("div", "sport-rows", "");
  * Lets the dialog know of a change, so it allows saving and shows what is picked.
  */
 let changed: () => void = (): void => undefined;
+
+/**
+ * Puts the end of the session in the dialog at its start and some minutes after, see `endFit` in `categories.ts`.
+ */
+let fit: (minutes: number) => void = (): void => undefined;
 
 /**
  * Prefix of the value of a workout in the list, which tells it from an exercise of the same name.
@@ -252,6 +260,18 @@ function kcalTextOf(kcal: number): string {
 }
 
 /**
+ * Fits the end of the session to its videos after a change of its parts, while it holds only videos with minutes,
+ * see the top of this file; nothing while it holds an exercise.
+ * - `minutes`: Minutes of its videos together.
+ */
+function videosFit(): void {
+    const minutes: number = videos.reduce((sum: number, video: VideoDone): number =>
+        sum + (Number(video.minutes.replace(",", ".")) || 0), 0);
+    if (exercises.length === 0 && minutes > 0)
+        fit(Math.round(minutes));
+}
+
+/**
  * Picks a workout: its block below the blocks there are, with its parts, its exercises with what I did the last time,
  * its videos with their minutes; a workout the session holds already stays as it is.
  * - `picked`: The workout of mine of the name.
@@ -275,6 +295,7 @@ function workoutPick(name: string): void {
             };
         })];
     rowsShow();
+    videosFit();
 }
 
 /**
@@ -456,6 +477,7 @@ function exerciseRowOf(exercise: ExerciseDone): HTMLElement {
         removeOf(`Remove ${exercise.name}`, (): void => {
             exercises = exercises.filter((other: ExerciseDone): boolean => other !== exercise);
             rowsShow();
+            videosFit();
         }));
     return row;
 }
@@ -484,12 +506,14 @@ function videoRowOf(video: VideoDone, shown: () => void): HTMLElement {
             video.minutes = typed;
             kcal.textContent = kcalTextOf(videoKcalOf(video));
             shown();
+            videosFit();
             return true;
         }),
         kcal,
         removeOf(`Remove ${video.title}`, (): void => {
             videos = videos.filter((other: VideoDone): boolean => other !== video);
             rowsShow();
+            videosFit();
         }));
     return row;
 }
@@ -530,6 +554,7 @@ function blockOf(workout: string): HTMLElement[] {
         exercises = exercises.filter((exercise: ExerciseDone): boolean => exercise.workout !== workout);
         videos = videos.filter((video: VideoDone): boolean => video.workout !== workout);
         rowsShow();
+        videosFit();
     }));
     parts.append(...exercises.filter((exercise: ExerciseDone): boolean => exercise.workout === workout)
         .map(exerciseRowOf), ...own.map((video: VideoDone): HTMLElement => videoRowOf(video, total)), list);
@@ -590,10 +615,12 @@ export async function sportOpen(lines: SessionLines | null): Promise<void> {
  * Gives the rows of the session for the dialog, the same for every kind, see {@link rowsShow}.
  *
  * @param change - Lets the dialog know of a change
+ * @param end - Puts the end of the session at its start and some minutes after, see {@link videosFit}
  * @returns The place of the rows, one element whose rows count as rows of the dialog, see `sport.css`
  */
-export function sportRowsOf(change: () => void): HTMLElement[] {
+export function sportRowsOf(change: () => void, end: (minutes: number) => void): HTMLElement[] {
     changed = change;
+    fit = end;
     rowsShow();
     return [place];
 }
