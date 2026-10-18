@@ -2,14 +2,19 @@
    on a card filled in soft grey, above them the birthdays and holidays of the day, below them those carried along
    to today */
 /* Boxes of the plan one below the other, a little apart, so the plan looks airy, filling the height above its +
-   and scrolling alone when they are many */
+   and scrolling alone when they are many; their scrollbar in the middle of the gap to the log, not against them,
+   half the gap and half the 6 px of the bar further out, see `base.css`, its room always kept, so they keep
+   the whole width of the plan, as wide as my gratitude below them, with the bar or without */
 .plan-boxes {
     display: flex;
     flex: 1;
     flex-direction: column;
     gap: 0.75rem;
     min-height: 0;
+    margin-right: calc(var(--gap) / -2 - 3px);
+    padding-right: calc(var(--gap) / 2 - 3px);
     overflow-y: auto;
+    scrollbar-gutter: stable;
 }
 
 /* Hint for a day without boxes, calm and grey */
@@ -208,10 +213,14 @@ button.box-state:hover {
     margin-block: -0.375rem;
 }
 
+/* `⋯` and the state of a box as far out as its icon is drawn, so the dots stand as far from the right edge of the box
+   as its lines from its left edge: the 0.625rem beside the icon in its button and the little room inside the icon
+   beyond its dots, 0.75rem in all */
 .box-actions,
 .box-state {
     grid-row: 1;
     grid-column: 2;
+    margin-right: -0.75rem;
 }
 
 /* Phone: a box a little closer around its lines, its button `⋯` and its state a finger's width to hit,
@@ -220,6 +229,13 @@ button.box-state:hover {
     .box {
         gap: 0 0.625rem;
         padding: 0.75rem 0.875rem;
+    }
+
+    /* The boxes on a phone over the whole width of the screen, without room for a scrollbar, which lies over them */
+    .plan-boxes {
+        margin-right: 0;
+        padding-right: 0;
+        scrollbar-gutter: auto;
     }
 
     /* The state of a box on a phone as it looks, but a finger's width to hit, as `⋯`: its own width and 0.5rem
