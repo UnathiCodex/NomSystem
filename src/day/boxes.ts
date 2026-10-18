@@ -12,7 +12,8 @@
  * like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`, as an entry of the log does, on one line, ending in `…`
  * where it is too long; then grey its expected time, its length only where no end shows it, with its place after them,
  * by its label alone, like `11:30 – 13:00 · Audimax im Galileo` or `01h 00m · Home Munich`, the place opening its link
- * on a click when it has one; then its chapters in words, each opening its overview in the scripts view,
+ * on a click when it has one; then its deadline, when it has one, see below; then its chapters in words, each opening
+ * its overview in the scripts view,
  * like `01 Regression Analysis`; then the documents it will use, each on a line of its own with a bullet, by the last
  * part of its path, like `04_LogisticPoissonRegression.pdf`, none for a lecture, whose slides are not known before,
  * and none for a note, like those a box of the chapters due today links, see `reader/suggestions.ts`;
@@ -20,9 +21,9 @@
  * No line counts the pushes or asks about them: a box goes on as often as I push it, and one I no longer want
  * I skip myself.
  * A box with a deadline shows from four days before it, see `reader/boxes.ts`, until it is done,
- * and on the day of its deadline always, done or not, and looks like every other box, its deadline in place
- * of its time and how near it is after its length, like `Deadline Fri, 23.10.2026, 12:00 · 02h 00m · in 3 days`;
- * it has no arrow, since it stays on the day of its deadline. Its sessions are dragged into the log, as many as it
+ * and on the day of its deadline always, done or not, and looks like every other box, its deadline on a line of its own
+ * below its length and place, with how near it is, like `Deadline: Fri, 23.10.2026 · 12:00 · in 3 days`, its day
+ * left out on that day itself, like `Deadline: 12:00 · today`, see {@link deadlinePartsOf}; it has no arrow, since it stays on the day of its deadline. Its sessions are dragged into the log, as many as it
  * needs, and leave it open; its ring ticks it submitted, which alone makes it done, see `reader/boxes.ts`.
  * An open box is dragged into the log at the real time: the reader writes a log entry like it, pointing to it,
  * as long as its expected duration, else half an hour, and I resize the entry when it lasted otherwise.
@@ -327,19 +328,6 @@ async function carriedFetch(day: string): Promise<Box[]> {
 }
 
 /**
- * Writes the deadline of a box, like `Deadline Fri, 23.10.2026, 12:00`;
- * a deadline without time is its day, so it shows without time.
- * - `time`: Its time after a comma, empty for a deadline without time.
- *
- * @param box - Box with a deadline
- * @returns Its deadline
- */
-function deadlineTextOf(box: Box): string {
-    const time: string = box.deadline === box.day ? "" : `, ${timeOf(new Date(box.deadline))}`;
-    return `Deadline ${dayTextOf(box.day, true)}${time}`;
-}
-
-/**
  * Writes how near the deadline of an open box is on a day: `today`, `tomorrow` or `in 3 days`.
  * - `days`: Whole days from the day to the deadline, from noon to noon, so a day the clocks change counts right.
  *
@@ -358,37 +346,64 @@ function nearOf(box: Box, day: string): string {
 }
 
 /**
- * Writes the parts of the line of the time and length of a box, the second of its three lines,
- * see {@link boxContentOf}, which a middle dot parts,
- * the same whether it is open or done, since the log shows its real time: its own day when it is carried along
- * to a later day, like `Mon, 12.10.2026`, its expected start and end, or its deadline, like
- * `Deadline Fri, 23.10.2026, 12:00`, see {@link deadlineTextOf}, its expected duration where no end shows it,
- * after a deadline or alone, like `01h 15m`, see `lengthOf` in `times.ts`, how near its deadline is while it is open,
- * see {@link nearOf}, never how often it was pushed; a box carried along leaves out how near its deadline is;
- * that a box was cancelled or pushed away shows its mark in the place of its ring, see {@link ringOf}.
- * - `near`: How near its deadline is, empty for a box without, one not open, or one carried along.
+ * Writes the parts of the line of the time and length of a box, the second of its lines, see {@link boxContentOf},
+ * which a middle dot parts, the same whether it is open or done, since the log shows its real time: its own day
+ * when it is carried along to a later day, like `Mon, 12.10.2026`, its expected start and end, else its expected
+ * duration, like `01h 15m`, see `lengthOf` in `times.ts`, never how often it was pushed; that a box was cancelled
+ * or pushed away shows its mark in the place of its ring, see {@link ringOf}.
  * - `over`: Its own day, for an open box without deadline carried along to a later day, else empty.
  * - `start`: Its expected start, `null` for none.
- * - `when`: Its deadline, else its expected start and end, or its start alone without duration, empty for neither.
- * - `length`: Its expected duration, empty for none and where its start and end show it.
+ * - `when`: Its expected start and end, or its start alone without duration, empty for neither.
+ * - `length`: Its expected duration, empty for none and where its start shows its time.
  *
  * @param box - The box
  * @param day - Day the box shows on, like `2026-10-20`
- * @param nearShown - Whether to write how near its deadline is, not for a box carried along
  * @returns The parts of the line, in order, none when there is nothing to write
  */
-function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
-    const near: string = !nearShown || box.deadline === "" || box.state !== "open" ? "" : nearOf(box, day);
+function timePartsOf(box: Box, day: string): string[] {
     const over: string = box.state === "open" && box.deadline === "" && box.day < day ? dayTextOf(box.day, true) : "";
     const start: Date | null = box.time === "" ? null : new Date(box.time);
     let when: string = start === null ? "" : timeOf(start);
     if (start !== null && box.minutes !== null)
         when = `${timeOf(start)} – ${timeOf(new Date(start.getTime() + box.minutes * 60 * 1000))}`;
-    if (box.deadline !== "")
-        when = deadlineTextOf(box);
-    const length: string =
-        box.minutes === null || (start !== null && box.deadline === "") ? "" : lengthOf(box.minutes);
-    return [over, when, length, near].filter((part: string): boolean => part !== "");
+    const length: string = box.minutes === null || start !== null ? "" : lengthOf(box.minutes);
+    return [over, when, length].filter((part: string): boolean => part !== "");
+}
+
+/**
+ * Writes the parts of the line of the deadline of a box, below the line of its time, see {@link boxContentOf},
+ * which a middle dot parts: the day of its deadline, its time, none for a deadline without time, and how near it is
+ * while it is open, see {@link nearOf}, not for a box carried along; its day left out on that day itself, unless
+ * nothing else is left to write, like `Fri, 23.10.2026 · 12:00 · in 3 days` and `12:00 · today`.
+ * - `time`: Its time, empty for a deadline without time.
+ * - `near`: How near it is, empty for a box not open, or one carried along.
+ * - `rest`: Its time and how near it is, as far as there is something to write.
+ *
+ * @param box - The box
+ * @param day - Day the box shows on, like `2026-10-20`
+ * @param nearShown - Whether to write how near its deadline is, not for a box carried along
+ * @returns The parts of the line, in order, none for a box without deadline
+ */
+function deadlinePartsOf(box: Box, day: string, nearShown: boolean): string[] {
+    if (box.deadline === "")
+        return [];
+    const time: string = box.deadline === box.day ? "" : timeOf(new Date(box.deadline));
+    const near: string = !nearShown || box.state !== "open" ? "" : nearOf(box, day);
+    const rest: string[] = [time, near].filter((part: string): boolean => part !== "");
+    return box.day === day && rest.length > 0 ? rest : [dayTextOf(box.day, true), ...rest];
+}
+
+/**
+ * Makes the parts of a line of times, the first plain, each further one after its dot, see `.entry-parted`
+ * in `day.css`, in one part of the line, so they stay together on a phone too.
+ *
+ * @param parts - The parts, like `Wed, 14.10.2026` and `13:15 – 14:45`
+ * @param start - What stands before the first, like `Deadline: `, empty for nothing
+ * @returns The part of the line, `null` for no parts
+ */
+function timesOf(parts: string[], start: string): HTMLElement | null {
+    return parts.length === 0 ? null : entryPartOf("span", "box-part box-time", parts.map((part: string,
+        index: number): string | Node => index === 0 ? `${start}${part}` : entryPartOf("span", "entry-parted", [part])));
 }
 
 /**
@@ -398,13 +413,15 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
  * in `boxes.css`; then its time in the light grey of a time, its parts apart by a middle dot
  * with room on both sides, see {@link timePartsOf}, and after it its place in the darker grey, by its label alone,
  * its address hidden, like `16:00 – 17:30 · Audimax im Galileo`, a way its route, like `Home Munich → TUM Garching`,
- * see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click instead of the box; then its chapters
- * on a line of their own in the same grey, apart by a middle dot, see {@link chaptersOf}; then its documents, one per
- * line with a bullet, see {@link topicsOf}; a line without anything to say is left out.
+ * see `whereLinkedOf` in `places.ts`, a place with a link opening it on a click instead of the box; then its deadline
+ * on a line of its own in the grey of a time, see {@link deadlinePartsOf}; then its chapters on a line of their own
+ * in the same grey, apart by a middle dot, see {@link chaptersOf}; then its documents, one per line with a bullet,
+ * see {@link topicsOf}; a line without anything to say is left out.
  * - `what`: What it is as shown.
- * - `times`: The parts of its time, the first plain, each further one after its dot, see `.entry-parted` in `day.css`.
+ * - `times`: Its time, see {@link timesOf}, `null` for none.
  * - `place`: The label of its place or the route of a way, empty for none.
  * - `meta`: Its time and its place, as far as it has them, the place after a dot when a time stands before it.
+ * - `deadline`: Its deadline after `Deadline: `, `null` for none.
  * - `chapters`: Its chapters, each after a dot but the first.
  * - `topics`: Its documents.
  *
@@ -415,20 +432,21 @@ function timePartsOf(box: Box, day: string, nearShown: boolean): string[] {
  */
 function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] {
     const what: string = shownWhatOf(box.category, box.title, box.module, box.type);
-    const times: (string | Node)[] = timePartsOf(box, day, nearShown).map((part: string, index: number):
-        string | Node => index === 0 ? part : entryPartOf("span", "entry-parted", [part]));
+    const times: HTMLElement | null = timesOf(timePartsOf(box, day), "");
     const place: string = whereOf(box.category, box.from, box.location);
     const meta: HTMLElement[] = [
-        ...(times.length === 0 ? [] : [entryPartOf("span", "box-part box-time", times)]),
-        ...(place === "" ? [] : [entryPartOf("span", times.length === 0 ? "box-part" : "box-part entry-parted",
+        ...(times === null ? [] : [times]),
+        ...(place === "" ? [] : [entryPartOf("span", times === null ? "box-part" : "box-part entry-parted",
             whereLinkedOf(box.category, box.from, box.location, box.locationLink))]),
     ];
+    const deadline: HTMLElement | null = timesOf(deadlinePartsOf(box, day, nearShown), "Deadline: ");
     const chapters: HTMLElement[] = chaptersOf(box).map((chapter: Node, index: number): HTMLElement =>
         entryPartOf("span", index === 0 ? "box-part" : "box-part entry-parted", [chapter]));
     const topics: string[] = topicsOf(box);
     return [
         entryPartOf("div", "box-what", whatOf(box.category, what === box.category ? "" : what)),
         ...(meta.length === 0 ? [] : [entryPartOf("div", "box-meta", meta)]),
+        ...(deadline === null ? [] : [entryPartOf("div", "box-meta", [deadline])]),
         ...(chapters.length === 0 ? [] : [entryPartOf("div", "box-meta box-chapters", chapters)]),
         ...(topics.length === 0 ? [] : [entryPartOf("ul", "box-topics", topics.map((topic: string): HTMLElement =>
             entryPartOf("li", "", [breakableOf(topic)])))]),
