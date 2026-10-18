@@ -364,6 +364,14 @@ const lineEnding: string[] = ["X-SEMESTER", "X-CHAPTER", "X-ATTEMPT", "X-ROUND"]
 ICAL.design.icalendar.param.altrep = { multiValue: ",", multiValueSeparateDQuote: true };
 
 /**
+ * Folds every line the reader writes after 74 bytes, so each line of the file, the space that starts a continued line
+ * included, has at most 75, as the standard wants: `ical.js` folds after 75 and puts the space before them, which
+ * gave continued lines of 76 bytes, like ` 9Fheimer%20Stra%C3%9Fe%20127%2C%2080797%20M%C3%BCnchen-Schwabing-West%2C%20`
+ * in the `ALTREP` of a place.
+ */
+ICAL.foldLength = 74;
+
+/**
  * Category of skill entries, `CATEGORIES:Skill`, whose `SUMMARY` names their skill and type, see {@link skillPartsOf};
  * the categories of `categories.ts` name it too.
  */
@@ -1379,7 +1387,8 @@ function ownPropertyOf(name: string, value: string | Link): ICAL.Property {
  * its `ATTACH`es one per link, the `ATTENDEE`s of an entry one per person, see {@link attendeePropertyOf}.
  * - `at`: Line of the first old value, or the end of the event.
  * - {@link ICAL.Property#toICALString}: Writes a property in the iCalendar format, as one line.
- * - {@link ICAL.helpers.foldline}: Folds a line after every 75 bytes, parting the lines by `\r\n`.
+ * - {@link ICAL.helpers.foldline}: Folds a line after every 74 bytes, see `ICAL.foldLength`, parting the lines
+ *   by `\r\n`.
  *
  * @param event - Lines from `BEGIN:VEVENT` to `END:VEVENT`, changed in place
  * @param name - Name of the property, like `dtstart`
