@@ -247,7 +247,9 @@ function edgeScrollStart(entry: HTMLElement, pointer: MouseEvent): void {
 /**
  * An entry dragged to the edge of the time grid or onto an arrow of the date, see {@link entryTurn}: its identifier
  * and the days it moves, so its drop in the grid itself, which FullCalendar reports right after, is taken back,
- * see {@link entryDrag}; `null` while none turns.
+ * see {@link entryDrag}; `null` while none turns, and again when the next drag or resize starts, since a drop on
+ * a strip outside the grid brings no drop in it, and the next resize of that entry, on the day it moved to,
+ * was taken back.
  */
 let turning: { id: string; days: number } | null = null;
 
@@ -849,6 +851,7 @@ export function dayStart(): void {
         eventResize: (info: EventChangeInfo): void => entryDrag(calendar, info),
         dragScroll: false,
         eventDragStart: (info: EventDragStartInfo): void => {
+            turning = null;
             turnShow(calendar, true);
             edgeScrollStart(info.el, info.jsEvent);
         },
@@ -856,7 +859,10 @@ export function dayStart(): void {
             edgeScrollEnd?.();
             entryTurn(calendar, info);
         },
-        eventResizeStart: (info: EventResizeStartInfo): void => edgeScrollStart(info.el, info.jsEvent),
+        eventResizeStart: (info: EventResizeStartInfo): void => {
+            turning = null;
+            edgeScrollStart(info.el, info.jsEvent);
+        },
         eventResizeStop: (): void => edgeScrollEnd?.(),
         droppable: true,
         eventReceive: (info: EventReceiveInfo): void => boxReceive(calendar, info),
