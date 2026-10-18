@@ -389,12 +389,12 @@ fieldset.entry-times {
     row-gap: 0.25rem;
 }
 
-/* Day and time side by side, like `13.10.2026 01:45`, one space apart, each field as wide as what it holds,
+/* Day and time side by side, like `13.10.2026 01:45`, about two spaces apart, each field as wide as what it holds,
    so start and end each read as one; the room goes to the dash between them */
 .entry-moment {
     display: flex;
     align-items: baseline;
-    gap: 0.3em;
+    gap: 0.6em;
 }
 
 .entry-dash {
