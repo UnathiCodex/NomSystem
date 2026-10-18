@@ -19,6 +19,7 @@
  * - `./markdown.ts`: Turns the Markdown of a note into HTML, with Obsidian's syntax.
  * - `./math.ts`: Renders the formulas, as Obsidian does.
  * - `./tree.ts`: Builds the address of a note in the scripts view.
+ * - `../reader.ts`: Asks the reader for a note.
  * - `../skill/attempts.ts`: Loads the tasks with when they are due.
  * - `../today.ts`: Gives today's calendar date, for when a task is due.
  * - `../skill/task.ts`: Builds the row of a task with its menu.
@@ -28,6 +29,7 @@
 import { htmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
 import { noteAddressOf } from "./tree.ts";
+import { readerAsk } from "../reader.ts";
 import { skillingLoad } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { taskRowOf } from "../skill/task.ts";
@@ -62,20 +64,6 @@ const embedDepth: number = 3;
  */
 function fileAddressOf(path: string): string {
     return `/api/notes/file?path=${encodeURIComponent(path)}`;
-}
-
-/**
- * Asks the reader for something as JSON.
- *
- * @param address - Address at the reader, like `/api/notes/modules`
- * @returns Answer of the reader
- * @throws {Error} - When the reader cannot answer, like for a missing note
- */
-async function readerAsk<T>(address: string): Promise<T> {
-    const response: Response = await fetch(address);
-    if (!response.ok)
-        throw new Error(`The reader could not answer ${address}`);
-    return await response.json() as T;
 }
 
 /**

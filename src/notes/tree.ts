@@ -30,6 +30,7 @@
  * - `../day/choices.ts`: Marks where a long name may go on below.
  * - `./markdown.ts`, `./math.ts`: Render the headings of the outline, their formulas as in the note.
  * - `lucide`, `../icons.ts`: The check of a block done in its round.
+ * - `../reader.ts`: Asks the reader for the tree.
  */
 
 import { matchesAll, wordsOf } from "../search.ts";
@@ -38,6 +39,7 @@ import { inlineHtmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
 import { iconOf } from "../icons.ts";
 import { Check } from "lucide";
+import { readerAsk } from "../reader.ts";
 
 
 /**
@@ -137,20 +139,6 @@ export function overviewAddressOf(module: string, chapter: string): string {
     if (chapter === "")
         return address;
     return `${address}&chapter=${encodeURIComponent(chapter)}`;
-}
-
-/**
- * Asks the reader for something as JSON.
- *
- * @param address - Address at the reader, like `/api/edit/tree`
- * @returns Answer of the reader
- * @throws {Error} - When the reader cannot answer
- */
-async function readerAsk<T>(address: string): Promise<T> {
-    const response: Response = await fetch(address);
-    if (!response.ok)
-        throw new Error(`The reader could not answer ${address}`);
-    return await response.json() as T;
 }
 
 /**
