@@ -305,7 +305,7 @@ export function skillPathOf(): string {
 /**
  * Shows the folder of the skill picked, see {@link skillPathOf}, as the link below the summary, small and grey,
  * as a place has its address below it, see `summaryPartsOf` in `categories.ts`: for a module a link that opens
- * the module in the scripts view in a new tab, underlined under the pointer, for a project, which the scripts view
+ * the module in the scripts view in this window, never a second one, underlined under the pointer, for a project, which the scripts view
  * has not, its path alone; hidden while no skill is picked. Where it is wider than its row, as on a phone, it goes on
  * below after a `/`, after a `_` or between the words of a name, like `NomSkillingmodules/IN2028_Business`
  * and `AnalyticsMachineLearning`, never within a word, see {@link breakableOf}.
@@ -316,6 +316,7 @@ export function skillPathOf(): string {
 export function skillPathShow(link: HTMLAnchorElement): void {
     const folder: string = skilling.paths[picks.module] ?? "";
     link.textContent = breakableOf(skillPathOf()).replaceAll("/", "/\u200b");
+    link.removeAttribute("target");
     if (folder.startsWith(`${modulesFolder}/`))
         link.href = `/scripts?module=${encodeURIComponent(folder.slice(modulesFolder.length + 1))}`;
     else

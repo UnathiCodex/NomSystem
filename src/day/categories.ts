@@ -908,7 +908,8 @@ function onlinePartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElemen
 /**
  * Shows the link of what the entry or the box was below its summary, small and grey, as a link that opens
  * in a new tab, like the address of a place, see {@link placePartsShow}: the link itself, like the page of an event;
- * for a skill entry while I type none the folder of its skill, see `skillPathShow` in `skill.ts`, also grey
+ * for a skill entry while I type none the folder of its skill, which opens in this window, being NomSystem's own,
+ * see `skillPathShow` in `skill.ts`, also grey
  * in the field to type; nothing while it has none; the pencil beside the summary while the summary names something,
  * see {@link titleRead}, a skill entry by its skill or its type.
  * - `pencil`, `link`, `field`: Pencil, link and field of the summary as shown.
@@ -926,6 +927,7 @@ function summaryPartsShow(): void {
         return;
     }
     link.textContent = summaryLink;
+    link.target = "_blank";
     if (summaryLink !== "")
         link.href = summaryLink;
     else
@@ -956,7 +958,6 @@ function summaryPartsOf(): [HTMLButtonElement, HTMLAnchorElement, HTMLElement] {
     pencil.className = "entry-pencil";
     iconPut(pencil, Pencil, "Change the link");
     link.className = "entry-address";
-    link.target = "_blank";
     link.rel = "noopener";
     parts.className = "field-parts";
     parts.append(partOf("Link", field));
