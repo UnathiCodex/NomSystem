@@ -20,8 +20,6 @@
  *   a section I never learned grey, as a box not for now, unless Today offers it; a tap on a row opens the section.
  * Everything is computed from the log by the reader, see `reader/skill.ts`, and what Today lists by Today's own rule;
  * nothing is kept here. The counts stand here and not at a task, so a task shows only itself, see `../skill/task.ts`.
- * Where the page is narrow, as on the laptop, a row holds its name on top and its values below it in one grey line,
- * each named, like `Round 2 · Today · 5 right · 1 wrong`.
  *
  * - `../skill/attempts.ts`: Loads the modules with their tasks and sections, and writes days out.
  * - `./today.ts`: What Today lists.
@@ -104,27 +102,19 @@ function stateOf(module: SkillModule, section: SkillSection, open: Set<string>, 
 }
 
 /**
- * Makes a value of a row, with its name for a narrow page, see `.overview-label` in `./overview.css`.
+ * Makes a value of a row in its column.
  *
  * @param className - Class of its column, like `overview-round`
  * @param value - The value, empty for none
- * @param before - Its name before it, like `Round `, empty for none
- * @param after - Its name after it, like ` right`, empty for none
  * @returns The value
  */
-function valueOf(className: string, value: string, before: string, after: string): HTMLElement {
-    const element: HTMLElement = elementOf("span", `overview-value ${className}`, "");
-    if (value === "")
-        return element;
-    element.append(...(before === "" ? [] : [elementOf("span", "overview-label", before)]), value,
-        ...(after === "" ? [] : [elementOf("span", "overview-label", after)]));
-    return element;
+function valueOf(className: string, value: string): HTMLElement {
+    return elementOf("span", `overview-value ${className}`, value);
 }
 
 /**
  * Makes the row of a section, see the top of this file: a link to it, its name and its values in their columns.
  * - `row`: The row.
- * - `numbered`: Whether its round is a number, named `Round` on a narrow page.
  *
  * @param section - The section
  * @param state - Where it stands
@@ -132,16 +122,14 @@ function valueOf(className: string, value: string, before: string, after: string
  */
 function rowOf(section: SkillSection, state: SectionState): HTMLAnchorElement {
     const row: HTMLAnchorElement = document.createElement("a");
-    const numbered: boolean = /^\d+$/.test(state.round);
     row.className = "overview-row";
     row.classList.toggle("overview-fresh", state.fresh && !state.today);
     row.href = noteAddressOf(section.note, "");
     row.append(elementOf("span", "overview-name", section.title),
-        valueOf("overview-round", state.round, numbered ? "Round " : "", ""),
-        valueOf(`overview-next${state.today ? " overview-today" : ""}`, state.next,
-            state.today || state.next === "" ? "" : "Next ", ""),
-        valueOf("overview-count", state.fresh ? "" : String(state.right), "", " right"),
-        valueOf("overview-count", state.fresh ? "" : String(state.wrong), "", " wrong"));
+        valueOf("overview-round", state.round),
+        valueOf(`overview-next${state.today ? " overview-today" : ""}`, state.next),
+        valueOf("overview-count", state.fresh ? "" : String(state.right)),
+        valueOf("overview-count", state.fresh ? "" : String(state.wrong)));
     return row;
 }
 
