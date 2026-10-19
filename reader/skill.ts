@@ -111,6 +111,7 @@ import { placeLinkOf } from "./places.ts";
 import {
     activeModules, activeSkills, modulesFolder, projectOf, skillLog, skillNameOf,
 } from "./sources.ts";
+import { settings } from "./trackers.ts";
 
 import type { Box } from "./boxes.ts";
 import type { Attendee, Entry, EntryFields, Link } from "./calendar.ts";
@@ -1137,6 +1138,7 @@ function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate, lines: Ro
  * or which I tried today; `new` for a section on round 0 I began, by an attempt, a `Next` or its close, and while
  * there is none, for the first section not begun yet, one a day, when its chapter has begun: the first chapter,
  * or one whose chapter before has every section in round {@link chapterOpenRound} or later.
+ * Before the day my learning starts nothing is marked, see `learningStart` in `trackers.ts`.
  * - `cold`: The Task of today of a section, `undefined` for none.
  * - `begun`: Whether a section on round 0 is begun.
  * - `marked`: The sections with their Tasks and begun rounds 0 marked.
@@ -1149,6 +1151,8 @@ function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate, lines: Ro
  * @returns The sections, marked
  */
 function todayMarked(sections: SkillSection[], tasks: SkillTask[], today: string): SkillSection[] {
+    if (today < settings.learningStart)
+        return sections;
     const cold: (section: SkillSection) => SkillTask | undefined = (section: SkillSection): SkillTask | undefined =>
         section.cold === "" ? undefined : tasks.find((task: SkillTask): boolean => task.id === section.cold);
     const begun: (section: SkillSection) => boolean = (section: SkillSection): boolean =>
