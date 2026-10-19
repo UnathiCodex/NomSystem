@@ -18,7 +18,8 @@
  * of people.
  * A value offered in the code may come with steps, which the dialog shows while it is picked, and below them
  * the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
- * `Body` is my body care, showering and any care, offering `Shower` before any use; my neck routine,
+ * `Body` is my body care, showering and any care, offering `Shower` and `Caring` before any use, and takes several,
+ * parted by `, `, like `Shower, Caring`, its list offering each once; my neck routine,
  * `Neck short` and `Neck long`, is no what of it any more, also where the log holds it, see {@link retiredWhats}.
  * A dish, the what of `Food` and `Cook`, names its foods parted by `, `, like `Reis, Bohnen, Eier`.
  * `Shopping` is what I buy, its what as I type it, like `Brot, Milch`, its place the shop, like `Edeka Center Hadern`.
@@ -72,7 +73,7 @@ export type FieldKey = "title" | "from" | "location" | "with";
  *   like the exercises of `Neck short`; none for the other values.
  * - `fixed`: Whether it takes only the values offered in the code, like `Night` and `Day` of `Sleep`, and no new ones.
  * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `U-Bahn, Bus`,
- *   or the people of `With`, `Sophale, Willi`; one when left out.
+ *   my body care, `Shower, Caring`, or the people of `With`, `Sophale, Willi`; one when left out.
  */
 export type Field = {
     name: string;
@@ -255,7 +256,7 @@ const categories: Category[] = [
     {
         name: "Body",
         fields: [
-            { name: "Summary", key: "title", values: ["Shower"], steps: {}, fixed: false },
+            { name: "Summary", key: "title", values: ["Shower", "Caring"], steps: {}, fixed: false, many: true },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
             withField,
         ],
@@ -356,14 +357,17 @@ function placeNamesRead(): string[] {
 }
 
 /**
- * Lists the values of the field `title` of a category in log entries: the what of its entries.
+ * Lists the values of the field `title` of a category in log entries: the what of its entries, each value of a what
+ * of several on its own, like `Shower` and `Caring` of `Shower, Caring`.
  *
  * @param logs - Log entries
  * @param name - Name of the category
+ * @param many - Whether its what takes several values, parted by `, `
  * @returns Every use of a value, a value as often as it was used
  */
-function titleUsesOf(logs: Entry[], name: string): string[] {
-    return logs.filter((log: Entry): boolean => log.category === name).map((log: Entry): string => log.title);
+function titleUsesOf(logs: Entry[], name: string, many: boolean): string[] {
+    return logs.filter((log: Entry): boolean => log.category === name)
+        .flatMap((log: Entry): string[] => many ? log.title.split(", ") : [log.title]);
 }
 
 /**
@@ -472,7 +476,7 @@ export function categoriesRead(now: string): CategoryShown[] {
                 ...field,
                 values: field.key === "with" ? people
                     : field.key !== "title" ? offlineNames.includes(category.name) ? offline : places
-                        : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name), field.values)
+                        : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name, field.many === true), field.values)
                             .filter((value: string): boolean => !(retiredWhats[category.name] ?? []).includes(value)),
                 steps: stepsWithNoteOf(logs, category.name, field.steps),
                 rooms: field.key === "title" || field.key === "with" ? [] : rooms.map(lineOf),
