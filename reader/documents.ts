@@ -42,7 +42,7 @@
  * The reader sends a file a skill entry links, read only, so the page opens it in the browser's own viewer,
  * see {@link linkedFileRead}; no other file of `NomWorkspace`.
  * By the folder of its skill a skill entry also finds its log and a skill box its plan, any other entry or box
- * the log or the plan of its year, see {@link calendarFileOf}.
+ * the log or the plan of its month, see {@link calendarFileOf}.
  *
  * - `node:fs`: Reads files and their sizes and times of change.
  * - `node:path`: Builds file paths for the operating system.
@@ -63,7 +63,7 @@ import {
 } from "./calendar.ts";
 import { chapterNameOf, codeOf, contentTypeOf, moduleContentsRead, moduleFolderOf } from "./notes.ts";
 import {
-    activeModules, moduleIs, modulesFolder, projectOf, skillFileOf, skillLog, vault, yearFileOf,
+    activeModules, moduleIs, modulesFolder, projectOf, skillFileOf, skillLog, vault, livingFileOf,
 } from "./sources.ts";
 
 import { linkForm } from "./places.ts";
@@ -296,18 +296,18 @@ export function titleOf(fields: {
  * Gives the file of the plan or of the log in `NomManagecalendar` an entry or a box belongs into, see `sources.ts`:
  * for a skill entry the log of its skill and for a skill box its plan, in `Skilling/` named like the folder
  * of the skill, see {@link skillFolderNameOf}, those without skill in the files named `Skill`; for any other
- * the log or the plan of the year of its day in `Living/`.
+ * the log or the plan of the month of its day in `Living/`.
  * - `name`: Name of the folder of the skill, empty for none.
  *
  * @param fields - Category and skill of the entry or the box, like `Skill` and `IN2028`, or `Food` and no skill
  * @param date - Its day in Berlin time, like `2026-10-13`
  * @param ending - End of the name of the file, `logEnding` or `planEnding` of `sources.ts`
  * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Log.ics`, `Skilling/Skill_Plan.ics`
- *   or `Living/2026_Log.ics` in `NomManagecalendar`
+ *   or `Living/2026_10_Log.ics` in `NomManagecalendar`
  */
 export function calendarFileOf(fields: { category: string; module: string }, date: string, ending: string): string {
     if (fields.category !== skillName)
-        return yearFileOf(date, ending);
+        return livingFileOf(date, ending);
     const name: string = skillFolderNameOf(fields.module);
     return skillFileOf(name === "" ? skillName : name, ending);
 }

@@ -56,9 +56,9 @@ export const manageRoot: string = join(vault, "NomManageplannings");
 export const calendarRoot: string = join(manageRoot, "NomManagecalendar");
 
 /**
- * Folder `Living/` in {@link calendarRoot}: one plan and one log per year, like `2026_Plan.ics` and `2026_Log.ics`,
- * for every category but `Skill`, all of them in the same file, an entry by the year of its start in Berlin time,
- * a box by the year of its day, see {@link yearFileOf}.
+ * Folder `Living/` in {@link calendarRoot}: one plan and one log per month, like `2026_10_Plan.ics`
+ * and `2026_10_Log.ics`, for every category but `Skill`, all of them in the same file, an entry by the month
+ * of its start in Berlin time, a box by the month of its day, see {@link livingFileOf}.
  */
 export const livingRoot: string = join(calendarRoot, "Living");
 
@@ -107,13 +107,13 @@ export const systemRoots: string[] = [calendarRoot, diaryRoot, dataRoot];
 export const previousName: string = "NomSystemprevious";
 
 /**
- * End of the names of the files of the log, like `2026_Log.ics` or `IN2028_BusinessAnalyticsMachineLearning_Log.ics`:
+ * End of the names of the files of the log, like `2026_10_Log.ics` or `IN2028_BusinessAnalyticsMachineLearning_Log.ics`:
  * what happened, as events.
  */
 export const logEnding: string = "_Log.ics";
 
 /**
- * End of the names of the files of the plan, like `2026_Plan.ics`
+ * End of the names of the files of the plan, like `2026_10_Plan.ics`
  * or `IN2028_BusinessAnalyticsMachineLearning_Plan.ics`: the boxes of the plan, as to-dos, see `boxes.ts`,
  * beside the lectures imported from TUMonline, as events.
  */
@@ -310,7 +310,7 @@ export const trackerLog: CalendarSource[] = [{ folder: calendarRoot, ending: log
  * - `meals`: My meals, `Meals.md` in {@link dataRoot}, one Markdown table with one row per food of a meal,
  *   which the reader writes as I add meals, see `food.ts`.
  * - `log`: Log of the new system, where each meal is an entry of the category `Food` listing its foods,
- *   in the log of its year in `Living/`.
+ *   in the log of its month in `Living/`.
  * - `search`: Search of Open Food Facts, which finds products by their names.
  * - `product`: Products of Open Food Facts, which gives a product by its barcode put after the address.
  */
@@ -345,7 +345,7 @@ export const food: FoodSources = {
  * - `weights`: My weight, `Weights.md` in {@link dataRoot}, one Markdown table with one row per day I weighed myself,
  *   which the reader writes as I change my weight in the sport area, see `sport.ts`; each person's own, never
  *   in the code.
- * - `log`: Log of the new system, where each session is an entry of the category `Sport`, in the log of its year
+ * - `log`: Log of the new system, where each session is an entry of the category `Sport`, in the log of its month
  *   in `Living/`.
  * - `video`: oEmbed of YouTube, which gives the title and the channel of a video by its link put after the address.
  */
@@ -371,16 +371,16 @@ export const sport: SportSources = {
 };
 
 /**
- * Builds the path of a file of a year in {@link livingRoot}: the log or the plan of the year of a day.
- * - `year`: Year of the day, like `2026`.
+ * Builds the path of a file of a month in {@link livingRoot}: the log or the plan of the month of a day.
+ * - `year`, `month`: Year and month of the day, like `2026` and `10`.
  *
  * @param date - Day like `2026-10-13`
  * @param ending - End of the name, {@link logEnding} or {@link planEnding}
- * @returns Path like `Living/2026_Plan.ics` in {@link calendarRoot}
+ * @returns Path like `Living/2026_10_Log.ics` or `Living/2026_10_Plan.ics` in {@link calendarRoot}
  */
-export function yearFileOf(date: string, ending: string): string {
-    const year: string = date.split("-")[0];
-    return join(livingRoot, `${year}${ending}`);
+export function livingFileOf(date: string, ending: string): string {
+    const [year, month]: string[] = date.split("-");
+    return join(livingRoot, `${year}_${month}${ending}`);
 }
 
 /**

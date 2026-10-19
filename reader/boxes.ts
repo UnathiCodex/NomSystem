@@ -18,7 +18,7 @@
  * the dialog adds it, see {@link numberNextOf}. One the university cancels gets `X-NUMBER:NONE` by its own button,
  * see {@link boxUniversity}, and the later ones of its series move up a number; it is neither done nor carried along.
  *
- * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan of its year, like `Living/2026_Plan.ics`,
+ * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan of its month, like `Living/2026_10_Plan.ics`,
  * or a skill box in the plan of its skill, like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`,
  * both in `NomManagecalendar`, see `sources.ts` and `calendar.ts`; a box moves into the plan it belongs into
  * when its day moves into another year or it changes its category or its skill, also one from a month file
@@ -258,11 +258,11 @@ const deadlineDays: number = 4;
 
 /**
  * Gives the plan a box belongs into, see the top of this file: the plan of its skill for a skill box,
- * else the plan of the year of its day, see `calendarFileOf` in `documents.ts`.
+ * else the plan of the month of its day, see `calendarFileOf` in `documents.ts`.
  *
  * @param box - Category and skill of the box, like `Skill` and `IN2028`, or `Talk` and no skill
  * @param date - Its day, like `2026-10-13`
- * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics` or `Living/2026_Plan.ics`
+ * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics` or `Living/2026_10_Plan.ics`
  *   in `NomManagecalendar`
  */
 function planFileOf(box: { category: string; module: string }, date: string): string {
@@ -278,7 +278,7 @@ function planFileOf(box: { category: string; module: string }, date: string): st
  * @param entry - Entry of the box
  * @param box - New category and skill of the box
  * @param date - New day of the box, like `2027-01-04`
- * @returns Path like `Living/2027_Plan.ics` or the path of its file
+ * @returns Path like `Living/2027_01_Plan.ics` or the path of its file
  */
 function planFileAfter(file: string, entry: Entry, box: { category: string; module: string }, date: string): string {
     return entry.recurrence === "" ? planFileOf(box, date) : file;
@@ -880,7 +880,7 @@ export function boxPush(id: string): void {
  * Takes back the last push of an open box of the new system, by its arrow or by its day in the dialog: puts it back
  * where it stood before, its start and its length as its last `X-PUSHED` notes them, which goes, see `pushTake`
  * in `calendar.ts`, like WI1059 (VO) back from Mon, 19.10.2026, 10:00 for 2 hours to Sun, 18.10.2026, 15:00
- * for 3 hours 15 minutes; its length stays where the push noted none; into the plan of its year again,
+ * for 3 hours 15 minutes; its length stays where the push noted none; into the plan of its month again,
  * see {@link planFileAfter}.
  * - `start`, `minutes`: Start and length before the push, see `pushTake`.
  * - `day`: Its day before the push.

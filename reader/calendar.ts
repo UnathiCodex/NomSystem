@@ -939,7 +939,7 @@ function linesWrite(file: string, text: FileLines): void {
 /**
  * Creates an empty calendar with only the header the standard asks for, `PRODID` and `VERSION`,
  * and the time zone {@link zoneName}, which every `DTSTART` names. No `X-WR-CALNAME`, since its name is the name
- * of its file, like `2026_Log`, no `X-WR-TIMEZONE`, no `CALSCALE`, since `GREGORIAN` is the default,
+ * of its file, like `2026_10_Log`, no `X-WR-TIMEZONE`, no `CALSCALE`, since `GREGORIAN` is the default,
  * and no `METHOD`, which only invitations need.
  *
  * @returns Calendar without events
