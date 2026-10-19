@@ -16,7 +16,8 @@
  *     spaced, `New` while I never learned it;
  *   - `Next`: `Today` while Today lists it open, see `itemsOf` in `./today.ts`, else the day its Task comes back,
  *     like `Mon, 19.10.2026`, else nothing;
- *   - `Right`, `Wrong`: how many of my attempts at its tasks were right, and how many not, its Examples among them;
+ *   - `Right`, `Wrong`: how many of my attempts at its Tasks, the cold ones, were right, and how many not, its Examples
+ *     left out, since only a cold attempt measures what I can;
  *   a section I never learned grey, as a box not for now, unless Today offers it; a tap on a row opens the section.
  * Everything is computed from the log by the reader, see `reader/skill.ts`, and what Today lists by Today's own rule;
  * nothing is kept here. The counts stand here and not at a task, so a task shows only itself, see `../skill/task.ts`.
@@ -47,7 +48,7 @@ import type { Item } from "./today.ts";
  *
  * - `round`: Its round, like `2`, `Ready` once ready, `New` while never learned.
  * - `next`: `Today` while Today lists it open, else the day its Task comes back, like `Mon, 19.10.2026`, else empty.
- * - `right`: Number of my attempts at its tasks that were right.
+ * - `right`: Number of my attempts at its Tasks, the cold ones, that were right.
  * - `wrong`: Number of them that were not, skips left out.
  * - `ready`: Whether it is ready.
  * - `fresh`: Whether I never learned it.
@@ -67,7 +68,7 @@ type SectionState = {
 /**
  * Tells where a section stands, see the top of this file.
  * - `own`: Its tasks.
- * - `attempts`: My attempts at them, skips left out.
+ * - `attempts`: My attempts at its Tasks, the cold ones, skips left out.
  * - `due`: The day its Task comes back, empty for none: the Task of today holds it, see `reader/skill.ts`.
  * - `fresh`: Whether I never learned it.
  *
@@ -79,7 +80,8 @@ type SectionState = {
  */
 function stateOf(module: SkillModule, section: SkillSection, open: Set<string>, today: string): SectionState {
     const own: SkillTask[] = module.tasks.filter((task: SkillTask): boolean => task.note === section.note);
-    const attempts: Attempt[] = own.flatMap((task: SkillTask): Attempt[] => task.attempts)
+    const attempts: Attempt[] = own.filter((task: SkillTask): boolean => task.kind === "cold")
+        .flatMap((task: SkillTask): Attempt[] => task.attempts)
         .filter((attempt: Attempt): boolean => attempt.result !== "skipped");
     const due: string = own.find((task: SkillTask): boolean => task.kind === "cold" && task.due !== "")?.due ?? "";
     const ready: boolean = own.some((task: SkillTask): boolean => task.id === section.cold && task.ready);
