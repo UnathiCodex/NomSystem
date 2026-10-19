@@ -5,10 +5,11 @@
  * the date as its bar shows it, the weekday small and grey above it, and below it the entries of today, the same
  * as in the plan, one per chapter with something due, see `reader/suggestions.ts`: what it is in bold on one line,
  * like `Skill: IN2028 Business Analytics Machine Learning`, grey below it its length as its box in the plan has it
- * and its chapter, like `01h 00m · 01 Regression Analysis`; then one small box per note to do, each a link to it:
- * its number and name, like `01.01 Sample Mean Estimator`, a small box saying what is due, `Task`, `Example`
- * or `NEW`, and the name of the Task or Example, like `Online Games`; a tap opens the note where its round stands,
- * see `./round.ts`, which shows only what is due. Nothing else.
+ * and its chapter, like `01h 00m · 01 Regression Analysis`; then one small box per note to do, each a link to it,
+ * named as the tree names it, like `01_01_SampleMeanEstimator`, with `New` boxed beside it for a section on round 0,
+ * and below it, one per line, what is due, as the tree lists the blocks of a section: a grey guide line at their left,
+ * the type word boxed, `Task`, `Example` or `Algorithm`, and the name, like `Bakery Chain`; a tap opens the note
+ * where its round stands, see `./round.ts`, which shows only what is due. Nothing else.
  * The order is that of a session: the Tasks due first, each with what its failure today brings back right after it,
  * by the round's own ladder, one Example easier each, see `fallbacksOf` in `./round.ts`, then the section new today,
  * see `todayMarked` in `reader/skill.ts`. A note to do stays in its place, grey, once its round is closed by hand;
@@ -41,9 +42,9 @@ import type { Fallback } from "./round.ts";
  *
  * - `module`: Code of its module, like `IN2028`.
  * - `chapter`: Name of its chapter, like `01_RegressionAnalysis`.
- * - `section`: Its section, like `01.01 Sample Mean Estimator`, see {@link sectionNameOf}.
- * - `kind`: What is due, `Task`, `Example`, `Algorithm` or `NEW`.
- * - `name`: Name of the Task or Example, like `Online Games`, empty for `NEW`.
+ * - `section`: Its section by the name of its note, like `01_01_SampleMeanEstimator`.
+ * - `kind`: What is due, `Task`, `Example`, `Algorithm` or `New`.
+ * - `name`: Name of the Task or Example, like `Online Games`, empty for `New`.
  * - `address`: Address it opens.
  * - `done`: Whether it is done today.
  */
@@ -69,17 +70,6 @@ export function wordsOf(section: SkillSection): string {
 }
 
 /**
- * Writes the number and name of a section, like `01.01 Sample Mean Estimator` for `01_01_SampleMeanEstimator`.
- *
- * @param section - Section
- * @returns Its number and name
- */
-function sectionNameOf(section: SkillSection): string {
-    const number: string = /^\d+_\d+/.exec(section.title)?.[0].replace("_", ".") ?? "";
-    return number === "" ? wordsOf(section) : `${number} ${wordsOf(section)}`;
-}
-
-/**
  * Builds the notes to do of a module today, see the top of this file.
  * - `items`, `fresh`: The Tasks with what their failures bring back, and the sections new today.
  * - `tasks`, `cold`: Tasks of a section and its Task of today.
@@ -99,11 +89,11 @@ export function itemsOf(module: SkillModule, today: string): Item[] {
         const cold: SkillTask | undefined = tasks.find((task: SkillTask): boolean => task.id === section.cold);
         const item: (kind: string, name: string, done: boolean) => Item = (kind: string, name: string, done: boolean):
             Item => ({
-            module: module.code, chapter: section.chapter, section: sectionNameOf(section), kind: kind, name: name,
+            module: module.code, chapter: section.chapter, section: section.title, kind: kind, name: name,
             address: noteAddressOf(section.note, ""), done: done,
         });
         if (section.today === "new") {
-            fresh.push(item("NEW", "", section.closed));
+            fresh.push(item("New", "", section.closed));
             return;
         }
         if (cold === undefined)
@@ -120,23 +110,47 @@ export function itemsOf(module: SkillModule, today: string): Item[] {
 }
 
 /**
- * Makes the small box of a note to do: its section, the small box of what is due, and the name of the Task
- * or Example; a tap opens the note.
- * - `note`: The link.
- * - `kind`: The small box of what is due.
+ * Makes the small box of a note to do, see the top of this file: its section, `New` boxed beside it for one
+ * on round 0, then below it one line per Task or Example due, its type word boxed as in the tree, see `.block-kind`
+ * in `../notes/notes.css`, and its name; a tap on the box or a line opens the note.
+ * - `section`: The note to do and its lines.
+ * - `note`: The link of its name.
+ * - `fresh`: Whether it is on round 0.
+ * - `kind`: The box of `New`.
+ * - `blocks`: The lines of what is due.
  *
- * @param item - The note to do
+ * @param items - What is due of one section
  * @returns Its element
  */
-function noteOf(item: Item): HTMLAnchorElement {
+function noteOf(items: Item[]): HTMLElement {
+    const section: HTMLDivElement = document.createElement("div");
     const note: HTMLAnchorElement = document.createElement("a");
-    const kind: HTMLSpanElement = document.createElement("span");
-    note.className = item.done ? "today-note today-note-done" : "today-note";
-    note.href = item.address;
-    kind.className = "today-kind";
-    kind.textContent = item.kind;
-    note.append(item.section, kind, ...(item.name === "" ? [] : [item.name]));
-    return note;
+    const fresh: boolean = items[0].kind === "New";
+    note.className = items.every((item: Item): boolean => item.done) ? "today-note today-note-done" : "today-note";
+    note.href = items[0].address;
+    note.append(items[0].section);
+    section.append(note);
+    if (fresh) {
+        const kind: HTMLSpanElement = document.createElement("span");
+        kind.className = "today-kind";
+        kind.textContent = items[0].kind;
+        note.append(kind);
+        return section;
+    }
+    const blocks: HTMLDivElement = document.createElement("div");
+    blocks.className = "today-blocks";
+    blocks.append(...items.map((item: Item): HTMLAnchorElement => {
+        const block: HTMLAnchorElement = document.createElement("a");
+        const kind: HTMLSpanElement = document.createElement("span");
+        block.className = item.done ? "today-block today-note-done" : "today-block";
+        block.href = item.address;
+        kind.className = "block-kind";
+        kind.textContent = item.kind;
+        block.append(kind, item.name);
+        return block;
+    }));
+    section.append(blocks);
+    return section;
 }
 
 /**
@@ -179,7 +193,7 @@ function entryOf(label: string, items: Item[], boxes: Box[]): HTMLElement {
         return span;
     }));
     notes.className = "today-notes";
-    notes.append(...items.map(noteOf));
+    notes.append(...[...Map.groupBy(items, (item: Item): string => item.section).values()].map(noteOf));
     body.append(what, meta, notes);
     entry.append(body);
     return entry;

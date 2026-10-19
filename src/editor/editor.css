@@ -228,6 +228,7 @@
 }
 
 .today-note {
+    display: block;
     overflow: hidden;
     padding: 0.375rem 0.75rem;
     border-radius: var(--chip-radius);
@@ -246,17 +247,51 @@
     color: var(--text-muted);
 }
 
-/* What is due, `Task`, `Example` or `NEW`, in a smaller box of its own between the section and the name,
+/* What is due of a section on round 0, `New`, in a smaller box of its own beside its name,
    framed in the grey of a line, its words small and grey */
 .today-kind {
     display: inline-block;
-    margin: 0 0.5rem;
+    margin-left: 0.5rem;
     padding: 0 0.375rem;
     border: 1px solid var(--chosen-line);
     border-radius: calc(var(--chip-radius) / 2);
     color: var(--text-muted);
     font-size: 0.75rem;
     line-height: 1.25rem;
+}
+
+/* The Tasks and Examples due of a section, each on a line of its own below its box, as the tree lists the blocks
+   of a section, see `.tree-children` and `.tree-round` in `../notes/notes.css`: a grey guide line at their left,
+   a step in from the name above, their type words boxed as wide as `Algorithm`, so the names start in one line,
+   in the grey of what is picked, since a card's grey is the entry's own; the row a grey lighter under the pointer */
+.today-blocks {
+    display: flex;
+    flex-direction: column;
+    margin: 0.1875rem 0 0 1rem;
+    padding-left: 0.25rem;
+    border-left: 2px solid var(--guide);
+}
+
+.today-block {
+    overflow: hidden;
+    margin: 0.1875rem 0;
+    padding: 0.125rem 0.75rem;
+    border-radius: var(--chip-radius);
+    color: var(--text-main);
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.today-block:hover {
+    background: var(--chosen);
+}
+
+.today-block .block-kind {
+    min-width: 5.75em;
+    background: var(--chosen);
+    font-size: 0.8em;
+    text-align: center;
 }
 
 /* Over Today no head, the date standing where the name of a note stands */
