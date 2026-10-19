@@ -4,7 +4,7 @@
  * Reads the log of a day, my one calendar, and adds, changes and removes its entries, by category, see `categories.ts`;
  * the plan of the day is a list of boxes beside it, see `boxes.ts`.
  * Writes into the logs of the new system, see `sources.ts`: a skill entry into the log of its skill,
- * like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Log.ics`, any other into the log of its month in Berlin time,
+ * like `University/IN2028_BusinessAnalyticsMachineLearning_Log.ics`, any other into the log of its month in Berlin time,
  * like `Living/2026_10_Log.ics`; an entry whose start moves into another month, or that changes its category or its skill,
  * moves into the log it belongs into then, as one from a month file of the layout before.
  * A skill entry names the folder of its skill and its type in its `SUMMARY` alone, linking the folder:
@@ -194,7 +194,7 @@ const cookName: string = "Cook";
  * else the log of the month of its start in Berlin time, see `calendarFileOf` in `documents.ts`.
  *
  * @param fields - Category, skill and start of the entry, like `Skill`, `IN2028` and 2026-10-13 10:00
- * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Log.ics` or `Living/2026_10_Log.ics`
+ * @returns Path like `University/IN2028_BusinessAnalyticsMachineLearning_Log.ics` or `Living/2026_10_Log.ics`
  *   in `NomManagecalendar`
  */
 export function logFileOf(fields: { category: string; module: string; start: Date }): string {

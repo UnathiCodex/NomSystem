@@ -294,15 +294,16 @@ export function titleOf(fields: {
 
 /**
  * Gives the file of the plan or of the log in `NomManagecalendar` an entry or a box belongs into, see `sources.ts`:
- * for a skill entry the log of its skill and for a skill box its plan, in `Skilling/` named like the folder
- * of the skill, see {@link skillFolderNameOf}, those without skill in the files named `Skill`; for any other
+ * for a skill entry the log of its skill and for a skill box its plan, in `University/` for a module
+ * and in `Skilling/` for a project, named like the folder of the skill, see {@link skillFolderNameOf},
+ * those without skill in `Skilling/` in the files named `Skill`; for any other
  * the log or the plan of the month of its day in `Living/`.
  * - `name`: Name of the folder of the skill, empty for none.
  *
  * @param fields - Category and skill of the entry or the box, like `Skill` and `IN2028`, or `Food` and no skill
  * @param date - Its day in Berlin time, like `2026-10-13`
  * @param ending - End of the name of the file, `logEnding` or `planEnding` of `sources.ts`
- * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Log.ics`, `Skilling/Skill_Plan.ics`
+ * @returns Path like `University/IN2028_BusinessAnalyticsMachineLearning_Log.ics`, `Skilling/Skill_Plan.ics`
  *   or `Living/2026_10_Log.ics` in `NomManagecalendar`
  */
 export function calendarFileOf(fields: { category: string; module: string }, date: string, ending: string): string {

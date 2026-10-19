@@ -19,7 +19,7 @@
  * see {@link boxUniversity}, and the later ones of its series move up a number; it is neither done nor carried along.
  *
  * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan of its month, like `Living/2026_10_Plan.ics`,
- * or a skill box in the plan of its skill, like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`,
+ * or a skill box in the plan of its skill, like `University/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`,
  * both in `NomManagecalendar`, see `sources.ts` and `calendar.ts`; a box moves into the plan it belongs into
  * when its day moves into another year or it changes its category or its skill, also one from a month file
  * of the layout before, see {@link planFileAfter}:
@@ -262,7 +262,7 @@ const deadlineDays: number = 4;
  *
  * @param box - Category and skill of the box, like `Skill` and `IN2028`, or `Talk` and no skill
  * @param date - Its day, like `2026-10-13`
- * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Plan.ics` or `Living/2026_10_Plan.ics`
+ * @returns Path like `University/IN2028_BusinessAnalyticsMachineLearning_Plan.ics` or `Living/2026_10_Plan.ics`
  *   in `NomManagecalendar`
  */
 function planFileOf(box: { category: string; module: string }, date: string): string {

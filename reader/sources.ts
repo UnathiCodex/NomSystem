@@ -63,13 +63,19 @@ export const calendarRoot: string = join(manageRoot, "NomManagecalendar");
 export const livingRoot: string = join(calendarRoot, "Living");
 
 /**
- * Folder `Skilling/` in {@link calendarRoot}: per skill, a module or a project, a plan and a log, named like
- * the folder of the skill, like `IN2028_BusinessAnalyticsMachineLearning_Plan.ics`
- * and `IN2028_BusinessAnalyticsMachineLearning_Log.ics`: a skill box goes into the plan of its skill, with the lectures
- * imported from TUMonline, a skill entry into its log, see {@link skillFileOf}; a skill box or entry without skill
- * into `Skill_Plan.ics` or `Skill_Log.ics`.
+ * Folder `Skilling/` in {@link calendarRoot}: per project a plan and a log, named like the folder of the project,
+ * like `NomFrequencediary_Plan.ics` and `NomFrequencediary_Log.ics`, see {@link skillFileOf};
+ * a skill box or entry without skill into `Skill_Plan.ics` or `Skill_Log.ics`.
  */
 export const skillingRoot: string = join(calendarRoot, "Skilling");
+
+/**
+ * Folder `University/` in {@link calendarRoot}: per module a plan and a log, named like the folder of the module,
+ * like `IN2028_BusinessAnalyticsMachineLearning_Plan.ics` and `IN2028_BusinessAnalyticsMachineLearning_Log.ics`:
+ * a skill box goes into the plan of its module, with the lectures imported from TUMonline, a skill entry into its log,
+ * see {@link skillFileOf}.
+ */
+export const universityRoot: string = join(calendarRoot, "University");
 
 /**
  * Folder `Meta/` in {@link calendarRoot}: `Birthdays.ics` and `Holidays.ics`, see {@link day}.
@@ -384,15 +390,17 @@ export function livingFileOf(date: string, ending: string): string {
 }
 
 /**
- * Builds the path of a file of a skill in {@link skillingRoot}: its log or its plan.
+ * Builds the path of a file of a skill, its log or its plan: a module's, whose folder starts with its code,
+ * in {@link universityRoot}, any other in {@link skillingRoot}.
  *
  * @param name - Name of the folder of the skill, like `IN2028_BusinessAnalyticsMachineLearning` or `WokFlow`,
  *   or `Skill` for a box or an entry without skill
  * @param ending - End of the name, {@link logEnding} or {@link planEnding}
- * @returns Path like `Skilling/IN2028_BusinessAnalyticsMachineLearning_Log.ics` in {@link calendarRoot}
+ * @returns Path like `University/IN2028_BusinessAnalyticsMachineLearning_Log.ics` or `Skilling/WokFlow_Plan.ics`
+ *   in {@link calendarRoot}
  */
 export function skillFileOf(name: string, ending: string): string {
-    return join(skillingRoot, `${name}${ending}`);
+    return join(/^[A-Z]+\d+_/.test(name) ? universityRoot : skillingRoot, `${name}${ending}`);
 }
 
 /**
