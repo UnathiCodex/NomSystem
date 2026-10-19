@@ -364,6 +364,17 @@ const lineEnding: string[] = ["X-SEMESTER", "X-CHAPTER", "X-ATTEMPT", "X-ROUND"]
 ICAL.design.icalendar.param.altrep = { multiValue: ",", multiValueSeparateDQuote: true };
 
 /**
+ * The attempts and rounds of a skill entry, `X-ATTEMPT` and `X-ROUND`, as text of the standard, the value type
+ * of every `X-` property without one: written with each `\`, `;` and `,` escaped by a `\` and a line break as `\n`,
+ * like `X-ATTEMPT:Kiosk Chain\;wrong\;Step 2: weights add up to 1.2\, not 1`, and read back without them, as
+ * `Kiosk Chain;wrong;Step 2: weights add up to 1.2, not 1`; a line written raw before reads as it is, since it holds
+ * no `\` before such a sign. `ical.js` wrote and read every `X-` value raw, so a strict reader of the standard split
+ * them at each `;` and `,`.
+ */
+ICAL.design.icalendar.property["x-attempt"] = { defaultType: "text" };
+ICAL.design.icalendar.property["x-round"] = { defaultType: "text" };
+
+/**
  * Folds every line the reader writes after 74 bytes, so each line of the file, the space that starts a continued line
  * included, has at most 75, as the standard wants: `ical.js` folds after 75 and puts the space before them, which
  * gave continued lines of 76 bytes, like ` 9Fheimer%20Stra%C3%9Fe%20127%2C%2080797%20M%C3%BCnchen-Schwabing-West%2C%20`

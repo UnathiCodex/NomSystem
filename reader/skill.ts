@@ -56,6 +56,8 @@
  * - an older entry may hold one `X-TUTOR` per task I copied for my tutor in it, like
  *   `X-TUTOR:IN2028/Kiosk Sales Standard Error`, from when the views copied a task for my tutor; nothing writes
  *   them any more, and they are only read, so the chapters of their tasks still count among the entry's.
+ * The forms above are the values of `X-ATTEMPT` and `X-ROUND`; the file holds them as text of the standard, each `;`,
+ * `,` and `\` escaped by a `\`, like `X-ATTEMPT:Kiosk Chain\;right`, see `calendar.ts`.
  * A button of a task writes into the skill entry of the moment: the last one of the task's module that started before now
  * and ended at most half an hour ago, like a tutorial logged from the plan; it grows to the end of the quarter hour
  * of the attempt, so the half hour of a pause counts from the attempt.
