@@ -41,7 +41,7 @@
  * A click on a rendered link follows it, as in Obsidian, and so does a click with Ctrl held on a link shown as text,
  * see {@link linkFollow}: a note opens in the scripts view at its heading, a heading of the same note scrolls into
  * sight, in a section its block shows alone, as a click in the tree shows it, any other file, like a PDF at its page,
- * and an address of the web open in a new tab.
+ * opens in this window, in Chrome's own viewer, and an address of the web in a new tab.
  * Links resolve as the reader found them when the note was read or saved last, see {@link linksSet}: a link that leads
  * nowhere fades and leads nowhere, a link or image written since works once the note is saved.
  *
@@ -1509,8 +1509,8 @@ function linkAt(state: EditorState, pos: number): SyntaxNode | null {
 /**
  * Follows a link, as the scripts view does: a note opens in the scripts view at the heading after `#`, a heading
  * of the same note, like `[[#Task. Kiosk Sales Standard Error|…]]`, scrolls into sight, see {@link headingShow};
- * any other file opens in a new tab at the place after `#`, like a PDF at its page with `#page=10`,
- * and so does an address of the web; a link that leads nowhere does nothing.
+ * any other file opens in this window at the place after `#`, like a PDF at its page with `#page=10`, an address
+ * of the web in a new tab; a link that leads nowhere does nothing.
  * - `url`: The address of a Markdown link or an address written as it is.
  *
  * @param view - The editor
@@ -1526,7 +1526,9 @@ function linkFollow(view: EditorView, node: SyntaxNode, links: Links): void {
 
 /**
  * Follows a link by its address as written, see {@link linkFollow}; a heading of the same note in a section shows its
- * block alone, see `roundHeadingShow` in `./round.ts`, since every other block there is hidden.
+ * block alone, see `roundHeadingShow` in `./round.ts`, since every other block there is hidden; a note opens in this
+ * window, and so does any other file, like a PDF in Chrome's own viewer, never in a second tab of NomSystem;
+ * only an address of the web, like `https://…`, opens in a new tab.
  * - `hash`: Where its `#` stands, -1 for none.
  * - `target`, `heading`: The link to a file before `#`, empty for the note itself, and the place in it after `#`.
  * - `path`: The file it leads to, as the reader found it, `null` for none.
@@ -1552,7 +1554,7 @@ function addressFollow(view: EditorView, address: string, links: Links): void {
     } else if (path !== null && /\.md$/i.test(path))
         location.assign(noteAddressOf(path, heading));
     else if (path !== null)
-        window.open(heading === "" ? fileAddressOf(path) : `${fileAddressOf(path)}#${heading}`, "_blank");
+        location.assign(heading === "" ? fileAddressOf(path) : `${fileAddressOf(path)}#${heading}`);
 }
 
 /**
