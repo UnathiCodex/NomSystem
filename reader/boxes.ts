@@ -453,16 +453,30 @@ function deadlineShows(box: Box, date: string): boolean {
 }
 
 /**
+ * Gives the day of the log entry written from a box, in Berlin time.
+ *
+ * @param box - The box
+ * @returns Day like `2026-10-19`, empty for a box without log entry
+ */
+function loggedDayOf(box: Box): string {
+    return box.log === null ? "" : berlinDateOf(new Date(box.log.start));
+}
+
+/**
  * Reads the plans of the days of a range: the birthdays and holidays of each day with my gift ideas for them,
  * their `DESCRIPTION`s, and its boxes, each with its state and the time of its log entry.
  * A box belongs to the day it starts on, a box with a deadline to each day it shows on, see {@link deadlineShows},
- * and a pushed box greyed to each day it was pushed from, see {@link leftBoxesOf}, wherever it lies now.
+ * and a pushed box greyed to each day it was pushed from, see {@link leftBoxesOf}, wherever it lies now;
+ * a box without time and deadline carried along and done on a later day, see {@link boxesCarried}, also to the day
+ * of its log entry, done, like the box of 18.10 for 01 Regression Analysis that my session of 19.10 did,
+ * see {@link loggedDayOf}.
  * - `from`: Start of the first day, in Berlin time.
  * - `logs`: Log entries written from boxes, until {@link deadlineDays} days after the last day, see {@link logsOf}.
  * - `boxes`: Boxes of the plan from the first day to {@link deadlineDays} days after the last,
  *   so a deadline after the range shows in it.
  * - `left`: Boxes as they stood on the days of the range they were pushed from: those of the plan that happen once,
  *   whenever they lie, since one occurrence of a series becomes one of its own before it is pushed, see {@link boxOwn}.
+ * - `done`: Boxes without time and deadline done by a log entry of a later day than their own, that day in the range.
  * - `occasions`: Birthdays and holidays of the days of the range, none of a file while it is missing.
  * - `days`: The plans so far.
  * - `planned`: Boxes of the plan of one day.
@@ -483,6 +497,10 @@ export function boxesRead(start: string, end: string): PlanDay[] {
         .filter((entry: Entry): boolean =>
             entry.pushed.some((push: Push): boolean => start <= push.day && push.day < end))
         .flatMap((entry: Entry): Box[] => leftBoxesOf(boxOf(entry, logs)));
+    const done: Box[] = entriesOnceRead(day.plan)
+        .map((entry: Entry): Box => boxOf(entry, logs))
+        .filter((box: Box): boolean => box.state === "done" && box.time === "" && box.deadline === ""
+            && box.day < loggedDayOf(box) && start <= loggedDayOf(box) && loggedDayOf(box) < end);
     const occasions: Entry[] = entriesRead(day.system, from, berlinDayStartOf(end));
 
     const days: PlanDay[] = [];
@@ -490,6 +508,7 @@ export function boxesRead(start: string, end: string): PlanDay[] {
         const planned: Box[] = [
             ...boxes.filter((box: Box): boolean => box.deadline === "" ? box.day === date : deadlineShows(box, date)),
             ...left.filter((box: Box): boolean => box.day === date),
+            ...done.filter((box: Box): boolean => loggedDayOf(box) === date),
         ];
         days.push({
             day: date,
