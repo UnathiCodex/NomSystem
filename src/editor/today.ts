@@ -143,7 +143,9 @@ function noteOf(item: Item): HTMLAnchorElement {
  * Makes the entry of a chapter, as its box in the plan: what it is in bold, grey its length and its chapter,
  * apart by a middle dot, then the small boxes of its notes to do.
  * - `entry`, `body`, `what`, `heading`, `meta`, `notes`: The entry and its lines.
- * - `box`: Its box in the plan of today or carried along to it, `undefined` for none, like one I took out.
+ * - `box`: Its study box in the plan of today or carried along to it, one without time and deadline, as the reader
+ *   writes it, see `reader/suggestions.ts`, `undefined` for none, like one I took out; never a lecture or a homework
+ *   sheet of the chapter.
  * - `parts`: Its length and its chapter, as far as it has them.
  *
  * @param label - What its module is, like `IN2028 Business Analytics Machine Learning`
@@ -159,7 +161,8 @@ function entryOf(label: string, items: Item[], boxes: Box[]): HTMLElement {
     const meta: HTMLDivElement = document.createElement("div");
     const notes: HTMLDivElement = document.createElement("div");
     const box: Box | undefined = boxes.find((candidate: Box): boolean =>
-        candidate.module === items[0].module && candidate.chapters.includes(items[0].chapter));
+        candidate.module === items[0].module && candidate.chapters.includes(items[0].chapter)
+        && candidate.time === "" && candidate.deadline === "");
     const parts: string[] = [...(box === undefined || box.minutes === null ? [] : [lengthOf(box.minutes)]),
         chapterNameOf(items[0].chapter)];
     entry.className = items.every((item: Item): boolean => item.done) ? "box today-entry box-done" : "box today-entry";
