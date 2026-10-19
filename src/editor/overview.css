@@ -44,13 +44,13 @@
 }
 
 /* A row and the line naming its columns on one grid: the name taking the room left, then the round, the next day,
-   right and wrong, each as wide as its longest value, like `Mon, 19.10.2026`, so the columns of every row stand
+   right and wrong, each as wide as its longest value, like `Wed, 30.09.2026`, so the columns of every row stand
    in line, also across the chapters of a module; the line in line with the text of the rows, inside the padding
    of their card and their own */
 .overview-row,
 .overview-head {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 3.75rem 8.25rem 3rem 3.25rem;
+    grid-template-columns: minmax(0, 1fr) 3.75rem 7.75rem 3rem 3.25rem;
     column-gap: 1rem;
     align-items: baseline;
 }
@@ -116,8 +116,11 @@
     color: var(--text-muted);
 }
 
-/* The name of a section as in the tree, on one line, ending in `…` where it is too long */
+/* The name of a section as in the tree, on one line, ending in `…` where it is too long, a gap wider than between
+   the values before the round, so the longest name, like `01_17_MulticollinearityVarianceInflation`, never runs
+   up to it */
 .overview-name {
+    padding-right: 1rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
