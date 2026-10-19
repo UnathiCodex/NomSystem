@@ -384,6 +384,16 @@
     background: var(--fill);
 }
 
+/* A note shown with its outline or its blocks open below it without that grey, since the open list already shows it;
+   folded away it keeps the grey */
+.tree-file.shown:not(.tree-folded):has(+ .tree-outline) {
+    background: none;
+}
+
+.tree-file.shown:not(.tree-folded):has(+ .tree-outline):hover {
+    background: var(--row-over);
+}
+
 /* The outline of the note shown, or the blocks of a section, folded away by a click on its entry, like a folder,
    see `outlineFold` in `tree.ts` */
 .tree-file.tree-folded + .tree-outline {
