@@ -4,9 +4,11 @@
  * Puts what I learn today into the plan of today as real boxes, without asking: one box per chapter with something
  * due today, a Task by its spacing or a section on round 0, see `today` of `SkillSection` in `skill.ts`, the same
  * chapters Learn shows, see `src/editor/today.ts`. A box of my own learning, without type and without time,
- * like a to-do, since only its length matters, not when: one study session, see `sessionMinutes` in `trackers.ts`,
- * like `SUMMARY:IN2028 Business Analytics Machine Learning` with `X-CHAPTER:01_RegressionAnalysis`
- * and `ESTIMATED-DURATION:PT1H`, see `boxes.ts`, and one `ATTACH` per note of the chapter with something due,
+ * like a to-do, since only its length matters, not when: 30 minutes for the Task of each section with something due,
+ * and 30 more for the theory of a section on round 0, its Definitions, Algorithm and Example, see `taskMinutes`
+ * and `theoryMinutes` in `trackers.ts`, like `SUMMARY:IN2028 Business Analytics Machine Learning`
+ * with `X-CHAPTER:01_RegressionAnalysis` and `ESTIMATED-DURATION:PT2H` for 01.03 on round 0 with the Tasks
+ * of 01.01 and 01.02, see `boxes.ts`, and one `ATTACH` per note of the chapter with something due,
  * at most one Task each, like `ATTACH:NomSkillingmodules/IN2028_…/01_RegressionAnalysis/01_01_SampleMeanEstimator.md`,
  * as it stands when the box is written; its real length the log keeps.
  * A chapter gets no box while the plan of today holds a study box of it, one without time and deadline, as
@@ -22,7 +24,7 @@
  * - `./calendar.ts`: Gives today in Berlin time and adds a day to a day.
  * - `./categories.ts`: Names the category of skill entries.
  * - `./skill.ts`: Reads what of each section is due today.
- * - `./trackers.ts`: Holds the length of one study session.
+ * - `./trackers.ts`: Holds the minutes of a Task and of the theory of a new section.
  */
 
 import { boxAdd, boxesCarried, boxesRead } from "./boxes.ts";
@@ -42,6 +44,7 @@ import type { SkillModule, SkillSection } from "./skill.ts";
  *   today among them, and those carried along to it, which are open.
  * - `due`: Sections of a module with something due today, in their order.
  * - `chapters`: Their chapters, in their order.
+ * - `sections`: Sections of a chapter with something due today, in their order.
  *
  * @throws {Error} - When a folder, a note, the log or the plan cannot be read, or a box cannot be written
  */
@@ -56,11 +59,14 @@ export function suggestionsWrite(): void {
             .filter((chapter: string): boolean => !boxes.some((box: Box): boolean =>
                 box.module === module.code && box.chapters.includes(chapter)))
             .forEach((chapter: string): void => {
+                const sections: SkillSection[] = due
+                    .filter((section: SkillSection): boolean => section.chapter === chapter);
                 boxAdd({
                     category: skillName, title: "", location: "", from: "", module: module.code, type: "",
-                    semester: "", note: "", day: today, time: "", minutes: settings.sessionMinutes, deadline: "",
-                    chapters: [chapter], documents: due
-                        .filter((section: SkillSection): boolean => section.chapter === chapter)
+                    semester: "", note: "", day: today, time: "", deadline: "", chapters: [chapter],
+                    minutes: sections.reduce((minutes: number, section: SkillSection): number => minutes
+                        + settings.taskMinutes + (section.today === "new" ? settings.theoryMinutes : 0), 0),
+                    documents: sections
                         .map((section: SkillSection): string => section.note.split("/").slice(1).join("/")),
                 });
             });

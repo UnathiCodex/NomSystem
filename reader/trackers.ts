@@ -47,8 +47,11 @@ import type { FoodDay, Totals } from "./food.ts";
  * - `waterMl`: Millilitres of water I want a day.
  * - `bedtimeVaried`: Minutes my bedtime may vary over the week, up or down, for its check.
  * - `neckLongWeek`: Long neck sessions I want in seven days; a short one, or a long, on every study day.
- * - `sessionMinutes`: Minutes of one study session, as the box of a chapter in the plan of today has them,
- *   see `suggestions.ts`, and as a session the learning view opens.
+ * - `sessionMinutes`: Minutes of one study session, as a session the learning view opens.
+ * - `taskMinutes`: Minutes of one Task, which every section due today brings to the box of its chapter in the plan
+ *   of today, see `suggestions.ts`.
+ * - `theoryMinutes`: Minutes of the Definitions, the Algorithm and the Example of a section on round 0,
+ *   which it brings to that box besides its Task.
  */
 export type TrackerSettings = {
     sleepHours: number;
@@ -58,6 +61,8 @@ export type TrackerSettings = {
     bedtimeVaried: number;
     neckLongWeek: number;
     sessionMinutes: number;
+    taskMinutes: number;
+    theoryMinutes: number;
 };
 
 /**
@@ -148,11 +153,12 @@ export type Trackers = {
  * and the regularity of sleep with lower mortality, more than its length (Windred 2024).
  * A short neck session, or a long one, on every study day, and 3 long ones in seven days, since regular strengthening
  * eased neck pain after 10 to 20 weeks (Gross 2015) and about once a week did nothing (Jones 2024).
- * My learning: study sessions of 60 minutes, my choice, not a finding (`.claude/studies/science.md`, point 9).
+ * My learning: study sessions of 60 minutes, 30 for a Task and 30 more for the theory of a new section,
+ * my choice, not a finding (`.claude/studies/science.md`, point 9).
  */
 export const settings: TrackerSettings = {
     sleepHours: 8, sleepBand: [7, 9], glassMl: 250, waterMl: 2500, bedtimeVaried: 30, neckLongWeek: 3,
-    sessionMinutes: 60,
+    sessionMinutes: 60, taskMinutes: 30, theoryMinutes: 30,
 };
 
 /**
