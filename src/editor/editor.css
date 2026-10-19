@@ -155,12 +155,11 @@
     opacity: 1;
 }
 
-/* The round check of a section, see `round.ts`: round, unlike the square save button;
-   in the calm grey of a main button once the round's Task has a result, off before: its ring in the grey
-   of every frame, so it still shows as a ring, only its check faint */
+/* The round check of a section, see `round.ts`: square with round corners, as the save button and every button;
+   in the calm grey of a main button once the round's Task has a result, off before: its frame in the grey
+   of every frame, so it still shows as a button, only its check faint */
 .editor-close {
     border-color: var(--chosen-line);
-    border-radius: 50%;
     background: var(--chosen);
 }
 
@@ -249,23 +248,23 @@
     color: var(--text-muted);
 }
 
-/* What is due of a section on round 0, `New`, in a smaller box of its own beside its name,
-   framed in the grey of a line, its words small and grey */
-.today-kind {
-    display: inline-block;
-    margin-left: 0.5rem;
-    padding: 0 0.375rem;
-    border: 1px solid var(--chosen-line);
-    border-radius: calc(var(--chip-radius) / 2);
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    line-height: 1.25rem;
+/* `New` beside the name of a section on round 0 boxed as the type words of the Tasks below, see `.block-kind`,
+   a step apart from the name, one grey lighter than its box, so it never melts into it, and one grey darker under
+   the pointer, where the box turns lighter */
+.today-note .block-kind {
+    margin: 0 0 0 0.5em;
+    background: var(--chosen-over);
+}
+
+.today-note:hover .block-kind {
+    background: var(--chosen);
 }
 
 /* The Tasks and Examples due of a section, each on a line of its own below its box, as the tree lists the blocks
    of a section, see `.tree-children` and `.tree-round` in `../notes/notes.css`: a grey guide line at their left,
-   a step in from the name above, their type words boxed as wide as `Algorithm`, so the names start in one line,
-   in the grey of what is picked, since a card's grey is the entry's own; the row a grey lighter under the pointer;
+   a step in from the name above, their type words boxed, as `New` is, as wide as `Algorithm`, so the names start
+   in one line, in the grey of what is picked, since a card's grey is the entry's own; the row a grey lighter under
+   the pointer;
    rows as high and as far apart as the notes above them */
 .today-blocks {
     display: flex;
@@ -291,11 +290,14 @@
     background: var(--chosen);
 }
 
-.today-block .block-kind {
+.today-notes .block-kind {
     min-width: 5.75em;
-    background: var(--chosen);
     font-size: 0.8em;
     text-align: center;
+}
+
+.today-block .block-kind {
+    background: var(--chosen);
 }
 
 /* Over Today no head, the date standing where the name of a note stands */

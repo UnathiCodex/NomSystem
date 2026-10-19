@@ -6,10 +6,10 @@
  * as in the plan, one per chapter with something due, see `reader/suggestions.ts`: what it is in bold on one line,
  * like `Skill: IN2028 Business Analytics Machine Learning`, grey below it its length as its box in the plan has it
  * and its chapter, like `01h 00m · 01 Regression Analysis`; then one small box per note to do, each a link to it,
- * named as the tree names it, like `01_01_SampleMeanEstimator`, with `New` boxed beside it for a section on round 0,
- * and below it, one per line, what is due, as the tree lists the blocks of a section: a grey guide line at their left,
- * the type word boxed, `Task`, `Example` or `Algorithm`, and the name, like `Bakery Chain`; a tap opens the note
- * where its round stands, see `./round.ts`, which shows only what is due. Nothing else.
+ * named as the tree names it, like `01_01_SampleMeanEstimator`, with `New` boxed as a type word beside it for
+ * a section on round 0, and below it, one per line, what is due, as the tree lists the blocks of a section: a grey
+ * guide line at their left, the type word boxed, `Task`, `Example` or `Algorithm`, and the name, like `Bakery Chain`;
+ * a tap opens the note where its round stands, see `./round.ts`, which shows only what is due. Nothing else.
  * The order is that of a session: the Tasks due first, each with what its failure today brings back right after it,
  * by the round's own ladder, one Example easier each, see `fallbacksOf` in `./round.ts`, then the section new today,
  * see `todayMarked` in `reader/skill.ts`. A note to do stays in its place, grey, once its round is closed by hand;
@@ -132,7 +132,7 @@ function noteOf(items: Item[]): HTMLElement {
     section.append(note);
     if (fresh) {
         const kind: HTMLSpanElement = document.createElement("span");
-        kind.className = "today-kind";
+        kind.className = "block-kind";
         kind.textContent = items[0].kind;
         note.append(kind);
         return section;
