@@ -546,7 +546,7 @@ export function boxesCarried(date: string): Box[] {
 
 /**
  * Reads the skill boxes of the plan, of every module and type, from the first entry of the plan to a day,
- * done, cancelled and open alike, each with its state, for the list of each module by type, see `skill.ts`;
+ * done, cancelled and open alike, each with its state, for the exam of each module, see `examOf` in `skill.ts`;
  * a series without end stops at that day.
  * - `logs`: Log entries written from boxes, up to the day after the day, see {@link logsOf}.
  *

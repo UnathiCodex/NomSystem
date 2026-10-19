@@ -1429,7 +1429,7 @@ async function categoryPick(category: Category | null): Promise<void> {
 /**
  * Shows the category of the dialog as its first row, one line like every field, whose list offers the categories
  * in the order the reader gives them, for a box only those I plan. While a log entry is changed, `Skill` stays apart:
- * a skill entry cannot become another category, nor another entry a skill entry, because only the skill area writes
+ * a skill entry cannot become another category, nor another entry a skill entry, because only `reader/skill.ts` writes
  * the documents and attempts of a skill entry of the log; a skill box is a plain box, which may change its category.
  * - `offered`: The categories the list offers.
  */

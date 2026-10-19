@@ -34,7 +34,7 @@
  * by its code or a project by its name, and a type or none, which the dialog picks itself, written as its skill airy
  * with the type in brackets, like `IN2028 Business Analytics Machine Learning (VO)` or `WokFlow`,
  * see `activeSkills` in `sources.ts` and {@link skillTypes};
- * in the log also its documents and its attempts, which only the skill area writes, see `skill.ts`.
+ * in the log also its documents and its attempts, which only `skill.ts` writes.
  * A box of the plan takes only what I intend and would otherwise forget, so not `Sleep`, `Food`, `Cook`, `Drink`
  * and `Game`, which happen anyway, see {@link unplannedNames}; `Watch` stays, since a cinema or a match has its time.
  * `Drink` is no category I pick: water has its own tracker, whose counter writes each glass as an entry `Drink`
@@ -176,7 +176,7 @@ function categoryOf(name: string): Category {
  * Category of skill entries, written as `CATEGORIES:Skill`: in plan and log a skill and a type or none,
  * both in its `SUMMARY`, like `IN2028 Business Analytics Machine Learning (VO)`, see `skillPartsOf` in `calendar.ts`,
  * which names the category, its place and who I was with,
- * in the log also its documents and its attempts, which only the skill area writes.
+ * in the log also its documents and its attempts, which only `skill.ts` writes.
  */
 export { skillName };
 
@@ -519,7 +519,7 @@ export function attendeesAllow(attendees: Attendee[]): boolean {
  * well formed, see {@link attendeesAllow}; every field but the category and the times may stay empty.
  * `Skill` is a skill or none, a module code like `IN2028` or a project like `WokFlow`, and one of the
  * {@link skillTypes} or none; what it was the reader writes from both, see `skillTitleOf` in `documents.ts`,
- * and its chapters, documents and attempts in the log only the skill area writes.
+ * and its chapters, documents and attempts in the log only `skill.ts` writes.
  * - `keys`: Fields of the category.
  * - `what`: Its field `title`, `undefined` for none.
  * - `whatAllowed`: Whether what the entry was fits that field.

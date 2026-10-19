@@ -11,7 +11,7 @@
  * `CATEGORIES:Skill`,
  * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028 Business Analytics Machine Learning (VO)`,
  * without `X-TYPE` and `X-MODULE`, also one logged from a box, see `titleOf` in `documents.ts`;
- * its chapters, document and attempts the skill area writes, see `skill.ts`.
+ * its chapters, document and attempts only `skill.ts` writes.
  * A change from the dialog is written only while the file holds the entry as the dialog opened it, see
  * {@link entryEdit}, and a drag writes only the new start and end, see {@link entryMove}, so no page writes back
  * what the file held before, like a food renamed in every entry since.

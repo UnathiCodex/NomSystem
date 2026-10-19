@@ -82,15 +82,15 @@
  * A skipped task leaves the due list until its next attempt.
  *
  * - `./boxes.ts`: Finds the skill box of a module for now, marks a box done once a skill entry is logged from it,
- *   and reads the skill boxes of the plan, for the lists of each module by type.
+ *   and reads the skill boxes of the plan, for the exam of each module.
  * - `./calendar.ts`: Reads the log, appends entries to it, changes their events, and adds days to a day.
  * - `./categories.ts`: Names the category and the types of skill entries and writes what a skill entry was.
  * - `./day.ts`: Gives the log an entry belongs into, the log of its skill.
  * - `./documents.ts`: Builds the links of a skill entry, to the folder of its skill, to its documents
- *   with their fingerprints and to the folders of its chapters, and gives the links it could not repair.
+ *   with their fingerprints and to the folders of its chapters.
  * - `./notes.ts`: Reads the modules of the semester with their chapters and notes, and every module folder.
  * - `./places.ts`: Gives the link of the place of a skill entry.
- * - `./sources.ts`: Names the log of the skill area and the skills of the semester, its modules and its projects,
+ * - `./sources.ts`: Names the skill log and the skills of the semester, its modules and its projects,
  *   and the folder of my modules.
  */
 
@@ -102,20 +102,19 @@ import {
 import { attendeesAllow, semesterFor, skillName, skillTypes } from "./categories.ts";
 import { logFileOf } from "./day.ts";
 import {
-    chaptersOf, documentLinksOf, linksLostRead, linksOf, skillFolderOf, skillLabelOf, titleOf,
+    chaptersOf, documentLinksOf, linksOf, skillFolderOf, skillLabelOf, titleOf,
 } from "./documents.ts";
 import {
-    codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead, papersRead,
+    codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead,
 } from "./notes.ts";
 import { placeLinkOf } from "./places.ts";
 import {
     activeModules, activeSkills, modulesFolder, projectOf, skillLog, skillNameOf,
 } from "./sources.ts";
 
-import type { Box, BoxState } from "./boxes.ts";
+import type { Box } from "./boxes.ts";
 import type { Attendee, Entry, EntryFields, Link } from "./calendar.ts";
-import type { LinkLost } from "./documents.ts";
-import type { Chapter, ModuleContents, NoteEntry, NotesModule, Paper } from "./notes.ts";
+import type { Chapter, ModuleContents, NoteEntry, NotesModule } from "./notes.ts";
 
 
 /**
@@ -330,34 +329,6 @@ export type ExamDate = {
 };
 
 /**
- * One entry of the plan of a module in the list of its type, see {@link plannedOf}.
- *
- * - `day`: Its day, like `2026-10-06`, for a homework sheet the day of its deadline.
- * - `time`: Its time as ISO instant, for a homework sheet the time of its deadline, empty for none.
- * - `state`: Whether it is open, done, since a log entry relates to it, dropped, which I cancelled, or cancelled
- *   by the university; the page tells an open one whose day is over from one still to come.
- * - `number`: Its number in its series as stored, its `X-NUMBER`, like `3`, `NONE` for one the university cancelled,
- *   empty for none, like an entry not numbered yet.
- */
-export type PlannedEntry = {
-    day: string;
-    time: string;
-    state: BoxState;
-    number: string;
-};
-
-/**
- * The entries of the plan of a module of one type, like all its lectures `VO`.
- *
- * - `type`: The type, like `VO`.
- * - `entries`: Its entries by date, the cancelled ones among them, so each keeps its number.
- */
-export type PlannedType = {
-    type: string;
-    entries: PlannedEntry[];
-};
-
-/**
  * A module of the semester with its tasks.
  *
  * - `code`: Module code, like `IN2028`, the part of its folder name before `_`.
@@ -365,10 +336,6 @@ export type PlannedType = {
  * - `exam`: Its exam, see {@link exams}.
  * - `tasks`: Its tasks, by chapters, notes and headings in order, each name once.
  * - `sections`: Its sections in the same order, each with its cold task.
- * - `duplicates`: Tasks whose name an earlier task of the module has already, left out of `tasks`.
- * - `removed`: Number of attempts on tasks no note holds any more.
- * - `planned`: Its entries of the plan by type, like all its lectures, see {@link plannedOf}.
- * - `papers`: Its old exams, see `papersRead` in `notes.ts`.
  */
 export type SkillModule = {
     code: string;
@@ -376,14 +343,10 @@ export type SkillModule = {
     exam: ExamDate;
     tasks: SkillTask[];
     sections: SkillSection[];
-    duplicates: Task[];
-    removed: number;
-    planned: PlannedType[];
-    papers: Paper[];
 };
 
 /**
- * Everything the skill and scripts views show of my tasks, and the skill entries of the day pick from.
+ * Everything the scripts view shows of my tasks, and the skill entries of the day pick from.
  *
  * - `modules`: Modules of the semester in the order of their list, also those without tasks yet.
  * - `skills`: The skills of the semester for the Skill picker, in their order, by their names, see {@link skillNameOf}:
@@ -397,7 +360,6 @@ export type SkillModule = {
  *   of its `SUMMARY` and the dialog shows grey below the skill picked, like
  *   `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, see `skillFolderOf` in `documents.ts`.
  * - `types`: Types of a skill entry, like `VO`.
- * - `lost`: Links of skill entries the reader could not repair at its last check, see `documents.ts`.
  */
 export type Skilling = {
     modules: SkillModule[];
@@ -406,7 +368,6 @@ export type Skilling = {
     labels: { [name: string]: string };
     paths: { [name: string]: string };
     types: string[];
-    lost: LinkLost[];
 };
 
 /**
@@ -595,10 +556,10 @@ export const exams: { [code: string]: ExamDate } = {
 const examDefault: ExamDate = { day: "2027-02-15", estimated: true };
 
 /**
- * Days after today up to which the lists of the plan of each module reach, see {@link plannedOf}: a year,
+ * Days after today up to which the plan of each module is searched for its exam, see {@link examOf}: a year,
  * so a series without end stops.
  */
-const plannedDays: number = 366;
+const planDays: number = 366;
 
 /**
  * Part of a cold task, a numbered list item at the start of a line, like `2. Campus kiosk, seven days in July`.
@@ -1218,44 +1179,6 @@ function todayMarked(sections: SkillSection[], tasks: SkillTask[], today: string
 }
 
 /**
- * Gives the time of an entry of the plan in the list of its type, see {@link PlannedEntry}: its expected time,
- * else the time of its deadline, like that of a homework sheet.
- *
- * @param box - Skill box of the plan
- * @returns ISO instant, empty for a box without time and without a deadline with time
- */
-function plannedTimeOf(box: Box): string {
-    if (box.time !== "")
-        return box.time;
-    return box.deadline === "" || /^\d{4}-\d{2}-\d{2}$/.test(box.deadline) ? "" : box.deadline;
-}
-
-/**
- * Lists the entries of the plan of a module by type, in the order of the types, like all its lectures `VO`:
- * each list by date, with its stored number, the cancelled entries among them; a type without entries
- * is left out, and so are my own learning, which has no type, and an older type no longer offered, like `DEV`.
- * - `own`: The boxes of the module.
- *
- * @param module - Module code, like `IN2028`
- * @param boxes - Skill boxes of the plan, see `skillBoxesRead` in `boxes.ts`
- * @returns The lists, one per type
- */
-function plannedOf(module: string, boxes: Box[]): PlannedType[] {
-    const own: Box[] = boxes.filter((box: Box): boolean => box.module === module);
-    return skillTypes
-        .map((type: string): PlannedType => ({
-            type: type,
-            entries: own
-                .filter((box: Box): boolean => box.type === type)
-                .map((box: Box): PlannedEntry =>
-                    ({ day: box.day, time: plannedTimeOf(box), state: box.state, number: box.number }))
-                .sort((first: PlannedEntry, second: PlannedEntry): number =>
-                    first.day.localeCompare(second.day) || first.time.localeCompare(second.time)),
-        }))
-        .filter((planned: PlannedType): boolean => planned.entries.length > 0);
-}
-
-/**
  * Gives the exam of a module: the first box of the type `FA` of its plan from today on, its day as the university
  * named it, else its estimate, see {@link exams}, else {@link examDefault}.
  * - `today`: Today in Berlin time.
@@ -1274,18 +1197,14 @@ function examOf(module: string, boxes: Box[]): ExamDate {
 }
 
 /**
- * Reads everything the skill and scripts views show: per module of the semester its exam, its tasks with when each
- * is due, see the top of this file, its sections, the tasks whose name the module has already, and the number
- * of attempts on tasks no note holds any more; a module without chapter notes yet has no tasks.
- * Attempts on other modules count nowhere.
- * Also the entries of the plan of each module by type, see {@link plannedOf}, the skills of the semester and every
- * other module folder and the types of a skill entry, for the pickers, and the links the reader could not repair,
- * see `documents.ts`.
+ * Reads everything the scripts view shows: per module of the semester its exam, its tasks with when each is due,
+ * see the top of this file, and its sections; a module without chapter notes yet has no tasks, and a task whose name
+ * an earlier task of the module has already is left out. Attempts on other modules count nowhere.
+ * Also the skills of the semester and every other module folder and the types of a skill entry, for the pickers.
  * - `attempts`: My attempts, in order.
- * - `boxes`: Skill boxes of the plan up to {@link plannedDays} days after today.
+ * - `boxes`: Skill boxes of the plan up to {@link planDays} days after today.
  * - `byTask`: The same attempts by the identity of their task.
  * - `unique`: Tasks of a module, each name once.
- * - `duplicates`: Tasks of a module whose name an earlier task has.
  * - `exam`: Exam of a module, see {@link examOf}.
  * - `attemptsOf`: Attempts at a task.
  * - `colds`: Cold tasks of a module with when each is due and the runs its section had, by their notes,
@@ -1299,16 +1218,10 @@ export function skillingRead(): Skilling {
     const attempts: LoggedAttempt[] = attemptsRead();
     const rounds: RoundLine[] = roundsRead();
     const byTask: Map<string, LoggedAttempt[]> = Map.groupBy(attempts, (logged: LoggedAttempt): string => logged.task);
-    const boxes: Box[] = skillBoxesRead(dayAdd(berlinDateOf(new Date()), plannedDays));
+    const boxes: Box[] = skillBoxesRead(dayAdd(berlinDateOf(new Date()), planDays));
     const modules: SkillModule[] = moduleTasksRead().map((module: ModuleTasks): SkillModule => {
-        const unique: Task[] = [];
-        const duplicates: Task[] = [];
-        module.tasks.forEach((task: Task): void => {
-            if (unique.some((known: Task): boolean => known.id === task.id))
-                duplicates.push(task);
-            else
-                unique.push(task);
-        });
+        const unique: Task[] = module.tasks.filter((task: Task, index: number): boolean =>
+            module.tasks.findIndex((known: Task): boolean => known.id === task.id) === index);
         const exam: ExamDate = examOf(module.code, boxes);
         const attemptsOf: (task: Task) => Attempt[] = (task: Task): Attempt[] =>
             (byTask.get(task.id) ?? []).map((logged: LoggedAttempt): Attempt => logged.attempt);
@@ -1328,12 +1241,8 @@ export function skillingRead(): Skilling {
                 ready: run.ready, skipped: current && run.skipped, attempts: attemptsOf(task),
             };
         });
-        const removed: number = attempts.filter((logged: LoggedAttempt): boolean => logged.task.split("/")[0] === module.code
-            && !tasks.some((task: SkillTask): boolean => task.id === logged.task)).length;
         return {
             code: module.code, title: module.title, exam: exam, tasks: tasks, sections: sectionsOf(tasks, today, exam, rounds),
-            duplicates: duplicates, removed: removed, planned: plannedOf(module.code, boxes),
-            papers: papersRead(module.title),
         };
     });
 
@@ -1346,7 +1255,7 @@ export function skillingRead(): Skilling {
             [name, skillLabelOf(name)])),
         paths: Object.fromEntries([...skills, ...others].map((name: string): [string, string] =>
             [name, skillFolderOf(name) ?? ""])),
-        types: skillTypes, lost: linksLostRead(),
+        types: skillTypes,
     };
 }
 

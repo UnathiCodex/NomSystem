@@ -152,7 +152,7 @@ const resultChoices: Choice[] = [
  * Modules with their tasks and the lists to pick from, as the reader gave them when `Skill` was picked.
  */
 let skilling: Skilling = {
-    modules: [], skills: [], otherModules: [], labels: {}, paths: {}, types: [], lost: [],
+    modules: [], skills: [], otherModules: [], labels: {}, paths: {}, types: [],
 };
 
 /**

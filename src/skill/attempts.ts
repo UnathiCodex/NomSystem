@@ -153,33 +153,6 @@ export type ExamDate = {
 };
 
 /**
- * One entry of the plan of a module in the list of its type, as the reader sends it.
- *
- * - `day`: Its day, like `2026-10-06`, for a homework sheet the day of its deadline.
- * - `time`: Its time as ISO instant, for a homework sheet the time of its deadline, empty for none.
- * - `state`: Whether it is open, done, since a log entry relates to it, dropped, which I cancelled, or cancelled
- *   by the university.
- * - `number`: Its number in its series as stored, like `3`, `NONE` for one the university cancelled, empty for none.
- */
-export type PlannedEntry = {
-    day: string;
-    time: string;
-    state: "open" | "done" | "dropped" | "university";
-    number: string;
-};
-
-/**
- * The entries of the plan of a module of one type, like all its lectures `VO`, as the reader sends them.
- *
- * - `type`: The type, like `VO`.
- * - `entries`: Its entries by date, the cancelled ones among them, so each keeps its number.
- */
-export type PlannedType = {
-    type: string;
-    entries: PlannedEntry[];
-};
-
-/**
  * A module of the semester with its tasks, as the reader sends it.
  *
  * - `code`: Module code, like `IN2028`.
@@ -187,10 +160,6 @@ export type PlannedType = {
  * - `exam`: Its exam.
  * - `tasks`: Its tasks in the order of the notes.
  * - `sections`: Its sections in the same order.
- * - `duplicates`: Tasks whose name an earlier task of the module has already.
- * - `removed`: Number of attempts on tasks no note holds any more.
- * - `planned`: Its entries of the plan by type, in the order of the types, a type without entries left out.
- * - `papers`: Its old exams, the newest first.
  */
 export type SkillModule = {
     code: string;
@@ -198,23 +167,6 @@ export type SkillModule = {
     exam: ExamDate;
     tasks: SkillTask[];
     sections: SkillSection[];
-    duplicates: Task[];
-    removed: number;
-    planned: PlannedType[];
-    papers: Paper[];
-};
-
-/**
- * An old exam of a module, its files in the folder of its examinations, as the reader sends it.
- *
- * - `semester`: Folder of its semester, like `TUM_2024W`.
- * - `kind`: Its kind, like `Endterm`, `Retake` or `Mock`.
- * - `files`: Its files, each its name, like `Assignments` or `Solutions`, and its path in `NomSkillingmodules`.
- */
-export type Paper = {
-    semester: string;
-    kind: string;
-    files: { name: string; path: string }[];
 };
 
 /**
@@ -230,7 +182,6 @@ export type Paper = {
  * - `paths`: The folder of each of them from `NomWorkspace`, which a skill entry links, shown grey below the skill
  *   picked, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
  * - `types`: Types of a skill entry, like `VO`.
- * - `lost`: Links of skill entries the reader could not repair at its last check.
  */
 export type Skilling = {
     modules: SkillModule[];
@@ -239,7 +190,6 @@ export type Skilling = {
     labels: { [name: string]: string };
     paths: { [name: string]: string };
     types: string[];
-    lost: LinkLost[];
 };
 
 /**
@@ -251,20 +201,6 @@ export type Skilling = {
 export type Link = {
     path: string;
     fingerprint: string;
-};
-
-/**
- * A link of a skill entry the reader could not repair, as the reader sends it.
- *
- * - `day`: Day its entry started, like `2026-10-13`.
- * - `skill`: What its entry was, like `IN2028 Business Analytics Machine Learning (VO)`.
- * - `path`: Path of the link from the folder of its skill, like `VO_UniversityLectureLessons/TUM_2025W/04_Old.pdf`,
- *   or from `NomWorkspace` when it lies outside it.
- */
-export type LinkLost = {
-    day: string;
-    skill: string;
-    path: string;
 };
 
 /**

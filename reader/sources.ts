@@ -197,8 +197,8 @@ export const systemFiles: SystemFilesSources = {
  * like `NomProgramprojects/AsiaWok_Wokflow_2026`, and the time I spend logging, planning and
  * thinking about my day, `NomFrequencediary`, linking the folder of my diary.
  * The Skill picker offers them first, in this order, a module by its code, the part of its folder name before `_`,
- * like `IN2028`, a project by its folder name, like `WokFlow`; the menu of the scripts view and the skill area show
- * the modules, see {@link activeModules}, since a project has no chapters and no tasks.
+ * like `IN2028`, a project by its folder name, like `WokFlow`; the menu of the scripts view shows only the modules,
+ * see {@link activeModules}, since a project has no chapters and no tasks.
  * Each skill entry names the folder of its skill in its `SUMMARY` and links it by this path, for a type on into
  * the folder of its material, see `skillLinkOf` in `documents.ts`.
  * A link in a note still opens a note of any module. Changed on request, when the semester's skills change.
@@ -253,7 +253,7 @@ export function projectOf(name: string): string | undefined {
 
 /**
  * Modules of the semester among the {@link activeSkills}, by their folders in `NomSkillingmodules`, in their order,
- * like `IN2028_BusinessAnalyticsMachineLearning`: the menu of the scripts view and the skill area show only these.
+ * like `IN2028_BusinessAnalyticsMachineLearning`: the menu of the scripts view shows only these.
  */
 export const activeModules: string[] = activeSkills
     .filter(moduleIs)
@@ -296,7 +296,7 @@ export const day: DaySources = {
 };
 
 /**
- * Log of the skill area: the log of the new system, where each block of learning is an entry of the category `Skill`
+ * Skill log: the log of the new system, where each block of learning is an entry of the category `Skill`
  * in the log of its skill in `Skilling/`, holding the attempts made in it. The tasks lie in the chapter notes
  * of the {@link activeModules}.
  */
