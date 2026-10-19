@@ -475,8 +475,8 @@ function fileNameOf(path: string): string {
 }
 
 /**
- * Builds the choices of the tasks of the chapters picked, in groups by when they are due, the due ones first,
- * as the skill view orders them; a later task shows its day.
+ * Builds the choices of the tasks of the chapters picked, in groups by when they are due, the due ones first;
+ * a later task shows its day.
  *
  * @param tasks - Tasks of the chapters picked
  * @returns Choices of the tasks

@@ -1,12 +1,3 @@
-/* Card of a due task: the note filling the screen beside the areas, see `notes.ts` */
-.notes {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-    flex: 1;
-    min-height: 0;
-}
-
 /* Tree: own column with a line beside it, scrolls alone, like Obsidian's file explorer, in the editor, the scripts
    view, each row in the text of the tree, see `--tree-text` in `../variants.css`, and a little higher than a chip,
    `--tree-row-height`, so its grey has room around the name; the anchor of the menus of its pickers, which open
@@ -410,28 +401,6 @@
     background: none;
 }
 
-/* Note: own column, scrolls alone, with Obsidian's 32 px around a file, grown with the page */
-.notes-note {
-    overflow-y: auto;
-    padding: 2rem;
-}
-
-/* Page of the note exactly my reading width wherever the screen has room, on the PC as on the laptop, so a line
-   breaks at the same word on both and in the editor, see `.editor-page` in `../editor/editor.css`; in the middle,
-   the room left and right of it what is left; its text 16 px in Obsidian's grey, as in my Obsidian, grown with
-   the page */
-.notes-page {
-    width: min(var(--reading-width), 100%);
-    margin: 0 auto;
-    font-size: 1rem;
-    color: var(--reading-text);
-}
-
-/* Hint when the note cannot be read */
-.notes-none {
-    color: var(--text-muted);
-}
-
 /* Text of a note, lines a bit higher than in my Obsidian; an empty line as high as a line of its text, 1rem high */
 .markdown {
     --empty-line: calc(var(--reading-line-height) * 1rem);
@@ -728,44 +697,4 @@
     margin: 0;
     border: 0;
     background: linear-gradient(var(--line), var(--line)) center / 100% 2px no-repeat;
-}
-
-/* A due task as a card, see cardSet in notes.ts: every other block, the task's heading and its source line hidden;
-   its text, then the question, its solution and its row with the buttons last */
-.notes-card #notes-text > :not(.card-task),
-.notes-card .card-task > summary,
-.notes-card .card-task > .fold-content > blockquote {
-    display: none;
-}
-
-/* The card at the top of the page and its text at the top of the card, without the empty lines above its block
-   and below its hidden source line */
-.notes-card .card-task,
-.notes-card .card-task > .fold-content > blockquote + * {
-    margin-top: 0;
-}
-
-.notes-card .card-task > .fold-content {
-    display: flex;
-    flex-direction: column;
-}
-
-.notes-card .card-task .task-row {
-    order: 1;
-}
-
-/* A part of a cold task that sits in its run while others are still open, greyed as a done box of the day,
-   so the open parts stand out to be answered, see `partsGrey` in notes.ts */
-.card-part-sat {
-    color: var(--text-muted);
-}
-
-/* The question of a card, grey, before the solution */
-.card-prompt {
-    margin-top: 1.5em;
-    color: var(--text-muted);
-}
-
-.card-prompt a {
-    color: inherit;
 }

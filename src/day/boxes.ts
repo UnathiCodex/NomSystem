@@ -13,8 +13,7 @@
  * where it is too long; then grey its expected time, its length only where no end shows it, with its place after them,
  * by its label alone, like `11:30 – 13:00 · Audimax im Galileo` or `01h 00m · Home Munich`, the place opening its link
  * on a click when it has one; then its deadline, when it has one, see below; then its chapters in words, each opening
- * its overview in the scripts view,
- * like `01 Regression Analysis`; then the documents it will use, each on a line of its own with a bullet, by the last
+ * the overview of its module in the scripts view, like `01 Regression Analysis`; then the documents it will use, each on a line of its own with a bullet, by the last
  * part of its path, like `04_LogisticPoissonRegression.pdf`, none for a lecture, whose slides are not known before,
  * and none for a note, like those a box of the chapters due today links, see `reader/suggestions.ts`;
  * a line without anything to say is left out. Every line stays one line, ending in `…` where it is too long,
@@ -458,7 +457,8 @@ function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] 
 
 /**
  * Gives the chapters of a skill box in words, like `01 Regression Analysis` for `01_RegressionAnalysis`,
- * see `chapterNameOf` in `../skill/links.ts`, each a link that opens its overview in the scripts view in this window,
+ * see `chapterNameOf` in `../skill/links.ts`, each a link that opens the overview of its module in the scripts view
+ * in this window, the chapter picked in the tree,
  * never a second one, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`,
  * instead of the box, as the place opens its link; plain on a phone, which has no scripts view, and for a box whose summary links
  * no module folder.

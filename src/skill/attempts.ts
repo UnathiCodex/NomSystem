@@ -218,7 +218,8 @@ export type Paper = {
 };
 
 /**
- * Everything the skill view shows, and the skill entries of the day pick from, as the reader sends it.
+ * Every module of the semester with its tasks, which the scripts show and the skill entries of the day pick from,
+ * as the reader sends it.
  *
  * - `modules`: Modules of the semester in their order, also those without tasks yet.
  * - `skills`: The skills of the semester in their order, for the Skill picker: a module by its code, like `IN2028`,
@@ -253,7 +254,7 @@ export type Link = {
 };
 
 /**
- * A link of a skill entry the reader could not repair, as the skill view lists it.
+ * A link of a skill entry the reader could not repair, as the reader sends it.
  *
  * - `day`: Day its entry started, like `2026-10-13`.
  * - `skill`: What its entry was, like `IN2028 Business Analytics Machine Learning (VO)`.
@@ -351,7 +352,7 @@ export const skillName: string = "Skill";
 
 
 /**
- * Loads everything the skill view shows from the reader.
+ * Loads every module of the semester with its tasks from the reader, see {@link Skilling}.
  *
  * @returns Modules with their tasks and what the pickers offer
  * @throws {Error} - When the reader cannot answer

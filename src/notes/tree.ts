@@ -5,8 +5,8 @@
  * as Obsidian's file explorer, of one of two roots at a time, each an area of its own in the rail:
  * - `NomSkillingmodules`, the book, the modules of the semester, one at a time, since I learn one module at a time:
  *   right below the name of the root the module picked, then its chapter picked, each a picker whose arrow brings
- *   its menu down below it and whose name opens its overview, see {@link pickerOf}, then the notes of that chapter
- *   as a plain list, nothing folding, which open in the scripts view to write, saved right into their files;
+ *   its menu down below it and whose name opens the overview of the module, see {@link pickerOf}, then the notes
+ *   of that chapter as a plain list, nothing folding, which open in the scripts view to write, saved right into their files;
  * - `NomManageplannings`, the open folder, my new system, as the reader lists it, without my old system
  *   `NomSystemprevious`, see `reader/files.ts`: a Markdown file, like `Foods.md`, opens in the editor to edit,
  *   an `.ics` file as its plain text to read, any other file shows faint and opens not.
@@ -123,11 +123,11 @@ export function noteAddressOf(path: string, heading: string): string {
 }
 
 /**
- * Builds the address of the overview of a module, or of one of its chapters, in the scripts view,
- * see `../editor/overview.ts`.
+ * Builds the address of the overview of a module in the scripts view, see `../editor/overview.ts`, with the chapter
+ * to pick in the tree.
  *
  * @param module - Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`
- * @param chapter - Name of the chapter, like `01_RegressionAnalysis`, empty for the whole module
+ * @param chapter - Name of the chapter, like `01_RegressionAnalysis`, empty for none
  * @returns Address like `/scripts?module=…&chapter=…`
  */
 export function overviewAddressOf(module: string, chapter: string): string {
@@ -195,7 +195,7 @@ function outlineFold(event: MouseEvent): void {
  * and its name as data, so it can be picked, see {@link treeShow}, its chapters in it, each shown once it is picked,
  * its notes a plain list, which link to the scripts view, named without `.md` as in Obsidian, the note shown
  * folding its outline by a click on it, see {@link outlineFold};
- * a module without chapter notes holds a calm `No chapters yet`, as the skill view says it.
+ * a module without chapter notes holds a calm `No chapters yet`, as its overview says it.
  * - `element`: The module.
  * - `group`: A chapter.
  * - `link`: Link of a note.
@@ -237,7 +237,7 @@ function moduleNodeOf(module: NotesModule): HTMLDivElement {
  * Makes a picker of the tree of my modules, see the top of this file: a row, the name of what is picked with a grey
  * arrow after it; the arrow opens its menu right below it, the browser's own popover, which a pick, Escape or a click
  * beside it closes; each choice a row, the one picked in the calm grey of what is picked. A click on the name opens
- * the overview of what is picked where the note stands, see `../editor/overview.ts`, and no menu.
+ * the overview of the module where the note stands, see `../editor/overview.ts`, with what is picked, and no menu.
  * - `pick`: The row, a button.
  * - `name`: The name of what is picked on it, before its arrow, see `.tree-pick` in `./notes.css`.
  * - `menu`: The menu.
@@ -618,7 +618,7 @@ export type TreeRoot = "NomSkillingmodules" | "NomManageplannings";
  *   a module with the chapter of the note shown, if it holds the note, else with its first chapter.
  * - `moduleOf`: Gives the name of the folder of the module picked, for the address of its overview.
  * - `modulePick`, `chapterPick`: The pickers of module and chapter, each with its menu, their names opening
- *   the overview of the module or the chapter picked.
+ *   the overview of the module, the chapter picked staying picked.
  * - `entries`: Of my new system its folders and files.
  * - `asked`: The module asked for, `null` for none.
  *

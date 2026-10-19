@@ -1,9 +1,9 @@
 /**
  * ## Steps
  *
- * The solutions of a note in the editor one step at a time, as on the card, see `stepsPut` in `../notes/notes.ts`:
+ * The solutions of a note in the editor one step at a time:
  * once a solution, the section under `#### Solution…`, is unfolded, its first step shows, and below the solution
- * `Next step` shows the next one and `Show all` the rest. Its steps are those of the card: the items of its lists
+ * `Next step` shows the next one and `Show all` the rest. Its steps are the items of its lists
  * in the order of the text, a parent before its own items, and its other blocks, like a formula of its own;
  * an empty line between two steps goes with the step after it.
  * Hiding is only for reading: the text stays as it is, the cursor stays at the end of the last step shown, also after End,
@@ -95,7 +95,7 @@ const stepsMore: StateEffectType<More> = StateEffect.define<More>();
 
 
 /**
- * `Next step` and `Show all` below a solution with steps hidden, as on the card; a click shows one step more
+ * `Next step` and `Show all` below a solution with steps hidden; a click shows one step more
  * or all of them.
  */
 class StepsWidget extends WidgetType {
@@ -108,7 +108,7 @@ class StepsWidget extends WidgetType {
     }
 
     /**
-     * Builds the buttons, as `stepsPut` in `../notes/notes.ts` does.
+     * Builds the buttons.
      * - `buttons`: Row of `Next step` and `Show all`.
      * - `more`: Tells the solution below which the buttons stand to show one step more, or all.
      */

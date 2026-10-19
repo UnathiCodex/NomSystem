@@ -3,9 +3,8 @@
  *
  * Opens one area of the life system beside the areas named in `index.html`, each shown by its icon there,
  * by the address:
- * the scripts, my notes of my modules in the editor, always writing, at `/scripts`, a due task of the skill area
- * as a card at `/scripts?…&card=1`, my new system at `/plannings`, the skill area at `/skill`, the food area at `/food`,
- * the sport area at `/sport`, the editor of the files of my new system at `/edit`, the day everywhere else;
+ * the scripts, my notes of my modules in the editor, always writing, at `/scripts`, my new system at `/plannings`,
+ * the food area at `/food`, the sport area at `/sport`, the editor of the files of my new system at `/edit`, the day everywhere else;
  * older addresses of the scripts, `/notes` and a note at `/edit?path=…`, open them too and become `/scripts`.
  * The editor shows a file of my new system under the link of `/plannings`, which opens the editor without a file,
  * and a note of my modules under that of `/scripts`, see `editor/editor.ts`.
@@ -17,12 +16,9 @@
  * every device tells the reader what it shows of the page, see {@link deviceReport}.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
- * - `./day/day.html?raw`, `./notes/notes.html?raw`, `./skill/skill.html?raw`, `./food/food.html?raw`,
- *   `./sport/sport.html?raw`, `./editor/editor.html?raw`: Html of day, scripts, skill, food, sport and editor as text,
- *   packed into the built code by Vite.
+ * - `./day/day.html?raw`, `./food/food.html?raw`, `./sport/sport.html?raw`, `./editor/editor.html?raw`:
+ *   Html of day, food, sport and editor as text, packed into the built code by Vite.
  * - `./day/day.ts`: Shows the log of a day, my one calendar, with the boxes of its plan beside it.
- * - `./notes/notes.ts`: Shows a due task as a card, its text alone, rendered like Obsidian.
- * - `./skill/skill.ts`: Shows my tasks, due ones first, and records my attempts.
  * - `./food/food.ts`: Shows what I ate on a day with its totals, and my foods.
  * - `./sport/sport.ts`: Shows my sessions of sport on a day with what they burned, and my workouts and exercises.
  * - `./editor/editor.ts`: Edits a note of my modules or a Markdown file of my new system as its text, its Markdown
@@ -34,8 +30,6 @@
 
 /// <reference types="vite/client" />
 import dayHtml from "./day/day.html?raw";
-import notesHtml from "./notes/notes.html?raw";
-import skillHtml from "./skill/skill.html?raw";
 import foodHtml from "./food/food.html?raw";
 import sportHtml from "./sport/sport.html?raw";
 import editorHtml from "./editor/editor.html?raw";
@@ -64,7 +58,7 @@ let deviceWait: number = 0;
 const address: URLSearchParams = new URLSearchParams(location.search);
 if (location.pathname === "/notes" || (location.pathname === "/edit" && address.has("path")))
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
-const areas: string[] = phone ? [] : ["/scripts", "/plannings", "/skill", "/food", "/sport", "/edit"];
+const areas: string[] = phone ? [] : ["/scripts", "/plannings", "/food", "/sport", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
 const marked: string = area === "/edit" ? "/plannings" : area;
 document.querySelector(`.areas a[href="${marked}"]`)?.setAttribute("aria-current", "page");
@@ -74,15 +68,7 @@ addEventListener("resize", (): void => {
     deviceWait = window.setTimeout(deviceReport, 1000);
 });
 
-if (area === "/scripts" && address.has("card")) {
-    const notes: { notesStart: () => Promise<void> } = await import("./notes/notes.ts");
-    document.body.insertAdjacentHTML("beforeend", notesHtml);
-    await notes.notesStart();
-} else if (area === "/skill") {
-    const skill: { skillStart: () => Promise<void> } = await import("./skill/skill.ts");
-    document.body.insertAdjacentHTML("beforeend", skillHtml);
-    await skill.skillStart();
-} else if (area === "/food") {
+if (area === "/food") {
     const food: { foodStart: () => void } = await import("./food/food.ts");
     document.body.insertAdjacentHTML("beforeend", foodHtml);
     food.foodStart();

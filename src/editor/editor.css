@@ -15,9 +15,8 @@
     padding-inline: 1.25rem;
 }
 
-/* Page of every file exactly as wide as a note in the scripts view, my reading width, in the middle, where the screen
-   has room, so the lines of a note break at the same words as there, on every screen, see `.notes-page`
-   in `../notes/notes.css`, and a file of my new system has the same room around it; markup shown left of its text,
+/* Page of every file exactly my reading width, in the middle, where the screen has room, so the lines of a note
+   break at the same words on every screen, and a file of my new system has the same room around it; markup shown left of its text,
    like `##`, stands in the room beside it; what is too wide, like a table of `Foods.md`, scrolls sideways on its own;
    its text 16 px in Obsidian's grey, grown with the page; room below the last line, so it can scroll up to the middle */
 .editor-page {

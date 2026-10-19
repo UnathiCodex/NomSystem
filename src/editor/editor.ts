@@ -3,7 +3,7 @@
  *
  * Edits a note of my modules or a Markdown file of my new system as its text, its Markdown shown as in Obsidian's
  * live preview away from the cursor, see `./preview.ts`. The scripts view, `/scripts`, is this editor, always writing,
- * with no view beside it to read only; a due task of the skill view opens as a card, see `../notes/notes.ts`.
+ * with no view beside it to read only.
  * It edits the text of the file itself: saving writes exactly the edited text, nothing reformatted,
  * tabs, spacers `⠀` and soft hyphens, spaces at the ends of lines and the line breaks of the file as they were.
  * A note of my modules is saved right into its file in `NomSkillingmodules`, and the reader keeps each change
@@ -20,8 +20,8 @@
  * with their places, a click opening one, see `./round.ts`.
  * While no note is open, the page shows Today, the items due today as cards, see `./today.ts`; for the address of
  * a module or of one of its chapters, which a click on its name in the tree opens, like
- * `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`, it shows its overview,
- * where each of its sections stands, see `./overview.ts`.
+ * `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`, it shows the overview
+ * of the module, where each of its sections stands, see `./overview.ts`, the chapter picked in the tree.
  * The address names a note by its path in the scripts view and the heading to scroll to, like
  * `/scripts?path=IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_SampleMeanEstimator.md#…`,
  * so a reload and the back button of the browser stay on it, and a file of my new system by its path in the tree,
@@ -363,8 +363,9 @@ function treeClick(event: MouseEvent): void {
  * Starts the editor after the router has put its HTML into the page: shows the tree on the left, that of my new system
  * for one of its files and at `/plannings`, else that of my modules, the module of the address picked while no note
  * is shown, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning` from a skill entry, see `../notes/tree.ts`,
- * and its chapter of the address, like `&chapter=01_RegressionAnalysis`, whose overview then stands on the right,
- * see `./overview.ts`; Today stands there while the address names neither a note nor a module;
+ * and its chapter of the address, like `&chapter=01_RegressionAnalysis`, picked in the tree, while the overview
+ * of the module stands on the right, see `./overview.ts`; Today stands there while the address names neither a note
+ * nor a module;
  * reads the file the address names and shows it to edit, its solutions folded, see `./preview.ts`, with the save
  * button, Ctrl+S, and a question before leaving with changes unsaved; a file to read only says so, a file that cannot
  * be read shows a hint instead, and so does the editor while it shows no file.
@@ -408,8 +409,7 @@ export async function editorStart(): Promise<void> {
             const chapter: string = address.get("chapter") ?? "";
             shown.then((): void => overviewTreeShow(tree, module, chapter)).catch((error: unknown): void =>
                 console.error(error));
-            await overviewShow(document.getElementById("editor-overview") as HTMLElement, module, chapter,
-                calendarTodayOf());
+            await overviewShow(document.getElementById("editor-overview") as HTMLElement, module);
             return;
         }
         await todayShow(document.getElementById("editor-today") as HTMLElement, calendarTodayOf());

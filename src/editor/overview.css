@@ -1,6 +1,5 @@
-/* Overview of a module or a chapter where a note stands, see `overview.ts`, laid out as Today: the way up and the name
-   as the date of the day, how far it is grey below them, then the cards a step apart, as plan and log stand below
-   the bar of the day */
+/* Overview of a module where a note stands, see `overview.ts`, laid out as Today: the way up and the name
+   as the date of the day, then the chapters a step apart, as plan and log stand below the bar of the day */
 .editor-overview {
     display: flex;
     flex-direction: column;
@@ -23,18 +22,12 @@
     color: var(--text-main);
 }
 
-/* How far it is, grey in the size of the page's text */
-.overview-summary {
-    margin: 0 0 0.75rem;
-    color: var(--text-muted);
-    font-size: var(--text-size);
-}
-
 /* The chapters a breath apart, each its line of names above its card */
 .overview-list {
     display: flex;
     flex-direction: column;
     gap: 1.75rem;
+    margin-top: 0.75rem;
 }
 
 .overview-group {
@@ -43,15 +36,14 @@
     gap: 0.75rem;
 }
 
-/* A row and the line naming its columns on one grid: the name taking the room left, then the round, the next day,
-   right and wrong, each as wide as its longest value, like `Wed, 30.09.2026`, so the columns of every row stand
-   in line, also across the chapters of a module; the line in line with the text of the rows, inside the padding
-   of their card and their own */
+/* A row and the line of its chapter's name on one grid: the name taking the room left, then the round, as wide as
+   `Ready`, so the rounds of every row stand in line, also across the chapters; the line in line with the text
+   of the rows, inside the padding of their card and their own */
 .overview-row,
 .overview-head {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 3.75rem 7.75rem 3rem 3.25rem;
-    column-gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) 3.75rem;
+    column-gap: 2rem;
     align-items: baseline;
 }
 
@@ -84,8 +76,7 @@
     background: var(--chosen);
 }
 
-/* The name of a chapter in a module, bold as the name of a card, linking to its overview, a grey lighter under
-   the pointer; its ready number grey after it */
+/* The name of a chapter, bold as the name of a card */
 .overview-chapter {
     margin: 0;
     font-size: 1rem;
@@ -93,58 +84,21 @@
     overflow-wrap: anywhere;
 }
 
-.overview-chapter a {
-    color: var(--text-main);
-    text-decoration: none;
-}
-
-.overview-chapter a:hover {
-    color: var(--text-muted);
-}
-
-.overview-ready {
-    margin-left: 0.5rem;
-    white-space: nowrap;
-    font-size: 0.8125rem;
-    font-weight: 400;
-    color: var(--text-muted);
-}
-
-/* Names of the columns, small and grey as the line of a box */
+/* `Round` above the rounds, small and grey as the line of a box */
 .overview-column {
     font-size: 0.8125rem;
     color: var(--text-muted);
 }
 
-/* The name of a section as in the tree, on one line, ending in `…` where it is too long, a gap wider than between
-   the values before the round, so the longest name, like `01_17_MulticollinearityVarianceInflation`, never runs
-   up to it */
+/* The name of a section as in the tree, on one line, ending in `…` where it is too long */
 .overview-name {
-    padding-right: 1rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-/* Values in the figures of a table, so they stand in line; right and wrong to the right, as numbers stand */
-.overview-value {
+/* The round in the figures of a table, so they stand in line */
+.overview-round {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-}
-
-.overview-count,
-.overview-column-right,
-.overview-column-wrong {
-    text-align: right;
-}
-
-/* What Today lists open, bold, the one thing to do */
-.overview-today {
-    font-weight: 600;
-}
-
-/* A section I never learned grey, as a box not for now */
-.overview-fresh .overview-name,
-.overview-fresh .overview-value {
-    color: var(--text-muted);
 }

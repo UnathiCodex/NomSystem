@@ -1,261 +1,129 @@
 /**
  * ## Overview
  *
- * What the scripts view shows of a module, or of one of its chapters, where a note stands, once I click its name
- * in the tree, see `pickerOf` in `../notes/tree.ts`: where each of its sections stands, readable at a glance,
+ * What the scripts view shows of a module where a note stands, once I click the name of the module or of one of its
+ * chapters in the tree, see `pickerOf` in `../notes/tree.ts`: where each of its sections stands, kept simple,
  * in the look of the day view, see `../day/`, as Today, see `./today.ts`:
- * - on top, as the date of the day, small and grey the way up, linking there, `NomSkillingmodules` to Today above
- *   a module, the module above a chapter, and below it its name, like `01_RegressionAnalysis`;
- * - below it grey how far it is, its sections ready of all, like `Ready 1 / 21`, how many Today lists open,
- *   like `2 due today`, and for a module its exam, like `Exam ≈ Thu, 25.02.2027`, as the skill view says them;
- * - then one card per chapter, filled as a box of the plan, a module's under the names of their chapters, each
- *   opening the overview of its chapter; in it each section a row, in the order of the notes, as high and as far
- *   apart as the rows of the tree, see `.tree-file` in `../notes/notes.css`: the name of the section as the tree
- *   names it, like `01_01_SampleMeanEstimator`, and beside it in columns, named once above the card:
- *   - `Round`: its round, like `2`, the one its view shows, see `./round.ts`, `Ready` once its Task has its four runs
- *     spaced, `New` while I never learned it;
- *   - `Next`: `Today` while Today lists it open, see `itemsOf` in `./today.ts`, else the day its Task comes back,
- *     like `Mon, 19.10.2026`, else nothing;
- *   - `Right`, `Wrong`: how many of my attempts at its Tasks, the cold ones, were right, and how many not, its Examples
- *     left out, since only a cold attempt measures what I can;
- *   a section I never learned grey, as a box not for now, unless Today offers it; a tap on a row opens the section.
- * Everything is computed from the log by the reader, see `reader/skill.ts`, and what Today lists by Today's own rule;
- * nothing is kept here. The counts stand here and not at a task, so a task shows only itself, see `../skill/task.ts`.
+ * - on top, as the date of the day, small and grey `NomSkillingmodules`, linking to Today, and below it the name
+ *   of the module, like `IN2028_BusinessAnalyticsMachineLearning`;
+ * - then each chapter by its name, like `01_RegressionAnalysis`, with `Round` grey at the right, and below it its card,
+ *   filled as a box of the plan; in it each section a row, in the order of the notes, as high and as far apart
+ *   as the rows of the tree, see `.tree-file` in `../notes/notes.css`: the name of the section as the tree names it,
+ *   like `01_01_SampleMeanEstimator`, and its round, like `2`, the one its view shows, see `./round.ts`,
+ *   `Ready` once its Task has its runs spaced, `New` while I never learned it; a tap on a row opens the section.
+ * Nothing more, until I want more: every further piece only after Claude recommends it and I say yes.
+ * Everything is computed from the log by the reader, see `reader/skill.ts`; nothing is kept here.
  *
- * - `../skill/attempts.ts`: Loads the modules with their tasks and sections, and writes days out.
- * - `./today.ts`: What Today lists.
- * - `../notes/tree.ts`: The addresses of a note and of an overview, and shows a chapter in the tree.
+ * - `../skill/attempts.ts`: Loads the modules with their tasks and sections.
+ * - `../notes/tree.ts`: The address of a note, and shows a chapter in the tree.
  * - `../day/choices.ts`: Marks where a long name may go on below.
  * - `../food/foods.ts`: Makes elements.
- * - `../day/boxes.css`: Look of `No sections yet`, as the plan's `Nothing planned`.
+ * - `../day/boxes.css`: Look of `No chapters yet`, as the plan's `Nothing planned`.
  * - `./overview.css`: Look of the overview.
  */
 
-import { dayTextOf, skillingLoad } from "../skill/attempts.ts";
-import { itemsOf } from "./today.ts";
-import { chapterShow, noteAddressOf, overviewAddressOf } from "../notes/tree.ts";
+import { skillingLoad } from "../skill/attempts.ts";
+import { chapterShow, noteAddressOf } from "../notes/tree.ts";
 import { breakableOf } from "../day/choices.ts";
 import { elementOf } from "../food/foods.ts";
 import "../day/boxes.css";
 import "./overview.css";
 
-import type { Attempt, SkillModule, SkillSection, SkillTask, Skilling } from "../skill/attempts.ts";
-import type { Item } from "./today.ts";
+import type { SkillModule, SkillSection, SkillTask, Skilling } from "../skill/attempts.ts";
 
 
 /**
- * Where a section stands, as its row shows it.
- *
- * - `round`: Its round, like `2`, `Ready` once ready, `New` while never learned.
- * - `next`: `Today` while Today lists it open, else the day its Task comes back, like `Mon, 19.10.2026`, else empty.
- * - `right`: Number of my attempts at its Tasks, the cold ones, that were right.
- * - `wrong`: Number of them that were not, skips left out.
- * - `ready`: Whether it is ready.
- * - `fresh`: Whether I never learned it.
- * - `today`: Whether Today lists it open.
- */
-type SectionState = {
-    round: string;
-    next: string;
-    right: number;
-    wrong: number;
-    ready: boolean;
-    fresh: boolean;
-    today: boolean;
-};
-
-
-/**
- * Tells where a section stands, see the top of this file.
- * - `own`: Its tasks.
- * - `attempts`: My attempts at its Tasks, the cold ones, skips left out.
- * - `due`: The day its Task comes back, empty for none: the Task of today holds it, see `reader/skill.ts`.
- * - `fresh`: Whether I never learned it.
+ * Tells the round of a section, see the top of this file.
+ * - `ready`: Whether its Task has its runs spaced.
  *
  * @param module - Its module with its tasks
  * @param section - The section
- * @param open - Addresses of what Today lists open
- * @param today - Today like `2026-10-17`
- * @returns Where it stands
+ * @returns Its round, like `2`, `Ready` or `New`
  */
-function stateOf(module: SkillModule, section: SkillSection, open: Set<string>, today: string): SectionState {
-    const own: SkillTask[] = module.tasks.filter((task: SkillTask): boolean => task.note === section.note);
-    const attempts: Attempt[] = own.filter((task: SkillTask): boolean => task.kind === "cold")
-        .flatMap((task: SkillTask): Attempt[] => task.attempts)
-        .filter((attempt: Attempt): boolean => attempt.result !== "skipped");
-    const due: string = own.find((task: SkillTask): boolean => task.kind === "cold" && task.due !== "")?.due ?? "";
-    const ready: boolean = own.some((task: SkillTask): boolean => task.id === section.cold && task.ready);
-    const fresh: boolean = section.days.length === 0;
-    const listed: boolean = open.has(noteAddressOf(section.note, ""));
-    let round: string = String(section.round);
+function roundOf(module: SkillModule, section: SkillSection): string {
+    const ready: boolean = module.tasks.some((task: SkillTask): boolean => task.id === section.cold && task.ready);
     if (ready)
-        round = "Ready";
-    else if (fresh)
-        round = "New";
-    return {
-        round: round,
-        next: listed ? "Today" : due > today ? dayTextOf(due, true) : "",
-        right: attempts.filter((attempt: Attempt): boolean => attempt.result === "right").length,
-        wrong: attempts.filter((attempt: Attempt): boolean => attempt.result !== "right").length,
-        ready: ready,
-        fresh: fresh,
-        today: listed,
-    };
+        return "Ready";
+    return section.days.length === 0 ? "New" : String(section.round);
 }
 
 /**
- * Makes a value of a row in its column.
- *
- * @param className - Class of its column, like `overview-round`
- * @param value - The value, empty for none
- * @returns The value
- */
-function valueOf(className: string, value: string): HTMLElement {
-    return elementOf("span", `overview-value ${className}`, value);
-}
-
-/**
- * Makes the row of a section, see the top of this file: a link to it, its name and its values in their columns.
+ * Makes the row of a section, see the top of this file: a link to it, its name and its round.
  * - `row`: The row.
  *
+ * @param module - Its module with its tasks
  * @param section - The section
- * @param state - Where it stands
  * @returns The row
  */
-function rowOf(section: SkillSection, state: SectionState): HTMLAnchorElement {
+function rowOf(module: SkillModule, section: SkillSection): HTMLAnchorElement {
     const row: HTMLAnchorElement = document.createElement("a");
     row.className = "overview-row";
-    row.classList.toggle("overview-fresh", state.fresh && !state.today);
     row.href = noteAddressOf(section.note, "");
     row.append(elementOf("span", "overview-name", section.title),
-        valueOf("overview-round", state.round),
-        valueOf(`overview-next${state.today ? " overview-today" : ""}`, state.next),
-        valueOf("overview-count", state.fresh ? "" : String(state.right)),
-        valueOf("overview-count", state.fresh ? "" : String(state.wrong)));
+        elementOf("span", "overview-round", roundOf(module, section)));
     return row;
 }
 
 /**
- * Makes the sections of one chapter, see the top of this file: a line naming the columns, in a module first
- * the name of the chapter, linking to its overview, and grey how many of its sections are ready; then their card.
- * - `group`: The sections with their line.
- * - `head`: The line.
- * - `card`: The card of their rows.
- * - `name`: The name of the chapter with its ready number.
- * - `link`: The link of the name.
+ * Makes the sections of one chapter, see the top of this file: its name with `Round` at the right, then their card.
+ * - `group`: The chapter.
+ * - `head`: The line of its name.
+ * - `card`: The card of its rows.
  *
  * @param module - Its module
- * @param chapter - Name of the chapter, like `01_RegressionAnalysis`, empty in its own overview
- * @param sections - Its sections with where each stands
+ * @param chapter - Name of the chapter, like `01_RegressionAnalysis`
  * @returns The group
  */
-function groupOf(module: SkillModule, chapter: string, sections: [SkillSection, SectionState][]): HTMLElement {
+function groupOf(module: SkillModule, chapter: string): HTMLElement {
     const group: HTMLElement = elementOf("section", "overview-group", "");
     const head: HTMLElement = elementOf("div", "overview-head", "");
-    const name: HTMLElement = elementOf("h3", "overview-chapter", "");
     const card: HTMLElement = elementOf("div", "overview-card", "");
-    if (chapter !== "") {
-        const link: HTMLAnchorElement = document.createElement("a");
-        link.href = overviewAddressOf(module.title, chapter);
-        link.textContent = breakableOf(chapter);
-        name.append(link, elementOf("span", "overview-ready", `Ready ${sections.filter(
-            ([, state]: [SkillSection, SectionState]): boolean => state.ready).length} / ${sections.length}`));
-    }
-    head.append(name, ...["Round", "Next", "Right", "Wrong"].map((label: string): HTMLElement =>
-        elementOf("span", `overview-column overview-column-${label.toLowerCase()}`, label)));
-    card.append(...sections.map(([section, state]: [SkillSection, SectionState]): HTMLAnchorElement =>
-        rowOf(section, state)));
+    head.append(elementOf("h3", "overview-chapter", breakableOf(chapter)),
+        elementOf("span", "overview-column", "Round"));
+    card.append(...module.sections.filter((section: SkillSection): boolean => section.chapter === chapter)
+        .map((section: SkillSection): HTMLAnchorElement => rowOf(module, section)));
     group.append(head, card);
     return group;
 }
 
 /**
- * Writes how far a module or a chapter is, see the top of this file.
- * - `due`: How many of its sections Today lists open.
- * - `parts`: The parts of the line.
- *
- * @param states - Where each of its sections stands
- * @param module - Its module, for its exam, `null` for a chapter
- * @returns Line like `Ready 1 / 21 · 2 due today · Exam ≈ Thu, 25.02.2027`
- */
-function summaryOf(states: SectionState[], module: SkillModule | null): string {
-    const due: number = states.filter((state: SectionState): boolean => state.today).length;
-    const parts: string[] = [
-        `Ready ${states.filter((state: SectionState): boolean => state.ready).length} / ${states.length}`,
-        due === 0 ? "Nothing due today" : `${due} due today`,
-    ];
-    if (module !== null)
-        parts.push(`Exam ${module.exam.estimated ? "≈ " : ""}${dayTextOf(module.exam.day, true)}`);
-    return parts.join(" · ");
-}
-
-/**
- * Gives the sections of a module, or of one of its chapters, each with where it stands, see {@link stateOf}.
- * - `open`: Addresses of what Today lists open in the module.
- *
- * @param module - The module with its tasks and sections
- * @param chapter - Name of the chapter, like `01_RegressionAnalysis`, empty for the whole module
- * @param today - Today like `2026-10-17`
- * @returns The sections in the order of the notes
- */
-function sectionsOf(module: SkillModule, chapter: string, today: string): [SkillSection, SectionState][] {
-    const open: Set<string> = new Set(itemsOf(module, today).filter((item: Item): boolean => !item.done)
-        .map((item: Item): string => item.address));
-    return module.sections.filter((section: SkillSection): boolean => chapter === "" || section.chapter === chapter)
-        .map((section: SkillSection): [SkillSection, SectionState] => [section, stateOf(module, section, open, today)]);
-}
-
-/**
- * Shows the overview of a module or of one of its chapters in its place, see the top of this file;
- * a module without sections says `No chapters yet`, as the tree does, a chapter without them `No sections yet`.
+ * Shows the overview of a module in its place, see the top of this file; a module without sections says
+ * `No chapters yet`, as the tree does.
  * - `skilling`: Every module with its tasks and sections.
  * - `found`: The module, `undefined` for one not of the semester.
- * - `sections`: Its sections, of the chapter only for a chapter, each with where it stands.
  * - `up`: The way up, small and grey above the name.
- * - `list`: The place of the cards.
- * - `chapters`: The chapters of a module, in the order of their sections.
+ * - `list`: The place of the chapters.
  *
  * @param place - Where the overview goes, see `#editor-overview` in `./editor.html`
  * @param module - Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`
- * @param chapter - Name of the chapter, like `01_RegressionAnalysis`, empty for the whole module
- * @param today - Today like `2026-10-17`
  * @throws {Error} - When the reader cannot read the tasks
  */
-export async function overviewShow(place: HTMLElement, module: string, chapter: string, today: string): Promise<void> {
+export async function overviewShow(place: HTMLElement, module: string): Promise<void> {
     const skilling: Skilling = await skillingLoad();
     const found: SkillModule | undefined = skilling.modules.find((candidate: SkillModule): boolean =>
         candidate.title === module);
-    const sections: [SkillSection, SectionState][] = found === undefined ? [] : sectionsOf(found, chapter, today);
     const up: HTMLAnchorElement = place.querySelector(".overview-up") as HTMLAnchorElement;
     const list: HTMLElement = place.querySelector(".overview-list") as HTMLElement;
-    up.href = chapter === "" ? "/scripts" : overviewAddressOf(module, "");
-    up.textContent = breakableOf(chapter === "" ? "NomSkillingmodules" : module);
-    (place.querySelector(".day-date") as HTMLElement).textContent = breakableOf(chapter === "" ? module : chapter);
-    (place.querySelector(".overview-summary") as HTMLElement).textContent = summaryOf(
-        sections.map(([, state]: [SkillSection, SectionState]): SectionState => state),
-        chapter === "" ? found ?? null : null);
-    if (found === undefined || sections.length === 0) {
-        list.replaceChildren(elementOf("p", "plan-none", chapter === "" ? "No chapters yet" : "No sections yet"));
-    } else if (chapter !== "") {
-        list.replaceChildren(groupOf(found, "", sections));
-    } else {
-        const chapters: string[] = [...new Set(sections.map(([section]: [SkillSection, SectionState]): string =>
-            section.chapter))];
-        list.replaceChildren(...chapters.map((name: string): HTMLElement => groupOf(found, name,
-            sections.filter(([section]: [SkillSection, SectionState]): boolean => section.chapter === name))));
-    }
+    up.href = "/scripts";
+    up.textContent = "NomSkillingmodules";
+    (place.querySelector(".day-date") as HTMLElement).textContent = breakableOf(module);
+    if (found === undefined || found.sections.length === 0)
+        list.replaceChildren(elementOf("p", "plan-none", "No chapters yet"));
+    else
+        list.replaceChildren(...[...new Set(found.sections.map((section: SkillSection): string => section.chapter))]
+            .map((chapter: string): HTMLElement => groupOf(found, chapter)));
     place.hidden = false;
 }
 
 /**
- * Shows in the tree the chapter whose overview is shown, see `chapterShow` in `../notes/tree.ts`, once the tree is
- * there; the module the tree picks itself, from the address.
+ * Shows in the tree the chapter of the address, see `chapterShow` in `../notes/tree.ts`, once the tree is there,
+ * like the chapter whose name I clicked; the module the tree picks itself, from the address.
  * - `picked`: The module in the tree, `null` for one not in it.
  * - `shown`: The chapter in it, `null` for none.
  *
  * @param tree - The tree
  * @param module - Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`
- * @param chapter - Name of the chapter, like `01_RegressionAnalysis`, empty for the whole module
+ * @param chapter - Name of the chapter, like `01_RegressionAnalysis`, empty for none
  */
 export function overviewTreeShow(tree: HTMLElement, module: string, chapter: string): void {
     const picked: HTMLElement | null = tree.querySelector(`.tree-module[data-module="${CSS.escape(module)}"]`);

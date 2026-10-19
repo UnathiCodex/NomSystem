@@ -301,7 +301,7 @@ export function tasksFollow(listener: (view: EditorView, loaded: NoteTasks) => v
 /**
  * Loads the tasks of the note from the reader and shows their rows, see the top of this file; without tasks of the
  * semester the note shows no rows. Then tells the one following, see {@link tasksFollow}.
- * - `skilling`: Everything the skill view shows, with every task of the semester.
+ * - `skilling`: Every module of the semester with its tasks.
  * - `loaded`: The tasks of the note with its section.
  *
  * @param view - The editor
