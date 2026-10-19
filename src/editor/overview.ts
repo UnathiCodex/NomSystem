@@ -8,32 +8,32 @@
  *   a module, the module above a chapter, and below it its name, like `01_RegressionAnalysis`;
  * - below it grey how far it is, its sections ready of all, like `Ready 1 / 21`, how many Today lists open,
  *   like `2 due today`, and for a module its exam, like `Exam ≈ Thu, 25.02.2027`, as the skill view says them;
- * - then each section a card as a box of the plan, see `.box` in `../day/boxes.css`, in the order of the notes,
- *   a module's under the names of their chapters, each opening the overview of its chapter: the name of the section
- *   in words, like `Sample Mean Estimator`, below it grey the days I learned it, like
- *   `Learned on 11.10.2026 and 12.10.2026`, and beside it in columns, named once above them:
+ * - then one card per chapter, filled as a box of the plan, a module's under the names of their chapters, each
+ *   opening the overview of its chapter; in it each section a row, in the order of the notes, as high and as far
+ *   apart as the rows of the tree, see `.tree-file` in `../notes/notes.css`: the name of the section as the tree
+ *   names it, like `01_01_SampleMeanEstimator`, and beside it in columns, named once above the card:
  *   - `Round`: its round, like `2`, the one its view shows, see `./round.ts`, `Ready` once its Task has its four runs
  *     spaced, `New` while I never learned it;
  *   - `Next`: `Today` while Today lists it open, see `itemsOf` in `./today.ts`, else the day its Task comes back,
  *     like `Mon, 19.10.2026`, else nothing;
  *   - `Right`, `Wrong`: how many of my attempts at its tasks were right, and how many not, its Examples among them;
- *   a section I never learned grey, as a box not for now, unless Today offers it; a tap on a card opens the section.
+ *   a section I never learned grey, as a box not for now, unless Today offers it; a tap on a row opens the section.
  * Everything is computed from the log by the reader, see `reader/skill.ts`, and what Today lists by Today's own rule;
  * nothing is kept here. The counts stand here and not at a task, so a task shows only itself, see `../skill/task.ts`.
- * Where the page is narrow, as on the laptop, a card holds its name on top and its values below it in one grey line,
+ * Where the page is narrow, as on the laptop, a row holds its name on top and its values below it in one grey line,
  * each named, like `Round 2 · Today · 5 right · 1 wrong`.
  *
  * - `../skill/attempts.ts`: Loads the modules with their tasks and sections, and writes days out.
- * - `./today.ts`: What Today lists, and the name of a section in words.
+ * - `./today.ts`: What Today lists.
  * - `../notes/tree.ts`: The addresses of a note and of an overview, and shows a chapter in the tree.
  * - `../day/choices.ts`: Marks where a long name may go on below.
  * - `../food/foods.ts`: Makes elements.
- * - `../day/boxes.css`: Look of the cards, those of the plan.
+ * - `../day/boxes.css`: Look of `No sections yet`, as the plan's `Nothing planned`.
  * - `./overview.css`: Look of the overview.
  */
 
 import { dayTextOf, skillingLoad } from "../skill/attempts.ts";
-import { itemsOf, wordsOf } from "./today.ts";
+import { itemsOf } from "./today.ts";
 import { chapterShow, noteAddressOf, overviewAddressOf } from "../notes/tree.ts";
 import { breakableOf } from "../day/choices.ts";
 import { elementOf } from "../food/foods.ts";
@@ -45,7 +45,7 @@ import type { Item } from "./today.ts";
 
 
 /**
- * Where a section stands, as its card shows it.
+ * Where a section stands, as its row shows it.
  *
  * - `round`: Its round, like `2`, `Ready` once ready, `New` while never learned.
  * - `next`: `Today` while Today lists it open, else the day its Task comes back, like `Mon, 19.10.2026`, else empty.
@@ -64,11 +64,6 @@ type SectionState = {
     fresh: boolean;
     today: boolean;
 };
-
-/**
- * Writes days as a list in words, like `11.10.2026, 12.10.2026 and 17.10.2026`.
- */
-const dayList: Intl.ListFormat = new Intl.ListFormat("en-GB", { type: "conjunction" });
 
 
 /**
@@ -109,7 +104,7 @@ function stateOf(module: SkillModule, section: SkillSection, open: Set<string>, 
 }
 
 /**
- * Makes a value of a card, with its name for a narrow page, see `.overview-label` in `./overview.css`.
+ * Makes a value of a row, with its name for a narrow page, see `.overview-label` in `./overview.css`.
  *
  * @param className - Class of its column, like `overview-round`
  * @param value - The value, empty for none
@@ -127,38 +122,35 @@ function valueOf(className: string, value: string, before: string, after: string
 }
 
 /**
- * Makes the card of a section, see the top of this file: a link to it, its name, its values in their columns,
- * and the days I learned it below its name.
- * - `card`: The card.
+ * Makes the row of a section, see the top of this file: a link to it, its name and its values in their columns.
+ * - `row`: The row.
  * - `numbered`: Whether its round is a number, named `Round` on a narrow page.
  *
  * @param section - The section
  * @param state - Where it stands
- * @returns The card
+ * @returns The row
  */
-function cardOf(section: SkillSection, state: SectionState): HTMLAnchorElement {
-    const card: HTMLAnchorElement = document.createElement("a");
+function rowOf(section: SkillSection, state: SectionState): HTMLAnchorElement {
+    const row: HTMLAnchorElement = document.createElement("a");
     const numbered: boolean = /^\d+$/.test(state.round);
-    card.className = "box overview-card";
-    card.classList.toggle("overview-fresh", state.fresh && !state.today);
-    card.href = noteAddressOf(section.note, "");
-    card.append(elementOf("span", "overview-name", wordsOf(section)),
+    row.className = "overview-row";
+    row.classList.toggle("overview-fresh", state.fresh && !state.today);
+    row.href = noteAddressOf(section.note, "");
+    row.append(elementOf("span", "overview-name", section.title),
         valueOf("overview-round", state.round, numbered ? "Round " : "", ""),
         valueOf(`overview-next${state.today ? " overview-today" : ""}`, state.next,
             state.today || state.next === "" ? "" : "Next ", ""),
         valueOf("overview-count", state.fresh ? "" : String(state.right), "", " right"),
         valueOf("overview-count", state.fresh ? "" : String(state.wrong), "", " wrong"));
-    if (!state.fresh)
-        card.append(elementOf("span", "overview-days",
-            `Learned on ${dayList.format(section.days.map((day: string): string => dayTextOf(day, false)))}`));
-    return card;
+    return row;
 }
 
 /**
- * Makes the sections of one chapter, see the top of this file: a row naming the columns, in a module first
- * the name of the chapter, linking to its overview, and grey how many of its sections are ready; then their cards.
- * - `group`: The sections with their row.
- * - `head`: The row.
+ * Makes the sections of one chapter, see the top of this file: a line naming the columns, in a module first
+ * the name of the chapter, linking to its overview, and grey how many of its sections are ready; then their card.
+ * - `group`: The sections with their line.
+ * - `head`: The line.
+ * - `card`: The card of their rows.
  * - `name`: The name of the chapter with its ready number.
  * - `link`: The link of the name.
  *
@@ -171,6 +163,7 @@ function groupOf(module: SkillModule, chapter: string, sections: [SkillSection, 
     const group: HTMLElement = elementOf("section", "overview-group", "");
     const head: HTMLElement = elementOf("div", "overview-head", "");
     const name: HTMLElement = elementOf("h3", "overview-chapter", "");
+    const card: HTMLElement = elementOf("div", "overview-card", "");
     if (chapter !== "") {
         const link: HTMLAnchorElement = document.createElement("a");
         link.href = overviewAddressOf(module.title, chapter);
@@ -180,8 +173,9 @@ function groupOf(module: SkillModule, chapter: string, sections: [SkillSection, 
     }
     head.append(name, ...["Round", "Next", "Right", "Wrong"].map((label: string): HTMLElement =>
         elementOf("span", `overview-column overview-column-${label.toLowerCase()}`, label)));
-    group.append(head, ...sections.map(([section, state]: [SkillSection, SectionState]): HTMLAnchorElement =>
-        cardOf(section, state)));
+    card.append(...sections.map(([section, state]: [SkillSection, SectionState]): HTMLAnchorElement =>
+        rowOf(section, state)));
+    group.append(head, card);
     return group;
 }
 

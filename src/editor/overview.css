@@ -30,8 +30,8 @@
     font-size: var(--text-size);
 }
 
-/* The chapters a breath further apart than the cards of one chapter, which stand as the boxes of the plan;
-   the columns of the cards follow the width of the list, see the end of this file */
+/* The chapters a breath apart, each its line of names above its card; the columns of the rows follow the width
+   of the list, see the end of this file */
 .overview-list {
     display: flex;
     flex-direction: column;
@@ -45,11 +45,11 @@
     gap: 0.75rem;
 }
 
-/* A card and the row naming its columns on one grid: the name taking the room left, then the round, the next day,
-   right and wrong, each as wide as its longest value, like `Mon, 19.10.2026`, so the columns of every card stand
-   in line, also across the chapters of a module; the row in line with the text of the cards, inside their padding
-   and frame */
-.box.overview-card,
+/* A row and the line naming its columns on one grid: the name taking the room left, then the round, the next day,
+   right and wrong, each as wide as its longest value, like `Mon, 19.10.2026`, so the columns of every row stand
+   in line, also across the chapters of a module; the line in line with the text of the rows, inside the padding
+   of their card and their own */
+.overview-row,
 .overview-head {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 3.75rem 8.25rem 3rem 3.25rem;
@@ -58,13 +58,32 @@
 }
 
 .overview-head {
-    padding: 0 calc(1rem + 1px);
+    padding: 0 1.25rem;
 }
 
-.box.overview-card {
-    row-gap: 0.125rem;
+/* The card of a chapter filled as a box of the plan, `.box` in `../day/boxes.css`, its rows as the rows of the tree,
+   see `.tree-file` in `../notes/notes.css`: each as high as a row of the tree, `--tree-row-height`, 0.1875rem apart,
+   its name 1.25rem in from the edge of the card, as the text of a box; a row in the grey of what is picked under
+   the pointer, as a line of Today */
+.overview-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1875rem;
+    padding: 0.5rem;
+    border-radius: var(--radius);
+    background: var(--fill);
+}
+
+.overview-row {
+    padding: 0 0.75rem;
+    border-radius: var(--chip-radius);
     color: inherit;
+    line-height: var(--tree-row-height);
     text-decoration: none;
+}
+
+.overview-row:hover {
+    background: var(--chosen);
 }
 
 /* The name of a chapter in a module, bold as the name of a card, linking to its overview, a grey lighter under
@@ -99,18 +118,11 @@
     color: var(--text-muted);
 }
 
-/* The name of a section bold as the title of a card of Today, the days I learned it below it grey and small
-   as the line of a box */
+/* The name of a section as in the tree, on one line, ending in `…` where it is too long */
 .overview-name {
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-
-.overview-days {
-    grid-column: 1;
-    font-size: 0.8125rem;
-    color: var(--text-muted);
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Values in the figures of a table, so they stand in line; right and wrong to the right, as numbers stand */
@@ -141,19 +153,20 @@
     display: none;
 }
 
-/* A narrow page: a card its name on top and its values below it in one grey line, each named,
+/* A narrow page: a row its name on top and its values below it in one grey line, each named,
    apart by a middle dot at the end of the value before it, so a line going on below starts with a value, like
-   `Round 2 · Today · 5 right · 1 wrong`, then the days I learned it; no row of names; narrow means too little room
-   left for the name beside the columns, as on the laptop */
+   `Round 2 · Today · 5 right · 1 wrong`; no line of names; narrow means too little room left for the name beside
+   the columns, as on the laptop */
 @container (max-width: 38rem) {
-    .box.overview-card {
+    .overview-row {
         display: flex;
         flex-wrap: wrap;
         column-gap: 0;
+        padding: 0.375rem 0.75rem;
+        line-height: 1.45;
     }
 
-    .overview-name,
-    .overview-days {
+    .overview-name {
         flex-basis: 100%;
     }
 

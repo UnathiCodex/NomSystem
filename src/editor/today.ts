@@ -60,16 +60,6 @@ export type Item = {
 
 
 /**
- * Writes the name of a section in words, like `Sample Mean Estimator` for `01_01_SampleMeanEstimator`.
- *
- * @param section - Section
- * @returns Its name
- */
-export function wordsOf(section: SkillSection): string {
-    return section.title.replace(/^\d+_\d+_/, "").replace(/(?<=[a-z])(?=[A-Z])/g, " ");
-}
-
-/**
  * Builds the notes to do of a module today, see the top of this file.
  * - `items`, `fresh`: The Tasks with what their failures bring back, and the sections new today.
  * - `tasks`, `cold`: Tasks of a section and its Task of today.
