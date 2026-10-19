@@ -14,7 +14,7 @@
  * and `With` right below its place, who I was with, see {@link withRowOf};
  * the summary of `Sleep` only `Night` or `Day`, a nap, that of `Way` my means of transport;
  * a value with steps shows them below its line while it is picked, with the note of its last entry;
- * `Body` is my body care, one or several, like `Shower` or `Shower, Caring`;
+ * `Body` is my body care, one or several, like `Shower` or `Caring, Shower`;
  * in the log, `Food` has its summary written by itself from its meals and its foods, each in a row of its own
  * with its own list, my meals of `Meals.md` and my foods, like `Käsesalat, Brot`, see `meal.ts`;
  * and `Cook` below them one tap for the meal eaten right after it, which the reader adds with the cooking,
@@ -135,7 +135,8 @@ const placeKeys: FieldKey[] = ["from", "location"];
  * - `steps`: Steps of a value offered in the code, by the value, like the exercises of `Neck short`.
  * - `fixed`: Whether it takes only its values, like `Night` and `Day` of `Sleep`, and no new ones.
  * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `U-Bahn, Bus`,
- *   or my body care, `Shower, Caring`, see {@link manyRowOf}, or the people of `With`, `Sophale, Willi`, see {@link withRowOf}; one when left out.
+ *   or my body care, `Caring, Shower`, see {@link manyRowOf}, or the people of `With`, `Sophale, Willi`,
+ *   see {@link withRowOf}; one when left out.
  * - `rooms`: For a field of a place, the rooms of the university in `Rooms.md`, each as the line an entry writes,
  *   which its list offers only as I search, see {@link placeSearchOf}; none for any other field.
  * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
@@ -1129,11 +1130,13 @@ function fieldRowsOf(field: Field): HTMLElement[] {
 
 /**
  * Builds the row of a summary of several values, like the means of a way, since I change on it, like U-Bahn then bus,
- * or my body care, like `Shower, Caring`:
+ * or my body care, like `Caring, Shower`:
  * one line of the row, the values picked concatenated as one summary, parted by `, `, like `U-Bahn, Bus`, which is
- * also how the entry writes them; its list, a menu, takes a value or takes it back by a click, in the order picked,
- * and stays open for the next, see `many` in `choices.ts`, and takes a new value where the field takes new ones,
- * like `Body`, not `Way`; while none is picked, the row empty without a plus, as
+ * also how the entry writes them; its list, a menu, takes a value or takes it back by a click and stays open
+ * for the next, see `many` in `choices.ts`, and takes a new value where the field takes new ones, like `Body`,
+ * not `Way`. A way keeps the order picked, the order I rode in; any other summary the order of its list, the most used
+ * first, a new value last, like `Caring, Shower`, see {@link rankOf}. While none is picked, the row empty without
+ * a plus, as
  * every field of one value, since a click into it opens its list; its pencil beside it and its link below it,
  * see {@link summaryPartsOf}.
  * - `picked`: The values picked, in their order.
@@ -1149,11 +1152,25 @@ function manyRowOf(field: Field): HTMLElement {
         search: searchOf(field.values.map(choiceOf)), picked: picked, many: true, adding: !field.fixed,
         noun: "summary",
         aside: [pencil], below: [link, linkParts],
+        order: field.fixed ? undefined : (chosen: string[]): string[] => [...chosen]
+            .sort((first: string, second: string): number => rankOf(field, first) - rankOf(field, second)),
         pick: (chosen: string[]): void => {
             values[field.key] = chosen.join(", ");
             saveAllow();
         },
     }));
+}
+
+/**
+ * Gives where a value stands in the list of a field, the most used first, a value not in it, a new one, after all.
+ *
+ * @param field - Field of several values, like the summary of `Body`
+ * @param value - Value picked, like `Shower`
+ * @returns Its place, from 0
+ */
+function rankOf(field: Field, value: string): number {
+    const at: number = field.values.indexOf(value);
+    return at === -1 ? field.values.length : at;
 }
 
 /**

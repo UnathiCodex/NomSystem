@@ -73,8 +73,10 @@ export type Choice = {
  * - `adding`: Whether the plus with the typed text at the end of the list adds it as a new value.
  * - `add`: Takes the typed text as a new value before it is picked, like a new place, which the reader writes,
  *   and gives the value to pick, `null` to pick none; left out, the plus picks the typed text itself.
- * - `pick`: Takes the values picked after each change, in the order they were picked; for a list of one value
- *   once it is closed.
+ * - `pick`: Takes the values picked after each change, in the order they were picked, or in `order`; for a list
+ *   of one value once it is closed.
+ * - `order`: Puts the values picked of a list of several in the order the line shows and `pick` takes them,
+ *   like the order of the list; the order they were picked when left out.
  * - `empty`: What the line shows, grey, while nothing is picked; nothing when left out, as every field of the entry
  *   by category has it.
  * - `noun`: What a value is, like `place` or `summary`, for the search field, `Search or add a place`,
@@ -99,6 +101,7 @@ export type ChoicesSetup = {
     adding: boolean;
     add?: (text: string) => Promise<string | null>;
     pick: (values: string[]) => void;
+    order?: (values: string[]) => string[];
     empty?: string;
     noun?: string;
     aside?: HTMLElement[];
@@ -391,7 +394,8 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
         if (chosen.includes(value))
             chosen = chosen.filter((other: string): boolean => other !== value);
         else
-            chosen = setup.many ? [...chosen, value] : [value];
+            chosen = setup.many ? (setup.order ?? ((values: string[]): string[] => values))([...chosen, value])
+                : [value];
         list.querySelectorAll<HTMLButtonElement>("button[data-value]").forEach((button: HTMLButtonElement): void => {
             button.classList.toggle("chosen", chosen.includes(button.dataset.value ?? ""));
         });

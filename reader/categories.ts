@@ -18,8 +18,8 @@
  * of people.
  * A value offered in the code may come with steps, which the dialog shows while it is picked, and below them
  * the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
- * `Body` is my body care, showering and any care, offering `Shower` and `Caring` before any use, and takes several,
- * parted by `, `, like `Shower, Caring`, its list offering each once; my neck routine,
+ * `Body` is my body care, showering and any care, offering `Caring` and `Shower` before any use, and takes several,
+ * parted by `, `, like `Caring, Shower`, its list offering each once; my neck routine,
  * `Neck short` and `Neck long`, is no what of it any more, also where the log holds it, see {@link retiredWhats}.
  * A dish, the what of `Food` and `Cook`, names its foods parted by `, `, like `Reis, Bohnen, Eier`.
  * `Shopping` is what I buy, its what as I type it, like `Brot, Milch`, its place the shop, like `Edeka Center Hadern`.
@@ -73,7 +73,7 @@ export type FieldKey = "title" | "from" | "location" | "with";
  *   like the exercises of `Neck short`; none for the other values.
  * - `fixed`: Whether it takes only the values offered in the code, like `Night` and `Day` of `Sleep`, and no new ones.
  * - `many`: Whether it takes several of its values, parted by `, `, like the means of a way, `U-Bahn, Bus`,
- *   my body care, `Shower, Caring`, or the people of `With`, `Sophale, Willi`; one when left out.
+ *   my body care, `Caring, Shower`, or the people of `With`, `Sophale, Willi`; one when left out.
  */
 export type Field = {
     name: string;
@@ -256,7 +256,7 @@ const categories: Category[] = [
     {
         name: "Body",
         fields: [
-            { name: "Summary", key: "title", values: ["Shower", "Caring"], steps: {}, fixed: false, many: true },
+            { name: "Summary", key: "title", values: ["Caring", "Shower"], steps: {}, fixed: false, many: true },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
             withField,
         ],
@@ -358,7 +358,7 @@ function placeNamesRead(): string[] {
 
 /**
  * Lists the values of the field `title` of a category in log entries: the what of its entries, each value of a what
- * of several on its own, like `Shower` and `Caring` of `Shower, Caring`.
+ * of several on its own, like `Caring` and `Shower` of `Caring, Shower`.
  *
  * @param logs - Log entries
  * @param name - Name of the category
