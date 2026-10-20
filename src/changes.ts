@@ -7,6 +7,8 @@
  * The page hears the reader on one open answer for all its views; once it hears the reader again after losing it,
  * like a phone whose app lay in the background, or the reader started anew after a change of its code, every view
  * loads anew too, since a change may have come meanwhile.
+ * What a dialog needs, like the categories of the entry by category, is kept the same way, loaded once and anew
+ * after every change, so opening the dialog waits for no answer of the reader, see {@link changesKept}.
  *
  * - {@link EventSource}: Keeps one answer of the reader open, hears each change on it, and asks again by itself
  *   when it breaks.
@@ -50,4 +52,21 @@ export function changesFollow(again: () => void): void {
             loadAll();
         lost = false;
     });
+}
+
+/**
+ * Keeps what a load gives, loaded at once and anew after every change, see {@link changesFollow}, so whoever needs it
+ * gets it as the files hold it now without waiting for the reader; a load that failed, like while the reader
+ * starts anew, runs again when it is needed.
+ * - `kept`: The last load, done or still running.
+ *
+ * @param load - Loads it from the reader
+ * @returns Gives it as last loaded, waiting only for a load still running
+ */
+export function changesKept<T>(load: () => Promise<T>): () => Promise<T> {
+    let kept: Promise<T> = load();
+    changesFollow((): void => {
+        kept = load();
+    });
+    return (): Promise<T> => kept = kept.catch((): Promise<T> => load());
 }

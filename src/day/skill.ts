@@ -51,6 +51,7 @@
  *   writes days out and sends skill entries.
  * - `../today.ts`: Gives today's calendar date, for the tasks due.
  * - `../skill/links.ts`: Names the folder of my modules.
+ * - `../changes.ts`: Keeps the skills with their tasks, loaded once and anew after every change of a file.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
@@ -62,6 +63,7 @@ import {
 } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { modulesFolder } from "../skill/links.ts";
+import { changesKept } from "../changes.ts";
 
 import type { Calendar } from "fullcalendar";
 import type { Choice } from "./choices.ts";
@@ -149,11 +151,19 @@ const resultChoices: Choice[] = [
 ];
 
 /**
- * Modules with their tasks and the lists to pick from, as the reader gave them when `Skill` was picked.
+ * Modules with their tasks and the lists to pick from, as they were kept when `Skill` was picked,
+ * see {@link skillingKept}.
  */
 let skilling: Skilling = {
     modules: [], skills: [], otherModules: [], labels: {}, paths: {}, types: [],
 };
+
+/**
+ * Gives the modules with their tasks and the lists to pick from as the reader last sent them, loaded as the code
+ * of the dialog loads and anew after every change of a file, see `changesKept` in `../changes.ts`,
+ * so picking `Skill` waits for no reckoning of the reader, which takes it a fifth of a second.
+ */
+const skillingKept: () => Promise<Skilling> = changesKept(skillingLoad);
 
 /**
  * What is picked so far.
@@ -822,7 +832,7 @@ export async function skillFieldsShow(head: HTMLElement, more: HTMLElement, plac
                                       values: SkillValues, day: string, planned: boolean,
                                       changed: () => void, summary: HTMLElement[] = []): Promise<void> {
 
-    skilling = await skillingLoad();
+    skilling = await skillingKept();
     inPlan = plan;
     asPlanned = planned;
     semesterDay = day;

@@ -13,6 +13,7 @@
  * ### Modules
  * - `node:http`: Builds the server that answers the browser page
  * - `node:stream/consumers`: Reads a whole request body into one value
+ * - `node:zlib`: Packs an answer as `gzip`, many times smaller
  * - `./day.ts`: Reads the log of a day and every entry of the log, adds, changes, moves and removes its entries, adds
  *   the meal of a cooking, logs a box of the plan at its real time and takes it back, and reads how long entries like
  *   a box really lasted
@@ -47,6 +48,7 @@
 
 import { createServer } from "node:http";
 import { json } from "node:stream/consumers";
+import { gzipSync } from "node:zlib";
 import {
     boxLog, boxUndo, dayEntriesRead, entryAdd, entryDelete, entryEdit, entryMove, entryNowRead, logAllRead,
     realMinutesRead,
@@ -93,19 +95,25 @@ import type { Food, FoodChanged } from "./food.ts";
 
 
 /**
- * Sends an answer as JSON text.
+ * Sends an answer as JSON text, packed as `gzip` when the browser takes it, as every browser does, which makes
+ * the categories with the values of their fields 31 KB instead of 506 KB.
  * - `Cache-Control`: Tells the browser with `no-store` to not keep the answer,
  *   because the files may change any time.
+ * - `Content-Encoding`: Tells the browser that the answer comes packed, which it unpacks by itself.
  *
  * @param response - Answer to the browser
  * @param status - HTTP status code
  * @param body - Data to send
  */
 function responseSend(response: ServerResponse, status: number, body: unknown): void {
+    const text: string = JSON.stringify(body);
+    const packed: boolean = /\bgzip\b/.test(response.req.headers["accept-encoding"] ?? "");
     response.statusCode = status;
     response.setHeader("Content-Type", "application/json; charset=utf-8");
     response.setHeader("Cache-Control", "no-store");
-    response.end(JSON.stringify(body));
+    if (packed)
+        response.setHeader("Content-Encoding", "gzip");
+    response.end(packed ? gzipSync(text) : text);
 }
 
 /**

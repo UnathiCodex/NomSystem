@@ -85,6 +85,7 @@
  *   and the pencil of a place and of a summary; makes the plain question mark of the bin.
  * - `../search.ts`: Writes a name without accents for its standard address in `With`.
  * - `../reader.ts`: Asks the reader.
+ * - `../changes.ts`: Keeps the categories, loaded once and anew after every change of a file.
  * - `lucide`: The icons of the copy, the bin, Cancel, Save and the pencil.
  * - `fullcalendar`: Calendar that shows the entries.
  */
@@ -106,6 +107,7 @@ import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut, QuestionMark } from "../icons.ts";
 import { searchTextOf } from "../search.ts";
 import { readerAsk } from "../reader.ts";
+import { changesKept } from "../changes.ts";
 import { Check, Copy, Pencil, Trash, X } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
@@ -230,7 +232,8 @@ const skillNone: SkillValues = {
 };
 
 /**
- * Categories with the values of their fields, as the reader gave them when the dialog opened.
+ * Categories with the values of their fields, a copy of those kept, see {@link categoriesKept}, made as the dialog
+ * opens, since a value picked new joins the lists of the open dialog only, see {@link valueAdd}.
  */
 let categories: Category[] = [];
 
@@ -359,6 +362,13 @@ async function categoriesLoad(): Promise<Category[]> {
     const response: Response = await fetch(`/api/day/categories?now=${new Date().toISOString()}`);
     return await response.json();
 }
+
+/**
+ * Gives the categories with the values of their fields as the reader last sent them, loaded as the code
+ * of the dialog loads and anew after every change of a file, see `changesKept` in `../changes.ts`,
+ * so opening the dialog waits for no answer of the reader.
+ */
+const categoriesKept: () => Promise<Category[]> = changesKept(categoriesLoad);
 
 /**
  * Gives the start of the entry or the box as the fields of the dialog say: its time on its typed day, like `01:45`
@@ -1840,7 +1850,7 @@ function timesShow(opening: EntryOpening): void {
  */
 async function entryShow(opening: EntryOpening): Promise<void> {
     const dialog: HTMLDialogElement = document.getElementById("entry") as HTMLDialogElement;
-    categories = await categoriesLoad();
+    categories = structuredClone(await categoriesKept());
     opened = opening;
     onlineLink = labelOf(opening.values.location) === onlineName ? opening.locationLink : "";
     summaryLink = opening.category === skillName && !linkForm.test(opening.titleLink) ? "" : opening.titleLink;
