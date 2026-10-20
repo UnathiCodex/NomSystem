@@ -1398,13 +1398,15 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
  *   and whose chapters it may keep by their names, see {@link skillEntryCheck}.
  * - `fields`: Fields and times of the entry.
  * - `own`: Its chapters, links, attempts and box, as properties of my own.
+ * - `id`: Identifier of the new entry.
  *
  * @param entry - Skill entry as the page sends it
+ * @returns Identifier of the new entry, so the reader can send it to Vu, see `shared.ts`
  * @throws {Error} - When an attempt is not right, see {@link attemptValueOf}, the entry is not right,
  *   see {@link skillEntryCheck}, a document is none of the module's, the link typed for `Online` is no web address,
  *   or the box it is logged from is not open
  */
-export function skillEntryAdd(entry: SkillEntryNew): void {
+export function skillEntryAdd(entry: SkillEntryNew): string {
     const tasks: Task[] = tasksRead();
     const values: string[] = entry.attempts.map((attempt: AttemptNew): string => attemptValueOf(attempt, tasks));
     const chapters: string[] = chaptersWith(entry.chapters, tasksOf(values, entry.module), tasks);
@@ -1428,9 +1430,10 @@ export function skillEntryAdd(entry: SkillEntryNew): void {
     own.push(...values.map((value: string): [string, string] => ["x-attempt", value]));
     if (plan !== null)
         own.push(["related-to", plan.id]);
-    entryAppend(logFileOf(fields), fields, own);
+    const id: string = entryAppend(logFileOf(fields), fields, own);
     if (plan !== null)
         boxDone(plan.id);
+    return id;
 }
 
 /**

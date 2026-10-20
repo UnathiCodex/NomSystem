@@ -44,7 +44,7 @@ import { readerAsk } from "../reader.ts";
  * - `name`: Its name, like `2026_10` or `Foods.md`.
  * - `path`: Its path from `NomManageplannings`, like `NomMetainformations/Foods.md`.
  * - `folder`: Whether it is a folder.
- * - `opens`: Whether the editor opens it: a Markdown or `.ics` file of the three folders of my new system.
+ * - `opens`: Whether the editor opens it: a Markdown or `.ics` file of the folders of my new system.
  * - `children`: What a folder holds, its folders first.
  */
 type FileNode = {
@@ -164,7 +164,7 @@ function fileNodeOf(node: FileNode): HTMLElement {
     const name: HTMLSpanElement = document.createElement("span");
     name.className = "tree-file tree-closed";
     name.dataset.path = node.path;
-    name.title = "Only Markdown and .ics files of the three folders of my new system open";
+    name.title = "Only Markdown and .ics files of the folders of my new system open";
     name.textContent = breakableOf(node.name);
     return name;
 }

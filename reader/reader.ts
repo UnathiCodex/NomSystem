@@ -43,6 +43,7 @@
  *   on a day
  * - `./devices.ts`: Writes what each of my devices shows of the page into `Devices.md`
  * - `./changes.ts`: Tells every open page the moment a file of my new system changes, so it loads anew what it shows
+ * - `./shared.ts`: Sends an entry I log with Vu to Vu's inbox, and takes the entries Vu logs with me from mine
  * - `./page.ts`: Gives out the files of the page through Vite
  */
 
@@ -78,6 +79,7 @@ import {
 import { trackersRead } from "./trackers.ts";
 import { deviceReport } from "./devices.ts";
 import { changesSend, changesWatch } from "./changes.ts";
+import { entryShare, sharedStart } from "./shared.ts";
 import { pageCreate } from "./page.ts";
 
 import type { IncomingMessage, ServerResponse, Server } from "node:http";
@@ -156,7 +158,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   on the date, with my goals.
  * - `GET /api/day/real?category=…&title=…&module=…&type=…`: Sends the minutes the last entries like a box
  *   really lasted, the latest first.
- * - `POST /api/day/log`: Adds entry of the body and sends its identifier.
+ * - `POST /api/day/log`: Adds entry of the body and sends its identifier; sends the entry to Vu when Vu is in its
+ *   `With`, see `entryShare` in `shared.ts`, as do the other routes that add or change an entry of the log.
  * - `PATCH /api/day/log`: Changes entry of the body, refused with 409 when its file changed it since the dialog opened it.
  * - `POST /api/day/moved`: Moves the entry named in the body to the start and end in the body, every other field
  *   as its file holds it.
@@ -189,8 +192,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `PUT /api/edit/note`: Writes note of my modules of the body, its change kept as a diff,
  *   refused with 409 when its file changed since the editor read it.
  * - `GET /api/edit/tree`: Sends the tree of `NomManageplannings` for the editor, without my old system, read only.
- * - `GET /api/edit/file?path=…`: Sends a file of the three folders of my new system, Markdown or `.ics`.
- * - `PUT /api/edit/file`: Writes Markdown file of the body into the three folders of my new system, without a diff,
+ * - `GET /api/edit/file?path=…`: Sends a file of the folders of my new system, Markdown or `.ics`.
+ * - `PUT /api/edit/file`: Writes Markdown file of the body into the folders of my new system, without a diff,
  *   refused with 409 when its file changed since the editor read it.
  * - `GET /api/skill/tasks`: Sends the modules with their tasks, when each is due, every module folder,
  *   and the types, for Learn, which shows the boxes of today it writes first.
@@ -297,10 +300,16 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
             url.searchParams.get("title") ?? "", url.searchParams.get("module") ?? "", url.searchParams.get("type") ?? ""));
 
     } else if (request.method === "POST" && url.pathname === "/api/day/log") {
-        responseSend(response, 200, entryAdd(await json(request) as EntryNew));
+        const id: string = entryAdd(await json(request) as EntryNew);
+        entryShare(id);
+        responseSend(response, 200, id);
 
     } else if (request.method === "PATCH" && url.pathname === "/api/day/log") {
-        responseSend(response, entryEdit(await json(request) as EntryChange) ? 200 : 409, null);
+        const change: EntryChange = await json(request) as EntryChange;
+        const written: boolean = entryEdit(change);
+        if (written)
+            entryShare(change.id);
+        responseSend(response, written ? 200 : 409, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/moved") {
         entryMove(await json(request) as EntryMoved);
@@ -322,7 +331,9 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/logged") {
-        responseSend(response, 200, boxLog(await json(request) as BoxLogged));
+        const id: string = boxLog(await json(request) as BoxLogged);
+        entryShare(id);
+        responseSend(response, 200, id);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/undone") {
         boxUndo((await json(request) as { box: string }).box);
@@ -415,11 +426,15 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/skill/entry") {
-        skillEntryAdd(await json(request) as SkillEntryNew);
+        entryShare(skillEntryAdd(await json(request) as SkillEntryNew));
         responseSend(response, 200, null);
 
     } else if (request.method === "PATCH" && url.pathname === "/api/skill/entry") {
-        responseSend(response, skillEntryEdit(await json(request) as SkillEntryChange) ? 200 : 409, null);
+        const change: SkillEntryChange = await json(request) as SkillEntryChange;
+        const written: boolean = skillEntryEdit(change);
+        if (written)
+            entryShare(change.id);
+        responseSend(response, written ? 200 : 409, null);
 
     } else if (request.method === "GET" && url.pathname === "/api/skill/session") {
         responseSend(response, 200, sessionRead(url.searchParams.get("module") ?? ""));
@@ -517,3 +532,4 @@ const port: number = Number(process.env.NOM_PORT ?? 3000);
 server.listen(port, "127.0.0.1", (): void => console.log(`http://127.0.0.1:${port}`));
 linksCheckStart();
 changesWatch();
+sharedStart();

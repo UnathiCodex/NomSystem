@@ -903,7 +903,7 @@ export function entryFind(sources: CalendarSource[], id: string): [string, Entry
 }
 
 /**
- * Stops a write outside the three folders of the new system, like into my modules.
+ * Stops a write outside the folders of the new system, like into my modules.
  *
  * @param file - Path of the file to write
  * @throws {Error} - When the file lies outside the folders of the new system
@@ -1442,7 +1442,6 @@ function textsOf(fields: EntryTexts): [string, string][] {
  * its place with its link, see {@link textPropertyOf}, one `ATTENDEE` per person I was with,
  * see {@link attendeePropertyOf}, the box it was logged from as `RELATED-TO`,
  * see {@link ownPropertyOf}.
- * - `id`: Identifier of the new event, its `UID`.
  *
  * @param file - Path of the `.ics` file
  * @param fields - Fields and times of the entry
@@ -1450,12 +1449,14 @@ function textsOf(fields: EntryTexts): [string, string][] {
  *   like `["x-attempt", "IN2028/Airline Revenue Interval;right"]` of a skill entry or `["x-food", "Reis;150"]`
  *   of a meal, `["attach", link]` for a link, see {@link Link}, or `["related-to", "study-13@nomsystem"]`
  *   for the box it was logged from
+ * @param id - Identifier of the new event, its `UID`: a new one, or the one an entry brought from Vu's log,
+ *   see `shared.ts`
  * @returns Identifier of the new entry, like `b8f1e81f-15b4-460e-910d-ef6b1b3d09b3@nomsystem`
  * @throws {Error} - When the file lies outside the new system or has no line `END:VCALENDAR`
  */
-export function entryAppend(file: string, fields: EntryFields, own: [string, string | Link][]): string {
+export function entryAppend(file: string, fields: EntryFields, own: [string, string | Link][],
+                            id: string = `${randomUUID()}@nomsystem`): string {
     writeCheck(file);
-    const id: string = `${randomUUID()}@nomsystem`;
     const event: ICAL.Component = new ICAL.Component("vevent");
     event.addProperty(propertyOf("dtstart", berlinOf(fields.start)));
     event.addProperty(propertyOf("dtend", berlinOf(fields.end)));

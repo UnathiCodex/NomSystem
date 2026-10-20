@@ -2,25 +2,31 @@
  * ## Sources
  *
  * Names every folder and file the reader reads, and every address on the web it asks, grouped by area.
- * My new system is three folders in `NomManageplannings`, see {@link systemRoots}: `NomManagecalendar` for plan
- * and log, {@link calendarRoot}, `NomFrequencediary` for the daily notes, {@link diaryRoot}, and `NomMetainformations`
- * for my foods, places, workouts, videos and weight, {@link dataRoot}; my old system, `NomSystemprevious`, lies beside
+ * My new system is the folders in `NomManageplannings`, see {@link systemRoots}: `NomManagecalendar` for plan
+ * and log, {@link calendarRoot}, `NomFrequencediary` for the daily notes, {@link diaryRoot}, `NomMetainformations`
+ * for my foods, places, workouts, videos and weight, {@link dataRoot}, and, once I share with Vu,
+ * `NomSharedinformations` for our foods, meals and places in place of mine, {@link sharedRoot}, and our inboxes;
+ * my old system, `NomSystemprevious`, lies beside
  * them and is never read.
  * The reader reads only the new system, my modules, see {@link notes}, and the files the skill entries link,
  * in my modules and my projects, see {@link activeSkills} and `documents.ts`, and nothing that is not listed here;
  * every file at its own place, none from a copy elsewhere, like a draft in `.claude`.
- * It writes only into the three folders of the new system, see {@link writeAllowed}, and the editor into the notes
+ * It writes only into the folders of the new system, see {@link writeAllowed}, and the editor into the notes
  * of my modules and the file of my corrections, see {@link editor}; the editor shows the tree
- * of `NomManageplannings` but for my old system, and opens only the files of the three folders,
+ * of `NomManageplannings` but for my old system, and opens only the files of the folders of the new system,
  * see {@link systemFiles}. A file or folder of the new system that is missing, like `Birthdays.ics` or the log
  * of a year without entries, counts as empty.
  *
+ * - `node:fs`: Tells whether I share, and lists the inboxes of the people I share with.
  * - `node:os`: Gives the home folder.
  * - `node:path`: Builds file paths for the operating system.
  */
 
+import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
+
+import type { Dirent } from "node:fs";
 
 
 /**
@@ -41,7 +47,7 @@ export type CalendarSource = {
 export const vault: string = process.env.NOM_VAULT ?? join(homedir(), "NomWorkspace");
 
 /**
- * Folder `NomManageplannings`, which holds the three folders of my new system and my old system beside them.
+ * Folder `NomManageplannings`, which holds the folders of my new system and my old system beside them.
  */
 export const manageRoot: string = join(vault, "NomManageplannings");
 
@@ -90,9 +96,71 @@ export const diaryRoot: string = join(manageRoot, "NomFrequencediary");
 
 /**
  * Folder of my data, `NomMetainformations`: my foods, `Foods.md`,
- * my meals, `Meals.md`, my places, `Places.md`, the rooms of the university, `Rooms.md`, and my devices, `Devices.md`.
+ * my meals, `Meals.md`, my places, `Places.md`, the rooms of the university, `Rooms.md`, while I share none of them,
+ * see {@link sharedRoot}, my workouts, exercises, videos and weight, see {@link sport}, and my devices, `Devices.md`.
  */
 export const dataRoot: string = join(manageRoot, "NomMetainformations");
+
+/**
+ * Folder I share with Vu, `NomSharedinformations`, beside {@link dataRoot}, which Syncthing keeps the same
+ * on Vu's server and mine, so we have the same foods, meals and places, and each the entries the other logged with us:
+ * `Foods.md`, `Meals.md`, `Places.md` and `Rooms.md`, one list of each for both of us, in place of those
+ * in {@link dataRoot}, see {@link sharedFileOf}, and one inbox per person, see {@link inboxRoot}.
+ * Each of us adds, changes and removes in these lists as in our own, and the other sees it as Syncthing brings it.
+ */
+export const sharedRoot: string = join(manageRoot, "NomSharedinformations");
+
+/**
+ * Whether I share, {@link sharedRoot} lying there as the reader starts; a reader alone, like Vu's or mine before
+ * we shared, keeps every list in {@link dataRoot}, and one that starts to share counts once it starts anew.
+ */
+const sharing: boolean = existsSync(sharedRoot);
+
+/**
+ * Gives the path of a list I share once I share, see {@link sharing}: in {@link sharedRoot}, else in {@link dataRoot}.
+ *
+ * @param name - Name of the file, like `Foods.md`
+ * @returns Its path, like `NomSharedinformations/Foods.md` in `NomManageplannings`
+ */
+function sharedFileOf(name: string): string {
+    return join(sharing ? sharedRoot : dataRoot, name);
+}
+
+/**
+ * Folder of the inboxes in {@link sharedRoot}, `Inbox/`: one folder per person who shares, named as the others write
+ * the person in `With`, like `Inbox/Vu/` and `Inbox/Sopha/`; the reader of each creates its own, see {@link myName},
+ * and puts into the inbox of each of the others the entries I log with them, one `.ics` file each, see `shared.ts`.
+ */
+export const inboxRoot: string = join(sharedRoot, "Inbox");
+
+/**
+ * Folder of the entries taken from the inboxes in {@link sharedRoot}, `Archive/`: one folder per person, like
+ * `Archive/Vu/`, into which the reader of each moves an entry it took into its log from its inbox, so the sender
+ * sees it came, and no one gets an entry twice, see `shared.ts`.
+ */
+export const archiveRoot: string = join(sharedRoot, "Archive");
+
+/**
+ * My name as the people I share with write me in `With`, like `Sopha`, which names my inbox, see {@link inboxRoot}:
+ * environment variable `NOM_NAME` of the reader, set in its service; empty when unset, then I take no entry in and send
+ * none, but still share the lists of {@link sharedRoot}.
+ */
+export const myName: string = process.env.NOM_NAME?.trim() ?? "";
+
+/**
+ * Reads the names of the people I share with, each by its inbox, see {@link inboxRoot}, not mine, small and capital
+ * letters alike, so `With` offers them before I ever log with them, see `categories.ts`.
+ *
+ * @returns Names, like `Vu`, none while I share with no one
+ */
+export function partnersRead(): string[] {
+    if (!existsSync(inboxRoot))
+        return [];
+    return readdirSync(inboxRoot, { withFileTypes: true })
+        .filter((folder: Dirent): boolean => folder.isDirectory() && !folder.name.startsWith(".")
+            && folder.name.toLowerCase() !== myName.toLowerCase())
+        .map((folder: Dirent): string => folder.name);
+}
 
 /**
  * My devices, `Devices.md` in {@link dataRoot}: one Markdown table with one row per device of my tailnet,
@@ -101,10 +169,11 @@ export const dataRoot: string = join(manageRoot, "NomMetainformations");
 export const devicesFile: string = join(dataRoot, "Devices.md");
 
 /**
- * The three folders of my new system, the only ones the reader writes into, but for the notes of my modules
- * and the file of my corrections, which the editor writes, see {@link editor}.
+ * The folders of my new system, the three of mine and the one I share, see {@link sharedRoot}, the only ones
+ * the reader writes into, but for the notes of my modules and the file of my corrections, which the editor writes,
+ * see {@link editor}.
  */
-export const systemRoots: string[] = [calendarRoot, diaryRoot, dataRoot];
+export const systemRoots: string[] = [calendarRoot, diaryRoot, dataRoot, sharedRoot];
 
 /**
  * Name of the folder of my old system beside them in `NomManageplannings`, `NomSystemprevious`,
@@ -148,7 +217,7 @@ export const notes: NotesSources = {
 };
 
 /**
- * Places the editor writes, the only ones besides the three folders of the new system, see {@link systemRoots}.
+ * Places the editor writes, the only ones besides the folders of the new system, see {@link systemRoots}.
  *
  * - `modules`: My modules, each note right at its place, the modules of {@link notes}.
  * - `corrections`: My corrections, one file, `.claude/modules/corrections.diff` of this project, out of Git,
@@ -173,7 +242,7 @@ export const editor: EditorSources = {
  * - `tree`: Folder whose tree the editor shows on the left, `NomManageplannings`, with every folder I add to it later,
  *   but without `previous` and without hidden files and folders, like `.obsidian`.
  * - `previous`: Name of my old system, `NomSystemprevious`, left out of the tree at any depth and never read.
- * - `folders`: The only folders whose files the editor reads and writes, the three folders of my new system,
+ * - `folders`: The only folders whose files the editor reads and writes, the folders of my new system,
  *   see {@link systemRoots}: a Markdown file, like `Foods.md`, to edit, an `.ics` file only to read.
  */
 export type SystemFilesSources = {
@@ -271,8 +340,9 @@ export const activeModules: string[] = activeSkills
  *   and the name as `SUMMARY`, like `Birthday: Karlbauer Florian`, and beside it `Holidays.ics`, a holiday
  *   with `CATEGORIES:Holiday`, like `Holiday: Ostermontag (AT, DE)`; my gift idea for one is its `DESCRIPTION`,
  *   which the reader writes, see `gifts.ts`; none of a file while it is missing.
- * - `places`: My places, `Places.md` in {@link dataRoot}, beside `Foods.md`, one Markdown table
- *   with one row per place, its name and its address, which the reader writes as I add places, see `places.ts`.
+ * - `places`: My places, `Places.md` in {@link dataRoot}, or ours in {@link sharedRoot} once I share with Vu,
+ *   beside `Foods.md`, one Markdown table with one row per place, its name and its address, which the reader writes
+ *   as I add places, see `places.ts`.
  * - `rooms`: The rooms of the university, `Rooms.md` beside `Places.md`, one table of the same form,
  *   its name, its address and its link to NavigaTUM, which the reader writes as I add a room, see `places.ts`.
  */
@@ -291,8 +361,8 @@ export const day: DaySources = {
     plan: [{ folder: calendarRoot, ending: planEnding }],
     log: [{ folder: calendarRoot, ending: logEnding }],
     system: [{ folder: metaRoot, ending: "Birthdays.ics" }, { folder: metaRoot, ending: "Holidays.ics" }],
-    places: join(dataRoot, "Places.md"),
-    rooms: join(dataRoot, "Rooms.md"),
+    places: sharedFileOf("Places.md"),
+    rooms: sharedFileOf("Rooms.md"),
 };
 
 /**
@@ -311,9 +381,9 @@ export const trackerLog: CalendarSource[] = [{ folder: calendarRoot, ending: log
 /**
  * Sources of the food area.
  *
- * - `foods`: My foods, `Foods.md` in {@link dataRoot}, one Markdown table with one row per food,
- *   which the reader writes as I add foods, see `food.ts`.
- * - `meals`: My meals, `Meals.md` in {@link dataRoot}, one Markdown table with one row per food of a meal,
+ * - `foods`: My foods, `Foods.md` in {@link dataRoot}, or ours in {@link sharedRoot} once I share with Vu,
+ *   one Markdown table with one row per food, which the reader writes as I add foods, see `food.ts`.
+ * - `meals`: My meals, `Meals.md` beside `Foods.md`, one Markdown table with one row per food of a meal,
  *   which the reader writes as I add meals, see `food.ts`.
  * - `log`: Log of the new system, where each meal is an entry of the category `Food` listing its foods,
  *   in the log of its month in `Living/`.
@@ -332,8 +402,8 @@ export type FoodSources = {
  * {@link FoodSources} as they lie in the vault and on the web.
  */
 export const food: FoodSources = {
-    foods: join(dataRoot, "Foods.md"),
-    meals: join(dataRoot, "Meals.md"),
+    foods: sharedFileOf("Foods.md"),
+    meals: sharedFileOf("Meals.md"),
     log: [{ folder: calendarRoot, ending: logEnding }],
     search: "https://search.openfoodfacts.org/search",
     product: "https://world.openfoodfacts.org/api/v2/product/",
@@ -404,7 +474,7 @@ export function skillFileOf(name: string, ending: string): string {
 }
 
 /**
- * Tells whether the reader may write a file: only inside one of the three folders of the new system,
+ * Tells whether the reader may write a file: only inside one of the folders of the new system,
  * see {@link systemRoots}.
  * - {@link resolve}: Makes a path absolute and takes out `..`, so no path leaves the folders.
  *

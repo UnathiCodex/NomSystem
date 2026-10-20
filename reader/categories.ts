@@ -14,8 +14,9 @@
  * see `onlineName` in `places.ts`.
  * `With` takes one or more people or groups, each by a name without comma, mostly one group, like `Socials`,
  * sometimes several, like `Sophale, Willi`, offering the names the entries of the log wrote, the most used first,
- * equal ones alphabetical, with the address the last of them wrote, see {@link addressesOf}; there is no file
- * of people.
+ * equal ones alphabetical, with the address the last of them wrote, see {@link addressesOf}, and Vu, with whom
+ * I share, before I ever log with Vu, see `partnersRead` in `sources.ts`; an entry with Vu goes to Vu, see `shared.ts`;
+ * there is no file of people.
  * A value offered in the code may come with steps, which the dialog shows while it is picked, and below them
  * the note of the last entry of it, like `Last time: band red · 3×10`, so the load can rise.
  * `Body` is my body care, showering and any care, offering `Caring` and `Shower` before any use, and takes several,
@@ -44,13 +45,13 @@
  * - `./calendar.ts`: Reads `.ics` files into entries, and names the category of skill entries.
  * - `./places.ts`: Reads my places from `Places.md`.
  * - `./sport.ts`: Names the category of a session and its kinds.
- * - `./sources.ts`: Names every folder and file the reader reads.
+ * - `./sources.ts`: Names every folder and file the reader reads, and the people I share with.
  */
 
 import { entriesRead, skillName } from "./calendar.ts";
 import { labelOf, lineOf, onlineName, placesRead, roomsRead } from "./places.ts";
 import { sportKinds, sportName } from "./sport.ts";
-import { day } from "./sources.ts";
+import { day, partnersRead } from "./sources.ts";
 
 import type { Attendee, Entry, EntryTexts } from "./calendar.ts";
 import type { Place } from "./places.ts";
@@ -449,7 +450,8 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * - `rooms`: The rooms of the university for every field of a place, each as the line an entry writes, in the order
  *   of `Rooms.md`, none of the name of one of my places.
  * - `links`: The links of my places and rooms that have one, by their lines.
- * - `people`: The names of `With`, the most used first, see {@link peopleUsesOf}.
+ * - `people`: The names of `With`, the most used first, see {@link peopleUsesOf}, those I share with offered
+ *   before any use, see `partnersRead` in `sources.ts`.
  * - `addresses`: The address of each of them, see {@link addressesOf}.
  *
  * @param now - Present as ISO instant, as the page knows it
@@ -466,7 +468,7 @@ export function categoriesRead(now: string): CategoryShown[] {
     const links: { [value: string]: string } = Object.fromEntries([...mine, ...rooms]
         .filter((place: Place): boolean => place.link !== "")
         .map((place: Place): [string, string] => [lineOf(place), place.link]));
-    const people: string[] = valuesOrder(peopleUsesOf(logs), []);
+    const people: string[] = valuesOrder(peopleUsesOf(logs), partnersRead());
     const addresses: { [name: string]: string } = addressesOf(logs);
     return categories
         .filter((category: Category): boolean => !hiddenNames.includes(category.name))

@@ -4,7 +4,7 @@
  * Lists the files of my new system for the tree of the editor, reads one and writes one back as I saved it.
  * The tree is `NomManageplannings` with every folder in it, also one I add later, but never my old system,
  * `NomSystemprevious`, at any depth, nor a hidden file or folder, like `.obsidian`, nor a symbolic link.
- * Reads and writes only inside the three folders of my new system, see `systemFiles` in `sources.ts`:
+ * Reads and writes only inside the folders of my new system, see `systemFiles` in `sources.ts`:
  * a Markdown file, like `NomMetainformations/Foods.md` or a daily note, to edit, written exactly as sent,
  * without a diff, since only the notes of my modules keep diffs, see `edit.ts`; an `.ics` file only to read.
  * Paths are written from `NomManageplannings` with `/`, like `NomManagecalendar/Living/2026_10_Log.ics`.
@@ -12,7 +12,7 @@
  * - `node:fs`: Lists folders, reads and writes files.
  * - `node:path`: Builds file paths for the operating system.
  * - `./edit.ts`: Gives the form of a file as I saved it in the editor.
- * - `./sources.ts`: Names the tree, the folder left out of it and the three folders, and tells which files
+ * - `./sources.ts`: Names the tree, the folder left out of it and the folders of the new system, and tells which files
  *   the reader may write.
  */
 
@@ -30,7 +30,7 @@ import type { NoteChange } from "./edit.ts";
  * - `name`: Its name, like `2026_10` or `Foods.md`.
  * - `path`: Its path, see the top of this file, like `NomMetainformations/Foods.md`.
  * - `folder`: Whether it is a folder.
- * - `opens`: Whether the editor opens it: a Markdown or `.ics` file of the three folders, never a folder.
+ * - `opens`: Whether the editor opens it: a Markdown or `.ics` file of the folders of the new system, never a folder.
  * - `children`: What a folder holds, its folders first, each part by name; none for a file.
  */
 export type FileNode = {
@@ -77,7 +77,7 @@ function leftOut(part: string): boolean {
 }
 
 /**
- * Tells whether the editor opens a file of a path: it lies in one of the three folders and is Markdown or `.ics`.
+ * Tells whether the editor opens a file of a path: it lies in one of the folders and is Markdown or `.ics`.
  * - `top`: The folder of `NomManageplannings` it lies in, like `NomMetainformations`.
  *
  * @param path - Path like `NomMetainformations/Foods.md`
@@ -129,18 +129,18 @@ export function treeRead(): FileNode[] {
 
 /**
  * Turns the path of a file of my new system into its file on the disk, only for a file with one of the endings
- * that lies in one of the three folders and exists.
+ * that lies in one of the folders and exists.
  * - {@link realpathSync}: Makes a path absolute and follows symbolic links, so no link leads outside the folders.
  * - `parts`: The parts of the path as sent.
  * - `file`: The file on the disk.
- * - `root`: The one of the three folders it lies in, `undefined` for none; a folder still missing,
+ * - `root`: The one of the folders it lies in, `undefined` for none; a folder still missing,
  *   like `NomFrequencediary` before my first daily note, holds nothing.
  *
  * @param path - Path like `NomMetainformations/Foods.md`
  * @param endings - Endings it may have, like `.md`
  * @returns File on the disk
  * @throws {Error} - When the path has a part left out, like `NomSystemprevious`, `.obsidian` or `..`, or a `\`,
- *   has none of the endings, lies outside the three folders, or nothing lies there
+ *   has none of the endings, lies outside the folders of the new system, or nothing lies there
  */
 function systemFileOf(path: string, endings: string[]): string {
     const parts: string[] = path.split("/");
@@ -154,7 +154,7 @@ function systemFileOf(path: string, endings: string[]): string {
         .map((folder: string): string => realpathSync(folder))
         .find((folder: string): boolean => file.startsWith(`${folder}${sep}`));
     if (root === undefined || file.slice(root.length + 1).split(sep).some(leftOut) || !statSync(file).isFile())
-        throw new Error(`No file of the three folders of the new system: ${path}`);
+        throw new Error(`No file of the folders of the new system: ${path}`);
     return file;
 }
 
@@ -180,7 +180,7 @@ export function systemFileRead(path: string): SystemFile {
  *
  * @param change - File as saved
  * @returns Whether it is written, `false` when its file changed since the editor read it
- * @throws {Error} - When it is no Markdown file of the three folders, see {@link systemFileOf},
+ * @throws {Error} - When it is no Markdown file of the folders of the new system, see {@link systemFileOf},
  *   or its file is no UTF-8 text, which could not be written back exactly
  */
 export function systemFileWrite(change: NoteChange): boolean {

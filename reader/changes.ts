@@ -9,9 +9,9 @@
  * are told once, after the last. `Devices.md`, which a page writes when its size changes, see `devices.ts`,
  * tells nothing, since no page shows it.
  *
- * - `node:fs`: Watches the three folders of the new system, every folder in them too.
+ * - `node:fs`: Watches the folders of the new system, every folder in them too.
  * - `node:path`: Builds the path of a file changed.
- * - `./sources.ts`: Names the three folders of the new system and `Devices.md`.
+ * - `./sources.ts`: Names the folders of the new system and `Devices.md`.
  */
 
 import { existsSync, watch } from "node:fs";
@@ -53,7 +53,7 @@ export function changesSend(response: ServerResponse): void {
 }
 
 /**
- * Watches those of the three folders of the new system that exist, as long as the reader runs: every change
+ * Watches those of the folders of the new system that exist, as long as the reader runs: every change
  * of a file in them but `Devices.md` waits for {@link quiet}, then tells every open page.
  */
 export function changesWatch(): void {

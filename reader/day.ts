@@ -454,14 +454,16 @@ export function realMinutesRead(category: string, title: string, module: string,
  * - `cooked`: Identifier of the cooking a meal draws from, empty for none.
  * - `workout`, `exercises`, `videos`: What a session of sport did, empty and none for any other entry.
  * - `own`: Properties of my own beyond the fields: the foods, the box, the pain, the cooking and what a session did.
- * - `id`: Identifier of the new entry.
+ * - `added`: Identifier of the new entry.
  *
  * @param entry - Entry as the entry by category or the counter of glasses sends it
+ * @param id - Identifier of the new entry, a new one when left out; the one an entry brought from Vu's log,
+ *   see `shared.ts`
  * @returns Identifier of the new entry
  * @throws {Error} - When the fields or foods are not allowed, the link typed for `Online` is no web address,
  *   the end is not after the start, or the box it is logged from is not open
  */
-export function entryAdd(entry: EntryNew): string {
+export function entryAdd(entry: EntryNew, id?: string): string {
     const plan: Box | null = entry.planned === "" ? null : boxOpenFind(entry.planned);
     const fields: EntryFields = fieldsOf(entry, plan);
     fieldsCheck(fields, entry.foods, plan);
@@ -485,11 +487,11 @@ export function entryAdd(entry: EntryNew): string {
         own.push(["x-workout", workout]);
     own.push(...exercises.map((line: string): [string, string] => ["x-exercise", line]),
         ...videos.map((line: string): [string, string] => ["x-video", line]));
-    const id: string = entryAppend(logFileOf(fields), fields, own);
+    const added: string = entryAppend(logFileOf(fields), fields, own, id);
     if (entry.planned !== "")
         boxDone(entry.planned);
     cookedShare(cooked);
-    return id;
+    return added;
 }
 
 /**
