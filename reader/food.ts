@@ -260,7 +260,7 @@ export type Meal = Totals & {
  * - `standard`: The grams of each food, in their order, which an entry starts with: 0 for one I rarely put in,
  *   `null` for none set yet.
  */
-type Composition = {
+export type Composition = {
     name: string;
     short: string;
     foods: string[];
@@ -637,7 +637,7 @@ function cellsOf(line: string): string[] {
  *
  * @returns Foods in the order of the table, none while `Foods.md` does not exist
  */
-function foodsRead(): Food[] {
+export function foodsRead(): Food[] {
     if (!existsSync(food.foods))
         return [];
 
@@ -1380,7 +1380,7 @@ function mealNameOf(typed: string): string {
  *
  * @returns My meals in the order of the table, none while `Meals.md` does not exist
  */
-function compositionsRead(): Composition[] {
+export function compositionsRead(): Composition[] {
     if (!existsSync(food.meals))
         return [];
 

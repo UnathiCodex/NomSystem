@@ -811,6 +811,16 @@ export function entriesOnceRead(sources: CalendarSource[]): Entry[] {
 }
 
 /**
+ * Reads the entries of one `.ics` file that happen once, like an entry Vu's dashboard shared, see `shared.ts`.
+ *
+ * @param file - Path of the file
+ * @returns The {@link Entry}s of the file, none for none
+ */
+export function fileEntriesRead(file: string): Entry[] {
+    return calendarOf(file).entries;
+}
+
+/**
  * Looks for the entry of the one event or to-do with an identifier in calendar sources.
  * An occurrence of a series has the identifier of its series, so it counts as none, a changed one too,
  * see {@link occurrenceLookup}.

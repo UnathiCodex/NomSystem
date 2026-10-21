@@ -43,7 +43,8 @@
  *   on a day
  * - `./devices.ts`: Writes what each of my devices shows of the page into `Devices.md`
  * - `./changes.ts`: Tells every open page the moment a file of my new system changes, so it loads anew what it shows
- * - `./shared.ts`: Sends an entry I log with Vu to Vu's inbox, and takes the entries Vu logs with me from mine
+ * - `./shared.ts`: Sends an entry I log with Vu and every change of my foods, meals and places to Vu's server by SSH,
+ *   and takes in what Vu's server sends me
  * - `./page.ts`: Gives out the files of the page through Vite
  */
 
@@ -79,7 +80,7 @@ import {
 import { trackersRead } from "./trackers.ts";
 import { deviceReport } from "./devices.ts";
 import { changesSend, changesWatch } from "./changes.ts";
-import { entryShare, sharedStart } from "./shared.ts";
+import { entryShare, listShare, sharedStart } from "./shared.ts";
 import { pageCreate } from "./page.ts";
 
 import type { IncomingMessage, ServerResponse, Server } from "node:http";
@@ -93,7 +94,7 @@ import type { DeviceReport } from "./devices.ts";
 import type { NotesFile } from "./notes.ts";
 import type { NoteChange } from "./edit.ts";
 import type { AttemptNew, RoundNew, SkillEntryChange, SkillEntryNew } from "./skill.ts";
-import type { Food, FoodChanged } from "./food.ts";
+import type { Dish, Food, FoodChanged } from "./food.ts";
 
 
 /**
@@ -159,7 +160,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/day/real?category=…&title=…&module=…&type=…`: Sends the minutes the last entries like a box
  *   really lasted, the latest first.
  * - `POST /api/day/log`: Adds entry of the body and sends its identifier; sends the entry to Vu when Vu is in its
- *   `With`, see `entryShare` in `shared.ts`, as do the other routes that add or change an entry of the log.
+ *   `With`, see `entryShare` in `shared.ts`, as do the other routes that add or change an entry of the log;
+ *   the routes that change my foods, meals and places send each change to Vu, see `listShare` there.
  * - `PATCH /api/day/log`: Changes entry of the body, refused with 409 when its file changed it since the dialog opened it.
  * - `POST /api/day/moved`: Moves the entry named in the body to the start and end in the body, every other field
  *   as its file holds it.
@@ -371,10 +373,15 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/places") {
-        responseSend(response, 200, placeAdd(await json(request) as Place));
+        const place: Place = placeAdd(await json(request) as Place);
+        listShare({ call: "placeAdd", with: place });
+        responseSend(response, 200, place);
 
     } else if (request.method === "PATCH" && url.pathname === "/api/day/places") {
-        responseSend(response, 200, placeChange(await json(request) as PlaceChanged));
+        const sent: PlaceChanged = await json(request) as PlaceChanged;
+        const place: Place = placeChange(sent);
+        listShare({ call: "placeChange", with: sent });
+        responseSend(response, 200, place);
 
     } else if (request.method === "POST" && url.pathname === "/api/devices") {
         await deviceReport(await json(request) as DeviceReport, String(request.headers["x-forwarded-for"] ?? ""));
@@ -444,14 +451,23 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
             Number(url.searchParams.get("page") ?? "1"), url.searchParams.get("products") !== "0"));
 
     } else if (request.method === "POST" && url.pathname === "/api/food/foods") {
-        responseSend(response, 200, foodAdd(await json(request) as Food));
+        const added: Food = foodAdd(await json(request) as Food);
+        listShare({ call: "foodAdd", with: added });
+        responseSend(response, 200, added);
 
     } else if (request.method === "PATCH" && url.pathname === "/api/food/foods") {
-        responseSend(response, 200, foodChange(await json(request) as FoodChanged));
+        const sent: FoodChanged = await json(request) as FoodChanged;
+        const changed: Food = foodChange(sent);
+        listShare({ call: "foodChange", with: sent });
+        responseSend(response, 200, changed);
 
     } else if (request.method === "DELETE" && url.pathname === "/api/food/foods") {
-        foodRemove({ name: url.searchParams.get("name") ?? "", brand: url.searchParams.get("brand") ?? "",
-            store: url.searchParams.get("store") ?? "" });
+        const removed: { name: string; brand: string; store: string } = {
+            name: url.searchParams.get("name") ?? "", brand: url.searchParams.get("brand") ?? "",
+            store: url.searchParams.get("store") ?? "",
+        };
+        foodRemove(removed);
+        listShare({ call: "foodRemove", with: removed });
         responseSend(response, 200, null);
 
     } else if (request.method === "GET" && url.pathname === "/api/food/grams") {
@@ -464,14 +480,23 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         responseSend(response, 200, dishesRead());
 
     } else if (request.method === "POST" && url.pathname === "/api/food/meals") {
-        responseSend(response, 200, dishAdd(await json(request) as
-            { name?: string; foods?: string[]; short?: string; grams?: (number | null)[] }));
+        const sent: { name?: string; foods?: string[]; short?: string; grams?: (number | null)[] } =
+            await json(request) as { name?: string; foods?: string[]; short?: string; grams?: (number | null)[] };
+        const dishes: Dish[] = dishAdd(sent);
+        listShare({ call: "mealAdd", with: sent });
+        responseSend(response, 200, dishes);
 
     } else if (request.method === "PATCH" && url.pathname === "/api/food/meals") {
-        responseSend(response, 200, dishRename(await json(request) as { old?: string; name?: string }));
+        const sent: { old?: string; name?: string } = await json(request) as { old?: string; name?: string };
+        const dishes: Dish[] = dishRename(sent);
+        listShare({ call: "mealRename", with: sent });
+        responseSend(response, 200, dishes);
 
     } else if (request.method === "DELETE" && url.pathname === "/api/food/meals") {
-        responseSend(response, 200, dishRemove(url.searchParams.get("meal") ?? ""));
+        const meal: string = url.searchParams.get("meal") ?? "";
+        const dishes: Dish[] = dishRemove(meal);
+        listShare({ call: "mealRemove", with: meal });
+        responseSend(response, 200, dishes);
 
     } else if (request.method === "GET" && url.pathname === "/api/sport/day") {
         responseSend(response, 200, sportDayRead(date));
