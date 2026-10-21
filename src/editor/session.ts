@@ -16,7 +16,8 @@
  * - `../day/day.html?raw`: Html of the day as text, of which the dialog `#entry`.
  * - `../day/categories.ts`: Starts the dialog and opens it for a new skill entry of the module.
  * - `../day/trackers.ts`: Loads my settings, with the minutes of my usual session.
- * - `../day/times.ts`: Gives now to the minute, as the day view writes its entries, and writes a time out.
+ * - `../day/times.ts`: Gives now to the minute, as the day view writes its entries, writes a time out, and starts
+ *   the fields of the times of the dialog, as the day view starts them.
  * - `../skill/attempts.ts`: Writes today's day in the form of the reader, and a day out as the page shows it.
  * - `../reader.ts`: Asks the reader.
  * - `fullcalendar`, `fullcalendar/timegrid`: A calendar of a day, never drawn, which the dialog's writes ask for,
@@ -24,7 +25,7 @@
  * - `../day/day.css`, `../day/choices.css`, `../day/meal.css`: Look of the dialog and of its fields.
  */
 
-import { nowOn, timeOf } from "../day/times.ts";
+import { nowOn, timeOf, timesStart } from "../day/times.ts";
 import { dayOf, dayTextOf } from "../skill/attempts.ts";
 import { readerAsk } from "../reader.ts";
 
@@ -87,7 +88,8 @@ export function sessionTextOf(session: Session): string {
  * Puts the dialog of a new entry of the day into the page and starts it, see `categoriesStart` in
  * `../day/categories.ts`, with a calendar of a day as the day view has, but never drawn and without entries, since
  * the learning view shows no log; its look loaded in the order the day loads it, so `choices.css` wins over `day.css`
- * as there, like a row that keeps only a list taking no room.
+ * as there, like a row that keeps only a list taking no room; its times and days checked and written as the day view
+ * does, see `timesStart` in `../day/times.ts`, like `14:15` of `1415`.
  * - `html`, `categories`, `full`, `timeGrid`: The HTML of the day, with the dialog `#entry`, the code of the dialog,
  *   that of the calendar and of its view of a day.
  *
@@ -104,6 +106,7 @@ async function dialogStart(): Promise<typeof Categories> {
     document.body.append(new DOMParser().parseFromString(html, "text/html").getElementById("entry") as HTMLElement);
     categories.categoriesStart(new full.Calendar(document.createElement("div"),
         { plugins: [timeGrid.default], initialView: "timeGridDay" }));
+    timesStart();
     return categories;
 }
 

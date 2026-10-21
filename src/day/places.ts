@@ -273,14 +273,21 @@ export function mapsLinkOf(address: string): string {
 /**
  * Tells whether a link is the search of an address in Google Maps, as {@link mapsLinkOf} makes it or in the form
  * an earlier one wrote it, its spaces as `+`, so the link of my place follows its address while it is that search.
- * - `plain`: Gives a link decoded, its `+` as spaces.
+ * - `plain`: Gives a link decoded, its `+` as spaces, as written when it cannot be decoded, like a link
+ *   with a `%` of its own, like `https://example.com/100%`.
  *
  * @param link - Link of a place, like `https://www.google.com/maps/search/?api=1&query=Burg-Eltz-Weg%2C+81375+…`
  * @param address - Address of the place, like `Burg-Eltz-Weg, 81375 München, Deutschland`
  * @returns Whether it is the search of the address
  */
 export function mapsLinkIs(link: string, address: string): boolean {
-    const plain: (text: string) => string = (text: string): string => decodeURIComponent(text.replace(/\+/g, " "));
+    const plain: (text: string) => string = (text: string): string => {
+        try {
+            return decodeURIComponent(text.replace(/\+/g, " "));
+        } catch {
+            return text;
+        }
+    };
     return plain(link) === plain(mapsLinkOf(address));
 }
 

@@ -333,6 +333,20 @@ function logsOf(to: string): Map<string, Entry> {
 }
 
 /**
+ * Gives the last day whose log entries tell the state of the boxes of a day, see {@link logsOf}: that day, or today
+ * in Berlin time when it is later, since a box carried along is done by a log entry of the day I do it, like the box
+ * of 18.10 my session of 22.10 did, which is done then on 18.10 too, and taken back with one click on its check.
+ * - `today`: Today in Berlin time.
+ *
+ * @param date - The day, like `2026-10-18`
+ * @returns The later of that day and today, like `2026-10-22`
+ */
+function logsUntilOf(date: string): string {
+    const today: string = berlinDateOf(new Date());
+    return date < today ? today : date;
+}
+
+/**
  * Finds the entry of the plan of a box by its identifier, see `entryIdOf` in `calendar.ts`: the to-do or event
  * that happens once with that `UID`, else the occurrence of a series named by the `UID` and the start after
  * the last `#`, a component of its own or not.
@@ -471,7 +485,8 @@ function loggedDayOf(box: Box): string {
  * of its log entry, done, like the box of 18.10 for 01 Regression Analysis that my session of 19.10 did,
  * see {@link loggedDayOf}.
  * - `from`: Start of the first day, in Berlin time.
- * - `logs`: Log entries written from boxes, until {@link deadlineDays} days after the last day, see {@link logsOf}.
+ * - `logs`: Log entries written from boxes, until {@link deadlineDays} days after the last day, or after today
+ *   when it is later, see {@link logsOf} and {@link logsUntilOf}.
  * - `boxes`: Boxes of the plan from the first day to {@link deadlineDays} days after the last,
  *   so a deadline after the range shows in it.
  * - `left`: Boxes as they stood on the days of the range they were pushed from: those of the plan that happen once,
@@ -490,7 +505,7 @@ export function boxesRead(start: string, end: string): PlanDay[] {
     dateCheck(start);
     dateCheck(end);
     const from: string = berlinDayStartOf(start);
-    const logs: Map<string, Entry> = logsOf(dayAdd(end, deadlineDays));
+    const logs: Map<string, Entry> = logsOf(dayAdd(logsUntilOf(end), deadlineDays));
     const boxes: Box[] = entriesRead(day.plan, from, berlinDayStartOf(dayAdd(end, deadlineDays)))
         .map((entry: Entry): Box => boxOf(entry, logs));
     const left: Box[] = entriesOnceRead(day.plan)
@@ -563,7 +578,8 @@ export function skillBoxesRead(until: string): Box[] {
 }
 
 /**
- * Finds a box of the plan by its identifier, with its state, also an occurrence of a series, see {@link planEntryFind}.
+ * Finds a box of the plan by its identifier, with its state, also an occurrence of a series, see {@link planEntryFind},
+ * by the log entries up to the day after its day or after today, the later, see {@link logsUntilOf}.
  * - `file`, `entry`: Its `.ics` file and its entry.
  * - `date`: Its day.
  *
@@ -574,7 +590,7 @@ export function skillBoxesRead(until: string): Box[] {
 export function boxFind(id: string): [string, Entry, Box] {
     const [file, entry]: [string, Entry] = planEntryFind(id);
     const date: string = dayOf(entry);
-    return [file, entry, boxOf(entry, logsOf(dayAdd(date, 1)))];
+    return [file, entry, boxOf(entry, logsOf(dayAdd(logsUntilOf(date), 1)))];
 }
 
 /**

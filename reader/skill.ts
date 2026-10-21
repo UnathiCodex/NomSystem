@@ -1481,12 +1481,6 @@ export function skillEntryEdit(change: SkillEntryChange): boolean {
     const worked: string[] = [...tasksOf(values, change.module), ...old.tutors]
         .filter((task: string): boolean => task.split("/")[0] === change.module);
     const chapters: string[] = chaptersWith(change.chapters, worked, tasks);
-    propertiesPut(file, old.id, [
-        ["x-chapter", chapters],
-        ["attach", linksOf(change.module, change.documents, old.links)],
-        ["x-attempt", values],
-        ["x-round", marks],
-    ]);
     const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" }, null);
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: change.location,
@@ -1497,6 +1491,12 @@ export function skillEntryEdit(change: SkillEntryChange): boolean {
         note: change.note.trim(),
         start: new Date(change.start), end: new Date(change.end),
     };
+    propertiesPut(file, old.id, [
+        ["x-chapter", chapters],
+        ["attach", linksOf(change.module, change.documents, old.links)],
+        ["x-attempt", values],
+        ["x-round", marks],
+    ]);
     entryChange(file, old, fields, logFileOf(fields));
     return true;
 }

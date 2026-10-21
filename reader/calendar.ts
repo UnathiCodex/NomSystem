@@ -11,7 +11,8 @@
  * a place its label and address in its `LOCATION`.
  * Writes only into the three folders of the new system, with times in Berlin time, every date and time in the form
  * of the iCalendar format, also in a property or a parameter of my own, like `20261026T130000Z` or `20261026`,
- * never like `2026-10-26T13:00:00.000Z`; puts the lines of every entry it writes, new or changed, into one fixed
+ * never like `2026-10-26T13:00:00.000Z`, and every duration so, like `PT25M`, never like `25`, see {@link sportIcsOf};
+ * puts the lines of every entry it writes, new or changed, into one fixed
  * order, see {@link lineOrder}, and leaves every other line as it is, byte for byte.
  *
  * - `node:fs`: Works with files and folders on the disk.
@@ -80,9 +81,11 @@ import type { CalendarSource } from "./sources.ts";
  * - `workout`: Workout of mine a session of sport did, its `X-WORKOUT`, like `Push`, empty when the event has none,
  *   see `sport.ts`.
  * - `exercises`: Exercises of a session, its `X-EXERCISE`s in order, each its name, sets, repetitions and kilograms,
- *   like `Bench press;3;10;40`, none when the event has none.
+ *   like `Bench press;3;10;40`, or seconds, like `Plank;2;60s;;` of `Plank;2;PT1M;;` in the file,
+ *   see {@link sportLineOf}; none when the event has none.
  * - `videos`: Videos of a session, its `X-VIDEO`s in order, each its title, channel, minutes and link,
- *   like `Full Body Pilates;Lidia Mera;25;https://www.youtube.com/watch?v=…`, none when the event has none.
+ *   like `Full Body Pilates;Lidia Mera;25;https://www.youtube.com/watch?v=…` of `PT25M` in the file;
+ *   none when the event has none.
  * - `planned`: Identifier of the box a log entry was logged from, see {@link plannedOf}: the `UID` of its
  *   `RELATED-TO`, like `study-13@nomsystem`, for one date of a series with that date after `#`,
  *   like `weekly-lecture@nomsystem#2026-10-13T08:00:00.000Z` of
@@ -364,15 +367,22 @@ const lineEnding: string[] = ["X-SEMESTER", "X-CHAPTER", "X-ATTEMPT", "X-ROUND"]
 ICAL.design.icalendar.param.altrep = { multiValue: ",", multiValueSeparateDQuote: true };
 
 /**
- * The attempts and rounds of a skill entry, `X-ATTEMPT` and `X-ROUND`, as text of the standard, the value type
- * of every `X-` property without one: written with each `\`, `;` and `,` escaped by a `\` and a line break as `\n`,
- * like `X-ATTEMPT:Kiosk Chain\;wrong\;Step 2: weights add up to 1.2\, not 1`, and read back without them, as
+ * Every `X-` property of my own the reader writes or reads, as text of the standard, the value type of every `X-`
+ * property without one: written with each `\`, `;` and `,` escaped by a `\` and a line break as `\n`,
+ * like `X-ATTEMPT:Kiosk Chain\;wrong\;Step 2: weights add up to 1.2\, not 1`
+ * or `X-FOOD:Skyr natur\;K-Classic\;Kaufland\;150`, and read back without them, as
  * `Kiosk Chain;wrong;Step 2: weights add up to 1.2, not 1`; a line written raw before reads as it is, since it holds
- * no `\` before such a sign. `ical.js` wrote and read every `X-` value raw, so a strict reader of the standard split
- * them at each `;` and `,`.
+ * no `\` before such a sign. `ical.js` wrote every `X-` value raw, so a strict reader of the standard split
+ * them at each `;` and `,`, and a line break in one broke the file, which then could not be read at all.
+ * `X-PUSHED` names its own type, `VALUE=DATE-TIME`, see `pushAdd`.
  */
-ICAL.design.icalendar.property["x-attempt"] = { defaultType: "text" };
-ICAL.design.icalendar.property["x-round"] = { defaultType: "text" };
+const ownTexts: string[] = [
+    "x-from", "x-semester", "x-chapter", "x-attempt", "x-round", "x-tutor", "x-food", "x-cooked", "x-pain",
+    "x-workout", "x-exercise", "x-video", "x-number", "x-planned",
+];
+ownTexts.forEach((name: string): void => {
+    ICAL.design.icalendar.property[name] = { defaultType: "text" };
+});
 
 /**
  * Folds every line the reader writes after 74 bytes, so each line of the file, the space that starts a continued line
@@ -458,6 +468,57 @@ function icsTextOf(text: string): string {
     const time: ICAL.Time = /^\d{4}-\d{2}-\d{2}$/.test(text) ? ICAL.Time.fromDateString(text)
         : ICAL.Time.fromJSDate(new Date(text), true);
     return time.toICALString();
+}
+
+/**
+ * Writes a line of a session of sport, an `X-EXERCISE` or an `X-VIDEO` as `sport.ts` gives it, with its time
+ * as a duration of the iCalendar format, as `ESTIMATED-DURATION` holds one: the seconds of an exercise on time,
+ * like `Plank;2;PT1M;;Morning` of `Plank;2;60s;;Morning`, and the minutes of a video,
+ * like `Full Body Pilates;Lidia Mera;PT25M;https://…;Morning` of `25`; the repetitions of an exercise, like `10`,
+ * and a part left empty stay as they are. {@link sportLineOf} reads it back.
+ * - `parts`: Parts of the line, parted by `;`.
+ * - `time`: Its third part, the repetitions or seconds of an exercise, the minutes of a video.
+ * - `seconds`: The seconds of its time, `null` when it holds none.
+ * - {@link ICAL.Duration#toString}: Writes a duration in the iCalendar format, like `PT1M30S` of 90 seconds.
+ *
+ * @param line - Line as `sport.ts` gives it
+ * @param video - Whether it is an `X-VIDEO`, else an `X-EXERCISE`
+ * @returns Line to write
+ */
+export function sportIcsOf(line: string, video: boolean): string {
+    const parts: string[] = line.split(";");
+    const time: string = (parts[2] ?? "").trim();
+    const seconds: number | null = video
+        ? /^\d+(?:[.,]\d+)?$/.test(time) ? Math.round(Number(time.replace(",", ".")) * 60) : null
+        : /^\d+\s*s$/.test(time) ? parseInt(time, 10) : null;
+    if (seconds === null)
+        return line;
+    parts[2] = ICAL.Duration.fromSeconds(seconds).toString();
+    return parts.join(";");
+}
+
+/**
+ * Reads a line of a session of sport as {@link sportIcsOf} writes it, back in the form of `sport.ts`:
+ * `Plank;2;60s;;Morning` of `Plank;2;PT1M;;Morning`, `…;Lidia Mera;25;…` of `PT25M`; a line written before,
+ * with `60s` or `25`, and a time no duration can be read of stay as they are.
+ * - `parts`: Parts of the line, parted by `;`.
+ * - `seconds`: The seconds of the duration.
+ *
+ * @param line - Line of the file, like `Plank;2;PT1M;;Morning`
+ * @param video - Whether it is an `X-VIDEO`, else an `X-EXERCISE`
+ * @returns Line as `sport.ts` reads it
+ */
+function sportLineOf(line: string, video: boolean): string {
+    const parts: string[] = line.split(";");
+    if (!/^P/i.test((parts[2] ?? "").trim()))
+        return line;
+    try {
+        const seconds: number = ICAL.Duration.fromString(parts[2].trim()).toSeconds();
+        parts[2] = video ? String(seconds / 60) : `${seconds}s`;
+    } catch {
+        return line;
+    }
+    return parts.join(";");
 }
 
 /**
@@ -631,9 +692,9 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         pain: String(event.component.getFirstPropertyValue("x-pain") ?? ""),
         workout: String(event.component.getFirstPropertyValue("x-workout") ?? ""),
         exercises: event.component.getAllProperties("x-exercise")
-            .map((property: ICAL.Property): string => String(property.getFirstValue())),
+            .map((property: ICAL.Property): string => sportLineOf(String(property.getFirstValue()), false)),
         videos: event.component.getAllProperties("x-video")
-            .map((property: ICAL.Property): string => String(property.getFirstValue())),
+            .map((property: ICAL.Property): string => sportLineOf(String(property.getFirstValue()), true)),
         planned: plannedOf(event.component),
         note: event.description ?? "",
         todo: todo,

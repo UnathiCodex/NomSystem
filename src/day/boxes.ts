@@ -698,21 +698,20 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement {
  * and at their right its menu `⋯` while open, see {@link actionsOf}, else its state, see {@link stateOf};
  * in the list carried along with its own day and without how near its deadline is, since its deadline line names it.
  * An open box has the class `box-draggable`, so it can be dragged into the log, see {@link boxesStart},
- * and keeps its place in the list, its category, its title and its minutes in the log as data of its element.
+ * and keeps its identifier, which names it when it is dropped, see {@link boxReceive}, its category, its title
+ * and its minutes in the log as data of its element.
  * - `element`: The box.
  * - `body`: Its lines.
  *
  * @param calendar - Calendar of the day
  * @param box - The box
- * @param index - Its place in the boxes of the shown day followed by those carried along, see {@link listedOf}
  * @param carriedShown - Whether it shows in the list carried along, else among the boxes of the shown day
  * @returns The box
  */
-function boxElementOf(calendar: Calendar, box: Box, index: number, carriedShown: boolean): HTMLElement {
+function boxElementOf(calendar: Calendar, box: Box, carriedShown: boolean): HTMLElement {
     const element: HTMLElement = entryPartOf("div", `box box-${box.state}`, []);
     const body: HTMLElement = entryPartOf("div", "box-body", boxContentOf(box, shown.day, !carriedShown));
     element.classList.toggle("box-draggable", box.state === "open");
-    element.dataset.index = String(index);
     element.dataset.id = box.id;
     element.dataset.category = box.category;
     element.dataset.title = box.title;
@@ -726,7 +725,7 @@ function boxElementOf(calendar: Calendar, box: Box, index: number, carriedShown:
 
 /**
  * Gives the boxes of the list in the order of their places: those of the shown day, then those carried along,
- * so the place of a box dragged into the log names it, see {@link boxReceive}.
+ * among which a box dragged into the log is found by its identifier, see {@link boxReceive}.
  *
  * @returns The boxes
  */
@@ -739,7 +738,7 @@ function listedOf(): Box[] {
  * then the cancelled boxes, a calm hint when the day has none of them;
  * below them, on today, the boxes carried along under `Carried along`, when there are any.
  * - `elements`: Birthdays, holidays and boxes as elements, in order.
- * - `boxes`: The boxes as elements, each with its place among the boxes of the day.
+ * - `boxes`: The boxes as elements, in the order of the boxes of the day.
  * - `dropped`: Whether a box is cancelled.
  * - `carriedElements`: The heading and the boxes carried along, none when there are none.
  *
@@ -747,8 +746,7 @@ function listedOf(): Box[] {
  */
 function boxesShow(calendar: Calendar): void {
     const dropped: (box: Box) => boolean = (box: Box): boolean => box.state === "dropped";
-    const boxes: HTMLElement[] = shown.boxes.map((box: Box, index: number): HTMLElement =>
-        boxElementOf(calendar, box, index, false));
+    const boxes: HTMLElement[] = shown.boxes.map((box: Box): HTMLElement => boxElementOf(calendar, box, false));
     const elements: HTMLElement[] = [
         ...occasionsOf(shown.occasions, giftOpen),
         ...boxes.filter((element: HTMLElement, index: number): boolean => !dropped(shown.boxes[index])),
@@ -756,8 +754,7 @@ function boxesShow(calendar: Calendar): void {
     ];
     const carriedElements: HTMLElement[] = carried.length === 0 ? [] : [
         entryPartOf("h3", "plan-carried", ["Carried along"]),
-        ...carried.map((box: Box, index: number): HTMLElement =>
-            boxElementOf(calendar, box, shown.boxes.length + index, true)),
+        ...carried.map((box: Box): HTMLElement => boxElementOf(calendar, box, true)),
     ];
     document.getElementById("plan-boxes")?.replaceChildren(...(elements.length > 0 ? elements
         : [entryPartOf("p", "plan-none", ["Nothing planned"])]), ...carriedElements);
@@ -824,7 +821,9 @@ export function boxesAgain(calendar: Calendar): void {
  * a hint above the list says when the reader does not log it, see {@link logFailShow}.
  * Takes the dropped entry out of the calendar again, because only the reader writes entries.
  * - `revert`: Removes the dropped entry from the calendar.
- * - `box`: The box, by its place among the boxes of the shown day and those carried along, see {@link listedOf}.
+ * - `box`: The box, the open one of its identifier among the boxes of the shown day and those carried along,
+ *   see {@link listedOf}, so a list loaded anew while I drag, like after a change on another device, logs the box
+ *   I dragged, never the one that took its place; `undefined` once it is open no more, which the hint tells.
  * - `start`, `end`: Where it was dropped.
  *
  * @param calendar - Calendar of the day
@@ -832,7 +831,12 @@ export function boxesAgain(calendar: Calendar): void {
  */
 export function boxReceive(calendar: Calendar, info: EventReceiveInfo): void {
     info.revert();
-    const box: Box = listedOf()[Number(info.draggedEl.dataset.index)];
+    const box: Box | undefined = listedOf().find((one: Box): boolean => one.state === "open"
+        && one.id === info.draggedEl.dataset.id);
+    if (box === undefined) {
+        logFailShow(new Error(`No open box ${info.draggedEl.dataset.id ?? ""}`));
+        return;
+    }
     const start: Date = info.event.start as Date;
     const end: Date = info.event.end as Date;
     (box.category === "" ? entryOpenFromBox(box, start, end) : boxLog(calendar, box.id, start, end))
@@ -842,10 +846,13 @@ export function boxReceive(calendar: Calendar, info: EventReceiveInfo): void {
 /**
  * Follows an open box I press, see {@link boxesStart}: once it moves, the arrow of the day after is outlined, and
  * the box let go on that arrow is pushed to the day after, as its own arrow does, and the day view follows it there;
- * let go anywhere else, FullCalendar takes it, like into the log.
+ * let go anywhere else, FullCalendar takes it, like into the log. A press that ends without being let go here,
+ * like one the browser takes for a scroll or one let go outside the window, is followed no more, at the latest
+ * once the next press comes, so a later click on the arrow never pushes a box pressed long before.
  * - `item`: The box pressed, `null` for a press beside an open box.
  * - `day`: The day view, which outlines the arrow while the box moves.
  * - `move`: Outlines the arrow once the pointer moves.
+ * - `end`: Ends following the box.
  * - `up`: Takes the box let go.
  *
  * @param calendar - Calendar of the day
@@ -860,17 +867,25 @@ function boxDragFollow(calendar: Calendar, down: PointerEvent): void {
         if (Math.abs(event.clientX - down.clientX) + Math.abs(event.clientY - down.clientY) > 4)
             day?.classList.add("day-pushing");
     };
+    const end: () => void = (): void => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        document.removeEventListener("pointercancel", end);
+        document.removeEventListener("pointerdown", end, true);
+        day?.classList.remove("day-pushing");
+    };
     const up: (event: PointerEvent) => void = (event: PointerEvent): void => {
         const rect: DOMRect | undefined = document.getElementById("day-next")?.getBoundingClientRect();
-        document.removeEventListener("pointermove", move);
-        day?.classList.remove("day-pushing");
+        end();
         if (rect === undefined || event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top
             || event.clientY > rect.bottom)
             return;
         boxPush(item.dataset.id ?? "", true).then((): void => calendar.next()).catch(logFailShow);
     };
     document.addEventListener("pointermove", move);
-    document.addEventListener("pointerup", up, { once: true });
+    document.addEventListener("pointerup", up);
+    document.addEventListener("pointercancel", end);
+    document.addEventListener("pointerdown", end, true);
 }
 
 /**

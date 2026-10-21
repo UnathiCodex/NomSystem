@@ -547,7 +547,10 @@ const page: ViteDevServer = await pageCreate(server);
 server.on("request", (request: IncomingMessage, response: ServerResponse): void => {
     requestHandle(page, request, response).catch((error: unknown): void => {
         console.error(new Date().toISOString(), request.method, request.url, error);
-        responseSend(response, 500, { error: "The reader failed" });
+        if (response.headersSent)
+            response.end();
+        else
+            responseSend(response, 500, { error: "The reader failed" });
     });
 });
 /**

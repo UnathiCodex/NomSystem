@@ -8,8 +8,9 @@
  * category writes it, as a meal its foods: each exercise as a line `X-EXERCISE`, its name, sets, repetitions,
  * kilograms and the workout of mine it belongs to parted by `;`, like `Bench press;3;10;40;Push`, `Dips;3;10;;Push`
  * without weight, `Plank;2;60s;;` on time and alone, and each video as a line `X-VIDEO`, its title, channel, minutes,
- * link and workout, like `Full Body Pilates;Lidia Mera;25;https://www.youtube.com/watch?v=…;Morning`, so the log keeps
- * what I did that day, whatever I change in my workouts and videos later, see {@link sportPartsAllow}; a session
+ * link and workout, like `Full Body Pilates;Lidia Mera;25;https://www.youtube.com/watch?v=…;Morning`,
+ * the file holding the seconds and the minutes as durations of iCalendar, `PT1M` and `PT25M`, see `sportIcsOf`
+ * in `calendar.ts`, so the log keeps what I did that day, whatever I change in my workouts and videos later, see {@link sportPartsAllow}; a session
  * written before named its one workout as `X-WORKOUT`, like `Push`, which its lines without a workout belong to.
  * It burned what its kind burns above rest in its minutes at my weight of its day, a home workout with videos what
  * each video burns in its minutes by its kind in `Videos.md` and its minutes beyond them, like the exercises I did

@@ -53,7 +53,7 @@
 import { boxDone, boxFind, boxOpenFind, boxReopen } from "./boxes.ts";
 import {
     berlinDateOf, entriesOnceRead, entriesRead, entryAppend, entryChange, entryFind, entryLookup, entryRemove,
-    propertiesPut,
+    propertiesPut, sportIcsOf,
 } from "./calendar.ts";
 import { attendeesAllow, categoryAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
@@ -335,22 +335,26 @@ function painCheck(pain: string): void {
 /**
  * Checks the cooking a meal draws from, as the dialog sends it: empty for none, else the identifier of an entry
  * `Cook` of the log that starts before the meal; only a meal draws, and a link only ever points back in time,
- * so every day stays as it was once I close it.
- * - `cooking`: The entry of the cooking.
+ * so every day stays as it was once I close it. A meal keeps the cooking it drew from also once that cooking
+ * is removed from the log, so it can still be changed and moved, its foods in its own lines, see {@link cookedShare}.
+ * - `cooking`: The entry of the cooking, `undefined` when the log holds none.
  *
  * @param category - Category of the entry, like `Food`
  * @param start - Start of the entry
  * @param cooked - Identifier of the cooking, empty for none
+ * @param kept - Identifier of the cooking the entry being changed draws from already, empty for none and for a new entry
  * @throws {Error} - When an entry other than a meal draws, or the cooking is no entry `Cook` of the log
- *   that starts before the meal
+ *   that starts before the meal, but for the one kept
  */
-function cookedCheck(category: string, start: Date, cooked: string): void {
+function cookedCheck(category: string, start: Date, cooked: string, kept: string = ""): void {
     if (cooked === "")
         return;
     if (category !== foodName)
         throw new Error(`Only a meal draws from a cooking: ${category}`);
-    const cooking: Entry = entryFind(day.log, cooked)[1];
-    if (cooking.category !== cookName || Date.parse(cooking.start) >= start.getTime())
+    const cooking: Entry | undefined = entryLookup(day.log, cooked)?.[1];
+    if (cooking === undefined && cooked === kept)
+        return;
+    if (cooking === undefined || cooking.category !== cookName || Date.parse(cooking.start) >= start.getTime())
         throw new Error(`No cooking before the meal: ${cooked}`);
 }
 
@@ -485,8 +489,8 @@ export function entryAdd(entry: EntryNew, id?: string): string {
         own.push(["x-cooked", cooked]);
     if (workout !== "")
         own.push(["x-workout", workout]);
-    own.push(...exercises.map((line: string): [string, string] => ["x-exercise", line]),
-        ...videos.map((line: string): [string, string] => ["x-video", line]));
+    own.push(...exercises.map((line: string): [string, string] => ["x-exercise", sportIcsOf(line, false)]),
+        ...videos.map((line: string): [string, string] => ["x-video", sportIcsOf(line, true)]));
     const added: string = entryAppend(logFileOf(fields), fields, own, id);
     if (entry.planned !== "")
         boxDone(entry.planned);
@@ -569,7 +573,8 @@ export function boxUndo(id: string): void {
 }
 
 /**
- * Writes fields, foods, pain and times of an entry of the log, see {@link fieldsCheck}:
+ * Writes fields, foods, pain and times of an entry of the log, see {@link fieldsCheck}, all of them checked before
+ * anything is written, so a change refused leaves the entry as it was:
  * changed foods replace all lines `X-FOOD` of the entry first, a changed pain its `X-PAIN`, a changed cooking
  * of a meal its `X-COOKED`, see {@link cookedCheck}, a changed workout, exercises or videos of a session of sport
  * their lines, see {@link sportCheck}, then its fields and times change.
@@ -589,23 +594,24 @@ function entryWrite(file: string, entry: Entry, change: EntryNew): void {
     const fields: EntryFields = fieldsOf(change, entry);
     fieldsCheck(fields, change.foods, entry);
     painCheck(change.pain ?? "");
-    cookedCheck(fields.category, fields.start, change.cooked ?? entry.cooked);
+    cookedCheck(fields.category, fields.start, change.cooked ?? entry.cooked, entry.cooked);
+    const workout: string = (change.workout ?? entry.workout ?? "").trim();
+    const exercises: string[] = change.exercises ?? entry.exercises ?? [];
+    const videos: string[] = change.videos ?? entry.videos ?? [];
+    sportCheck(fields.category, workout, exercises, videos);
     if (change.foods.join("\n") !== entry.foods.join("\n"))
         propertiesPut(file, entry.id, [["x-food", change.foods]]);
     if (change.pain !== undefined && change.pain !== entry.pain)
         propertiesPut(file, entry.id, [["x-pain", change.pain === "" ? [] : [change.pain]]]);
     if (change.cooked !== undefined && change.cooked !== entry.cooked)
         propertiesPut(file, entry.id, [["x-cooked", change.cooked === "" ? [] : [change.cooked]]]);
-    const workout: string = (change.workout ?? entry.workout ?? "").trim();
-    const exercises: string[] = change.exercises ?? entry.exercises ?? [];
-    const videos: string[] = change.videos ?? entry.videos ?? [];
-    sportCheck(fields.category, workout, exercises, videos);
     if (workout !== (entry.workout ?? ""))
         propertiesPut(file, entry.id, [["x-workout", workout === "" ? [] : [workout]]]);
     if (exercises.join("\n") !== (entry.exercises ?? []).join("\n"))
-        propertiesPut(file, entry.id, [["x-exercise", exercises]]);
+        propertiesPut(file, entry.id,
+            [["x-exercise", exercises.map((line: string): string => sportIcsOf(line, false))]]);
     if (videos.join("\n") !== (entry.videos ?? []).join("\n"))
-        propertiesPut(file, entry.id, [["x-video", videos]]);
+        propertiesPut(file, entry.id, [["x-video", videos.map((line: string): string => sportIcsOf(line, true))]]);
     entryChange(file, entry, fields, logFileOf(fields));
     cookedShare(entry.cooked);
     if (change.cooked !== undefined && change.cooked !== entry.cooked)

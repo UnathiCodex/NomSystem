@@ -351,17 +351,24 @@ let withOpen: boolean = false;
  */
 let placeFilled: string = "";
 
+/**
+ * Field of the times that {@link timesCheck} marked wrong, like the day of the end for an end before the start,
+ * `null` for none: once I type into any field of the times, its mark goes, since that may set the times right,
+ * and the next save checks them again.
+ */
+let timesMarked: HTMLInputElement | null = null;
+
 
 
 /**
- * Loads the categories with the values of their fields from the reader.
+ * Loads the categories with the values of their fields from the reader; an answer that is an error, like while
+ * the reader cannot read a file, is no categories, so the next opening of the dialog loads them again.
  *
  * @returns Categories in their order
  * @throws {Error} - When the reader gives no valid answer
  */
 async function categoriesLoad(): Promise<Category[]> {
-    const response: Response = await fetch(`/api/day/categories?now=${new Date().toISOString()}`);
-    return await response.json();
+    return readerAsk<Category[]>(`/api/day/categories?now=${new Date().toISOString()}`);
 }
 
 /**
@@ -2132,13 +2139,29 @@ function timesCheck(): boolean {
         field = document.getElementById("entry-end-day") as HTMLInputElement;
         field.setCustomValidity("The end lies after the start");
     }
+    timesMarked = field;
     field?.reportValidity();
     return field === null;
 }
 
 /**
+ * Takes the mark of {@link timesCheck} back once I type into a field of the times, see {@link timesMarked}: the field
+ * marked is valid again, its text a time or a day, since the dialog was sent with it; typed into itself, its own check
+ * of its text marks it anew, see `timesStart` in `times.ts`.
+ *
+ * @param event - Input into a field of the times
+ */
+function timesUnmark(event: Event): void {
+    if (timesMarked !== null && timesMarked !== event.target)
+        timesMarked.setCustomValidity("");
+    timesMarked = null;
+}
+
+/**
  * Takes Enter in the dialog, see the top of this file, for an entry of the log and a box of the plan alike:
- * Ctrl+Enter from any field saves it, as its check does, before the field sees the key; Enter in a field without
+ * Ctrl+Enter from any field saves it, as its check does, before the field sees the key, the field left first,
+ * as a click on the check leaves it, so it takes what I typed, like the sets of an exercise or `2x` as the grams
+ * of a food, which a field takes once I leave it; Enter in a field without
  * its own use of it, like a time, a day, a part of a place or an address of `With`, only confirms that field,
  * what I typed staying and the cursor leaving it, instead of sending the form; a field that uses Enter keeps it,
  * like a list taking its first match, the grams of a food opening the list again or a field of a food saving
@@ -2152,6 +2175,7 @@ function enterTake(): void {
             return;
         event.preventDefault();
         event.stopPropagation();
+        (document.activeElement as HTMLElement | null)?.blur();
         form.requestSubmit();
     }, true);
     form.addEventListener("keydown", (event: KeyboardEvent): void => {
@@ -2200,6 +2224,8 @@ export function categoriesStart(calendar: Calendar): void {
     });
     ["entry-start-day", "entry-start", "entry-end"].forEach((id: string): void =>
         document.getElementById(id)?.addEventListener("input", endDayFill));
+    ["entry-start-day", "entry-start", "entry-end-day", "entry-end"].forEach((id: string): void =>
+        document.getElementById(id)?.addEventListener("input", timesUnmark));
     document.getElementById("entry-start")?.addEventListener("change", endFill);
     ["entry-start-day", "entry-deadline-day"].forEach((id: string): void =>
         document.getElementById(id)?.addEventListener("input", (): void => {

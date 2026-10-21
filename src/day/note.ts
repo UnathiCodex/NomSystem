@@ -7,10 +7,12 @@
  * Loads and writes those two sections; the reader writes them into the note of the day, see `reader/note.ts`.
  *
  * - `marked`: Turns Markdown into HTML.
+ * - `dompurify`: Takes scripts and the like out of that HTML, as the scripts view does, see `../notes/markdown.ts`.
  * - `../reader.ts`: Asks the reader.
  */
 
 import { Marked } from "marked";
+import DOMPurify from "dompurify";
 import { readerAsk } from "../reader.ts";
 
 
@@ -41,6 +43,7 @@ function markdownOf(note: string): string {
 /**
  * Shows the daily note of a date, nothing when the day has none.
  * - {@link Marked#parse}: Turns Markdown into HTML, with `async: false` directly as text.
+ * - {@link DOMPurify.sanitize}: Takes out scripts, event handlers and the like, like those of HTML pasted into a note.
  *
  * @param date - Date like `2026-07-03`
  * @throws {Error} - When the reader gives no valid answer
@@ -50,7 +53,7 @@ export async function noteShow(date: string): Promise<void> {
     const note: string | null = await response.json();
 
     const element: HTMLElement = document.getElementById("day-note-text") as HTMLElement;
-    element.innerHTML = note === null ? "" : markdown.parse(markdownOf(note), { async: false });
+    element.innerHTML = note === null ? "" : DOMPurify.sanitize(markdown.parse(markdownOf(note), { async: false }));
 }
 
 /**
