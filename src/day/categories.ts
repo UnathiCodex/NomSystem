@@ -31,11 +31,12 @@
  * and `Game`.
  * Each list comes from the log, the most used first, searched as I type, see `choices.ts`;
  * the typed text can be added as a new value with `+ New summary` at the end of the list, which is then picked,
- * the one way to write a new summary or another one in place of the one picked, but to the summary of `Sleep`
+ * the way to write a new summary or another one in place of the one picked, but to the summary of `Sleep`, `Sport`
  * and `Way`, which take no new ones.
  * Every summary has a pencil `✎` beside it, as a place has, that of `Skill` after its type, the same for every type,
  * which shows below it its link to type, like the page of an event, a web address, written as the `ALTREP` of its
- * `SUMMARY` and shown small and grey below the summary, opening it, see {@link summaryPartsOf}; while I type none,
+ * `SUMMARY` and shown small and grey below the summary, opening it, see {@link summaryPartsOf}; a summary that takes
+ * new values shows its text above its link, which I change in place, like `Wolrd News` to `World News`; while I type none,
  * the summary of `Skill` links the folder of its skill, for a type on into the folder of its material, which
  * the reader writes, shown there and grey in the field to type, see `skill.ts`.
  * Places, the place of an entry and where a way starts, are only my places of `Places.md`, the most used first,
@@ -288,10 +289,10 @@ let summaryLink: string = "";
 let summaryOpen: boolean = false;
 
 /**
- * Pencil beside the summary, its link below it and the field to type it as shown, see {@link summaryPartsOf};
- * `null` while no summary shows them.
+ * Pencil beside the summary, its link below it, the field to type it and the field of its text as shown,
+ * see {@link summaryPartsOf}; `null` while no summary shows them.
  */
-let summaryShown: [HTMLButtonElement, HTMLAnchorElement, HTMLInputElement] | null = null;
+let summaryShown: [HTMLButtonElement, HTMLAnchorElement, HTMLInputElement, HTMLInputElement] | null = null;
 
 /**
  * Category picked, `null` before picking.
@@ -937,15 +938,19 @@ function onlinePartsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElemen
  * for a skill entry while I type none the folder of its skill, which opens in this window, being NomSystem's own,
  * see `skillPathShow` in `skill.ts`, also grey
  * in the field to type; nothing while it has none; the pencil beside the summary while the summary names something,
- * see {@link titleRead}, a skill entry by its skill or its type.
- * - `pencil`, `link`, `field`: Pencil, link and field of the summary as shown.
+ * see {@link titleRead}, a skill entry by its skill or its type; the field of its text the summary picked,
+ * while I don't type in it.
+ * - `pencil`, `link`, `field`, `text`: Pencil, link, field and text of the summary as shown.
  * - `skill`: Skill and type of a skill entry, `null` for any other entry.
  */
 function summaryPartsShow(): void {
     if (summaryShown === null)
         return;
-    const [pencil, link, field]: [HTMLButtonElement, HTMLAnchorElement, HTMLInputElement] = summaryShown;
+    const [pencil, link, field, text]: [HTMLButtonElement, HTMLAnchorElement, HTMLInputElement, HTMLInputElement] =
+        summaryShown;
     const skill: ModuleType | null = chosen?.name === skillName ? skillModuleType() : null;
+    if (text !== document.activeElement)
+        text.value = values.title;
     pencil.hidden = skill === null ? titleRead(valuesRead().title) === "" : skill.module === "" && skill.type === "";
     field.placeholder = skill === null ? "" : skillPathOf();
     if (skill !== null && summaryLink === "") {
@@ -967,38 +972,65 @@ function summaryPartsShow(): void {
  * and below that the link to type, one part `Link` indented with the grey line at its left, see {@link partOf},
  * empty until I type or paste one, like the page of an event; it goes along when the entry is saved,
  * see {@link textsRead}. Every summary has them, that of a skill entry beside and below its skill and type,
- * see `skill.ts`.
+ * see `skill.ts`. A summary that takes new values and is not as planned, like `Wolrd News` of `Watch`, has the part
+ * `Text` above the link, its summary as written, which I change in place, as the name of my place: the entry takes it
+ * as I type, and its line shows it once I leave the part, its rows built anew, see {@link titleRowsShow};
+ * that happens at `focusout`, whose `relatedTarget` names the field I went on to, which then keeps the cursor.
  * - `pencil`: The pencil, `✎`.
  * - `link`: The link below the summary.
  * - `field`: The field of the link to type.
- * - `parts`: The part holding it, shown while the pencil opened it, see {@link summaryOpen}.
+ * - `text`: The field of the summary as written, the same as its line while I type elsewhere,
+ *   see {@link summaryPartsShow}.
+ * - `parts`: The parts holding them, shown while the pencil opened them, see {@link summaryOpen}.
+ * - `shown`: The summary as its line shows it, taken as I enter `text`.
  *
- * @returns Pencil, link and the part to type it, to put beside and below the summary
+ * @param summary - Field of the summary, which shows its text to change; left out for a summary written by itself,
+ *   like that of a meal or of a skill entry
+ * @returns Pencil, link and the parts to type them, to put beside and below the summary
  */
-function summaryPartsOf(): [HTMLButtonElement, HTMLAnchorElement, HTMLElement] {
+function summaryPartsOf(summary?: Field): [HTMLButtonElement, HTMLAnchorElement, HTMLElement] {
     const pencil: HTMLButtonElement = document.createElement("button");
     const link: HTMLAnchorElement = document.createElement("a");
     const field: HTMLInputElement = partFieldOf("url", summaryLink, "Link of the summary");
+    const text: HTMLInputElement = partFieldOf("text", values.title, "Text of the summary");
     const parts: HTMLElement = document.createElement("div");
+    let shown: string = values.title;
     pencil.type = "button";
     pencil.className = "entry-pencil";
-    iconPut(pencil, Pencil, "Change the link");
     link.className = "entry-address";
     link.rel = "noopener";
     parts.className = "field-parts";
+    if (summary !== undefined && !summary.fixed && !asPlanned())
+        parts.append(partOf("Text", text));
+    iconPut(pencil, Pencil, parts.childElementCount > 0 ? "Change the summary" : "Change the link");
     parts.append(partOf("Link", field));
     parts.hidden = !summaryOpen;
+    text.addEventListener("focusin", (): void => {
+        shown = values.title;
+    });
+    text.addEventListener("input", (): void => {
+        values.title = text.value.trim();
+        saveAllow();
+    });
+    text.addEventListener("focusout", (event: FocusEvent): void => {
+        const next: string | null = event.relatedTarget instanceof HTMLElement
+            ? event.relatedTarget.getAttribute("aria-label") : null;
+        if (values.title === shown)
+            return;
+        titleRowsShow();
+        document.querySelector<HTMLInputElement>(`#entry .field-parts input[aria-label="${next}"]`)?.focus();
+    });
     pencil.addEventListener("click", (): void => {
         summaryOpen = !summaryOpen;
         parts.hidden = !summaryOpen;
         if (summaryOpen)
-            field.focus();
+            parts.querySelector("input")?.focus();
     });
     field.addEventListener("input", (): void => {
         summaryLink = field.value.trim();
         summaryPartsShow();
     });
-    summaryShown = [pencil, link, field];
+    summaryShown = [pencil, link, field, text];
     summaryPartsShow();
     return [pencil, link, parts];
 }
@@ -1095,7 +1127,7 @@ function fieldRowsOf(field: Field): HTMLElement[] {
     if (field.key === "title" && field.many === true && !asPlanned())
         return [manyRowOf(field)];
     const place: [HTMLButtonElement, HTMLAnchorElement] | null = field.key === "title" ? null : placePartsOf(field);
-    const summary: HTMLElement[] = field.key === "title" ? summaryPartsOf() : [];
+    const summary: HTMLElement[] = field.key === "title" ? summaryPartsOf(field) : [];
     const steps: HTMLElement = document.createElement("ul");
     const shown: boolean = partsShown(field);
     steps.className = "entry-steps";
@@ -1157,7 +1189,7 @@ function fieldRowsOf(field: Field): HTMLElement[] {
  */
 function manyRowOf(field: Field): HTMLElement {
     const picked: string[] = values[field.key] === "" ? [] : values[field.key].split(", ");
-    const [pencil, link, linkParts]: [HTMLButtonElement, HTMLAnchorElement, HTMLElement] = summaryPartsOf();
+    const [pencil, link, linkParts]: [HTMLButtonElement, HTMLAnchorElement, HTMLElement] = summaryPartsOf(field);
     return rowOf(field.name, choicesOf({
         search: searchOf(field.values.map(choiceOf)), picked: picked, many: true, adding: !field.fixed,
         noun: "summary",
@@ -1322,6 +1354,15 @@ function asPlanned(): boolean {
 }
 
 /**
+ * Shows the rows of the summary of the category picked, see {@link fieldRowsOf}, also anew after its text changed
+ * by its pencil, see {@link summaryPartsOf}, the rows below it staying as they are.
+ */
+function titleRowsShow(): void {
+    document.getElementById("entry-fields")?.replaceChildren(...(chosen?.fields ?? [])
+        .filter((field: Field): boolean => field.key === "title").flatMap(fieldRowsOf));
+}
+
+/**
  * Shows the fields of the category picked, each its rows, see {@link fieldRowsOf}, in the order of the file,
  * the same for every category, below the times and the category: what, then its place, a way where it starts
  * before its place, then who I was with, see {@link withRowOf};
@@ -1331,8 +1372,7 @@ function asPlanned(): boolean {
  */
 function fieldsShow(): void {
     const fields: Field[] = chosen?.fields ?? [];
-    document.getElementById("entry-fields")?.replaceChildren(...fields
-        .filter((field: Field): boolean => field.key === "title").flatMap(fieldRowsOf));
+    titleRowsShow();
     document.getElementById("entry-more")?.replaceChildren(...fields
         .filter((field: Field): boolean => field.key !== "title").flatMap(fieldRowsOf),
         ...painRowOf(), ...sportShown() ? sportRowsOf(saveAllow, endFit) : []);
