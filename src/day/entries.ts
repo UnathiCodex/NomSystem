@@ -2,9 +2,10 @@
  * ## Entries
  *
  * Sends new, changed, moved and removed entries of the log to the reader, the meal of a cooking, and the boxes
- * of the plan: new, changed and removed ones, a box logged at its real time or taken back, pushed to the next day
- * or dropped. A changed entry goes with its fingerprint as the dialog opened it, so the reader refuses it once its file
- * changed it since, and a moved one with its new times alone, so nothing the page holds from before is written back.
+ * of the plan: new, changed and removed ones, a new one repeated weekly, a box logged at its real time or taken back,
+ * pushed to the next day or dropped. A changed entry goes with its fingerprint as the dialog opened it, so the reader
+ * refuses it once its file changed it since, and a moved one with its new times alone, so nothing the page holds
+ * from before is written back.
  * After a change of the log the log of the shown day loads again, so the page shows what the files hold,
  * and with it the boxes, which are done once a log entry points to them, see `boxes.ts`;
  * after a change of a box alone, its sender loads the boxes again itself.
@@ -12,11 +13,13 @@
  * The standard address of a name of `With` is made here, beside who I was with, see {@link standardAddressOf}.
  *
  * - `../search.ts`: Writes a name without accents for its standard address in `With`.
+ * - `./series.ts`: The days of a series and the boxes it makes, for the type checker only.
  * - `fullcalendar`: Calendar that shows the log.
  */
 
 import { searchTextOf } from "../search.ts";
 
+import type { Days, Planned } from "./series.ts";
 import type { Calendar } from "fullcalendar";
 
 
@@ -293,6 +296,33 @@ export async function boxUndo(calendar: Calendar, id: string): Promise<void> {
  */
 export async function boxAdd(fields: BoxFields): Promise<string> {
     return await requestSend("POST", "/api/day/boxes", boxBodyOf(fields)) as string;
+}
+
+/**
+ * Adds a new box to the plan once per date of its weekly days, as the row `Repeat` of its dialog gives them,
+ * see `repeatApply` in `reader/course.ts`, or only tells what that would make, for the preview of the dialog;
+ * the reader refuses it with 409 for a series of a type that has a box in its semester already.
+ * - `response`: Answer of the reader.
+ *
+ * @param fields - Fields of the box, as of one made once; each date sets its own day, time and length
+ * @param days - Its days with their times, its first and last day and the days it leaves out between them
+ * @param dry - Whether only to tell what it would make, writing nothing
+ * @returns The boxes it makes, by their days, `null` when the reader refuses it since its series is there already
+ * @throws {Error} - When the reader does not take it for another reason
+ */
+export async function boxRepeat(fields: BoxFields, days: Days, dry: boolean): Promise<Planned[] | null> {
+    const response: Response = await fetch("/api/day/repeat", {
+        method: "POST",
+        body: JSON.stringify({
+            box: boxBodyOf(fields), slots: days.slots, first: days.first, last: days.last, excepts: days.excepts,
+            dry: dry,
+        }),
+    });
+    if (response.status === 409)
+        return null;
+    if (!response.ok)
+        throw new Error(`Reader answered ${response.status}`);
+    return await response.json() as Planned[];
 }
 
 /**

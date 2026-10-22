@@ -37,8 +37,14 @@
  * The reader offers each as a route, see `reader.ts`, so Claude fills series and groups through the same code;
  * none of them shares anything with anyone, see `shared.ts`.
  *
+ * A new box repeated weekly in its dialog, by its row `Repeat`, has such a rule too, see {@link repeatApply}:
+ * a skill box of a numbered type of a module becomes its series as the form of a new series makes it, numbered,
+ * while its type has no box in the semester yet; any other box, like one of a project or my gym, one box per date,
+ * each as the dialog adds one alone, see `boxesAdd` in `boxes.ts`.
+ *
  * - `node:path`: Builds and names the paths of the plan and the groups.
- * - `./boxes.ts`: Reads the skill boxes with their states, finds a box and removes one, and names the numbered types.
+ * - `./boxes.ts`: Reads the skill boxes with their states, finds a box, removes one and adds boxes, and names
+ *   the numbered types.
  * - `./calendar.ts`: Reads the groups, writes boxes and groups, and calculates with days and times in Berlin time.
  * - `./categories.ts`: Gives the semester of a day and tells well-formed people.
  * - `./documents.ts`: Writes what a box or a group is, linking the folder of its material.
@@ -48,7 +54,7 @@
  */
 
 import { basename, dirname, relative, sep } from "node:path";
-import { boxDelete, boxFind, numberedTypes, skillBoxesRead } from "./boxes.ts";
+import { boxDelete, boxesAdd, boxFind, numberedTypes, skillBoxesRead } from "./boxes.ts";
 import {
     berlinDateOf, berlinDayStartOf, berlinInstantOf, berlinTimeOf, dayAdd, entriesRead, entryAppend, entryRemove,
     icsTextOf, propertiesPut, skillName, todoAppend, todoChange,
@@ -59,7 +65,7 @@ import { codeOf, moduleFolderOf, moduleFoldersRead, semesterFoldersRead } from "
 import { placeLinkOf } from "./places.ts";
 import { calendarRoot, groupsEnding, planEnding, skillFileOf } from "./sources.ts";
 
-import type { Box, BoxState } from "./boxes.ts";
+import type { Box, BoxNew, BoxState } from "./boxes.ts";
 import type { Attendee, Entry, EntryFields, Push } from "./calendar.ts";
 
 
@@ -239,6 +245,25 @@ export type GroupGone = {
     type: string;
     group: string;
     semester: string;
+};
+
+/**
+ * A new box repeated weekly, as its dialog sends it with its row `Repeat` open, see {@link repeatApply}.
+ *
+ * - `box`: The box as the dialog sends one made once, see `BoxNew` in `boxes.ts`, without its day, time, length
+ *   and deadline, which each date sets.
+ * - `slots`: Its weekdays with their times, in the order of the dialog.
+ * - `first`, `last`: Its first and last day, like `2026-10-19`.
+ * - `excepts`: The days of its slots between them it leaves out, like `2026-12-28`.
+ * - `dry`: Whether only to tell what it would make, for the preview of the dialog, writing nothing.
+ */
+export type RepeatChange = {
+    box: Omit<BoxNew, "day" | "time" | "minutes" | "deadline">;
+    slots: Slot[];
+    first: string;
+    last: string;
+    excepts: string[];
+    dry: boolean;
 };
 
 /**
@@ -666,27 +691,38 @@ export function courseRead(module: string): Course {
 }
 
 /**
- * Stops a rule not well formed, see {@link Rule}: of a numbered type, see `numberedTypes` in `boxes.ts`, with slots
- * on different weekdays, each with a start before its end, its first day on or before its last, at most
- * {@link ruleWeeks} weeks apart, its days and the days it leaves out written like `2026-10-19`, a semester
- * like `2026W`, well-formed people, see `attendeesAllow` in `categories.ts`, and a group without spaces or empty.
+ * Tells whether the weeks of a rule are well formed, see {@link Rule}: slots on different weekdays, each with a start
+ * before its end, its first day on or before its last, at most {@link ruleWeeks} weeks apart, its days and the days
+ * it leaves out written like `2026-10-19`.
  * - `day`, `time`: A day and a time well written.
  * - `slotRight`: Whether a slot is well formed.
  *
  * @param rule - The rule as sent
- * @throws {Error} - When it is not well formed
+ * @returns Whether they are
  */
-function ruleCheck(rule: Rule): void {
+function weeksRight(rule: Rule): boolean {
     const day: RegExp = /^\d{4}-\d{2}-\d{2}$/;
     const time: RegExp = /^([01]\d|2[0-3]):[0-5]\d$/;
     const slotRight: (slot: Slot) => boolean = (slot: Slot): boolean => Number.isInteger(slot.weekday)
         && slot.weekday >= 1 && slot.weekday <= 7 && time.test(slot.start) && time.test(slot.end)
         && minutesOf(slot.start) < minutesOf(slot.end);
-    if (!numberedTypes.includes(rule.type) || rule.slots.length === 0 || !rule.slots.every(slotRight)
-        || new Set(rule.slots.map((slot: Slot): number => slot.weekday)).size !== rule.slots.length
-        || !day.test(rule.first) || !day.test(rule.last) || rule.first > rule.last
-        || Date.parse(rule.last) - Date.parse(rule.first) > ruleWeeks * weekLength
-        || !rule.excepts.every((except: string): boolean => day.test(except)) || !/^\d{4}[WS]$/.test(rule.semester)
+    return rule.slots.length > 0 && rule.slots.every(slotRight)
+        && new Set(rule.slots.map((slot: Slot): number => slot.weekday)).size === rule.slots.length
+        && day.test(rule.first) && day.test(rule.last) && rule.first <= rule.last
+        && Date.parse(rule.last) - Date.parse(rule.first) <= ruleWeeks * weekLength
+        && rule.excepts.every((except: string): boolean => day.test(except));
+}
+
+/**
+ * Stops a rule not well formed, see {@link Rule}: of a numbered type, see `numberedTypes` in `boxes.ts`, its weeks
+ * well formed, see {@link weeksRight}, a semester like `2026W`, well-formed people, see `attendeesAllow`
+ * in `categories.ts`, and a group without spaces or empty.
+ *
+ * @param rule - The rule as sent
+ * @throws {Error} - When it is not well formed
+ */
+function ruleCheck(rule: Rule): void {
+    if (!numberedTypes.includes(rule.type) || !weeksRight(rule) || !/^\d{4}[WS]$/.test(rule.semester)
         || !attendeesAllow(rule.attendees) || !/^[\w-]*$/.test(rule.group))
         throw new Error(`No rule of a series: ${JSON.stringify(rule)}`);
 }
@@ -996,6 +1032,46 @@ export function seriesApply(change: SeriesChange): Planned[] {
     if (!change.dry)
         draftsWrite(change.module, rule.type, rule.semester, drafts);
     return plannedOf(drafts);
+}
+
+/**
+ * Makes a new box of the dialog once per date of its weekly rule, see the top of this file, or only tells what that
+ * would make, for the preview of the dialog. A skill box of a numbered type of a module becomes its series as the form
+ * of a new series makes it, see {@link seriesApply}, with the place, the people and the semester of the box, so
+ * the page of the module shows it as the card of its type, numbered; while its type has a box in that semester,
+ * its series is there already, which only the form of that series changes, so nothing is made. Any other box, like
+ * one of a project or my gym, is added once per date into the plan it belongs into, as the dialog adds one alone,
+ * see `boxesAdd` in `boxes.ts`: its day the date, its time and length those of the slot of the date, no deadline.
+ * - `box`: The box as sent.
+ * - `rule`: Its rule, its days with the fields of the box.
+ * - `module`: Name of the folder of the module of a skill box of a numbered type, `undefined` for any other box.
+ * - `boxes`: The boxes of any other box, one per date.
+ *
+ * @param change - The box and its days, as the dialog sends them
+ * @returns The boxes it makes, by their days; `null` for a series of a type with a box in its semester already
+ * @throws {Error} - When the rule or the box is not well formed, the link of `Online` is no web address, a document is
+ *   none of the module's, or a box cannot be written
+ */
+export function repeatApply(change: RepeatChange): Planned[] | null {
+    const box: RepeatChange["box"] = change.box;
+    const rule: Rule = {
+        type: box.type, slots: change.slots, location: box.location, locationLink: box.locationLink ?? "",
+        attendees: box.attendees ?? [], first: change.first, last: change.last, excepts: change.excepts, group: "",
+        semester: box.semester,
+    };
+    const module: string | undefined = box.category === skillName && numberedTypes.includes(box.type)
+        ? moduleFolderOf(box.module) : undefined;
+    if (module !== undefined)
+        return courseBoxesRead(box.module, box.semester).some((one: Box): boolean => one.type === box.type) ? null
+            : seriesApply({ module: module, rule: rule, old: null, dry: change.dry });
+    if (!weeksRight(rule))
+        throw new Error(`No days of a box: ${JSON.stringify(rule)}`);
+    const boxes: BoxNew[] = datesOf(rule).map(([day, index]: [string, number]): BoxNew => ({
+        ...box, day: day, time: instantOf(day, rule.slots[index].start).toISOString(),
+        minutes: minutesOf(rule.slots[index].end) - minutesOf(rule.slots[index].start), deadline: "",
+    }));
+    boxesAdd(boxes, change.dry);
+    return boxes.map((one: BoxNew): Planned => ({ id: "", day: one.day, number: "", state: "new", change: "new" }));
 }
 
 /**

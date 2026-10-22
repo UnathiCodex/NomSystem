@@ -20,7 +20,8 @@
  * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, and the boxes carried along
  *   to a day, adds, changes and removes boxes, pushes them to the next day and drops them
  * - `./course.ts`: Reads the course of a module, its boxes, its series and the groups of its tutorials, changes
- *   a series by its rule, makes a group mine, moves one week's tutorial to another group, and writes and removes groups
+ *   a series by its rule, makes a group mine, moves one week's tutorial to another group, writes and removes groups,
+ *   and adds a new box once per date of its weekly days
  * - `./gifts.ts`: Writes my gift idea for a birthday or holiday as its `DESCRIPTION` into `Birthdays.ics`
  *   or `Holidays.ics`
  * - `./note.ts`: Reads the daily notes, and writes my gratitude and my points about the day into them
@@ -60,7 +61,7 @@ import {
 import {
     boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxSubmit, boxUniversity, boxUnpush,
 } from "./boxes.ts";
-import { courseRead, groupMine, groupPut, groupRemove, seriesApply, weekMove } from "./course.ts";
+import { courseRead, groupMine, groupPut, groupRemove, repeatApply, seriesApply, weekMove } from "./course.ts";
 import { giftWrite } from "./gifts.ts";
 import { noteRead, sectionsRead, sectionWrite } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
@@ -90,7 +91,7 @@ import type { IncomingMessage, ServerResponse, Server } from "node:http";
 import type { ViteDevServer } from "vite";
 import type { BoxLogged, EntryChange, EntryMoved, EntryNew } from "./day.ts";
 import type { BoxChange, BoxNew } from "./boxes.ts";
-import type { GroupNew, MineChange, SeriesChange, WeekChange } from "./course.ts";
+import type { GroupNew, MineChange, Planned, RepeatChange, SeriesChange, WeekChange } from "./course.ts";
 import type { Gift } from "./gifts.ts";
 import type { SectionNew } from "./note.ts";
 import type { Place, PlaceChanged } from "./places.ts";
@@ -173,6 +174,10 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/day/boxes`: Adds box of the body and sends its identifier.
  * - `PATCH /api/day/boxes`: Changes box of the body.
  * - `DELETE /api/day/boxes?id=…`: Removes box of the identifier.
+ * - `POST /api/day/repeat`: Adds box of the body once per date of its weekly days, as the row `Repeat` of its dialog
+ *   gives them, and sends the boxes it makes, see `repeatApply` in `course.ts`; refused with 409 for a series of a type
+ *   that has a box in its semester already; when the body says `dry: true` only sends what it would make, writing
+ *   nothing, for the preview of the dialog.
  * - `POST /api/day/logged`: Logs the box named in the body at the start and end in the body,
  *   and sends the identifier of the log entry.
  * - `POST /api/day/undone`: Takes the done box named in the body back to open, removing the log entry from it
@@ -348,6 +353,10 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
     } else if (request.method === "DELETE" && url.pathname === "/api/day/boxes") {
         boxDelete(url.searchParams.get("id") ?? "");
         responseSend(response, 200, null);
+
+    } else if (request.method === "POST" && url.pathname === "/api/day/repeat") {
+        const planned: Planned[] | null = repeatApply(await json(request) as RepeatChange);
+        responseSend(response, planned === null ? 409 : 200, planned);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/logged") {
         const id: string = boxLog(await json(request) as BoxLogged);

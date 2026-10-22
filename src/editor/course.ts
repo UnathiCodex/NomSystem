@@ -39,7 +39,9 @@
  * among them as I type, `Online` with its parts; who I am with; its first and last day; the days it leaves out, each
  * with its `×`, a field below to add one; then the boxes it makes, numbered, each with its day, a day left out as `·`,
  * as the reader would write them, see `seriesApply` in `reader/course.ts`, anew after every change; then the plan
- * it writes into, Cancel and Save. Enter confirms only its field, Ctrl+Enter saves, Escape cancels.
+ * it writes into, Cancel and Save. Its days, its dates, the days it leaves out and its boxes are the rows of every
+ * series, see `../day/series.ts`, the same in the row `Repeat` of a new box of the plan. Enter confirms only its
+ * field, Ctrl+Enter saves, Escape cancels.
  * Phones show no course, since they show only the day.
  *
  * - `./dialog.ts`: The day view's dialog of an entry, which opens a box tapped and logs one.
@@ -47,12 +49,13 @@
  *   the standard address of a name.
  * - `../day/choices.ts`: The dashboard's own pickers, the rows of a form and the parts of a field.
  * - `../day/places.ts`: Gives the name, the address and the parts of a place, its link, and its choice in a list.
- * - `../day/times.ts`: Gives the times a box is logged at, writes and reads times and days, starts the fields of times
- *   and days, and writes how near a day is.
+ * - `../day/series.ts`: The rows of the days, the dates and the days left out of a series and the boxes it makes,
+ *   whether they are typed enough, and the weekday of a day, its Monday and its name.
+ * - `../day/times.ts`: Gives the times a box is logged at, writes times and days, and writes how near a day is.
  * - `../skill/attempts.ts`: Writes a date as a day and a day as the page shows it.
  * - `../today.ts`: Gives today's calendar date.
  * - `../food/foods.ts`: Makes elements.
- * - `../icons.ts`: Puts the icons into the buttons, the plus that adds and the cross that takes back.
+ * - `../icons.ts`: Puts the icons into the buttons, and the plus that adds a series.
  * - `../menu.ts`: Puts the actions of a box behind one button `⋯`.
  * - `../changes.ts`: Loads the course anew the moment a file of my new system changes.
  * - `../reader.ts`: Asks the reader.
@@ -69,12 +72,14 @@ import {
     addressOf, labelOf, onlineLineOf, onlineName, onlineOf, placeChoiceOf, shownOf, standardLinkOf, whereLinkedOf,
 } from "../day/places.ts";
 import {
-    boxTimesOf, dateFieldStart, dateParse, dateTextOf, nearOf, timeFieldRead, timeFieldStart, timeOf,
-} from "../day/times.ts";
+    boxesRowOf, datesRowOf, daysReady, exceptRowOf, exceptsWithin, mondayOf, previewSoon, slotRowsOf, weekdayNameOf,
+    weekdayOf,
+} from "../day/series.ts";
+import { boxTimesOf, dateTextOf, nearOf, timeOf } from "../day/times.ts";
 import { dayOf, dayTextOf } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { elementOf } from "../food/foods.ts";
-import { crossPut, iconOf, iconPut, iconWordsOf, plusPut } from "../icons.ts";
+import { iconPut, iconWordsOf, plusPut } from "../icons.ts";
 import { menuItemOf, menuOf } from "../menu.ts";
 import { changesFollow } from "../changes.ts";
 import { readerAsk } from "../reader.ts";
@@ -86,24 +91,13 @@ import "../day/choices.css";
 import "./course.css";
 
 import type { Dialog } from "./dialog.ts";
-import type { Box, BoxState } from "../day/boxes.ts";
+import type { Box } from "../day/boxes.ts";
 import type { Attendee } from "../day/entries.ts";
 import type { Category, Field } from "../day/categories.ts";
 import type { Choice } from "../day/choices.ts";
+import type { Days, Planned, Slot } from "../day/series.ts";
 import type { IconNode } from "lucide";
 
-
-/**
- * A slot of a rule, one weekday with its times, as the reader sends it, see `Slot` in `reader/course.ts`.
- *
- * - `weekday`: Its weekday, from 1 for Monday to 7 for Sunday, 0 while the form has none picked.
- * - `start`, `end`: Its times in Berlin time, like `14:00` and `16:00`, empty for none.
- */
-type Slot = {
-    weekday: number;
-    start: string;
-    end: string;
-};
 
 /**
  * A weekly rule of a series or a group, as the reader sends it and the form sends it back, see `Rule`
@@ -180,43 +174,22 @@ type Course = {
 };
 
 /**
- * A box of a series after a change, as the reader sends it for the preview of the form, see `Planned`
- * in `reader/course.ts`: its identifier, its day and number after the change, its state, `new` for a new one,
- * and whether the change adds, changes or removes it.
- */
-type Planned = {
-    id: string;
-    day: string;
-    number: string;
-    state: BoxState | "new";
-    change: "new" | "changed" | "removed" | "";
-};
-
-/**
- * The form of a series as typed so far, see {@link formOpen}.
+ * The form of a series as typed so far, see {@link formOpen}: its days, see `Days` in `../day/series.ts`, their
+ * `before` the weekdays of the slots of `old` whose boxes they take, and:
  *
  * - `type`: Its type, like `VO`, empty while none is picked.
  * - `old`: The rule as read back when the form opened, `null` for a new series.
- * - `slots`: Its weekdays with their times, in the order of their rows.
- * - `before`: For each slot, the weekday of the slot of `old` whose boxes it takes, 0 for a slot added.
  * - `location`, `locationLink`: Its place with its link.
  * - `attendees`: Who I am with.
- * - `first`, `last`: Its first and last day, like `2026-10-19`, empty while not typed as a day.
- * - `excepts`: The days it leaves out, in order.
  * - `group`: Of the tutorials of a module with groups the group picked, like `03`; one other than that of `old`
  *   makes the group mine, see `groupMine` in `reader/course.ts`; empty for none.
  */
-type Form = {
+type Form = Days & {
     type: string;
     old: Rule | null;
-    slots: Slot[];
-    before: number[];
     location: string;
     locationLink: string;
     attendees: Attendee[];
-    first: string;
-    last: string;
-    excepts: string[];
     group: string;
 };
 
@@ -277,65 +250,10 @@ let waiting: boolean = false;
 let categories: Category[] = [];
 
 /**
- * Waiting preview of the form after a change, so typing asks the reader once, a moment after it rests.
- */
-let previewWait: number = 0;
-
-/**
- * How many previews the form asked for, so only the answer to the last one shows.
- */
-let previewsAsked: number = 0;
-
-/**
  * Whether the course loads anew once the dialog of an entry closes, see {@link dialogShow}.
  */
 let dialogFollowed: boolean = false;
 
-
-/**
- * Gives the weekday of a day.
- *
- * @param day - Day like `2026-10-19`
- * @returns 1 for Monday to 7 for Sunday
- */
-function weekdayOf(day: string): number {
-    return (new Date(`${day}T12:00:00`).getDay() + 6) % 7 + 1;
-}
-
-/**
- * Adds days to a day.
- * - `date`: The day at noon, moved.
- *
- * @param day - Day like `2026-10-19`
- * @param days - Number of days to add
- * @returns Day like `2026-10-26`
- */
-function dayAdd(day: string, days: number): string {
-    const date: Date = new Date(`${day}T12:00:00`);
-    date.setDate(date.getDate() + days);
-    return dayOf(date);
-}
-
-/**
- * Gives the Monday of the week of a day, which names its week.
- *
- * @param day - Day like `2026-10-22`
- * @returns Day like `2026-10-19`
- */
-function mondayOf(day: string): string {
-    return dayAdd(day, 1 - weekdayOf(day));
-}
-
-/**
- * Writes the name of a weekday in English, as the dates of the page write it.
- *
- * @param weekday - 1 for Monday to 7 for Sunday
- * @param whole - Whether to write it whole, like `Monday`, else short, like `Mon`
- * @returns Name of the weekday
- */
-function weekdayNameOf(weekday: number, whole: boolean): string {
-    return new Date(2026, 9, 18 + weekday).toLocaleDateString("en-GB", { weekday: whole ? "long" : "short" });
-}
 
 /**
  * Writes a slot as the heading of a card and a row of the table of the groups read it.
@@ -864,7 +782,7 @@ function mineMade(form: Form): boolean {
 
 /**
  * Tells whether the form of a series is typed enough to make boxes: its type picked, and, unless it makes a group
- * mine, each day a weekday, each once, with a start before its end, and a first day on or before its last.
+ * mine, its days, see `daysReady` in `../day/series.ts`.
  *
  * @param form - The form
  * @returns Whether it is ready
@@ -872,12 +790,7 @@ function mineMade(form: Form): boolean {
 function formReady(form: Form): boolean {
     if (form.type === "")
         return false;
-    if (mineMade(form))
-        return true;
-    return form.slots.every((slot: Slot): boolean => slot.weekday > 0 && slot.start !== "" && slot.end !== ""
-            && slot.start < slot.end)
-        && new Set(form.slots.map((slot: Slot): number => slot.weekday)).size === form.slots.length
-        && form.first !== "" && form.last !== "" && form.first <= form.last;
+    return mineMade(form) || daysReady(form);
 }
 
 /**
@@ -898,192 +811,27 @@ async function formSend(form: Form, dry: boolean): Promise<Planned[]> {
         rule: {
             type: form.type, slots: form.slots, location: form.location, locationLink: form.locationLink,
             attendees: form.attendees, first: form.first, last: form.last, group: form.old?.group ?? "",
-            excepts: form.excepts.filter((day: string): boolean => form.first <= day && day <= form.last),
+            excepts: exceptsWithin(form),
             semester: shown?.semester ?? "",
         },
     });
 }
 
 /**
- * Shows the boxes the form of a series makes, as the reader would write them, see {@link formSend}: each its number,
- * `–` for one the university cancelled, the check of one done, a new one outlined, with its day below it, like `19.10`,
- * a day left out as `·`, in the order of their days; then how many there are, like `14 boxes`; nothing while the form
- * is not ready or the reader does not take it, like for dates too far apart, and only the answer to the last question.
- * - `preview`: The place of the preview.
- * - `asked`: The number of this question.
- * - `planned`: The boxes, without those removed.
- * - `items`: The boxes and the days left out, each its day with its element.
- *
- * @throws {Error} - When the reader does not answer
- */
-async function previewShow(): Promise<void> {
-    const preview: HTMLElement | null = formElement?.querySelector(".course-preview") ?? null;
-    if (typing === null || preview === null)
-        return;
-    const form: Form = typing;
-    const asked: number = ++previewsAsked;
-    if (!formReady(form)) {
-        preview.replaceChildren();
-        return;
-    }
-    let planned: Planned[];
-    try {
-        planned = (await formSend(form, true)).filter((box: Planned): boolean => box.change !== "removed");
-    } catch (error: unknown) {
-        if (asked === previewsAsked)
-            preview.replaceChildren();
-        throw error;
-    }
-    if (asked !== previewsAsked)
-        return;
-    const items: [string, HTMLElement][] = [
-        ...planned.map((box: Planned): [string, HTMLElement] => {
-            const chip: HTMLElement = elementOf("span", `course-chip course-chip-${box.state}`, "");
-            chip.append(...(box.state === "done" ? [iconOf(Check)] : []), box.number === "NONE" ? "–" : box.number);
-            return [box.day, chip];
-        }),
-        ...(mineMade(form) ? [] : form.excepts.filter((day: string): boolean => form.first <= day && day <= form.last))
-            .map((day: string): [string, HTMLElement] => [day, elementOf("span", "course-chip course-chip-none", "·")]),
-    ].sort((first: [string, HTMLElement], second: [string, HTMLElement]): number => first[0].localeCompare(second[0]));
-    preview.replaceChildren(...items.map(([day, chip]: [string, HTMLElement]): HTMLElement => {
-        const item: HTMLElement = elementOf("span", "course-preview-item", "");
-        item.append(chip, elementOf("span", "course-preview-day", dateTextOf(day).slice(0, 5)));
-        return item;
-    }), elementOf("span", "course-preview-count", `${planned.length} boxes`));
-}
-
-/**
- * Takes a change of the form of a series: allows saving while it is ready, see {@link formReady}, and asks for its
- * preview anew a moment after the typing rests, see {@link previewShow}.
+ * Takes a change of the form of a series: allows saving while it is ready, see {@link formReady}, and shows anew
+ * the boxes it makes as the reader would write them, see {@link formSend} and `previewSoon` in `../day/series.ts`,
+ * the days it leaves out among them unless it makes a group mine.
+ * - `save`: Its button Save.
+ * - `form`: The form.
  */
 function formChanged(): void {
     const save: HTMLButtonElement | null = formElement?.querySelector(".panel-main") ?? null;
-    if (typing === null || save === null)
+    if (typing === null || formElement === null || save === null)
         return;
-    save.disabled = !formReady(typing);
-    clearTimeout(previewWait);
-    previewWait = window.setTimeout((): void => {
-        previewShow().catch((error: unknown): void => console.error(error));
-    }, 150);
-}
-
-/**
- * Moves the days of the form of a series that fall on the weekday of a slot to its new weekday in their week,
- * its first day, its last and the days it leaves out, so a lecture moved from Monday to Tuesday keeps its weeks,
- * like `19.10.2026–01.02.2027` becoming `20.10.2026–02.02.2027`.
- * - `move`: Moves a day on the old weekday.
- *
- * @param form - The form
- * @param from - The old weekday, 0 for none yet
- * @param to - The new weekday
- */
-function daysMove(form: Form, from: number, to: number): void {
-    const move: (day: string) => string = (day: string): string =>
-        from !== 0 && day !== "" && weekdayOf(day) === from ? dayAdd(day, to - from) : day;
-    form.first = move(form.first);
-    form.last = move(form.last);
-    form.excepts = form.excepts.map(move).sort();
-}
-
-/**
- * Makes a field of a time or a day of the form, as the dialog has them, see `../day/times.ts`: plain, as wide as
- * its value, checking itself; what I type goes into the form as I type it, read as a time or a day.
- * - `input`: The field.
- *
- * @param kind - `time-field` or `date-field`
- * @param value - Its value at first, like `14:00` or `19.10.2026`
- * @param name - What it holds, for screen readers, like `Start of Monday`
- * @param take - Takes what is typed, `14:15` of `1415`, empty for no time or day
- * @returns The field
- */
-function fieldOf(kind: string, value: string, name: string, take: (value: string) => void): HTMLInputElement {
-    const input: HTMLInputElement = document.createElement("input");
-    input.className = kind;
-    input.type = "text";
-    input.inputMode = kind === "time-field" ? "numeric" : "decimal";
-    input.autocomplete = "off";
-    input.value = value;
-    input.setAttribute("aria-label", name);
-    if (kind === "time-field")
-        timeFieldStart(input);
-    else
-        dateFieldStart(input);
-    input.addEventListener("input", (): void => {
-        take(kind === "time-field" ? timeFieldRead(input) : dateParse(input.value) ?? "");
-        formChanged();
-    });
-    return input;
-}
-
-/**
- * Makes two fields of the form side by side with the range dash between them, as start and end of the dialog,
- * like `14:00 – 16:00` or `19.10.2026 – 01.02.2027`.
- * - `range`: The two.
- * - `first`: The first with the dash.
- *
- * @param from - The first field
- * @param to - The second field
- * @returns The two
- */
-function rangeOf(from: HTMLInputElement, to: HTMLInputElement): HTMLElement {
-    const range: HTMLElement = elementOf("span", "entry-range", "");
-    const first: HTMLElement = elementOf("span", "entry-moment", "");
-    first.append(from, elementOf("span", "entry-dash", "–"));
-    range.append(first, to);
-    return range;
-}
-
-/**
- * Makes the rows of the days of the form, each its weekday, picked from a list, and its times, with its `×` while
- * there are several; `+` beside the name of the first adds one more, with the times of the last; a weekday picked anew
- * moves the days of the form with it, see {@link daysMove}.
- * - `weekdays`: The weekdays to pick from.
- * - `plus`: The plus.
- *
- * @param form - The form
- * @returns The rows
- */
-function slotRowsOf(form: Form): HTMLElement[] {
-    const weekdays: Choice[] = [1, 2, 3, 4, 5, 6, 7].map((weekday: number): Choice =>
-        ({ value: String(weekday), text: weekdayNameOf(weekday, true), group: "" }));
-    const plus: HTMLButtonElement = document.createElement("button");
-    plus.type = "button";
-    plusPut(plus, "Add a day");
-    plus.addEventListener("click", (): void => {
-        const last: Slot = form.slots[form.slots.length - 1];
-        form.slots.push({ weekday: 0, start: last.start, end: last.end });
-        form.before.push(0);
-        formFill();
-    });
-    return form.slots.map((slot: Slot, index: number): HTMLElement => {
-        const value: HTMLElement = elementOf("div", "course-slot", "");
-        const remove: HTMLButtonElement = document.createElement("button");
-        remove.type = "button";
-        crossPut(remove, "Remove the day");
-        remove.addEventListener("click", (): void => {
-            form.slots.splice(index, 1);
-            form.before.splice(index, 1);
-            formFill();
-        });
-        value.append(choicesOf({
-            search: searchOf(weekdays), picked: slot.weekday === 0 ? [] : [String(slot.weekday)], many: false,
-            adding: false, noun: "day",
-            pick: (values: string[]): void => {
-                const weekday: number = Number(values[0] ?? slot.weekday);
-                daysMove(form, slot.weekday, weekday);
-                slot.weekday = weekday;
-                formFill();
-            },
-        }), rangeOf(fieldOf("time-field", slot.start, "Start", (time: string): void => {
-            slot.start = time;
-        }), fieldOf("time-field", slot.end, "End", (time: string): void => {
-            slot.end = time;
-        })), ...(form.slots.length > 1 ? [remove] : []));
-        const row: HTMLElement = rowOf(index === 0 ? "Day" : "", value);
-        if (index === 0)
-            row.querySelector(".entry-name")?.append(plus);
-        return row;
-    });
+    const form: Form = typing;
+    save.disabled = !formReady(form);
+    previewSoon(formElement, formReady(form) ? (): Promise<Planned[]> => formSend(form, true) : null,
+        mineMade(form) ? [] : exceptsWithin(form));
 }
 
 /**
@@ -1214,51 +962,6 @@ function withRowOf(form: Form): HTMLElement {
 }
 
 /**
- * Makes the row of the days the form leaves out: each day with its `×`, which takes it back, then a field to type one
- * more, like `24.12.2026`, taken once it is a day, by Enter or as I leave the field.
- * - `days`: The days and the field.
- * - `input`: The field.
- * - `take`: Takes the day typed.
- *
- * @param form - The form
- * @returns The row
- */
-function exceptRowOf(form: Form): HTMLElement {
-    const days: HTMLElement = elementOf("div", "course-excepts", "");
-    const input: HTMLInputElement = fieldOf("date-field", "", "Day to leave out", (): void => {});
-    const take: () => void = (): void => {
-        const day: string | null = dateParse(input.value);
-        if (day === null || form.excepts.includes(day))
-            return;
-        form.excepts = [...form.excepts, day].sort();
-        formFill();
-        formElement?.querySelector<HTMLInputElement>(".course-excepts input")?.focus();
-    };
-    input.placeholder = "dd.mm.yyyy";
-    input.addEventListener("keydown", (event: KeyboardEvent): void => {
-        if (event.key !== "Enter" || event.ctrlKey)
-            return;
-        event.preventDefault();
-        event.stopPropagation();
-        take();
-    });
-    input.addEventListener("change", take);
-    days.append(...form.excepts.map((day: string): HTMLElement => {
-        const except: HTMLElement = elementOf("span", "course-except", dateTextOf(day));
-        const remove: HTMLButtonElement = document.createElement("button");
-        remove.type = "button";
-        crossPut(remove, `Remove ${dateTextOf(day)}`);
-        remove.addEventListener("click", (): void => {
-            form.excepts = form.excepts.filter((other: string): boolean => other !== day);
-            formFill();
-        });
-        except.append(remove);
-        return except;
-    }), input);
-    return rowOf("Except", days);
-}
-
-/**
  * Makes the row of the group of the form of the tutorials of a module with groups: my group, picked from the groups,
  * each by its weekday, times and room; another one picked makes it mine from its next session on, see
  * `groupMine` in `reader/course.ts`, its days, place, people and dates then those of the group, so their rows hide.
@@ -1284,11 +987,11 @@ function groupRowOf(form: Form): HTMLElement {
  * Builds the rows of the form of a series anew from what it holds, see the top of this file: its type, its group while
  * its type has groups, its days, place, people, first and last day and the days it leaves out, unless it makes a group
  * mine, then the boxes it makes; below them the hint when the reader does not take it, then the plan it writes into,
- * Cancel and Save.
+ * Cancel and Save; its days, its dates, the days it leaves out and its boxes as every series has them,
+ * see `../day/series.ts`.
  * - `form`: The form.
  * - `types`: The numbered types without series, for a new one.
  * - `rows`: Its rows.
- * - `preview`: The place of the boxes it makes.
  * - `fields`: The rows together.
  * - `buttons`: The plan, Cancel and Save.
  * - `cancel`, `save`: Cancel and Save.
@@ -1312,16 +1015,9 @@ function formFill(): void {
     if (groupsOf(form.type).length > 0)
         rows.push(groupRowOf(form));
     if (!mineMade(form))
-        rows.push(...slotRowsOf(form), placeRowOf(form), withRowOf(form),
-            rowOf("Dates", rangeOf(fieldOf("date-field", form.first === "" ? "" : dateTextOf(form.first), "First day",
-                (day: string): void => {
-                    form.first = day;
-                }), fieldOf("date-field", form.last === "" ? "" : dateTextOf(form.last), "Last day",
-                (day: string): void => {
-                    form.last = day;
-                }))), exceptRowOf(form));
-    const preview: HTMLElement = elementOf("div", "course-preview", "");
-    rows.push(rowOf("Boxes", preview));
+        rows.push(...slotRowsOf(form, formChanged, formFill), placeRowOf(form), withRowOf(form),
+            datesRowOf(form, formChanged), exceptRowOf(form, formChanged));
+    rows.push(boxesRowOf());
     const fields: HTMLElement = elementOf("div", "panel-form", "");
     fields.append(...rows);
     const buttons: HTMLElement = elementOf("div", "panel-buttons", "");

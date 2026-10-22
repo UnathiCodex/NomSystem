@@ -49,13 +49,14 @@
     content: "\200b";
 }
 
-/* A row without a value, like `Cooked +` or `Chapter +` with its plus beside its name, or the summary of a Food
-   without foods, holds one empty line of a value, a space of no width, as an empty line does, so it is as high
-   as a row with a value, its name on the same line, and all rows stand equally apart; but on a phone, see the end
-   of this file */
+/* A row without a value, like `Cooked +`, `Chapter +` or `Repeat +` with its plus beside its name, or the summary
+   of a Food without foods, holds one empty line of a value, a space of no width, as an empty line does, so it is
+   as high as a row with a value, its name on the same line, and all rows stand equally apart; but on a phone, see
+   the end of this file */
 .picker-head:empty::before,
 .meal-summary:empty::before,
-.meal:has(> .meal-rows:empty)::before {
+.meal:has(> .meal-rows:empty)::before,
+.entry-empty::before {
     content: "\200b";
 }
 
@@ -389,7 +390,8 @@
        an empty line would only take room */
     .picker-head:empty::before,
     .meal-summary:empty::before,
-    .meal:has(> .meal-rows:empty)::before {
+    .meal:has(> .meal-rows:empty)::before,
+    .entry-empty::before {
         content: none;
     }
 

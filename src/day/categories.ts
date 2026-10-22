@@ -63,6 +63,14 @@
  * Only a to-do of the plan has one more field, its deadline, a day like `23.10.2026` with a time or without; a box
  * with a deadline lies on the day of its deadline and has no expected time, so start and end are off while
  * the day of a deadline is typed.
+ * A new box of the plan has one more row below them, `Repeat`, closed with its plus beside its name: opened, the box
+ * is made once per date of a weekly series instead of once, its rows those of the form of a series on the page
+ * of a module, see `series.ts`: its days, the first the weekday of the start with its times, `+` beside the name
+ * for one more; its first day, that of the start, and its last; the days it leaves out; and the boxes it makes,
+ * as the reader would write them. Start, end and deadline hide while it is open, since its rows take their place,
+ * and `Weekly` with its `×` closes it again, see {@link repeatShow}. Saved, the reader writes one box per date,
+ * see `repeatApply` in `reader/course.ts`: a skill box of a numbered type of a module as its series, numbered as
+ * on the page of the module, any other box each as one made alone. A box being changed has no `Repeat`.
  * The dialog opens for the log from `+` below the time grid, from a range selected in the time grid,
  * and from a log entry that can be changed, to change it; for a box from `+` below the list of boxes,
  * and from a box that can be changed, to change it, or to log it instead, filled in as planned;
@@ -72,9 +80,12 @@
  * see `boxes.ts`. The dialog of an entry or a box being changed duplicates it with the copy at the left of its
  * buttons, see {@link entryDuplicate}.
  *
- * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top, and the parts of a field.
- * - `./entries.ts`: Sends new, changed and removed entries to the reader, names who I was with, and gives
- *   the standard address of a name.
+ * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top, a value picked in a row
+ *   of its own, and the parts of a field.
+ * - `./entries.ts`: Sends new, changed and removed entries to the reader, a new box repeated weekly too, names who
+ *   I was with, and gives the standard address of a name.
+ * - `./series.ts`: The rows of a weekly series, as the form of a series has them, for `Repeat`, and the weekday
+ *   of a day.
  * - `./meal.ts`: A meal of the log: its summary and its meals and foods, picked from one search, and its new meals.
  * - `./sport.ts`: A session of sport of the log: its workout, its exercises and its videos.
  * - `./places.ts`: The parts of a place, which add a new one with its address to `Places.md` or change mine,
@@ -85,15 +96,17 @@
  *   and gives the times a box is logged at.
  * - `../skill/attempts.ts`: Names the category of skill entries.
  * - `../icons.ts`: Shows the icons of the copy, the bin and its question, Cancel and Save in their buttons,
- *   and the pencil of a place and of a summary; makes the plain question mark of the bin.
+ *   the pencil of a place and of a summary, and the plus of `Repeat`; makes the plain question mark of the bin.
  * - `../reader.ts`: Asks the reader.
  * - `../changes.ts`: Keeps the categories, loaded once and anew after every change of a file.
  * - `lucide`: The icons of the copy, the bin, Cancel, Save and the pencil.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
-import { choiceOf, choicesOf, listsStart, partFieldOf, partOf, rowOf, searchOf } from "./choices.ts";
-import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, standardAddressOf } from "./entries.ts";
+import { addedRowOf, choiceOf, choicesOf, listsStart, partFieldOf, partOf, rowOf, searchOf } from "./choices.ts";
+import {
+    boxAdd, boxChange, boxDelete, boxRepeat, entryAdd, entryChange, entryDelete, standardAddressOf,
+} from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import { sportName, sportOpen, sportRead, sportRowsOf } from "./sport.ts";
 import {
@@ -104,9 +117,12 @@ import {
     skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPathOf, skillPathShow, skillPlaceShow,
     skillSave, skillSemesterOf,
 } from "./skill.ts";
+import {
+    boxesRowOf, datesRowOf, daysReady, exceptRowOf, exceptsWithin, previewSoon, slotRowsOf, weekdayOf,
+} from "./series.ts";
 import { dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
-import { iconPut, QuestionMark } from "../icons.ts";
+import { iconPut, plusPut, QuestionMark } from "../icons.ts";
 import { readerAsk } from "../reader.ts";
 import { changesKept } from "../changes.ts";
 import { Check, Copy, Pencil, Trash, X } from "lucide";
@@ -117,6 +133,7 @@ import type { Choice } from "./choices.ts";
 import type { Online, Place } from "./places.ts";
 import type { Attendee, BoxFields, EntryFields } from "./entries.ts";
 import type { ModuleType, SkillLinks, SkillValues } from "./skill.ts";
+import type { Days, Planned } from "./series.ts";
 
 
 /**
@@ -358,6 +375,12 @@ let placeFilled: string = "";
  */
 let timesMarked: HTMLInputElement | null = null;
 
+/**
+ * The days of a new box repeated weekly, as its row `Repeat` holds them, see {@link repeatShow}; `null` while the row
+ * is closed, the box made once.
+ */
+let repeat: Days | null = null;
+
 
 
 /**
@@ -418,13 +441,16 @@ function foodsListed(): boolean {
 /**
  * Allows saving once a category is picked: every other field may stay empty, but the times, which the browser
  * asks for before it sends the form; a skill entry may stay without skill, and a task picked without result
- * is left out, see `skill.ts`. Called on every change of the fields, it also shows the pencil and the link
- * of the summary as it now is, see {@link summaryPartsShow}.
+ * is left out, see `skill.ts`; a box repeated once its days are typed enough, see `daysReady` in `series.ts`.
+ * Called on every change of the fields, it also shows the pencil and the link of the summary as it now is,
+ * see {@link summaryPartsShow}, and the boxes a box repeated makes, see {@link repeatPreview}.
  */
 function saveAllow(): void {
-    (document.getElementById("entry-save") as HTMLButtonElement).disabled = chosen === null;
+    (document.getElementById("entry-save") as HTMLButtonElement).disabled =
+        chosen === null || (repeat !== null && !daysReady(repeat));
     summaryPartsShow();
     realLoad().catch((error: unknown): void => console.error(error));
+    repeatPreview();
 }
 
 /**
@@ -1512,13 +1538,16 @@ function textsRead(): BoxFields {
 
 /**
  * Gives the day of the entry as the fields of the dialog say: the typed day of its start, for a box with a deadline
- * the typed day of its deadline; the day the dialog opened with while the typed day is no date.
+ * the typed day of its deadline, for a box repeated the first day of its series, see {@link repeat}; the day
+ * the dialog opened with while the typed day is no date.
  * - `deadlineDay`: Typed day of the deadline of a box, `null` for none and for an entry of the log.
  * - `typed`: The typed day, `null` when it is no date.
  *
  * @returns Day like `2026-10-13`
  */
 function dayRead(): string {
+    if (repeat !== null && repeat.first !== "")
+        return repeat.first;
     const deadlineDay: string | null = opened.target === "box"
         ? dateParse((document.getElementById("entry-deadline-day") as HTMLInputElement).value) : null;
     const typed: string | null =
@@ -1655,18 +1684,21 @@ function errorShow(error: unknown): void {
 }
 
 /**
- * Sends the new or changed box to the reader, then closes the dialog, after which the list of boxes loads again,
- * see `boxes.ts`.
- * - `fields`: Fields, note, start, end and deadline of the dialog.
+ * Sends the new or changed box to the reader, its fields, note, start, end and deadline, see {@link boxFieldsRead},
+ * a new box repeated once per date of its series instead, see {@link repeatSend}, then closes the dialog, after which
+ * the list of boxes loads again, see `boxes.ts`.
  *
- * @throws {Error} - When the reader does not take the box
+ * @throws {Error} - When the reader does not take the box, also when it refuses a box repeated since its series
+ *   is there already
  */
 async function boxSave(): Promise<void> {
-    const fields: BoxFields = boxFieldsRead();
-    if (opened.box !== null)
-        await boxChange(opened.box.id, fields);
+    if (repeat !== null) {
+        if (await repeatSend(repeat, false) === null)
+            throw new Error("Its series is there already");
+    } else if (opened.box !== null)
+        await boxChange(opened.box.id, boxFieldsRead());
     else
-        await boxAdd(fields);
+        await boxAdd(boxFieldsRead());
     (document.getElementById("entry") as HTMLDialogElement).close();
 }
 
@@ -1811,6 +1843,121 @@ function timesShow(opening: EntryOpening): void {
 }
 
 /**
+ * Shows the row `Repeat` below the times, see the top of this file, only for a new box: closed, its name with the plus
+ * beside it, a click on the row opening it, see {@link repeatOpen}; open, `Weekly` with the `×` that closes it,
+ * see {@link repeatClose}, then the rows of its series as every series has them, see `series.ts`: its days, its first
+ * and last day, the days it leaves out and the boxes it makes. While it is open, start, end and deadline hide, off,
+ * so the browser asks nothing of them, since its rows take their place.
+ * - `place`: Where the row stands, below the times.
+ * - `times`: Start, end and deadline.
+ * - `plus`, `empty`, `row`: The plus, the empty value and the row of `Repeat` closed.
+ * - `days`: The days of its series.
+ */
+function repeatShow(): void {
+    const place: HTMLElement = document.getElementById("entry-repeat") as HTMLElement;
+    const times: HTMLFieldSetElement = document.getElementById("entry-times") as HTMLFieldSetElement;
+    times.hidden = repeat !== null;
+    times.disabled = repeat !== null;
+    if (opened.target !== "box" || opened.box !== null) {
+        place.replaceChildren();
+        return;
+    }
+    if (repeat === null) {
+        const plus: HTMLButtonElement = document.createElement("button");
+        const empty: HTMLDivElement = document.createElement("div");
+        const row: HTMLDivElement = rowOf("Repeat", empty);
+        plus.type = "button";
+        plusPut(plus, "Repeat the box");
+        empty.className = "entry-empty";
+        row.querySelector(".entry-name")?.append(plus);
+        row.addEventListener("click", repeatOpen);
+        place.replaceChildren(row);
+        return;
+    }
+    const days: Days = repeat;
+    place.replaceChildren(addedRowOf("Repeat", "Weekly", repeatClose, ""),
+        ...slotRowsOf(days, repeatChanged, repeatShow), datesRowOf(days, repeatChanged),
+        exceptRowOf(days, repeatChanged), boxesRowOf());
+    repeatChanged();
+}
+
+/**
+ * Opens the row `Repeat` of a new box, see {@link repeatShow}: its series has one day, the weekday of the typed day
+ * of its start with the times typed, like `Thursday 14:00 – 16:00` of `22.10.2026 14:00 – 16:00`, its first day that
+ * day and its last day still to type.
+ * - `day`: The typed day of its start, the day the dialog opened with should it be no date.
+ */
+function repeatOpen(): void {
+    const day: string =
+        dateParse((document.getElementById("entry-start-day") as HTMLInputElement).value) ?? dayOf(opened.start);
+    repeat = {
+        slots: [{
+            weekday: weekdayOf(day), start: timeFieldRead(document.getElementById("entry-start") as HTMLInputElement),
+            end: timeFieldRead(document.getElementById("entry-end") as HTMLInputElement),
+        }],
+        before: [0], first: day, last: "", excepts: [],
+    };
+    repeatShow();
+}
+
+/**
+ * Closes the row `Repeat`, the box made once again, with start, end and deadline as they were, see {@link repeatShow},
+ * a skill box with the semester of its day again, see {@link repeatChanged}.
+ */
+function repeatClose(): void {
+    repeat = null;
+    repeatShow();
+    repeatChanged();
+}
+
+/**
+ * Takes a change of the row `Repeat`: a skill box takes the semester of the first day of its series while I picked
+ * none, as a box made once takes that of its day, see `skillDaySet` in `skill.ts` and {@link dayRead}, and saving
+ * and the boxes it makes follow, see {@link saveAllow}.
+ */
+function repeatChanged(): void {
+    if (chosen?.name === skillName)
+        skillDaySet(dayRead());
+    saveAllow();
+}
+
+/**
+ * Sends the new box with its row `Repeat` open to the reader, see `boxRepeat` in `entries.ts`: its fields as of a box
+ * made once, see {@link textsRead}, a skill box with the semester of the first day of its series while I picked none,
+ * and its days, those it leaves out only between its first and its last day.
+ *
+ * @param days - The days of its series
+ * @param dry - Whether only to tell what it would make, for the preview
+ * @returns The boxes it makes, by their days, `null` when the reader refuses it since its series is there already
+ * @throws {Error} - When the reader does not take it for another reason
+ */
+async function repeatSend(days: Days, dry: boolean): Promise<Planned[] | null> {
+    return await boxRepeat({ ...textsRead(), semester: chosen?.name === skillName ? skillSemesterOf(days.first) : "" },
+        { ...days, excepts: exceptsWithin(days) }, dry);
+}
+
+/**
+ * Shows anew the boxes a box repeated makes, as the reader would write them, see {@link repeatSend} and `previewSoon`
+ * in `series.ts`: nothing while it is closed, no category is picked or its days are not typed enough; in their place,
+ * when the reader refuses it, since a skill box of a numbered type has its series in the semester already, where that
+ * series changes.
+ * - `days`: The days of its series.
+ * - `ask`: Asks the reader what it makes, its skill and type named when it refuses.
+ */
+function repeatPreview(): void {
+    if (repeat === null)
+        return;
+    const days: Days = repeat;
+    const ask: () => Promise<Planned[] | string> = async (): Promise<Planned[] | string> => {
+        const skill: ModuleType = skillModuleType();
+        return await repeatSend(days, true)
+            ?? `${skill.module} ${skill.type} has its series already: its pencil on the page of the module changes it`;
+    };
+    previewSoon(document.getElementById("entry-repeat") as HTMLElement,
+        chosen === null || !daysReady(days) ? null : ask, exceptsWithin(days));
+}
+
+/**
  * Shows the dialog as an opening says, a new one without category with the list of the categories open.
  * It has no title: below its fields, small and grey, the box a log entry comes from, with a pencil beside it to change
  * that box instead, when it can be changed; at the bottom the copy and the bin at the left, then cancel and save,
@@ -1839,12 +1986,14 @@ async function entryShow(opening: EntryOpening): Promise<void> {
     realMiddle = null;
     removeAsked = false;
     pain = String(opening.entry?.extendedProps.pain ?? "");
+    repeat = null;
 
     (document.getElementById("entry-plan-title") as HTMLElement).textContent =
         opening.plan === null ? "" : `From the plan: ${opening.plan.title}`;
     document.getElementById("entry-plan")?.toggleAttribute("hidden", opening.target === "box" || opening.plan === null);
     document.getElementById("entry-plan-edit")?.toggleAttribute("hidden", opening.plan?.editable !== true);
     timesShow(opening);
+    repeatShow();
     (document.getElementById("entry-note") as HTMLTextAreaElement).value = opening.note;
     iconPut(document.getElementById("entry-remove") as HTMLElement, Trash, "Remove");
     document.getElementById("entry-remove")?.toggleAttribute("hidden",
@@ -2046,7 +2195,7 @@ async function entryDuplicate(): Promise<void> {
 /**
  * Checks the times before the dialog sends them, saying what is wrong at its field: the end lies after the start,
  * for an entry of the log and for a box with both times, and a box with the time of its end has the time of its start;
- * a box with a deadline has no times to check.
+ * a box with a deadline has no times to check, nor a box repeated, whose start and end are off, see {@link repeatShow}.
  * - `startTime`, `endTime`: Fields of the times of start and end.
  * - `field`: The field that is wrong, `null` for none.
  *
@@ -2056,7 +2205,7 @@ function timesCheck(): boolean {
     const startTime: HTMLInputElement = document.getElementById("entry-start") as HTMLInputElement;
     const endTime: HTMLInputElement = document.getElementById("entry-end") as HTMLInputElement;
     let field: HTMLInputElement | null = null;
-    if (startTime.disabled)
+    if (startTime.matches(":disabled"))
         return true;
     if (timeFieldRead(startTime) === "" && timeFieldRead(endTime) !== "") {
         field = startTime;

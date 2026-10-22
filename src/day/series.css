@@ -1,0 +1,91 @@
+/* Rows of a weekly series, the same in the form of a series on the page of a module and in the row Repeat of the dialog
+   of a new box, see `series.ts`: its days, the days it leaves out and the boxes it makes */
+/* A day of a series: its weekday, as wide as the longest, `Wednesday`, then its times, then its `×` */
+.series-slot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 1.25rem;
+}
+
+.series-slot > .picker {
+    flex: 0 0 6.5rem;
+}
+
+/* The days a series leaves out, each with its `×`, then the field to type one more */
+.series-excepts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.375rem 1.25rem;
+}
+
+.series-except {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.125rem;
+    white-space: nowrap;
+}
+
+/* The boxes a series makes: each its number on a small chip filled as a card, a new one outlined, one done grey with
+   its check, a day left out as a grey `·` without chip, its day below it small and grey; how many at their end */
+.series-preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem 0.375rem;
+}
+
+.series-preview-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.series-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    min-width: 1.75rem;
+    height: 1.5rem;
+    padding: 0 0.25rem;
+    border: 1px solid transparent;
+    border-radius: var(--chip-radius);
+    background: var(--fill);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.series-chip-new {
+    border-color: var(--chosen-line);
+}
+
+.series-chip-done,
+.series-chip-none {
+    color: var(--text-muted);
+}
+
+.series-chip-none {
+    background: none;
+}
+
+.series-chip svg.lucide {
+    width: 0.75rem;
+    height: 0.75rem;
+}
+
+.series-preview-day {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.series-preview-count {
+    align-self: center;
+    margin-left: auto;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}

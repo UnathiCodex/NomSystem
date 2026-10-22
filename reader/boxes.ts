@@ -17,6 +17,9 @@
  * in its series, the boxes of the same skill and type by date, as `X-NUMBER`, like `X-NUMBER:3`, the next one when
  * the dialog adds it, see {@link numberNextOf}. One the university cancels gets `X-NUMBER:NONE` by its own button,
  * see {@link boxUniversity}, and the later ones of its series move up a number; it is neither done nor carried along.
+ * A box repeated weekly in the dialog of a new box, like my gym on Mondays and Thursdays, is no rule in a file either:
+ * it is one box per date, each as the dialog adds one alone, see {@link boxesAdd}, a lecture's numbered as its series,
+ * see `repeatApply` in `course.ts`.
  *
  * A box of the new system is a to-do of iCalendar, a `VTODO`, in the plan of its month, like `Living/2026_10_Plan.ics`,
  * or a skill box in the plan of its skill, like `University/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`,
@@ -799,6 +802,30 @@ export function boxAdd(box: BoxNew): string {
     if (box.category === skillName && numberedTypes.includes(box.type))
         propertiesPut(file, id, [["x-number", [numberNextOf(box.module, box.type, box.day)]]]);
     return id;
+}
+
+/**
+ * Adds boxes that differ only in their days and times, like the dates of a box repeated weekly, see `repeatApply`
+ * in `course.ts`, each as {@link boxAdd} adds one, into the plan it belongs into, in their order; or only checks them,
+ * for the preview of the dialog. The first is checked before any is written, as `boxAdd` checks it, with the link
+ * of its place and its documents, since the others share all of it, their days and times checked by their rule,
+ * so boxes the reader does not take write nothing.
+ * - `first`: The first box, `undefined` for none.
+ *
+ * @param boxes - The boxes, the earliest first
+ * @param dry - Whether only to check them, writing nothing
+ * @returns Identifiers of the new boxes, none when only checked
+ * @throws {Error} - When the first box is not right, see {@link boxCheck}, the link typed for `Online` is no web
+ *   address, or a document is none of the module's
+ */
+export function boxesAdd(boxes: BoxNew[], dry: boolean): string[] {
+    const first: BoxNew | undefined = boxes[0];
+    if (first !== undefined) {
+        boxCheck(first, null);
+        todoFieldsOf(first, null);
+        boxLinksOf(first, null);
+    }
+    return dry ? [] : boxes.map((box: BoxNew): string => boxAdd(box));
 }
 
 /**
