@@ -105,9 +105,9 @@ export type BoxState = "open" | "done" | "dropped" | "university" | "pushed";
 
 /**
  * Types of skill boxes that carry their number in their series: lectures, exercises, central exercises, tutorials
- * and sheets.
+ * and sheets; the series of the course of a module, see `course.ts`.
  */
-const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
+export const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
 
 /**
  * A box, as the page shows it.
@@ -138,6 +138,8 @@ const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  *   links, see `chaptersOf` in `documents.ts`, like `02_LogisticPoissonRegression`; none for none.
  * - `number`: Its number in its series, its `X-NUMBER`, like `3`, `NONE` for one the university cancelled;
  *   empty for none.
+ * - `group`: The group of a tutorial whose session it goes to, its `X-GROUP`, like `03`, see `course.ts`;
+ *   empty for none.
  * - `moved`: For a box shown greyed on a day it was pushed from, where it went, see {@link Moved};
  *   `null` for any other.
  */
@@ -157,6 +159,7 @@ export type Box = EntryTexts & {
     links: Link[];
     chapters: string[];
     number: string;
+    group: string;
     moved: Moved | null;
 };
 
@@ -407,6 +410,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         links: entry.links,
         chapters: chaptersOf(entry),
         number: entry.number,
+        group: entry.group,
         moved: null,
     };
 }
@@ -696,15 +700,17 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
  * Reads the series of a skill box, see the top of this file: the boxes of the plan of the same skill and type, like
  * `IN2028` and `VO`, by date, whatever their state, each with its plan file, whatever form its `SUMMARY` has,
  * like `IN2028_BusinessAnalyticsMachineLearning (VO)` or an older `IN2028 Business Analytics Machine Learning (VO)`,
- * see `skillPartsOf` in `calendar.ts`.
- * - `entries`: Every entry of the plan.
+ * see `skillPartsOf` in `calendar.ts`; up to two years after today, so a daily box without end, like that of my diary,
+ * is not walked through a century, which took seconds for each lecture cancelled or added.
+ * - `entries`: Every entry of the plan up to then.
  *
  * @param module - Skill of the series, like `IN2028`
  * @param type - Its type, like `VO`
  * @returns The entries of the series, the earliest first
  */
 function seriesOf(module: string, type: string): Entry[] {
-    const entries: Entry[] = entriesRead(day.plan, "1970-01-01T00:00:00Z", "2100-01-01T00:00:00Z");
+    const entries: Entry[] = entriesRead(day.plan, "1970-01-01T00:00:00Z",
+        berlinDayStartOf(dayAdd(berlinDateOf(new Date()), 2 * 366)));
     return entries
         .filter((entry: Entry): boolean => entry.category === skillName && entry.module === module
             && entry.type === type)

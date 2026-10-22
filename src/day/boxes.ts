@@ -65,7 +65,7 @@
  * - `./categories.ts`: Opens the entry by category for a new box, a box to change, and a box to log through it.
  * - `./gifts.ts`: Opens the dialog of the gift idea for a birthday or holiday.
  * - `./places.ts`: Gives the name of the place of a box, a link when it has one.
- * - `./times.ts`: Gives the times a box is logged at with one tap, and writes times of day.
+ * - `./times.ts`: Gives the times a box is logged at with one tap, writes times of day and how near a deadline is.
  * - `../skill/attempts.ts`: Names the category of skill entries, writes a date as a day,
  *   and gives the day of a date.
  * - `../today.ts`: Gives today's calendar date, which tells whether the day of a box is over.
@@ -84,7 +84,7 @@ import { giftOpen } from "./gifts.ts";
 import { breakableOf } from "./choices.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
 import { linkNameOf, modulesFolder } from "../skill/links.ts";
-import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
+import { boxMinutes, boxTimesOf, lengthOf, nearOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut, plusPut } from "../icons.ts";
@@ -147,6 +147,7 @@ const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  * - `chapters`: Chapters of my system a skill box belongs to, like `02_LogisticPoissonRegression`, which a log entry
  *   from it gets too; none for none.
  * - `number`: Its number in its series, like `3`, `NONE` for one the university cancelled, empty for none.
+ * - `group`: The group of a tutorial whose session it goes to, like `03`, see `../editor/course.ts`; empty for none.
  * - `moved`: For a box shown greyed on a day it was pushed from, where it went, see {@link Moved};
  *   `null` for any other.
  */
@@ -177,6 +178,7 @@ export type Box = {
     links: Link[];
     chapters: string[];
     number: string;
+    group: string;
     moved: Moved | null;
 };
 
@@ -336,24 +338,6 @@ async function carriedFetch(day: string): Promise<Box[]> {
 }
 
 /**
- * Writes how near the deadline of an open box is on a day: `today`, `tomorrow` or `in 3 days`.
- * - `days`: Whole days from the day to the deadline, from noon to noon, so a day the clocks change counts right.
- *
- * @param box - Box with a deadline
- * @param day - Day the box shows on, like `2026-10-20`
- * @returns How near it is
- */
-function nearOf(box: Box, day: string): string {
-    const days: number = Math.round((Date.parse(`${box.day}T12:00:00`) - Date.parse(`${day}T12:00:00`))
-        / (24 * 60 * 60 * 1000));
-    if (days === 0)
-        return "today";
-    if (days === 1)
-        return "tomorrow";
-    return `in ${days} days`;
-}
-
-/**
  * Writes the parts of the line of the time and length of a box, the second of its lines, see {@link boxContentOf},
  * which a middle dot parts, the same whether it is open or done, since the log shows its real time: its own day
  * when it is carried along to a later day, like `Mon, 12.10.2026`, its expected start and end, else its expected
@@ -381,8 +365,8 @@ function timePartsOf(box: Box, day: string): string[] {
 /**
  * Writes the parts of the line of the deadline of a box, below the line of its time, see {@link boxContentOf},
  * which a middle dot parts: the day of its deadline, its time, none for a deadline without time, and how near it is
- * while it is open, see {@link nearOf}, not for a box carried along; its day left out on that day itself, unless
- * nothing else is left to write, like `Fri, 23.10.2026 · 12:00 · in 3 days` and `12:00 · today`.
+ * while it is open, see `nearOf` in `times.ts`, not for a box carried along; its day left out on that day itself,
+ * unless nothing else is left to write, like `Fri, 23.10.2026 · 12:00 · in 3 days` and `12:00 · today`.
  * - `time`: Its time, empty for a deadline without time.
  * - `near`: How near it is, empty for a box not open, or one carried along.
  * - `rest`: Its time and how near it is, as far as there is something to write.
@@ -396,7 +380,7 @@ function deadlinePartsOf(box: Box, day: string, nearShown: boolean): string[] {
     if (box.deadline === "")
         return [];
     const time: string = box.deadline === box.day ? "" : timeOf(new Date(box.deadline));
-    const near: string = !nearShown || box.state !== "open" ? "" : nearOf(box, day);
+    const near: string = !nearShown || box.state !== "open" ? "" : nearOf(box.day, day);
     const rest: string[] = [time, near].filter((part: string): boolean => part !== "");
     return box.day === day && rest.length > 0 ? rest : [dayTextOf(box.day, true), ...rest];
 }

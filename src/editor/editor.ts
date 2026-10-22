@@ -21,7 +21,8 @@
  * While no note is open, the page shows Today, the items due today as cards, see `./today.ts`; for the address of
  * a module or of one of its chapters, which a click on its name in the tree opens, like
  * `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`, it shows the overview
- * of the module, where each of its sections stands, see `./overview.ts`, the chapter picked in the tree.
+ * of the module, its whole plan, its course of the university, see `./course.ts`, and where each of its sections
+ * stands, see `./overview.ts`, the chapter picked in the tree.
  * The address names a note by its path in the scripts view and the heading to scroll to, like
  * `/scripts?path=IN2028_BusinessAnalyticsMachineLearning/01_RegressionAnalysis/01_01_SampleMeanEstimator.md#…`,
  * so a reload and the back button of the browser stay on it, and a file of my new system by its path in the tree,
@@ -44,7 +45,8 @@
  * - `./steps.ts`: Shows an unfolded solution one step at a time.
  * - `./tasks.ts`: Shows the rows of the tasks of a note.
  * - `./round.ts`: Shows the round of a section in the note.
- * - `./overview.ts`: Shows the overview of a module or of a chapter, and its chapter in the tree.
+ * - `./overview.ts`: Shows the overview of a module or of a chapter, its course and its chapters, and its chapter
+ *   in the tree.
  * - `../notes/tree.ts`: Shows the tree of one root, the file shown marked, and the outline of a note or the blocks
  *   of a section with their places.
  * - `lucide`, `../icons.ts`: The floppy disk of the save button and the check of the round's button.

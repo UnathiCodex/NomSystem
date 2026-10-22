@@ -4,7 +4,8 @@
  * Reads my modules for the scripts view, read only: the modules of the semester with their chapters
  * and notes for the menu, a note with the files its links lead to, the links of the notes that lead nowhere,
  * and single files, like the images of a note; for the skill entries of the day, every module folder
- * with its chapters and the university's documents in it.
+ * with its chapters and the university's documents in it; for the course of a module, the folders of its material
+ * of a semester, see `course.ts`.
  * Each module is a vault of its own, as in Obsidian, so a link leads to a file of the same module.
  * A note of any module can be read, also of one that is not in the menu.
  * Paths come and go with `/` from `NomSkillingmodules`,
@@ -356,6 +357,37 @@ export function moduleFoldersRead(): string[] {
         .filter((entry: Dirent): boolean => entry.isDirectory() && moduleFolder.test(entry.name))
         .map((entry: Dirent): string => entry.name)
         .sort(collator.compare);
+}
+
+/**
+ * Lists the folders of the material of a module of one semester, by the type of their material, for the course
+ * of the module, see `course.ts`: in each folder of material, like `VO_UniversityLectureLessons`, the folder
+ * of the semester, like `TUM_2026W`, also while it holds nothing yet; of two of one type, like `LMU_2026W`
+ * beside `TUM_2026W`, the first by name, as the tree lists them.
+ * - `folders`: The folders found so far, by type.
+ * - `type`: The type of a folder of material, like `VO` of `VO_UniversityLectureLessons`.
+ * - `inner`: The folder of the semester in it, `undefined` for none.
+ *
+ * @param module - Name of the module folder, like `IN2028_BusinessAnalyticsMachineLearning`
+ * @param semester - Semester, like `2026W`
+ * @returns Paths from the module folder by type, like `VO_UniversityLectureLessons/TUM_2026W` for `VO`,
+ *   none for a missing folder
+ */
+export function semesterFoldersRead(module: string, semester: string): { [type: string]: string } {
+    const folders: { [type: string]: string } = {};
+    entriesRead(module)
+        .filter((material: Dirent): boolean => material.isDirectory() && /^[A-Z]{2}_/.test(material.name))
+        .map((material: Dirent): string => material.name).sort(collator.compare)
+        .forEach((material: string): void => {
+            const type: string = material.slice(0, 2);
+            const inner: string | undefined = entriesRead(`${module}/${material}`)
+                .filter((folder: Dirent): boolean =>
+                    folder.isDirectory() && /\d{4}[WS]/.exec(folder.name)?.[0] === semester)
+                .map((folder: Dirent): string => folder.name).sort(collator.compare)[0];
+            if (inner !== undefined && folders[type] === undefined)
+                folders[type] = `${material}/${inner}`;
+        });
+    return folders;
 }
 
 /**

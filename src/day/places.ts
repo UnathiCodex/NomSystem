@@ -16,6 +16,7 @@
  * before the first comma, see {@link labelOf}, and the dialog shows the whole line, which opens the link
  * of the place, written with it as its `ALTREP`, when it has one, and nothing else: nothing opens a map by itself,
  * only a link stored with the place opens on a click.
+ * In the list of a field of a place a place shows by its name, its address grey beside it, see {@link placeChoiceOf}.
  * A way shows its route by labels, with an arrow drawn between them, see {@link whereLinkedOf}.
  * A meeting online has its own place, `Online`, see {@link onlineName}, one generic place, whose parts I type
  * per entry in place of an address, the same three: its software, like `Teams`, who offers it, like `Microsoft`,
@@ -26,11 +27,14 @@
  * - `lucide`: The arrow of a route.
  * - `../icons.ts`: Makes the element of an icon.
  * - `../reader.ts`: Asks the reader.
+ * - `./choices.ts`: The type of a choice of a list, for the type checker only.
  */
 
 import { ArrowRight } from "lucide";
 import { iconOf } from "../icons.ts";
 import { readerAsk } from "../reader.ts";
+
+import type { Choice } from "./choices.ts";
 
 
 /**
@@ -77,6 +81,13 @@ const standardLinks: { [software: string]: string } = {
 };
 
 /**
+ * What `Online` shows grey beside it in the list of a place, in place of an address, see {@link placeChoiceOf}:
+ * the names of its parts, as `onlinePartsOf` in `categories.ts` shows them, so I see what I type for it; without
+ * its link, as my places show their address without theirs.
+ */
+const onlineDetail: string = "Software, Provider, Passcode";
+
+/**
  * Name the passcode of a meeting goes by in the line of `Online`, before its value, like `Passcode Ab12Cd34`,
  * so it never reads as a part of the address, see {@link onlineLineOf}.
  */
@@ -102,6 +113,32 @@ export function lineOf(place: Place): string {
  */
 export function labelOf(line: string): string {
     return line.split(",")[0].trim();
+}
+
+/**
+ * Gives the address of a place as an entry writes it, the part after its name.
+ *
+ * @param line - Place like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, or only its name,
+ *   like `Home Munich`
+ * @returns Address like `Arcisstraße 21, 80333 München, Deutschland`, empty for none
+ */
+export function addressOf(line: string): string {
+    return line.includes(",") ? line.slice(line.indexOf(",") + 1).trim() : "";
+}
+
+/**
+ * Makes the choice of a place in the list of a field of a place, in the dialog and in the form of a series,
+ * see `../editor/course.ts`: by its name, see {@link labelOf}, its address grey beside it, `Online` the names
+ * of its parts, see {@link onlineDetail}.
+ *
+ * @param line - Place as an entry writes it, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`
+ * @returns Choice, like one showing `TUM Innenstadt`
+ */
+export function placeChoiceOf(line: string): Choice {
+    return {
+        value: line, text: labelOf(line), group: "",
+        detail: labelOf(line) === onlineName ? onlineDetail : addressOf(line),
+    };
 }
 
 /**

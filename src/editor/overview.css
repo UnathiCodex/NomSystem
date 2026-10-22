@@ -22,6 +22,14 @@
     color: var(--text-main);
 }
 
+/* The thin line between the course of the university above, see `course.css`, and my own learning below, the chapters,
+   a breath below the last card */
+.overview-line {
+    margin: 1.75rem 0 0.25rem;
+    border: 0;
+    border-top: 1px solid var(--line);
+}
+
 /* The chapters a breath apart, each its line of names above its card */
 .overview-list {
     display: flex;

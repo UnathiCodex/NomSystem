@@ -1,0 +1,296 @@
+/* Course of a module on its page, above its chapters, see `course.ts`: one card per type, a breath apart as
+   the chapters below the thin line, see `.overview-list` in `overview.css`, then the plus that adds a series */
+.overview-course {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    margin-top: 0.75rem;
+}
+
+/* The plus after the cards and `No series yet` before it, in line with the names of the cards */
+.overview-course > .plus-quiet,
+.overview-course > .plan-none {
+    margin-left: 1.25rem;
+}
+
+/* Heading of a card: its type at the left, bold as the name of a chapter, see `.overview-chapter`, and at its right
+   its rule, small and grey as the line of a box, its room a link, then the pencil; in line with the text of its rows,
+   as the line of a chapter's name */
+.course-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--gap);
+    padding: 0 1.25rem;
+}
+
+.course-rule {
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* The folder of the material of the semester below the heading, small and grey, as close below it as an address
+   below its place */
+.course-folder {
+    margin: -0.5rem 0 0;
+    padding: 0 1.25rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+/* A row of a box on one grid, as the row of a section of a chapter, see `.overview-row`, as high as a row of the tree:
+   its type and number, as wide as the widest, `HU 12`, its day, as wide as the widest, `Wed, 30.12.2026`, grey its
+   times, place and people, going on below where they do not fit, the picker of its group, what stands at its right,
+   like `Next`, and its `⋯` or its state, as wide as either; a grey under the pointer, as a row of a chapter, a tap
+   on it opening its box */
+.course-row {
+    display: grid;
+    grid-template-columns: 3rem 7.5rem minmax(0, 1fr) auto auto 2.125rem;
+    column-gap: 1rem;
+    align-items: center;
+    min-height: var(--tree-row-height);
+    padding-left: 0.75rem;
+    border-radius: var(--chip-radius);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+
+.course-row:hover {
+    background: var(--chosen);
+}
+
+.course-what,
+.course-day,
+.course-mark {
+    white-space: nowrap;
+}
+
+.course-meta {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+/* The `⋯` of an open box and the state of one no longer open in the last column, centred on its row, see `menu.css`
+   and `.box-state` in `../day/boxes.css`, not placed as in a box of the plan */
+.course-row .menu-place {
+    display: flex;
+    justify-content: center;
+}
+
+.course-row .box-state {
+    grid-row: auto;
+    grid-column: auto;
+    justify-self: center;
+    margin: 0;
+}
+
+/* A box done, and one not done whose day is over, its type, number and day grey, as a done box of the plan,
+   see `.box-done` in `../day/boxes.css`; one I skipped or the university cancelled faded, as in the plan */
+.course-done .course-what,
+.course-done .course-day,
+.course-missed .course-what,
+.course-missed .course-day {
+    color: var(--text-muted);
+}
+
+.course-dropped,
+.course-university {
+    opacity: 0.55;
+}
+
+/* A folded line of a card, like `✓ 1 done`, `11 more · until 01.02.2027` or `10 groups`: a row of its own, grey,
+   lighter under the pointer, its check a letter high */
+.course-fold {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: var(--tree-row-height);
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: var(--chip-radius);
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.course-fold:hover {
+    background: var(--chosen);
+    color: var(--text-main);
+}
+
+.course-fold svg.lucide {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+/* The group of a box in its row and my group in a heading: the dashboard's own picker, see `../day/choices.ts`,
+   its line small and grey as the times beside it, lighter under the pointer, `⇄` after it while the box goes to another
+   group than mine; its list right under its line, its right edge under the line's, as wide as its values */
+.course-pick .picker-line {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.course-pick .picker-line:hover {
+    color: var(--text-main);
+}
+
+.course-pick .picker-box {
+    left: auto;
+    right: anchor(--list-field right);
+    width: max-content;
+    min-width: 18rem;
+    max-width: 32rem;
+}
+
+.course-other {
+    margin-left: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+/* The group of a box no longer to move, like a tutorial done, grey and small as the line of the picker */
+.course-group {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* Table of the groups of a type, as the university lists them: one grid, its names small and grey on top, each value
+   on one line, the room by its code, in the size of the grey lines of the rows */
+.course-groups {
+    display: grid;
+    grid-template-columns: repeat(5, auto) minmax(0, 1fr) repeat(2, auto);
+    gap: 0.5rem 1rem;
+    align-items: baseline;
+    padding: 0.375rem 0.75rem 0.75rem;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.course-groups-name,
+.course-groups-except {
+    color: var(--text-muted);
+}
+
+/* Form of a series in its card, in the look of the dialog of an entry, see `.panel` in `../day/day.css`, as wide
+   as the card, its buttons at its end, where the page scrolls it, the plan it writes into small and grey at their
+   left */
+.course-form {
+    width: auto;
+}
+
+.course-form .panel-buttons {
+    position: static;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.course-file {
+    align-self: center;
+    margin-right: auto;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+/* A day of a series: its weekday, as wide as the longest, `Wednesday`, then its times, then its `×` */
+.course-slot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 1.25rem;
+}
+
+.course-slot > .picker {
+    flex: 0 0 6.5rem;
+}
+
+/* The days a series leaves out, each with its `×`, then the field to type one more */
+.course-excepts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.375rem 1.25rem;
+}
+
+.course-except {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.125rem;
+    white-space: nowrap;
+}
+
+/* The boxes a series makes: each its number on a small chip filled as a card, a new one outlined, one done grey with
+   its check, a day left out as a grey `·` without chip, its day below it small and grey; how many at their end */
+.course-preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem 0.375rem;
+}
+
+.course-preview-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.course-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    min-width: 1.75rem;
+    height: 1.5rem;
+    padding: 0 0.25rem;
+    border: 1px solid transparent;
+    border-radius: var(--chip-radius);
+    background: var(--fill);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.course-chip-new {
+    border-color: var(--chosen-line);
+}
+
+.course-chip-done,
+.course-chip-none {
+    color: var(--text-muted);
+}
+
+.course-chip-none {
+    background: none;
+}
+
+.course-chip svg.lucide {
+    width: 0.75rem;
+    height: 0.75rem;
+}
+
+.course-preview-day {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.course-preview-count {
+    align-self: center;
+    margin-left: auto;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}

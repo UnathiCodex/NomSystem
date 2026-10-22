@@ -72,11 +72,13 @@
  * see `boxes.ts`. The dialog of an entry or a box being changed duplicates it with the copy at the left of its
  * buttons, see {@link entryDuplicate}.
  *
- * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top.
- * - `./entries.ts`: Sends new, changed and removed entries to the reader, and names who I was with.
+ * - `./choices.ts`: Pickers, each one line in a row with its name, its list on top, and the parts of a field.
+ * - `./entries.ts`: Sends new, changed and removed entries to the reader, names who I was with, and gives
+ *   the standard address of a name.
  * - `./meal.ts`: A meal of the log: its summary and its meals and foods, picked from one search, and its new meals.
  * - `./sport.ts`: A session of sport of the log: its workout, its exercises and its videos.
- * - `./places.ts`: The dialog of a place, which adds a new one with its address to `Places.md` or changes mine.
+ * - `./places.ts`: The parts of a place, which add a new one with its address to `Places.md` or change mine,
+ *   and the choice of a place in a list.
  * - `./skill.ts`: The fields of `Skill`: skill and type, place, semester, chapters, documents,
  *   and in the log attempts; the folder its summary links while I type no link.
  * - `./times.ts`: Turns dates into the values of time fields and back, writes and reads days like `13.10.2026`,
@@ -84,20 +86,19 @@
  * - `../skill/attempts.ts`: Names the category of skill entries.
  * - `../icons.ts`: Shows the icons of the copy, the bin and its question, Cancel and Save in their buttons,
  *   and the pencil of a place and of a summary; makes the plain question mark of the bin.
- * - `../search.ts`: Writes a name without accents for its standard address in `With`.
  * - `../reader.ts`: Asks the reader.
  * - `../changes.ts`: Keeps the categories, loaded once and anew after every change of a file.
  * - `lucide`: The icons of the copy, the bin, Cancel, Save and the pencil.
  * - `fullcalendar`: Calendar that shows the entries.
  */
 
-import { choiceOf, choicesOf, listsStart, rowOf, searchOf } from "./choices.ts";
-import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete } from "./entries.ts";
+import { choiceOf, choicesOf, listsStart, partFieldOf, partOf, rowOf, searchOf } from "./choices.ts";
+import { boxAdd, boxChange, boxDelete, entryAdd, entryChange, entryDelete, standardAddressOf } from "./entries.ts";
 import { cookName, foodName, mealCooked, mealFoods, mealOf, mealTitle } from "./meal.ts";
 import { sportName, sportOpen, sportRead, sportRowsOf } from "./sport.ts";
 import {
-    addressPartsOf, labelOf, lineOf, mapsLinkIs, mapsLinkOf, onlineLineOf, onlineName, onlineOf, placeSend,
-    standardLinkOf,
+    addressOf, addressPartsOf, labelOf, lineOf, mapsLinkIs, mapsLinkOf, onlineLineOf, onlineName, onlineOf,
+    placeChoiceOf, placeSend, standardLinkOf,
 } from "./places.ts";
 import {
     skillDaySet, skillFieldsShow, skillLinksRead, skillModuleType, skillPathOf, skillPathShow, skillPlaceShow,
@@ -106,7 +107,6 @@ import {
 import { dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { iconPut, QuestionMark } from "../icons.ts";
-import { searchTextOf } from "../search.ts";
 import { readerAsk } from "../reader.ts";
 import { changesKept } from "../changes.ts";
 import { Check, Copy, Pencil, Trash, X } from "lucide";
@@ -122,7 +122,7 @@ import type { ModuleType, SkillLinks, SkillValues } from "./skill.ts";
 /**
  * Field of an entry a field of a category writes into: `title`, `from`, `location` or `with`, its people.
  */
-type FieldKey = "title" | "from" | "location" | "with";
+export type FieldKey = "title" | "from" | "location" | "with";
 
 /**
  * Fields of a place, where an entry is and where a way starts, which share one list of places.
@@ -146,7 +146,7 @@ const placeKeys: FieldKey[] = ["from", "location"];
  *   like `https://nav.tum.de/room/0509.EG.980`; for `With` the address of each name its last entry wrote,
  *   like `sophale@invalid`; none for any other field.
  */
-type Field = {
+export type Field = {
     name: string;
     key: FieldKey;
     values: string[];
@@ -165,7 +165,7 @@ type Field = {
  * - `fields`: Its fields, in the order they are picked.
  * - `plan`: Whether a box of the plan may have it, all but those I don't plan.
  */
-type Category = {
+export type Category = {
     name: string;
     fields: Field[];
     plan: boolean;
@@ -584,35 +584,15 @@ function fixedValueOf(field: Field, value: string): string {
 }
 
 /**
- * Makes the choice of a value of a field: a place by its name, see `labelOf` in `places.ts`, its address grey
- * beside it in the list, `Online` the names of its parts, see {@link onlineDetail}; any other value as it is.
+ * Makes the choice of a value of a field: a place by its name, its address grey beside it in the list, see
+ * `placeChoiceOf` in `places.ts`; any other value as it is.
  *
  * @param field - Field of the value, like `Place`
  * @param value - Value, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland` or `Bahn`
  * @returns Choice, like one showing `TUM Innenstadt`
  */
 function fieldChoiceOf(field: Field, value: string): Choice {
-    return field.key === "title" ? choiceOf(value) : {
-        value: value, text: labelOf(value), group: "",
-        detail: labelOf(value) === onlineName ? onlineDetail : addressOf(value),
-    };
-}
-
-/**
- * What `Online` shows grey beside it in the list of a place, in place of an address, see {@link fieldChoiceOf}:
- * the names of its parts, as {@link onlinePartsOf} shows them, so I see what I type for it; without its link,
- * as my places show their address without theirs.
- */
-const onlineDetail: string = "Software, Provider, Passcode";
-
-/**
- * Gives the address of a place as an entry writes it, the part after its name.
- *
- * @param line - Place like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, or only its name, like `Home Munich`
- * @returns Address like `Arcisstraße 21, 80333 München, Deutschland`, empty for none
- */
-function addressOf(line: string): string {
-    return line.includes(",") ? line.slice(line.indexOf(",") + 1).trim() : "";
+    return field.key === "title" ? choiceOf(value) : placeChoiceOf(value);
 }
 
 /**
@@ -736,46 +716,6 @@ function partsShow(field: Field): void {
 function partsToggle(field: Field): void {
     partsOpen = partsOpen === field.key ? null : field.key;
     partsShow(field);
-}
-
-/**
- * Makes the field of a part of a place, a plain field without placeholder, empty until I type or paste into it,
- * see {@link partsOf}; a link a field of text like every other part, so every browser shows it as plain as they,
- * never in a colour of its own, only the keyboard of a phone the one of a web address.
- * - `input`: The field.
- *
- * @param keyboard - Keyboard of a phone for the field, `url` for a link, else `text`
- * @param value - What it holds at first, like `Arcisstraße 21`
- * @param name - What it holds, for screen readers, like `Address of the place`
- * @returns The field
- */
-function partFieldOf(keyboard: string, value: string, name: string): HTMLInputElement {
-    const input: HTMLInputElement = document.createElement("input");
-    input.inputMode = keyboard;
-    input.value = value;
-    input.autocomplete = "off";
-    input.setAttribute("aria-label", name);
-    return input;
-}
-
-/**
- * Makes a part of a place, see {@link partsOf}: its name small and grey, then its field; a click on the name puts
- * the focus into the field.
- * - `part`: The part, a label around name and field.
- * - `label`: Its name.
- *
- * @param name - Name of the part, like `Address`
- * @param input - Its field
- * @returns The part
- */
-function partOf(name: string, input: HTMLInputElement): HTMLLabelElement {
-    const part: HTMLLabelElement = document.createElement("label");
-    const label: HTMLSpanElement = document.createElement("span");
-    part.className = "field-part";
-    label.className = "entry-name";
-    label.textContent = name;
-    part.append(label, input);
-    return part;
 }
 
 /**
@@ -1224,23 +1164,6 @@ function manyRowOf(field: Field): HTMLElement {
 function rankOf(field: Field, value: string): number {
     const at: number = field.values.indexOf(value);
     return at === -1 ? field.values.length : at;
-}
-
-/**
- * Gives the standard address of a name of `With`: the name in small letters, ä, ö, ü and ß as ae, oe, ue and ss,
- * every other letter with an accent plainly, like é as e, see `searchTextOf` in `../search.ts`, every other character
- * but a–z and 0–9 a dot, like a space, never two in a row and none at either end, then `@invalid`, the ending
- * reserved for addresses that never work, so nothing reaches anybody, like `herr.mueller@invalid` of `Herr Müller`
- * and `jose.garcia@invalid` of `José García`.
- * - `local`: The part before `@`.
- *
- * @param name - Name, like `Herr Müller`
- * @returns Address, like `herr.mueller@invalid`
- */
-function standardAddressOf(name: string): string {
-    const local: string = searchTextOf(name.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue")
-        .replace(/ß/g, "ss")).replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "");
-    return `${local}@invalid`;
 }
 
 /**

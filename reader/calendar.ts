@@ -106,6 +106,9 @@ import type { CalendarSource } from "./sources.ts";
  *   none when it has none.
  * - `number`: Number of a lecture, an exercise, a tutorial or a sheet in its series, its `X-NUMBER`, like `3`,
  *   `NONE` for one the university cancelled, see `boxUniversity` in `boxes.ts`; empty for none.
+ * - `group`: Group of a tutorial, its `X-GROUP`, like `03`, as TUMonline names it: of a group of the course
+ *   of a module, and of the box of a tutorial, which goes to the session of that group, see `course.ts`;
+ *   empty for none.
  * - `written`: When the entry was written, its `DTSTAMP`, as ISO instant, which the reader sets once as it adds an entry;
  *   empty when the event has none.
  * - `version`: Fingerprint of the entry as its file holds it, the SHA-256 of its lines as read, in hexadecimal digits,
@@ -157,6 +160,7 @@ export type Entry = {
     deadline: string;
     pushed: Push[];
     number: string;
+    group: string;
     written: string;
     version: string;
     editable: boolean;
@@ -378,7 +382,7 @@ ICAL.design.icalendar.param.altrep = { multiValue: ",", multiValueSeparateDQuote
  */
 const ownTexts: string[] = [
     "x-from", "x-semester", "x-chapter", "x-attempt", "x-round", "x-tutor", "x-food", "x-cooked", "x-pain",
-    "x-workout", "x-exercise", "x-video", "x-number", "x-planned",
+    "x-workout", "x-exercise", "x-video", "x-number", "x-group", "x-planned",
 ];
 ownTexts.forEach((name: string): void => {
     ICAL.design.icalendar.property[name] = { defaultType: "text" };
@@ -456,14 +460,15 @@ function icsTimeRead(value: string): ICAL.Time {
 
 /**
  * Writes a date or an instant of the form of {@link Entry} in the form of the iCalendar format, an instant in UTC,
- * as a parameter of my own holds it, see {@link relatedOf}.
+ * as a parameter of my own holds it, see {@link relatedOf}, and the end of a weekly series its `RRULE`,
+ * see `groupPut` in `course.ts`.
  * - `time`: The date or the instant in UTC.
  * - {@link ICAL.Time#toICALString}: Writes a time in the iCalendar format.
  *
  * @param text - Date like `2026-10-26`, or ISO instant like `2026-10-26T13:00:00.000Z`
  * @returns Date like `20261026`, or time like `20261026T130000Z`
  */
-function icsTextOf(text: string): string {
+export function icsTextOf(text: string): string {
     const time: ICAL.Time = /^\d{4}-\d{2}-\d{2}$/.test(text) ? ICAL.Time.fromDateString(text)
         : ICAL.Time.fromJSDate(new Date(text), true);
     return time.toICALString();
@@ -704,6 +709,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         pushed: event.component.getAllProperties("x-pushed").map((property: ICAL.Property): Push =>
             pushOf(property, start.isDate ? null : berlinOf(start.toJSDate()))),
         number: String(event.component.getFirstPropertyValue("x-number") ?? ""),
+        group: String(event.component.getFirstPropertyValue("x-group") ?? ""),
         written: stamp instanceof ICAL.Time ? stamp.toJSDate().toISOString() : "",
         version: createHash("sha256").update(event.component.toString()).digest("hex"),
         editable: writable && (todo || !start.isDate),
@@ -1358,17 +1364,19 @@ export function berlinDayStartOf(day: string): string {
 }
 
 /**
- * Turns an hour of a day in Berlin time into an instant, right also on the days the clocks change.
+ * Turns an hour of a day in Berlin time into an instant, right also on the days the clocks change, with its minutes,
+ * like 14:15 of a lecture.
  * - {@link ICAL.Time.fromData}: Builds a time from its parts, in a time zone.
  * - {@link ICAL.Time#toJSDate}: Gives the instant of a time.
  *
  * @param day - Day like `2026-10-12`
  * @param hour - Hour of the day, from 0 to 23, like 9 for 09:00
+ * @param minute - Minute of the hour, from 0 to 59, like 15 for 09:15; 0 when left out
  * @returns The instant, like `2026-10-12T07:00:00.000Z` for 09:00 in summer time
  */
-export function berlinInstantOf(day: string, hour: number): Date {
+export function berlinInstantOf(day: string, hour: number, minute: number = 0): Date {
     const [year, month, date]: number[] = day.split("-").map(Number);
-    return ICAL.Time.fromData({ year: year, month: month, day: date, hour: hour, minute: 0, second: 0 }, zone)
+    return ICAL.Time.fromData({ year: year, month: month, day: date, hour: hour, minute: minute, second: 0 }, zone)
         .toJSDate();
 }
 
@@ -1451,13 +1459,25 @@ function relatedOf(box: string): ICAL.Property {
 
 /**
  * Builds a property of a new entry beyond its fields, see {@link entryAppend}: the box a log entry was logged from
- * as its `RELATED-TO`, see {@link relatedOf}, every other one with its value as it is, see {@link propertyOf}.
+ * as its `RELATED-TO`, see {@link relatedOf}, the rule of a series as its `RRULE`, read from its text,
+ * like `FREQ=WEEKLY;UNTIL=20270202T090000Z`, a moment in Berlin time, like a date a series leaves out as `EXDATE`,
+ * `EXDATE;TZID=Europe/Berlin:20261110T100000`, every other one with its value as it is, see {@link propertyOf}.
+ * - `rule`: The `RRULE`.
+ * - {@link ICAL.Recur.fromString}: Reads the rule of a series into the form `ical.js` writes it from, since it writes
+ *   a rule given as text letter by letter.
  *
  * @param name - Name of the property, like `x-food`, `related-to` for the box
- * @param value - Value of the property, the identifier of the box for `related-to`
+ * @param value - Value of the property, the identifier of the box for `related-to`, the rule as text for `rrule`
  * @returns Property to write
  */
-function ownPropertyOf(name: string, value: string | Link): ICAL.Property {
+function ownPropertyOf(name: string, value: string | Link | Date): ICAL.Property {
+    if (value instanceof Date)
+        return propertyOf(name, berlinOf(value));
+    if (name === "rrule" && typeof value === "string") {
+        const rule: ICAL.Property = new ICAL.Property(name);
+        rule.setValue(ICAL.Recur.fromString(value));
+        return rule;
+    }
     return name === "related-to" && typeof value === "string" ? relatedOf(value) : propertyOf(name, value);
 }
 
@@ -1510,21 +1530,22 @@ function textsOf(fields: EntryTexts): [string, string][] {
  * Appends an entry to an `.ics` file, creating file and folders when missing.
  * Writes start and end in Berlin time, and only the text fields and the properties beyond them that are not empty,
  * its place with its link, see {@link textPropertyOf}, one `ATTENDEE` per person I was with,
- * see {@link attendeePropertyOf}, the box it was logged from as `RELATED-TO`,
- * see {@link ownPropertyOf}.
+ * see {@link attendeePropertyOf}, the box it was logged from as `RELATED-TO`, and the rule of a series with the dates
+ * it leaves out, like a group of a tutorial, see {@link ownPropertyOf}.
  *
  * @param file - Path of the `.ics` file
  * @param fields - Fields and times of the entry
  * @param own - Properties beyond the fields, each its name with its value,
  *   like `["x-attempt", "IN2028/Airline Revenue Interval;right"]` of a skill entry or `["x-food", "Reis;150"]`
- *   of a meal, `["attach", link]` for a link, see {@link Link}, or `["related-to", "study-13@nomsystem"]`
- *   for the box it was logged from
+ *   of a meal, `["attach", link]` for a link, see {@link Link}, `["related-to", "study-13@nomsystem"]`
+ *   for the box it was logged from, or `["rrule", "FREQ=WEEKLY;UNTIL=20270202T090000Z"]` and one `["exdate", date]`
+ *   per date left out for a weekly series
  * @param id - Identifier of the new event, its `UID`: a new one, or the one an entry brought from Vu's log,
  *   see `shared.ts`
  * @returns Identifier of the new entry, like `b8f1e81f-15b4-460e-910d-ef6b1b3d09b3@nomsystem`
  * @throws {Error} - When the file lies outside the new system or has no line `END:VCALENDAR`
  */
-export function entryAppend(file: string, fields: EntryFields, own: [string, string | Link][],
+export function entryAppend(file: string, fields: EntryFields, own: [string, string | Link | Date][],
                             id: string = `${randomUUID()}@nomsystem`): string {
     writeCheck(file);
     const event: ICAL.Component = new ICAL.Component("vevent");
@@ -1540,8 +1561,8 @@ export function entryAppend(file: string, fields: EntryFields, own: [string, str
     fields.attendees.forEach((attendee: Attendee): void => {
         event.addProperty(attendeePropertyOf(attendee));
     });
-    own.filter(([, value]: [string, string | Link]): boolean => value !== "")
-        .forEach(([name, value]: [string, string | Link]): void => {
+    own.filter(([, value]: [string, string | Link | Date]): boolean => value !== "")
+        .forEach(([name, value]: [string, string | Link | Date]): void => {
             event.addProperty(ownPropertyOf(name, value));
         });
     componentInsert(file, event.toString().split("\r\n"));

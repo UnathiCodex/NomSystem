@@ -74,7 +74,8 @@ export const skillingRoot: string = join(calendarRoot, "Skilling");
  * Folder `University/` in {@link calendarRoot}: per module a plan and a log, named like the folder of the module,
  * like `IN2028_BusinessAnalyticsMachineLearning_Plan.ics` and `IN2028_BusinessAnalyticsMachineLearning_Log.ics`:
  * a skill box goes into the plan of its module, with the lectures imported from TUMonline, a skill entry into its log,
- * see {@link skillFileOf}.
+ * see {@link skillFileOf}; beside them the groups of its tutorials, like
+ * `IN2028_BusinessAnalyticsMachineLearning_Groups.ics`, see {@link groupsEnding}.
  */
 export const universityRoot: string = join(calendarRoot, "University");
 
@@ -161,6 +162,15 @@ export const logEnding: string = "_Log.ics";
  * beside the lectures imported from TUMonline, as events.
  */
 export const planEnding: string = "_Plan.ics";
+
+/**
+ * End of the names of the files of the groups of a module, like `IN2028_BusinessAnalyticsMachineLearning_Groups.ics`
+ * in {@link universityRoot}: one weekly series per group of its tutorials, which the course of the module offers
+ * to pick from, see `course.ts`. Neither plan nor log, since its name ends in neither {@link planEnding}
+ * nor {@link logEnding}, so no box and no entry of the day comes from it, and nothing of it goes to anyone
+ * I share with, see `shared.ts`; the reader writes it like them, see {@link writeAllowed}.
+ */
+export const groupsEnding: string = "_Groups.ics";
 
 /**
  * Folder of my modules in `NomWorkspace`, `NomSkillingmodules`, one folder per module.
@@ -427,12 +437,12 @@ export function livingFileOf(date: string, ending: string): string {
 }
 
 /**
- * Builds the path of a file of a skill, its log or its plan: a module's, whose folder starts with its code,
- * in {@link universityRoot}, any other in {@link skillingRoot}.
+ * Builds the path of a file of a skill, its log, its plan or the groups of a module: a module's, whose folder starts
+ * with its code, in {@link universityRoot}, any other in {@link skillingRoot}.
  *
  * @param name - Name of the folder of the skill, like `IN2028_BusinessAnalyticsMachineLearning` or `WokFlow`,
  *   or `Skill` for a box or an entry without skill
- * @param ending - End of the name, {@link logEnding} or {@link planEnding}
+ * @param ending - End of the name, {@link logEnding}, {@link planEnding} or {@link groupsEnding}
  * @returns Path like `University/IN2028_BusinessAnalyticsMachineLearning_Log.ics` or `Skilling/WokFlow_Plan.ics`
  *   in {@link calendarRoot}
  */

@@ -187,9 +187,11 @@
 }
 
 /* Fields of a panel as plain values in their rows, without a frame of their own: the row shows its faint frame
-   under the pointer and while I type in it, see `.panel-field` */
+   under the pointer and while I type in it, see `.panel-field`; so the search of a picker of the course of a module
+   outside a panel, see `.course-pick` in `../editor/course.css` */
 .panel input,
-.panel textarea {
+.panel textarea,
+.course-pick input {
     min-width: 0;
     padding: 0;
     border: 0;

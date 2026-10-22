@@ -20,6 +20,8 @@
  * place; with nothing typed it shows nowhere, so a plus inside a list always names what it adds;
  * a fixed list, like the categories, has none.
  * Values keep their order, like the most used first; a group, like `Due today`, stands above its first value.
+ * The parts of a field stand below it, each its name small and grey, then its field, like the address of a place,
+ * see {@link partOf}.
  * Picked values are a lighter grey; a click picks a value, a click on a picked one takes it back.
  * The values come from a search function, so a list can later come from the reader, like the foods.
  * A short list that takes no new values, like the types, needs no search field and has none.
@@ -639,6 +641,47 @@ export function lineMove(row: HTMLElement, place: HTMLElement): void {
     place.append(line);
     if (!row.contains(place))
         row.classList.add("panel-list");
+}
+
+/**
+ * Makes the field of a part of a field, like the address of a place, see `partsOf` in `categories.ts`, or the link
+ * of `Online` in the form of a series, see `../editor/course.ts`: a plain field without placeholder, empty until I type
+ * or paste into it; a link a field of text like every other part, so every browser shows it as plain as they,
+ * never in a colour of its own, only the keyboard of a phone the one of a web address.
+ * - `input`: The field.
+ *
+ * @param keyboard - Keyboard of a phone for the field, `url` for a link, else `text`
+ * @param value - What it holds at first, like `Arcisstraße 21`
+ * @param name - What it holds, for screen readers, like `Address of the place`
+ * @returns The field
+ */
+export function partFieldOf(keyboard: string, value: string, name: string): HTMLInputElement {
+    const input: HTMLInputElement = document.createElement("input");
+    input.inputMode = keyboard;
+    input.value = value;
+    input.autocomplete = "off";
+    input.setAttribute("aria-label", name);
+    return input;
+}
+
+/**
+ * Makes a part of a field, like of a place, see {@link partFieldOf}: its name small and grey, then its field; a click
+ * on the name puts the focus into the field.
+ * - `part`: The part, a label around name and field.
+ * - `label`: Its name.
+ *
+ * @param name - Name of the part, like `Address`
+ * @param input - Its field
+ * @returns The part
+ */
+export function partOf(name: string, input: HTMLInputElement): HTMLLabelElement {
+    const part: HTMLLabelElement = document.createElement("label");
+    const label: HTMLSpanElement = document.createElement("span");
+    part.className = "field-part";
+    label.className = "entry-name";
+    label.textContent = name;
+    part.append(label, input);
+    return part;
 }
 
 /**

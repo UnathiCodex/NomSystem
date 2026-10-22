@@ -2,10 +2,13 @@
  * ## Overview
  *
  * What the scripts view shows of a module where a note stands, once I click the name of the module or of one of its
- * chapters in the tree, see `pickerOf` in `../notes/tree.ts`: where each of its sections stands, kept simple,
- * in the look of the day view, see `../day/`, as Today, see `./today.ts`:
+ * chapters in the tree, see `pickerOf` in `../notes/tree.ts`: its whole plan on one page, kept simple, in the look
+ * of the day view, see `../day/`, as Today, see `./today.ts`:
  * - on top, as the date of the day, small and grey `NomSkillingmodules`, linking to Today, and below it the name
  *   of the module, like `IN2028_BusinessAnalyticsMachineLearning`;
+ * - then its course of the university, one card per type of its boxes, like its lectures, numbered, its tutorials
+ *   with their groups and its exams, see `./course.ts`;
+ * - then a thin line, between the university and my own learning;
  * - then each chapter by its name, like `01_RegressionAnalysis`, with `Round` grey at the right, and below it its card,
  *   filled as a box of the plan; in it each section a row, in the order of the notes, as high and as far apart
  *   as the rows of the tree, see `.tree-file` in `../notes/notes.css`: the name of the section as the tree names it,
@@ -15,6 +18,7 @@
  * Everything is computed from the log by the reader, see `reader/skill.ts`; nothing is kept here.
  *
  * - `../skill/attempts.ts`: Loads the modules with their tasks and sections.
+ * - `./course.ts`: Shows the course of the module.
  * - `../notes/tree.ts`: The address of a note, and shows a chapter in the tree.
  * - `../day/choices.ts`: Marks where a long name may go on below.
  * - `../food/foods.ts`: Makes elements.
@@ -23,6 +27,7 @@
  */
 
 import { skillingLoad } from "../skill/attempts.ts";
+import { courseShow } from "./course.ts";
 import { chapterShow, noteAddressOf } from "../notes/tree.ts";
 import { breakableOf } from "../day/choices.ts";
 import { elementOf } from "../food/foods.ts";
@@ -87,8 +92,9 @@ function groupOf(module: SkillModule, chapter: string): HTMLElement {
 }
 
 /**
- * Shows the overview of a module in its place, see the top of this file; a module without sections says
- * `No chapters yet`, as the tree does.
+ * Shows the overview of a module in its place, see the top of this file: its course, see `courseShow` in `./course.ts`,
+ * and its chapters; a module without sections says `No chapters yet`, as the tree does.
+ * - `course`: The course loading, shown as soon as it is there.
  * - `skilling`: Every module with its tasks and sections.
  * - `found`: The module, `undefined` for one not of the semester.
  * - `up`: The way up, small and grey above the name.
@@ -96,9 +102,10 @@ function groupOf(module: SkillModule, chapter: string): HTMLElement {
  *
  * @param place - Where the overview goes, see `#editor-overview` in `./editor.html`
  * @param module - Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`
- * @throws {Error} - When the reader cannot read the tasks
+ * @throws {Error} - When the reader cannot read the tasks or the course
  */
 export async function overviewShow(place: HTMLElement, module: string): Promise<void> {
+    const course: Promise<void> = courseShow(place.querySelector(".overview-course") as HTMLElement, module);
     const skilling: Skilling = await skillingLoad();
     const found: SkillModule | undefined = skilling.modules.find((candidate: SkillModule): boolean =>
         candidate.title === module);
@@ -113,6 +120,7 @@ export async function overviewShow(place: HTMLElement, module: string): Promise<
         list.replaceChildren(...[...new Set(found.sections.map((section: SkillSection): string => section.chapter))]
             .map((chapter: string): HTMLElement => groupOf(found, chapter)));
     place.hidden = false;
+    await course;
 }
 
 /**

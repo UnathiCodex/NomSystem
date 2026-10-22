@@ -1,8 +1,8 @@
 /**
  * ## Times
  *
- * Turns dates into the values of time fields and back, for the panels of the day, and gives the times a box
- * is logged at with one tap.
+ * Turns dates into the values of time fields and back, for the panels of the day and the form of a series,
+ * gives the times a box is logged at with one tap, and writes how near a day is.
  * A time field is one text field, typed in 24-hour form whatever the browser's language:
  * `14` is 14:00, `1415` and `14:15` are 14:15, `915` and `9:15` are 09:15.
  * When the field loses focus, its time shows as `HH:MM`; any other text marks the field invalid,
@@ -163,30 +163,65 @@ export function boxTimesOf(box: Box, day: Date): [Date, Date] {
 }
 
 /**
- * Starts the time and date fields after the router has put its HTML into the page:
- * each marks itself invalid while its text is neither empty nor a time, or a date, and writes its time as `HH:MM`,
- * or its date as `DD.MM.YYYY`, when it loses focus.
+ * Writes how near a day is, seen from another day: `today`, `tomorrow` or `in 3 days`, like the deadline of a box
+ * on the day it shows on, see `boxes.ts`, or an exam of a module, see `../editor/course.ts`.
+ * - `days`: Whole days from the one day to the other, from noon to noon, so a day the clocks change counts right.
+ *
+ * @param day - The day, like `2026-10-23`
+ * @param from - The day it is seen from, like `2026-10-20`, on or before it
+ * @returns How near it is
+ */
+export function nearOf(day: string, from: string): string {
+    const days: number = Math.round((Date.parse(`${day}T12:00:00`) - Date.parse(`${from}T12:00:00`))
+        / (24 * 60 * 60 * 1000));
+    if (days === 0)
+        return "today";
+    if (days === 1)
+        return "tomorrow";
+    return `in ${days} days`;
+}
+
+/**
+ * Starts a time field: it marks itself invalid while its text is neither empty nor a time, and writes its time
+ * as `HH:MM` when it loses focus, like `14:15` of `1415`.
  * - {@link HTMLInputElement#setCustomValidity}: Marks a field invalid with a message, or valid with an empty one;
  *   the browser shows the message instead of sending the form.
  * - `change`: Comes when a changed field loses focus.
+ *
+ * @param field - Time field, like `<input class="time-field">`
+ */
+export function timeFieldStart(field: HTMLInputElement): void {
+    field.addEventListener("input", (): void =>
+        field.setCustomValidity(field.value.trim() !== "" && timeParse(field.value) === null
+            ? "Time like 14:00, 1415 or 14" : ""));
+    field.addEventListener("change", (): void => {
+        field.value = timeParse(field.value) ?? field.value;
+    });
+}
+
+/**
+ * Starts a date field: it marks itself invalid while its text is neither empty nor a date, and writes its date
+ * as `DD.MM.YYYY` when it loses focus, like `01.02.2027` of `1.2.2027`.
+ * - `change`: Comes when a changed field loses focus.
  * - `day`: Typed date as day, `null` when it is no date.
+ *
+ * @param field - Date field, like `<input class="date-field">`
+ */
+export function dateFieldStart(field: HTMLInputElement): void {
+    field.addEventListener("input", (): void =>
+        field.setCustomValidity(field.value.trim() !== "" && dateParse(field.value) === null
+            ? "Date like 23.10.2026" : ""));
+    field.addEventListener("change", (): void => {
+        const day: string | null = dateParse(field.value);
+        field.value = day === null ? field.value : dateTextOf(day);
+    });
+}
+
+/**
+ * Starts the time and date fields after the router has put its HTML into the page, see {@link timeFieldStart}
+ * and {@link dateFieldStart}.
  */
 export function timesStart(): void {
-    document.querySelectorAll<HTMLInputElement>(".time-field").forEach((field: HTMLInputElement): void => {
-        field.addEventListener("input", (): void =>
-            field.setCustomValidity(field.value.trim() !== "" && timeParse(field.value) === null
-                ? "Time like 14:00, 1415 or 14" : ""));
-        field.addEventListener("change", (): void => {
-            field.value = timeParse(field.value) ?? field.value;
-        });
-    });
-    document.querySelectorAll<HTMLInputElement>(".date-field").forEach((field: HTMLInputElement): void => {
-        field.addEventListener("input", (): void =>
-            field.setCustomValidity(field.value.trim() !== "" && dateParse(field.value) === null
-                ? "Date like 23.10.2026" : ""));
-        field.addEventListener("change", (): void => {
-            const day: string | null = dateParse(field.value);
-            field.value = day === null ? field.value : dateTextOf(day);
-        });
-    });
+    document.querySelectorAll<HTMLInputElement>(".time-field").forEach(timeFieldStart);
+    document.querySelectorAll<HTMLInputElement>(".date-field").forEach(dateFieldStart);
 }

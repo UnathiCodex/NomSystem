@@ -9,8 +9,13 @@
  * and with it the boxes, which are done once a log entry points to them, see `boxes.ts`;
  * after a change of a box alone, its sender loads the boxes again itself.
  *
+ * The standard address of a name of `With` is made here, beside who I was with, see {@link standardAddressOf}.
+ *
+ * - `../search.ts`: Writes a name without accents for its standard address in `With`.
  * - `fullcalendar`: Calendar that shows the log.
  */
+
+import { searchTextOf } from "../search.ts";
 
 import type { Calendar } from "fullcalendar";
 
@@ -113,6 +118,23 @@ export type BoxFields = {
     documents: string[];
 };
 
+
+/**
+ * Gives the standard address of a name of `With`: the name in small letters, ä, ö, ü and ß as ae, oe, ue and ss,
+ * every other letter with an accent plainly, like é as e, see `searchTextOf` in `../search.ts`, every other character
+ * but a–z and 0–9 a dot, like a space, never two in a row and none at either end, then `@invalid`, the ending
+ * reserved for addresses that never work, so nothing reaches anybody, like `herr.mueller@invalid` of `Herr Müller`
+ * and `jose.garcia@invalid` of `José García`.
+ * - `local`: The part before `@`.
+ *
+ * @param name - Name, like `Herr Müller`
+ * @returns Address, like `herr.mueller@invalid`
+ */
+export function standardAddressOf(name: string): string {
+    const local: string = searchTextOf(name.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue")
+        .replace(/ß/g, "ss")).replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "");
+    return `${local}@invalid`;
+}
 
 /**
  * Sends a request to the reader.

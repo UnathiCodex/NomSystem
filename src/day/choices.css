@@ -119,8 +119,8 @@
 }
 
 /* Search field of a list, one chip high and outlined, like `Search or add a place`, with room above and below it,
-   as the search of the foods */
-.panel .picker-search {
+   as the search of the foods; in a dialog and in a picker of the course of a module, see `../editor/course.css` */
+:is(.panel, .course-pick) .picker-search {
     flex: none;
     height: var(--chip-height);
     margin: 0.375rem 0;

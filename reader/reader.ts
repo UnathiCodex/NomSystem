@@ -19,6 +19,8 @@
  *   a box really lasted
  * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, and the boxes carried along
  *   to a day, adds, changes and removes boxes, pushes them to the next day and drops them
+ * - `./course.ts`: Reads the course of a module, its boxes, its series and the groups of its tutorials, changes
+ *   a series by its rule, makes a group mine, moves one week's tutorial to another group, and writes and removes groups
  * - `./gifts.ts`: Writes my gift idea for a birthday or holiday as its `DESCRIPTION` into `Birthdays.ics`
  *   or `Holidays.ics`
  * - `./note.ts`: Reads the daily notes, and writes my gratitude and my points about the day into them
@@ -58,6 +60,7 @@ import {
 import {
     boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxSubmit, boxUniversity, boxUnpush,
 } from "./boxes.ts";
+import { courseRead, groupMine, groupPut, groupRemove, seriesApply, weekMove } from "./course.ts";
 import { giftWrite } from "./gifts.ts";
 import { noteRead, sectionsRead, sectionWrite } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
@@ -87,6 +90,7 @@ import type { IncomingMessage, ServerResponse, Server } from "node:http";
 import type { ViteDevServer } from "vite";
 import type { BoxLogged, EntryChange, EntryMoved, EntryNew } from "./day.ts";
 import type { BoxChange, BoxNew } from "./boxes.ts";
+import type { GroupNew, MineChange, SeriesChange, WeekChange } from "./course.ts";
 import type { Gift } from "./gifts.ts";
 import type { SectionNew } from "./note.ts";
 import type { Place, PlaceChanged } from "./places.ts";
@@ -187,6 +191,19 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   and sends it as written.
  * - `PATCH /api/day/places`: Changes the place of the old name of the body in `Places.md`, or the room in `Rooms.md`,
  *   and nothing else, and sends it as written.
+ * - `GET /api/course/module?module=…`: Sends the course of the module of the folder, like
+ *   `IN2028_BusinessAnalyticsMachineLearning`, in the semester of today: its boxes, its series, the groups
+ *   of its tutorials, the folders of its material and its plan, see `course.ts`.
+ * - `POST /api/course/series`: Changes the series of the body by its rule, as its form typed it, and sends its boxes
+ *   after the change; when the body says `dry: true` only sends what the change would make, writing nothing,
+ *   for the preview of the form.
+ * - `POST /api/course/mine`: Makes the group of the body mine, my boxes of its type from its next session on going
+ *   to it, and sends the boxes of the series after it; when the body says `dry: true` only sends what that would make.
+ * - `POST /api/course/week`: Moves the box of the body to the session of the group of the body in its week.
+ * - `PUT /api/course/groups`: Writes the group of the body into the file of the groups of its module, in place of one
+ *   of the same type, group and semester, and sends its identifier.
+ * - `DELETE /api/course/groups?module=…&type=…&group=…&semester=…`: Removes the group from the file of the groups
+ *   of the module.
  * - `GET /api/notes/modules`: Sends the modules of the semester with their chapters and notes.
  * - `GET /api/notes/note?path=…`: Sends a note with the files its links lead to.
  * - `GET /api/notes/file?path=…`: Sends a file of my modules, like an image of a note.
@@ -382,6 +399,29 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         const place: Place = placeChange(sent);
         listShare({ call: "placeChange", with: sent });
         responseSend(response, 200, place);
+
+    } else if (request.method === "GET" && url.pathname === "/api/course/module") {
+        responseSend(response, 200, courseRead(url.searchParams.get("module") ?? ""));
+
+    } else if (request.method === "POST" && url.pathname === "/api/course/series") {
+        responseSend(response, 200, seriesApply(await json(request) as SeriesChange));
+
+    } else if (request.method === "POST" && url.pathname === "/api/course/mine") {
+        responseSend(response, 200, groupMine(await json(request) as MineChange));
+
+    } else if (request.method === "POST" && url.pathname === "/api/course/week") {
+        weekMove(await json(request) as WeekChange);
+        responseSend(response, 200, null);
+
+    } else if (request.method === "PUT" && url.pathname === "/api/course/groups") {
+        responseSend(response, 200, groupPut(await json(request) as GroupNew));
+
+    } else if (request.method === "DELETE" && url.pathname === "/api/course/groups") {
+        groupRemove({
+            module: url.searchParams.get("module") ?? "", type: url.searchParams.get("type") ?? "",
+            group: url.searchParams.get("group") ?? "", semester: url.searchParams.get("semester") ?? "",
+        });
+        responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/devices") {
         await deviceReport(await json(request) as DeviceReport, String(request.headers["x-forwarded-for"] ?? ""));
