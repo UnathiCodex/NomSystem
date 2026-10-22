@@ -10,8 +10,8 @@
  * - Water: what I drank on the day in litres, like `1.5 l`, without a goal; the whole tile logs 0.25 l more,
  *   one glass of water, at the time of the tap on the shown day, a small `−` in its corner takes the last glass
  *   of water back; every other drink, like `Kaffee`, counts as one glass too. A day still to come takes no glasses.
- * - Food: the kcal of the day's meals, a total without goal, and in brackets after it the number of the meals,
- *   like `1.850 kcal (3)`, so a meal missing shows; no link, since the button of the food view is beside it.
+ * - Food: the kcal of the day's meals, a total without goal, like `1.850 kcal`; no link, since the button
+ *   of the food view is beside it.
  * - Neck: two tiles over the seven days up to the day: on how many of my study days I did
  *   a neck routine, short or long, like `2 / 5` over `short · study days`, a check from two thirds of them on,
  *   since about two thirds of the sessions already gave the large effects (Chen 2018), and on how many days a long
@@ -136,14 +136,14 @@ type NeckWeek = {
  * - `sleep`: My sleep, which the card leaves out for now.
  * - `glasses`: My glasses of water and of every other drink, in the order I drank them.
  * - `neck`: My neck routine in the seven days up to the day.
- * - `food`: What my meals gave, `estimate` when one of them counts grams guessed, and the number of my meals.
+ * - `food`: What my meals gave, `estimate` when one of them counts grams guessed.
  */
 export type Trackers = {
     settings: TrackerSettings;
     sleep: SleepDay;
     glasses: Glass[];
     neck: NeckWeek;
-    food: Totals & { estimate: boolean; meals: number };
+    food: Totals & { estimate: boolean };
 };
 
 /**
@@ -263,8 +263,8 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
 }
 
 /**
- * Builds the food: the kcal of the day's meals, rounded and so never marked as an estimate, and the number
- * of the meals in brackets after it, like `1.850 kcal (3)` or `0 kcal (0)`, a number never apart from its word.
+ * Builds the food: the kcal of the day's meals, rounded and so never marked as an estimate, like `1.850 kcal`
+ * or `0 kcal`, a number never apart from its word.
  * - `food`: What the meals gave.
  *
  * @param trackers - Trackers of the day
@@ -272,8 +272,7 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
  */
 function foodOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
-    const food: Totals & { estimate: boolean; meals: number } = trackers.food;
-    row.append(...linesOf("Food", `${amountOf(food.kcal, 0)}\u00a0kcal (${food.meals})`));
+    row.append(...linesOf("Food", `${amountOf(trackers.food.kcal, 0)}\u00a0kcal`));
     return row;
 }
 
