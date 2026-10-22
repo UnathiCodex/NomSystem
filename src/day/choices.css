@@ -300,6 +300,7 @@
    exactly in the middle of the line, also after a name going on over two lines; its padding above and below,
    taken back by its margins, makes it easier to hit without moving the line */
 .entry-name .picker-line,
+.entry-name .plus-quiet,
 .picker-added-text .picker-line,
 .meal-name .plus-quiet {
     height: calc(1lh + 0.5rem);
