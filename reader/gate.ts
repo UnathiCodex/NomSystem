@@ -10,15 +10,16 @@
  * `NomKommunikation`, see `kommunikationRoot` in `sources.ts`, and refuses every other, telling which there are:
  * - `readme`: Gives `README.md` of `NomKommunikation`, which says how we write to each other.
  * - `list`: Lists the messages for the person, every file of their box, like `to_vu/`, by its path in it,
- *   but those of `archive/` and `dashboard/`.
- * - `get <path>`: Gives one file of their box, like `2026-10-15_studien-nacht/CLAIMS.tsv`, also of `archive/`.
- * - `archive <name>`: Moves a message or folder of their box into its `archive/`, as `README.md` asks of who read it.
+ *   but those of `dashboard/`.
+ * - `get <path>`: Gives one file of their box, like `2026-10-15_studien-nacht/CLAIMS.tsv`.
+ * - `done <name>`: Puts a message or folder of their box into the trash of my server, as `README.md` asks of who read
+ *   it, see `trash.ts`; there is no archive.
  * - `put <path>`: Writes what comes in as a new message into my box, like `to_sopha/2026-10-21_0930_antwort.md`,
  *   or into a folder of it, like `to_sopha/2026-10-21_0930_antwort/Tabelle.tsv`, never over a file there.
- * - `sent`: Lists my box with its `archive/`, so the person sees what came and what I archived.
+ * - `sent`: Lists my box, so the person sees what came and is not done yet.
  * - `share <name>`: Writes what comes in into `dashboard/` of my box: an entry, a food, a meal or a place the dashboard
  *   of the person shares with mine, named by the moment, the person and what it is,
- *   like `20261021T093000123Z_Vu_entry_….ics`, see `shared.ts`; one my box has already it takes no second time.
+ *   like `20261021T093000123Z_Vu_entry_….ics`, see `shared.ts`.
  * - `hello`: Tells my dashboard that the dashboard of the person runs again, so it sends what waits for them.
  * A path is parted by `/`, each part letters, digits, spaces and `._()+,&'-`, not starting with a dot, so it holds
  * no `..` and names no hidden file, and every file it reads or writes lies inside the box after symbolic links
@@ -29,12 +30,14 @@
  * - `node:fs`: Lists, reads, writes and moves the files of the boxes.
  * - `node:path`: Builds the paths of the boxes.
  * - `./sources.ts`: Names `NomKommunikation`.
+ * - `./trash.ts`: Puts a message that is done into the trash.
  */
 
 import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, statSync,
     writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { kommunikationRoot } from "./sources.ts";
+import { trashPut } from "./trash.ts";
 
 import type { Dirent } from "node:fs";
 
@@ -43,8 +46,8 @@ import type { Dirent } from "node:fs";
  * The commands of the gate, as it tells them when it refuses one.
  */
 const usage: string = [
-    "Allowed: readme | list | get <path> | archive <name> | put <path> | sent | share <name> | hello",
-    "  list, get and archive work in the box of the caller, put and sent in the box of the owner of this server.",
+    "Allowed: readme | list | get <path> | done <name> | put <path> | sent | share <name> | hello",
+    "  list, get and done work in the box of the caller, put and sent in the box of the owner of this server.",
 ].join("\n");
 
 /**
@@ -112,7 +115,7 @@ function insideCheck(box: string, path: string): void {
  * Lists the files of a folder, by their paths in it, parted by `/`, hidden ones and symbolic links left out.
  *
  * @param folder - The folder
- * @param left - Names of folders right in it left out, like `archive`
+ * @param left - Names of folders right in it left out, like `dashboard`
  * @returns Paths, sorted
  */
 function filesOf(folder: string, left: string[]): string[] {
@@ -175,9 +178,11 @@ async function gateRun(): Promise<void> {
     const path: string = at === -1 ? "" : asked.slice(at + 1).trim();
 
     if (command === "readme") {
+        if (!existsSync(join(kommunikationRoot, "README.md")))
+            refuse("No README.md on this server; it lies on sophabohne");
         process.stdout.write(readFileSync(join(kommunikationRoot, "README.md")));
     } else if (command === "list") {
-        process.stdout.write(filesOf(theirs, ["archive", "dashboard"]).map((file: string): string => `${file}\n`).join(""));
+        process.stdout.write(filesOf(theirs, ["dashboard"]).map((file: string): string => `${file}\n`).join(""));
     } else if (command === "sent") {
         process.stdout.write(filesOf(mine, ["dashboard"]).map((file: string): string => `${file}\n`).join(""));
     } else if (command === "get") {
@@ -187,22 +192,18 @@ async function gateRun(): Promise<void> {
             refuse(`No such message: ${path}`);
         insideCheck(theirs, file);
         createReadStream(file).pipe(process.stdout);
-    } else if (command === "archive") {
+    } else if (command === "done") {
         const parts: string[] = partsOf(path);
-        const from: string = join(theirs, ...parts);
-        const to: string = join(theirs, "archive", ...parts);
-        if (parts.length !== 1 || ["archive", "dashboard"].includes(parts[0]) || !existsSync(from))
+        const done: string = join(theirs, ...parts);
+        if (parts.length !== 1 || parts[0] === "dashboard" || !existsSync(done))
             refuse(`No such message: ${path}`);
-        insideCheck(theirs, from);
-        if (existsSync(to))
-            refuse(`Already archived: ${path}`);
-        mkdirSync(join(theirs, "archive"), { recursive: true });
-        renameSync(from, to);
+        insideCheck(theirs, done);
+        trashPut(done);
         process.stdout.write("ok\n");
     } else if (command === "put") {
         const parts: string[] = partsOf(path);
         const file: string = join(mine, ...parts);
-        if (["archive", "dashboard"].includes(parts[0]) || existsSync(file))
+        if (parts[0] === "dashboard" || existsSync(file))
             refuse(`No new message: ${path}`);
         mkdirSync(dirname(file), { recursive: true });
         if (dirname(file) !== mine)
@@ -214,10 +215,8 @@ async function gateRun(): Promise<void> {
         if (!new RegExp(`^\\d{8}T\\d{9}Z_${caller}_(?:entry|list)_[\\w.@-]{1,160}\\.(?:ics|json)$`).test(path))
             refuse(`No shared name: ${path}`);
         const bytes: Buffer = await inputRead(shareMost);
-        if (!existsSync(join(box, path)) && !existsSync(join(box, "archive", path))) {
-            mkdirSync(box, { recursive: true });
-            fileWrite(join(box, path), bytes);
-        }
+        mkdirSync(box, { recursive: true });
+        fileWrite(join(box, path), bytes);
         process.stdout.write("ok\n");
     } else if (command === "hello") {
         const box: string = join(mine, "dashboard");

@@ -11,18 +11,20 @@
  *
  * What goes to Vu waits first as a file in Vu's box on my server, `NomKommunikation/to_vu/dashboard/`, named by the
  * moment, me and what it is, like `20261021T093000123Z_Sopha_entry_<UID>.ics` or `…_Sopha_list_<random>.json`,
- * and goes out in that order, each moved into `archive/` there once Vu's server took it, see {@link outboxSend}.
+ * and goes out in that order, each into my trash once Vu's server took it, see {@link outboxSend} and `trash.ts`;
+ * there is no archive.
  * While Vu's server cannot be reached, it waits, and goes out with the next thing I share, as soon as Vu's reader starts
  * and says hello, see `hello` in `gate.ts`, or as soon as something comes from Vu.
  *
- * An entry: each of us in its `With` who has not had it yet gets a copy as I add it, log a box or change it,
- * see {@link entryShare}: the same `UID`, its times, category, what, the link of what when it is a web address,
+ * An entry: each of us in its `With` gets a copy as I add it or log a box, and one who comes into its `With`
+ * as I change it, see {@link entryShare}: the same `UID`, its times, category, what, the link of what when it is a web address,
  * its place with the link of the place, where a way starts, the semester of a skill entry, the foods of a meal
  * or a cooking and the cooking a meal draws from, with me in `With` in place of the person, the others staying;
  * not my note, my attempts, my rounds, my chapters, the links to my files, my pain, what a session of sport did,
  * nor the box it was logged from, which are mine alone. After that each copy is its owner's: a change goes to nobody,
- * and one who had the entry never gets it again, also when the name left `With` and came back; an entry I took in
- * I never send on, since its sender sends it to everyone in its `With`.
+ * and a copy that comes for an entry the log of the other has already, by its `UID`, goes to their trash untaken,
+ * so nothing remembers who had what, neither a file nor a line of the entry; an entry I took in goes to nobody
+ * while its `With` stays, since its sender sent it to everyone in it.
  * A food, a meal or a place: what changed it, as the call of `food.ts` or `places.ts` that changed it, like `foodAdd`
  * with the food as written, see {@link ListChange}, which the reader of Vu makes on its own lists, see
  * {@link listApply}; one Vu has already, like the same food, a place of the same name or a meal already renamed,
@@ -32,23 +34,24 @@
  * What comes to me lands in my box, `NomKommunikation/to_sopha/dashboard/`: my reader takes it as it starts
  * and whenever the box changes, the earliest first, so a meal finds its foods and the cooking it draws from;
  * an entry into my log as the dialog would add it, see `entryAdd` in `day.ts`, with the `UID` it brought, so it comes
- * in only once; then it moves the file into `archive/` there. An entry my log cannot take, like one of a category
+ * in only once; then the file goes into my trash. An entry my log cannot take, like one of a category
  * my reader does not know, stays in my box, and the reader says so once.
  *
  * - `node:child_process`: Runs `ssh` to the server of the other.
  * - `node:crypto`: Names a change of a list at random.
- * - `node:fs`: Creates the boxes, lists and watches mine, writes, reads and moves what is shared.
+ * - `node:fs`: Creates the boxes, lists and watches mine, writes and reads what is shared.
  * - `node:path`: Builds the paths of the boxes.
  * - `./calendar.ts`: Reads the entries of my log and of a shared file, and writes the copy of an entry.
  * - `./day.ts`: Adds an entry that came to my log, as the dialog adds one.
  * - `./food.ts`: Reads, adds, changes and removes my foods and meals.
  * - `./places.ts`: Reads, adds and changes my places and rooms, and tells a link I typed, a web address.
  * - `./sources.ts`: Names my log, my name, the people I share with and their boxes.
+ * - `./trash.ts`: Puts what is done into my trash.
  */
 
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, watch, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { entryAppend, entryLookup, fileEntriesRead } from "./calendar.ts";
 import { entryAdd } from "./day.ts";
@@ -57,6 +60,7 @@ import {
 } from "./food.ts";
 import { linkForm, placeAdd, placeChange, placesRead, roomsRead } from "./places.ts";
 import { dashboardBoxOf, day, myName, partners, writeAllowed } from "./sources.ts";
+import { trashPut } from "./trash.ts";
 
 import type { ChildProcess } from "node:child_process";
 import type { Attendee, Entry, EntryFields } from "./calendar.ts";
@@ -176,7 +180,7 @@ function sameName(first: string, second: string): boolean {
 }
 
 /**
- * Lists the shared files of a box, without its archive, hidden files and half written ones: entries, changes of a list
+ * Lists the shared files of a box, without hidden files and half written ones: entries, changes of a list
  * and hellos, the earliest first.
  *
  * @param box - The box, like `NomKommunikation/to_vu/dashboard`
@@ -189,19 +193,6 @@ function boxFilesOf(box: string): string[] {
         .filter((name: string): boolean => !name.startsWith(".")
             && (/\.(?:ics|json)$/.test(name) || name.startsWith("hello_")))
         .sort();
-}
-
-/**
- * Tells whether a box or its archive holds a shared entry.
- *
- * @param box - The box, like `NomKommunikation/to_vu/dashboard`
- * @param id - Identifier of the entry
- * @returns Whether it holds it
- */
-function entryHeld(box: string, id: string): boolean {
-    const ending: string = `_entry_${keyOf(id)}.ics`;
-    return [box, join(box, "archive")].some((folder: string): boolean => existsSync(folder)
-        && readdirSync(folder).some((name: string): boolean => name.endsWith(ending)));
 }
 
 /**
@@ -262,7 +253,7 @@ function sshRun(partner: string, words: string[], input: Buffer | string = ""): 
 }
 
 /**
- * Sends what waits for a person in their box on my server, the earliest first, each moved into `archive/` there once
+ * Sends what waits for a person in their box on my server, the earliest first, each into my trash once
  * their server took it, see the top of this file; stops at the first their server does not take, which waits with every
  * one after it. Runs once at a time per person: called while it runs, it runs again after.
  *
@@ -281,8 +272,7 @@ export function outboxSend(partner: string): void {
             for (const name of boxFilesOf(box)) {
                 if (!await sshRun(partner, ["share", name], readFileSync(join(box, name))))
                     return;
-                mkdirSync(join(box, "archive"), { recursive: true });
-                renameSync(join(box, name), join(box, "archive", name));
+                trashPut(join(box, name));
             }
         } while (again.has(partner));
     };
@@ -339,31 +329,44 @@ function copyWrite(entry: Entry, partner: string): void {
 }
 
 /**
- * Sends an entry of my log to each of us in its `With` who has not had it yet, see the top of this file: after
- * it is added, logged from a box or changed, never after a drag, which leaves `With` as it is. Sends nothing while
- * the reader shares nothing, see {@link sharingIs}, for an entry I took in, for a whole day, and to one whose box
- * on my server holds it already; a copy that fails is told, never failing what I saved.
- * - `found`: The entry as my log holds it, `undefined` when gone.
- * - `to`: Those I share with in its `With`, each once.
+ * Gives who an entry of my log is with as it is now, so a change can tell who comes into its `With`,
+ * see {@link entryShare}.
  *
  * @param id - Identifier of the entry
+ * @returns Its people, none when there is no such entry
  */
-export function entryShare(id: string): void {
+export function attendeesRead(id: string): Attendee[] {
+    return entryLookup(day.log, id)?.[1].attendees ?? [];
+}
+
+/**
+ * Sends an entry of my log to each of us in its `With` who was not in it before, see the top of this file: to all
+ * of them after it is added or logged from a box, to those who came in after it is changed, never after a drag, which
+ * leaves `With` as it is. Sends nothing while the reader shares nothing, see {@link sharingIs}, nor for a whole day;
+ * a copy that fails is told, never failing what I saved.
+ * - `found`: The entry as my log holds it, `undefined` when gone.
+ * - `to`: Those I share with in its `With` now and not before, each once.
+ *
+ * @param id - Identifier of the entry
+ * @param before - Who it was with before it changed, see {@link attendeesRead}; none for a new entry
+ */
+export function entryShare(id: string, before: Attendee[] = []): void {
     if (!sharingIs())
         return;
     try {
         const found: [string, Entry] | undefined = entryLookup(day.log, id);
-        if (found === undefined || found[1].allDay || entryHeld(dashboardBoxOf(myName), id))
+        if (found === undefined || found[1].allDay)
             return;
         const to: Set<string> = new Set(found[1].attendees
+            .filter((attendee: Attendee): boolean =>
+                !before.some((old: Attendee): boolean => sameName(old.name, attendee.name)))
             .map((attendee: Attendee): string | undefined =>
                 partnersOf().find((partner: string): boolean => sameName(partner, attendee.name)))
             .filter((partner: string | undefined): partner is string => partner !== undefined));
-        [...to].filter((partner: string): boolean => !entryHeld(dashboardBoxOf(partner), id))
-            .forEach((partner: string): void => {
-                copyWrite(found[1], partner);
-                outboxSend(partner);
-            });
+        to.forEach((partner: string): void => {
+            copyWrite(found[1], partner);
+            outboxSend(partner);
+        });
     } catch (error: unknown) {
         console.error(new Date().toISOString(), `No copy of ${id}`, error);
     }
@@ -455,9 +458,9 @@ function entryNewOf(entry: Entry): EntryNew {
 }
 
 /**
- * Takes what lies in my box, the earliest first, see the top of this file: a hello sends what waits for its sender,
- * an entry my log has already, by its `UID`, only moves into `archive/`, a change of a list my lists refuse,
- * like a food I have, is told and moves too; an entry my log cannot take stays, told once. Whatever came from
+ * Takes what lies in my box, the earliest first, each into my trash after, see the top of this file: a hello sends
+ * what waits for its sender, an entry my log has already, by its `UID`, goes untaken, a change of a list my lists
+ * refuse, like a food I have, is told and goes too; an entry my log cannot take stays, told once. Whatever came from
  * someone I share with tells that their server is there, so what waits for them goes out.
  * - `box`: My box, like `NomKommunikation/to_sopha/dashboard`.
  * - `senders`: Those I share with something came from.
@@ -486,8 +489,7 @@ export function inboxTake(): void {
                     console.log(new Date().toISOString(), `Kept my lists as they are for ${name}:`,
                         error instanceof Error ? error.message : error);
                 }
-            mkdirSync(join(box, "archive"), { recursive: true });
-            renameSync(file, join(box, "archive", name));
+            trashPut(file);
         } catch (error: unknown) {
             if (!failed.has(file))
                 console.error(new Date().toISOString(), `My log cannot take ${file}`, error);

@@ -135,7 +135,7 @@ export const partners: string[] = (process.env.NOM_PARTNERS ?? "").split(",")
 /**
  * Gives the folder of what the dashboards share in the box of a person in {@link kommunikationRoot}: `dashboard/`
  * in `to_` and the name in small letters, like `to_vu/dashboard/` for what goes to Vu, waiting there until Vu's server
- * took it, and `to_sopha/dashboard/` for what came to me; each with `archive/` for what is done, see `shared.ts`.
+ * took it, and `to_sopha/dashboard/` for what came to me; what is done goes into the trash, see `shared.ts`.
  *
  * @param name - Name of the person, like `Vu`
  * @returns Its folder, like `NomKommunikation/to_vu/dashboard` in `NomWorkspace`

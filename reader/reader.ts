@@ -84,13 +84,14 @@ import {
 import { trackersRead } from "./trackers.ts";
 import { deviceReport } from "./devices.ts";
 import { changesSend, changesWatch } from "./changes.ts";
-import { entryShare, listShare, sharedStart } from "./shared.ts";
+import { attendeesRead, entryShare, listShare, sharedStart } from "./shared.ts";
 import { pageCreate } from "./page.ts";
 
 import type { IncomingMessage, ServerResponse, Server } from "node:http";
 import type { ViteDevServer } from "vite";
 import type { BoxLogged, EntryChange, EntryMoved, EntryNew } from "./day.ts";
 import type { BoxChange, BoxNew } from "./boxes.ts";
+import type { Attendee } from "./calendar.ts";
 import type { GroupNew, MineChange, Planned, RepeatChange, SeriesChange, WeekChange } from "./course.ts";
 import type { Gift } from "./gifts.ts";
 import type { SectionNew } from "./note.ts";
@@ -165,7 +166,8 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `GET /api/day/real?category=…&title=…&module=…&type=…`: Sends the minutes the last entries like a box
  *   really lasted, the latest first.
  * - `POST /api/day/log`: Adds entry of the body and sends its identifier; sends the entry to Vu when Vu is in its
- *   `With`, see `entryShare` in `shared.ts`, as do the other routes that add or change an entry of the log;
+ *   `With`, see `entryShare` in `shared.ts`, as do the other routes that add an entry of the log, and those that change
+ *   one when Vu comes into its `With`;
  *   the routes that change my foods, meals and places send each change to Vu, see `listShare` there.
  * - `PATCH /api/day/log`: Changes entry of the body, refused with 409 when its file changed it since the dialog opened it.
  * - `POST /api/day/moved`: Moves the entry named in the body to the start and end in the body, every other field
@@ -330,9 +332,10 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "PATCH" && url.pathname === "/api/day/log") {
         const change: EntryChange = await json(request) as EntryChange;
+        const before: Attendee[] = attendeesRead(change.id);
         const written: boolean = entryEdit(change);
         if (written)
-            entryShare(change.id);
+            entryShare(change.id, before);
         responseSend(response, written ? 200 : 409, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/day/moved") {
@@ -487,9 +490,10 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
 
     } else if (request.method === "PATCH" && url.pathname === "/api/skill/entry") {
         const change: SkillEntryChange = await json(request) as SkillEntryChange;
+        const before: Attendee[] = attendeesRead(change.id);
         const written: boolean = skillEntryEdit(change);
         if (written)
-            entryShare(change.id);
+            entryShare(change.id, before);
         responseSend(response, written ? 200 : 409, null);
 
     } else if (request.method === "GET" && url.pathname === "/api/skill/session") {
