@@ -130,10 +130,11 @@
 }
 
 /* Date of the day as a button, which opens the month to pick a day from: no frame, a grey under the pointer,
-   its padding keeping room to the arrows left and right of it; in the day as wide as its widest date, like
-   `Mon, 19.10.2026`, every digit equally wide, so the arrow after it stays in place from day to day */
+   only a little padding left and right of it, so the timer beside it keeps its room; in the day as wide as its date,
+   like `22.10.2026`, every digit equally wide, wider than the small weekday above it, even `Wednesday`, so the arrow
+   after it stays in place from day to day */
 .day-title-button {
-    padding: 0.25rem var(--control-gap);
+    padding: 0.25rem;
     border: none;
     border-radius: var(--radius);
     background: none;
@@ -147,7 +148,6 @@
 }
 
 #day-title {
-    min-width: 9.25em;
     font-variant-numeric: tabular-nums;
 }
 
@@ -654,7 +654,6 @@ fieldset.entry-times {
     /* The date of the day on a phone at the left of its bar, see `.day-bar` in `../base.css`, with the round corners
        of every button there */
     #day-title {
-        min-width: 0;
         border-radius: var(--chip-radius);
         padding-left: 0;
         text-align: left;
