@@ -352,7 +352,6 @@ function tableHeadOf(): string[] {
  */
 const fileHead: string[] = [
     "# Foods",
-    "",
     "My foods: kcal, protein, carbs and fat per 100 g, or per 100 ml for a drink, the Open Food Facts barcode, the brand and the store, so the same name of two shops never mixes up, the size of the pack as sold, a bare number in g or ml, and the kind, `Eat` or `Drink`;",
     "Portion is the amount I typically take at once, never empty, like 50 of a Semmel, one piece, or 30 of oil, two tablespoons.",
     "A meal in the log lists a food by its name, brand and store, then the grams I ate, or ml of a drink, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150`;",
@@ -372,7 +371,6 @@ const tableHead: number = 2;
  */
 const mealsHead: string[] = [
     "# Meals",
-    "",
     "My meals, each one list of every food I may put in, by name, brand and store, with the grams I put in as a rule, 0 for a food I rarely put in;",
     "an entry brings each at these grams, which I change there, so a meal changed here leaves past days as they were.",
     "`Short` is what the brackets after its name show, none while empty.",
