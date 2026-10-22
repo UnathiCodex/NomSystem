@@ -63,7 +63,7 @@ import {
 } from "./boxes.ts";
 import { courseRead, groupMine, groupPut, groupRemove, repeatApply, seriesApply, weekMove } from "./course.ts";
 import { giftWrite } from "./gifts.ts";
-import { noteRead, sectionsRead, sectionWrite } from "./note.ts";
+import { noteRead, notesStart, sectionsRead, sectionWrite } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
 import { placeAdd, placeChange } from "./places.ts";
 import { brokenLinksRead, fileRead, linkedNoteRead, modulesRead } from "./notes.ts";
@@ -612,5 +612,6 @@ server.on("request", (request: IncomingMessage, response: ServerResponse): void 
 const port: number = Number(process.env.NOM_PORT ?? 3000);
 server.listen(port, "127.0.0.1", (): void => console.log(`http://127.0.0.1:${port}`));
 linksCheckStart();
+notesStart();
 changesWatch();
 sharedStart();
