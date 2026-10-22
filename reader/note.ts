@@ -59,6 +59,17 @@ const titles: SectionTitle[] = ["Gratitude", "About"];
 const pointStart: string = "- ";
 
 /**
+ * Start of a further line of a point, written with Shift+Enter: under its text, two spaces in, then the spacer `⠀`
+ * (U+2800), as the editor writes it, see `spacer` in `src/editor/keys.ts`, so Markdown keeps the line in its point.
+ */
+const furtherStart: string = "  ⠀";
+
+/**
+ * The start of a further line as written, its indentation and maybe the spacer, which the text to edit leaves out.
+ */
+const furtherForm: RegExp = /^[ \t]+⠀?/;
+
+/**
  * A heading of a Markdown section, of any level, like `## Gratitude`, which ends the section before it.
  */
 const headingForm: RegExp = /^#{1,6} /;
@@ -119,7 +130,7 @@ export function noteRead(date: string): string | null {
 
 /**
  * Reads a section of the daily note of a date as text to edit: one point per line without its `- `, a further line
- * of a point indented as in the note, the empty lines left out.
+ * of a point two spaces in, without the spacer, see {@link furtherStart}, the empty lines left out.
  * - `lines`: Lines of the note.
  * - `found`: The section in the note, `null` for none.
  *
@@ -135,7 +146,8 @@ function sectionTextRead(date: string, title: SectionTitle): string {
         return "";
     return lines.slice(found[0] + 1, found[1])
         .filter((line: string): boolean => line.trim() !== "")
-        .map((line: string): string => line.startsWith(pointStart) ? line.slice(pointStart.length) : line)
+        .map((line: string): string => line.startsWith(pointStart) ? line.slice(pointStart.length)
+            : line.replace(furtherForm, "  "))
         .join("\n");
 }
 
@@ -166,7 +178,7 @@ function pointLinesOf(text: string): string[] {
         if (line === "")
             continue;
         if (/^\s/.test(line) && lines.length > 0)
-            lines.push(line);
+            lines.push(`${furtherStart}${line.replace(furtherForm, "").trim()}`);
         else
             lines.push(`${pointStart}${line.trim()}`);
     }
