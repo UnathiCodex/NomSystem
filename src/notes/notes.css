@@ -2,9 +2,10 @@
    view, each row in the text of the tree, see `--tree-text` in `../variants.css`, and a little higher than a chip,
    `--tree-row-height`, so its grey has room around the name; the anchor of the menus of its pickers, which open
    beside it.
-   Its framed rows, the search and the grey of the note shown or under the pointer, 0.625rem from the rail's buttons,
-   of which the rail's own room holds 0.25rem, and a little more, 1rem, from its line at the right, so they take
-   the width of the tree, their names
+   Its framed rows, the search and the grey of the note shown or under the pointer, 0.375rem from the edge of the rail
+   at their left and exactly as far from its line at the right, the same margin on both sides, the room of its thin
+   scrollbar, 6 px, see `../base.css`, part of it and kept also while it does not scroll, so they take the width
+   of the tree, their names
    `--tree-row-padding` in from their left edge,
    the room left of a name in a row `--tree-row-padding`, the room above and below the name of a picker
    `--tree-pick-padding` */
@@ -13,7 +14,8 @@
     --tree-pick-padding: 0.25rem;
     anchor-name: --tree;
     overflow-y: auto;
-    padding: var(--gap) 1rem var(--gap) 0.375rem;
+    padding: var(--gap) calc(0.375rem - 6px) var(--gap) 0.375rem;
+    scrollbar-gutter: stable;
     border-right: 1px solid var(--line);
     font-size: var(--tree-text);
     line-height: var(--tree-row-height);
@@ -82,9 +84,8 @@
    of the day, filled in the soft grey of a card without a frame, the grey of the note shown below them, one grey
    lighter under the pointer, `--fill-over`, never as light as what is picked, a little higher than a row,
    the name picked in bold, in the text of the tree, a step below the bold root, so what I picked stands
-   out from the notes below it, and the grey arrow of a folder at its right end, turned down, as a field to pick from,
-   which opens its menu; the two cards a little apart, the notes a little further below them; each the anchor
-   of its menu */
+   out from the notes below it, no arrow, since a click on the card opens its menu; the two cards a little apart,
+   the notes a little further below them; each the anchor of its menu */
 .tree-pick,
 .tree-choice {
     width: 100%;
@@ -96,8 +97,6 @@
 }
 
 .tree-pick {
-    display: flex;
-    gap: 0.25rem;
     padding-block: var(--tree-pick-padding);
     background: var(--fill);
     font-weight: 600;
@@ -107,35 +106,7 @@
     background: var(--fill-over);
 }
 
-/* The name on a picker opens the overview of what is picked, the arrow its menu, see `pickerOf` in `tree.ts`: the name
-   takes the card from its left edge, top and bottom up to the arrow, a grey lighter under the pointer, as the link of
-   the root; the arrow, in its place, takes the room right of it to the edge, so it is easy to hit */
-.tree-pick-name {
-    flex: 1;
-    margin: calc(-1 * var(--tree-pick-padding)) 0 calc(-1 * var(--tree-pick-padding)) calc(-1 * var(--tree-row-padding));
-    padding: var(--tree-pick-padding) 0 var(--tree-pick-padding) var(--tree-row-padding);
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.tree-pick-name:hover {
-    color: var(--text-muted);
-}
-
-.tree-pick::after {
-    content: "";
-    flex: none;
-    display: inline-block;
-    width: calc(1em + var(--tree-row-padding));
-    height: 1lh;
-    margin-right: calc(-1 * var(--tree-row-padding));
-    vertical-align: top;
-    background: var(--text-muted);
-    mask: var(--fold-icon) 0.0625em center / 0.875em no-repeat;
-}
-
 .tree-pick-module {
-    align-items: center;
     margin-bottom: 0.375rem;
     anchor-name: --tree-module;
 }

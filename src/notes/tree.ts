@@ -234,14 +234,13 @@ function moduleNodeOf(module: NotesModule): HTMLDivElement {
 }
 
 /**
- * Makes a picker of the tree of my modules, see the top of this file: a row, the name of what is picked with a grey
- * arrow after it; the arrow opens its menu right below it, the browser's own popover, which a pick, Escape or a click
- * beside it closes; each choice a row, the one picked in the calm grey of what is picked. A click on the name opens
- * the overview of the module where the note stands, see `../editor/overview.ts`, with what is picked, and no menu.
+ * Makes a picker of the tree of my modules, see the top of this file: a row, the name of what is picked, no arrow,
+ * since a click on it opens its menu, the browser's own popover, which a pick, Escape or a click beside it closes;
+ * each choice a row, the one picked in the calm grey of what is picked. A pick shows it in the tree and opens
+ * the overview of its module, see `../editor/overview.ts`, with what is picked.
  * - `pick`: The row, a button.
- * - `name`: The name of what is picked on it, before its arrow, see `.tree-pick` in `./notes.css`.
+ * - `name`: The name of what is picked on it, see `.tree-pick` in `./notes.css`.
  * - `menu`: The menu.
- * - {@link Event#preventDefault}: Keeps a click on the name from the button, which would open the menu.
  *
  * @param kind - What it picks, `module` or `chapter`, which names its anchor, see `.tree-pick` in `./notes.css`
  * @param choices - Gives what it may pick: the modules, or the chapters of the module picked
@@ -258,10 +257,6 @@ function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: H
     pick.type = "button";
     pick.className = `tree-pick tree-pick-${kind}`;
     name.className = "tree-pick-name";
-    name.addEventListener("click", (event: MouseEvent): void => {
-        event.preventDefault();
-        location.assign(addressOf());
-    });
     pick.append(name);
     pick.popoverTargetElement = menu;
     menu.className = `tree-menu tree-menu-${kind}`;
@@ -278,6 +273,7 @@ function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: H
             row.addEventListener("click", (): void => {
                 menu.hidePopover();
                 choose(choice);
+                location.assign(addressOf());
             });
             return row;
         }));
