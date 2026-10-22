@@ -617,15 +617,17 @@ function addressOf(line: string): string {
 
 /**
  * Gives the place offered in a field that the place picked is, by its name, as its field offers it: my place
- * of `Places.md`, or `Online`.
+ * of `Places.md`, `Online`, or a room of `Rooms.md`.
  *
  * @param field - Field of a place, like `From`
- * @returns The line of my place, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, or `Online`,
- *   `undefined` while the place picked is none offered, like an older place by its name alone, or nothing is picked
+ * @returns The line of my place, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, `Online`,
+ *   or the line of a room, `undefined` while the place picked is none offered, like an older place by its name alone,
+ *   or nothing is picked
  */
 function mineOf(field: Field): string | undefined {
     const line: string = values[field.key];
-    return line === "" ? undefined : field.values.find((value: string): boolean => labelOf(value) === labelOf(line));
+    return line === "" ? undefined
+        : [...field.values, ...field.rooms].find((value: string): boolean => labelOf(value) === labelOf(line));
 }
 
 /**
@@ -636,7 +638,7 @@ function mineOf(field: Field): string | undefined {
  * with a link but without address, like `https://nav.tum.de/room/5602.EG.001`, so every place with a link opens it
  * here too, and nothing for an older place written by its name alone, like `Home Munich`, which has neither;
  * beside the label the pencil, which shows and hides the parts of the place, see {@link partsToggle}, while it is
- * one of mine or `Online`.
+ * one of mine, a room or `Online`.
  * - `line`: The place picked.
  * - `kept`: The link of the place the entry kept, empty for none.
  * - `link`: The link to open, empty for none.
@@ -704,7 +706,7 @@ function onlinePicked(field: Field): boolean {
 
 /**
  * Tells whether the place picked in a field shows its parts below it, see {@link partsOf}: while they are open
- * for the field and the place is one of mine or `Online`.
+ * for the field and the place is one of mine, a room or `Online`.
  *
  * @param field - Field of the category picked, like `Place`
  * @returns Whether its parts show
@@ -795,8 +797,8 @@ function partsOf(field: Field, parts: [HTMLButtonElement, HTMLAnchorElement]): H
 
 /**
  * Takes my place as the reader wrote it into every field of a place, since places are one list: each offers its new
- * line in place of its old one, with its link, and a field that picked it takes the new line, like the place of the
- * entry whose parts I type; entries written before keep what they have.
+ * line in place of its old one, among my places or the rooms, with its link, and a field that picked it takes
+ * the new line, like the place of the entry whose parts I type; entries written before keep what they have.
  * - `line`: Its new line.
  *
  * @param old - Its line as it was, like `Café, Leopoldstraße 1, 80802 München, Deutschland`
@@ -808,6 +810,7 @@ function placeTake(old: string, place: Place): void {
         .filter(placeIs)
         .forEach((other: Field): void => {
             other.values = other.values.map((value: string): string => value === old ? line : value);
+            other.rooms = other.rooms.map((room: string): string => room === old ? line : room);
             delete other.links[old];
             if (place.link !== "")
                 other.links[line] = place.link;
@@ -823,10 +826,10 @@ function placeTake(old: string, place: Place): void {
  * Builds the parts of my place picked in a field, see {@link partsOf}: its name, which renames it, then its address,
  * its postcode with its town and its country, see `addressPartsOf` in `places.ts`, then its link, which follows
  * the address as the search of Google Maps while it is that search or empty, see `mapsLinkIs`, until I type a link
- * myself, like the NavigaTUM page of a room. A part goes into `Places.md` as I leave it, the row of my place changed,
- * see `placeSend` in `places.ts`, every field of a place taking it as written, see {@link placeTake}; a new name
- * shows the rows anew, the part I went on to keeping the cursor; when the reader does not take a part, like a name
- * another place has or a link that is no web address, a grey line says so.
+ * myself, like the NavigaTUM page of a room. A part goes into `Places.md` as I leave it, or `Rooms.md` for a room,
+ * the row of my place changed, see `placeSend` in `places.ts`, every field of a place taking it as written,
+ * see {@link placeTake}; a new name shows the rows anew, the part I went on to keeping the cursor; when the reader
+ * does not take a part, like a name another place has or a link that is no web address, a grey line says so.
  * - `line`: The line of my place, as last written.
  * - `street`, `town`, `country`: The parts of its address.
  * - `name`, `address`, `postcode`, `land`, `link`: Fields of the name, the street, the postcode with the town,
@@ -1099,7 +1102,7 @@ function placeSearchOf(field: Field): (text: string) => Promise<Choice[]> {
     return async (text: string): Promise<Choice[]> => {
         const line: string = values[field.key];
         const shown: string[] = text.trim() !== "" ? [...new Set([...field.values, ...field.rooms])]
-            : [...field.values, ...(line === "" || mineOf(field) !== undefined ? [] : [line])];
+            : [...new Set([...field.values, ...line === "" ? [] : [mineOf(field) ?? line]])];
         return await searchOf(shown.map((value: string): Choice => fieldChoiceOf(field, value)))(text);
     };
 }
