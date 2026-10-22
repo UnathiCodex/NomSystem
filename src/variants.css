@@ -18,7 +18,7 @@
    the tree of the scripts and of my new system in the text of the page, `--tree-text`, 15 px, a little smaller
    than the 16 px of controls and two steps bigger than Obsidian's 13 px file explorer, so it reads easily while
    learning, the tree as wide as a module of 40 characters needs on its picker, the most a folder name of mine has,
-   at the densest of my names, `IN2381_EinfuehrungQuantumComputing` with 11.5 px a character in words, 459 px,
+   at the densest of my names, `IN2028_BusinessAnalyticsMachineLearning` with 10.1 px a character, 404 px,
    `--tree-width`, so every module, chapter and note fits on its line and the tree takes no more of the page;
    what is picked or shown, and the main button of a dialog, a calm lighter grey with a soft line, never glaring white,
    the main button one grey lighter still under the pointer, `--chosen-over`, as far above `--chosen` as `--row-over`
@@ -69,7 +69,7 @@
     --radius: 0.75rem;
     --chip-radius: 0.5rem;
     --note-width: 18rem;
-    --tree-width: 25.75rem;
+    --tree-width: 23rem;
     --reading-width: 45rem;
     color-scheme: dark;
 }

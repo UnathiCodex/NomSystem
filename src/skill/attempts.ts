@@ -177,8 +177,8 @@ export type SkillModule = {
  * - `skills`: The skills of the semester in their order, for the Skill picker: a module by its code, like `IN2028`,
  *   a project by its folder name, like `WokFlow`.
  * - `otherModules`: The other module folders by their codes, like `IN0024`, for the search of the Skill picker.
- * - `labels`: The name of each of them as a summary names it, airy, which the Skill picker shows,
- *   like `IN2028 Business Analytics Machine Learning` for `IN2028`.
+ * - `folders`: The whole name of the folder of each of them by its name, which the Skill picker shows,
+ *   like `IN2028_BusinessAnalyticsMachineLearning` for `IN2028`.
  * - `paths`: The folder of each of them from `NomWorkspace`, which a skill entry links, shown grey below the skill
  *   picked, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`.
  * - `types`: Types of a skill entry, like `VO`.
@@ -187,7 +187,7 @@ export type Skilling = {
     modules: SkillModule[];
     skills: string[];
     otherModules: string[];
-    labels: { [name: string]: string };
+    folders: { [name: string]: string };
     paths: { [name: string]: string };
     types: string[];
 };

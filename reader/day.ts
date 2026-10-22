@@ -9,7 +9,7 @@
  * moves into the log it belongs into then, as one from a month file of the layout before.
  * A skill entry names the folder of its skill and its type in its `SUMMARY` alone, linking the folder:
  * `CATEGORIES:Skill`,
- * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028 Business Analytics Machine Learning (VO)`,
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
  * without `X-TYPE` and `X-MODULE`, also one logged from a box, see `titleOf` in `documents.ts`;
  * its chapters, document and attempts only `skill.ts` writes.
  * A change from the dialog is written only while the file holds the entry as the dialog opened it, see
@@ -215,7 +215,8 @@ export function logFileOf(fields: { category: string; module: string; start: Dat
  * @throws {Error} - When the link typed for `Online` is no web address
  */
 function fieldsOf(entry: EntryNew, from: {
-    title: string; titleLink: string; location: string; locationLink: string; attendees: Attendee[];
+    category: string; title: string; titleLink: string; module: string; type: string; location: string;
+    locationLink: string; attendees: Attendee[];
 } | null): EntryFields {
     const semester: string = semesterFor(entry.category, entry.semester, berlinDateOf(new Date(entry.start)));
     const [title, titleLink]: [string, string] = titleOf({ ...entry, semester: semester }, from);

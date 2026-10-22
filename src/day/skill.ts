@@ -5,7 +5,7 @@
  * its value, see `choices.ts`: below the times and the category its summary, its skill and its type side by side
  * on one line, like `IN2028_BusinessAnalyticsMachineLearning` and `VO`, no type, the type empty, for my own learning
  * or a project, like `WokFlow`; the reader writes what it is from both, like
- * `IN2028 Business Analytics Machine Learning (VO)`, see `reader/documents.ts`, and writes it anew when I change either
+ * `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `reader/documents.ts`, and writes it anew when I change either
  * later. Then its place, its name with its pencil and its address below it, see `categories.ts`, as every category
  * has it; then in this order its semester, and its chapters one after another, each with its documents.
  * Its semester says from which semester the lecture or the material is, not when I did it:
@@ -56,13 +56,13 @@
  */
 
 import {
-    addedRowOf, addedRowsOf, addRowOf, choiceOf, choicesOf, lineMove, pairOf, rowOf, searchOf,
+    addedRowOf, addedRowsOf, addRowOf, breakableOf, choiceOf, choicesOf, lineMove, pairOf, rowOf, searchOf,
 } from "./choices.ts";
 import {
     dayTextOf, groupsOf, moduleLoad, semesterOf, skillEntrySend, skillingLoad,
 } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { airyOf, airyPathOf, modulesFolder } from "../skill/links.ts";
+import { modulesFolder } from "../skill/links.ts";
 import { changesKept } from "../changes.ts";
 
 import type { Calendar } from "fullcalendar";
@@ -123,7 +123,7 @@ export type ModuleType = {
  * - `module`: Name of the skill, like `IN2028` or `WokFlow`.
  * - `type`: Its type, like `VO`, empty for none.
  * - `semester`: Its semester, its `X-SEMESTER`, like `2026W`, empty for a new one and an older one without.
- * - `title`: What it is as written, its `SUMMARY`, like `IN2028 Business Analytics Machine Learning (VO)`, in the log.
+ * - `title`: What it is as written, its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, in the log.
  * - `titleLink`: Its link, the `ALTREP` of its `SUMMARY`, in the log: the folder of its skill, or a web address I typed;
  *   empty for none.
  * - `chapters`: Names of its chapters, in the log.
@@ -155,7 +155,7 @@ const resultChoices: Choice[] = [
  * see {@link skillingKept}.
  */
 let skilling: Skilling = {
-    modules: [], skills: [], otherModules: [], labels: {}, paths: {}, types: [],
+    modules: [], skills: [], otherModules: [], folders: {}, paths: {}, types: [],
 };
 
 /**
@@ -316,16 +316,16 @@ export function skillPathOf(): string {
  * Shows the folder of the skill picked, see {@link skillPathOf}, as the link below the summary, small and grey,
  * as a place has its address below it, see `summaryPartsOf` in `categories.ts`: for a module a link that opens
  * the module in the scripts view in this window, never a second one, underlined under the pointer, for a project, which the scripts view
- * has not, its path alone; each part in words, like `NomSkillingmodules/IN2028 Business Analytics Machine Learning`,
- * see `airyPathOf` in `../skill/links.ts`; hidden while no skill is picked. Where it is wider than its row, as on
- * a phone, it goes on below after a `/` or between words, never within a word.
+ * has not, its path alone; hidden while no skill is picked. Where it is wider than its row, as on a phone, it goes on
+ * below after a `/`, after a `_` or between the words of a name, like `NomSkillingmodules/IN2028_Business`
+ * and `AnalyticsMachineLearning`, never within a word, see {@link breakableOf}.
  * - `folder`: The folder of the skill picked without its material, empty for none.
  *
  * @param link - The link below the summary
  */
 export function skillPathShow(link: HTMLAnchorElement): void {
     const folder: string = skilling.paths[picks.module] ?? "";
-    link.textContent = airyPathOf(skillPathOf()).replaceAll("/", "/\u200b");
+    link.textContent = breakableOf(skillPathOf()).replaceAll("/", "/\u200b");
     link.removeAttribute("target");
     if (folder.startsWith(`${modulesFolder}/`))
         link.href = `/scripts?module=${encodeURIComponent(folder.slice(modulesFolder.length + 1))}`;
@@ -350,14 +350,14 @@ function hintOf(text: string): HTMLParagraphElement {
 /**
  * Builds the search of the Skill list: while nothing is typed the skills of the semester and the skill picked,
  * while I type every skill and module folder that holds the words, the skills of the semester first.
- * Each shows its name airy, as a summary names it, like `IN2028 Business Analytics Machine Learning`, a project
- * like `WokFlow`, and is picked by its name, a module its code, like `IN2028`.
+ * Each shows the whole name of its folder, as a summary names it, like `IN2028_BusinessAnalyticsMachineLearning`,
+ * a project like `WokFlow`, and is picked by its name, a module its code, like `IN2028`.
  * My modules of the university stand apart from my projects of programming, each under its small grey head,
  * `Modules` and `Projects`, a thin line between them, as the sections of the food search, see `.picker-group`
  * in `choices.css`; a module known by its code, letters then digits, like `IN2028` or `MGT1372`.
  * - `module`: Whether a skill is a module of the university.
  * - `choices`: Every skill and module, the modules first, the skills of the semester first in each, each its name
- *   as value, its name airy as text, its kind as group.
+ *   as value, the name of its folder as text, its kind as group.
  * - `shown`: Skills the search looks through.
  *
  * @returns Search for the picker
@@ -367,7 +367,7 @@ function moduleSearchOf(): (text: string) => Promise<Choice[]> {
     const named: string[] = [...skilling.skills, ...skilling.otherModules];
     const choices: Choice[] = [...named.filter(module), ...named.filter((name: string): boolean => !module(name))]
         .map((name: string): Choice =>
-            ({ value: name, text: skilling.labels[name] ?? name, group: module(name) ? "Modules" : "Projects" }));
+            ({ value: name, text: skilling.folders[name] ?? name, group: module(name) ? "Modules" : "Projects" }));
     return async (text: string): Promise<Choice[]> => {
         const shown: Choice[] = text.trim() !== "" ? choices : choices.filter((choice: Choice): boolean =>
             choice.value === picks.module || skilling.skills.includes(choice.value));
@@ -458,8 +458,8 @@ function documentsOfferedOf(chapter: string): string[] {
 
 /**
  * Builds the choices of a Documents list, see {@link documentsOfferedOf}, each its path as value, the name of its file
- * in words as text, and as group for a file of material the folders between the folder of its material and it,
- * like `04. Logistic Poisson Regression.pdf` under `TUM 2026W`, none for a note, see `airyOf` in `../skill/links.ts`.
+ * as text, and as group for a file of material the folders between the folder of its material and it, like
+ * `04_LogisticPoissonRegression.pdf` under `TUM_2026W`, none for a note.
  * - `parts`: Parts of the path of a document.
  *
  * @param chapter - Chapter whose notes my own learning offers, like `01_RegressionAnalysis`
@@ -469,8 +469,8 @@ function documentChoicesOf(chapter: string): Choice[] {
     return documentsOfferedOf(chapter).map((path: string): Choice => {
         const parts: string[] = path.split("/");
         if (chapterOfDocument(path) !== "")
-            return { value: path, text: airyOf(parts.at(-1) ?? path), group: "" };
-        return { value: path, text: airyOf(parts.at(-1) ?? path), group: airyPathOf(parts.slice(1, -1).join("/")) };
+            return { value: path, text: parts.at(-1) ?? path, group: "" };
+        return { value: path, text: parts.at(-1) ?? path, group: parts.slice(1, -1).join("/") };
     });
 }
 
@@ -478,10 +478,10 @@ function documentChoicesOf(chapter: string): Choice[] {
  * Gives the name of the file of a document, which says what it is, as its row shows it.
  *
  * @param path - Path of a document, like `VO_…/TUM_2026W/04_LogisticRegression.pdf`
- * @returns Name in words, like `04. Logistic Regression.pdf`, see `airyOf` in `../skill/links.ts`
+ * @returns Name like `04_LogisticRegression.pdf`
  */
 function fileNameOf(path: string): string {
-    return airyOf(path.split("/").at(-1) ?? path);
+    return path.split("/").at(-1) ?? path;
 }
 
 /**
@@ -672,10 +672,10 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
         return [];
     const own: boolean = picks.type === "";
     const offered: Choice[] = contents.chapters.filter((chapter: string): boolean => !picks.chapters.includes(chapter))
-        .map((chapter: string): Choice => ({ value: chapter, text: airyOf(chapter), group: "" }));
+        .map(choiceOf);
     const rows: HTMLElement[] = [];
     picks.chapters.forEach((chapter: string, index: number): void => {
-        const row: HTMLElement = addedRowOf(index === 0 ? "Chapter" : "", airyOf(chapter), (): void => {
+        const row: HTMLElement = addedRowOf(index === 0 ? "Chapter" : "", chapter, (): void => {
             picks.chapters = picks.chapters.filter((other: string): boolean => other !== chapter);
             if (own)
                 picks.documents = picks.documents.filter((path: string): boolean =>

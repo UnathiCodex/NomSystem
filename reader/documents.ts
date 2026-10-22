@@ -5,13 +5,12 @@
  * of a lecture, a sheet or the notes of a chapter, its paths from `NomWorkspace`;
  * each link only points to more, the entry states its facts itself, see `calendar.ts`, like the chapters
  * of my system it belongs to, one `X-CHAPTER` each, like `X-CHAPTER:02_LogisticPoissonRegression`.
- * Its `SUMMARY` names its skill airy, a module by its code and the words of its title, see {@link skillLabelOf},
- * with its type in round brackets at the end when it has one, see {@link skillTitleOf}, and links the folder
- * of the skill as its `ALTREP` while I type no web address in its place, see {@link titleOf}, for a module with a type
- * on into the folder of the material of its type and of its semester, as far as they hold files, see
- * {@link skillLinkOf}, like
- * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…/VO_UniversityLectureLessons/TUM_2026W":IN2028 Business Analytics
- * Machine Learning (VO)`, my own learning without brackets, linking the module folder, a project by its folder name,
+ * Its `SUMMARY` is the name of the folder of its skill, with its type in round brackets at the end when it has one,
+ * see {@link skillTitleOf}, and links the folder of the skill as its `ALTREP` while I type no web address in its
+ * place, see {@link titleOf}, for a module with a type on into the folder of the material of its type and of its
+ * semester, as far as they hold files, see {@link skillLinkOf}, like `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…
+ * /VO_UniversityLectureLessons/TUM_2026W":IN2028_BusinessAnalyticsMachineLearning (VO)`, my own learning without
+ * brackets, linking the module folder, a project by its folder name,
  * like `SUMMARY;ALTREP="NomProgramprojects/AsiaWok_Wokflow_2026":WokFlow`.
  * Every real document a skill entry used is one `ATTACH` holding just its path, see `Link` in `calendar.ts`,
  * as many as it used, in the same form for every kind: a lecture its slides, like
@@ -169,42 +168,18 @@ function skillFolderNameOf(code: string): string {
 }
 
 /**
- * Names a skill airy, as a summary names it: a module its code, then the words of its title parted by spaces,
- * like `IN2028 Business Analytics Machine Learning` of the folder `IN2028_BusinessAnalyticsMachineLearning`
- * or `IN0004 Einfuehrung Rechnerarchitektur` of `IN0004_EinfuehrungRechnerarchitektur`, so a summary reads with room
- * as my other names do; a project by the name of its folder as it is, one name, like `NomSystemdashboard`
- * or `WokFlow`; a skill without folder by its name alone. A word starts at a capital after a small letter or a digit,
- * and at the last capital of a run before a small letter, like `IT Security` of `ITSecurity`.
- * - `folder`: Folder of the skill, see {@link skillFolderOf}, `undefined` for none.
- * - `name`: Name of the folder, see {@link skillFolderNameOf}.
- * - `parts`: Code and title of the name of a module folder, `null` for a project.
- *
- * @param code - Name of the skill, like `IN2028` or `WokFlow`, empty for none
- * @returns Name like `IN2028 Business Analytics Machine Learning` or `WokFlow`, empty for no skill
- */
-export function skillLabelOf(code: string): string {
-    const folder: string | undefined = skillFolderOf(code);
-    const name: string = skillFolderNameOf(code);
-    const parts: RegExpExecArray | null = folder !== undefined && moduleIs(folder) ? /^([^_]+)_(.+)$/.exec(name) : null;
-    if (parts === null)
-        return name;
-    return `${parts[1]} ${parts[2].replace(/_/g, " ").replace(/(\p{Ll}|\d)(?=\p{Lu})/gu, "$1 ")
-        .replace(/(\p{Lu})(?=\p{Lu}\p{Ll})/gu, "$1 ")}`;
-}
-
-/**
- * Names a skill entry as its `SUMMARY` says it, see the top of this file: its skill airy, see {@link skillLabelOf},
- * with its type in round brackets when it has one; an entry without skill by its type in brackets alone,
- * like `(VO)`, or not at all.
- * - `name`: Name of the skill, see {@link skillLabelOf}.
+ * Names a skill entry as its `SUMMARY` says it, see the top of this file: the name of the folder of its skill,
+ * with its type in round brackets when it has one; a skill without folder by its name alone; an entry without skill
+ * by its type in brackets alone, like `(VO)`, or not at all.
+ * - `name`: Name of the folder of the skill, see {@link skillFolderNameOf}.
  *
  * @param code - Name of the skill, like `IN2028` or `WokFlow`
  * @param type - Its type, like `VO`, empty for none, like my own learning
- * @returns What it is, like `IN2028 Business Analytics Machine Learning (VO)`,
- *   `IN2028 Business Analytics Machine Learning` or `WokFlow`, empty for neither skill nor type
+ * @returns What it is, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, `IN2028_BusinessAnalyticsMachineLearning`
+ *   or `WokFlow`, empty for neither skill nor type
  */
 export function skillTitleOf(code: string, type: string): string {
-    const name: string = skillLabelOf(code);
+    const name: string = skillFolderNameOf(code);
     if (type === "")
         return name;
     return name === "" ? `(${type})` : `${name} (${type})`;
@@ -243,11 +218,14 @@ export function skillLinkOf(code: string, type: string, semester: string): strin
  * Gives what an entry or a box was as it is written, its `SUMMARY` and the `ALTREP` of it: its what as sent,
  * for a skill entry its skill and type, see {@link skillTitleOf}, with the link typed for it, like the page of an event,
  * a web address, see `linkForm` in `places.ts`, or, from a sender that knows no typed link, like the calendar after
- * a drag, the link it had in the entry or box it comes from while it is the same what, of a skill entry only a web
- * address; a skill entry without one links the folder of its skill and of its material, see {@link skillLinkOf}.
+ * a drag, the link it had in the entry or box it comes from while it is the same what, of a skill entry the same skill
+ * and type, whatever form its `SUMMARY` has, like an older `IN2028 Business Analytics Machine Learning (VO)`,
+ * and only a web address; a skill entry without one links the folder of its skill and of its material,
+ * see {@link skillLinkOf}.
  * - `skill`: Whether it is a skill entry.
  * - `title`: What it was, as written.
  * - `typed`: The link typed, without spaces at its ends, `undefined` from a sender that knows none.
+ * - `same`: Whether the entry or box it comes from is the same what.
  * - `link`: The link typed or kept, empty for none.
  *
  * @param fields - Category, what, the link typed for it, skill, type and semester of the entry or the box, as sent,
@@ -255,21 +233,24 @@ export function skillLinkOf(code: string, type: string, semester: string): strin
  *   knows none
  * @param from - The entry or box it comes from, like the entry being changed or the box a log entry is logged from,
  *   `null` for none
- * @returns `SUMMARY` and `ALTREP`, like `IN2028 Business Analytics Machine Learning (VO)`
+ * @returns `SUMMARY` and `ALTREP`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`
  *   and `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning/VO_UniversityLectureLessons/TUM_2026W`,
  *   or `Planungen` and an empty link
  * @throws {Error} - When the link typed is no web address
  */
 export function titleOf(fields: {
     category: string; title: string; titleLink?: string; module: string; type: string; semester: string;
-}, from: { title: string; titleLink: string } | null): [string, string] {
+}, from: {
+    category: string; title: string; titleLink: string; module: string; type: string;
+} | null): [string, string] {
     const skill: boolean = fields.category === skillName;
     const title: string = skill ? skillTitleOf(fields.module, fields.type) : fields.title;
     const typed: string | undefined = fields.titleLink?.trim();
     if (typed !== undefined && typed !== "" && !linkForm.test(typed))
         throw new Error(`No link of ${title}: ${typed}`);
-    const link: string = typed ?? (from !== null && from.title === title && (!skill || linkForm.test(from.titleLink))
-        ? from.titleLink : "");
+    const same: boolean = from !== null && (skill ? from.category === skillName && from.module === fields.module
+        && from.type === fields.type && linkForm.test(from.titleLink) : from.title === title);
+    const link: string = typed ?? (from !== null && same ? from.titleLink : "");
     return [title, skill && link === "" ? skillLinkOf(fields.module, fields.type, fields.semester) : link];
 }
 
@@ -442,7 +423,7 @@ function linksRepairOf(entry: Entry): Link[] {
 
 /**
  * Prints a repair of a link of a skill entry into the reader's console, like `Repaired a link
- * of IN2028 Business Analytics Machine Learning (VO) on 2026-10-13 at 14:00: NomSkillingmodules/IN2028_…/04_Old.pdf
+ * of IN2028_BusinessAnalyticsMachineLearning (VO) on 2026-10-13 at 14:00: NomSkillingmodules/IN2028_…/04_Old.pdf
  * is now NomSkillingmodules/IN2028_…/04_New.pdf`.
  *
  * @param entry - Skill entry of the log, as it was

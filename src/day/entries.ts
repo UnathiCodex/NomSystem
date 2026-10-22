@@ -40,7 +40,7 @@ export type Attendee = {
  * - `from`: Where a way starts, `X-FROM`.
  * - `attendees`: Who I was with, one `ATTENDEE` each, none for nobody; left out, it keeps its people.
  * - `module`: Module of a skill entry, like `IN2028`, written by the reader only in its `SUMMARY`,
- *   like `IN2028 Business Analytics Machine Learning (VO)`.
+ *   like `IN2028_BusinessAnalyticsMachineLearning (VO)`.
  * - `type`: Type of a skill entry, like `VO`, written only in its `SUMMARY`.
  * - `semester`: Semester of a skill entry, `X-SEMESTER`, like `2026W`, empty for any other entry; the reader fills
  *   in the semester of its day for a skill entry sent without one.

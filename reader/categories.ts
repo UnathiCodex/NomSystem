@@ -33,8 +33,8 @@
  * kinds, `Gym` and `Home workout`, see `sportKinds` in `sport.ts`, so the sport area knows what each burns, and its
  * place, but no `With`, since I do sport alone; a box of the plan may have it, since a session is something I intend.
  * `Skill` has only the fields `Place`, like the room of a lecture, and `With`: in plan and log a skill, a module
- * by its code or a project by its name, and a type or none, which the dialog picks itself, written as its skill airy
- * with the type in brackets, like `IN2028 Business Analytics Machine Learning (VO)` or `WokFlow`,
+ * by its code or a project by its name, and a type or none, which the dialog picks itself, written as the folder
+ * of its skill with the type in brackets, like `IN2028_BusinessAnalyticsMachineLearning (VO)` or `WokFlow`,
  * see `activeSkills` in `sources.ts` and {@link skillTypes};
  * in the log also its documents and its attempts, which only `skill.ts` writes.
  * A box of the plan takes only what I intend and would otherwise forget, so not `Sleep`, `Food`, `Cook`, `Drink`
@@ -176,7 +176,7 @@ function categoryOf(name: string): Category {
 
 /**
  * Category of skill entries, written as `CATEGORIES:Skill`: in plan and log a skill and a type or none,
- * both in its `SUMMARY`, like `IN2028 Business Analytics Machine Learning (VO)`, see `skillPartsOf` in `calendar.ts`,
+ * both in its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, see `skillPartsOf` in `calendar.ts`,
  * which names the category, its place and who I was with,
  * in the log also its documents and its attempts, which only `skill.ts` writes.
  */
@@ -184,7 +184,7 @@ export { skillName };
 
 /**
  * Types of a skill entry, each written in round brackets after its skill in its `SUMMARY`,
- * like `IN2028 Business Analytics Machine Learning (VO)`; a type names only a fixed form I take part in: `VO` a lecture,
+ * like `IN2028_BusinessAnalyticsMachineLearning (VO)`; a type names only a fixed form I take part in: `VO` a lecture,
  * `UE` an exercise, `ZU` a central exercise, `TU` a tutorial, `HU` a homework sheet, `FA` an exam
  * and `PR` a practical course.
  * My own learning, theory and tasks together, has no type, like `Skill: IN2028_BusinessAnalyticsMachineLearning`,

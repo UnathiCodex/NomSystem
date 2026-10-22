@@ -30,7 +30,7 @@
  */
 
 import { matchesAll, wordsOf } from "../search.ts";
-import { airyOf } from "../skill/links.ts";
+import { breakableOf } from "../day/choices.ts";
 import { inlineHtmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
 import { iconOf } from "../icons.ts";
@@ -94,7 +94,7 @@ type NotesModule = {
 /**
  * Makes a folder of the tree that folds, like a chapter: its name, and below it the place of its entries.
  *
- * @param name - Name on disk, like `01_RegressionAnalysis`, shown in words, see `airyOf` in `../skill/links.ts`
+ * @param name - Name shown, like `01_RegressionAnalysis`
  * @returns Folder, its entries to go into its last child
  */
 export function folderOf(name: string): HTMLDetailsElement {
@@ -102,7 +102,7 @@ export function folderOf(name: string): HTMLDetailsElement {
     const summary: HTMLElement = document.createElement("summary");
     const children: HTMLDivElement = document.createElement("div");
     folder.className = "tree-folder";
-    summary.textContent = airyOf(name);
+    summary.textContent = breakableOf(name);
     children.className = "tree-children";
     folder.append(summary, children);
     return folder;
@@ -158,14 +158,14 @@ function fileNodeOf(node: FileNode): HTMLElement {
         link.className = "tree-file";
         link.dataset.path = node.path;
         link.href = `/edit?file=${encodeURIComponent(node.path)}`;
-        link.textContent = airyOf(node.name);
+        link.textContent = breakableOf(node.name);
         return link;
     }
     const name: HTMLSpanElement = document.createElement("span");
     name.className = "tree-file tree-closed";
     name.dataset.path = node.path;
     name.title = "Only Markdown and .ics files of the folders of my new system open";
-    name.textContent = airyOf(node.name);
+    name.textContent = breakableOf(node.name);
     return name;
 }
 
@@ -218,7 +218,7 @@ function moduleNodeOf(module: NotesModule): HTMLDivElement {
             link.className = "tree-file";
             link.dataset.path = note.path;
             link.href = noteAddressOf(note.path, "");
-            link.textContent = airyOf(note.name);
+            link.textContent = breakableOf(note.name.replace(/\.md$/i, ""));
             link.addEventListener("click", outlineFold);
             return link;
         }));
@@ -269,7 +269,7 @@ function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: H
             row.type = "button";
             row.className = "tree-choice";
             row.classList.toggle("picked", choice.classList.contains("picked"));
-            row.textContent = airyOf(nameOf(choice));
+            row.textContent = breakableOf(nameOf(choice));
             row.addEventListener("click", (): void => {
                 menu.hidePopover();
                 choose(choice);
@@ -283,8 +283,8 @@ function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: H
 
 /**
  * Shows one chapter of one module in the tree of my modules, see the top of this file: their names in their pickers,
- * each in words on one line, like `IN2028 Business Analytics Machine Learning` and `01. Regression Analysis`,
- * see `airyOf` in `../skill/links.ts`; the notes of that chapter below, both marked `picked`, every other module and chapter hidden;
+ * each by the name of its folder on one line, like `IN2028_BusinessAnalyticsMachineLearning` and
+ * `01_RegressionAnalysis`; the notes of that chapter below, both marked `picked`, every other module and chapter hidden;
  * a module without chapters shows its hint `No chapters yet` and no picker of chapters.
  * - `chapterPick`: The picker of the chapter.
  * - `title`: Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`.
@@ -302,8 +302,8 @@ export function chapterShow(tree: HTMLElement, module: HTMLElement, chapter: HTM
     });
     const chapterPick: HTMLButtonElement = tree.querySelector(".tree-pick-chapter") as HTMLButtonElement;
     const title: string = module.dataset.title ?? "";
-    (tree.querySelector(".tree-pick-module > .tree-pick-name") as HTMLElement).textContent = airyOf(title);
-    (chapterPick.firstElementChild as HTMLElement).textContent = airyOf(chapter?.dataset.chapter ?? "");
+    (tree.querySelector(".tree-pick-module > .tree-pick-name") as HTMLElement).textContent = breakableOf(title);
+    (chapterPick.firstElementChild as HTMLElement).textContent = breakableOf(chapter?.dataset.chapter ?? "");
     chapterPick.hidden = chapter === null;
 }
 

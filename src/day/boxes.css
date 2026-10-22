@@ -88,7 +88,7 @@
 
 /* Lines of a box: what it is on one white line, then grey its time and length, its place, its chapters
    and its documents; every line, and every part of one, ending in `…` where it is too long, like
-   `Skill: IN2028 Business Analytics Mach…`, never on a second line, so a box keeps its few lines; its lines stand
+   `Skill: IN2028_BusinessAnalyticsMach…`, never on a second line, so a box keeps its few lines; its lines stand
    in the grid themselves, a click on them changing the box */
 .box-body {
     display: contents;

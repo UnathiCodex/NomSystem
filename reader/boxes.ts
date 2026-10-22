@@ -14,7 +14,7 @@
  * stays greyed on each day it left, once per push, with the start and the length it had there, like a skipped box,
  * see {@link leftBoxesOf}; it is not carried along from there.
  * A lecture, an exercise, a tutorial and a sheet, a skill box of a type of {@link numberedTypes}, carries its number
- * in its series, the boxes of the same `SUMMARY` by date, as `X-NUMBER`, like `X-NUMBER:3`, the next one when
+ * in its series, the boxes of the same skill and type by date, as `X-NUMBER`, like `X-NUMBER:3`, the next one when
  * the dialog adds it, see {@link numberNextOf}. One the university cancels gets `X-NUMBER:NONE` by its own button,
  * see {@link boxUniversity}, and the later ones of its series move up a number; it is neither done nor carried along.
  *
@@ -693,17 +693,21 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
 }
 
 /**
- * Reads the series of a skill box, see the top of this file: the boxes of the plan of the same `SUMMARY`, like
- * `IN2028 Business Analytics Machine Learning (VO)`, by date, whatever their state, each with its plan file.
+ * Reads the series of a skill box, see the top of this file: the boxes of the plan of the same skill and type, like
+ * `IN2028` and `VO`, by date, whatever their state, each with its plan file, whatever form its `SUMMARY` has,
+ * like `IN2028_BusinessAnalyticsMachineLearning (VO)` or an older `IN2028 Business Analytics Machine Learning (VO)`,
+ * see `skillPartsOf` in `calendar.ts`.
  * - `entries`: Every entry of the plan.
  *
- * @param title - `SUMMARY` of the series
+ * @param module - Skill of the series, like `IN2028`
+ * @param type - Its type, like `VO`
  * @returns The entries of the series, the earliest first
  */
-function seriesOf(title: string): Entry[] {
+function seriesOf(module: string, type: string): Entry[] {
     const entries: Entry[] = entriesRead(day.plan, "1970-01-01T00:00:00Z", "2100-01-01T00:00:00Z");
     return entries
-        .filter((entry: Entry): boolean => entry.category === skillName && entry.title === title)
+        .filter((entry: Entry): boolean => entry.category === skillName && entry.module === module
+            && entry.type === type)
         .sort((first: Entry, second: Entry): number => first.start.localeCompare(second.start));
 }
 
@@ -712,12 +716,13 @@ function seriesOf(title: string): Entry[] {
  * one more than the highest number of the boxes of its series before its day, `1` for the first.
  * - `before`: Numbers of the boxes of its series before it, `NONE` left out.
  *
- * @param title - `SUMMARY` of the new box, like `IN2028 Business Analytics Machine Learning (VO)`
+ * @param module - Skill of the new box, like `IN2028`
+ * @param type - Its type, like `VO`
  * @param date - Its day, like `2026-10-20`
  * @returns The number, like `4`
  */
-function numberNextOf(title: string, date: string): string {
-    const before: number[] = seriesOf(title)
+function numberNextOf(module: string, type: string, date: string): string {
+    const before: number[] = seriesOf(module, type)
         .filter((entry: Entry): boolean => dayOf(entry) < date && /^\d+$/.test(entry.number))
         .map((entry: Entry): number => Number(entry.number));
     return String(Math.max(0, ...before) + 1);
@@ -741,7 +746,7 @@ export function boxAdd(box: BoxNew): string {
     const id: string = todoAppend(file, todoFieldsOf(box, null));
     boxLinksPut(file, id, box, null);
     if (box.category === skillName && numberedTypes.includes(box.type))
-        propertiesPut(file, id, [["x-number", [numberNextOf(titleOf(box, null)[0], box.day)]]]);
+        propertiesPut(file, id, [["x-number", [numberNextOf(box.module, box.type, box.day)]]]);
     return id;
 }
 
@@ -767,7 +772,8 @@ export function boxUniversity(id: string, cancelled: boolean): void {
     const [file, entry, box]: [string, Entry, Box] = boxFind(id);
     if (!entry.editable || box.state !== (cancelled ? "open" : "university"))
         throw new Error(`${entry.title} is no box of the new system to mark`);
-    const series: Entry[] = seriesOf(entry.title).filter((other: Entry): boolean => entryIdOf(other) !== id);
+    const series: Entry[] = seriesOf(entry.module, entry.type)
+        .filter((other: Entry): boolean => entryIdOf(other) !== id);
     const before: number[] = series.filter((other: Entry): boolean => other.start < entry.start
         && /^\d+$/.test(other.number)).map((other: Entry): number => Number(other.number));
     const after: Entry[] = series.filter((other: Entry): boolean => other.start > entry.start

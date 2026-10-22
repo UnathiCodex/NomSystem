@@ -9,12 +9,12 @@
  * see `reader/suggestions.ts`, and the cancelled boxes without time last; on today below them the boxes carried along,
  * see below.
  * Every box has the same lines, open or done: its category in bold with a colon and what,
- * like `Skill: IN0004 Einfuehrung Rechnerarchitektur (VO)`, as an entry of the log does, on one line, ending in `…`
+ * like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`, as an entry of the log does, on one line, ending in `…`
  * where it is too long; then grey its expected time, its length only where no end shows it, with its place after them,
  * by its label alone, like `11:30 – 13:00 · Audimax im Galileo` or `01h 00m · Home Munich`, the place opening its link
- * on a click when it has one; then its deadline, when it has one, see below; then its chapters in words, each opening
- * the overview of its module in the scripts view, like `01. Regression Analysis`; then the documents it will use, each on a line of its own with a bullet, by the last
- * part of its path in words, like `04. Logistic Poisson Regression.pdf`, none for a lecture, whose slides are not known before,
+ * on a click when it has one; then its deadline, when it has one, see below; then its chapters, each opening
+ * the overview of its module in the scripts view, like `01_RegressionAnalysis`; then the documents it will use, each on a line of its own with a bullet, by the last
+ * part of its path, like `04_LogisticPoissonRegression.pdf`, none for a lecture, whose slides are not known before,
  * and none for a note, like those a box of the chapters due today links, see `reader/suggestions.ts`;
  * a line without anything to say is left out. Every line stays one line, ending in `…` where it is too long,
  * like a long place, so a box keeps its few lines.
@@ -81,8 +81,9 @@ import { Draggable } from "fullcalendar/interaction";
 import { boxDrop, boxLog, boxPush, boxSubmit, boxUndo, boxUniversity } from "./entries.ts";
 import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
 import { giftOpen } from "./gifts.ts";
+import { breakableOf } from "./choices.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
-import { airyOf, linkNameOf, modulesFolder } from "../skill/links.ts";
+import { linkNameOf, modulesFolder } from "../skill/links.ts";
 import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
@@ -284,24 +285,30 @@ export function whatOf(category: string, what: string): (string | Node)[] {
 
 /**
  * Gives what an entry or a box shows as its what, see {@link whatOf}: a skill entry or box by its what as its file
- * writes it, its skill airy and its type in brackets, like `IN0004 Einfuehrung Rechnerarchitektur (VO)`, see
- * `skillTitleOf` in `reader/documents.ts`, or as an entry before wrote it, by the folder of its skill, like
+ * writes it, the name of the folder of its skill and its type in brackets, like
+ * `IN0004_EinfuehrungRechnerarchitektur (VO)`, so it reads as the file and the folder in the file manager do;
+ * an entry written while a summary named its module in words, like `IN0004 Einfuehrung Rechnerarchitektur (VO)`,
+ * by the folder its words were made of, its code and `_` before them and their spaces taken out, the same
  * `IN0004_EinfuehrungRechnerarchitektur (VO)`; on a phone by its code alone with its type, like `IN0004 (VO)`, so it
- * stays short there, and so does an older entry whose what does not start with the code of its skill; a project by its
- * name, like `WokFlow`; one without skill and type, like an older entry, and any other entry or box by its what
- * as written.
+ * stays short there, and so does an older entry like `IN0004 VO`; a project by its name, like `WokFlow`; one without
+ * skill and type, like an older entry, and any other entry or box by its what as written.
+ * - `name`: Its what without its type in brackets, like `IN0004 Einfuehrung Rechnerarchitektur`.
+ * - `folder`: The folder of its skill made of the words of that name, like `IN0004_EinfuehrungRechnerarchitektur`.
  *
  * @param category - Its category, like `Skill`
- * @param title - Its what as written, its `SUMMARY`, like `IN0004 Einfuehrung Rechnerarchitektur (VO)`
+ * @param title - Its what as written, its `SUMMARY`, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
  * @param module - Its skill, like `IN0004`, empty for none
  * @param type - Its type, like `VO`, empty for none
- * @returns What it shows, like `IN0004 Einfuehrung Rechnerarchitektur (VO)`
+ * @returns What it shows, like `IN0004_EinfuehrungRechnerarchitektur (VO)`
  */
 export function shownWhatOf(category: string, title: string, module: string, type: string): string {
-    if (category !== skillName || (module === "" && type === "")
-        || (!phone && [`${module} `, `${module}_`].some((start: string): boolean => title.startsWith(start))))
+    const name: string = title.replace(/ \(\w+\)$/, "");
+    if (category !== skillName || (module === "" && type === "") || (!phone && title.startsWith(`${module}_`)))
         return title;
-    return type === "" ? module : `${module} (${type})`;
+    if (phone || !name.startsWith(`${module} `) || name === `${module} ${type}`)
+        return type === "" ? module : `${module} (${type})`;
+    const folder: string = `${module}_${name.slice(module.length + 1).replaceAll(" ", "")}`;
+    return type === "" ? folder : `${folder} (${type})`;
 }
 
 /**
@@ -450,15 +457,14 @@ function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] 
         ...(deadline === null ? [] : [entryPartOf("div", "box-meta", [deadline])]),
         ...(chapters.length === 0 ? [] : [entryPartOf("div", "box-meta box-chapters", chapters)]),
         ...(topics.length === 0 ? [] : [entryPartOf("ul", "box-topics", topics.map((topic: string): HTMLElement =>
-            entryPartOf("li", "", [topic])))]),
+            entryPartOf("li", "", [breakableOf(topic)])))]),
     ];
 }
 
 /**
- * Gives the chapters of a skill box in words, like `01. Regression Analysis` for `01_RegressionAnalysis`,
- * see `airyOf` in `../skill/links.ts`, each a link that opens the overview of its module in the scripts view
- * in this window, the chapter picked in the tree,
- * never a second one, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`,
+ * Gives the chapters of a skill box by the names of their folders, like `01_RegressionAnalysis`, each a link that
+ * opens the overview of its module in the scripts view in this window, the chapter picked in the tree, never a second
+ * one, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`,
  * instead of the box, as the place opens its link; plain on a phone, which has no scripts view, and for a box whose summary links
  * no module folder.
  * - `module`: Name of the folder of its module, the part of the link of its summary after `NomSkillingmodules/`,
@@ -472,20 +478,20 @@ function chaptersOf(box: Box): Node[] {
     const [folder, module]: string[] = box.titleLink.split("/");
     return box.chapters.map((chapter: string): Node => {
         if (phone || folder !== modulesFolder || module === undefined)
-            return document.createTextNode(airyOf(chapter));
+            return document.createTextNode(chapter);
         const anchor: HTMLAnchorElement = document.createElement("a");
         anchor.className = "chapter-link";
         anchor.href = `/scripts?module=${encodeURIComponent(module)}&chapter=${encodeURIComponent(chapter)}`;
-        anchor.textContent = airyOf(chapter);
+        anchor.textContent = chapter;
         anchor.addEventListener("click", (event: MouseEvent): void => event.stopPropagation());
         return anchor;
     });
 }
 
 /**
- * Gives the documents a box will use, as I planned them, each by its name, the last part of its path, in words,
- * like `04. Logistic Poisson Regression.pdf`, see `linkNameOf` in `../skill/links.ts`; a folder it links, which an
- * older box may, shows as its chapter or not at all, see `chaptersOf` in `reader/documents.ts`.
+ * Gives the documents a box will use, as I planned them, each by its name, the last part of its path,
+ * like `04_LogisticPoissonRegression.pdf`; a folder it links, which an older box may, shows as its chapter
+ * or not at all, see `chaptersOf` in `reader/documents.ts`.
  *
  * @param box - The box
  * @returns Its documents, in order, none for none

@@ -7,7 +7,7 @@
  * in `trackers.ts`. A box of my own learning, without type and without time,
  * like a to-do, since only its length matters, not when: 30 minutes for the Task of each section with something due,
  * and 30 more for the theory of a section on round 0, its Definitions, Algorithm and Example, see `taskMinutes`
- * and `theoryMinutes` in `trackers.ts`, like `SUMMARY:IN2028 Business Analytics Machine Learning`
+ * and `theoryMinutes` in `trackers.ts`, like `SUMMARY:IN2028_BusinessAnalyticsMachineLearning`
  * with `X-CHAPTER:01_RegressionAnalysis` and `ESTIMATED-DURATION:PT2H` for 01.03 on round 0 with the Tasks
  * of 01.01 and 01.02, see `boxes.ts`, and one `ATTACH` per note of the chapter with something due,
  * at most one Task each, like `ATTACH:NomSkillingmodules/IN2028_…/01_RegressionAnalysis/01_01_SampleMeanEstimator.md`,
