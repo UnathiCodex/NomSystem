@@ -35,12 +35,13 @@
 }
 
 /* Trackers: at the right end of the bar of the day, three tiles of equal width side by side, a control gap apart,
-   only as wide as the widest needs for its name beside its value, like `Food 2.137 kcal (3)`, so the timer beside
-   them keeps its room, no name ever goes above its value and none goes over the edge */
+   each 10.5rem wide, a little room beside its name and value, or as wide as the widest needs for them,
+   like `Food 2.137 kcal`, so the timer beside them keeps its room, no name ever goes above its value and none goes
+   over the edge */
 .trackers {
     display: grid;
     flex: none;
-    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-columns: minmax(10.5rem, 1fr);
     grid-auto-flow: column;
     gap: var(--control-gap);
     width: max-content;

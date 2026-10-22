@@ -8,7 +8,9 @@
  * and its what, `Night` or `Day` for a nap, see `categories.ts`.
  * The night of a day is the longest sleep of at least 3 hours that ends on it in Berlin time, the sleep I wake up from
  * that morning, so a nap never becomes the night, and a sleep `Day` never, whatever its length; an old entry
- * without what counts like a `Night`. The week holds the nights of the day and the six days before it,
+ * without what counts like a `Night`. What I slept on a day is every sleep that ends on it, the night and the naps,
+ * so a sleep from 22:00 to 05:00 counts for the day it ends on, never for the day it began on.
+ * The week holds the nights of the day and the six days before it,
  * those logged: how long I slept on average, and how regular I was, how much my bedtime varied.
  * Glasses, meals and neck sessions count for the calendar day of their start in Berlin time, from 00:00 to 00:00,
  * like a glass of water at 01:00 on 14.10.2026 for 14.10.2026.
@@ -85,6 +87,7 @@ export type Night = {
  * My sleep on a day.
  *
  * - `night`: The night that ended on the day, `null` when none is logged.
+ * - `slept`: Minutes of every sleep that ended on the day, the night and the naps, 0 when none is logged.
  * - `minutes`: Average minutes of the nights of the week, `null` when none is logged.
  * - `varied`: How much my bedtime varied over the nights of the week, its standard deviation in minutes;
  *   `null` for fewer than two nights.
@@ -92,6 +95,7 @@ export type Night = {
  */
 export type SleepDay = {
     night: Night | null;
+    slept: number;
     minutes: number | null;
     varied: number | null;
     nights: number;
@@ -281,10 +285,11 @@ function variedOf(nights: Night[]): number | null {
 
 /**
  * Reads my sleep on a day, see the top of this file: the sleeps of the log from noon eight days before
- * to noon the day after, which hold every night of the week, without the naps;
- * the night of each day the longest that ends on it.
+ * to noon the day after, which hold every night of the week; the night of each day the longest that ends on it,
+ * without the naps, and what I slept on the day all that end on it, the naps too.
  * - `noon`: Noon of the day in UTC, in milliseconds.
- * - `sleeps`: Sleeps of the range that are no `Day`, at least {@link nightMinutes} long.
+ * - `sleeps`: Sleeps of the range.
+ * - `longs`: Those that are no `Day`, at least {@link nightMinutes} long.
  * - `nights`: Night of each day of the week, the day first, `null` for a day without one.
  * - `day`: A day of the week, like `2026-10-09`.
  * - `logged`: The nights logged.
@@ -296,11 +301,12 @@ function sleepRead(date: string): SleepDay {
     const noon: number = new Date(`${date}T12:00:00Z`).getTime();
     const sleeps: Entry[] = entriesRead(trackerLog,
         new Date(noon - (weekDays + 1) * dayLength).toISOString(), new Date(noon + dayLength).toISOString())
-        .filter((entry: Entry): boolean => entry.category === sleepName && !entry.allDay && entry.title !== napName
-            && lengthOf(entry) >= nightMinutes * 60 * 1000);
+        .filter((entry: Entry): boolean => entry.category === sleepName && !entry.allDay);
+    const longs: Entry[] = sleeps.filter((sleep: Entry): boolean =>
+        sleep.title !== napName && lengthOf(sleep) >= nightMinutes * 60 * 1000);
     const nights: (Night | null)[] = Array.from({ length: weekDays }, (_: unknown, back: number): Night | null => {
         const day: string = new Date(noon - back * dayLength).toISOString().slice(0, 10);
-        const night: Entry | undefined = sleeps
+        const night: Entry | undefined = longs
             .filter((sleep: Entry): boolean => berlinDateOf(new Date(sleep.end)) === day)
             .sort((first: Entry, second: Entry): number => lengthOf(second) - lengthOf(first))[0];
         return night === undefined ? null : nightOf(night);
@@ -308,6 +314,8 @@ function sleepRead(date: string): SleepDay {
     const logged: Night[] = nights.filter((night: Night | null): night is Night => night !== null);
     return {
         night: nights[0],
+        slept: Math.round(sleeps.filter((sleep: Entry): boolean => berlinDateOf(new Date(sleep.end)) === date)
+            .reduce((sum: number, sleep: Entry): number => sum + lengthOf(sleep), 0) / 60000),
         minutes: logged.length === 0
             ? null
             : Math.round(logged.reduce((sum: number, night: Night): number => sum + night.minutes, 0) / logged.length),

@@ -5,7 +5,7 @@
  * see `reader/trackers.ts`, calm and basic: three tiles of equal width side by side, each its name small and grey
  * before its value, like `Sleep 09h 15m`, every tile alike, without icons and without descriptions under the pointer;
  * none on a phone, see `trackers.css`:
- * - Sleep: how long the night of the day lasted, the sleep I woke up from that morning, like `07h 30m`;
+ * - Sleep: how long I slept on the day, every sleep that ended on it, the night and the naps, like `07h 30m`;
  *   its goal, the spread of my bedtime and the average of the week left out for now, since other things come first.
  * - Water: what I drank on the day in litres, like `1.5 l`, without a goal; the whole tile logs 0.25 l more,
  *   one glass of water, at the time of the tap on the shown day, a small `−` in its corner takes the last glass
@@ -86,12 +86,14 @@ type Night = {
  * My sleep on a day, as the reader sends it.
  *
  * - `night`: The night that ended on the day, `null` when none is logged.
+ * - `slept`: Minutes of every sleep that ended on the day, the night and the naps, 0 when none is logged.
  * - `minutes`: Average minutes of the nights of the week, `null` when none is logged.
  * - `varied`: How much my bedtime varied over the week, in minutes, `null` for fewer than two nights.
  * - `nights`: Number of nights of the week logged.
  */
 type SleepDay = {
     night: Night | null;
+    slept: number;
     minutes: number | null;
     varied: number | null;
     nights: number;
@@ -277,18 +279,17 @@ function foodOf(trackers: Trackers): HTMLElement {
 }
 
 /**
- * Builds the sleep: how long the night of the day lasted, the sleep I woke up from that morning, in hours
- * and minutes, each two digits, like `07h 30m`, or `08h 00m` on the hour; while no night is logged `00h 00m`,
- * in the colour of the text like the water's `0.00 l`, so no dash stands there.
- * - `night`: The night of the day, `null` for none.
+ * Builds the sleep: how long I slept on the day, every sleep that ended on it, the night and the naps, so a sleep
+ * from 22:00 to 05:00 counts for the day of 05:00, in hours and minutes, each two digits, like `07h 30m`, or `08h 00m`
+ * on the hour; while no sleep is logged `00h 00m`, in the colour of the text like the water's `0.00 l`, so no dash
+ * stands there.
  *
  * @param trackers - Trackers of the day
  * @returns Tile of the sleep
  */
 function sleepOf(trackers: Trackers): HTMLElement {
     const row: HTMLElement = elementOf("div", "tracker-row", "");
-    const night: Night | null = trackers.sleep.night;
-    row.append(...linesOf("Sleep", lengthOf(night === null ? 0 : night.minutes)));
+    row.append(...linesOf("Sleep", lengthOf(trackers.sleep.slept)));
     return row;
 }
 
