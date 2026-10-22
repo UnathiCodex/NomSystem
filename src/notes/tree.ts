@@ -287,14 +287,11 @@ function pickerOf(kind: string, choices: () => HTMLElement[], nameOf: (choice: H
 
 /**
  * Shows one chapter of one module in the tree of my modules, see the top of this file: their names in their pickers,
- * the module as the day writes its date, the part of its folder name after its code small and grey above, as the
- * weekday, its code bold below, like `Business Analytics Machine Learning` above `IN2028`, see `./notes.css`;
- * the notes of that chapter below, both marked `picked`, every other module and chapter hidden;
+ * each in words on one line, like `IN2028 Business Analytics Machine Learning` and `01. Regression Analysis`,
+ * see `airyOf` in `../skill/links.ts`; the notes of that chapter below, both marked `picked`, every other module and chapter hidden;
  * a module without chapters shows its hint `No chapters yet` and no picker of chapters.
  * - `chapterPick`: The picker of the chapter.
  * - `title`: Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`.
- * - `words`, `code`: The rest of it after its code, and its code, like `BusinessAnalyticsMachineLearning`
- *   and `IN2028`.
  *
  * @param tree - The tree
  * @param module - The module, see {@link moduleNodeOf}
@@ -309,13 +306,7 @@ export function chapterShow(tree: HTMLElement, module: HTMLElement, chapter: HTM
     });
     const chapterPick: HTMLButtonElement = tree.querySelector(".tree-pick-chapter") as HTMLButtonElement;
     const title: string = module.dataset.title ?? "";
-    const words: HTMLSpanElement = document.createElement("span");
-    const code: HTMLSpanElement = document.createElement("span");
-    words.className = "tree-pick-words";
-    words.textContent = airyOf(title.slice(title.indexOf("_") + 1));
-    code.className = "tree-pick-code";
-    code.textContent = title.split("_")[0];
-    (tree.querySelector(".tree-pick-module > .tree-pick-name") as HTMLElement).replaceChildren(words, code);
+    (tree.querySelector(".tree-pick-module > .tree-pick-name") as HTMLElement).textContent = airyOf(title);
     (chapterPick.firstElementChild as HTMLElement).textContent = airyOf(chapter?.dataset.chapter ?? "");
     chapterPick.hidden = chapter === null;
 }

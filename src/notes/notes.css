@@ -140,25 +140,6 @@
     anchor-name: --tree-module;
 }
 
-/* The module on its picker as the day writes its date, see `.day-weekday` in `../base.css`: the rest of the name of
-   its folder small and grey above, as the weekday, a breath apart from its code below, bold, as the date, like
-   `BusinessAnalyticsMachineLearning` above `IN2028`, see `chapterShow` in `tree.ts`; each line ending in dots when
-   longer than the card */
-.tree-pick-words,
-.tree-pick-code {
-    display: block;
-    overflow: hidden;
-    line-height: 1.2;
-    text-overflow: ellipsis;
-}
-
-.tree-pick-words {
-    margin-bottom: 0.125rem;
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--text-muted);
-}
-
 .tree-pick-chapter {
     margin-bottom: 0.75rem;
     anchor-name: --tree-chapter;
