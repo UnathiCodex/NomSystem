@@ -8,11 +8,9 @@
  *
  * ```
  * ## Gratitude
- *
  * - Viele Socials getroffen
  *
  * ## About
- *
  * - Univeranstaltungen so richtig begonnen
  * ```
  *
@@ -68,7 +66,7 @@ const headingForm: RegExp = /^#{1,6} /;
 /**
  * A daily note as each day starts: both headings, empty.
  */
-const emptyNote: string = titles.map((title: SectionTitle): string => `## ${title}\n`).join("\n");
+const emptyNote: string = titles.map((title: SectionTitle): string => `## ${title}\n`).join("");
 
 
 /**
@@ -176,12 +174,11 @@ function pointLinesOf(text: string): string[] {
 }
 
 /**
- * Puts the new points of a section into the lines of a note, each section its heading, an empty line and its points,
- * parted from what stands before and after it by an empty line: in place of its old lines, without points only
- * its heading; while the note has no such section, the section added, my gratitude before my points about the day
+ * Puts the new points of a section into the lines of a note, each section its heading and right below it its points,
+ * parted from what follows by an empty line: in place of its old lines, without points only its heading; while the note has no such section, the section added, my gratitude before my points about the day
  * when the note has them already, else at the end of the note.
  * - `found`: The section in the note, see {@link sectionFind}, `null` when the note has none.
- * - `block`: The section as written: its heading, an empty line and its points, each followed by an empty line.
+ * - `block`: The section as written: its heading, and with points these and an empty line.
  * - `next`: My points about the day, which my gratitude goes before, `null` for none and when they are added.
  *
  * @param lines - Lines of the note, changed in place
@@ -190,7 +187,7 @@ function pointLinesOf(text: string): string[] {
  */
 function sectionPut(lines: string[], title: SectionTitle, points: string[]): void {
     const found: [number, number] | null = sectionFind(lines, title);
-    const block: string[] = points.length === 0 ? [`## ${title}`, ""] : [`## ${title}`, "", ...points, ""];
+    const block: string[] = points.length === 0 ? [`## ${title}`] : [`## ${title}`, ...points, ""];
     if (found !== null) {
         lines.splice(found[0], found[1] - found[0], ...block);
         return;
@@ -203,7 +200,7 @@ function sectionPut(lines: string[], title: SectionTitle, points: string[]): voi
     }
     while (lines.length > 0 && lines[lines.length - 1].trim() === "")
         lines.pop();
-    if (lines.length > 0)
+    if (lines.length > 0 && !headingForm.test(lines[lines.length - 1]))
         lines.push("");
     lines.push(...block);
 }
