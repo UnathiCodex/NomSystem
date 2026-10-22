@@ -13,7 +13,8 @@
  * of the iCalendar format, also in a property or a parameter of my own, like `20261026T130000Z` or `20261026`,
  * never like `2026-10-26T13:00:00.000Z`, and every duration so, like `PT25M`, never like `25`, see {@link sportIcsOf};
  * puts the lines of every entry it writes, new or changed, into one fixed
- * order, see {@link lineOrder}, and leaves every other line as it is, byte for byte.
+ * order, see {@link lineOrder}, each property on one line, never folded, see {@link linesOf},
+ * and leaves every other line as it is, byte for byte.
  *
  * - `node:fs`: Works with files and folders on the disk.
  * - `node:path`: Builds file paths for the operating system.
@@ -302,8 +303,8 @@ type Range = {
 /**
  * Text of an `.ics` file as lines.
  *
- * - `lines`: Lines of the file; a line starting with a space or a tab continues the line before,
- *   as the format folds long lines.
+ * - `lines`: Lines of the file, one per property; a folded line of an older file is joined to the line before
+ *   as it is read, see {@link linesRead}.
  * - `newline`: Line break of the file, `\r\n` as the reader writes new files, or `\n`.
  */
 type FileLines = {
@@ -389,12 +390,18 @@ ownTexts.forEach((name: string): void => {
 });
 
 /**
- * Folds every line the reader writes after 74 bytes, so each line of the file, the space that starts a continued line
- * included, has at most 75, as the standard wants: `ical.js` folds after 75 and puts the space before them, which
- * gave continued lines of 76 bytes, like ` 9Fheimer%20Stra%C3%9Fe%20127%2C%2080797%20M%C3%BCnchen-Schwabing-West%2C%20`
- * in the `ALTREP` of a place.
+ * Gives the lines of a component, one line per property, never folded: `ical.js` folds a line after 75 bytes,
+ * which the standard only recommends, for e-mail, and which cut a place in two, like `Burg-Eltz-Weg\, 81`
+ * and ` 375 München`; so each fold, a line break and the space after it, is taken back, as every reader
+ * of the format unfolds it.
+ * - {@link ICAL.Component#toString}: Writes a component in the iCalendar format, lines parted by `\r\n`.
+ *
+ * @param component - Event, to-do or calendar
+ * @returns Its lines, each a whole property
  */
-ICAL.foldLength = 74;
+function linesOf(component: ICAL.Component): string[] {
+    return component.toString().replace(/\r\n[ \t]/g, "").split("\r\n");
+}
 
 /**
  * Category of skill entries, `CATEGORIES:Skill`, whose `SUMMARY` names their skill and type, see {@link skillPartsOf};
@@ -990,7 +997,12 @@ function writeCheck(file: string): void {
 }
 
 /**
- * Reads an `.ics` file as {@link FileLines}.
+ * Reads an `.ics` file as {@link FileLines}, one line per property: a folded line, one that starts with a space
+ * or a tab, is joined to the line before without that first space or tab, as the format unfolds it, so a file written
+ * back holds no fold any more, see {@link linesOf}.
+ * - `text`: The file.
+ * - `newline`: Its line break.
+ * - `lines`: Its lines, unfolded.
  *
  * @param file - Path of the `.ics` file
  * @returns Lines of the file with its line break
@@ -998,7 +1010,14 @@ function writeCheck(file: string): void {
 function linesRead(file: string): FileLines {
     const text: string = readFileSync(file, "utf8");
     const newline: string = text.includes("\r\n") ? "\r\n" : "\n";
-    return { lines: text.split(newline), newline: newline };
+    const lines: string[] = [];
+    text.split(newline).forEach((line: string): void => {
+        if (/^[ \t]/.test(line) && lines.length > 0)
+            lines[lines.length - 1] += line.slice(1);
+        else
+            lines.push(line);
+    });
+    return { lines: lines, newline: newline };
 }
 
 /**
@@ -1099,7 +1118,7 @@ function linesOrdered(component: string[]): string[] {
 function componentInsert(file: string, event: string[]): void {
     const text: FileLines = existsSync(file)
         ? linesRead(file)
-        : { lines: `${calendarCreate().toString()}\r\n`.split("\r\n"), newline: "\r\n" };
+        : { lines: [...linesOf(calendarCreate()), ""], newline: "\r\n" };
     const calendarEnd: number = text.lines.lastIndexOf("END:VCALENDAR");
     if (calendarEnd === -1)
         throw new Error(`No END:VCALENDAR in ${file}`);
@@ -1487,9 +1506,8 @@ function ownPropertyOf(name: string, value: string | Link | Date): ICAL.Property
  * no value removes the property. Most properties have one value, the `X-ATTEMPT`s of a skill entry one per attempt,
  * its `ATTACH`es one per link, the `ATTENDEE`s of an entry one per person, see {@link attendeePropertyOf}.
  * - `at`: Line of the first old value, or the end of the event.
- * - {@link ICAL.Property#toICALString}: Writes a property in the iCalendar format, as one line.
- * - {@link ICAL.helpers.foldline}: Folds a line after every 74 bytes, see `ICAL.foldLength`, parting the lines
- *   by `\r\n`.
+ * - {@link ICAL.Property#toICALString}: Writes a property in the iCalendar format, as one line, never folded,
+ *   see {@link linesOf}.
  *
  * @param event - Lines from `BEGIN:VEVENT` to `END:VEVENT`, changed in place
  * @param name - Name of the property, like `dtstart`
@@ -1502,9 +1520,8 @@ function propertyPut(event: string[], name: string, values: (string | ICAL.Time 
         at = Math.min(at, old[0]);
         event.splice(old[0], old[1] - old[0]);
     }
-    event.splice(at, 0, ...values.flatMap((value: string | ICAL.Time | Link | ICAL.Property): string[] =>
-        ICAL.helpers.foldline((value instanceof ICAL.Property ? value : propertyOf(name, value)).toICALString())
-            .split("\r\n")));
+    event.splice(at, 0, ...values.map((value: string | ICAL.Time | Link | ICAL.Property): string =>
+        (value instanceof ICAL.Property ? value : propertyOf(name, value)).toICALString()));
 }
 
 /**
@@ -1565,7 +1582,7 @@ export function entryAppend(file: string, fields: EntryFields, own: [string, str
         .forEach(([name, value]: [string, string | Link | Date]): void => {
             event.addProperty(ownPropertyOf(name, value));
         });
-    componentInsert(file, event.toString().split("\r\n"));
+    componentInsert(file, linesOf(event));
     return id;
 }
 
@@ -1638,7 +1655,7 @@ export function todoAppend(file: string, fields: TodoFields): string {
     fields.attendees.forEach((attendee: Attendee): void => {
         todo.addProperty(attendeePropertyOf(attendee));
     });
-    componentInsert(file, todo.toString().split("\r\n"));
+    componentInsert(file, linesOf(todo));
     return id;
 }
 
