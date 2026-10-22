@@ -6,17 +6,16 @@
  * `restrict`, which allows no shell, no forwarding and no terminal, my name first, then the person's, like
  * `restrict,command="/usr/bin/node /home/sopha/NomWorkspace/NomSystemdashboard/reader/gate.ts Sopha Vu" ssh-ed25519 …`.
  * What the key asks stands in `SSH_ORIGINAL_COMMAND`, a command and maybe a path after one space,
- * like `get 2026-10-20_2113_gemeinsame-listen-und-with.md`; the gate does only these commands, all inside
- * `NomKommunikation`, see `kommunikationRoot` in `sources.ts`, and refuses every other, telling which there are:
+ * like `get to_vu/2026-10-20_2113_gemeinsame-listen-und-with.md`; the gate does only these commands, all inside
+ * `NomKommunikation`, see `kommunikationRoot` in `sources.ts`, and refuses every other, telling which there are.
+ * In both boxes, theirs like `to_vu/` and mine like `to_sopha/`, the person may do whatever they want, as I may:
  * - `readme`: Gives `README.md` of `NomKommunikation`, which says how we write to each other.
- * - `list`: Lists the messages for the person, every file of their box, like `to_vu/`, by its path in it,
+ * - `list`: Lists every file of both boxes by its path, like `to_vu/2026-10-15_studien-nacht/CLAIMS.tsv`,
  *   but those of `dashboard/`.
- * - `get <path>`: Gives one file of their box, like `2026-10-15_studien-nacht/CLAIMS.tsv`.
- * - `done <name>`: Puts a message or folder of their box into the trash of my server, as `README.md` asks of who read
- *   it, see `trash.ts`; there is no archive.
- * - `put <path>`: Writes what comes in as a new message into my box, like `to_sopha/2026-10-21_0930_antwort.md`,
- *   or into a folder of it, like `to_sopha/2026-10-21_0930_antwort/Tabelle.tsv`, never over a file there.
- * - `sent`: Lists my box, so the person sees what came and is not done yet.
+ * - `get <path>`: Gives one file of a box, like `to_vu/2026-10-15_studien-nacht/CLAIMS.tsv`.
+ * - `put <path>`: Writes what comes in into a file of a box, like `to_sopha/2026-10-21_0930_antwort.md`,
+ *   or into a folder of it, like `to_sopha/2026-10-21_0930_antwort/Tabelle.tsv`, a file there or not.
+ * - `delete <path>`: Puts a file or folder of a box into the trash of my server, see `trash.ts`.
  * - `share <name>`: Writes what comes in into `dashboard/` of my box: an entry, a food, a meal or a place the dashboard
  *   of the person shares with mine, named by the moment, the person and what it is,
  *   like `20261021T093000123Z_Vu_entry_….ics`, see `shared.ts`.
@@ -30,12 +29,12 @@
  * - `node:fs`: Lists, reads, writes and moves the files of the boxes.
  * - `node:path`: Builds the paths of the boxes.
  * - `./sources.ts`: Names `NomKommunikation`.
- * - `./trash.ts`: Puts a message that is done into the trash.
+ * - `./trash.ts`: Puts what is deleted into the trash.
  */
 
 import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, statSync,
     writeFileSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
+import { basename, dirname, join, sep } from "node:path";
 import { kommunikationRoot } from "./sources.ts";
 import { trashPut } from "./trash.ts";
 
@@ -46,8 +45,8 @@ import type { Dirent } from "node:fs";
  * The commands of the gate, as it tells them when it refuses one.
  */
 const usage: string = [
-    "Allowed: readme | list | get <path> | done <name> | put <path> | sent | share <name> | hello",
-    "  list, get and done work in the box of the caller, put and sent in the box of the owner of this server.",
+    "Allowed: readme | list | get <path> | put <path> | delete <path> | share <name> | hello",
+    "  A path starts with its box, like to_vu/2026-10-22_0930_antwort.md; both boxes are open to both of us.",
 ].join("\n");
 
 /**
@@ -98,6 +97,22 @@ function partsOf(path: string): string[] {
     if (path === "" || parts.length > partsMost || !parts.every((part: string): boolean => partForm.test(part)))
         refuse(`No path allowed: ${path}`);
     return parts;
+}
+
+/**
+ * Splits a path as the caller sends it into its box and the file or folder in it, refusing one outside both boxes
+ * or inside `dashboard/`, which only the dashboards write, see `share` and `hello`.
+ *
+ * @param boxes - The boxes, like `NomKommunikation/to_vu` and `NomKommunikation/to_sopha`
+ * @param path - Path like `to_vu/2026-10-15_studien-nacht/CLAIMS.tsv`
+ * @returns The box and the file or folder
+ */
+function boxPathOf(boxes: string[], path: string): string[] {
+    const [first, ...parts]: string[] = partsOf(path);
+    const box: string | undefined = boxes.find((one: string): boolean => basename(one) === first);
+    if (box === undefined || parts.length === 0 || parts[0] === "dashboard")
+        refuse(`No path in a box: ${path}`);
+    return [box, join(box, ...parts)];
 }
 
 /**
@@ -172,6 +187,7 @@ async function gateRun(): Promise<void> {
         refuse("The gate needs the name of the owner and of the caller, like gate.ts Sopha Vu");
     const theirs: string = join(kommunikationRoot, `to_${caller.toLowerCase()}`);
     const mine: string = join(kommunikationRoot, `to_${me.toLowerCase()}`);
+    const boxes: string[] = [theirs, mine];
     const asked: string = (process.env.SSH_ORIGINAL_COMMAND ?? "").trim();
     const at: number = asked.indexOf(" ");
     const command: string = at === -1 ? asked : asked.slice(0, at);
@@ -182,33 +198,29 @@ async function gateRun(): Promise<void> {
             refuse("No README.md on this server; it lies on sophabohne");
         process.stdout.write(readFileSync(join(kommunikationRoot, "README.md")));
     } else if (command === "list") {
-        process.stdout.write(filesOf(theirs, ["dashboard"]).map((file: string): string => `${file}\n`).join(""));
-    } else if (command === "sent") {
-        process.stdout.write(filesOf(mine, ["dashboard"]).map((file: string): string => `${file}\n`).join(""));
+        process.stdout.write(boxes.flatMap((box: string): string[] => filesOf(box, ["dashboard"])
+            .map((file: string): string => `${basename(box)}/${file}\n`)).join(""));
     } else if (command === "get") {
-        const parts: string[] = partsOf(path);
-        const file: string = join(theirs, ...parts);
-        if (parts[0] === "dashboard" || !existsSync(file) || !statSync(file).isFile())
-            refuse(`No such message: ${path}`);
-        insideCheck(theirs, file);
+        const [box, file]: string[] = boxPathOf(boxes, path);
+        if (!existsSync(file) || !statSync(file).isFile())
+            refuse(`No such file: ${path}`);
+        insideCheck(box, file);
         createReadStream(file).pipe(process.stdout);
-    } else if (command === "done") {
-        const parts: string[] = partsOf(path);
-        const done: string = join(theirs, ...parts);
-        if (parts.length !== 1 || parts[0] === "dashboard" || !existsSync(done))
-            refuse(`No such message: ${path}`);
-        insideCheck(theirs, done);
-        trashPut(done);
-        process.stdout.write("ok\n");
     } else if (command === "put") {
-        const parts: string[] = partsOf(path);
-        const file: string = join(mine, ...parts);
-        if (parts[0] === "dashboard" || existsSync(file))
-            refuse(`No new message: ${path}`);
+        const [box, file]: string[] = boxPathOf(boxes, path);
+        if (existsSync(file) && !statSync(file).isFile())
+            refuse(`A folder, no file: ${path}`);
         mkdirSync(dirname(file), { recursive: true });
-        if (dirname(file) !== mine)
-            insideCheck(mine, dirname(file));
+        if (dirname(file) !== box)
+            insideCheck(box, dirname(file));
         fileWrite(file, await inputRead(messageMost));
+        process.stdout.write("ok\n");
+    } else if (command === "delete") {
+        const [box, thing]: string[] = boxPathOf(boxes, path);
+        if (!existsSync(thing))
+            refuse(`No such file or folder: ${path}`);
+        insideCheck(box, thing);
+        trashPut(thing);
         process.stdout.write("ok\n");
     } else if (command === "share") {
         const box: string = join(mine, "dashboard");
