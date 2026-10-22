@@ -34,18 +34,16 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Trackers: at the right end of the bar of the day, above the log and as wide as it, three tiles of equal width
-   side by side, a control gap apart; wider where the log is too narrow for every tile's name beside its value,
-   like `Food 2.137 kcal (3)` on the laptop at 1280 px, so no name ever goes above its value and none goes over
-   the edge */
+/* Trackers: at the right end of the bar of the day, three tiles of equal width side by side, a control gap apart,
+   only as wide as the widest needs for its name beside its value, like `Food 2.137 kcal (3)`, so the timer beside
+   them keeps its room, no name ever goes above its value and none goes over the edge */
 .trackers {
     display: grid;
     flex: none;
     grid-auto-columns: minmax(0, 1fr);
     grid-auto-flow: column;
     gap: var(--control-gap);
-    width: calc((100% - var(--gap)) / 2);
-    min-width: max-content;
+    width: max-content;
     margin-left: auto;
 }
 

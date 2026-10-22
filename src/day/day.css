@@ -130,11 +130,11 @@
 }
 
 /* Date of the day as a button, which opens the month to pick a day from: no frame, a grey under the pointer,
-   plenty of room left and right of it, the timer beside it taking the rest; in the day as wide as its date,
+   more room left of it than right of it, where the icon back to today follows; in the day as wide as its date,
    like `22.10.2026`, every digit equally wide, wider than the small weekday above it, even `Wednesday`, so the arrow
    after it stays in place from day to day */
 .day-title-button {
-    padding: 0.25rem 1.5rem;
+    padding: 0.25rem 0.5rem 0.25rem 1.5rem;
     border: none;
     border-radius: var(--radius);
     background: none;
