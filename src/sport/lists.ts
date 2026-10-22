@@ -31,6 +31,9 @@
  * My videos have no list of their own: they live in my workouts.
  * My weight, which the kcal need, I change in the totals of the day, see `sport.ts`, and the lists load anew after,
  * see {@link mineReload}, since the kcal of my workouts count with it.
+ * Both load anew the moment a file of my new system changes, whoever changed it, like a workout changed on my phone,
+ * see `../changes.ts`, as my meals in the food view, but not while the cursor stands in them, so nothing typed there
+ * is lost.
  *
  * - `./mine.ts`: Loads, sends and removes my workouts and exercises, sends my videos, and asks YouTube for a link.
  * - `../food/foods.ts`: Makes elements and buttons, the brackets of a list kept alike.
@@ -38,6 +41,7 @@
  *   check of a form.
  * - `../day/times.ts`: Writes a length of time.
  * - `../search.ts`: Compares the text typed in a search with the names of a list.
+ * - `../changes.ts`: Loads everything of mine anew the moment a file of my new system changes.
  * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, and the plain question mark, their words
  *   as tooltip.
  * - `lucide`: The plus of a new workout or exercise, and the pencil that renames a workout.
@@ -50,6 +54,7 @@ import { bracketsWatch, buttonOf, elementOf } from "../food/foods.ts";
 import { editButtonsOf, editFieldOf, inlineFieldOf, listHeadOf, listLineOf } from "../food/search.ts";
 import { lengthOf } from "../day/times.ts";
 import { matchesAll, wordsOf } from "../search.ts";
+import { changesFollow } from "../changes.ts";
 import { crossPut, iconOf, iconPut, plusPut, QuestionMark } from "../icons.ts";
 import { Pencil, Plus } from "lucide";
 
@@ -372,7 +377,8 @@ function valueOf(text: string): HTMLElement {
  * - `editing`: Key of the video of a workout opened whose minutes and kind show below it, its link, or its title
  *   in small letters for one without link; empty for none.
  * - `videoChange`: Sends a video of mine changed, its minutes or its kind, and shows all of mine.
- * - `send`: Sends a workout with its parts, or renamed, and shows all of mine as the reader sends them.
+ * - `send`: Sends a workout with its parts, or renamed, and shows all of mine as the reader sends them, a workout
+ *   renamed staying open under its name as the reader cleans it, like `Push Pull` of `Push, Pull`.
  * - `begin`: Opens a new workout with its search, not written until its first part.
  * - `toggle`: Opens a workout, or closes it again.
  * - `show`: Shows the workouts whose name or parts hold the words typed in the search, all for none typed.
@@ -397,7 +403,7 @@ function workoutsSectionOf(): HTMLElement {
                 if (workout.name === fresh)
                     fresh = "";
                 if (name !== undefined)
-                    open = name.trim().toLowerCase();
+                    open = typedNameOf(name).toLowerCase();
                 mineShow(sent);
             }).catch(failed);
     };
@@ -830,7 +836,8 @@ export function mineReload(): void {
 }
 
 /**
- * Builds the two sections of the lists, see the top of this file, and loads everything of mine into them.
+ * Builds the two sections of the lists, see the top of this file, and loads everything of mine into them,
+ * and anew after every change of the files while the cursor stands in neither, see `../changes.ts`.
  * - `sections`: The sections in their order.
  *
  * @returns The sections
@@ -842,6 +849,10 @@ export function listsOf(): HTMLElement[] {
         console.error(error);
         sections.forEach((section: HTMLElement): void => section.querySelector(".dish-list")
             ?.replaceChildren(elementOf("p", "food-none", "Cannot be read")));
+    });
+    changesFollow((): void => {
+        if (!sections.some((section: HTMLElement): boolean => section.contains(document.activeElement)))
+            mineReload();
     });
     return sections;
 }

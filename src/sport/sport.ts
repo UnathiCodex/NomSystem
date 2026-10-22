@@ -20,6 +20,9 @@
  * Beside the day my workouts and exercises, see `lists.ts`.
  * It opens on today's calendar date, which turns at 00:00, also after a reload, and while it shows today it moves on
  * with it; only a link like `/sport?date=2026-10-10` opens on that day, see `today.ts`.
+ * The day loads anew the moment a file of my new system changes, whoever changed it, like a session logged on my phone,
+ * see `../changes.ts`, so it always shows the sessions as they lie in the log; not while I type my weight,
+ * which the field would lose, and which shows the day anew itself once written or taken back.
  *
  * - `./mine.ts`: Loads the sessions of a day with what they took, and sends my weight of a day.
  * - `./lists.ts`: The sections of my workouts, exercises and videos, loaded anew after my weight changed.
@@ -28,6 +31,7 @@
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../today.ts`: Gives today's calendar date and the day a link asks for, and moves the sport view on to the new day
  *   while it shows today.
+ * - `../changes.ts`: Loads the day anew the moment a file of my new system changes.
  * - `../icons.ts`: Puts the arrows and the icon back to today into their buttons, their words as tooltip, and makes
  *   the pencil of my weight.
  * - `lucide`: The icons of the arrows, of today and the pencil.
@@ -41,6 +45,7 @@ import { amountOf, buttonOf, elementOf } from "../food/foods.ts";
 import { dateTextOf, lengthOf } from "../day/times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { askedDayOf, calendarTodayOf, todayFollow } from "../today.ts";
+import { changesFollow } from "../changes.ts";
 import { iconOf, iconPut } from "../icons.ts";
 import { CalendarCheck, ChevronLeft, ChevronRight, Pencil } from "lucide";
 import "../food/food.css";
@@ -306,7 +311,8 @@ function dayMove(days: number): void {
 /**
  * Starts the sport view after the router has put its HTML into the page:
  * the arrows and the icon back to today, the day a link asks for or today's calendar date, which moves on
- * to the new day by itself while it is shown, see `today.ts`, and my lists.
+ * to the new day by itself while it is shown, see `today.ts`, and loads anew after every change of the files,
+ * see `../changes.ts`, unless the field of my weight is open, see {@link weightEdit}, and my lists.
  * - `before`, `after`, `today`: Buttons to the day before and after, and back to today.
  */
 export function sportStart(): void {
@@ -322,4 +328,8 @@ export function sportStart(): void {
     document.getElementById("sport-lists")?.append(...listsOf());
     dayOpen(askedDayOf() ?? calendarTodayOf());
     todayFollow((): string => shown, dayOpen);
+    changesFollow((): void => {
+        if (document.querySelector(".sport-weight-field") === null)
+            dayOpen(shown);
+    });
 }
