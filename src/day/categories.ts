@@ -740,17 +740,18 @@ function partsToggle(field: Field): void {
 
 /**
  * Makes the field of a part of a place, a plain field without placeholder, empty until I type or paste into it,
- * see {@link partsOf}.
+ * see {@link partsOf}; a link a field of text like every other part, so every browser shows it as plain as they,
+ * never in a colour of its own, only the keyboard of a phone the one of a web address.
  * - `input`: The field.
  *
- * @param type - Type of the field, `url` for a link, else `text`
+ * @param keyboard - Keyboard of a phone for the field, `url` for a link, else `text`
  * @param value - What it holds at first, like `Arcisstraße 21`
  * @param name - What it holds, for screen readers, like `Address of the place`
  * @returns The field
  */
-function partFieldOf(type: string, value: string, name: string): HTMLInputElement {
+function partFieldOf(keyboard: string, value: string, name: string): HTMLInputElement {
     const input: HTMLInputElement = document.createElement("input");
-    input.type = type;
+    input.inputMode = keyboard;
     input.value = value;
     input.autocomplete = "off";
     input.setAttribute("aria-label", name);
