@@ -193,6 +193,8 @@ const pointContinue: Command = (view: EditorView): boolean => {
  * - `parent`: The point it stands in.
  * - `first`: Whether it is the first point of a sub-list.
  * - `last`: Its last line, the line of the cursor or its last empty spacer line below it.
+ * - `indentation`: The indentation of the text of the point the spacer line goes into, `null` for a point indented
+ *   otherwise than by tabs, like by spaces, whose key it leaves to CodeMirror's Markdown too.
  * - `insert`: The spacer line.
  *
  * @param view - The editor
@@ -214,7 +216,11 @@ const spacerBackward: Command = (view: EditorView): boolean => {
     while (own && first && last.number < view.state.doc.lineAt(item.to).number
            && emptySpacerRule.test(view.state.doc.line(last.number + 1).text))
         last = view.state.doc.line(last.number + 1);
-    const insert: string = textIndentationOf(first ? view.state.doc.lineAt(parent?.from ?? 0).text : line.text) + spacer;
+    const indentation: string | null =
+        textIndentationOf(first ? view.state.doc.lineAt(parent?.from ?? 0).text : line.text);
+    if (indentation === null)
+        return false;
+    const insert: string = indentation + spacer;
     listChange(view, {
         changes: { from: line.from, to: last.to, insert: insert },
         selection: { anchor: line.from + insert.length },

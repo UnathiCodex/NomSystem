@@ -651,25 +651,38 @@ function boxCheck(box: BoxNew, old: Entry | null): void {
 }
 
 /**
- * Writes the chapters of a skill box as its `X-CHAPTER`s and the documents it will use as its `ATTACH`es,
+ * Gives the chapters of a skill box as its `X-CHAPTER`s and the documents it will use as its `ATTACH`es,
  * see `linksOf` in `documents.ts`, a document it linked already kept, also one not there yet, like the slides
- * of a lecture to come; for a box that is no skill box, or no more, takes them out, but leaves the links of a box
- * that never was one, like a to-do of another app, as they are.
+ * of a lecture to come; for a box that is no skill box, or no more, none of them, but nothing for a box
+ * that never was one, like a to-do of another app, so its links stay as they are. Given before anything
+ * is written, so a document that is none of the module's changes nothing.
+ *
+ * @param box - The box as sent
+ * @param old - The box as it was, `null` for a new one
+ * @returns The properties to put, see {@link boxLinksPut}, none to leave them as they are
+ * @throws {Error} - When a document is none of the module's
+ */
+function boxLinksOf(box: BoxNew, old: Entry | null): [string, (string | Link)[]][] {
+    if (box.category === skillName)
+        return [
+            ["x-chapter", box.chapters],
+            ["attach", linksOf(box.module, box.documents, old?.links ?? [])],
+        ];
+    if (old?.category === skillName)
+        return [["x-chapter", []], ["attach", []]];
+    return [];
+}
+
+/**
+ * Writes the chapters and documents of a box, see {@link boxLinksOf}, leaving the box as it is for none.
  *
  * @param file - Path of the `.ics` file the box lies in now
  * @param id - Identifier of the box
- * @param box - The box as sent
- * @param old - The box as it was, `null` for a new one
- * @throws {Error} - When a document is none of the module's
+ * @param links - The properties to put, see {@link boxLinksOf}
  */
-function boxLinksPut(file: string, id: string, box: BoxNew, old: Entry | null): void {
-    if (box.category === skillName)
-        propertiesPut(file, id, [
-            ["x-chapter", box.chapters],
-            ["attach", linksOf(box.module, box.documents, old?.links ?? [])],
-        ]);
-    else if (old?.category === skillName)
-        propertiesPut(file, id, [["x-chapter", []], ["attach", []]]);
+function boxLinksPut(file: string, id: string, links: [string, (string | Link)[]][]): void {
+    if (links.length > 0)
+        propertiesPut(file, id, links);
 }
 
 /**
@@ -693,6 +706,34 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
         attendees: box.attendees ?? old?.attendees ?? [],
         module: box.module, type: box.type, semester: semester, note: box.note,
         day: box.day, time: box.time === "" ? null : new Date(box.time), minutes: box.minutes, deadline: box.deadline,
+    };
+}
+
+/**
+ * Turns a changed box that is an event of the plan, like a lecture imported from TUMonline, into its fields,
+ * as {@link todoFieldsOf} does for a to-do: its start and its end from its time and its duration, which it keeps.
+ * - `start`: Its new start.
+ * - `semester`: Semester of a skill event as it is written, see `semesterFor` in `categories.ts`, empty for any other.
+ * - `title`, `titleLink`: What it is, its `SUMMARY`, and the link of it.
+ *
+ * @param change - The changed box as the page sends it
+ * @param old - The event as it was
+ * @returns Fields and times of the event
+ * @throws {Error} - When it would lose its time or its duration, or the link typed for `Online` is no web address
+ */
+function eventFieldsOf(change: BoxChange, old: Entry): EntryFields {
+    if (change.time === "" || change.minutes === null)
+        throw new Error(`${old.title} is an event of the plan and keeps its time and its duration`);
+    const start: Date = new Date(change.time);
+    const semester: string = semesterFor(change.category, change.semester, change.day);
+    const [title, titleLink]: [string, string] = titleOf({ ...change, semester: semester }, old);
+    return {
+        category: change.category, title: title, titleLink: titleLink, location: change.location,
+        locationLink: placeLinkOf(change.location, change.locationLink, old), from: change.from,
+        attendees: change.attendees ?? old.attendees,
+        module: change.module, type: change.type, semester: semester,
+        note: change.note,
+        start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
     };
 }
 
@@ -737,8 +778,10 @@ function numberNextOf(module: string, type: string, date: string): string {
 /**
  * Adds a box to the plan, as a to-do in the plan it belongs into, see {@link planFileOf}, a skill box
  * with its chapters and documents, see {@link boxLinksPut}, a lecture, an exercise, a tutorial or a sheet
- * with its number in its series, see {@link numberNextOf}.
+ * with its number in its series, see {@link numberNextOf}; nothing is written while it is not right.
  * - `file`: The plan it belongs into.
+ * - `fields`: Fields of its to-do.
+ * - `links`: Its chapters and documents.
  * - `id`: Identifier of the new box.
  *
  * @param box - The box as the page sends it
@@ -749,8 +792,10 @@ function numberNextOf(module: string, type: string, date: string): string {
 export function boxAdd(box: BoxNew): string {
     boxCheck(box, null);
     const file: string = planFileOf(box, box.day);
-    const id: string = todoAppend(file, todoFieldsOf(box, null));
-    boxLinksPut(file, id, box, null);
+    const fields: TodoFields = todoFieldsOf(box, null);
+    const links: [string, (string | Link)[]][] = boxLinksOf(box, null);
+    const id: string = todoAppend(file, fields);
+    boxLinksPut(file, id, links);
     if (box.category === skillName && numberedTypes.includes(box.type))
         propertiesPut(file, id, [["x-number", [numberNextOf(box.module, box.type, box.day)]]]);
     return id;
@@ -806,10 +851,11 @@ export function boxUniversity(id: string, cancelled: boolean): void {
  * its start and its length as they stood go into one more `X-PUSHED`, like
  * `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261017T150000` for one moved
  * from Sat, 17.10.2026, 15:00 to Mon, 19.10.2026; a box moved earlier or with a deadline is not pushed.
+ * All of it is checked before anything is written, so a change the reader does not take changes nothing.
+ * - `todo`: New fields of a to-do, `null` for an event.
+ * - `event`: New fields and times of an event, see {@link eventFieldsOf}, `null` for a to-do.
+ * - `links`: Its chapters and documents, see {@link boxLinksOf}.
  * - `target`: The plan file it belongs into now.
- * - `start`: New start of an event.
- * - `semester`: Semester of a skill event as it is written, see `semesterFor` in `categories.ts`, empty for any other.
- * - `fields`: New fields and times of an event.
  *
  * @param change - The changed box as the page sends it
  * @throws {Error} - When there is no such box in the new system, the box is not right, the link typed for `Online`
@@ -820,31 +866,18 @@ export function boxEdit(change: BoxChange): void {
     if (!entry.editable)
         throw new Error(`${entry.title} may not be changed`);
     boxCheck(change, entry);
+    const todo: TodoFields | null = entry.todo ? todoFieldsOf(change, entry) : null;
+    const event: EntryFields | null = entry.todo ? null : eventFieldsOf(change, entry);
+    const links: [string, (string | Link)[]][] = boxLinksOf(change, entry);
     boxOwn(file, entry);
     if (box.state === "open" && box.deadline === "" && change.deadline === "" && change.day > box.day)
         pushAdd(file, change.id, entry);
     const target: string = planFileAfter(file, entry, change, change.day);
-    if (entry.todo) {
-        todoChange(file, entry, todoFieldsOf(change, entry), target);
-        boxLinksPut(target, change.id, change, entry);
-        return;
-    }
-
-    if (change.time === "" || change.minutes === null)
-        throw new Error(`${entry.title} is an event of the plan and keeps its time and its duration`);
-    const start: Date = new Date(change.time);
-    const semester: string = semesterFor(change.category, change.semester, change.day);
-    const [title, titleLink]: [string, string] = titleOf({ ...change, semester: semester }, entry);
-    const fields: EntryFields = {
-        category: change.category, title: title, titleLink: titleLink, location: change.location,
-        locationLink: placeLinkOf(change.location, change.locationLink, entry), from: change.from,
-        attendees: change.attendees ?? entry.attendees,
-        module: change.module, type: change.type, semester: semester,
-        note: change.note,
-        start: start, end: new Date(start.getTime() + change.minutes * minuteLength),
-    };
-    entryChange(file, entry, fields, target);
-    boxLinksPut(target, change.id, change, entry);
+    if (todo !== null)
+        todoChange(file, entry, todo, target);
+    else if (event !== null)
+        entryChange(file, entry, event, target);
+    boxLinksPut(target, change.id, links);
 }
 
 /**

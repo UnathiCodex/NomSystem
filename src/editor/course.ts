@@ -908,7 +908,7 @@ async function formSend(form: Form, dry: boolean): Promise<Planned[]> {
  * Shows the boxes the form of a series makes, as the reader would write them, see {@link formSend}: each its number,
  * `–` for one the university cancelled, the check of one done, a new one outlined, with its day below it, like `19.10`,
  * a day left out as `·`, in the order of their days; then how many there are, like `14 boxes`; nothing while the form
- * is not ready, and only the answer to the last question.
+ * is not ready or the reader does not take it, like for dates too far apart, and only the answer to the last question.
  * - `preview`: The place of the preview.
  * - `asked`: The number of this question.
  * - `planned`: The boxes, without those removed.
@@ -926,8 +926,14 @@ async function previewShow(): Promise<void> {
         preview.replaceChildren();
         return;
     }
-    const planned: Planned[] = (await formSend(form, true))
-        .filter((box: Planned): boolean => box.change !== "removed");
+    let planned: Planned[];
+    try {
+        planned = (await formSend(form, true)).filter((box: Planned): boolean => box.change !== "removed");
+    } catch (error: unknown) {
+        if (asked === previewsAsked)
+            preview.replaceChildren();
+        throw error;
+    }
     if (asked !== previewsAsked)
         return;
     const items: [string, HTMLElement][] = [
@@ -1387,7 +1393,8 @@ function formEscape(event: KeyboardEvent): void {
 /**
  * Opens the form of a series, see the top of this file: in its card filled as its rule reads back, or, for a new
  * series, after the cards, without type, its days and dates empty, its list of types open; one form at a time.
- * Enter confirms only its field, as in the dialog, Ctrl+Enter saves, and Escape cancels, see {@link formEscape}.
+ * Enter confirms only its field, as in the dialog, Ctrl+Enter confirms it too and saves, like a day typed to leave
+ * out, and Escape cancels, see {@link formEscape}.
  * - `form`: The form.
  * - `categories`: The categories, for its places and people.
  *
@@ -1411,10 +1418,9 @@ function formOpen(rule: Rule | null): void {
         if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement) || event.defaultPrevented)
             return;
         event.preventDefault();
+        event.target.blur();
         if (event.ctrlKey)
             formSave().catch((error: unknown): void => console.error(error));
-        else
-            event.target.blur();
     });
     readerAsk<Category[]>(`/api/day/categories?now=${encodeURIComponent(new Date().toISOString())}`)
         .then((loaded: Category[]): void => {
