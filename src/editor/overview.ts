@@ -24,7 +24,7 @@
 
 import { skillingLoad } from "../skill/attempts.ts";
 import { chapterShow, noteAddressOf } from "../notes/tree.ts";
-import { breakableOf } from "../day/choices.ts";
+import { airyOf } from "../skill/links.ts";
 import { elementOf } from "../food/foods.ts";
 import "../day/boxes.css";
 import "./overview.css";
@@ -59,7 +59,7 @@ function rowOf(module: SkillModule, section: SkillSection): HTMLAnchorElement {
     const row: HTMLAnchorElement = document.createElement("a");
     row.className = "overview-row";
     row.href = noteAddressOf(section.note, "");
-    row.append(elementOf("span", "overview-name", section.title),
+    row.append(elementOf("span", "overview-name", airyOf(section.title)),
         elementOf("span", "overview-round", roundOf(module, section)));
     return row;
 }
@@ -78,7 +78,7 @@ function groupOf(module: SkillModule, chapter: string): HTMLElement {
     const group: HTMLElement = elementOf("section", "overview-group", "");
     const head: HTMLElement = elementOf("div", "overview-head", "");
     const card: HTMLElement = elementOf("div", "overview-card", "");
-    head.append(elementOf("h3", "overview-chapter", breakableOf(chapter)),
+    head.append(elementOf("h3", "overview-chapter", airyOf(chapter)),
         elementOf("span", "overview-column", "Round"));
     card.append(...module.sections.filter((section: SkillSection): boolean => section.chapter === chapter)
         .map((section: SkillSection): HTMLAnchorElement => rowOf(module, section)));
@@ -106,7 +106,7 @@ export async function overviewShow(place: HTMLElement, module: string): Promise<
     const list: HTMLElement = place.querySelector(".overview-list") as HTMLElement;
     up.href = "/scripts";
     up.textContent = "NomSkillingmodules";
-    (place.querySelector(".day-date") as HTMLElement).textContent = breakableOf(module);
+    (place.querySelector(".day-date") as HTMLElement).textContent = airyOf(module);
     if (found === undefined || found.sections.length === 0)
         list.replaceChildren(elementOf("p", "plan-none", "No chapters yet"));
     else

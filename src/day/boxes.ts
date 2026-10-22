@@ -9,12 +9,12 @@
  * see `reader/suggestions.ts`, and the cancelled boxes without time last; on today below them the boxes carried along,
  * see below.
  * Every box has the same lines, open or done: its category in bold with a colon and what,
- * like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`, as an entry of the log does, on one line, ending in `…`
+ * like `Skill: IN0004 Einfuehrung Rechnerarchitektur (VO)`, as an entry of the log does, on one line, ending in `…`
  * where it is too long; then grey its expected time, its length only where no end shows it, with its place after them,
  * by its label alone, like `11:30 – 13:00 · Audimax im Galileo` or `01h 00m · Home Munich`, the place opening its link
  * on a click when it has one; then its deadline, when it has one, see below; then its chapters in words, each opening
- * the overview of its module in the scripts view, like `01 Regression Analysis`; then the documents it will use, each on a line of its own with a bullet, by the last
- * part of its path, like `04_LogisticPoissonRegression.pdf`, none for a lecture, whose slides are not known before,
+ * the overview of its module in the scripts view, like `01. Regression Analysis`; then the documents it will use, each on a line of its own with a bullet, by the last
+ * part of its path in words, like `04. Logistic Poisson Regression.pdf`, none for a lecture, whose slides are not known before,
  * and none for a note, like those a box of the chapters due today links, see `reader/suggestions.ts`;
  * a line without anything to say is left out. Every line stays one line, ending in `…` where it is too long,
  * like a long place, so a box keeps its few lines.
@@ -80,10 +80,9 @@
 import { Draggable } from "fullcalendar/interaction";
 import { boxDrop, boxLog, boxPush, boxSubmit, boxUndo, boxUniversity } from "./entries.ts";
 import { boxOpenEdit, boxOpenNew, entryOpenFromBox } from "./categories.ts";
-import { breakableOf } from "./choices.ts";
 import { giftOpen } from "./gifts.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
-import { chapterNameOf, linkNameOf, modulesFolder } from "../skill/links.ts";
+import { airyOf, linkNameOf, modulesFolder } from "../skill/links.ts";
 import { boxMinutes, boxTimesOf, lengthOf, timeOf } from "./times.ts";
 import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
@@ -451,13 +450,13 @@ function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] 
         ...(deadline === null ? [] : [entryPartOf("div", "box-meta", [deadline])]),
         ...(chapters.length === 0 ? [] : [entryPartOf("div", "box-meta box-chapters", chapters)]),
         ...(topics.length === 0 ? [] : [entryPartOf("ul", "box-topics", topics.map((topic: string): HTMLElement =>
-            entryPartOf("li", "", [breakableOf(topic)])))]),
+            entryPartOf("li", "", [topic])))]),
     ];
 }
 
 /**
- * Gives the chapters of a skill box in words, like `01 Regression Analysis` for `01_RegressionAnalysis`,
- * see `chapterNameOf` in `../skill/links.ts`, each a link that opens the overview of its module in the scripts view
+ * Gives the chapters of a skill box in words, like `01. Regression Analysis` for `01_RegressionAnalysis`,
+ * see `airyOf` in `../skill/links.ts`, each a link that opens the overview of its module in the scripts view
  * in this window, the chapter picked in the tree,
  * never a second one, like `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`,
  * instead of the box, as the place opens its link; plain on a phone, which has no scripts view, and for a box whose summary links
@@ -473,20 +472,20 @@ function chaptersOf(box: Box): Node[] {
     const [folder, module]: string[] = box.titleLink.split("/");
     return box.chapters.map((chapter: string): Node => {
         if (phone || folder !== modulesFolder || module === undefined)
-            return document.createTextNode(chapterNameOf(chapter));
+            return document.createTextNode(airyOf(chapter));
         const anchor: HTMLAnchorElement = document.createElement("a");
         anchor.className = "chapter-link";
         anchor.href = `/scripts?module=${encodeURIComponent(module)}&chapter=${encodeURIComponent(chapter)}`;
-        anchor.textContent = chapterNameOf(chapter);
+        anchor.textContent = airyOf(chapter);
         anchor.addEventListener("click", (event: MouseEvent): void => event.stopPropagation());
         return anchor;
     });
 }
 
 /**
- * Gives the documents a box will use, as I planned them, each by its name, the last part of its path,
- * like `04_LogisticPoissonRegression.pdf`; a folder it links, which an older box may, shows as its chapter
- * or not at all, see `chaptersOf` in `reader/documents.ts`.
+ * Gives the documents a box will use, as I planned them, each by its name, the last part of its path, in words,
+ * like `04. Logistic Poisson Regression.pdf`, see `linkNameOf` in `../skill/links.ts`; a folder it links, which an
+ * older box may, shows as its chapter or not at all, see `chaptersOf` in `reader/documents.ts`.
  *
  * @param box - The box
  * @returns Its documents, in order, none for none

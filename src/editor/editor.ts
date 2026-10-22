@@ -69,6 +69,7 @@ import { outlineShow, treeShow } from "../notes/tree.ts";
 import { todayShow } from "./today.ts";
 import { overviewShow, overviewTreeShow } from "./overview.ts";
 import { calendarTodayOf } from "../today.ts";
+import { airyOf } from "../skill/links.ts";
 import { timeOf } from "../day/times.ts";
 import { Check, Save } from "lucide";
 import { iconPut } from "../icons.ts";
@@ -395,7 +396,7 @@ export async function editorStart(): Promise<void> {
     const shown: Promise<void> = treeShow(tree, plannings ? "NomManageplannings" : "NomSkillingmodules", path,
         address.get("module") ?? "");
     shown.catch((error: unknown): void => console.error(error));
-    const title: string = path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";
+    const title: string = airyOf(path.split("/").at(-1) ?? "");
     if (plannings)
         (document.getElementById("editor-title") as HTMLElement).textContent = title;
     const close: HTMLButtonElement = document.getElementById("editor-close") as HTMLButtonElement;

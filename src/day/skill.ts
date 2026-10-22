@@ -56,13 +56,13 @@
  */
 
 import {
-    addedRowOf, addedRowsOf, addRowOf, breakableOf, choiceOf, choicesOf, lineMove, pairOf, rowOf, searchOf,
+    addedRowOf, addedRowsOf, addRowOf, choiceOf, choicesOf, lineMove, pairOf, rowOf, searchOf,
 } from "./choices.ts";
 import {
     dayTextOf, groupsOf, moduleLoad, semesterOf, skillEntrySend, skillingLoad,
 } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
-import { modulesFolder } from "../skill/links.ts";
+import { airyOf, airyPathOf, modulesFolder } from "../skill/links.ts";
 import { changesKept } from "../changes.ts";
 
 import type { Calendar } from "fullcalendar";
@@ -316,16 +316,16 @@ export function skillPathOf(): string {
  * Shows the folder of the skill picked, see {@link skillPathOf}, as the link below the summary, small and grey,
  * as a place has its address below it, see `summaryPartsOf` in `categories.ts`: for a module a link that opens
  * the module in the scripts view in this window, never a second one, underlined under the pointer, for a project, which the scripts view
- * has not, its path alone; hidden while no skill is picked. Where it is wider than its row, as on a phone, it goes on
- * below after a `/`, after a `_` or between the words of a name, like `NomSkillingmodules/IN2028_Business`
- * and `AnalyticsMachineLearning`, never within a word, see {@link breakableOf}.
+ * has not, its path alone; each part in words, like `NomSkillingmodules/IN2028 Business Analytics Machine Learning`,
+ * see `airyPathOf` in `../skill/links.ts`; hidden while no skill is picked. Where it is wider than its row, as on
+ * a phone, it goes on below after a `/` or between words, never within a word.
  * - `folder`: The folder of the skill picked without its material, empty for none.
  *
  * @param link - The link below the summary
  */
 export function skillPathShow(link: HTMLAnchorElement): void {
     const folder: string = skilling.paths[picks.module] ?? "";
-    link.textContent = breakableOf(skillPathOf()).replaceAll("/", "/\u200b");
+    link.textContent = airyPathOf(skillPathOf()).replaceAll("/", "/\u200b");
     link.removeAttribute("target");
     if (folder.startsWith(`${modulesFolder}/`))
         link.href = `/scripts?module=${encodeURIComponent(folder.slice(modulesFolder.length + 1))}`;
@@ -458,8 +458,8 @@ function documentsOfferedOf(chapter: string): string[] {
 
 /**
  * Builds the choices of a Documents list, see {@link documentsOfferedOf}, each its path as value, the name of its file
- * as text, and as group for a file of material the folders between the folder of its material and it, like
- * `04_LogisticPoissonRegression.pdf` under `TUM_2026W`, none for a note.
+ * in words as text, and as group for a file of material the folders between the folder of its material and it,
+ * like `04. Logistic Poisson Regression.pdf` under `TUM 2026W`, none for a note, see `airyOf` in `../skill/links.ts`.
  * - `parts`: Parts of the path of a document.
  *
  * @param chapter - Chapter whose notes my own learning offers, like `01_RegressionAnalysis`
@@ -469,8 +469,8 @@ function documentChoicesOf(chapter: string): Choice[] {
     return documentsOfferedOf(chapter).map((path: string): Choice => {
         const parts: string[] = path.split("/");
         if (chapterOfDocument(path) !== "")
-            return { value: path, text: parts.at(-1) ?? path, group: "" };
-        return { value: path, text: parts.at(-1) ?? path, group: parts.slice(1, -1).join("/") };
+            return { value: path, text: airyOf(parts.at(-1) ?? path), group: "" };
+        return { value: path, text: airyOf(parts.at(-1) ?? path), group: airyPathOf(parts.slice(1, -1).join("/")) };
     });
 }
 
@@ -478,10 +478,10 @@ function documentChoicesOf(chapter: string): Choice[] {
  * Gives the name of the file of a document, which says what it is, as its row shows it.
  *
  * @param path - Path of a document, like `VO_…/TUM_2026W/04_LogisticRegression.pdf`
- * @returns Name like `04_LogisticRegression.pdf`
+ * @returns Name in words, like `04. Logistic Regression.pdf`, see `airyOf` in `../skill/links.ts`
  */
 function fileNameOf(path: string): string {
-    return path.split("/").at(-1) ?? path;
+    return airyOf(path.split("/").at(-1) ?? path);
 }
 
 /**
@@ -672,10 +672,10 @@ function chapterRowsOf(again: () => void): HTMLElement[] {
         return [];
     const own: boolean = picks.type === "";
     const offered: Choice[] = contents.chapters.filter((chapter: string): boolean => !picks.chapters.includes(chapter))
-        .map(choiceOf);
+        .map((chapter: string): Choice => ({ value: chapter, text: airyOf(chapter), group: "" }));
     const rows: HTMLElement[] = [];
     picks.chapters.forEach((chapter: string, index: number): void => {
-        const row: HTMLElement = addedRowOf(index === 0 ? "Chapter" : "", chapter, (): void => {
+        const row: HTMLElement = addedRowOf(index === 0 ? "Chapter" : "", airyOf(chapter), (): void => {
             picks.chapters = picks.chapters.filter((other: string): boolean => other !== chapter);
             if (own)
                 picks.documents = picks.documents.filter((path: string): boolean =>

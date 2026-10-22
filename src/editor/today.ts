@@ -5,8 +5,8 @@
  * the date as its bar shows it, the weekday small and grey above it, and below it the entries of today, the same
  * as in the plan, one per chapter with something due, see `reader/suggestions.ts`: what it is in bold on one line,
  * like `Skill: IN2028 Business Analytics Machine Learning`, grey below it its length as its box in the plan has it
- * and its chapter, like `01h 00m · 01 Regression Analysis`; then one small box per note to do, each a link to it,
- * named as the tree names it, like `01_01_SampleMeanEstimator`, with `New` boxed as a type word beside it for
+ * and its chapter, like `01h 00m · 01. Regression Analysis`; then one small box per note to do, each a link to it,
+ * named as the tree names it, like `01.01. Sample Mean Estimator`, with `New` boxed as a type word beside it for
  * a section on round 0, and below it, one per line, what is due, as the tree lists the blocks of a section: a grey
  * guide line at their left, the type word boxed, `Task`, `Example` or `Algorithm`, and the name, like `Bakery Chain`;
  * a tap opens the note where its round stands, see `./round.ts`, which shows only what is due. Nothing else.
@@ -16,7 +16,7 @@
  * an Example brought back also once tried; an entry turns grey once all its notes are.
  *
  * - `../skill/attempts.ts`: Loads the tasks and sections with what of each is due today, and writes a date as a day.
- * - `../skill/links.ts`: Writes a chapter in words.
+ * - `../skill/links.ts`: Writes a chapter and a section in words.
  * - `../notes/tree.ts`: Builds the address of a note at a heading.
  * - `../day/times.ts`: Writes the date as the day view does, and a length.
  * - `./round.ts`: What a failed Task brings back, by the round's own ladder, and when an attempt was made.
@@ -25,7 +25,7 @@
  */
 
 import { dayOf, skillingLoad, skillName } from "../skill/attempts.ts";
-import { chapterNameOf } from "../skill/links.ts";
+import { airyOf } from "../skill/links.ts";
 import { noteAddressOf } from "../notes/tree.ts";
 import { dateTextOf, lengthOf } from "../day/times.ts";
 import { fallbacksOf, timeOf } from "./round.ts";
@@ -118,7 +118,7 @@ function noteOf(items: Item[]): HTMLElement {
     const fresh: boolean = items[0].kind === "New";
     note.className = items.every((item: Item): boolean => item.done) ? "today-note today-note-done" : "today-note";
     note.href = items[0].address;
-    note.append(items[0].section);
+    note.append(airyOf(items[0].section));
     section.append(note);
     if (fresh) {
         const kind: HTMLSpanElement = document.createElement("span");
@@ -168,7 +168,7 @@ function entryOf(label: string, items: Item[], boxes: Box[]): HTMLElement {
         candidate.module === items[0].module && candidate.chapters.includes(items[0].chapter)
         && candidate.time === "" && candidate.deadline === "");
     const parts: string[] = [...(box === undefined || box.minutes === null ? [] : [lengthOf(box.minutes)]),
-        chapterNameOf(items[0].chapter)];
+        airyOf(items[0].chapter)];
     entry.className = items.every((item: Item): boolean => item.done) ? "box today-entry box-done" : "box today-entry";
     body.className = "box-body";
     what.className = "box-what";
