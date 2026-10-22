@@ -52,7 +52,7 @@ import type { FoodDay, Totals } from "./food.ts";
  *   of today, see `suggestions.ts`.
  * - `theoryMinutes`: Minutes of the Definitions, the Algorithm and the Example of a section on round 0,
  *   which it brings to that box besides its Task.
- * - `learningStart`: First day anything of my learning is due, like `2026-10-23`: before it, nothing is due today,
+ * - `learningStart`: First day anything of my learning is due, like `2026-10-24`: before it, nothing is due today,
  *   so the plan gets no learning box and Learn lists nothing, see `todayMarked` in `skill.ts`.
  */
 export type TrackerSettings = {
@@ -157,12 +157,12 @@ export type Trackers = {
  * A short neck session, or a long one, on every study day, and 3 long ones in seven days, since regular strengthening
  * eased neck pain after 10 to 20 weeks (Gross 2015) and about once a week did nothing (Jones 2024).
  * My learning: study sessions of 60 minutes, 30 for a Task and 30 more for the theory of a new section,
- * my choice, not a finding (`.claude/studies/science.md`, point 9); it starts on Friday, 23.10.2026, since I build
- * the dashboard and sort my documents until then (`.claude/life/decisions.md`, 22 October 2026).
+ * my choice, not a finding (`.claude/studies/science.md`, point 9); it starts on Saturday, 24.10.2026, since until then
+ * I set up my skills, their series and tutor groups (`.claude/life/decisions.md`, 22 October 2026).
  */
 export const settings: TrackerSettings = {
     sleepHours: 8, sleepBand: [7, 9], glassMl: 250, waterMl: 2500, bedtimeVaried: 30, neckLongWeek: 3,
-    sessionMinutes: 60, taskMinutes: 30, theoryMinutes: 30, learningStart: "2026-10-23",
+    sessionMinutes: 60, taskMinutes: 30, theoryMinutes: 30, learningStart: "2026-10-24",
 };
 
 /**
