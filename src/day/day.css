@@ -381,26 +381,31 @@ fieldset.entry-times {
     border: 0;
 }
 
-/* Start and end in one row, the range dash between them as in the boxes, like `14.10.2026 10:15 – 14.10.2026 10:45`,
-   the dash going with the start; where the row is too narrow, like on a phone, the end goes on below */
+/* Start and end in one row, the range dash between them as in the boxes, like `14.10.2026 10:15 – 14.10.2026 10:45`
+   or `18:00 – 19:30`, about a space on each side of the dash, the dash going with the start; where the row is too
+   narrow, like on a phone, the end goes on below */
 .entry-range {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    column-gap: 1.25rem;
+    column-gap: 0.35em;
     row-gap: 0.25rem;
 }
 
 /* Day and time side by side, like `13.10.2026 01:45`, about two spaces apart, each field as wide as what it holds,
-   so start and end each read as one; the room goes to the dash between them */
+   so start and end each read as one */
 .entry-moment {
     display: flex;
     align-items: baseline;
-    gap: 0.6em;
 }
 
+.entry-moment > input + input {
+    margin-left: 0.6em;
+}
+
+/* The dash after the start, as far from it as from the end, like `14:00 – 16:00` */
 .entry-dash {
-    margin-left: 1rem;
+    margin-left: 0.35em;
 }
 
 @supports (field-sizing: content) {

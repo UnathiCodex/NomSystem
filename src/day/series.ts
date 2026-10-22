@@ -238,7 +238,7 @@ function rangeOf(from: HTMLInputElement, to: HTMLInputElement): HTMLElement {
  */
 export function slotRowsOf(days: Days, changed: () => void, filled: () => void): HTMLElement[] {
     const weekdays: Choice[] = [1, 2, 3, 4, 5, 6, 7].map((weekday: number): Choice =>
-        ({ value: String(weekday), text: weekdayNameOf(weekday, true), group: "" }));
+        ({ value: String(weekday), text: weekdayNameOf(weekday, false), group: "" }));
     const plus: HTMLButtonElement = document.createElement("button");
     plus.type = "button";
     plusPut(plus, "Add a day");

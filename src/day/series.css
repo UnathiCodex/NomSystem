@@ -1,15 +1,17 @@
 /* Rows of a weekly series, the same in the form of a series on the page of a module and in the row Repeat of the dialog
    of a new box, see `series.ts`: its days, the days it leaves out and the boxes it makes */
-/* A day of a series: its weekday, as wide as the longest, `Wednesday`, then its times, then its `×` */
+/* A day of a series, like `Thu 18:00 – 19:30 ×`: its weekday short, as the heading of a card writes it, as wide as
+   the widest, `Mon` or `Wed`, so the times of several days stand one below the other; then its times and its `×`,
+   about two spaces apart, as a day and its time, see `.entry-moment` in `day.css` */
 .series-slot {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    column-gap: 1.25rem;
+    column-gap: 0.6em;
 }
 
 .series-slot > .picker {
-    flex: 0 0 6.5rem;
+    flex: 0 0 2.25rem;
 }
 
 /* The days a series leaves out, each with its `×`, then the field to type one more */
@@ -25,6 +27,13 @@
     align-items: baseline;
     gap: 0.125rem;
     white-space: nowrap;
+}
+
+/* The `×` of a day and of a day left out in the middle of its line, not with its foot on the line of the text,
+   which set it higher than the text */
+.series-slot > .cross-quiet,
+.series-except > .cross-quiet {
+    align-self: center;
 }
 
 /* The boxes a series makes: each its number on a small chip filled as a card, a new one outlined, one done grey with
