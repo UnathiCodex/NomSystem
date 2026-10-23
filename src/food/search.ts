@@ -31,7 +31,7 @@
  *
  * - `./foods.ts`: Finds foods, sends new and renamed foods, writes amounts and the key of a food, and makes elements
  *   and buttons.
- * - `../icons.ts`: Puts icons into the buttons, their words as tooltip.
+ * - `../icons.ts`: Puts icons into the buttons, their words as tooltip, and makes the search field.
  * - `lucide`: The icons save and cancel.
  * - `./search.css`: Look of the search and of every list of meals or foods, the same wherever they stand.
  */
@@ -40,7 +40,7 @@ import {
     amountOf, bracketsWatch, buttonOf, elementOf, foodChange, foodDelete, foodNameOf, foodSend, foodsFind, keyOf,
     unitOf,
 } from "./foods.ts";
-import { crossPut, iconOf, iconPut, QuestionMark } from "../icons.ts";
+import { crossPut, iconOf, iconPut, QuestionMark, searchFieldOf } from "../icons.ts";
 import { Check, Plus, X } from "lucide";
 import "./search.css";
 
@@ -835,9 +835,6 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
     };
     let waiting: number = 0;
 
-    search.input.type = "search";
-    search.input.placeholder = setup.meals === null ? "Search foods or a barcode" : "Search meals, foods or a barcode";
-    search.input.autocomplete = "off";
     search.input.addEventListener("input", (): void => {
         clearTimeout(waiting);
         search.linked = false;
@@ -857,7 +854,8 @@ export function foodSearchOf(setup: SearchSetup): HTMLElement {
         resultsLoad(search, 1);
     });
     bracketsWatch(search.results);
-    element.append(search.input, search.results);
+    element.append(searchFieldOf(search.input, setup.meals === null ? "Search foods or a barcode"
+        : "Search meals, foods or a barcode"), search.results);
     searches.set(element, search);
     resultsLoad(search, 1);
     return element;

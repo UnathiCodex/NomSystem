@@ -47,21 +47,21 @@
         </section>
 
         <!-- My daily note below plan and log, looking like them: my gratitude below the plan, my points about the day
-             overall below the log, written any time of the day and saved as I type, each a list of points with their
-             bullets, see points.ts; below both the rest of the note, read only. A click on either name hides both lists
-             and the note, so plan and log take the height, and shows them again; open at every start. Not on a phone -->
-        <div class="note-boxes">
+             overall below the log, written any time of the day and saved as I type, each a list of points in the editor
+             of my files, see points.ts; below both the rest of the note, read only. A click on either name hides both lists
+             and the note, so plan and log take the height, and shows them again; folded at every start, since I write them in the evening. Not on a phone -->
+        <div class="note-boxes note-folded">
             <section class="day-column">
                 <div class="column-head">
-                    <h2><button class="note-fold" type="button" aria-expanded="true">Gratitude</button></h2>
+                    <h2><button class="note-fold" type="button" aria-expanded="false">Gratitude</button></h2>
                 </div>
-                <ul class="note-points" id="gratitude" aria-label="Gratitude"></ul>
+                <div class="note-points editor-text markdown" id="gratitude" aria-label="Gratitude"></div>
             </section>
             <section class="day-column">
                 <div class="column-head">
-                    <h2><button class="note-fold" type="button" aria-expanded="true">About</button></h2>
+                    <h2><button class="note-fold" type="button" aria-expanded="false">About</button></h2>
                 </div>
-                <ul class="note-points" id="about" aria-label="About"></ul>
+                <div class="note-points editor-text markdown" id="about" aria-label="About"></div>
             </section>
             <p class="panel-error" id="note-boxes-error" hidden>Saving failed</p>
             <div class="day-note" id="day-note-text"></div>
@@ -81,8 +81,8 @@
 
 <!-- Entry by category for the log and the boxes of the plan, shown over the page, without a title, all its room
      for the fields: one column of rows in the order of the file, each its name grey at the left, all names equally
-     wide, and its value at the right, an empty field empty, without dash or placeholder, but the day and the time
-     of a deadline, which say grey what they take, dd.mm.yyyy and hh:mm, as nothing else shows it: start and end
+     wide, and its value at the right, an empty field empty, without dash or placeholder, but every time, which says
+     grey what it takes, hh:mm, see timeFieldStart in times.ts, and the day of a deadline, dd.mm.yyyy: start and end
      fixed at the top, then the category, below it the fields of the category one after another, the note always
      at the bottom, and the buttons. A click on a row opens its list right under it, see choices.ts.
      Enter in a field confirms only that field; the check or Ctrl+Enter saves, see categories.ts.
@@ -117,7 +117,7 @@
                     <input class="date-field" id="entry-deadline-day" type="text" inputmode="decimal"
                            autocomplete="off" placeholder="dd.mm.yyyy" aria-label="Day of the deadline">
                     <input class="time-field" id="entry-deadline-time" type="text" inputmode="numeric"
-                           autocomplete="off" placeholder="hh:mm" aria-label="Time of the deadline"></span></label>
+                           autocomplete="off" aria-label="Time of the deadline"></span></label>
         </fieldset>
 
         <!-- Repeat, only for a new box: closed its name with a plus beside it; open the rows of a weekly series
@@ -140,7 +140,7 @@
         <label class="panel-field"><span class="entry-name">Note</span>
             <textarea id="entry-note" rows="3" aria-label="Note"></textarea></label>
 
-        <!-- The box a log entry comes from, small and grey -->
+        <!-- The box a log entry comes from, or the series of a box of my course, small and grey, with its pencil -->
         <p class="entry-from-plan" id="entry-plan" hidden><span id="entry-plan-title"></span><button class="entry-pencil" id="entry-plan-edit" type="button" hidden></button></p>
 
         <!-- Hint when the reader does not take the entry -->
@@ -160,6 +160,13 @@
             <button class="panel-main" id="entry-save" type="submit" disabled></button>
         </div>
     </form>
+</dialog>
+
+<!-- A series of my course, the lectures, exercises, tutorials or sheets of a module, in the look of the entry
+     by category, one row per field, see series.ts: the same dialog from a box of the plan and from the page of the
+     module; its rows built as it opens. Esc or a click beside it closes it without saving -->
+<dialog class="panel entry-panel" id="series" closedby="any">
+    <form class="panel-form" id="series-form"></form>
 </dialog>
 
 <!-- Gift idea for a birthday or holiday of the plan, opened by a click on it, see gifts.ts:

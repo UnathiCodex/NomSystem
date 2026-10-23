@@ -14,10 +14,15 @@
     cursor: pointer;
 }
 
+/* Under the pointer calm: the button `⋯` only lighter, as every quiet button, an item of its menu also on the faint
+   grey of a row of the tree under the pointer, `--row-over`, never the grey of what is picked */
 .menu-more:hover,
 .menu-item:hover {
-    background: var(--chosen);
     color: var(--text-main);
+}
+
+.menu-item:hover {
+    background: var(--row-over);
 }
 
 .menu-place svg.lucide {

@@ -3,16 +3,19 @@
  *
  * The course of a module in the semester of today, which the page of the module shows above its chapters, one card
  * per type, see `src/editor/course.ts`: its boxes of the plan of every type, its series and the groups of its
- * tutorials.
+ * tutorials; the series of a box of the plan opens in the same form from the day, see `src/day/series.ts`, read
+ * in the semester of that box.
  * A series is no rule in a file: the plan holds one box per lecture, see `boxes.ts`, and the series of a type is read
  * back from its boxes, every box of one numbered type of a module in its semester, see `numberedTypes` in `boxes.ts`,
  * numbered across every weekday they fall on, like IN0004's lectures on Mondays and on Tuesdays at their own times.
  * Its rule is the one most of its boxes follow, see {@link ruleOf}: its slots, each a weekday at least two of its boxes
  * fall on, with the time most of them have there, like `Mon 12:00–13:30` and `Tue 16:00–17:30`, the place and
- * the people most of them have, its first day and its last, and the days of a slot without box between them left out,
- * like `Mon 14:00–16:00 · 19.10.2026–01.02.2027 · except 28.12., 04.01.`; a box that differs from it stays as it is,
- * like a lecture moved once to another room or another day of its week, and a box pushed to a later day counts
- * on the day it left, see {@link datedOf}.
+ * the people most of them have, its first day and its last, the days of a slot without box between them left out,
+ * like `Mon 14:00–16:00 · 19.10.2026–01.02.2027 · except 28.12., 04.01.`, and its extras, single dates besides its
+ * weeks, each with its own times, like a session on Sat, 14.11.2026, 10:00–12:00 or a repetition in March;
+ * a box that differs from it stays as it is, like a lecture moved once to another room or another day of its week,
+ * and a box pushed to a later day counts on the day it left, see {@link datedOf}. Extras are read back as well,
+ * so no line of a file holds a rule.
  * The boxes of my tutorials that go to a group, by their `X-GROUP`, follow the rule of my group: my group is stored
  * nowhere, it is the group most of my open boxes go to, see {@link mineOf}, and a box of another group is a week I go
  * to that group instead.
@@ -25,10 +28,12 @@
  * its room as `LOCATION` with its link, its tutor as `ATTENDEE` only once known, `X-GROUP:03` and `X-SEMESTER:2026W`.
  *
  * Three changes write the boxes of a series, week by week, see {@link draftsOf}, each leaving every box done,
- * cancelled by me or pushed as it is, since those are mine, see {@link changeable}, and each numbering the boxes
- * of the type anew, see {@link numbersOf}:
+ * cancelled by me or pushed where it is, since those are mine, see {@link changeable}, and each numbering the boxes
+ * of the type anew by their places, see {@link numbersOf}:
  * - its rule changed in the form of the series, see {@link seriesApply}: each date of the rule takes the box of its
- *   week with what changed of its slot, a date without box gets one, and a box no date of its week takes goes;
+ *   week with what changed of its slot, a date without box gets one, and a box no date of its week takes goes,
+ *   but only open boxes from today on, see {@link ahead}, so a day over stays as it was; in the same form I skip a box
+ *   or mark it cancelled by the university, or take that back, see {@link stateSet}, all of it written as I save;
  * - a group made mine, see {@link groupMine}: from the week of its next session on, my boxes go to its sessions,
  *   also a week I went to another group, so the series follows the group from then on; with no series yet,
  *   its sessions to come become one;
@@ -54,7 +59,7 @@
  */
 
 import { basename, dirname, relative, sep } from "node:path";
-import { boxDelete, boxesAdd, boxFind, numberedTypes, skillBoxesRead } from "./boxes.ts";
+import { boxDelete, boxDrop, boxesAdd, boxFind, numberedTypes, skillBoxesRead } from "./boxes.ts";
 import {
     berlinDateOf, berlinDayStartOf, berlinInstantOf, berlinTimeOf, dayAdd, entriesRead, entryAppend, entryRemove,
     icsTextOf, propertiesPut, skillName, todoAppend, todoChange,
@@ -62,11 +67,11 @@ import {
 import { attendeesAllow, semesterOf } from "./categories.ts";
 import { titleOf } from "./documents.ts";
 import { codeOf, moduleFolderOf, moduleFoldersRead, semesterFoldersRead } from "./notes.ts";
-import { placeLinkOf } from "./places.ts";
+import { onlineFor, placeLinkOf } from "./places.ts";
 import { calendarRoot, groupsEnding, planEnding, skillFileOf } from "./sources.ts";
 
 import type { Box, BoxNew, BoxState } from "./boxes.ts";
-import type { Attendee, Entry, EntryFields, Push } from "./calendar.ts";
+import type { Attendee, Entry, EntryFields, Online, Push } from "./calendar.ts";
 
 
 /**
@@ -83,30 +88,46 @@ export type Slot = {
 };
 
 /**
+ * A single date of a rule outside its weeks, see {@link Rule}, like a session on a Saturday.
+ *
+ * - `day`: Its day, like `2026-11-14`.
+ * - `start`, `end`: Its times in Berlin time, like `10:00` and `12:00`, as those of a slot.
+ */
+export type Extra = {
+    day: string;
+    start: string;
+    end: string;
+};
+
+/**
  * A weekly rule, of a series or of a group, see the top of this file: as read back from its boxes or its sessions,
  * see {@link ruleOf}, as the form of a series sends it, see {@link seriesApply}, or as a group is written,
  * see {@link groupPut}.
  *
  * - `type`: Type of its boxes, like `VO`.
  * - `slots`: Its weekdays with their times, by weekday, each weekday once; a group has one.
+ * - `extras`: Its single dates besides its weeks, like a session on a Saturday, by their days; none for none,
+ *   as for every group.
  * - `location`: Its place as an entry writes it, see `lineOf` in `places.ts`, like
- *   `5416.01.003 (Hörsaal 2 "Interims II"), Lichtenbergstraße 2b, 85748 Garching bei München, Deutschland`,
- *   or `Online, Zoom`; empty for none.
- * - `locationLink`: Link of its place, like `https://nav.tum.de/room/5416.01.003`; as sent, the link of the meeting
- *   of `Online` as typed, any other place keeping the link it has or taking that of `Places.md` or `Rooms.md`,
- *   see `placeLinkOf` in `places.ts`.
+ *   `5416.01.003 (Hörsaal 2 "Interims II"), Lichtenbergstraße 2b, 85748, Garching bei München, Deutschland`,
+ *   empty for none.
+ * - `locationLink`: Link of its place, like `https://nav.tum.de/room/5416.01.003`, the place keeping the link it has
+ *   or taking that of `Places.md` or `Rooms.md`, see `placeLinkOf` in `places.ts`.
+ * - `online`, `onlineLink`, `passcode`: What its boxes do online, like the stream of a lecture on `TUM-Live`
+ *   with its link, see `Online` in `calendar.ts`.
  * - `attendees`: Who I am with, like a tutor, see `Attendee` in `calendar.ts`; none for nobody.
- * - `first`: Its first day, like `2026-10-19`.
- * - `last`: Its last day, like `2027-02-01`, on or after its first.
+ * - `first`: The first day of its weeks, like `2026-10-19`; an extra may lie before it.
+ * - `last`: The last day of its weeks, like `2027-02-01`, on or after its first; an extra may lie after it.
  * - `excepts`: The days of its slots between its first and its last day it leaves out, like `2026-12-28`, in order;
  *   none for none.
  * - `group`: The group its boxes go to, like `03`: of a group its own, of my tutorials my group, see {@link mineOf};
  *   empty for none.
  * - `semester`: Its semester, like `2026W`.
  */
-export type Rule = {
+export type Rule = Online & {
     type: string;
     slots: Slot[];
+    extras: Extra[];
     location: string;
     locationLink: string;
     attendees: Attendee[];
@@ -184,6 +205,8 @@ export type Course = {
  * - `old`: The rule as read back when the form opened, `null` for a new series.
  * - `before`: For each slot of the rule, the weekday of the slot of `old` whose boxes it takes, like 1 for a slot
  *   moved from Monday to Tuesday, 0 for a slot added; left out, each slot takes those of the slot of its own weekday.
+ * - `states`: The state I gave a box of the series in the form, by its identifier: `open`, `dropped`, skipped by me,
+ *   or `university`, cancelled by the university, see `BoxState` in `boxes.ts`; left out for none.
  * - `dry`: Whether only to tell what the change would make, for the preview of the form, writing nothing.
  */
 export type SeriesChange = {
@@ -191,6 +214,7 @@ export type SeriesChange = {
     rule: Rule;
     old: Rule | null;
     before?: number[];
+    states?: { [id: string]: BoxState };
     dry: boolean;
 };
 
@@ -253,6 +277,7 @@ export type GroupGone = {
  * - `box`: The box as the dialog sends one made once, see `BoxNew` in `boxes.ts`, without its day, time, length
  *   and deadline, which each date sets.
  * - `slots`: Its weekdays with their times, in the order of the dialog.
+ * - `extras`: Its single dates besides its weeks, see {@link Extra}.
  * - `first`, `last`: Its first and last day, like `2026-10-19`.
  * - `excepts`: The days of its slots between them it leaves out, like `2026-12-28`.
  * - `dry`: Whether only to tell what it would make, for the preview of the dialog, writing nothing.
@@ -260,6 +285,7 @@ export type GroupGone = {
 export type RepeatChange = {
     box: Omit<BoxNew, "day" | "time" | "minutes" | "deadline">;
     slots: Slot[];
+    extras: Extra[];
     first: string;
     last: string;
     excepts: string[];
@@ -271,30 +297,48 @@ export type RepeatChange = {
  *
  * - `id`: Its identifier, empty for a new one.
  * - `day`: Its day after the change, like `2026-10-26`.
+ * - `time`: Its time after the change as ISO instant, empty for none.
+ * - `minutes`: Its length after the change in minutes, `null` for none.
  * - `number`: Its number after the change, like `2`, `NONE` for one the university cancelled, empty for none.
- * - `state`: Its state, see `BoxState` in `boxes.ts`, `new` for a new one.
- * - `change`: `new`, `changed` or `removed`, empty for one that stays as it is.
+ * - `state`: Its state, as the change gives it, see `BoxState` in `boxes.ts`, `new` for a new one.
+ * - `pushed`: Whether I pushed it to a later day, so it stands no more on its own day, see `Push` in `calendar.ts`.
+ * - `editable`: Whether I may skip it or mark it cancelled by the university: a to-do of the new system, no date
+ *   of a series of the file, not done; a new one too.
+ * - `change`: `new`, `changed`, its day, time, place, what it does online or its people, `renumbered`, only its number
+ *   or its group, or `removed`; empty for one that stays as it is, or whose state alone changes.
  */
 export type Planned = {
     id: string;
     day: string;
+    time: string;
+    minutes: number | null;
     number: string;
     state: BoxState | "new";
-    change: "new" | "changed" | "removed" | "";
+    pushed: boolean;
+    editable: boolean;
+    change: "new" | "changed" | "renumbered" | "removed" | "";
 };
 
 /**
  * What a rule is read back from, see {@link ruleOf}: a box at its place in its series, see {@link datedOf},
  * or a session of a group; its day, its time as ISO instant, empty for none, its length in minutes, `null` for none,
- * its place with its link and who I am with.
+ * its place with its link, what it does online and who I am with.
  */
-type Dated = Pick<Box, "day" | "time" | "minutes" | "location" | "locationLink" | "attendees">;
+type Dated = Pick<Box, "day" | "time" | "minutes" | "location" | "locationLink" | "attendees"> & Online;
+
+/**
+ * A date of a rule, see {@link datesOf}: its day, its times, like `14:00` and `16:00`, as those of its slot or its
+ * extra, and the place of its slot in the rule, -1 for an extra.
+ */
+type RuleDate = Extra & {
+    slot: number;
+};
 
 /**
  * What of a box a change of a series sets, see {@link draftSet}: its day, its time with its length, its place
- * with its link, its people and its group.
+ * with its link, what it does online, its people and its group.
  */
-type Field = "day" | "time" | "location" | "attendees" | "group";
+type Field = "day" | "time" | "location" | "online" | "attendees" | "group";
 
 /**
  * A date of a series after a change, see {@link draftsOf}.
@@ -303,13 +347,17 @@ type Field = "day" | "time" | "location" | "attendees" | "group";
  * - `start`: Its time of start in Berlin time, like `14:00`, empty for none.
  * - `minutes`: Its length in minutes, `null` for none.
  * - `location`, `locationLink`: Its place with its link.
+ * - `online`, `onlineLink`, `passcode`: What it does online.
  * - `attendees`: Who I am with.
  * - `group`: The group it goes to, like `03`, empty for none.
  * - `before`: The weekday the box it takes fell on before the change, 1 for Monday to 7 for Sunday: that of its slot
  *   as the form opened, like 1 for a slot moved from Monday to Tuesday, else its own.
  * - `fields`: What of the box it takes changes, see {@link Field}.
+ * - `made`: Whether it gets a new box while no box of its week is there to take, see {@link draftsOf}.
+ * - `added`: Whether it is a date of a slot or an extra added in the form, which takes only a box of its own weekday,
+ *   never one of another day of its week, so a Thursday added never takes the box of a Monday left out.
  */
-type Target = {
+type Target = Online & {
     day: string;
     start: string;
     minutes: number | null;
@@ -319,17 +367,19 @@ type Target = {
     group: string;
     before: number;
     fields: Field[];
+    made: boolean;
+    added: boolean;
 };
 
 /**
  * A box of a type as a change of a series plans it, see {@link draftsOf}, before anything is written.
  *
  * - `box`: The box as it stands, `null` for a new one.
- * - `day`, `time`, `minutes`, `location`, `locationLink`, `attendees`, `group`, `number`: As those of a box after
- *   the change, see `Box` in `boxes.ts`.
+ * - `day`, `time`, `minutes`, `location`, `locationLink`, `online`, `onlineLink`, `passcode`, `attendees`, `group`,
+ *   `number`: As those of a box after the change, see `Box` in `boxes.ts`.
  * - `removed`: Whether the change removes it.
  */
-type Draft = {
+type Draft = Online & {
     box: Box | null;
     day: string;
     time: string;
@@ -345,7 +395,7 @@ type Draft = {
 /**
  * Everything of a box a group made mine, a week moved to a group or a new slot sets, see {@link draftSet}.
  */
-const allFields: Field[] = ["day", "time", "location", "attendees", "group"];
+const allFields: Field[] = ["day", "time", "location", "online", "attendees", "group"];
 
 /**
  * Most weeks a rule may span, about a year, so a slip of a year typed makes no hundreds of boxes.
@@ -473,20 +523,39 @@ function weekTake<T>(boxes: T[], weekday: number, any: boolean, dayOf: (box: T) 
 }
 
 /**
+ * Gives the times of what a rule is read back from, as a slot or an extra has them, see {@link Slot}.
+ *
+ * @param item - A box or a session
+ * @returns Its start and its end in Berlin time, like `14:00` and `16:00`, both empty without time
+ */
+function timesOf(item: Dated): [string, string] {
+    return item.time === "" ? ["", ""] : [berlinTimeOf(new Date(item.time)),
+        berlinTimeOf(new Date(Date.parse(item.time) + (item.minutes ?? 0) * 60 * 1000))];
+}
+
+/**
  * Reads back the weekly rule of a series or a group, see the top of this file: its slots, each weekday at least two
  * of what it follows fall on, else the one most of them fall on, with the time and length most of them have there;
- * the place and the people most of them have, the earliest of those equally many; its first and its last day;
- * and the days of its slots between them without a box, a box on another day of its week taking the place
- * of a missing one, like a lecture moved once from Monday to Tuesday.
+ * the place, what they do online and the people most of them have, the earliest of those equally many; its weeks,
+ * from the first box on the weekday of a slot to the last, a box on another day of a week taking the place
+ * of a missing one, like a lecture moved once from Monday to Tuesday; the days of its slots in its weeks without a box;
+ * and every other box as an extra, one more in a week, like a session on a Saturday, or one outside its weeks,
+ * like a repetition in March.
  * - `counts`: How many of what it follows fall on each weekday.
  * - `weekdays`: The weekdays of its slots, in order.
  * - `timed`: Of a slot the one whose time and length most of it have, `undefined` while none has a time.
  * - `placed`: The one whose place most of them have.
+ * - `met`: The one whose platform, link and passcode online most of them have.
  * - `people`: The one whose people most of them have.
- * - `days`: The days of all, in order.
+ * - `sorted`: All, by their days.
+ * - `onSlots`: The days of those on the weekday of a slot, in order, else of all.
+ * - `from`, `to`: The first and the last of them.
+ * - `days`: The days of its weeks, those on a slot and those taking the place of a missing one.
+ * - `extras`: The extras, those outside its weeks first.
  * - `excepts`: The days of its slots without a box.
- * - `free`: The boxes of a week no day of a slot took yet.
+ * - `free`: The boxes of a week no day of a slot took yet, by their days.
  * - `missing`: The days of the slots of a week without a box on their weekday.
+ * - `taken`: The box on the weekday of a slot of a week, `undefined` for none.
  *
  * @param type - Type of the series, like `VO`
  * @param items - What the rule follows: the boxes of a series, of my tutorials those of my group, or the sessions
@@ -509,34 +578,57 @@ function ruleOf(type: string, items: Dated[], all: Dated[], group: string, semes
         const timed: Dated | undefined = modeOf(items.filter((item: Dated): boolean => item.time !== ""
             && weekdayOf(item.day) === weekday),
         (item: Dated): string => `${berlinTimeOf(new Date(item.time))} ${item.minutes}`);
-        return {
-            weekday: weekday,
-            start: timed === undefined ? "" : berlinTimeOf(new Date(timed.time)),
-            end: timed === undefined ? ""
-                : berlinTimeOf(new Date(Date.parse(timed.time) + (timed.minutes ?? 0) * 60 * 1000)),
-        };
+        const [start, end]: [string, string] = timed === undefined ? ["", ""] : timesOf(timed);
+        return { weekday: weekday, start: start, end: end };
     });
     const placed: Dated | undefined = modeOf(items, (item: Dated): string => item.location);
+    const met: Dated | undefined = modeOf(items, (item: Dated): string =>
+        JSON.stringify([item.online, item.onlineLink, item.passcode]));
     const people: Dated | undefined = modeOf(items, (item: Dated): string => JSON.stringify(item.attendees));
-    const days: string[] = all.map((item: Dated): string => item.day).sort();
+    const sorted: Dated[] = [...all].sort((first: Dated, second: Dated): number =>
+        (first.time || first.day).localeCompare(second.time || second.day));
+    let onSlots: string[] = sorted.map((item: Dated): string => item.day)
+        .filter((day: string): boolean => weekdays.includes(weekdayOf(day)));
+    if (onSlots.length === 0)
+        onSlots = sorted.map((item: Dated): string => item.day);
+    const [from, to]: [string, string] = [onSlots[0], onSlots[onSlots.length - 1]];
+    const days: string[] = [];
+    const extras: Dated[] = sorted.filter((item: Dated): boolean =>
+        mondayOf(item.day) < mondayOf(from) || mondayOf(item.day) > mondayOf(to));
     const excepts: string[] = [];
-    for (let week: string = mondayOf(days[0]); week <= days[days.length - 1]; week = dayAdd(week, 7)) {
-        const free: Dated[] = all.filter((item: Dated): boolean => mondayOf(item.day) === week);
-        const missing: string[] = slots.map((slot: Slot): string => dayAdd(week, slot.weekday - 1))
-            .filter((day: string): boolean => days[0] <= day && day <= days[days.length - 1])
-            .filter((day: string): boolean =>
-                weekTake(free, weekdayOf(day), false, (item: Dated): string => item.day) === undefined);
+    for (let week: string = mondayOf(from); week <= to; week = dayAdd(week, 7)) {
+        const free: Dated[] = sorted.filter((item: Dated): boolean => mondayOf(item.day) === week);
+        const missing: string[] = [];
+        slots.map((slot: Slot): string => dayAdd(week, slot.weekday - 1))
+            .filter((day: string): boolean => from <= day && day <= to)
+            .forEach((day: string): void => {
+                const taken: Dated | undefined = weekTake(free, weekdayOf(day), false, (item: Dated): string => item.day);
+                if (taken === undefined)
+                    missing.push(day);
+                else
+                    days.push(taken.day);
+            });
+        days.push(...free.slice(0, missing.length).map((item: Dated): string => item.day));
+        extras.push(...free.slice(missing.length));
         excepts.push(...missing.slice(free.length));
     }
+    days.sort();
     return {
         type: type,
         slots: slots,
+        extras: extras.map((item: Dated): Extra => {
+            const [start, end]: [string, string] = timesOf(item);
+            return { day: item.day, start: start, end: end };
+        }).sort((first: Extra, second: Extra): number => first.day.localeCompare(second.day)),
         location: placed?.location ?? "",
         locationLink: placed?.locationLink ?? "",
+        online: met?.online ?? "",
+        onlineLink: met?.onlineLink ?? "",
+        passcode: met?.passcode ?? "",
         attendees: people?.attendees ?? [],
-        first: days[0],
-        last: days[days.length - 1],
-        excepts: excepts,
+        first: days[0] ?? from,
+        last: days[days.length - 1] ?? to,
+        excepts: excepts.sort(),
         group: group,
         semester: semester,
     };
@@ -544,22 +636,23 @@ function ruleOf(type: string, items: Dated[], all: Dated[], group: string, semes
 
 /**
  * Gives the dates of a rule, see the top of this file: the day of each of its slots in each week from its first day
- * to its last, but the days it leaves out, each with the place of its slot in the rule.
+ * to its last, but the days it leaves out, and its extras, each with its times and the place of its slot in the rule.
  * - `dates`: The dates so far.
  * - `day`: The day of a slot of a week.
  *
  * @param rule - The rule
- * @returns Dates, each its day, like `2026-10-19`, and the place of its slot, in order
+ * @returns Dates, by their days
  */
-function datesOf(rule: Rule): [string, number][] {
-    const dates: [string, number][] = [];
+function datesOf(rule: Rule): RuleDate[] {
+    const dates: RuleDate[] = rule.extras.map((extra: Extra): RuleDate => ({ ...extra, slot: -1 }));
     for (let week: string = mondayOf(rule.first); week <= rule.last; week = dayAdd(week, 7))
         rule.slots.forEach((slot: Slot, index: number): void => {
             const day: string = dayAdd(week, slot.weekday - 1);
             if (rule.first <= day && day <= rule.last && !rule.excepts.includes(day))
-                dates.push([day, index]);
+                dates.push({ day: day, start: slot.start, end: slot.end, slot: index });
         });
-    return dates.sort((first: [string, number], second: [string, number]): number => first[0].localeCompare(second[0]));
+    return dates.sort((first: RuleDate, second: RuleDate): number =>
+        first.day.localeCompare(second.day) || first.start.localeCompare(second.start));
 }
 
 /**
@@ -633,7 +726,8 @@ function groupsRead(module: string, semester: string): Group[] {
         const dated: Dated[] = own.map((entry: Entry): Dated => ({
             day: berlinDateOf(new Date(entry.start)), time: entry.start,
             minutes: (Date.parse(entry.end) - Date.parse(entry.start)) / (60 * 1000), location: entry.location,
-            locationLink: entry.locationLink, attendees: entry.attendees,
+            locationLink: entry.locationLink, online: entry.online, onlineLink: entry.onlineLink, passcode: entry.passcode,
+            attendees: entry.attendees,
         }));
         return {
             id: id,
@@ -667,35 +761,45 @@ function seriesListOf(boxes: Box[], semester: string): Series[] {
 }
 
 /**
- * Reads the course of a module in the semester of today, see the top of this file and {@link Course}.
- * - `semester`: The semester of today, in Berlin time.
+ * Reads the course of a module in a semester, the semester of today unless named, like that of a box of the plan
+ * whose series opens from the day, see the top of this file and {@link Course}.
+ * - `folder`: Name of the folder of the module.
+ * - `semester`: The semester.
  * - `boxes`: Its skill boxes of the semester.
  *
- * @param module - Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`
+ * @param module - Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`, or its code,
+ *   like `IN2028`, as a box of the plan names it
+ * @param named - Semester, like `2026W`, empty for that of today in Berlin time
  * @returns Its course
- * @throws {Error} - When `NomSkillingmodules` holds no such module folder
+ * @throws {Error} - When `NomSkillingmodules` holds no such module folder, or the semester is not written
+ *   like `2026W`
  */
-export function courseRead(module: string): Course {
-    folderCheck(module);
-    const semester: string = semesterOf(berlinDateOf(new Date()));
-    const boxes: Box[] = courseBoxesRead(codeOf(module), semester);
+export function courseRead(module: string, named: string): Course {
+    const folder: string = moduleFolderOf(codeOf(module)) ?? module;
+    folderCheck(folder);
+    const semester: string = named === "" ? semesterOf(berlinDateOf(new Date())) : named;
+    if (!/^\d{4}[WS]$/.test(semester))
+        throw new Error(`No semester ${semester}`);
+    const boxes: Box[] = courseBoxesRead(codeOf(folder), semester);
     return {
-        module: module,
+        module: folder,
         semester: semester,
         boxes: boxes,
         series: seriesListOf(boxes, semester),
-        groups: groupsRead(module, semester),
-        folders: semesterFoldersRead(module, semester),
-        file: relative(calendarRoot, skillFileOf(module, planEnding)).split(sep).join("/"),
+        groups: groupsRead(folder, semester),
+        folders: semesterFoldersRead(folder, semester),
+        file: relative(calendarRoot, skillFileOf(folder, planEnding)).split(sep).join("/"),
     };
 }
 
 /**
  * Tells whether the weeks of a rule are well formed, see {@link Rule}: slots on different weekdays, each with a start
  * before its end, its first day on or before its last, at most {@link ruleWeeks} weeks apart, its days and the days
- * it leaves out written like `2026-10-19`.
+ * it leaves out written like `2026-10-19`, and its extras, each a day with a start before its end, at most
+ * {@link ruleWeeks} weeks from its first day, so a slip of a year typed makes no box far away.
  * - `day`, `time`: A day and a time well written.
- * - `slotRight`: Whether a slot is well formed.
+ * - `timesRight`: Whether a start lies before its end, both well written.
+ * - `near`: Whether a day lies at most {@link ruleWeeks} weeks from the first day.
  *
  * @param rule - The rule as sent
  * @returns Whether they are
@@ -703,14 +807,17 @@ export function courseRead(module: string): Course {
 function weeksRight(rule: Rule): boolean {
     const day: RegExp = /^\d{4}-\d{2}-\d{2}$/;
     const time: RegExp = /^([01]\d|2[0-3]):[0-5]\d$/;
-    const slotRight: (slot: Slot) => boolean = (slot: Slot): boolean => Number.isInteger(slot.weekday)
-        && slot.weekday >= 1 && slot.weekday <= 7 && time.test(slot.start) && time.test(slot.end)
-        && minutesOf(slot.start) < minutesOf(slot.end);
-    return rule.slots.length > 0 && rule.slots.every(slotRight)
+    const timesRight: (times: Extra | Slot) => boolean = (times: Extra | Slot): boolean => time.test(times.start)
+        && time.test(times.end) && minutesOf(times.start) < minutesOf(times.end);
+    const near: (other: string) => boolean = (other: string): boolean =>
+        Math.abs(Date.parse(other) - Date.parse(rule.first)) <= ruleWeeks * weekLength;
+    return Array.isArray(rule.extras) && rule.slots.length > 0 && rule.slots.every((slot: Slot): boolean =>
+            Number.isInteger(slot.weekday)
+            && slot.weekday >= 1 && slot.weekday <= 7 && timesRight(slot))
         && new Set(rule.slots.map((slot: Slot): number => slot.weekday)).size === rule.slots.length
-        && day.test(rule.first) && day.test(rule.last) && rule.first <= rule.last
-        && Date.parse(rule.last) - Date.parse(rule.first) <= ruleWeeks * weekLength
-        && rule.excepts.every((except: string): boolean => day.test(except));
+        && day.test(rule.first) && day.test(rule.last) && rule.first <= rule.last && near(rule.last)
+        && rule.excepts.every((except: string): boolean => day.test(except))
+        && rule.extras.every((extra: Extra): boolean => day.test(extra.day) && near(extra.day) && timesRight(extra));
 }
 
 /**
@@ -741,6 +848,49 @@ function changeable(box: Box): boolean {
 }
 
 /**
+ * Tells whether I may give a box another state in the form of its series, see `states` of {@link SeriesChange}:
+ * a to-do of the new system, no date of a series of the file, neither done, which the log decides, nor pushed away
+ * from a day, as it shows on that day.
+ *
+ * @param box - The box
+ * @returns Whether I may
+ */
+function stateable(box: Box): boolean {
+    return box.editable && box.todo && !box.series && box.state !== "done" && box.state !== "pushed";
+}
+
+/**
+ * Gives a box with the state I gave it in the form of its series, see `states` of {@link SeriesChange}, as a change
+ * of the series then plans it, see {@link draftsOf}: skipped, it keeps its number and its place; cancelled by the
+ * university, its number is `NONE`; open again, it takes its number anew, see {@link numbersOf}.
+ * A box I may give no state, see {@link stateable}, and a state I may not give stay as they are.
+ *
+ * @param box - The box as it stands
+ * @param state - The state I gave it, `undefined` for none
+ * @returns The box with its state
+ */
+function stateSet(box: Box, state: BoxState | undefined): Box {
+    if (state === undefined || state === box.state || !stateable(box) || !["open", "dropped", "university"]
+        .includes(state))
+        return box;
+    let number: string = box.number === "NONE" ? "" : box.number;
+    if (state === "university")
+        number = "NONE";
+    return { ...box, state: state, number: number };
+}
+
+/**
+ * Tells whether a box lies today or later in Berlin time, the only kind a changed rule moves or removes, see
+ * {@link seriesApply}, so a box of a day over stays as it was, open or not.
+ *
+ * @param box - The box
+ * @returns Whether it does
+ */
+function ahead(box: Box): boolean {
+    return box.day >= berlinDateOf(new Date());
+}
+
+/**
  * Makes the draft of a box as it stands, see {@link Draft}.
  *
  * @param box - The box
@@ -749,13 +899,15 @@ function changeable(box: Box): boolean {
 function draftOf(box: Box): Draft {
     return {
         box: box, day: box.day, time: box.time, minutes: box.minutes, location: box.location,
-        locationLink: box.locationLink, attendees: box.attendees, group: box.group, number: box.number, removed: false,
+        locationLink: box.locationLink, online: box.online, onlineLink: box.onlineLink, passcode: box.passcode,
+        attendees: box.attendees, group: box.group, number: box.number, removed: false,
     };
 }
 
 /**
  * Sets a draft of a box from the date of the series it takes, see {@link draftsOf}: what changed of it,
- * see {@link Field}, its day, its time with its length, its place with its link, its people and its group;
+ * see {@link Field}, its day, its time with its length, its place with its link, what it does online, its people
+ * and its group;
  * the rest as it was, a time kept at its time of day on a new day, like 14:00 of a lecture moved from Monday
  * to Tuesday.
  * - `day`: Its day after.
@@ -777,6 +929,9 @@ function draftSet(draft: Draft, target: Target): Draft {
         minutes: target.fields.includes("time") ? target.minutes : draft.minutes,
         location: target.fields.includes("location") ? target.location : draft.location,
         locationLink: target.fields.includes("location") ? target.locationLink : draft.locationLink,
+        online: target.fields.includes("online") ? target.online : draft.online,
+        onlineLink: target.fields.includes("online") ? target.onlineLink : draft.onlineLink,
+        passcode: target.fields.includes("online") ? target.passcode : draft.passcode,
         attendees: target.fields.includes("attendees") ? target.attendees : draft.attendees,
         group: target.fields.includes("group") ? target.group : draft.group,
     };
@@ -785,10 +940,12 @@ function draftSet(draft: Draft, target: Target): Draft {
 /**
  * Plans a change of a series week by week, see the top of this file, from the first week it reaches to its last:
  * each date of a week takes the box of the week that fell on the weekday of its slot before, see `before`
- * of {@link Target}, else the earliest box of the week no date took yet, like a lecture moved once to another day;
+ * of {@link Target}, else, but for a date added, the earliest box of the week no date took yet, like a lecture moved
+ * once to another day;
  * a box a change may not change, see {@link changeable}, stays as it is all the same, so its date gets no new box;
  * a box a change may change takes what changed of its date, see {@link draftSet}; a date without box gets a new one,
- * with all of its date; every other box of the week a change may change goes.
+ * with all of its date, while it is made, see `made` of {@link Target}; every other box of the week a change may change
+ * goes.
  * A box of a week outside those reached stays as it is, but for its number, see {@link numbersOf}.
  * - `drafts`: The drafts so far: every box outside the weeks reached, then the weeks one by one.
  * - `seriesDayOf`: Gives the day of a box at its place in its series, see {@link datedOf}.
@@ -812,18 +969,20 @@ function draftsOf(series: Box[], targets: Target[], weeks: [string, string], tou
         const taken: (Box | undefined)[] = dates.map((target: Target): Box | undefined =>
             weekTake(free, target.before, false, seriesDayOf));
         dates.forEach((target: Target, index: number): void => {
-            taken[index] ??= weekTake(free, target.before, true, seriesDayOf);
+            if (!target.added)
+                taken[index] ??= weekTake(free, target.before, true, seriesDayOf);
         });
         dates.forEach((target: Target, index: number): void => {
             const box: Box | undefined = taken[index];
-            if (box === undefined)
+            if (box === undefined && target.made)
                 drafts.push({
                     box: null, day: target.day, time: target.start === "" ? ""
                         : instantOf(target.day, target.start).toISOString(), minutes: target.minutes,
-                    location: target.location, locationLink: target.locationLink, attendees: target.attendees,
+                    location: target.location, locationLink: target.locationLink, online: target.online,
+                    onlineLink: target.onlineLink, passcode: target.passcode, attendees: target.attendees,
                     group: target.group, number: "", removed: false,
                 });
-            else
+            else if (box !== undefined)
                 drafts.push(touched(box) ? draftSet(draftOf(box), target) : draftOf(box));
         });
         drafts.push(...free.map((box: Box): Draft => ({ ...draftOf(box), removed: touched(box) })));
@@ -833,9 +992,11 @@ function draftsOf(series: Box[], targets: Target[], weeks: [string, string], tou
 
 /**
  * Numbers the boxes of a type of a semester after a change, see the top of this file, the way `boxUniversity`
- * in `boxes.ts` keeps them: by their places in the series, see {@link datedOf}, each box a change may change,
- * see {@link changeable}, and each new one one more than the box before it; one the university cancelled keeps `NONE`
- * and counts not; one done, cancelled by me or pushed keeps its number, the next going on from it.
+ * in `boxes.ts` keeps them: by their places in the series, see {@link datedOf}, each box one more than the box before
+ * it, a new one, one done, one I skipped and one I pushed alike, so no number stands twice, like a Thursday added
+ * before a Monday I skipped; only its number changes, never its state, day or time; one the university cancelled keeps
+ * `NONE` and counts not; one of another app or one date of a series of a file, which the dashboard does not number,
+ * keeps its number, the next going on from it.
  * - `placeOf`: Gives the place of a draft in the series: where its box stood before its first push, else its time,
  *   or its day for a box without time, after the change.
  * - `last`: The number of the box before.
@@ -853,7 +1014,7 @@ function numbersOf(drafts: Draft[]): void {
         .forEach((draft: Draft): void => {
             if (draft.number === "NONE")
                 return;
-            if (draft.box !== null && !changeable(draft.box)) {
+            if (draft.box !== null && !(draft.box.editable && draft.box.todo && !draft.box.series)) {
                 last = /^\d+$/.test(draft.number) ? Number(draft.number) : last;
                 return;
             }
@@ -863,7 +1024,8 @@ function numbersOf(drafts: Draft[]): void {
 }
 
 /**
- * Tells whether a draft of a box that stays sets its day, its time, its length, its place or its people anew.
+ * Tells whether a draft of a box that stays sets its day, its time, its length, its place, what it does online
+ * or its people anew.
  *
  * @param draft - The draft of a box that stays
  * @param box - The box as it stands
@@ -871,7 +1033,8 @@ function numbersOf(drafts: Draft[]): void {
  */
 function draftMoved(draft: Draft, box: Box): boolean {
     return draft.day !== box.day || draft.time !== box.time || draft.minutes !== box.minutes
-        || draft.location !== box.location || draft.locationLink !== box.locationLink
+        || draft.location !== box.location || draft.locationLink !== box.locationLink || draft.online !== box.online
+        || draft.onlineLink !== box.onlineLink || draft.passcode !== box.passcode
         || JSON.stringify(draft.attendees) !== JSON.stringify(box.attendees);
 }
 
@@ -880,9 +1043,11 @@ function draftMoved(draft: Draft, box: Box): boolean {
  * as it is: a box removed goes, see `boxDelete` in `boxes.ts`; a new one is a to-do as the dialog adds one, see
  * `todoAppend` in `calendar.ts`, what it is written as the folder of the module with its type in brackets, linking
  * the folder of its material, see `titleOf` in `documents.ts`, with its place, its people, its `X-NUMBER`, its
- * `X-GROUP` while it goes to a group, and its `X-SEMESTER`; of a box that stays only what changed, its day, its time
- * and its place as the dialog changes them, see `todoChange` in `calendar.ts`, its number and its group in their lines.
+ * `X-GROUP` while it goes to a group, and its `X-SEMESTER`; of a box that stays only what changed against its file:
+ * skipped or open again, see `boxDrop` in `boxes.ts`, its day, its time and its place as the dialog changes them,
+ * see `todoChange` in `calendar.ts`, its number, `NONE` once the university cancelled it, and its group in their lines.
  * - `file`: The plan of the module.
+ * - `stands`: A box that stays as its file holds it now.
  * - `code`: The code of the module, like `IN2028`.
  * - `title`, `titleLink`: What a new box is, its `SUMMARY` and the `ALTREP` of it, the same for all.
  *
@@ -902,7 +1067,8 @@ function draftsWrite(module: string, type: string, semester: string, drafts: Dra
         if (box === null) {
             const id: string = todoAppend(file, {
                 category: skillName, title: title, titleLink: titleLink, location: draft.location,
-                locationLink: draft.locationLink, from: "", attendees: draft.attendees, module: code, type: type,
+                locationLink: draft.locationLink, online: draft.online, onlineLink: draft.onlineLink,
+                passcode: draft.passcode, from: "", attendees: draft.attendees, module: code, type: type,
                 semester: semester, note: "", day: draft.day, time: draft.time === "" ? null : new Date(draft.time),
                 minutes: draft.minutes, deadline: "",
             });
@@ -916,13 +1082,16 @@ function draftsWrite(module: string, type: string, semester: string, drafts: Dra
             boxDelete(box.id);
             return;
         }
-        const [boxFile, entry]: [string, Entry, Box] = boxFind(box.id);
+        const [boxFile, entry, stands]: [string, Entry, Box] = boxFind(box.id);
+        if ((box.state === "dropped") !== (stands.state === "dropped"))
+            boxDrop(box.id, box.state === "dropped");
         if (draftMoved(draft, box))
             todoChange(boxFile, entry, {
-                ...entry, location: draft.location, locationLink: draft.locationLink, attendees: draft.attendees,
+                ...entry, location: draft.location, locationLink: draft.locationLink, online: draft.online,
+                onlineLink: draft.onlineLink, passcode: draft.passcode, attendees: draft.attendees,
                 day: draft.day, time: draft.time === "" ? null : new Date(draft.time), minutes: draft.minutes,
             }, boxFile);
-        if (draft.number !== box.number || draft.group !== box.group)
+        if (draft.number !== stands.number || draft.group !== stands.group)
             propertiesPut(boxFile, box.id, [
                 ["x-number", draft.number === "" ? [] : [draft.number]],
                 ["x-group", draft.group === "" ? [] : [draft.group]],
@@ -931,8 +1100,9 @@ function draftsWrite(module: string, type: string, semester: string, drafts: Dra
 }
 
 /**
- * Gives the boxes of a series as planned, see {@link draftsOf}, for the preview of the form: each with its day
- * and number after the change, its state, and whether the change adds, changes or removes it.
+ * Gives the boxes of a series as planned, see {@link draftsOf}, for the preview of the form: each with its day,
+ * its times and its number after the change, its state, whether I pushed it and may give it another state, and whether
+ * the change adds, changes, renumbers or removes it.
  * - `change`: What the change does to a box.
  *
  * @param drafts - The drafts of every box of the series, numbered, see {@link numbersOf}
@@ -945,32 +1115,36 @@ function plannedOf(drafts: Draft[]): Planned[] {
             change = "new";
         else if (draft.removed)
             change = "removed";
-        else if (draftMoved(draft, draft.box) || draft.number !== draft.box.number || draft.group !== draft.box.group)
+        else if (draftMoved(draft, draft.box))
             change = "changed";
+        else if (draft.number !== draft.box.number || draft.group !== draft.box.group)
+            change = "renumbered";
         return {
-            id: draft.box?.id ?? "", day: draft.day, number: draft.number, state: draft.box?.state ?? "new",
-            change: change,
+            id: draft.box?.id ?? "", day: draft.day, time: draft.time, minutes: draft.minutes, number: draft.number,
+            state: draft.box?.state ?? "new", pushed: (draft.box?.pushed.length ?? 0) > 0,
+            editable: draft.box === null || stateable(draft.box), change: change,
         };
-    }).sort((first: Planned, second: Planned): number => first.day.localeCompare(second.day));
+    }).sort((first: Planned, second: Planned): number =>
+        (first.time || first.day).localeCompare(second.time || second.day));
 }
 
 /**
- * Tells what of a slot of a rule changed against the slot whose boxes it takes in the rule as read back when the form
- * opened, which then goes into every box it takes, see {@link draftSet}: its weekday, its time, and what changed
- * of the whole rule, its place or its people; all of it for a slot added.
+ * Tells what of a date of a rule changed against the slot or the extra whose boxes it takes in the rule as read back
+ * when the form opened, which then goes into every box it takes, see {@link draftSet}: its weekday, its time, and what
+ * changed of the whole rule, its place, what it does online or its people; all of it for a slot or an extra added.
  * - `changed`: Each field with whether it changed.
  *
- * @param before - The slot as read back, `undefined` for a slot added
- * @param slot - The slot as typed
- * @param shared - What changed of the whole rule, its place or its people
+ * @param before - The slot or the extra as read back, `undefined` for one added
+ * @param date - The slot or the extra as typed
+ * @param shared - What changed of the whole rule, its place, what it does online or its people
  * @returns What changed
  */
-function slotFieldsOf(before: Slot | undefined, slot: Slot, shared: Field[]): Field[] {
+function slotFieldsOf(before: Slot | Extra | undefined, date: Slot | Extra, shared: Field[]): Field[] {
     if (before === undefined)
-        return ["day", "time", "location", "attendees"];
+        return ["day", "time", "location", "online", "attendees"];
     const changed: [Field, boolean][] = [
-        ["day", before.weekday !== slot.weekday],
-        ["time", before.start !== slot.start || before.end !== slot.end],
+        ["day", "weekday" in before && "weekday" in date && before.weekday !== date.weekday],
+        ["time", before.start !== date.start || before.end !== date.end],
     ];
     return [...changed.filter(([, differs]: [Field, boolean]): boolean => differs)
         .map(([field]: [Field, boolean]): Field => field), ...shared];
@@ -978,27 +1152,31 @@ function slotFieldsOf(before: Slot | undefined, slot: Slot, shared: Field[]): Fi
 
 /**
  * Changes a series by its rule, as typed in its form, see the top of this file, or only tells what that would make,
- * for the preview of the form: each date of the rule takes the box of its week of the slot it takes the boxes of,
- * see `before` of {@link SeriesChange}, with what changed of its slot, see {@link slotFieldsOf}, all of it for a new
- * series or a slot added; a date without box gets one,
- * a box no date takes goes, but every box a change may not change stays, see {@link changeable}, and so does that
- * of a week I go to another group; then the boxes of the type are numbered anew, see {@link numbersOf}.
+ * for the preview of the form: first each box takes the state I gave it, see {@link stateSet}; then each date
+ * of the rule takes the box of its week of the slot it takes the boxes of, see `before` of {@link SeriesChange},
+ * an extra the box of its day, with what changed of its slot or its extra, see {@link slotFieldsOf}, all of it for a new
+ * series or a slot or an extra added; a date without box gets one, for a series that has boxes only from today on;
+ * a box no date takes goes, but only an open one from today on, see {@link ahead}, every other box staying, see
+ * {@link changeable}, and so does that of a week I go to another group; then the boxes of the type are numbered anew,
+ * see {@link numbersOf}.
  * A new box goes to my group while my tutorials go to groups, and takes the place of the rule with its link,
- * see `placeLinkOf` in `places.ts`, for `Online` the link typed.
+ * see `placeLinkOf` in `places.ts`, and what the rule does online, see `onlineFor` there.
  * - `rule`, `old`: The rule as typed and as read back.
- * - `typed`: The boxes of its type of its semester.
+ * - `today`: Today in Berlin time.
+ * - `typed`: The boxes of its type of its semester, each with the state I gave it.
  * - `mine`: My group of the type, see {@link mineOf}, empty for none.
  * - `link`: The link of the place of the rule.
- * - `changed`: Each field of the whole rule, its place and its people, with whether it changed.
+ * - `online`: What the rule does online, as written.
+ * - `changed`: Each field of the whole rule, its place, what it does online and its people, with whether it changed.
  * - `shared`: Those of them that changed.
- * - `wasOf`: Gives the slot of the rule as read back whose boxes a slot takes, `undefined` for none.
+ * - `wasOf`: Gives the slot or the extra of the rule as read back whose boxes a date takes, `undefined` for none.
  * - `targets`: The dates of the rule.
  * - `weeks`: The weeks the change reaches, from the first of the rule or the series to the last of either.
  * - `drafts`: The boxes of the type as planned.
  *
  * @param change - The change as the form sends it
- * @returns The boxes of the series after the change, removed ones too, by their days
- * @throws {Error} - When there is no such module folder, the rule is not well formed, the link of `Online` is no
+ * @returns The boxes of the series after the change, removed ones too, by their times
+ * @throws {Error} - When there is no such module folder, the rule is not well formed, the link online is no
  *   web address, or a box cannot be written
  */
 export function seriesApply(change: SeriesChange): Planned[] {
@@ -1006,28 +1184,39 @@ export function seriesApply(change: SeriesChange): Planned[] {
     ruleCheck(change.rule);
     const rule: Rule = change.rule;
     const old: Rule | null = change.old;
+    const today: string = berlinDateOf(new Date());
     const typed: Box[] = courseBoxesRead(codeOf(change.module), rule.semester)
-        .filter((box: Box): boolean => box.type === rule.type);
+        .filter((box: Box): boolean => box.type === rule.type)
+        .map((box: Box): Box => stateSet(box, change.states?.[box.id]));
     const mine: string = mineOf(typed);
-    const link: string = placeLinkOf(rule.location, rule.locationLink, old);
+    const link: string = placeLinkOf(rule.location, old);
+    const online: Online = onlineFor(rule, null);
     const changed: [Field, boolean][] = old === null ? [] : [
-        ["location", old.location !== rule.location || old.locationLink !== rule.locationLink],
+        ["location", old.location !== rule.location],
+        ["online", old.online !== online.online || old.onlineLink !== online.onlineLink
+            || old.passcode !== online.passcode],
         ["attendees", JSON.stringify(old.attendees) !== JSON.stringify(rule.attendees)],
     ];
     const shared: Field[] = changed.filter(([, differs]: [Field, boolean]): boolean => differs)
         .map(([field]: [Field, boolean]): Field => field);
-    const wasOf: (index: number) => Slot | undefined = (index: number): Slot | undefined => old?.slots
-        .find((slot: Slot): boolean => slot.weekday === (change.before?.[index] ?? rule.slots[index].weekday));
-    const targets: Target[] = datesOf(rule).map(([day, index]: [string, number]): Target => ({
-        day: day, start: rule.slots[index].start,
-        minutes: minutesOf(rule.slots[index].end) - minutesOf(rule.slots[index].start), location: rule.location,
-        locationLink: link, attendees: rule.attendees, group: mine,
-        before: wasOf(index)?.weekday ?? rule.slots[index].weekday,
-        fields: slotFieldsOf(wasOf(index), rule.slots[index], shared),
-    }));
-    const weeks: string[] = [mondayOf(rule.first), mondayOf(rule.last), ...typed.map(weekOf)].sort();
+    const wasOf: (date: RuleDate) => Slot | Extra | undefined = (date: RuleDate): Slot | Extra | undefined =>
+        date.slot === -1 ? old?.extras.find((extra: Extra): boolean => extra.day === date.day)
+            : old?.slots.find((slot: Slot): boolean =>
+                slot.weekday === (change.before?.[date.slot] ?? rule.slots[date.slot].weekday));
+    const targets: Target[] = datesOf(rule).map((date: RuleDate): Target => {
+        const was: Slot | Extra | undefined = wasOf(date);
+        return {
+            day: date.day, start: date.start, minutes: minutesOf(date.end) - minutesOf(date.start),
+            location: rule.location, locationLink: link, ...online, attendees: rule.attendees, group: mine,
+            before: was !== undefined && "weekday" in was ? was.weekday : weekdayOf(date.day),
+            fields: slotFieldsOf(was, date.slot === -1 ? date : rule.slots[date.slot], shared),
+            made: old === null || date.day >= today, added: was === undefined,
+        };
+    });
+    const weeks: string[] = [mondayOf(rule.first), mondayOf(rule.last), ...targets.map((target: Target): string =>
+        mondayOf(target.day)), ...typed.map(weekOf)].sort();
     const drafts: Draft[] = draftsOf(typed, targets, [weeks[0], weeks[weeks.length - 1]],
-        (box: Box): boolean => changeable(box) && (box.group === "" || box.group === mine));
+        (box: Box): boolean => changeable(box) && ahead(box) && (box.group === "" || box.group === mine));
     numbersOf(drafts);
     if (!change.dry)
         draftsWrite(change.module, rule.type, rule.semester, drafts);
@@ -1041,7 +1230,8 @@ export function seriesApply(change: SeriesChange): Planned[] {
  * the page of the module shows it as the card of its type, numbered; while its type has a box in that semester,
  * its series is there already, which only the form of that series changes, so nothing is made. Any other box, like
  * one of a project or my gym, is added once per date into the plan it belongs into, as the dialog adds one alone,
- * see `boxesAdd` in `boxes.ts`: its day the date, its time and length those of the slot of the date, no deadline.
+ * see `boxesAdd` in `boxes.ts`: its day the date, its time and length those of the slot or the extra of the date,
+ * no deadline.
  * - `box`: The box as sent.
  * - `rule`: Its rule, its days with the fields of the box.
  * - `module`: Name of the folder of the module of a skill box of a numbered type, `undefined` for any other box.
@@ -1049,13 +1239,14 @@ export function seriesApply(change: SeriesChange): Planned[] {
  *
  * @param change - The box and its days, as the dialog sends them
  * @returns The boxes it makes, by their days; `null` for a series of a type with a box in its semester already
- * @throws {Error} - When the rule or the box is not well formed, the link of `Online` is no web address, a document is
+ * @throws {Error} - When the rule or the box is not well formed, the link online is no web address, a document is
  *   none of the module's, or a box cannot be written
  */
 export function repeatApply(change: RepeatChange): Planned[] | null {
     const box: RepeatChange["box"] = change.box;
     const rule: Rule = {
-        type: box.type, slots: change.slots, location: box.location, locationLink: box.locationLink ?? "",
+        type: box.type, slots: change.slots, extras: change.extras, location: box.location, locationLink: "",
+        online: box.online ?? "", onlineLink: box.onlineLink ?? "", passcode: box.passcode ?? "",
         attendees: box.attendees ?? [], first: change.first, last: change.last, excepts: change.excepts, group: "",
         semester: box.semester,
     };
@@ -1066,12 +1257,15 @@ export function repeatApply(change: RepeatChange): Planned[] | null {
             : seriesApply({ module: module, rule: rule, old: null, dry: change.dry });
     if (!weeksRight(rule))
         throw new Error(`No days of a box: ${JSON.stringify(rule)}`);
-    const boxes: BoxNew[] = datesOf(rule).map(([day, index]: [string, number]): BoxNew => ({
-        ...box, day: day, time: instantOf(day, rule.slots[index].start).toISOString(),
-        minutes: minutesOf(rule.slots[index].end) - minutesOf(rule.slots[index].start), deadline: "",
+    const boxes: BoxNew[] = datesOf(rule).map((date: RuleDate): BoxNew => ({
+        ...box, day: date.day, time: instantOf(date.day, date.start).toISOString(),
+        minutes: minutesOf(date.end) - minutesOf(date.start), deadline: "",
     }));
     boxesAdd(boxes, change.dry);
-    return boxes.map((one: BoxNew): Planned => ({ id: "", day: one.day, number: "", state: "new", change: "new" }));
+    return boxes.map((one: BoxNew): Planned => ({
+        id: "", day: one.day, time: one.time, minutes: one.minutes, number: "", state: "new", pushed: false,
+        editable: true, change: "new",
+    }));
 }
 
 /**
@@ -1112,8 +1306,9 @@ export function groupMine(change: MineChange): Planned[] {
     const targets: Target[] = coming.map((session: Session): Target => ({
         day: berlinDateOf(new Date(session.start)), start: berlinTimeOf(new Date(session.start)),
         minutes: session.minutes, location: group.rule.location, locationLink: group.rule.locationLink,
+        online: group.rule.online, onlineLink: group.rule.onlineLink, passcode: group.rule.passcode,
         attendees: group.rule.attendees, group: group.rule.group,
-        before: weekdayOf(berlinDateOf(new Date(session.start))), fields: allFields,
+        before: weekdayOf(berlinDateOf(new Date(session.start))), fields: allFields, made: true, added: false,
     }));
     const weeks: string[] = [...targets.map((target: Target): string => mondayOf(target.day)), ...typed.map(weekOf)]
         .filter((week: string): boolean => week >= from).sort();
@@ -1152,7 +1347,9 @@ export function weekMove(change: WeekChange): void {
     draftsWrite(module, box.type, semester, [draftSet(draftOf(box), {
         day: berlinDateOf(new Date(session.start)), start: berlinTimeOf(new Date(session.start)),
         minutes: session.minutes, location: group.rule.location, locationLink: group.rule.locationLink,
+        online: group.rule.online, onlineLink: group.rule.onlineLink, passcode: group.rule.passcode,
         attendees: group.rule.attendees, group: group.rule.group, before: weekdayOf(box.day), fields: allFields,
+        made: true, added: false,
     })]);
 }
 
@@ -1178,9 +1375,9 @@ function groupsTake(gone: GroupGone): number {
  * group and semester: one weekly event of its one slot, its first session as `DTSTART` and `DTEND`,
  * `RRULE:FREQ=WEEKLY;UNTIL=…` with the start of its last session in UTC, like `UNTIL=20270202T090000Z`, one `EXDATE`
  * per week it leaves out, like `EXDATE;TZID=Europe/Berlin:20261110T100000`, what it is as a box of its type is,
- * see `titleOf` in `documents.ts`, its room with its link, see `placeLinkOf` in `places.ts`, for `Online` the link
- * typed, its tutor, `X-GROUP` and `X-SEMESTER`; the file made when missing.
- * - `rule`: The rule of the group.
+ * see `titleOf` in `documents.ts`, its room with its link, see `placeLinkOf` in `places.ts`, what it does online,
+ * see `onlineFor` there, its tutor, `X-GROUP` and `X-SEMESTER`; the file made when missing.
+ * - `rule`: The rule of the group, without extras, since a group meets weekly, so a group sent without them is right.
  * - `slot`: Its one slot.
  * - `days`: The days of its sessions.
  * - `code`: Code of the module, like `IN2028`.
@@ -1194,14 +1391,14 @@ function groupsTake(gone: GroupGone): number {
  * @param change - The group with its rule, as sent
  * @returns Identifier of the group written
  * @throws {Error} - When there is no such module folder, the rule is not well formed, has no group or not one slot,
- *   it holds no session, or the link of `Online` is no web address
+ *   it holds no session, or the link online is no web address
  */
 export function groupPut(change: GroupNew): string {
     folderCheck(change.module);
-    ruleCheck(change.rule);
-    const rule: Rule = change.rule;
+    const rule: Rule = { ...change.rule, extras: [] };
+    ruleCheck(rule);
     const slot: Slot = rule.slots[0];
-    const days: string[] = datesOf(rule).map(([day]: [string, number]): string => day);
+    const days: string[] = datesOf(rule).map((date: RuleDate): string => date.day);
     if (rule.group === "" || rule.slots.length !== 1 || days.length === 0)
         throw new Error(`No group of sessions: ${JSON.stringify(rule)}`);
     const code: string = codeOf(change.module);
@@ -1211,7 +1408,7 @@ export function groupPut(change: GroupNew): string {
     const minutes: number = minutesOf(slot.end) - minutesOf(slot.start);
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: rule.location,
-        locationLink: placeLinkOf(rule.location, rule.locationLink, null), from: "", attendees: rule.attendees,
+        locationLink: placeLinkOf(rule.location, null), ...onlineFor(rule, null), from: "", attendees: rule.attendees,
         module: code, type: rule.type, semester: rule.semester, note: "",
         start: start, end: new Date(start.getTime() + minutes * 60 * 1000),
     };

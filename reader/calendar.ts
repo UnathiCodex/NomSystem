@@ -8,7 +8,7 @@
  * Every entry states its facts in its own lines, for every field, now and later: a link, the `ALTREP` of a `SUMMARY`
  * or a `LOCATION` or an `ATTACH`, only points to more and is never the only place of a fact, since a folder may be
  * renamed or vanish; so a skill entry names its skill in its `SUMMARY` and its semester in its `X-SEMESTER`,
- * a place its label and address in its `LOCATION`.
+ * a place its label and address in its `LOCATION`, what I did online its platform in its `X-ONLINE`.
  * Writes only into the three folders of the new system, with times in Berlin time, every date and time in the form
  * of the iCalendar format, also in a property or a parameter of my own, like `20261026T130000Z` or `20261026`,
  * never like `2026-10-26T13:00:00.000Z`, and every duration so, like `PT25M`, never like `25`, see {@link sportIcsOf};
@@ -20,7 +20,7 @@
  * - `node:path`: Builds file paths for the operating system.
  * - `node:crypto`: Creates random identifiers and the fingerprint of each entry.
  * - `ical.js`: Reads and writes the iCalendar format of `.ics` files.
- * - `./places.ts`: Tells a link I typed, a web address.
+ * - `./places.ts`: Tells a link I typed, a web address, and the platform of a link.
  * - `./sources.ts`: Names the files of a calendar, the folder of my modules and my projects, and tells which files
  *   the reader may write.
  */
@@ -29,7 +29,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { dirname, join } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import ICAL from "ical.js";
-import { linkForm } from "./places.ts";
+import { labelOf, linkForm, platformOfLink } from "./places.ts";
 import { modulesFolder, projectOf, writeAllowed } from "./sources.ts";
 
 import type { CalendarSource } from "./sources.ts";
@@ -47,11 +47,14 @@ import type { CalendarSource } from "./sources.ts";
  * - `titleLink`: Link of what it was, the standard parameter `ALTREP` of its `SUMMARY`: for a skill entry the folder
  *   of its skill from `NomWorkspace`, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, for a type
  *   on into the folder of its material, like `…/VO_UniversityLectureLessons/TUM_2026W`, see `skillLinkOf`
- *   in `documents.ts`, or a web address I typed in its place, see `titleOf` there; empty when it has none.
- * - `location`: Place of the entry, its `LOCATION`, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`,
- *   or `Home Munich` in an older entry, empty when the event has none.
+ *   in `documents.ts`; in an older entry a web address I typed, like the page of an event, which it keeps, while one
+ *   of a platform of `Online.md` reads as its {@link Online}; empty when it has none.
+ * - `location`: Place of the entry, where I physically was, its `LOCATION`,
+ *   like `TUM Innenstadt, Arcisstraße 21, 80333, München, Deutschland`, or `Home Munich` in an older entry,
+ *   empty when the event has none and for an older place online, which reads as its {@link Online}.
  * - `locationLink`: Link of its place, the standard parameter `ALTREP` of its `LOCATION`,
  *   like `https://nav.tum.de/room/0509.EG.980`, empty when it has none.
+ * - `online`, `onlineLink`, `passcode`: What I did online, see {@link Online}.
  * - `from`: Where a way starts, its `X-FROM`, empty when the event has none.
  * - `attendees`: Who I was with, its `ATTENDEE`s in order, see {@link Attendee}, none when the event has none.
  * - `module`: Skill of a skill entry from its `SUMMARY`, the code of a module, like `IN2028`, or a project,
@@ -95,8 +98,6 @@ import type { CalendarSource } from "./sources.ts";
  * - `note`: Free note, its `DESCRIPTION`, empty when the event has none.
  * - `todo`: Whether the entry is a to-do, a `VTODO`, a box of the plan; else it is an event, a `VEVENT`.
  * - `status`: Its `STATUS`, like `CANCELLED` for a dropped box or `COMPLETED` for a done one, empty when it has none.
- * - `completed`: When a to-do was done, its `COMPLETED`, as ISO instant, like the moment I ticked a homework submitted;
- *   empty when it has none and for an event.
  * - `minutes`: Expected duration of a to-do in minutes, its `ESTIMATED-DURATION`, like 75 of `PT1H15M`;
  *   `null` for none and for an event, whose length lies between its start and its end.
  * - `deadline`: Deadline of a to-do, its `DUE`, as ISO instant, or as date like `2026-10-23` when it has no time;
@@ -136,6 +137,9 @@ export type Entry = {
     titleLink: string;
     location: string;
     locationLink: string;
+    online: string;
+    onlineLink: string;
+    passcode: string;
     from: string;
     attendees: Attendee[];
     module: string;
@@ -156,7 +160,6 @@ export type Entry = {
     note: string;
     todo: boolean;
     status: string;
-    completed: string;
     minutes: number | null;
     deadline: string;
     pushed: Push[];
@@ -169,6 +172,26 @@ export type Entry = {
     end: string;
     allDay: boolean;
     recurrence: string;
+};
+
+/**
+ * What an entry or a box did online, apart from where I physically was, its place: one `X-ONLINE`, its platform
+ * as value, a row of `Online.md`, see `Platform` in `places.ts`, the link of its own meeting or video as the standard
+ * parameter `ALTREP` and its passcode as the parameter `X-PASSCODE`, both left out while empty, like
+ * `X-ONLINE;ALTREP="https://zoom.us/j/123";X-PASSCODE=4f9K2:Zoom`, see {@link textPropertyOf}.
+ * An older entry wrote it as its place, which reads so, see {@link onlineOf}: `LOCATION:Online, Zoom`
+ * or `Online, Teams, Microsoft` with the link as `ALTREP`, or as a place named after its platform with `Online`
+ * among its parts, like `Zoom, Zoom Video Communications, 4f9K2, Online, USA`; and as the `ALTREP` of its `SUMMARY`
+ * a link of a platform of `Online.md`, like a video on YouTube.
+ *
+ * - `online`: The platform, like `Zoom`, empty for none.
+ * - `onlineLink`: The link of its meeting or video, a web address, empty for none.
+ * - `passcode`: The passcode of its meeting, empty for none.
+ */
+export type Online = {
+    online: string;
+    onlineLink: string;
+    passcode: string;
 };
 
 /**
@@ -222,11 +245,13 @@ export type Link = {
  *
  * - `category`: Category of the entry, `CATEGORIES`.
  * - `title`: What, `SUMMARY`.
- * - `titleLink`: Link of what it was, the parameter `ALTREP` of `SUMMARY`, like the folder of the skill
- *   of a skill entry, written only with its `SUMMARY`, empty for none.
+ * - `titleLink`: Link of what it was, the parameter `ALTREP` of `SUMMARY`, the folder of the skill of a skill entry,
+ *   or the one an older entry kept, written only with its `SUMMARY`, empty for none.
  * - `location`: Place, `LOCATION`.
  * - `locationLink`: Link of the place, the parameter `ALTREP` of `LOCATION`, written only with its place,
  *   empty for none.
+ * - `online`, `onlineLink`, `passcode`: What it did online, `X-ONLINE`, written only with its platform,
+ *   see {@link Online}.
  * - `from`: Where a way starts, `X-FROM`.
  * - `attendees`: Who I was with, one `ATTENDEE` each, see {@link Attendee}; none for nobody.
  * - `module`: Skill of a skill entry, not written, since its `SUMMARY` names it, see {@link skillPartsOf}.
@@ -234,7 +259,7 @@ export type Link = {
  * - `semester`: Semester of a skill entry, `X-SEMESTER`, like `2026W`; empty for any other entry.
  * - `note`: Free note, `DESCRIPTION`.
  */
-export type EntryTexts = {
+export type EntryTexts = Online & {
     category: string;
     title: string;
     titleLink: string;
@@ -341,27 +366,29 @@ const zoneComponent: ICAL.Component = new ICAL.Component(ICAL.parse([
 const zone: ICAL.Timezone = new ICAL.Timezone(zoneComponent);
 
 /**
- * Order of the lines of every event and to-do the reader writes, new or changed, by the names of their properties,
- * see {@link linesOrdered}: who it is, `UID` and `DTSTAMP`; when, `DTSTART`, `DTEND`, for a to-do `DUE`,
+ * The one order of the lines of every event and to-do in every file of mine, by the names of their properties,
+ * so I find each line where I expect it when I read a file by hand; the reader writes every entry, new or changed,
+ * in it, see {@link linesOrdered}: who it is, `UID` and `DTSTAMP`; when, `DTSTART`, `DTEND`, for a to-do `DUE`,
  * `DURATION` and `ESTIMATED-DURATION` after them, then `RRULE`, `RDATE`, `EXDATE` and `RECURRENCE-ID`;
- * what, `CATEGORIES`, `SUMMARY`, `STATUS`, with `COMPLETED` after it; where, `LOCATION`; with whom, `ATTENDEE`;
- * more about it,
- * `DESCRIPTION`, `ATTACH` and `RELATED-TO`; then every other line of the standard, then the `X-` lines,
- * each in the order it had, those of a skill entry last, see {@link lineEnding}.
+ * what, `CATEGORIES`, `SUMMARY`, `STATUS`; where, `LOCATION`, where a way started,
+ * `X-FROM`, and online, `X-ONLINE`; with whom, `ATTENDEE`; more about it, `DESCRIPTION`, `ATTACH`, `RELATED-TO`,
+ * the box of the plan a log entry did, `X-PLANNED`, and the pushes of a box, `X-PUSHED`; then the lines of each kind
+ * of entry: a box of a course, `X-NUMBER` and `X-GROUP`; a meal, `X-FOOD` and `X-COOKED`; sport, `X-WORKOUT`,
+ * `X-EXERCISE`, `X-VIDEO` and `X-PAIN`; a skill entry, `X-TUTOR`, `X-SEMESTER`, `X-CHAPTER`, `X-ATTEMPT`
+ * and `X-ROUND`. Every other line comes after them, in the order it had, and the lines of a property
+ * that repeats, like `X-FOOD`, `ATTENDEE` or `EXDATE`, stay together in the order they had.
  */
 const lineOrder: string[] = [
     "UID", "DTSTAMP",
     "DTSTART", "DTEND", "DUE", "DURATION", "ESTIMATED-DURATION", "RRULE", "RDATE", "EXDATE", "RECURRENCE-ID",
-    "CATEGORIES", "SUMMARY", "STATUS", "COMPLETED",
-    "LOCATION", "ATTENDEE",
-    "DESCRIPTION", "ATTACH", "RELATED-TO",
+    "CATEGORIES", "SUMMARY", "STATUS",
+    "LOCATION", "X-FROM", "X-ONLINE", "ATTENDEE",
+    "DESCRIPTION", "ATTACH", "RELATED-TO", "X-PLANNED", "X-PUSHED",
+    "X-NUMBER", "X-GROUP",
+    "X-FOOD", "X-COOKED",
+    "X-WORKOUT", "X-EXERCISE", "X-VIDEO", "X-PAIN",
+    "X-TUTOR", "X-SEMESTER", "X-CHAPTER", "X-ATTEMPT", "X-ROUND",
 ];
-
-/**
- * The last lines of every event and to-do, after every other `X-` line, in this order: the semester of a skill entry,
- * `X-SEMESTER`, then all its `X-CHAPTER`s, then all its `X-ATTEMPT`s, then all its `X-ROUND`s.
- */
-const lineEnding: string[] = ["X-SEMESTER", "X-CHAPTER", "X-ATTEMPT", "X-ROUND"];
 
 /**
  * The parameter `ALTREP` in double quotes, as the standard writes a link there, also one without `:`, like
@@ -383,7 +410,7 @@ ICAL.design.icalendar.param.altrep = { multiValue: ",", multiValueSeparateDQuote
  */
 const ownTexts: string[] = [
     "x-from", "x-semester", "x-chapter", "x-attempt", "x-round", "x-tutor", "x-food", "x-cooked", "x-pain",
-    "x-workout", "x-exercise", "x-video", "x-number", "x-group", "x-planned",
+    "x-workout", "x-exercise", "x-video", "x-number", "x-group", "x-planned", "x-online",
 ];
 ownTexts.forEach((name: string): void => {
     ICAL.design.icalendar.property[name] = { defaultType: "text" };
@@ -639,6 +666,54 @@ function deadlineDayOf(component: ICAL.Component): [ICAL.Time, ICAL.Time] {
 }
 
 /**
+ * Where an entry was and what it did online, with the link of its summary, see {@link onlineOf}.
+ */
+type Placed = Online & Pick<Entry, "titleLink" | "location" | "locationLink">;
+
+/**
+ * Reads where an event or a to-do was, its place with its link, what it did online, see {@link Online},
+ * and the link of its summary: from its `X-ONLINE` and its `LOCATION`, and from what an older entry wrote,
+ * as one place: `Online, Zoom` or `Online, Teams, Microsoft`, its platform after `Online`, `Online` alone
+ * for none named, or a place named after its platform with `Online` among its parts, like
+ * `Zoom, Zoom Video Communications, 4f9K2, Online, USA`, both read as what it did online, the link of the place
+ * as that of its meeting, its place then empty; and as the `ALTREP` of its `SUMMARY` a link of a platform
+ * of `Online.md`, see `platformOfLink` in `places.ts`, read as its link online, its summary then without link.
+ * Its own `X-ONLINE` wins over both.
+ * - `summaryLink`: The `ALTREP` of its `SUMMARY`, empty for none.
+ * - `line`: Its `LOCATION`, empty for none.
+ * - `lineLink`: The `ALTREP` of its `LOCATION`, empty for none.
+ * - `own`: Its `X-ONLINE`, `null` for none.
+ * - `parts`: The parts of its `LOCATION`.
+ * - `placed`: Whether its `LOCATION` was what it did online.
+ * - `linked`: Whether the link of its summary is one of a platform.
+ *
+ * @param component - Event or to-do
+ * @returns Its place with its link, what it did online and the link of its summary
+ */
+function onlineOf(component: ICAL.Component): Placed {
+    const summaryLink: string = String(component.getFirstProperty("summary")?.getParameter("altrep") ?? "");
+    const line: string = String(component.getFirstPropertyValue("location") ?? "");
+    const lineLink: string = String(component.getFirstProperty("location")?.getParameter("altrep") ?? "");
+    const own: ICAL.Property | null = component.getFirstProperty("x-online");
+    const parts: string[] = line.split(",").map((part: string): string => part.trim());
+    const placed: boolean = parts.slice(1).some((part: string): boolean => part === "Online" || part.endsWith(" Online"))
+        || parts[0] === "Online";
+    const linked: boolean = linkForm.test(summaryLink) && platformOfLink(summaryLink) !== undefined;
+    const online: Online = own !== null ? {
+        online: String(own.getFirstValue() ?? ""), onlineLink: String(own.getParameter("altrep") ?? ""),
+        passcode: String(own.getParameter("x-passcode") ?? ""),
+    } : placed ? { online: parts[0] === "Online" ? parts[1] ?? "Online" : labelOf(line), onlineLink: lineLink, passcode: "" }
+        : linked ? { online: platformOfLink(summaryLink)?.name ?? "", onlineLink: summaryLink, passcode: "" }
+            : { online: "", onlineLink: "", passcode: "" };
+    return {
+        ...online,
+        titleLink: linked ? "" : summaryLink,
+        location: placed ? "" : line,
+        locationLink: placed ? "" : lineLink,
+    };
+}
+
+/**
  * Turns an event or a to-do with a start and an end into an {@link Entry}.
  * `ical.js` reads a to-do as it reads an event: its start from `DTSTART`, its end the end of its day,
  * or its start when it has a time, see {@link Entry}.
@@ -646,9 +721,9 @@ function deadlineDayOf(component: ICAL.Component): [ICAL.Time, ICAL.Time] {
  * - `category`: Its `CATEGORIES`, empty for none.
  * - `module`, `type`: Skill and type of a skill entry from its `SUMMARY`, see {@link skillPartsOf}, else empty.
  * - `stamp`: Its `DTSTAMP`, an `ical.js` time when it has one.
- * - `completed`: Its `COMPLETED`, an `ical.js` time when it has one.
  * - `recurrence`: For a changed occurrence its `RECURRENCE-ID`, for an occurrence of a series its start,
  *   empty for an event that happens once.
+ * - `online`: Its place, the link of its summary and what it did online, see {@link onlineOf}.
  * - {@link createHash}: Computes its fingerprint, the SHA-256 of its lines as read, written out by
  *   {@link ICAL.Component#toString}, see `version` of {@link Entry}.
  *
@@ -661,11 +736,10 @@ function deadlineDayOf(component: ICAL.Component): [ICAL.Time, ICAL.Time] {
 function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: boolean): Entry {
     const todo: boolean = event.component.name === "vtodo";
     const category: string = String(event.component.getFirstPropertyValue("categories") ?? "");
-    const titleLink: string = String(event.component.getFirstProperty("summary")?.getParameter("altrep") ?? "");
+    const online: Placed = onlineOf(event.component);
     const [module, type]: [string, string] =
-        category === skillName ? skillPartsOf(event.summary ?? "", titleLink) : ["", ""];
+        category === skillName ? skillPartsOf(event.summary ?? "", online.titleLink) : ["", ""];
     const stamp: unknown = event.component.getFirstPropertyValue("dtstamp");
-    const completed: unknown = event.component.getFirstPropertyValue("completed");
     let recurrence: string = "";
     if (event.isRecurrenceException())
         recurrence = textOf(event.recurrenceId);
@@ -675,9 +749,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         id: event.uid,
         category: category,
         title: event.summary ?? "",
-        titleLink: titleLink,
-        location: event.location ?? "",
-        locationLink: String(event.component.getFirstProperty("location")?.getParameter("altrep") ?? ""),
+        ...online,
         from: String(event.component.getFirstPropertyValue("x-from") ?? ""),
         attendees: event.component.getAllProperties("attendee").map((property: ICAL.Property): Attendee => {
             const address: string = String(property.getFirstValue()).replace(/^mailto:/i, "");
@@ -710,7 +782,6 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
         note: event.description ?? "",
         todo: todo,
         status: String(event.component.getFirstPropertyValue("status") ?? ""),
-        completed: completed instanceof ICAL.Time ? completed.toJSDate().toISOString() : "",
         minutes: todo ? minutesOf(event.component) : null,
         deadline: todo ? deadlineOf(event.component) : "",
         pushed: event.component.getAllProperties("x-pushed").map((property: ICAL.Property): Push =>
@@ -1048,9 +1119,8 @@ function calendarCreate(): ICAL.Component {
 }
 
 /**
- * Gives the place of a line of an event or a to-do in the fixed order, see {@link lineOrder}:
- * the place of its property in the list, after them every other line of the standard, then the `X-` lines,
- * and last those of {@link lineEnding}, in their order.
+ * Gives the place of a line of an event or a to-do in the fixed order: the place of its property
+ * in {@link lineOrder}, after them every other line.
  * - `name`: Name of its property, like `DTSTART` of `DTSTART;TZID=Europe/Berlin:20261013T100000`.
  * - `place`: Its place in the list, -1 for none.
  *
@@ -1060,11 +1130,7 @@ function calendarCreate(): ICAL.Component {
 function lineRankOf(line: string): number {
     const name: string = line.split(/[;:]/)[0].toUpperCase();
     const place: number = lineOrder.indexOf(name);
-    if (place !== -1)
-        return place;
-    if (lineEnding.includes(name))
-        return lineOrder.length + 2 + lineEnding.indexOf(name);
-    return name.startsWith("X-") ? lineOrder.length + 1 : lineOrder.length;
+    return place === -1 ? lineOrder.length : place;
 }
 
 /**
@@ -1426,7 +1492,8 @@ function propertyOf(name: string, value: string | ICAL.Time | Link): ICAL.Proper
  * as the standard parameter `ALTREP`, when it has one, like
  * `LOCATION;ALTREP="https://nav.tum.de/room/0509.EG.980":Audimax 0509.EG.980\, Arcisstraße 21\, 80333 München…`,
  * and its `SUMMARY` with its link the same way, like the folder of a skill,
- * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`;
+ * `SUMMARY;ALTREP="NomSkillingmodules/IN2028_…":IN2028_BusinessAnalyticsMachineLearning (VO)`,
+ * and its `X-ONLINE` with the link of its meeting and its passcode, see {@link Online};
  * every other one as its text.
  *
  * @param name - Name of the property, like `location`
@@ -1440,6 +1507,10 @@ function textPropertyOf(name: string, value: string, fields: EntryTexts): ICAL.P
         property.setParameter("altrep", [fields.locationLink]);
     if (name === "summary" && fields.titleLink !== "")
         property.setParameter("altrep", [fields.titleLink]);
+    if (name === "x-online" && fields.onlineLink !== "")
+        property.setParameter("altrep", [fields.onlineLink]);
+    if (name === "x-online" && fields.passcode !== "")
+        property.setParameter("x-passcode", fields.passcode);
     return property;
 }
 
@@ -1537,6 +1608,7 @@ function textsOf(fields: EntryTexts): [string, string][] {
         ["categories", fields.category],
         ["summary", fields.title],
         ["location", fields.location],
+        ["x-online", fields.online],
         ["x-from", fields.from],
         ["description", fields.note],
         ["x-semester", fields.semester],
@@ -1664,11 +1736,14 @@ export function todoAppend(file: string, fields: TodoFields): string {
  * see {@link textPropertyOf}; a place that stays keeps its line as it is, with its `ALTREP`. Who I was with,
  * once changed, replaces all its `ATTENDEE`s, see {@link attendeePropertyOf}.
  * A `SUMMARY` whose link alone changed is written anew too, like that of a skill entry moved to another semester,
- * whose link names the folder of its semester, see `skillLinkOf` in `documents.ts`.
+ * whose link names the folder of its semester, see `skillLinkOf` in `documents.ts`, and so is an `X-ONLINE` whose link
+ * or passcode alone changed; once what it did online changes, its `LOCATION` and its `SUMMARY` are written anew too,
+ * since an older entry wrote it there, see {@link onlineOf}.
  * A skill entry whose `SUMMARY` is written anew loses the lines `X-MODULE` and `X-TYPE` of an older entry,
  * since its `SUMMARY` names both now, see {@link skillPartsOf}.
  * - `textsOld`: Its text fields as read, with the names of their properties.
  * - `relinked`: Whether the link of its `SUMMARY` changed.
+ * - `reonline`: Whether what it did online changed, its platform, link or passcode.
  *
  * @param component - Lines of the event or the to-do, changed in place
  * @param entry - Its entry as read
@@ -1677,8 +1752,11 @@ export function todoAppend(file: string, fields: TodoFields): string {
 function textsPut(component: string[], entry: Entry, fields: EntryTexts): void {
     const textsOld: [string, string][] = textsOf(entry);
     const relinked: boolean = fields.titleLink !== entry.titleLink;
+    const reonline: boolean = fields.online !== entry.online || fields.onlineLink !== entry.onlineLink
+        || fields.passcode !== entry.passcode;
     textsOf(fields).forEach(([name, value]: [string, string], index: number): void => {
-        if (value !== textsOld[index][1] || (name === "summary" && relinked))
+        if (value !== textsOld[index][1] || (name === "summary" && relinked)
+            || (["summary", "location", "x-online"].includes(name) && reonline))
             propertyPut(component, name, value === "" ? [] : [textPropertyOf(name, value, fields)]);
     });
     if (JSON.stringify(fields.attendees) !== JSON.stringify(entry.attendees))
@@ -1798,26 +1876,21 @@ export function propertiesPut(file: string, id: string, properties: [string, (st
 }
 
 /**
- * Sets the state of a box of the plan: its `STATUS`, and for a done to-do its `COMPLETED`,
- * the moment it was done, in UTC as the standard wants it; a status that is not done takes `COMPLETED` out.
+ * Sets the state of a box of the plan, its `STATUS`, `COMPLETED` for a done one, without the moment it was done,
+ * the `COMPLETED` line iCalendar offers for it, since the log entry written from the box holds its real time.
  * Every other line of the file stays as it is, byte for byte.
- * - `values`: `COMPLETED` in UTC, none when there is none.
- * - {@link ICAL.Time.fromJSDate}: Turns a JS date into an `ical.js` time, in UTC with `true`.
  *
  * @param file - Path of the `.ics` file
  * @param id - Identifier of the to-do or the event
  * @param status - New `STATUS`, like `CANCELLED`, empty to take it out, as for an event of the plan that is open again
- * @param completed - When a to-do was done, `null` for any other status and for an event
  * @throws {Error} - When the file lies outside the new system or does not hold the to-do or the event once
  */
-export function statusPut(file: string, id: string, status: string, completed: Date | null): void {
+export function statusPut(file: string, id: string, status: string): void {
     writeCheck(file);
     const text: FileLines = linesRead(file);
     const place: [number, number] = componentFind(text.lines, id);
     const component: string[] = text.lines.slice(...place);
-    const values: ICAL.Time[] = completed === null ? [] : [ICAL.Time.fromJSDate(completed, true)];
     propertyPut(component, "status", status === "" ? [] : [status]);
-    propertyPut(component, "completed", values);
     componentWrite(file, text, place, component, file);
 }
 

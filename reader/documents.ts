@@ -216,41 +216,34 @@ export function skillLinkOf(code: string, type: string, semester: string): strin
 
 /**
  * Gives what an entry or a box was as it is written, its `SUMMARY` and the `ALTREP` of it: its what as sent,
- * for a skill entry its skill and type, see {@link skillTitleOf}, with the link typed for it, like the page of an event,
- * a web address, see `linkForm` in `places.ts`, or, from a sender that knows no typed link, like the calendar after
- * a drag, the link it had in the entry or box it comes from while it is the same what, of a skill entry the same skill
- * and type, whatever form its `SUMMARY` has, like an older `IN2028 Business Analytics Machine Learning (VO)`,
- * and only a web address; a skill entry without one links the folder of its skill and of its material,
- * see {@link skillLinkOf}.
+ * for a skill entry its skill and type, see {@link skillTitleOf}; the link it had in the entry or box it comes from
+ * while it is the same what, like a web address an older entry typed, of a skill entry the same skill and type,
+ * whatever form its `SUMMARY` has, like an older `IN2028 Business Analytics Machine Learning (VO)`, and only a web
+ * address; a skill entry without one links the folder of its skill and of its material, see {@link skillLinkOf}.
+ * I type no link of what it was: a link of mine goes with what I did online, see `Online` in `calendar.ts`.
  * - `skill`: Whether it is a skill entry.
  * - `title`: What it was, as written.
- * - `typed`: The link typed, without spaces at its ends, `undefined` from a sender that knows none.
  * - `same`: Whether the entry or box it comes from is the same what.
- * - `link`: The link typed or kept, empty for none.
+ * - `link`: The link kept, empty for none.
  *
- * @param fields - Category, what, the link typed for it, skill, type and semester of the entry or the box, as sent,
- *   the semester as it is written, see `semesterFor` in `categories.ts`; the link `undefined` from a sender that
- *   knows none
+ * @param fields - Category, what, skill, type and semester of the entry or the box, as sent, the semester as it is
+ *   written, see `semesterFor` in `categories.ts`
  * @param from - The entry or box it comes from, like the entry being changed or the box a log entry is logged from,
  *   `null` for none
  * @returns `SUMMARY` and `ALTREP`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`
  *   and `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning/VO_UniversityLectureLessons/TUM_2026W`,
  *   or `Planungen` and an empty link
- * @throws {Error} - When the link typed is no web address
  */
 export function titleOf(fields: {
-    category: string; title: string; titleLink?: string; module: string; type: string; semester: string;
+    category: string; title: string; module: string; type: string; semester: string;
 }, from: {
     category: string; title: string; titleLink: string; module: string; type: string;
 } | null): [string, string] {
     const skill: boolean = fields.category === skillName;
     const title: string = skill ? skillTitleOf(fields.module, fields.type) : fields.title;
-    const typed: string | undefined = fields.titleLink?.trim();
-    if (typed !== undefined && typed !== "" && !linkForm.test(typed))
-        throw new Error(`No link of ${title}: ${typed}`);
     const same: boolean = from !== null && (skill ? from.category === skillName && from.module === fields.module
         && from.type === fields.type && linkForm.test(from.titleLink) : from.title === title);
-    const link: string = typed ?? (from !== null && same ? from.titleLink : "");
+    const link: string = from !== null && same ? from.titleLink : "";
     return [title, skill && link === "" ? skillLinkOf(fields.module, fields.type, fields.semester) : link];
 }
 

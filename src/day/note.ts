@@ -60,7 +60,7 @@ export async function noteShow(date: string): Promise<void> {
  * Loads my gratitude and my points about the day of the daily note of a date from the reader.
  *
  * @param date - Date like `2026-07-03`
- * @returns Text of each section by its title, one point per line, a further line indented; empty for none
+ * @returns Text of each section by its title, the Markdown of its points, see `reader/note.ts`; empty for none
  * @throws {Error} - When the reader gives no valid answer
  */
 export async function sectionsLoad(date: string): Promise<{ [title in SectionTitle]: string }> {
@@ -73,7 +73,7 @@ export async function sectionsLoad(date: string): Promise<{ [title in SectionTit
  *
  * @param date - Date like `2026-07-03`
  * @param title - Title of the section
- * @param text - Text of the section, one point per line, a further line indented
+ * @param text - Text of the section, the Markdown of its points
  * @throws {Error} - When the reader does not take the text
  */
 export async function sectionSend(date: string, title: SectionTitle, text: string): Promise<void> {

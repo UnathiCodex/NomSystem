@@ -10,15 +10,13 @@
     align-items: flex-start;
     gap: calc(1.5 * var(--gap)) calc(3 * var(--gap));
     flex: none;
-    padding: var(--gap) var(--gap) calc(4 * var(--gap));
+    padding: var(--top-room) var(--side-room) calc(4 * var(--gap));
 }
 
-/* The day's totals and meals a step further in than the date bar's framed arrows, `--content-indent`, yet not as far
-   in as the date; the step comes on top of the day's 31rem, so its columns keep their room */
+/* The day's totals and meals in line with the date bar's arrows, `--side-room` from the rail */
 .food-day {
-    flex: 0 1 calc(31rem + var(--content-indent));
+    flex: 0 1 31rem;
     min-width: 0;
-    padding-left: var(--content-indent);
 }
 
 .food-foods {

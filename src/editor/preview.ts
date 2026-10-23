@@ -572,10 +572,16 @@ class BlockWidget extends WidgetType {
 
     /**
      * Renders the blocks; once an image of them is loaded, the editor measures its lines again.
+     * A table of them wider than the page, like that of `Foods.md`, becomes its own window, see `.markdown table.is-wide`
+     * in `../notes/notes.css`, measured again whenever its size changes, like when the window narrows, and the editor
+     * measures its lines again.
      * A click on a link of them follows it, see {@link addressFollow}, a click on the title of a callout that folds
      * opens or closes it, as in the scripts view, and the editor measures its lines again; any other click puts
      * the cursor at the place of their text I clicked, see {@link blockPlaceOf}, so they show as text with the cursor
-     * there, ready to type.
+     * there, ready to type; a press on a scrollbar of a part too wide or too high, like the table of `Foods.md`,
+     * only scrolls it, as the wheel, the touchpad and a swipe do, which press nothing, so it stays rendered.
+     * - {@link ResizeObserver}: Calls back once a table is laid out and whenever its size changes.
+     * - `target`: What the press hit, the table itself where it hit a scrollbar, below or right of its rows.
      * - `from`: Start of their first line.
      * - `link`: The link clicked, `null` for none.
      */
@@ -594,11 +600,19 @@ class BlockWidget extends WidgetType {
                 link.classList.add("is-unresolved");
         });
         mathRender(block);
+        block.querySelectorAll<HTMLTableElement>("table").forEach((table: HTMLTableElement): void =>
+            new ResizeObserver((): void => {
+                table.classList.toggle("is-wide", table.scrollWidth > table.clientWidth);
+                view.requestMeasure();
+            }).observe(table));
         block.addEventListener("mousedown", (event: MouseEvent): void => {
-            if (event.button !== 0)
+            const target: Element = event.target as Element;
+            if (event.button !== 0
+                || (target.scrollWidth > target.clientWidth && event.offsetY >= target.clientHeight)
+                || (target.scrollHeight > target.clientHeight && event.offsetX >= target.clientWidth))
                 return;
             event.preventDefault();
-            if ((event.target as Element).closest("a, summary") !== null)
+            if (target.closest("a, summary") !== null)
                 return;
             const from: number = view.posAtDOM(block);
             view.focus();

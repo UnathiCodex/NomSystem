@@ -58,13 +58,13 @@ import {
 import { attendeesAllow, categoryAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
 import { foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
-import { placeLinkOf } from "./places.ts";
+import { onlineFor, placeLinkOf } from "./places.ts";
 import { sportPartsAllow } from "./sport.ts";
 import { day, logEnding } from "./sources.ts";
 import { glassIs } from "./trackers.ts";
 
 import type { Box } from "./boxes.ts";
-import type { Attendee, Entry, EntryFields, Link } from "./calendar.ts";
+import type { Attendee, Entry, EntryFields, Link, Online } from "./calendar.ts";
 import type { Meal } from "./food.ts";
 
 
@@ -73,14 +73,11 @@ import type { Meal } from "./food.ts";
  *
  * - `category`: Category picked.
  * - `title`: What picked.
- * - `titleLink`: Link typed for what it was, like the page of an event, written as the `ALTREP` of its `SUMMARY`,
- *   see `titleOf` in `documents.ts`; left out by a sender that does not know it, like a drag, see {@link entryMove},
- *   so what it was keeps its link; none for a skill entry, whose link the reader writes, the folder of its skill.
- * - `location`: Place picked.
- * - `locationLink`: Link of the place `Online`, as typed in the dialog, written as the `ALTREP` of its `LOCATION`,
- *   see `placeLinkOf` in `places.ts`;
- *   left out for any other place, whose link the reader finds itself, and by a sender that does not know it,
- *   like a drag, so the place keeps its link.
+ * - `location`: Place picked, where I physically was, its link the reader finds itself, see `placeLinkOf`
+ *   in `places.ts`.
+ * - `online`, `onlineLink`, `passcode`: What I did online, its platform picked, the link of its meeting or video
+ *   and its passcode as typed, see `Online` in `calendar.ts`; left out by a sender that does not know them, like
+ *   a drag, see {@link entryMove}, so a changed entry keeps them and one logged from a box takes those of the box.
  * - `from`: Where a way starts.
  * - `attendees`: Who I was with, one `ATTENDEE` each, see `Attendee` in `calendar.ts`; left out by a sender that does
  *   not know it, like a drag, so a changed entry keeps its people and one logged from a box takes those of the box.
@@ -104,12 +101,10 @@ import type { Meal } from "./food.ts";
  * - `start`: Start as ISO instant.
  * - `end`: End as ISO instant, after the start.
  */
-export type EntryNew = {
+export type EntryNew = Partial<Online> & {
     category: string;
     title: string;
-    titleLink?: string;
     location: string;
-    locationLink?: string;
     from: string;
     attendees?: Attendee[];
     module: string;
@@ -202,19 +197,18 @@ export function logFileOf(fields: { category: string; module: string; start: Dat
 }
 
 /**
- * Turns an entry as the page sends it into the fields to write: its place with its link, the one typed
- * for `Online` or the one the reader finds, see `placeLinkOf` in `places.ts`, who I was with as sent, else as the box
- * or the entry being changed has them, and what a skill entry was as the reader writes it, see `titleOf`
- * in `documents.ts`.
+ * Turns an entry as the page sends it into the fields to write: its place with the link the reader finds,
+ * see `placeLinkOf` in `places.ts`, what it did online and who I was with as sent, else as the box or the entry being
+ * changed has them, see `onlineFor` there, and what it was as the reader writes it, see `titleOf` in `documents.ts`.
  * - `semester`: Semester of a skill entry as it is written, see `semesterFor` in `categories.ts`, empty for any other.
  * - `title`, `titleLink`: What it was, its `SUMMARY`, and the link of it.
  *
  * @param entry - New or changed entry, with ISO instants
  * @param from - The box it is logged from or the entry being changed, `null` for none
  * @returns Fields and times
- * @throws {Error} - When the link typed for `Online` is no web address
+ * @throws {Error} - When the link typed online is no web address
  */
-function fieldsOf(entry: EntryNew, from: {
+function fieldsOf(entry: EntryNew, from: Online & {
     category: string; title: string; titleLink: string; module: string; type: string; location: string;
     locationLink: string; attendees: Attendee[];
 } | null): EntryFields {
@@ -222,7 +216,7 @@ function fieldsOf(entry: EntryNew, from: {
     const [title, titleLink]: [string, string] = titleOf({ ...entry, semester: semester }, from);
     return {
         category: entry.category, title: title, titleLink: titleLink, location: entry.location,
-        locationLink: placeLinkOf(entry.location, entry.locationLink, from), from: entry.from,
+        locationLink: placeLinkOf(entry.location, from), ...onlineFor(entry, from), from: entry.from,
         attendees: entry.attendees ?? from?.attendees ?? [],
         module: entry.module, type: entry.type, semester: semester, note: entry.note,
         start: new Date(entry.start), end: new Date(entry.end),
@@ -465,7 +459,7 @@ export function realMinutesRead(category: string, title: string, module: string,
  * @param id - Identifier of the new entry, a new one when left out; the one an entry brought from Vu's log,
  *   see `shared.ts`
  * @returns Identifier of the new entry
- * @throws {Error} - When the fields or foods are not allowed, the link typed for `Online` is no web address,
+ * @throws {Error} - When the fields or foods are not allowed, the link typed online is no web address,
  *   the end is not after the start, or the box it is logged from is not open
  */
 export function entryAdd(entry: EntryNew, id?: string): string {
@@ -526,10 +520,11 @@ export function boxLog(logged: BoxLogged): string {
 
     const skill: boolean = box.category === skillName;
     const semester: string = semesterFor(box.category, box.semester, box.day);
-    const [title, titleLink]: [string, string] = titleOf({ ...box, titleLink: undefined, semester: semester }, box);
+    const [title, titleLink]: [string, string] = titleOf({ ...box, semester: semester }, box);
     const fields: EntryFields = {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
-        locationLink: box.locationLink, from: box.from, attendees: box.attendees, module: box.module, type: box.type,
+        locationLink: box.locationLink, online: box.online, onlineLink: box.onlineLink, passcode: box.passcode,
+        from: box.from, attendees: box.attendees, module: box.module, type: box.type,
         semester: semester, note: "",
         start: new Date(logged.start), end: new Date(logged.end),
     };
@@ -586,7 +581,7 @@ export function boxUndo(id: string): void {
  * @param change - Its fields and times as they are to be, as the dialog sends them, see {@link entryEdit},
  *   or as a drag leaves them, see {@link entryMove}
  * @throws {Error} - When it may not be changed, the fields or foods are not allowed,
- *   the link typed for `Online` is no web address, or the end is not after the start
+ *   the link typed online is no web address, or the end is not after the start
  */
 function entryWrite(file: string, entry: Entry, change: EntryNew): void {
     if (!entry.editable)
@@ -633,7 +628,7 @@ function entryWrite(file: string, entry: Entry, change: EntryNew): void {
  * @param change - Changed entry as the dialog sends it, with its fingerprint as the dialog opened it
  * @returns Whether it is written, `false` when its file changed it since the dialog opened it
  * @throws {Error} - When there is no such entry, it may not be changed, the fields or foods are not allowed,
- *   the link typed for `Online` is no web address, or the end is not after the start
+ *   the link typed online is no web address, or the end is not after the start
  */
 export function entryEdit(change: EntryChange): boolean {
     const [file, entry]: [string, Entry] = entryFind(day.log, change.id);
@@ -645,7 +640,8 @@ export function entryEdit(change: EntryChange): boolean {
 
 /**
  * Moves an entry of the log to a new start and end, as the calendar sends it after a drag, see {@link EntryMoved}:
- * every other field stays as its file holds it, its link, the link of its place, its people, its pain, its cooking
+ * every other field stays as its file holds it, its link, the link of its place, what it did online, its people, its pain,
+ * its cooking
  * and the workout, exercises and videos of a session of sport left out, so they stay too, see {@link EntryNew};
  * written as any change, see {@link entryWrite}, so an entry moved
  * into another year moves into the log of that year, and a meal moved before the cooking it draws from is refused,

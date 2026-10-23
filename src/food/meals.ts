@@ -38,7 +38,7 @@
  * - `../search.ts`: Compares the text typed in the search of the meals with their names and foods.
  * - `../changes.ts`: Loads my meals anew the moment a file of my new system changes.
  * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, and the plain question mark, their words
- *   as tooltip.
+ *   as tooltip, and makes the search field of the meals.
  * - `./meals.css`: Look of the section and of a meal opened.
  */
 
@@ -47,7 +47,7 @@ import {
     portionGramsOf, unitOf,
 } from "./foods.ts";
 import { editButtonsOf, editFieldOf, foodSearchOf, inlineFieldOf, listHeadOf, listLineOf } from "./search.ts";
-import { crossPut, iconOf, iconPut, plusPut, QuestionMark } from "../icons.ts";
+import { crossPut, iconOf, iconPut, plusPut, QuestionMark, searchFieldOf } from "../icons.ts";
 import { Plus } from "lucide";
 import { matchesAll, wordsOf } from "../search.ts";
 import { changesFollow } from "../changes.ts";
@@ -475,18 +475,13 @@ export function mealsSectionOf(foodOpen: (food: { name: string; brand: string; s
         return form;
     };
 
-    search.type = "search";
-    search.className = "dish-search";
-    search.placeholder = "Search meals";
-    search.autocomplete = "off";
-    search.setAttribute("aria-label", "Search meals");
     search.addEventListener("input", show);
     const heading: HTMLElement = elementOf("h2", "food-heading", "Meals");
     heading.append(plusOf("New meal", (): void => {
         naming = !naming;
         show();
     }));
-    section.append(heading, search, list);
+    section.append(heading, searchFieldOf(search, "Search meals"), list);
     load();
     changesFollow((): void => {
         if (!list.contains(document.activeElement))

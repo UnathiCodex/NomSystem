@@ -2,7 +2,7 @@
  * ## Evening
  *
  * What I write into the daily note of the shown day, any time of the day, at the top of the note, each a list
- * of points with their bullets, see `points.ts`: my gratitude into the section `## Gratitude`, and my points
+ * of points in the editor of my files, see `points.ts`: my gratitude into the section `## Gratitude`, and my points
  * about the day overall into the section `## About`, both apart, though they go hand in hand.
  * Both are saved into the day's note a moment after I stop typing, and when I leave a list or the day;
  * the note below leaves both sections out.
@@ -10,7 +10,7 @@
  * so neither is written any more, and the notes keep what they hold.
  *
  * - `./note.ts`: Loads and writes the sections of a daily note and shows the note.
- * - `./points.ts`: A list of points, each a bullet with its own field, like a Markdown list.
+ * - `./points.ts`: A list of points, a small editor of Markdown.
  */
 
 import { noteShow, sectionsLoad, sectionSend } from "./note.ts";
@@ -70,10 +70,10 @@ function listOf(box: Box): HTMLElement {
 }
 
 /**
- * Reads the text of a box as its section holds it, its points, see `points.ts`.
+ * Reads the text of a box, the Markdown of its points, see `points.ts`.
  *
  * @param box - Box
- * @returns Its text, one point per line, empty for none
+ * @returns Its text
  */
 function textOf(box: Box): string {
     return pointsRead(listOf(box));
@@ -117,7 +117,7 @@ async function boxesSave(): Promise<void> {
 /**
  * Shows my gratitude and my points about a day, after saving what was typed for the day shown before;
  * its texts count as saved as the points show them, so only what I type saves, never a list only shown,
- * like a point with two spaces in a row, which reading the list writes as one, see `points.ts`.
+ * like the empty point of a section without points, see `points.ts`.
  * - `sections`: Sections of the day's note.
  *
  * @param day - Day like `2026-10-10`
@@ -136,7 +136,7 @@ export async function eveningShow(day: string): Promise<void> {
 
 /**
  * Hides both lists and the note below them, or shows them again, after a click on the name of either list,
- * so plan and log take their height; open at every start, see `.note-fold` in `note.css`.
+ * so plan and log take their height; folded at every start, see `.note-fold` in `note.css`.
  * - `folded`: Whether they are hidden now.
  */
 function foldToggle(): void {
@@ -158,7 +158,6 @@ export function eveningStart(): void {
             boxesSave().catch(errorShow);
     });
     boxes.forEach((box: Box): void => {
-        pointsShow(listOf(box), "");
         pointsStart(listOf(box), (): void => {
             clearTimeout(waiting);
             waiting = window.setTimeout((): void => {

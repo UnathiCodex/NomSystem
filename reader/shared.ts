@@ -58,7 +58,9 @@ import { entryAdd } from "./day.ts";
 import {
     compositionsRead, dishAdd, dishRemove, dishRename, foodAdd, foodChange, foodRemove, foodsRead,
 } from "./food.ts";
-import { linkForm, placeAdd, placeChange, placesRead, roomsRead } from "./places.ts";
+import {
+    linkForm, placeAdd, placeChange, placesRead, platformAdd, platformChange, platformsRead, roomsRead,
+} from "./places.ts";
 import { dashboardBoxOf, day, myName, partners, writeAllowed } from "./sources.ts";
 import { trashPut } from "./trash.ts";
 
@@ -66,13 +68,13 @@ import type { ChildProcess } from "node:child_process";
 import type { Attendee, Entry, EntryFields } from "./calendar.ts";
 import type { EntryNew } from "./day.ts";
 import type { Composition, Food, FoodChanged } from "./food.ts";
-import type { Place, PlaceChanged } from "./places.ts";
+import type { Place, PlaceChanged, Platform, PlatformChanged } from "./places.ts";
 
 
 /**
  * A change of a list, as one call of `food.ts` or `places.ts` that changed it, with what it was called with:
  * a food added as written, a food changed and removed, a meal written, renamed and removed, a place added as written
- * and changed, see {@link listApply}.
+ * and changed, and a platform online added and changed as written, see {@link listApply}.
  */
 export type ListChange =
     | { call: "foodAdd"; with: Food }
@@ -82,7 +84,9 @@ export type ListChange =
     | { call: "mealRename"; with: { old?: string; name?: string } }
     | { call: "mealRemove"; with: string }
     | { call: "placeAdd"; with: Place }
-    | { call: "placeChange"; with: PlaceChanged };
+    | { call: "placeChange"; with: PlaceChanged }
+    | { call: "platformAdd"; with: Platform }
+    | { call: "platformChange"; with: PlatformChanged };
 
 /**
  * A name of a person, as the boxes are named and the gate takes it: letters and digits of ASCII, starting with a letter,
@@ -311,7 +315,8 @@ function outboxWrite(partner: string, name: string, content: string): void {
 function copyWrite(entry: Entry, partner: string): void {
     const fields: EntryFields = {
         category: entry.category, title: entry.title, titleLink: linkForm.test(entry.titleLink) ? entry.titleLink : "",
-        location: entry.location, locationLink: entry.locationLink, from: entry.from,
+        location: entry.location, locationLink: entry.locationLink, online: entry.online, onlineLink: entry.onlineLink,
+        passcode: entry.passcode, from: entry.from,
         attendees: [
             { name: myName, address: addressOf(myName) },
             ...entry.attendees.filter((attendee: Attendee): boolean => !sameName(attendee.name, partner)
@@ -393,8 +398,9 @@ export function listShare(change: ListChange, only?: string): void {
 }
 
 /**
- * Sends all my foods, meals, places and rooms to a person, the first time my reader shares with them, so our lists
- * come together, see the top of this file: the foods first, then the meals, which name them, then the places.
+ * Sends all my foods, meals, places, rooms and platforms to a person, the first time my reader shares with them,
+ * so our lists come together, see the top of this file: the foods first, then the meals, which name them, then
+ * the places, then the platforms.
  *
  * @param partner - The person, like `Vu`
  */
@@ -405,6 +411,7 @@ function listsShareAll(partner: string): void {
     }, partner));
     [...placesRead(), ...roomsRead()].forEach((place: Place): void =>
         listShare({ call: "placeAdd", with: place }, partner));
+    platformsRead().forEach((platform: Platform): void => listShare({ call: "platformAdd", with: platform }, partner));
 }
 
 /**
@@ -431,6 +438,10 @@ function listApply(change: ListChange): void {
         placeAdd(change.with);
     else if (change.call === "placeChange")
         placeChange(change.with);
+    else if (change.call === "platformAdd")
+        platformAdd(change.with);
+    else if (change.call === "platformChange")
+        platformChange(change.with);
     else
         throw new Error(`No change of a list: ${JSON.stringify(change)}`);
 }
@@ -448,8 +459,9 @@ function listApply(change: ListChange): void {
 function entryNewOf(entry: Entry): EntryNew {
     const cooking: Entry | undefined = entry.cooked === "" ? undefined : entryLookup(day.log, entry.cooked)?.[1];
     return {
-        category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
-        locationLink: entry.locationLink, from: entry.from, attendees: entry.attendees, module: entry.module,
+        category: entry.category, title: entry.title, location: entry.location, online: entry.online,
+        onlineLink: entry.onlineLink, passcode: entry.passcode, from: entry.from, attendees: entry.attendees,
+        module: entry.module,
         type: entry.type, semester: entry.semester, note: "", foods: entry.foods, planned: "",
         cooked: cooking !== undefined && cooking.category === "Cook"
             && Date.parse(cooking.start) < Date.parse(entry.start) ? entry.cooked : "",

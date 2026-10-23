@@ -2,16 +2,16 @@
  * ## Categories
  *
  * Entry by category, for plan and log alike: a fixed list of categories, each with its fields, named as the file
- * names them, its `Summary`, its `SUMMARY`, its `Place`, its `LOCATION`, and `With`, who I was with, its `ATTENDEE`s,
- * like `Way` with `Summary`, `From`, `Place` and `With`.
+ * names them, its `Summary`, its `SUMMARY`, its `Place`, its `LOCATION`, `Online`, what I did online, its `X-ONLINE`,
+ * and `With`, who I was with, its `ATTENDEE`s, like `Way` with `Summary`, `From`, `Place`, `Online` and `With`.
  * Each field of a what offers its values from the log itself, the what of its entries of the category,
  * the most used first, equal ones alphabetical.
  * Places are one list for every field of a place, the place of an entry and where a way starts: only my places
- * of `Places.md`, each as a line with its address, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`,
- * see `places.ts`, and `Online`, the place of a meeting online, but in a way, which leads from one place of mine
- * to another, see {@link offlineNames}; the most used by the entries of the log first, counted by their names.
- * `Online` takes its parts and its link typed per entry, its software, who offers it and its passcode,
- * see `onlineName` in `places.ts`.
+ * of `Places.md`, each as a line with its address, like `TUM Innenstadt, Arcisstraße 21, 80333, München, Deutschland`,
+ * see `places.ts`, only where I physically am; the most used by the entries of the log first, counted by their names.
+ * `Online`, below the place in every category, offers my platforms of `Online.md`, like `Zoom`, the most used first,
+ * with the link of each, see `Platform` in `places.ts`; per entry I type the link of its meeting or video
+ * and its passcode, see `Online` in `calendar.ts`.
  * `With` takes one or more people or groups, each by a name without comma, mostly one group, like `Socials`,
  * sometimes several, like `Sophale, Willi`, offering the names the entries of the log wrote, the most used first,
  * equal ones alphabetical, with the address the last of them wrote, see {@link addressesOf}, and Vu, with whom
@@ -37,32 +37,32 @@
  * of its skill with the type in brackets, like `IN2028_BusinessAnalyticsMachineLearning (VO)` or `WokFlow`,
  * see `activeSkills` in `sources.ts` and {@link skillTypes};
  * in the log also its documents and its attempts, which only `skill.ts` writes.
- * A box of the plan takes only what I intend and would otherwise forget, so not `Sleep`, `Food`, `Cook`, `Drink`
- * and `Game`, which happen anyway, see {@link unplannedNames}; `Watch` stays, since a cinema or a match has its time.
+ * A box of the plan takes every category, like `Sleep`, since I plan all of my day.
  * `Drink` is no category I pick: water has its own tracker, whose counter writes each glass as an entry `Drink`
  * of five minutes, see `trackers.ts`, and takes no time of mine, so the dialog leaves it out, see {@link hiddenNames}.
  *
  * - `./calendar.ts`: Reads `.ics` files into entries, and names the category of skill entries.
- * - `./places.ts`: Reads my places from `Places.md`.
+ * - `./places.ts`: Reads my places from `Places.md` and my platforms online from `Online.md`.
  * - `./sport.ts`: Names the category of a session and its kinds.
  * - `./sources.ts`: Names every folder and file the reader reads, and the people I share with.
  */
 
 import { entriesRead, skillName } from "./calendar.ts";
-import { labelOf, lineOf, onlineName, placesRead, roomsRead } from "./places.ts";
+import { labelOf, lineOf, placesRead, platformsRead, roomsRead } from "./places.ts";
 import { sportKinds, sportName } from "./sport.ts";
 import { day, partners } from "./sources.ts";
 
-import type { Attendee, Entry, EntryTexts } from "./calendar.ts";
-import type { Place } from "./places.ts";
+import type { Attendee, Entry, EntryTexts, Online } from "./calendar.ts";
+import type { Place, Platform } from "./places.ts";
 import type { SportKind } from "./sport.ts";
 
 
 /**
  * Field of an entry a field of a category writes into:
- * `title` into `SUMMARY`, `from` into `X-FROM`, `location` into `LOCATION`, `with` into its `ATTENDEE`s.
+ * `title` into `SUMMARY`, `from` into `X-FROM`, `location` into `LOCATION`, `online` into `X-ONLINE`,
+ * `with` into its `ATTENDEE`s.
  */
-export type FieldKey = "title" | "from" | "location" | "with";
+export type FieldKey = "title" | "from" | "location" | "online" | "with";
 
 /**
  * A field of a category, picked from its list.
@@ -99,29 +99,31 @@ export type Category = {
 };
 
 /**
- * A {@link Field} as the page gets it, with the rooms and the links of its places.
+ * A {@link Field} as the page gets it, with the rooms and the rows of its places.
  *
  * - `rooms`: For a field of a place, the rooms of `Rooms.md`, each as the line an entry writes, in the order
  *   of the table, which the list offers only as I search, see `places.ts`; none for any other field.
- * - `links`: For a field of a place, the link of each of my places and rooms that has one, by its line,
- *   like `https://nav.tum.de/room/0509.EG.980`, see `places.ts`; for `With` the address of each name, as its last
- *   entry wrote it, like `sophale@invalid`, see {@link addressesOf}; none for any other field.
+ * - `places`: For a field of a place, each of my places and rooms as its row holds it, its address in its parts
+ *   and its link, by its line, see `places.ts`; none for any other field.
+ * - `links`: For `With` the address of each name, as its last entry wrote it, like `sophale@invalid`,
+ *   see {@link addressesOf}; none for any other field.
+ * - `platforms`: For `Online` each of my platforms as its row of `Online.md` holds it, its provider and the link
+ *   of its web app, by its name, see `Platform` in `places.ts`; none for any other field.
  */
 export type FieldShown = Field & {
     rooms: string[];
+    places: { [line: string]: Place };
     links: { [value: string]: string };
+    platforms: { [name: string]: Platform };
 };
 
 /**
- * A {@link Category} as the page gets it, its fields with the links of their places, which also tells whether a box
- * of the plan may have it.
+ * A {@link Category} as the page gets it, its fields with the links of their places.
  *
  * - `fields`: Its fields as the page gets them.
- * - `plan`: Whether a box of the plan may have the category, all but {@link unplannedNames}.
  */
 export type CategoryShown = Category & {
     fields: FieldShown[];
-    plan: boolean;
 };
 
 /**
@@ -158,7 +160,14 @@ export const neckRoutines: { [what: string]: string[] } = {
 const withField: Field = { name: "With", key: "with", values: [], steps: {}, fixed: false, many: true };
 
 /**
- * Builds a category with the fields `Summary`, `Place` and `With`, whose summary offers only what the log holds.
+ * Field `Online` of every category, what I did online, below its place, see the top of this file; its values
+ * the reader gives from `Online.md`, see {@link categoriesRead}.
+ */
+const onlineField: Field = { name: "Online", key: "online", values: [], steps: {}, fixed: false };
+
+/**
+ * Builds a category with the fields `Summary`, `Place`, `Online` and `With`, whose summary offers only what the log
+ * holds.
  *
  * @param name - Name of the category, like `Food`
  * @returns Category to pick what, where and with whom
@@ -169,6 +178,7 @@ function categoryOf(name: string): Category {
         fields: [
             { name: "Summary", key: "title", values: [], steps: {}, fixed: false },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+            onlineField,
             withField,
         ],
     };
@@ -212,22 +222,10 @@ const sleepWhats: string[] = ["Night", "Day"];
 const transports: string[] = ["Walk", "Bike", "Bus", "Tram", "U-Bahn", "S-Bahn", "Train", "Car"];
 
 /**
- * Categories no box of the plan has, since they happen anyway: my sleep, my meals and their cooking, my drinks
- * and what I play.
- */
-const unplannedNames: string[] = ["Sleep", "Food", "Cook", "Drink", "Game"];
-
-/**
  * Categories the dialog leaves out, though the reader takes them: `Drink`, whose glasses of water only the counter
  * of the trackers writes, see the top of this file.
  */
 const hiddenNames: string[] = ["Drink"];
-
-/**
- * Categories whose places offer no `Online`, see `onlineName` in `places.ts`: `Way`, which leads from one place
- * of mine to another.
- */
-const offlineNames: string[] = ["Way"];
 
 /**
  * Whats a category no longer offers, by category, also where the log holds them: the neck routine of `Body`,
@@ -241,13 +239,14 @@ const retiredWhats: { [category: string]: string[] } = { Body: Object.keys(neckR
 const categories: Category[] = [
     {
         name: skillName,
-        fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false }, withField],
+        fields: [{ name: "Place", key: "location", values: [], steps: {}, fixed: false }, onlineField, withField],
     },
     {
         name: "Sleep",
         fields: [
             { name: "Summary", key: "title", values: sleepWhats, steps: {}, fixed: true },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+            onlineField,
             withField,
         ],
     },
@@ -259,6 +258,7 @@ const categories: Category[] = [
         fields: [
             { name: "Summary", key: "title", values: ["Caring", "Shower"], steps: {}, fixed: false, many: true },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+            onlineField,
             withField,
         ],
     },
@@ -270,6 +270,7 @@ const categories: Category[] = [
                 steps: {}, fixed: true,
             },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+            onlineField,
         ],
     },
     categoryOf("Meditate"),
@@ -281,6 +282,7 @@ const categories: Category[] = [
             },
             { name: "From", key: "from", values: [], steps: {}, fixed: false },
             { name: "Place", key: "location", values: [], steps: {}, fixed: false },
+            onlineField,
             withField,
         ],
     },
@@ -339,13 +341,23 @@ function logsRead(now: string): Entry[] {
 
 /**
  * Lists the places of log entries by their names: their places and where their ways start, see `labelOf`
- * in `places.ts`, so `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland` and an older `TUM Innenstadt` count alike.
+ * in `places.ts`, so `TUM Innenstadt, Arcisstraße 21, 80333, München, Deutschland` and an older `TUM Innenstadt` count alike.
  *
  * @param logs - Log entries
  * @returns Every use of a place by its name, like `TUM Innenstadt`, a place as often as it was used
  */
 function placeUsesOf(logs: Entry[]): string[] {
     return logs.flatMap((log: Entry): string[] => [labelOf(log.location), labelOf(log.from)]);
+}
+
+/**
+ * Lists the platforms of log entries, what they did online, see `Online` in `calendar.ts`.
+ *
+ * @param logs - Log entries
+ * @returns Every use of a platform, like `Zoom`, a platform as often as it was used
+ */
+function onlineUsesOf(logs: Entry[]): string[] {
+    return logs.map((log: Entry): string => log.online);
 }
 
 /**
@@ -441,15 +453,16 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  * see {@link stepsWithNoteOf}; but the categories the dialog leaves out, see {@link hiddenNames}, and the whats
  * a category no longer offers, see {@link retiredWhats}.
  * - `logs`: Log entries up to now.
- * - `mine`: My places, and `Online`, the place of a meeting online, one generic place without address,
- *   see `onlineName` in `places.ts`.
+ * - `mine`: My places.
  * - `names`: Their names.
- * - `places`: One list of places for every field of a place: my places and `Online`, the most used first,
+ * - `places`: One list of places for every field of a place: my places, the most used first,
  *   see {@link placeUsesOf}, each as the line an entry writes, see `lineOf` in `places.ts`.
- * - `offline`: The same without `Online`, for the places of a way, see {@link offlineNames}.
+ * - `platformNames`: The names of my platforms online, in the order of `Online.md`.
+ * - `platforms`: The same, the most used first, see {@link onlineUsesOf}.
+ * - `rowsOnline`: Each of them as its row holds it, by its name.
  * - `rooms`: The rooms of the university for every field of a place, each as the line an entry writes, in the order
  *   of `Rooms.md`, none of the name of one of my places.
- * - `links`: The links of my places and rooms that have one, by their lines.
+ * - `rows`: My places and rooms by their lines.
  * - `people`: The names of `With`, the most used first, see {@link peopleUsesOf}, those I share with offered
  *   before any use, see `partners` in `sources.ts`.
  * - `addresses`: The address of each of them, see {@link addressesOf}.
@@ -459,15 +472,18 @@ function stepsWithNoteOf(logs: Entry[], name: string, steps: { [what: string]: s
  */
 export function categoriesRead(now: string): CategoryShown[] {
     const logs: Entry[] = logsRead(now);
-    const mine: Place[] = [...placesRead(), { name: onlineName, address: "", link: "" }];
+    const mine: Place[] = placesRead();
     const names: string[] = mine.map((place: Place): string => place.name);
     const places: string[] = valuesOrder(placeUsesOf(logs).filter((use: string): boolean => names.includes(use)), names)
         .map((name: string): string => lineOf(mine[names.indexOf(name)]));
-    const offline: string[] = places.filter((line: string): boolean => line !== onlineName);
+    const platformNames: string[] = platformsRead().map((platform: Platform): string => platform.name);
+    const platforms: string[] = valuesOrder(onlineUsesOf(logs).filter((use: string): boolean =>
+        platformNames.includes(use)), platformNames);
+    const rowsOnline: { [name: string]: Platform } = Object.fromEntries(platformsRead()
+        .map((platform: Platform): [string, Platform] => [platform.name, platform]));
     const rooms: Place[] = roomsRead().filter((room: Place): boolean => !names.includes(room.name));
-    const links: { [value: string]: string } = Object.fromEntries([...mine, ...rooms]
-        .filter((place: Place): boolean => place.link !== "")
-        .map((place: Place): [string, string] => [lineOf(place), place.link]));
+    const rows: { [line: string]: Place } = Object.fromEntries([...mine, ...rooms]
+        .map((place: Place): [string, Place] => [lineOf(place), place]));
     const people: string[] = valuesOrder(peopleUsesOf(logs), partners);
     const addresses: { [name: string]: string } = addressesOf(logs);
     return categories
@@ -476,21 +492,22 @@ export function categoriesRead(now: string): CategoryShown[] {
             name: category.name,
             fields: category.fields.map((field: Field): FieldShown => ({
                 ...field,
-                values: field.key === "with" ? people
-                    : field.key !== "title" ? offlineNames.includes(category.name) ? offline : places
+                values: field.key === "with" ? people : field.key === "online" ? platforms
+                    : field.key !== "title" ? places
                         : field.fixed ? field.values : valuesOrder(titleUsesOf(logs, category.name, field.many === true), field.values)
                             .filter((value: string): boolean => !(retiredWhats[category.name] ?? []).includes(value)),
                 steps: stepsWithNoteOf(logs, category.name, field.steps),
-                rooms: field.key === "title" || field.key === "with" ? [] : rooms.map(lineOf),
-                links: field.key === "with" ? addresses : field.key === "title" ? {} : links,
+                rooms: ["location", "from"].includes(field.key) ? rooms.map(lineOf) : [],
+                places: ["location", "from"].includes(field.key) ? rows : {},
+                links: field.key === "with" ? addresses : {},
+                platforms: field.key === "online" ? rowsOnline : {},
             })),
-            plan: !unplannedNames.includes(category.name),
         }));
 }
 
 /**
  * Finds where the last way before an instant ended: the place of the last `Way` as it wrote it, with the address
- * it had then, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, when its name is one of my places
+ * it had then, like `TUM Innenstadt, Arcisstraße 21, 80333, München, Deutschland`, when its name is one of my places
  * or of the rooms.
  * - `last`: Last way that started before the instant.
  *
@@ -533,7 +550,7 @@ export function attendeesAllow(attendees: Attendee[]): boolean {
  * @param fields - Text fields of an entry or a box to write
  * @returns Whether the entry may be written
  */
-export function categoryAllows(fields: Omit<EntryTexts, "locationLink" | "titleLink" | "attendees">
+export function categoryAllows(fields: Omit<EntryTexts, "locationLink" | "titleLink" | "attendees" | keyof Online>
     & { attendees?: Attendee[] }): boolean {
     const category: Category | undefined = categories.find((candidate: Category): boolean =>
         candidate.name === fields.category);
@@ -550,16 +567,4 @@ export function categoryAllows(fields: Omit<EntryTexts, "locationLink" | "titleL
             || (what.many === true ? fields.title.split(", ") : [fields.title])
                 .every((value: string): boolean => what.values.includes(value));
     return whatAllowed && (keys.includes("from") || fields.from === "") && fields.module === "" && fields.type === "";
-}
-
-/**
- * Tells whether the fields of a box of the plan fit its category, as those of an entry, see {@link categoryAllows},
- * and the category is one I plan, not one of {@link unplannedNames}.
- *
- * @param fields - Text fields of a box to write
- * @returns Whether the box may be written
- */
-export function planAllows(fields: Omit<EntryTexts, "locationLink" | "titleLink" | "attendees">
-    & { attendees?: Attendee[] }): boolean {
-    return categoryAllows(fields) && !unplannedNames.includes(fields.category);
 }

@@ -65,43 +65,23 @@
     display: none;
 }
 
-/* A list of points of the note as Markdown shows a list, a card filled in the soft grey of a card like a box of the
-   plan, its frame transparent, so its points keep their place: a grey bullet before each point, its text in a field
-   of its own without frame, as wide as the list, wrapping and growing with its text, see `points.ts`; both lists
-   equally high, scrolling alone when longer than a third of the screen */
+/* A list of points of the note in the editor of my files, see `points.ts`, a card filled in the soft grey of a card
+   like a box of the plan, its frame transparent: its points as the editor draws them, see `../editor/editor.css`,
+   in the lines of the page, not the higher ones of a note; both lists equally high, scrolling alone when longer than
+   a third of the screen */
 .note-points {
     flex: 1;
     max-height: 33dvh;
     overflow-y: auto;
-    margin: 0;
-    padding: 0.875rem 1rem 0.875rem calc(1rem + 1.25em);
+    padding: 0.875rem 1rem;
     border: 1px solid transparent;
     border-radius: var(--radius);
     background: var(--fill);
-    list-style: disc;
     cursor: text;
 }
 
-.note-point {
-    padding: 0.125rem 0;
-}
-
-.note-point::marker {
-    color: var(--text-muted);
-}
-
-.note-point textarea {
-    display: block;
-    width: 100%;
-    padding: 0;
-    border: 0;
-    outline: none;
-    background: transparent;
-    color: var(--text-main);
-    font: inherit;
+.note-points.markdown {
     line-height: inherit;
-    field-sizing: content;
-    resize: none;
 }
 
 /* Quotes of the note as grey cards */

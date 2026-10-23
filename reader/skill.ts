@@ -107,14 +107,14 @@ import {
 import {
     codeOf, fileRead, moduleContentsRead, moduleFolderOf, moduleFoldersRead, modulesRead,
 } from "./notes.ts";
-import { placeLinkOf } from "./places.ts";
+import { onlineFor, placeLinkOf } from "./places.ts";
 import {
     activeModules, activeSkills, modulesFolder, projectOf, skillLog, skillNameOf,
 } from "./sources.ts";
 import { settings } from "./trackers.ts";
 
 import type { Box } from "./boxes.ts";
-import type { Attendee, Entry, EntryFields, Link } from "./calendar.ts";
+import type { Attendee, Entry, EntryFields, Link, Online } from "./calendar.ts";
 import type { Chapter, ModuleContents, NoteEntry, NotesModule } from "./notes.ts";
 
 
@@ -400,10 +400,8 @@ export type AttemptNew = {
  *   empty for none.
  * - `attempts`: Its attempts, in the order they were picked, none for none.
  * - `location`: Place, `LOCATION`, like the room of a lecture logged from its box.
- * - `locationLink`: Link of the meeting of the place `Online`, as typed, written as the `ALTREP` of its `LOCATION`;
- *   left out for any other place, as for any entry of the log, see `EntryNew` in `day.ts`.
- * - `titleLink`: Link typed for what it was, a web address, written as the `ALTREP` of its `SUMMARY` in place of
- *   the folder of its skill, see `titleOf` in `documents.ts`; empty or left out for none.
+ * - `online`, `onlineLink`, `passcode`: What I did online, like the stream of a lecture, as for any entry of the log,
+ *   see `EntryNew` in `day.ts`; left out by a sender that does not know them, so it keeps them or takes those of its box.
  * - `attendees`: Who I was with, one `ATTENDEE` each; left out, as for any entry of the log, see `EntryNew`
  *   in `day.ts`.
  * - `planned`: Identifier of the box it is logged from, written as its `RELATED-TO`, empty for none.
@@ -411,7 +409,7 @@ export type AttemptNew = {
  * - `start`: Start as ISO instant.
  * - `end`: End as ISO instant, after the start.
  */
-export type SkillEntryNew = {
+export type SkillEntryNew = Partial<Online> & {
     type: string;
     module: string;
     semester: string;
@@ -419,8 +417,6 @@ export type SkillEntryNew = {
     documents: string[];
     attempts: AttemptNew[];
     location: string;
-    locationLink?: string;
-    titleLink?: string;
     attendees?: Attendee[];
     planned: string;
     note: string;
@@ -1403,7 +1399,7 @@ function skillEntryCheck(entry: SkillEntryNew, values: string[], kept: string[],
  * @param entry - Skill entry as the page sends it
  * @returns Identifier of the new entry, so the reader can send it to Vu, see `shared.ts`
  * @throws {Error} - When an attempt is not right, see {@link attemptValueOf}, the entry is not right,
- *   see {@link skillEntryCheck}, a document is none of the module's, the link typed for `Online` is no web address,
+ *   see {@link skillEntryCheck}, a document is none of the module's, the link typed online is no web address,
  *   or the box it is logged from is not open
  */
 export function skillEntryAdd(entry: SkillEntryNew): string {
@@ -1418,7 +1414,7 @@ export function skillEntryAdd(entry: SkillEntryNew): string {
     const [title, titleLink]: [string, string] = titleOf({ ...entry, category: skillName, title: "" }, null);
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: entry.location,
-        locationLink: placeLinkOf(entry.location, entry.locationLink, plan), from: "",
+        locationLink: placeLinkOf(entry.location, plan), ...onlineFor(entry, plan), from: "",
         attendees: entry.attendees ?? plan?.attendees ?? [],
         module: entry.module, type: entry.type,
         semester: semesterFor(skillName, entry.semester, berlinDateOf(new Date(entry.start))), note: entry.note.trim(),
@@ -1461,7 +1457,7 @@ export function skillEntryAdd(entry: SkillEntryNew): string {
  * @returns Whether it is written, `false` when its file changed it since the dialog opened it
  * @throws {Error} - When there is no such skill entry in the log of the new system, a new attempt is not right,
  *   see {@link attemptValueOf}, the entry is not right, see {@link skillEntryCheck}, a document is none
- *   of the module's, or the link typed for `Online` is no web address
+ *   of the module's, or the link typed online is no web address
  */
 export function skillEntryEdit(change: SkillEntryChange): boolean {
     const [file, old]: [string, Entry] = entryFind(skillLog, change.id);
@@ -1481,10 +1477,10 @@ export function skillEntryEdit(change: SkillEntryChange): boolean {
     const worked: string[] = [...tasksOf(values, change.module), ...old.tutors]
         .filter((task: string): boolean => task.split("/")[0] === change.module);
     const chapters: string[] = chaptersWith(change.chapters, worked, tasks);
-    const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" }, null);
+    const [title, titleLink]: [string, string] = titleOf({ ...change, category: skillName, title: "" }, old);
     const fields: EntryFields = {
         category: skillName, title: title, titleLink: titleLink, location: change.location,
-        locationLink: placeLinkOf(change.location, change.locationLink, old), from: "",
+        locationLink: placeLinkOf(change.location, old), ...onlineFor(change, old), from: "",
         attendees: change.attendees ?? old.attendees,
         module: change.module, type: change.type,
         semester: semesterFor(skillName, change.semester, berlinDateOf(new Date(change.start))),
@@ -1560,7 +1556,8 @@ function momentWrite(module: string, open: Entry | undefined, attempts: string[]
             titleOf({ category: skillName, title: "", module: module, type: type, semester: semester }, null);
         const fields: EntryFields = {
             category: skillName, title: title, titleLink: titleLink, location: plan?.location ?? "",
-            locationLink: plan?.locationLink ?? "", from: "", attendees: plan?.attendees ?? [],
+            locationLink: plan?.locationLink ?? "", online: plan?.online ?? "", onlineLink: plan?.onlineLink ?? "",
+            passcode: plan?.passcode ?? "", from: "", attendees: plan?.attendees ?? [],
             module: module, type: type, semester: semester,
             note: "", start: start, end: quarter,
         };

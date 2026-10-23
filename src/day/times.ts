@@ -143,10 +143,11 @@ export function dateParse(text: string): string | null {
 
 /**
  * Gives the times a box is logged at as expected, with one tap: from its expected time for its expected duration,
- * else ending now on the shown day; for {@link boxMinutes} when it has no duration.
+ * else ending at the last quarter hour before now on the shown day, like 14:30 at 14:41, as a new entry of the log
+ * ends, see `categories.ts`; for {@link boxMinutes} when it has no duration.
  * - `length`: Its length in milliseconds.
  * - `start`: Its expected time.
- * - `end`: Now on the shown day, to the minute.
+ * - `end`: The last quarter hour before now on the shown day.
  *
  * @param box - The box
  * @param day - A date on the shown day
@@ -159,6 +160,7 @@ export function boxTimesOf(box: Box, day: Date): [Date, Date] {
         return [start, new Date(start.getTime() + length)];
     }
     const end: Date = dateOf(day, timeOf(new Date()));
+    end.setMinutes(end.getMinutes() - end.getMinutes() % 15);
     return [new Date(end.getTime() - length), end];
 }
 
@@ -182,8 +184,9 @@ export function nearOf(day: string, from: string): string {
 }
 
 /**
- * Starts a time field: it marks itself invalid while its text is neither empty nor a time, and writes its time
- * as `HH:MM` when it loses focus, like `14:15` of `1415`.
+ * Starts a time field: while empty it says grey what it takes, `hh:mm`, as a date field says `dd.mm.yyyy`,
+ * so an empty time reads as one left open, not as a gap; it marks itself invalid while its text is neither empty
+ * nor a time, and writes its time as `HH:MM` when it loses focus, like `14:15` of `1415`.
  * - {@link HTMLInputElement#setCustomValidity}: Marks a field invalid with a message, or valid with an empty one;
  *   the browser shows the message instead of sending the form.
  * - `change`: Comes when a changed field loses focus.
@@ -191,6 +194,7 @@ export function nearOf(day: string, from: string): string {
  * @param field - Time field, like `<input class="time-field">`
  */
 export function timeFieldStart(field: HTMLInputElement): void {
+    field.placeholder = "hh:mm";
     field.addEventListener("input", (): void =>
         field.setCustomValidity(field.value.trim() !== "" && timeParse(field.value) === null
             ? "Time like 14:00, 1415 or 14" : ""));

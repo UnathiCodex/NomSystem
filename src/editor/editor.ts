@@ -36,11 +36,9 @@
  * - `@codemirror/state`, `@codemirror/view`: The editor, CodeMirror 6, the engine of Obsidian's editor.
  * - `@codemirror/commands`: Undo, redo and the usual keys, Tab indenting a line.
  * - `@codemirror/language`: Indents with tabs.
- * - `@codemirror/lang-markdown`: Reads the note as Markdown.
- * - `@lezer/markdown`: GitHub's tables, task lists and strikethrough for the Markdown parser.
  * - `./ics.ts`: Shows an `.ics` file with its blocks one step in and its entries apart.
  * - `./keys.ts`: The keys of a Markdown file as in Obsidian, like Enter continuing a list.
- * - `./syntax.ts`: Obsidian syntax for the Markdown parser.
+ * - `./syntax.ts`: Reads the note as Markdown, with the Obsidian syntax.
  * - `./preview.ts`: Shows the Markdown as in the scripts view, folds its sections and scrolls to a heading.
  * - `./steps.ts`: Shows an unfolded solution one step at a time.
  * - `./tasks.ts`: Shows the rows of the tasks of a note.
@@ -58,11 +56,9 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, drawSelection, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
-import { markdown } from "@codemirror/lang-markdown";
-import { GFM } from "@lezer/markdown";
 import { icsLook } from "./ics.ts";
 import { markdownKeys } from "./keys.ts";
-import { obsidianSyntax } from "./syntax.ts";
+import { markdownSupport } from "./syntax.ts";
 import { headingShow, linksSet, livePreview, solutionsFold } from "./preview.ts";
 import { solutionSteps } from "./steps.ts";
 import { taskRows, tasksLoad } from "./tasks.ts";
@@ -79,7 +75,6 @@ import "./editor.css";
 
 import type { Extension } from "@codemirror/state";
 import type { Rect, ViewUpdate } from "@codemirror/view";
-import type { LanguageSupport } from "@codemirror/language";
 import type { Links } from "./preview.ts";
 import type { BlockMark } from "../notes/tree.ts";
 
@@ -125,14 +120,6 @@ type Opened = {
     markdown: boolean;
     editable: boolean;
 };
-
-/**
- * Markdown as my notes are written: CommonMark with GitHub's tables, task lists, strikethrough and links,
- * and the Obsidian syntax of `./syntax.ts`; a URL pasted over selected text makes it a link, as in Obsidian.
- * Its keys are those of `./keys.ts`, and it completes no HTML tags.
- */
-const markdownSupport: LanguageSupport =
-    markdown({ extensions: [GFM, obsidianSyntax], addKeymap: false, completeHTMLTags: false });
 
 /**
  * Path of the file: of a note as the scripts view takes it, of a file of my new system as the tree names it.
@@ -397,9 +384,6 @@ export async function editorStart(): Promise<void> {
     const shown: Promise<void> = treeShow(tree, plannings ? "NomManageplannings" : "NomSkillingmodules", path,
         address.get("module") ?? "");
     shown.catch((error: unknown): void => console.error(error));
-    const title: string = path.split("/").at(-1)?.replace(/\.md$/i, "") ?? "";
-    if (plannings)
-        (document.getElementById("editor-title") as HTMLElement).textContent = title;
     const close: HTMLButtonElement = document.getElementById("editor-close") as HTMLButtonElement;
     iconPut(close, Check, "Close the round");
     close.addEventListener("click", roundClose);
@@ -454,8 +438,6 @@ export async function editorStart(): Promise<void> {
     tasksLoad(view, path).catch((error: unknown): void => console.error(error)).finally((): void => {
         text.style.visibility = "";
         const sectionShown: boolean = roundBlocksOf(view) !== null;
-        if (!sectionShown)
-            (document.getElementById("editor-title") as HTMLElement).textContent = title;
         if (!sectionShown)
             addressHeadingShow();
         else if (location.hash !== "") {

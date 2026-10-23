@@ -1,5 +1,5 @@
-/* Rows of a weekly series, the same in the form of a series on the page of a module and in the row Repeat of the dialog
-   of a new box, see `series.ts`: its days, the days it leaves out and the boxes it makes */
+/* Rows of a weekly series, the same in the dialog of a series, from the day and from the page of a module, and in the row
+   Repeat of the dialog of a new box, see `series.ts`: its days, its extras, the days it leaves out and its boxes */
 /* A day of a series, like `Thu 18:00 – 19:30 ×`: its weekday short, as the heading of a card writes it, as wide as
    the widest, `Mon` or `Wed`, so the times of several days stand one below the other; then its times and its `×`,
    about two spaces apart, as a day and its time, see `.entry-moment` in `day.css` */
@@ -29,72 +29,130 @@
     white-space: nowrap;
 }
 
-/* The `×` of a day and of a day left out in the middle of its line, not with its foot on the line of the text,
-   which set it higher than the text */
+/* The `×` of a day, of an extra and of a day left out in the middle of its line, not with its foot on the line
+   of the text, which set it higher than the text */
 .series-slot > .cross-quiet,
 .series-except > .cross-quiet {
     align-self: center;
 }
 
-/* The boxes a series makes: each its number on a small chip filled as a card, a new one outlined, one done grey with
-   its check, a day left out as a grey `·` without chip, its day below it small and grey; how many at their end */
-.series-preview {
-    display: flex;
+/* The boxes a series makes, one calm line, see `previewSoon` in `series.ts`: the grey fold arrow of a list before it,
+   pointing right while folded and down while open, as the names of my gratitude and my points, see `.note-fold`
+   in `note.css`, then how many, white, and grey their days, what a change does and their states, apart by middle
+   dots; a plain button, its text the size of a value, lighter under the pointer */
+.series-summary {
+    display: inline-flex;
     flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 0.5rem 0.375rem;
+    align-items: baseline;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    text-align: left;
+    cursor: pointer;
 }
 
-.series-preview-item {
+.series-summary::before {
+    content: "";
+    align-self: center;
+    width: 1em;
+    height: 1lh;
+    margin-right: 0.25rem;
+    background: var(--text-muted);
+    mask: var(--fold-icon) center / 0.875em no-repeat;
+    rotate: -90deg;
+    transition: rotate 100ms ease-in-out, background-color 150ms;
+}
+
+.series-summary[aria-expanded="true"]::before {
+    rotate: none;
+}
+
+.series-summary:hover::before {
+    background: var(--text-main);
+}
+
+.series-count {
+    color: var(--text-main);
+}
+
+/* The list of the boxes below their line, by month: the name of each month small and grey, as the name of a row,
+   then a row per box on one grid, a row of the tree high: its number, as wide as `30`, its weekday and day, as wide
+   as `Wed 30.12`, grey its times and what a change does to it, then its `⋯` or its state, as in the plan; a box
+   no longer open and a day left out greyed, as a done box of the plan */
+.series-list {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.125rem;
-}
-
-.series-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.125rem;
-    min-width: 1.75rem;
-    height: 1.5rem;
-    padding: 0 0.25rem;
-    border: 1px solid transparent;
-    border-radius: var(--chip-radius);
-    background: var(--fill);
-    font-size: 0.8125rem;
+    margin-top: 0.375rem;
     font-variant-numeric: tabular-nums;
 }
 
-.series-chip-new {
-    border-color: var(--chosen-line);
-}
-
-.series-chip-done,
-.series-chip-none {
+.series-month {
+    margin: 0.625rem 0 0.125rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
 }
 
-.series-chip-none {
-    background: none;
+.series-month:first-child {
+    margin-top: 0;
 }
 
-.series-chip svg.lucide {
-    width: 0.75rem;
-    height: 0.75rem;
+.series-row {
+    display: grid;
+    grid-template-columns: 1.75rem 5.25rem minmax(0, 1fr) auto 2.125rem;
+    column-gap: 0.75rem;
+    align-items: center;
+    min-height: var(--tree-row-height);
 }
 
-.series-preview-day {
-    font-size: 0.6875rem;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
+.series-number {
+    text-align: right;
 }
 
-.series-preview-count {
-    align-self: center;
-    margin-left: auto;
+.series-day {
+    white-space: nowrap;
+}
+
+.series-times,
+.series-word {
     font-size: 0.8125rem;
     color: var(--text-muted);
     white-space: nowrap;
+}
+
+.series-row-faded .series-number,
+.series-row-faded .series-day {
+    color: var(--text-muted);
+}
+
+/* The `⋯` of an open box and the state of one no longer open in the last column, centred on its row, as in a card
+   of the course, see `.box-state` in `boxes.css` and `menu.css` */
+.series-row .menu-place {
+    display: flex;
+    justify-content: center;
+}
+
+.series-row .box-state {
+    grid-row: auto;
+    grid-column: auto;
+    justify-self: center;
+    margin: 0;
+}
+
+/* The plan a series writes into, small and grey at the left of the buttons of its dialog */
+.series-file {
+    align-self: center;
+    margin-right: auto;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+/* Phone: the plan a series writes into above the buttons, which keep their row */
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
+    .series-file {
+        display: none;
+    }
 }

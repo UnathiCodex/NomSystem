@@ -102,12 +102,13 @@ import type {
 
 /**
  * Minutes of the time grid one line of a taller entry fills: half an hour of the grid is 2rem high, twice the margin
- * and once the line of an hour label, see `.slot-label` in `log.css`, and a line of a taller entry 1.05rem,
- * its text of 0.75rem at a line height of 1.4, see `.entry-inner`; so a line fills 15.75 minutes,
- * see {@link linesOf}; a short one, as low as `eventShortHeight` in {@link dayStart} or lower, has no space above
- * and below its one line, 0.9rem high at a line height of 1.2, so a quarter hour, 1rem high, holds it.
+ * and once the line of an hour label, see `.slot-label` in `log.css`, and a line of a taller entry 1.12rem,
+ * its text of 0.8rem, `--day-text` in `variants.css`, at a line height of 1.4, see `.entry-inner`;
+ * so a line fills 16.8 minutes, see {@link linesOf}; a short one, as low as `eventShortHeight` in {@link dayStart}
+ * or lower, has no space above and below its one line, 0.96rem high at a line height of 1.2,
+ * so a quarter hour, 1rem high, holds it.
  */
-const lineMinutes: number = 15.75;
+const lineMinutes: number = 16.8;
 
 /**
  * Minutes of the time grid the space above and below the lines of a taller entry fills, 0.3rem above its first line
@@ -412,11 +413,11 @@ function shownMinutesOf(info: EventDisplayInfo): number {
 
 /**
  * Lines an entry of the time grid has room for, its shown part less what its edge takes, see {@link edgeMinutes}:
- * three lines or more with the space above and below them, see {@link spaceMinutes}, like an hour,
- * (60 - 3 - 9) / 15.75 = 3.05, three; else at most two, centred without that space, see
- * `entry-inner-middle` in {@link dayStart}: half an hour one, (30 - 3) / 15.75 = 1.7, 45 minutes two,
- * (45 - 3) / 15.75 = 2.67, its place beside its time, like `00:00 – 00:45 · Home Munich`,
- * since three would need its space; its shown part counts, see {@link shownMinutesOf}.
+ * three lines or more with the space above and below them, see {@link spaceMinutes}, like 75 minutes,
+ * (75 - 3 - 9) / 16.8 = 3.75, three; else at most two, centred without that space, see
+ * `entry-inner-middle` in {@link dayStart}: half an hour one, (30 - 3) / 16.8 = 1.61, 45 minutes and an hour two,
+ * (45 - 3) / 16.8 = 2.5 and (60 - 3) / 16.8 = 3.39, its place beside its time, like `00:00 – 01:00 · Home Munich`,
+ * since three would need its space, (60 - 3 - 9) / 16.8 = 2.86; its shown part counts, see {@link shownMinutesOf}.
  * A short entry, see `eventShortHeight` in {@link dayStart}, has room for one line, its space above and below left out.
  * On a phone its lines are lower, see {@link phoneLinesOf}.
  * - `minutes`: Minutes of its shown part its lines may fill, its edge left out.
@@ -530,7 +531,10 @@ function selectionIs(info: EventDisplayInfo): boolean {
  * - `location`: Place of the entry, its `LOCATION`, like `Home Munich, Burgweg 1, 81375 München, Deutschland`.
  * - `place`: Place of the entry by its label, like `Home Munich`, for a way its route from its `X-FROM`,
  *   like `Home Munich -> TUM Garching`, see `whereOf` in `places.ts`, shown with its arrow drawn; empty when it has none.
+ * - `online`: Its platform online, like `Zoom`, shown after its place, see `whereLinkedOf` in `places.ts`;
+ *   empty for none.
  * - `link`: Link of the place, its `ALTREP`, like `https://nav.tum.de/room/8120.01.101`, empty for none.
+ * - `onlineLink`: Link of its meeting or video online, empty for none.
  * - `note`: Note of the entry, its `DESCRIPTION`, empty when it has none.
  * - `start`, `end`: Start and end of the entry.
  * - `time`: Start and end, like `16:00 – 16:30`.
@@ -555,8 +559,10 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
     const what: string = shownWhat === category ? "" : shownWhat;
     const from: string = info.event.extendedProps.from ?? "";
     const location: string = info.event.extendedProps.location ?? "";
-    const place: string = whereOf(category, from, location);
+    const online: string = info.event.extendedProps.online ?? "";
+    const place: string = whereOf(category, from, location, online);
     const link: string = info.event.extendedProps.locationLink ?? "";
+    const onlineLink: string = info.event.extendedProps.onlineLink ?? "";
     const note: string = (info.event.extendedProps.note ?? "").trim();
     const start: Date = info.event.start as Date;
     const end: Date = info.event.end ?? start;
@@ -574,18 +580,18 @@ function entryContentOf(info: EventDisplayInfo): { domNodes: HTMLElement[] } {
         ]);
         if (place !== "")
             line.append(entryPartOf("span", "entry-place entry-parted entry-beside",
-                whereLinkedOf(category, from, location, link)));
+                whereLinkedOf(category, from, location, link, online, onlineLink)));
         shown = [line];
     } else if (lines === 2) {
         const timeLine: HTMLElement = entryPartOf("div", "entry-line", [entryPartOf("span", "entry-time", [time])]);
         if (place !== "")
             timeLine.append(entryPartOf("span", "entry-place entry-parted entry-beside",
-                whereLinkedOf(category, from, location, link)));
+                whereLinkedOf(category, from, location, link, online, onlineLink)));
         shown = [entryPartOf("div", "entry-whole", whole), timeLine];
     } else {
         shown = [entryPartOf("div", "entry-whole", whole), entryPartOf("div", "entry-time", [time])];
         if (place !== "")
-            shown.push(entryPartOf("div", "entry-place", whereLinkedOf(category, from, location, link)));
+            shown.push(entryPartOf("div", "entry-place", whereLinkedOf(category, from, location, link, online, onlineLink)));
         if (note !== "" && lines > shown.length) {
             const below: HTMLElement = entryPartOf("div", "entry-note", [note]);
             below.style.webkitLineClamp = String(lines - shown.length);

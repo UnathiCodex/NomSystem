@@ -14,7 +14,10 @@
  * - Univeranstaltungen so richtig begonnen
  * ```
  *
- * A section holds every line below its heading up to the next heading; a further line of a point is indented.
+ * A section holds every line below its heading up to the next heading; a further line of a point stands under its text,
+ * two spaces in, then the spacer `⠀`, as the editor writes it with Shift+Enter, see `src/editor/keys.ts`. The page
+ * edits a section as this Markdown, in the editor of my files, see `src/day/points.ts`, and the reader keeps its lines
+ * points, see {@link pointLinesOf}.
  * Every day has its note, made at its start with both headings empty, see {@link notesStart}, whether I write
  * into it or not; a section keeps its heading when I empty it, and every other line of a note stays as it is.
  *
@@ -40,7 +43,7 @@ export type SectionTitle = "Gratitude" | "About";
  *
  * - `date`: Date of the daily note, like `2026-07-03`.
  * - `title`: Title of the section.
- * - `text`: Text of the section, as {@link sectionsRead} gives it.
+ * - `text`: Text of the section, its Markdown, as {@link sectionsRead} gives it.
  */
 export type SectionNew = {
     date: string;
@@ -59,15 +62,20 @@ const titles: SectionTitle[] = ["Gratitude", "About"];
 const pointStart: string = "- ";
 
 /**
- * Start of a further line of a point, written with Shift+Enter: under its text, two spaces in, then the spacer `⠀`
- * (U+2800), as the editor writes it, see `spacer` in `src/editor/keys.ts`, so Markdown keeps the line in its point.
+ * A point, of any level, by its `-` or number, like `- Schön` or `\t1. Erstens`.
  */
-const furtherStart: string = "  ⠀";
+const pointForm: RegExp = /^[ \t]*(?:[-*+]|\d+[.)]) /;
 
 /**
- * The start of a further line as written, its indentation and maybe the spacer, which the text to edit leaves out.
+ * A further line of a point as the editor writes it with Shift+Enter: indented, then the spacer `⠀` (U+2800),
+ * see `spacer` in `src/editor/keys.ts`, so Markdown keeps the line in its point.
  */
-const furtherForm: RegExp = /^[ \t]+⠀?/;
+const furtherForm: RegExp = /^[ \t]+⠀/;
+
+/**
+ * A line without text: empty, or only indentation, spacers and the `-` or number of an empty point.
+ */
+const emptyForm: RegExp = /^[ \t⠀]*(?:(?:[-*+]|\d+[.)])[ \t⠀]*)?$/;
 
 /**
  * A heading of a Markdown section, of any level, like `## Gratitude`, which ends the section before it.
@@ -129,8 +137,8 @@ export function noteRead(date: string): string | null {
 }
 
 /**
- * Reads a section of the daily note of a date as text to edit: one point per line without its `- `, a further line
- * of a point two spaces in, without the spacer, see {@link furtherStart}, the empty lines left out.
+ * Reads a section of the daily note of a date as text to edit: its Markdown, its lines kept points,
+ * see {@link pointLinesOf}.
  * - `lines`: Lines of the note.
  * - `found`: The section in the note, `null` for none.
  *
@@ -144,11 +152,7 @@ function sectionTextRead(date: string, title: SectionTitle): string {
     const found: [number, number] | null = sectionFind(lines, title);
     if (found === null)
         return "";
-    return lines.slice(found[0] + 1, found[1])
-        .filter((line: string): boolean => line.trim() !== "")
-        .map((line: string): string => line.startsWith(pointStart) ? line.slice(pointStart.length)
-            : line.replace(furtherForm, "  "))
-        .join("\n");
+    return pointLinesOf(lines.slice(found[0] + 1, found[1]).join("\n")).join("\n");
 }
 
 /**
@@ -164,25 +168,20 @@ export function sectionsRead(date: string): { [title in SectionTitle]: string } 
 }
 
 /**
- * Turns the text of my gratitude or my points about the day into the lines of its section:
- * every line a point, an indented line a further line of the point before.
- * - `lines`: Lines made so far.
+ * Keeps the lines of my gratitude or my points about the day points, as the editor writes them: a point and a further
+ * line as written, an indented line without the spacer, as further lines were written before it, given the spacer,
+ * see {@link furtherForm}, any other line a point of its own, like one whose `- ` I took away, without a spacer at its
+ * start; lines without text left out, like the empty point of a section without points.
  *
- * @param text - Text as the page sends it, one point per line
- * @returns Lines like `- Schön, dass alle da waren`, none for an empty text
+ * @param text - Text of the section, its Markdown, as the page sends it or the note holds it
+ * @returns Lines like `- Schön, dass alle da waren`, none for a text without text
  */
 function pointLinesOf(text: string): string[] {
-    const lines: string[] = [];
-    for (const raw of text.split("\n")) {
-        const line: string = raw.trimEnd();
-        if (line === "")
-            continue;
-        if (/^\s/.test(line) && lines.length > 0)
-            lines.push(`${furtherStart}${line.replace(furtherForm, "").trim()}`);
-        else
-            lines.push(`${pointStart}${line.trim()}`);
-    }
-    return lines;
+    return text.split("\n")
+        .map((line: string): string => line.trimEnd())
+        .filter((line: string): boolean => !emptyForm.test(line))
+        .map((line: string): string => pointForm.test(line) || furtherForm.test(line) ? line
+            : /^[ \t]/.test(line) ? line.replace(/^[ \t]+/, "$&⠀") : `${pointStart}${line.replace(/^⠀+/, "")}`);
 }
 
 /**

@@ -31,17 +31,16 @@
  * - or instead its deadline in `DUE`, like a homework I must hand in: `DUE;TZID=Europe/Berlin:20261023T120000`,
  *   or `DUE;VALUE=DATE:20261023` without time. iCalendar wants `DUE` of the same kind as `DTSTART`, both days or both
  *   times, so a box with a deadline has no `DTSTART`: the day of its deadline is its day, and it has no expected time.
- *   It shows from {@link deadlineDays} days before its deadline, so I start early, until it is done, at the latest
- *   on the day of its deadline, and on that day always, so I see there that it is done, at the top of each of those
+ *   It shows from {@link deadlineDays} days before its deadline, so I start early, until the day of its deadline,
+ *   once done only until the day of its last session, see {@link deadlineShows}, and on that day always, so I see there that it is done, at the top of each of those
  *   days, see {@link boxesRead}; it cannot be pushed. It is done only once I tick it submitted, see {@link boxSubmit},
  *   since the log entries pointing to it are its sessions, as many as it needs;
  * - its expected duration in `ESTIMATED-DURATION`, like `ESTIMATED-DURATION:PT1H15M`, left out when it has none:
  *   the property of the task extensions of iCalendar (draft-ietf-calext-ical-tasks, approved by the IETF and waiting
  *   for its RFC number), since RFC 5545 has none for how long a to-do takes: its `DURATION` is the window to do it in,
  *   and after a `DTSTART` without time it may only be whole days;
- * - its state in `STATUS`: `NEEDS-ACTION` while open, `COMPLETED` with `COMPLETED`, the moment in UTC it was logged
- *   or ticked submitted,
- *   and `CANCELLED` once dropped;
+ * - its state in `STATUS`: `NEEDS-ACTION` while open, `COMPLETED` once done, without the moment it was done,
+ *   since the log entry written from it holds its real time, and `CANCELLED` once dropped;
  * - each push to a later day, by its arrow or its day in the dialog, see {@link boxPush} and {@link boxEdit},
  *   in one `X-PUSHED` with its start and its length as they stood before, since the standard has nothing for it,
  *   like `X-PUSHED;TZID=Europe/Berlin;X-ESTIMATED-DURATION=PT3H15M;VALUE=DATE-TIME:20261016T150000`, see `pushAdd`
@@ -91,13 +90,13 @@ import {
     entryLookup, entryRemove, occurrenceLookup, occurrenceOwn, propertiesPut, pushAdd, pushTake, statusPut, todoAppend,
     todoChange,
 } from "./calendar.ts";
-import { attendeesAllow, planAllows, semesterFor, skillName } from "./categories.ts";
+import { attendeesAllow, categoryAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, linksOf, titleOf } from "./documents.ts";
 import { moduleContentsRead, moduleFolderOf } from "./notes.ts";
-import { placeLinkOf } from "./places.ts";
+import { onlineFor, placeLinkOf } from "./places.ts";
 import { day, planEnding } from "./sources.ts";
 
-import type { Attendee, Entry, EntryFields, EntryTexts, Link, Push, TodoFields } from "./calendar.ts";
+import type { Attendee, Entry, EntryFields, EntryTexts, Link, Online, Push, TodoFields } from "./calendar.ts";
 
 
 /**
@@ -117,8 +116,8 @@ export const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  *
  * - `id`: Identifier of its to-do or event, its `UID`, for an occurrence of a series with its start,
  *   see `entryIdOf` in `calendar.ts`.
- * - `category`, `title`, `titleLink`, `location`, `locationLink`, `from`, `module`, `type`, `semester`, `note`:
- *   As those of an entry, see `calendar.ts`, like the room of a lecture of my plan in `Skilling/` with its link
+ * - `category`, `title`, `titleLink`, `location`, `locationLink`, `online`, `onlineLink`, `passcode`, `from`, `module`,
+ *   `type`, `semester`, `note`: As those of an entry, see `calendar.ts`, like the room of a lecture of my plan in `Skilling/` with its link
  *   as `ALTREP`.
  * - `day`: Its day, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time as ISO instant, empty for none.
@@ -127,10 +126,8 @@ export const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  * - `state`: Whether it is open, done, dropped, cancelled by the university, or pushed from the day it shows on.
  * - `pushed`: Where it stood before each push to a later day, in order, see `Push` in `calendar.ts`,
  *   like Fri, 16.10.2026, 15:00 for 195 minutes.
- * - `log`: Start and end of the log entry written from it, for a box with a deadline of one of its sessions,
+ * - `log`: Start and end of the log entry written from it, for a box with a deadline of its last session,
  *   as ISO instants, `null` for none.
- * - `completed`: When it was done, its `COMPLETED`, as ISO instant, like the moment I ticked a homework submitted;
- *   empty for none.
  * - `editable`: Whether it can be changed, pushed and dropped: a to-do or an event with times, see `calendar.ts`,
  *   also one occurrence of a series.
  * - `series`: Whether it is one occurrence of a series, like a weekly lecture, which cannot be removed.
@@ -155,7 +152,6 @@ export type Box = EntryTexts & {
     state: BoxState;
     pushed: Push[];
     log: { start: string; end: string } | null;
-    completed: string;
     editable: boolean;
     series: boolean;
     todo: boolean;
@@ -212,10 +208,8 @@ export type PlanDay = {
  * - `category`, `title`, `location`, `from`, `module`, `type`, `note`: As those of an entry of the log;
  *   the link of its place the reader finds, see `placeLinkOf` in `places.ts`, and what a skill box is
  *   it writes from its skill and type, see `titleOf` in `documents.ts`.
- * - `locationLink`: Link of the meeting of the place `Online`, as typed, written as the `ALTREP` of its `LOCATION`;
- *   left out for any other place, as for an entry of the log, see `EntryNew` in `day.ts`.
- * - `titleLink`: Link typed for what it is, like the page of an event, written as the `ALTREP` of its `SUMMARY`;
- *   left out by a sender that does not know it, as for an entry of the log, see `EntryNew` in `day.ts`.
+ * - `online`, `onlineLink`, `passcode`: What I will do online, as for an entry of the log, see `EntryNew` in `day.ts`;
+ *   left out by a sender that does not know them, like an accepted suggestion, so a changed box keeps them.
  * - `attendees`: Who I will be with, one `ATTENDEE` each; left out by a sender that does not know it, like
  *   an accepted suggestion, so a changed box keeps its people and a new one has none.
  * - `semester`: Semester of a skill box, like `2026W`, the semester of its day when empty, see `semesterFor`
@@ -229,9 +223,7 @@ export type PlanDay = {
  * - `documents`: Paths from the folder of its skill of the documents a skill box will use, like
  *   `VO_UniversityLectureLessons/TUM_2026W/01_Introduction.pdf`, none for none and for any other box.
  */
-export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink" | "attendees"> & {
-    locationLink?: string;
-    titleLink?: string;
+export type BoxNew = Omit<EntryTexts, "locationLink" | "titleLink" | "attendees" | keyof Online> & Partial<Online> & {
     attendees?: Attendee[];
     day: string;
     time: string;
@@ -327,7 +319,7 @@ function dateCheck(date: string): void {
 /**
  * Reads the log entries written from boxes, from the first entry of the log to a day after a day,
  * so an entry of a box is found also when it lies long before the day of its box, like a homework I did early,
- * or a little after it.
+ * or a little after it; for a box with a deadline its last session, so the entries go in by their start.
  *
  * @param to - The day, like `2026-10-13`
  * @returns Log entries by the identifier of their box
@@ -335,6 +327,7 @@ function dateCheck(date: string): void {
 function logsOf(to: string): Map<string, Entry> {
     return new Map(entriesRead(day.log, "1970-01-01T00:00:00Z", berlinDayStartOf(dayAdd(to, 1)))
         .filter((entry: Entry): boolean => entry.planned !== "")
+        .sort((first: Entry, second: Entry): number => Date.parse(first.start) - Date.parse(second.start))
         .map((entry: Entry): [string, Entry] => [entry.planned, entry]));
 }
 
@@ -397,7 +390,8 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         state = "university";
     return {
         id: entryIdOf(entry), category: entry.category, title: entry.title, titleLink: entry.titleLink,
-        location: entry.location, locationLink: entry.locationLink, from: entry.from, attendees: entry.attendees,
+        location: entry.location, locationLink: entry.locationLink, online: entry.online, onlineLink: entry.onlineLink,
+        passcode: entry.passcode, from: entry.from, attendees: entry.attendees,
         module: entry.module, type: entry.type, semester: entry.semester, note: entry.note,
         day: dayOf(entry),
         time: entry.allDay ? "" : entry.start,
@@ -406,7 +400,6 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         state: state,
         pushed: entry.pushed,
         log: log === undefined ? null : { start: log.start, end: log.end },
-        completed: entry.completed,
         editable: entry.editable,
         series: entry.recurrence !== "",
         todo: entry.todo,
@@ -430,7 +423,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
 function leftBoxesOf(box: Box): Box[] {
     return box.pushed.map((push: Push, index: number): Box => ({
         ...box, day: push.day, time: push.time, minutes: push.minutes ?? box.minutes, deadline: "", state: "pushed",
-        pushed: box.pushed.slice(0, index), log: null, completed: "",
+        pushed: box.pushed.slice(0, index), log: null,
         moved: { day: box.day, last: index === box.pushed.length - 1 && box.state === "open" && box.editable },
     }));
 }
@@ -461,15 +454,16 @@ function boxCompare(first: Box, second: Box): number {
 
 /**
  * Tells whether a box with a deadline shows on a day: on the day of its deadline always, so I see there that it is
- * done, and before it from {@link deadlineDays} days before that day, once done only until the day it was done.
- * - `last`: Day it was done, the day of its deadline while it is open, or when that day is not known.
+ * done, and before it from {@link deadlineDays} days before that day, once done only until the day of its last session,
+ * see {@link loggedDayOf}.
+ * - `last`: Day of its last session once it is done, else, or when it has none, the day of its deadline.
  *
  * @param box - Box with a deadline
  * @param date - Day like `2026-10-20`
  * @returns Whether it shows on the day
  */
 function deadlineShows(box: Box, date: string): boolean {
-    const last: string = box.completed === "" ? box.day : berlinDateOf(new Date(box.completed));
+    const last: string = box.state === "done" && box.log !== null ? loggedDayOf(box) : box.day;
     return date === box.day || (dayAdd(box.day, -deadlineDays) <= date && date < box.day && date <= last);
 }
 
@@ -616,8 +610,8 @@ export function boxOpenFind(id: string): Box {
 }
 
 /**
- * Checks a new or changed box before it is written: its day, its fields, which fit its category, one I plan,
- * see {@link planAllows}, or keep what the box was, its category and title, for a skill box its skill and type,
+ * Checks a new or changed box before it is written: its day, its fields, which fit its category,
+ * see `categoryAllows` in `categories.ts`, or keep what the box was, its category and title, for a skill box its skill and type,
  * with well-formed people, see `attendeesAllow` in `categories.ts`,
  * like an older `IN2028 DEV` of a type no longer offered, its time on its day, its duration, whole minutes
  * of at most a day, its deadline, on its day and without expected time, see the top of this file, and the chapters
@@ -636,7 +630,7 @@ function boxCheck(box: BoxNew, old: Entry | null): void {
         ? box.module === old.module && box.type === old.type : box.title === old.title)
         && attendeesAllow(box.attendees ?? []);
     dateCheck(box.day);
-    if (!(kept || planAllows(box)))
+    if (!(kept || categoryAllows(box)))
         throw new Error(`No box ${box.category} ${box.title}`);
     if (box.time !== "" && berlinDateOf(new Date(box.time)) !== box.day)
         throw new Error(`${box.title}: its time lies on another day than ${box.day}`);
@@ -689,23 +683,23 @@ function boxLinksPut(file: string, id: string, links: [string, (string | Link)[]
 }
 
 /**
- * Turns a box as the page sends it into the fields of its to-do: its place with its link, the one typed
- * for `Online` or the one the reader finds, see `placeLinkOf` in `places.ts`, and what a skill box is as the reader
- * writes it, see `titleOf` in `documents.ts`.
+ * Turns a box as the page sends it into the fields of its to-do: its place with the link the reader finds,
+ * see `placeLinkOf` in `places.ts`, what it does online as sent, else as it had it, see `onlineFor` there, and what
+ * a skill box is as the reader writes it, see `titleOf` in `documents.ts`.
  * - `semester`: Semester of a skill box as it is written, see `semesterFor` in `categories.ts`, empty for any other.
  * - `title`, `titleLink`: What it is, its `SUMMARY`, and the link of it.
  *
  * @param box - New or changed box
  * @param old - The box as it was, `null` for a new one
  * @returns Fields of the to-do
- * @throws {Error} - When the link typed for `Online` is no web address
+ * @throws {Error} - When the link typed online is no web address
  */
 function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
     const semester: string = semesterFor(box.category, box.semester, box.day);
     const [title, titleLink]: [string, string] = titleOf({ ...box, semester: semester }, old);
     return {
         category: box.category, title: title, titleLink: titleLink, location: box.location,
-        locationLink: placeLinkOf(box.location, box.locationLink, old), from: box.from,
+        locationLink: placeLinkOf(box.location, old), ...onlineFor(box, old), from: box.from,
         attendees: box.attendees ?? old?.attendees ?? [],
         module: box.module, type: box.type, semester: semester, note: box.note,
         day: box.day, time: box.time === "" ? null : new Date(box.time), minutes: box.minutes, deadline: box.deadline,
@@ -722,7 +716,7 @@ function todoFieldsOf(box: BoxNew, old: Entry | null): TodoFields {
  * @param change - The changed box as the page sends it
  * @param old - The event as it was
  * @returns Fields and times of the event
- * @throws {Error} - When it would lose its time or its duration, or the link typed for `Online` is no web address
+ * @throws {Error} - When it would lose its time or its duration, or the link typed online is no web address
  */
 function eventFieldsOf(change: BoxChange, old: Entry): EntryFields {
     if (change.time === "" || change.minutes === null)
@@ -732,7 +726,7 @@ function eventFieldsOf(change: BoxChange, old: Entry): EntryFields {
     const [title, titleLink]: [string, string] = titleOf({ ...change, semester: semester }, old);
     return {
         category: change.category, title: title, titleLink: titleLink, location: change.location,
-        locationLink: placeLinkOf(change.location, change.locationLink, old), from: change.from,
+        locationLink: placeLinkOf(change.location, old), ...onlineFor(change, old), from: change.from,
         attendees: change.attendees ?? old.attendees,
         module: change.module, type: change.type, semester: semester,
         note: change.note,
@@ -789,7 +783,7 @@ function numberNextOf(module: string, type: string, date: string): string {
  *
  * @param box - The box as the page sends it
  * @returns Identifier of the new box
- * @throws {Error} - When the box is not right, see {@link boxCheck}, the link typed for `Online` is no web address,
+ * @throws {Error} - When the box is not right, see {@link boxCheck}, the link typed online is no web address,
  *   or a document is none of the module's
  */
 export function boxAdd(box: BoxNew): string {
@@ -815,7 +809,7 @@ export function boxAdd(box: BoxNew): string {
  * @param boxes - The boxes, the earliest first
  * @param dry - Whether only to check them, writing nothing
  * @returns Identifiers of the new boxes, none when only checked
- * @throws {Error} - When the first box is not right, see {@link boxCheck}, the link typed for `Online` is no web
+ * @throws {Error} - When the first box is not right, see {@link boxCheck}, the link typed online is no web
  *   address, or a document is none of the module's
  */
 export function boxesAdd(boxes: BoxNew[], dry: boolean): string[] {
@@ -885,7 +879,7 @@ export function boxUniversity(id: string, cancelled: boolean): void {
  * - `target`: The plan file it belongs into now.
  *
  * @param change - The changed box as the page sends it
- * @throws {Error} - When there is no such box in the new system, the box is not right, the link typed for `Online`
+ * @throws {Error} - When there is no such box in the new system, the box is not right, the link typed online
  *   is no web address, an event would lose its time or its duration, or a document is none of the module's
  */
 export function boxEdit(change: BoxChange): void {
@@ -948,8 +942,9 @@ export function boxPush(id: string): void {
     const days: number = Math.round((Date.parse(next) - Date.parse(box.day)) / (dayMinutes * minuteLength));
     const texts: EntryTexts = {
         category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
-        locationLink: entry.locationLink, from: entry.from, attendees: entry.attendees, module: entry.module,
-        type: entry.type, semester: entry.semester, note: entry.note,
+        locationLink: entry.locationLink, online: entry.online, onlineLink: entry.onlineLink, passcode: entry.passcode,
+        from: entry.from, attendees: entry.attendees, module: entry.module, type: entry.type, semester: entry.semester,
+        note: entry.note,
     };
     boxOwn(file, entry);
     pushAdd(file, id, entry);
@@ -986,8 +981,9 @@ export function boxUnpush(id: string): void {
     const day: string = box.time === "" ? start : berlinDateOf(new Date(start));
     const texts: EntryTexts = {
         category: entry.category, title: entry.title, titleLink: entry.titleLink, location: entry.location,
-        locationLink: entry.locationLink, from: entry.from, attendees: entry.attendees, module: entry.module,
-        type: entry.type, semester: entry.semester, note: entry.note,
+        locationLink: entry.locationLink, online: entry.online, onlineLink: entry.onlineLink, passcode: entry.passcode,
+        from: entry.from, attendees: entry.attendees, module: entry.module, type: entry.type, semester: entry.semester,
+        note: entry.note,
     };
     if (entry.todo)
         todoChange(file, entry, {
@@ -1021,12 +1017,12 @@ export function boxDrop(id: string, dropped: boolean): void {
     else if (entry.todo)
         status = "NEEDS-ACTION";
     boxOwn(file, entry);
-    statusPut(file, id, status, null);
+    statusPut(file, id, status);
 }
 
 /**
- * Marks a box done once a log entry pointing to it is written: a to-do that happens once becomes `COMPLETED`,
- * as of now; an event, which has no such status, and an occurrence of a series are done by the log entry alone;
+ * Marks a box done once a log entry pointing to it is written: a to-do that happens once becomes `COMPLETED`;
+ * an event, which has no such status, and an occurrence of a series are done by the log entry alone;
  * one with a deadline stays open, since that log entry is one of its sessions, see {@link boxSubmit}.
  *
  * @param id - Identifier of the box, like `study-13@nomsystem`
@@ -1035,12 +1031,12 @@ export function boxDrop(id: string, dropped: boolean): void {
 export function boxDone(id: string): void {
     const [file, entry]: [string, Entry] = planEntryFind(id);
     if (entry.todo && entry.editable && entry.recurrence === "" && entry.deadline === "")
-        statusPut(file, id, "COMPLETED", new Date());
+        statusPut(file, id, "COMPLETED");
 }
 
 /**
  * Ticks a box with a deadline submitted, like a homework sheet I handed in, with one tap on `Submit` in its menu,
- * or takes the tick back with one on its check: it becomes `COMPLETED`, as of now, or `NEEDS-ACTION` again,
+ * or takes the tick back with one on its check: it becomes `COMPLETED`, or `NEEDS-ACTION` again,
  * its sessions staying in the log.
  *
  * @param id - Identifier of the box, like `sheet-3@nomsystem`
@@ -1052,7 +1048,7 @@ export function boxSubmit(id: string, submitted: boolean): void {
     const [file, entry, box]: [string, Entry, Box] = boxFind(id);
     if (!entry.editable || box.deadline === "" || box.state !== (submitted ? "open" : "done"))
         throw new Error(`${entry.title} cannot be ${submitted ? "ticked submitted" : "taken back"}`);
-    statusPut(file, id, submitted ? "COMPLETED" : "NEEDS-ACTION", submitted ? new Date() : null);
+    statusPut(file, id, submitted ? "COMPLETED" : "NEEDS-ACTION");
 }
 
 /**
@@ -1067,7 +1063,7 @@ export function boxReopen(id: string): void {
     const found: [string, Entry] | undefined = entryLookup(day.plan, id);
     if (found !== undefined && found[1].todo && found[1].editable && found[1].status === "COMPLETED"
         && found[1].deadline === "")
-        statusPut(found[0], id, "NEEDS-ACTION", null);
+        statusPut(found[0], id, "NEEDS-ACTION");
 }
 
 /**

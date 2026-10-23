@@ -5,8 +5,8 @@
  * page by page, adds new foods to `Foods.md` and renames them, keeps my meals in `Meals.md`, finds the grams I logged
  * each food with last, and reads the meals of a day from the log with what they give.
  * `Meals.md` holds my meals, each only its composition, one or more of my foods without grams, servings or variants,
- * since I prepare it a little differently every time: one Markdown table with one row per food of a meal, the meal,
- * the food, its brand and its store; an entry brings each food at the grams I logged it with last in an entry of its
+ * since I prepare it a little differently every time: one section per meal, its name as heading, its short title
+ * below, then its table with one row per food, the food, its brand, its store and its grams; an entry brings each food at the grams I logged it with last in an entry of its
  * category, see {@link gramsRead}, which I change there; the lists of my meals show each with what it gave the last
  * time I ate it, see {@link dishesRead}.
  * A meal keeps its name as I type it, its spaces too, like `Chili con Carne`, only without commas, see {@link mealNameOf}.
@@ -255,8 +255,7 @@ export type Meal = Totals & {
  *
  * - `name`: Name of the meal, like `Chili con Carne`; unique, without `|`, `;` and `,`.
  * - `short`: What its brackets show, as I typed it, like `Hackfleisch, Tomaten`; empty for no brackets.
- * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order;
- *   by their names alone in a table written before foods had brand and store.
+ * - `foods`: Its foods by name, brand and store parted by `;`, like `Hackfleisch;Gut & Günstig;Edeka`, in their order.
  * - `standard`: The grams of each food, in their order, which an entry starts with: 0 for one I rarely put in,
  *   `null` for none set yet.
  */
@@ -340,22 +339,18 @@ export const foodName: string = "Food";
  */
 function tableHeadOf(): string[] {
     return [
-        "| Food | kcal | Protein | Carbs | Fat | Portion | Barcode | Brand | Store | Pack | Kind |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | ---: | --- |",
+        "| Food | kcal | Protein | Carbs | Fat | Barcode | Brand | Store | Portion | Pack | Kind |",
+        "| --- | ---: | ---: | ---: | ---: | --- | --- | --- | ---: | ---: | --- |",
     ];
 }
 
 /**
- * Text a new `Foods.md` starts with, one sentence or clause per line, so a line never breaks in the middle of one:
- * its title, what its columns hold, how a meal lists a food,
- * and the head of its table, the header and the line below it, see {@link tableHeadOf}.
+ * Text a new `Foods.md` starts with: its title, one line on the units of its columns, nothing of how the code
+ * uses them, and the head of its table, the header and the line below it, see {@link tableHeadOf}.
  */
 const fileHead: string[] = [
     "# Foods",
-    "My foods: kcal, protein, carbs and fat per 100 g, or per 100 ml for a drink, the Open Food Facts barcode, the brand and the store, so the same name of two shops never mixes up, the size of the pack as sold, a bare number in g or ml, and the kind, `Eat` or `Drink`;",
-    "Portion is the amount I typically take at once, never empty, like 50 of a Semmel, one piece, or 30 of oil, two tablespoons.",
-    "A meal in the log lists a food by its name, brand and store, then the grams I ate, or ml of a drink, like `X-FOOD:Skyr natur;K-Classic;Kaufland;150`;",
-    "a cooking lists what went into the pot the same way.",
+    "Nutrients per 100 g, or per 100 ml for a drink; Portion and Pack in g or ml.",
     "",
     ...tableHeadOf(),
 ];
@@ -366,17 +361,11 @@ const fileHead: string[] = [
 const tableHead: number = 2;
 
 /**
- * Text a new `Meals.md` starts with, one sentence or clause per line: its title, what it holds,
- * and the head of its table.
+ * Head of the table of a meal in `Meals.md`, no line above it but its short title, since its columns say enough.
  */
-const mealsHead: string[] = [
-    "# Meals",
-    "My meals, each one list of every food I may put in, by name, brand and store, with the grams I put in as a rule, 0 for a food I rarely put in;",
-    "an entry brings each at these grams, which I change there, so a meal changed here leaves past days as they were.",
-    "`Short` is what the brackets after its name show, none while empty.",
-    "",
-    "| Meal | Short | Food | Brand | Store | Grams |",
-    "| --- | --- | --- | --- | --- | ---: |",
+const mealHead: string[] = [
+    "| Food | Brand | Store | Grams |",
+    "| --- | --- | --- | ---: |",
 ];
 
 /**
@@ -619,7 +608,7 @@ function portionOf(given: number | null): number {
  * Cuts a row of a table into its cells, without the empty texts before its first `|` and after its last,
  * each without spaces at its ends.
  *
- * @param line - Row like `| Gouda | 356 | 25 |  |  |  | 4056489012345 | Milbona | Lidl | 400 g |`
+ * @param line - Row like `| Gouda | 356 | 25 |  |  | 4056489012345 | Milbona | Lidl | 30 | 400 | Eat |`
  * @returns Its cells
  */
 function cellsOf(line: string): string[] {
@@ -627,11 +616,28 @@ function cellsOf(line: string): string[] {
 }
 
 /**
+ * Cuts a row of the table of `Foods.md` into its cells by the names of its head, so a table written in an older order
+ * reads too: `Piece` as `Portion`, its name for a while, a column the table lacks, like `Pack` or `Kind`, missing.
+ * - `cells`: Its cells in the order of the head.
+ *
+ * @param head - Names of the columns, the header of the table cut into cells, see {@link cellsOf}
+ * @param line - Row of the table
+ * @returns Its cells by the names of the columns
+ */
+function cellsByNameOf(head: string[], line: string): { [column: string]: string | undefined } {
+    const cells: string[] = cellsOf(line);
+    return Object.fromEntries(head.map((name: string, index: number): [string, string] =>
+        [name === "Piece" ? "Portion" : name, cells[index] ?? ""]));
+}
+
+/**
  * Reads my foods, the rows of the table of `Foods.md`: its lines starting with `|`, after the head of the table,
- * as they are, the column `Portion` the amount I typically take at once, called `Piece` for a while, the pack a bare
- * number, and the kind, `Eat` where a row has none, see {@link kindOf}. kcal that cannot be read counts as 0;
- * a nutrient empty or unreadable
+ * as they are, each cell found by the name of its column, see {@link cellsByNameOf}, the column `Portion` the amount
+ * I typically take at once, the pack a bare number, and the kind, `Eat` where a row has none, see {@link kindOf}.
+ * kcal that cannot be read counts as 0; a nutrient empty or unreadable
  * is unknown, `null`, never 0, see {@link nutrientOf}; a row without a name stays out.
+ * - `rows`: The lines of the table.
+ * - `head`: Names of its columns.
  *
  * @returns Foods in the order of the table, none while `Foods.md` does not exist
  */
@@ -639,15 +645,16 @@ export function foodsRead(): Food[] {
     if (!existsSync(food.foods))
         return [];
 
-    return readFileSync(food.foods, "utf8").split("\n")
-        .filter((line: string): boolean => line.startsWith("|"))
-        .slice(tableHead)
-        .map(cellsOf)
-        .filter((cells: string[]): boolean => (cells[0] ?? "") !== "")
-        .map((cells: string[]): Food => ({
-            name: cells[0], kcal: numberOf(cells[1]), protein: nutrientOf(cells[2]), carbs: nutrientOf(cells[3]),
-            fat: nutrientOf(cells[4]), barcode: cells[6] ?? "", brand: cells[7] ?? "", store: cells[8] ?? "",
-            pack: nutrientOf(cells[9]), portion: nutrientOf(cells[5]), kind: kindOf(cells[10]),
+    const rows: string[] = readFileSync(food.foods, "utf8").split("\n").filter((line: string): boolean => line.startsWith("|"));
+    const head: string[] = cellsOf(rows[0] ?? "");
+    return rows.slice(tableHead)
+        .map((line: string): { [column: string]: string | undefined } => cellsByNameOf(head, line))
+        .filter((cells: { [column: string]: string | undefined }): boolean => (cells.Food ?? "") !== "")
+        .map((cells: { [column: string]: string | undefined }): Food => ({
+            name: cells.Food ?? "", kcal: numberOf(cells.kcal), protein: nutrientOf(cells.Protein),
+            carbs: nutrientOf(cells.Carbs), fat: nutrientOf(cells.Fat), barcode: cells.Barcode ?? "",
+            brand: cells.Brand ?? "", store: cells.Store ?? "", pack: nutrientOf(cells.Pack),
+            portion: nutrientOf(cells.Portion), kind: kindOf(cells.Kind),
         }));
 }
 
@@ -956,35 +963,48 @@ export async function foodsFind(text: string, page: number, products: boolean): 
 
 /**
  * Writes a food as a row of the table of `Foods.md`, an unknown nutrient an empty cell, never 0, the amount of its
- * portion in the column `Portion`, its pack a bare number, empty for none, and its kind last, see the top of this file.
+ * portion in the column `Portion` before its pack, a bare number, empty for none, and its kind last, see the top of
+ * this file.
  * - `cells`: Its values in the order of the columns, see {@link tableHeadOf}.
  *
  * @param food - Food as written
- * @returns Row like `| Gouda | 356 | 25 |  |  | 30 | 4056489012345 | Milbona | Lidl | 400 | Eat |`
+ * @returns Row like `| Gouda | 356 | 25 |  |  | 4056489012345 | Milbona | Lidl | 30 | 400 | Eat |`
  */
 function rowOf(food: Food): string {
-    const cells: (string | number | null)[] = [food.name, food.kcal, food.protein, food.carbs, food.fat, food.portion,
-        food.barcode, food.brand, food.store, food.pack, food.kind];
+    const cells: (string | number | null)[] = [food.name, food.kcal, food.protein, food.carbs, food.fat,
+        food.barcode, food.brand, food.store, food.portion, food.pack, food.kind];
     return `| ${cells.map((cell: string | number | null): string => String(cell ?? "")).join(" | ")} |`;
 }
 
 /**
- * Gives the head of the table of `Foods.md` the columns of today, see {@link tableHeadOf}, like a table written before
- * packs or kinds were kept, or with `Piece` where `Portion` stands now, so the rows written since stand under their
- * names.
+ * Gives the table of `Foods.md` the columns of today, see {@link tableHeadOf}, like a table written before packs or
+ * kinds were kept, with `Piece` where `Portion` stands now, or in an older order: its head, and each of its rows,
+ * every cell moved under the name of its column, see {@link cellsByNameOf}, a column it lacked empty.
+ * - `columns`: Names of the columns of today.
+ * - `head`: Names of the columns of the table as written.
  *
  * @param lines - Lines of `Foods.md`, changed in place
  * @param header - Index of the header of its table
  */
 function tableHeadPut(lines: string[], header: number): void {
-    if (lines[header] !== tableHeadOf()[0])
-        lines.splice(header, tableHead, ...tableHeadOf());
+    if (lines[header] === tableHeadOf()[0])
+        return;
+
+    const columns: string[] = cellsOf(tableHeadOf()[0]);
+    const head: string[] = cellsOf(lines[header]);
+    lines.forEach((line: string, index: number): void => {
+        if (index >= header + tableHead && line.startsWith("|")) {
+            const cells: { [column: string]: string | undefined } = cellsByNameOf(head, line);
+            lines[index] = `| ${columns.map((name: string): string => cells[name] ?? "").join(" | ")} |`;
+        }
+    });
+    lines.splice(header, tableHead, ...tableHeadOf());
 }
 
 /**
- * Adds a food to `Foods.md` as the last row of its table, every other line staying as it is, but a head of the table
- * without the columns of brand, store, pack or kind, which gets them, see {@link tableHeadPut}; creates `Foods.md` with
- * its head, see {@link fileHead}, when it does not exist yet.
+ * Adds a food to `Foods.md` as the last row of its table, every other line staying as it is, but a table without
+ * the columns of brand, store, pack or kind, or in an older order, which gets those of today, see {@link tableHeadPut};
+ * creates `Foods.md` with its head, see {@link fileHead}, when it does not exist yet.
  * A product of Open Food Facts goes in as Open Food Facts gives it, a food by hand as typed: the name, brand and store
  * cleaned, see {@link foodTextOf}, brand, store and pack empty where none is known, the numbers as `Foods.md`
  * writes them, see {@link nutrientsOf}: protein, carbs or fat sent as `null` is unknown, so the one of them a food
@@ -1043,8 +1063,8 @@ export function foodAdd(sent: Food): Food {
     if (last === -1)
         throw new Error(`No table in ${food.foods}`);
 
-    lines.splice(last + 1, 0, rowOf(added));
     tableHeadPut(lines, header);
+    lines.splice(last + 1, 0, rowOf(added));
     mkdirSync(dirname(food.foods), { recursive: true });
     writeFileSync(food.foods, lines.join("\n"));
     return added;
@@ -1090,6 +1110,7 @@ function lineRenamed(line: string, old: string, renamed: { name: string; brand: 
  * - `meals`: My meals.
  * - `lines`: Lines of `Foods.md`.
  * - `header`: Index of the header of its table.
+ * - `head`: Names of its columns.
  * - `row`: Index of the row of the food.
  *
  * @param sent - The food and what changes, as the page sends it
@@ -1167,13 +1188,14 @@ export function foodChange(sent: FoodChanged): Food {
 
     const lines: string[] = readFileSync(food.foods, "utf8").split("\n");
     const header: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
+    tableHeadPut(lines, header);
+    const head: string[] = cellsOf(lines[header]);
     const row: number = lines.findIndex((line: string, index: number): boolean => {
-        const cells: string[] = cellsOf(line);
+        const cells: { [column: string]: string | undefined } = cellsByNameOf(head, line);
         return index >= header + tableHead && line.startsWith("|")
-            && keyOf({ name: cells[0] ?? "", brand: cells[7] ?? "", store: cells[8] ?? "" }) === old;
+            && keyOf({ name: cells.Food ?? "", brand: cells.Brand ?? "", store: cells.Store ?? "" }) === old;
     });
     lines[row] = rowOf(changed);
-    tableHeadPut(lines, header);
     writeFileSync(food.foods, lines.join("\n"));
     return changed;
 }
@@ -1184,6 +1206,7 @@ export function foodChange(sent: FoodChanged): Food {
  * - `old`: Key of the food, see {@link keyOf}.
  * - `lines`: Lines of `Foods.md`.
  * - `header`: Index of the header of its table.
+ * - `head`: Names of its columns.
  * - `row`: Index of the row of the food, -1 for none.
  *
  * @param sent - The food, its name, brand and store, as the page sends them
@@ -1195,10 +1218,11 @@ export function foodRemove(sent: { name: string; brand: string; store: string })
         throw new Error(`No writing outside the new system: ${food.foods}`);
     const lines: string[] = existsSync(food.foods) ? readFileSync(food.foods, "utf8").split("\n") : [];
     const header: number = lines.findIndex((line: string): boolean => line.startsWith("|"));
+    const head: string[] = cellsOf(lines[header] ?? "");
     const row: number = header === -1 ? -1 : lines.findIndex((line: string, index: number): boolean => {
-        const cells: string[] = cellsOf(line);
+        const cells: { [column: string]: string | undefined } = cellsByNameOf(head, line);
         return index >= header + tableHead && line.startsWith("|")
-            && keyOf({ name: cells[0] ?? "", brand: cells[7] ?? "", store: cells[8] ?? "" }) === old;
+            && keyOf({ name: cells.Food ?? "", brand: cells.Brand ?? "", store: cells.Store ?? "" }) === old;
     });
     if (row === -1)
         throw new Error(`No food of mine: ${JSON.stringify(sent)}`);
@@ -1367,43 +1391,29 @@ function mealNameOf(typed: string): string {
 }
 
 /**
- * Reads my meals of `Meals.md` as it holds them, each with its foods in their order, see {@link Composition}, its cells
- * found by the names of the head, so a table written before `Short` and `Grams` reads too, its meals without both;
- * a table written before in variants with servings and grams by the foods of all its variants, by their names alone.
- * - `rows`: The lines of the table.
- * - `head`: Names of its columns.
- * - `cellOf`: Gives the cell of a row under a name of the head, empty where the table has no such column.
- * - `old`: Whether the table was written in variants, its head naming `Variant`.
- * - `meals`: The meals read so far, by their names in small letters.
+ * Reads my meals of `Meals.md` as it holds them, see {@link Composition}: a section per meal from its heading `###`,
+ * its name, the line below it its short title when it is no row, then a row per food of its table, each food in its
+ * order, see {@link mealHead}.
+ * - `lines`: Lines of a section, its name first.
+ * - `rows`: Rows of its table after its head.
  *
- * @returns My meals in the order of the table, none while `Meals.md` does not exist
+ * @returns My meals in the order of their sections, none while `Meals.md` does not exist
  */
 export function compositionsRead(): Composition[] {
     if (!existsSync(food.meals))
         return [];
 
-    const rows: string[] = readFileSync(food.meals, "utf8").split("\n").filter((line: string): boolean => line.startsWith("|"));
-    const head: string[] = cellsOf(rows[0] ?? "");
-    const cellOf: (cells: string[], name: string) => string = (cells: string[], name: string): string =>
-        head.includes(name) ? cells[head.indexOf(name)] ?? "" : "";
-    const old: boolean = head.includes("Variant");
-    const meals: Map<string, Composition> = new Map();
-    rows.slice(tableHead)
-        .map(cellsOf)
-        .filter((cells: string[]): boolean => cellOf(cells, "Meal") !== "" && cellOf(cells, "Food") !== "")
-        .forEach((cells: string[]): void => {
-            const name: string = cellOf(cells, "Meal");
-            const meal: Composition = meals.get(name.toLowerCase())
-                ?? { name: name, short: cellOf(cells, "Short"), foods: [], standard: [] };
-            const line: string = old ? cellOf(cells, "Food")
-                : `${cellOf(cells, "Food")};${cellOf(cells, "Brand")};${cellOf(cells, "Store")}`;
-            if (!meal.foods.includes(line)) {
-                meal.foods.push(line);
-                meal.standard.push(old ? null : nutrientOf(cellOf(cells, "Grams")));
-            }
-            meals.set(name.toLowerCase(), meal);
-        });
-    return [...meals.values()];
+    return readFileSync(food.meals, "utf8").split(/^### /m).slice(1).map((section: string): Composition => {
+        const lines: string[] = section.trim().split("\n");
+        const rows: string[][] = lines.filter((line: string): boolean => line.startsWith("|")).slice(tableHead)
+            .map(cellsOf);
+        return {
+            name: lines[0].trim(),
+            short: lines[1]?.startsWith("|") === false ? lines[1].trim() : "",
+            foods: rows.map((cells: string[]): string => cells.slice(0, 3).join(";")),
+            standard: rows.map((cells: string[]): number | null => nutrientOf(cells[3] ?? "")),
+        };
+    });
 }
 
 /**
@@ -1411,7 +1421,7 @@ export function compositionsRead(): Composition[] {
  * each, see {@link Dish}.
  * - `mine`: My foods by their keys and names, see {@link foodsByKeyRead}.
  *
- * @returns My meals in the order of the table, none while `Meals.md` does not exist
+ * @returns My meals in the order of their sections, none while `Meals.md` does not exist
  */
 export function dishesRead(): Dish[] {
     const mine: Map<string, Food> = foodsByKeyRead();
@@ -1426,23 +1436,27 @@ export function dishesRead(): Dish[] {
 }
 
 /**
- * Writes my meals into `Meals.md` anew, its head first, see {@link mealsHead}, then a row per food of each meal,
- * its short title in each, its standard grams whole or to one decimal, empty where none is set,
- * so a table written before turns into the table of today.
- * - `rows`: The rows of the table.
+ * Writes my meals into `Meals.md` anew, its title first, then a section per meal: its name as heading `###`,
+ * its short title below unless empty, then its table, see {@link mealHead}, a row per food, its standard grams whole
+ * or to one decimal, empty where none is set; an empty line only before the next heading.
+ * - `sections`: Lines of the section of each meal.
  *
  * @param meals - My meals to write, in their order
  */
 function compositionsWrite(meals: Composition[]): void {
-    const rows: string[] = meals.flatMap((meal: Composition): string[] => meal.foods.map((line: string,
-        index: number): string => {
-        const read: Line = lineOf(line);
-        const grams: number | null = meal.standard[index] ?? null;
-        return `| ${meal.name} | ${meal.short} | ${read.name} | ${read.brand} | ${read.store} | `
-            + `${grams === null ? "" : roundOf(grams, 1)} |`;
-    }));
+    const sections: string[][] = meals.map((meal: Composition): string[] => [
+        `### ${meal.name}`,
+        ...meal.short === "" ? [] : [meal.short],
+        ...mealHead,
+        ...meal.foods.map((line: string, index: number): string => {
+            const read: Line = lineOf(line);
+            const grams: number | null = meal.standard[index] ?? null;
+            return `| ${read.name} | ${read.brand} | ${read.store} | ${grams === null ? "" : roundOf(grams, 1)} |`;
+        }),
+    ]);
     mkdirSync(dirname(food.meals), { recursive: true });
-    writeFileSync(food.meals, [...mealsHead, ...rows, ""].join("\n"));
+    writeFileSync(food.meals, ["# Meals", ...sections.flatMap((section: string[], index: number): string[] =>
+        index === 0 ? section : ["", ...section]), ""].join("\n"));
 }
 
 /**
@@ -1513,7 +1527,7 @@ function rankOf(grams: number | null): number {
  * Renames a meal of mine wherever it stands, so every entry still shows it under its new name: first, in every entry
  * of the log that holds it, past and to come, the meal of its lines `X-FOOD`, like `Chili con Carne` of
  * `Hackfleisch;Gut & Günstig;Edeka;125;Chili con Carne`, and its name in the summary, every other part of the summary
- * staying as it is; then its rows of `Meals.md`, every other line staying as it is, so one stopped in between
+ * staying as it is; then its section of `Meals.md`, every other line staying as it is, so one stopped in between
  * finishes when sent again. A name sent without change writes nothing.
  * - `meals`: My meals.
  * - `found`: The meal renamed.

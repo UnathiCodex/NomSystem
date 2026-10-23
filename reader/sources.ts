@@ -320,9 +320,12 @@ export const activeModules: string[] = activeSkills
  *   with `CATEGORIES:Holiday`, like `Holiday: Ostermontag (AT, DE)`; my gift idea for one is its `DESCRIPTION`,
  *   which the reader writes, see `gifts.ts`; none of a file while it is missing.
  * - `places`: My places, `Places.md` in {@link dataRoot}, beside `Foods.md`, one Markdown table
- *   with one row per place, its name and its address, which the reader writes as I add places, see `places.ts`.
+ *   with one row per place, its name, street, code, city, country and link, which the reader writes as I add
+ *   places, see `places.ts`.
  * - `rooms`: The rooms of the university, `Rooms.md` beside `Places.md`, one table of the same form,
- *   its name, its address and its link to NavigaTUM, which the reader writes as I add a room, see `places.ts`.
+ *   its link to NavigaTUM, which the reader writes as I add a room, see `places.ts`.
+ * - `online`: My platforms online, `Online.md` beside `Places.md`, one table with one row per platform, its name,
+ *   provider and link, which the reader writes as I add a platform, see `places.ts`.
  */
 export type DaySources = {
     plan: CalendarSource[];
@@ -330,6 +333,7 @@ export type DaySources = {
     system: CalendarSource[];
     places: string;
     rooms: string;
+    online: string;
 };
 
 /**
@@ -341,6 +345,7 @@ export const day: DaySources = {
     system: [{ folder: metaRoot, ending: "Birthdays.ics" }, { folder: metaRoot, ending: "Holidays.ics" }],
     places: join(dataRoot, "Places.md"),
     rooms: join(dataRoot, "Rooms.md"),
+    online: join(dataRoot, "Online.md"),
 };
 
 /**
@@ -361,7 +366,7 @@ export const trackerLog: CalendarSource[] = [{ folder: calendarRoot, ending: log
  *
  * - `foods`: My foods, `Foods.md` in {@link dataRoot}, one Markdown table with one row per food,
  *   which the reader writes as I add foods, see `food.ts`.
- * - `meals`: My meals, `Meals.md` in {@link dataRoot}, one Markdown table with one row per food of a meal,
+ * - `meals`: My meals, `Meals.md` in {@link dataRoot}, one section per meal with its table of its foods,
  *   which the reader writes as I add meals, see `food.ts`.
  * - `log`: Log of the new system, where each meal is an entry of the category `Food` listing its foods,
  *   in the log of its month in `Living/`.

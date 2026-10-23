@@ -8,11 +8,12 @@
  * One plus adds one more and one `×` takes a value back, made only here, so they look and act the same everywhere,
  * for a meal, a food, a chapter, a type, a document or a way, see {@link plusPut} and {@link crossPut}.
  * A remove that asks once more shows a plain question mark, see {@link QuestionMark}.
+ * Every search field of the page is made here too, with its quiet magnifier, see {@link searchFieldOf}.
  *
- * - `lucide`: Makes the SVG element of an icon; the icons plus and cross.
+ * - `lucide`: Makes the SVG element of an icon; the icons plus, cross and magnifier.
  */
 
-import { createElement, Plus, X } from "lucide";
+import { createElement, Plus, Search, X } from "lucide";
 
 import type { IconNode } from "lucide";
 
@@ -110,4 +111,27 @@ export function plusTypedPut(button: HTMLElement, typed: string): void {
 export function crossPut(button: HTMLElement, words: string): void {
     iconPut(button, X, words);
     button.classList.add("cross-quiet");
+}
+
+/**
+ * Makes the one search field of the page around a field, see `.search-field` in `base.css`: a card of the soft grey
+ * without a frame, the small grey magnifier at its left, then the field, its words naming what it searches, like
+ * `Search places` or `Search files`, grey till I type, and its name for screen readers; the same in the food view,
+ * in the tree, in the search of the log and in every list of a dialog, only as high as where it stands asks.
+ * A click on the magnifier puts the cursor into the field, as the card is the field's label.
+ * - `field`: The card around the magnifier and the field.
+ *
+ * @param input - The field, its events added by the search it belongs to
+ * @param words - What it searches, like `Search meals`
+ * @returns The card with the field, to put into the page in place of the field
+ */
+export function searchFieldOf(input: HTMLInputElement, words: string): HTMLLabelElement {
+    const field: HTMLLabelElement = document.createElement("label");
+    field.className = "search-field";
+    input.type = "search";
+    input.placeholder = words;
+    input.autocomplete = "off";
+    input.setAttribute("aria-label", words);
+    field.append(iconOf(Search), input);
+    return field;
 }

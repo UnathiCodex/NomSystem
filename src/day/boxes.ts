@@ -62,6 +62,7 @@
  *
  * - `fullcalendar/interaction`: Drags the boxes into the log.
  * - `./entries.ts`: Sends logged, taken back, pushed and cancelled boxes to the reader, and names who I will be with.
+ * - `./series.ts`: Names the numbered types, tells a box of a series of my course and opens the dialog of its series.
  * - `./categories.ts`: Opens the entry by category for a new box, a box to change, and a box to log through it.
  * - `./gifts.ts`: Opens the dialog of the gift idea for a birthday or holiday.
  * - `./places.ts`: Gives the name of the place of a box, a link when it has one.
@@ -73,7 +74,7 @@
  * - `../menu.ts`: Puts the buttons of a box behind one button `⋯`.
  * - `../phone.ts`: Tells a phone, which shows a skill by its code alone.
  * - `../reader.ts`: Asks the reader.
- * - `lucide`: The icons plus, check, arrow, cross, calendar crossed out and gift.
+ * - `lucide`: The icons plus, check, arrow, cross, calendar crossed out, repeat and gift.
  * - `fullcalendar`: Calendar of the log the boxes are dropped into.
  */
 
@@ -85,13 +86,14 @@ import { breakableOf } from "./choices.ts";
 import { whereLinkedOf, whereOf } from "./places.ts";
 import { linkNameOf, modulesFolder } from "../skill/links.ts";
 import { boxMinutes, boxTimesOf, lengthOf, nearOf, timeOf } from "./times.ts";
-import { dayOf, dayTextOf, skillName } from "../skill/attempts.ts";
+import { numberedTypes, seriesHas, seriesOpen } from "./series.ts";
+import { dayOf, dayTextOf, semesterOf, skillName } from "../skill/attempts.ts";
 import { calendarTodayOf } from "../today.ts";
 import { iconOf, iconPut, plusPut } from "../icons.ts";
 import { menuItemOf, menuOf } from "../menu.ts";
 import { phone } from "../phone.ts";
 import { readerAsk } from "../reader.ts";
-import { ArrowRight, CalendarOff, Check, Gift, X } from "lucide";
+import { ArrowRight, CalendarOff, Check, Gift, Repeat, X } from "lucide";
 
 import type { Calendar, EventApi, EventReceiveInfo } from "fullcalendar";
 import type { IconNode } from "lucide";
@@ -107,12 +109,6 @@ import type { Link } from "../skill/attempts.ts";
 export type BoxState = "open" | "done" | "dropped" | "university" | "pushed";
 
 /**
- * Types of skill boxes that carry their number in their series and that the university may cancel: lectures,
- * exercises, central exercises, tutorials and sheets.
- */
-const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
-
-/**
  * A box, as the reader sends it.
  *
  * - `id`: Identifier of its to-do or event, for an occurrence of a series with its start after `#`,
@@ -123,6 +119,7 @@ const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  *   or of its material while I typed none, empty for none.
  * - `location`: Place, like `TUM Innenstadt, Arcisstraße 21, 80333 München, Deutschland`, empty for none.
  * - `locationLink`: Link of its place, its `ALTREP`, like `https://nav.tum.de/room/0509.EG.980`, empty for none.
+ * - `online`, `onlineLink`, `passcode`: What it does online, see `Online` in `entries.ts`, each empty for none.
  * - `from`: Where a way starts, empty for none.
  * - `attendees`: Who I will be with, see `Attendee` in `entries.ts`, none for nobody.
  * - `module`: Module of a skill box, like `WI1059`, empty for any other box.
@@ -136,9 +133,8 @@ const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  * - `state`: Whether it is open, done, dropped, which is cancelled, cancelled by the university, or pushed from the day
  *   it shows on.
  * - `pushed`: Where it stood before each push to a later day, in order, see {@link Push}.
- * - `log`: Start and end of the log entry written from it, for a box with a deadline of one of its sessions,
+ * - `log`: Start and end of the log entry written from it, for a box with a deadline of its last session,
  *   as ISO instants, `null` for none.
- * - `completed`: When it was done, as ISO instant, like the moment I ticked a homework submitted; empty for none.
  * - `editable`: Whether it can be changed, pushed and dropped: a to-do or an event with times,
  *   also one occurrence of a series, alone, like the lecture `IN2028 VO` on 26.10.2026.
  * - `series`: Whether it is one occurrence of a series, which cannot be removed.
@@ -158,6 +154,9 @@ export type Box = {
     titleLink: string;
     location: string;
     locationLink: string;
+    online: string;
+    onlineLink: string;
+    passcode: string;
     from: string;
     attendees: Attendee[];
     module: string;
@@ -171,7 +170,6 @@ export type Box = {
     state: BoxState;
     pushed: Push[];
     log: { start: string; end: string } | null;
-    completed: string;
     editable: boolean;
     series: boolean;
     todo: boolean;
@@ -425,11 +423,11 @@ function timesOf(parts: string[], start: string): HTMLElement | null {
 function boxContentOf(box: Box, day: string, nearShown: boolean): HTMLElement[] {
     const what: string = shownWhatOf(box.category, box.title, box.module, box.type);
     const times: HTMLElement | null = timesOf(timePartsOf(box, day), "");
-    const place: string = whereOf(box.category, box.from, box.location);
+    const place: string = whereOf(box.category, box.from, box.location, box.online);
     const meta: HTMLElement[] = [
         ...(times === null ? [] : [times]),
         ...(place === "" ? [] : [entryPartOf("span", times === null ? "box-part" : "box-part entry-parted",
-            whereLinkedOf(box.category, box.from, box.location, box.locationLink))]),
+            whereLinkedOf(box.category, box.from, box.location, box.locationLink, box.online, box.onlineLink))]),
     ];
     const deadline: HTMLElement | null = timesOf(deadlinePartsOf(box, day, nearShown), "Deadline: ");
     const chapters: HTMLElement[] = chaptersOf(box).map((chapter: Node, index: number): HTMLElement =>
@@ -654,9 +652,10 @@ function actionsRowOf(buttons: HTMLButtonElement[]): HTMLElement {
  * outside the new system, whose menu holds nothing else; then `Move`, which pushes it to the next day, one whose day
  * is over to tomorrow, also one carried along, see `boxPush` in `reader/boxes.ts`, but for a box with a deadline,
  * which stays on the day of its deadline; then for a lecture, an exercise, a tutorial or a sheet,
- * see {@link numberedTypes}, `Cancel`, which marks it cancelled by the university, see `boxUniversity`
- * in `entries.ts`; last `Skip`, which cancels it. A box no longer open shows its state in that place instead,
- * see {@link stateOf}. One occurrence of a series has them too and changes alone, the series staying.
+ * see `numberedTypes` in `series.ts`, `Cancel`, which marks it cancelled by the university, see `boxUniversity`
+ * in `entries.ts`; then `Skip`, which cancels it; last, for a box of a series of my course, `Series`, which opens
+ * the dialog of its series, see `seriesOpen` in `series.ts`. A box no longer open shows its state in that place
+ * instead, see {@link stateOf}. One occurrence of a series has them too and changes alone, the series staying.
  * - `first`: `Log`, or `Submit` for a box with a deadline.
  *
  * @param calendar - Calendar of the day
@@ -679,6 +678,10 @@ function actionsOf(calendar: Calendar, box: Box): HTMLElement {
             ? [actionOf(calendar, CalendarOff, "Cancel", (): Promise<void> =>
                 boxUniversity(box.id, true))] : []),
         actionOf(calendar, X, "Skip", (): Promise<void> => boxDrop(box.id, true)),
+        ...seriesHas(box) ? [menuItemOf(Repeat, "Series", (): void => {
+            seriesOpen(box.module, box.type, box.semester || semesterOf(box.day))
+                .catch((error: unknown): void => console.error(error));
+        })] : [],
     ]);
 }
 
@@ -705,11 +708,31 @@ function boxElementOf(calendar: Calendar, box: Box, carriedShown: boolean): HTML
     element.dataset.category = box.category;
     element.dataset.title = box.title;
     element.dataset.minutes = String(box.minutes ?? boxMinutes);
-    body.addEventListener("click", (): void => {
-        boxClick(calendar, box).catch((error: unknown): void => console.error(error));
+    element.addEventListener("click", (event: MouseEvent): void => {
+        if (event.target === element || body.contains(event.target as Node))
+            boxClick(calendar, box).catch((error: unknown): void => console.error(error));
     });
     element.append(body, box.state === "open" ? actionsOf(calendar, box) : stateOf(calendar, box));
     return element;
+}
+
+/**
+ * Sections of the plan, in order, each named as the folder of its plans in `NomManagecalendar`, see `reader/sources.ts`.
+ */
+const sections: string[] = ["Skilling", "University", "Living"];
+
+/**
+ * Gives the section of the plan a box stands in, as the folder of the plan it lies in, see `calendarFileOf`
+ * in `reader/documents.ts`: a box of another category than a skill `Living`, like sleep, a skill box of a module,
+ * whose summary links a folder in `NomSkillingmodules`, `University`, any other skill box `Skilling`.
+ *
+ * @param box - The box
+ * @returns Name of its section, like `University`
+ */
+function sectionOf(box: Box): string {
+    if (box.category !== skillName)
+        return "Living";
+    return box.titleLink.split("/")[0] === modulesFolder ? "University" : "Skilling";
 }
 
 /**
@@ -723,12 +746,14 @@ function listedOf(): Box[] {
 }
 
 /**
- * Shows the plan of the shown day in the list: its birthdays and holidays, its boxes that are not cancelled,
- * then the cancelled boxes, a calm hint when the day has none of them;
+ * Shows the plan of the shown day in the list: its birthdays and holidays, then its boxes in their sections,
+ * see {@link sections}, each below its name on a thin line, a section without boxes left out, in each its boxes
+ * that are not cancelled, then the cancelled ones; a calm hint when the day has none of them;
  * below them, on today, the boxes carried along under `Carried along`, when there are any.
- * - `elements`: Birthdays, holidays and boxes as elements, in order.
+ * - `elements`: Birthdays, holidays, names of sections and boxes as elements, in order.
  * - `boxes`: The boxes as elements, in the order of the boxes of the day.
  * - `dropped`: Whether a box is cancelled.
+ * - `inSection`: The boxes of a section as elements, the cancelled ones last.
  * - `carriedElements`: The heading and the boxes carried along, none when there are none.
  *
  * @param calendar - Calendar of the day
@@ -738,8 +763,15 @@ function boxesShow(calendar: Calendar): void {
     const boxes: HTMLElement[] = shown.boxes.map((box: Box): HTMLElement => boxElementOf(calendar, box, false));
     const elements: HTMLElement[] = [
         ...occasionsOf(shown.occasions, giftOpen),
-        ...boxes.filter((element: HTMLElement, index: number): boolean => !dropped(shown.boxes[index])),
-        ...boxes.filter((element: HTMLElement, index: number): boolean => dropped(shown.boxes[index])),
+        ...sections.flatMap((section: string): HTMLElement[] => {
+            const inSection: HTMLElement[] = [
+                ...boxes.filter((element: HTMLElement, index: number): boolean =>
+                    sectionOf(shown.boxes[index]) === section && !dropped(shown.boxes[index])),
+                ...boxes.filter((element: HTMLElement, index: number): boolean =>
+                    sectionOf(shown.boxes[index]) === section && dropped(shown.boxes[index])),
+            ];
+            return inSection.length === 0 ? [] : [entryPartOf("h3", "plan-section", [section]), ...inSection];
+        }),
     ];
     const carriedElements: HTMLElement[] = carried.length === 0 ? [] : [
         entryPartOf("h3", "plan-carried", ["Carried along"]),

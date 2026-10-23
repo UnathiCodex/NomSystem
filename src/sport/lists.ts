@@ -43,7 +43,7 @@
  * - `../search.ts`: Compares the text typed in a search with the names of a list.
  * - `../changes.ts`: Loads everything of mine anew the moment a file of my new system changes.
  * - `../icons.ts`: Puts the one plus and the one `×` into the buttons, and the plain question mark, their words
- *   as tooltip.
+ *   as tooltip, and makes every search field.
  * - `lucide`: The plus of a new workout or exercise, and the pencil that renames a workout.
  */
 
@@ -55,7 +55,7 @@ import { editButtonsOf, editFieldOf, inlineFieldOf, listHeadOf, listLineOf } fro
 import { lengthOf } from "../day/times.ts";
 import { matchesAll, wordsOf } from "../search.ts";
 import { changesFollow } from "../changes.ts";
-import { crossPut, iconOf, iconPut, plusPut, QuestionMark } from "../icons.ts";
+import { crossPut, iconOf, iconPut, plusPut, QuestionMark, searchFieldOf } from "../icons.ts";
 import { Pencil, Plus } from "lucide";
 
 import type { Exercise, Mine, Part, Video, VideoFound, Workout } from "./mine.ts";
@@ -164,25 +164,6 @@ function headingOf(name: string, plus: HTMLButtonElement | null): HTMLElement {
     if (plus !== null)
         heading.append(plus);
     return heading;
-}
-
-/**
- * Makes the search field of a section, its words grey in it while empty, as the search of my meals.
- * - `search`: The field.
- *
- * @param words - What it searches, like `Search workouts`
- * @param typed - What a change of the text does
- * @returns The field
- */
-function searchFieldOf(words: string, typed: () => void): HTMLInputElement {
-    const search: HTMLInputElement = document.createElement("input");
-    search.type = "search";
-    search.className = "dish-search";
-    search.placeholder = words;
-    search.autocomplete = "off";
-    search.setAttribute("aria-label", words);
-    search.addEventListener("input", typed);
-    return search;
 }
 
 /**
@@ -387,6 +368,7 @@ function valueOf(text: string): HTMLElement {
  */
 function workoutsSectionOf(): HTMLElement {
     const section: HTMLElement = elementOf("section", "food-dishes", "");
+    const search: HTMLInputElement = document.createElement("input");
     const list: HTMLElement = elementOf("div", "dish-list", "");
     let open: string = "";
     let adding: string = "";
@@ -548,11 +530,11 @@ function workoutsSectionOf(): HTMLElement {
         return formOf([["Name", name]], close, (): void => begin(name.value));
     };
 
-    const search: HTMLInputElement = searchFieldOf("Search workouts", show);
+    search.addEventListener("input", show);
     section.append(headingOf("Workouts", plusOf("New workout", (): void => {
         naming = !naming;
         show();
-    })), search, list);
+    })), searchFieldOf(search, "Search workouts"), list);
     bracketsWatch(list);
     shows.push(show);
     return section;
@@ -691,10 +673,6 @@ function partSearchOf(workout: Workout, pick: (part: Part) => void): HTMLElement
             ...lines.length === 0 && plus.length === 0 ? [elementOf("p", "food-none",
                 "Type an exercise, or paste a YouTube link")] : []);
     };
-    input.type = "search";
-    input.placeholder = "Search an exercise or a video, or paste a YouTube link";
-    input.autocomplete = "off";
-    input.setAttribute("aria-label", "Search an exercise or a video, or paste a YouTube link");
     input.addEventListener("input", show);
     input.addEventListener("keydown", (event: KeyboardEvent): void => {
         if (event.key !== "Enter" || results.querySelector(".food-form") !== null)
@@ -702,7 +680,7 @@ function partSearchOf(workout: Workout, pick: (part: Part) => void): HTMLElement
         event.preventDefault();
         (results.querySelector("button") as HTMLButtonElement | null)?.click();
     });
-    search.append(input, results);
+    search.append(searchFieldOf(input, "Search exercises and videos, or paste a YouTube link"), results);
     show();
     return search;
 }
@@ -725,6 +703,7 @@ function partSearchOf(workout: Workout, pick: (part: Part) => void): HTMLElement
  */
 function exercisesSectionOf(): HTMLElement {
     const section: HTMLElement = elementOf("section", "food-dishes", "");
+    const search: HTMLInputElement = document.createElement("input");
     const list: HTMLElement = elementOf("div", "dish-list sport-exercises", "");
     let asked: string = "";
     let naming: boolean = false;
@@ -818,11 +797,11 @@ function exercisesSectionOf(): HTMLElement {
         return detail;
     };
 
-    const search: HTMLInputElement = searchFieldOf("Search exercises", show);
+    search.addEventListener("input", show);
     section.append(headingOf("Exercises", plusOf("New exercise", (): void => {
         naming = !naming;
         show();
-    })), search, list);
+    })), searchFieldOf(search, "Search exercises"), list);
     bracketsWatch(list);
     shows.push(show);
     return section;

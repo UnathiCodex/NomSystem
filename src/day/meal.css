@@ -89,20 +89,11 @@
 }
 
 /* Food search in the list of the foods or of a meal, see `.picker-box`: its field one chip high, as the search
-   of every list, with a little room above and below it */
+   of every list, see `.picker-box .search-field` in `choices.css`, its results below it */
 .meal-box .food-search {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-}
-
-.panel .meal-box .food-search > input {
-    flex: none;
-    height: var(--chip-height);
-    margin: 0.375rem 0;
-    padding: 0 0.75rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
 }
 
 /* Phone: a meal or a food on one line, its grams first, its foods indented less, the field of its grams narrower */

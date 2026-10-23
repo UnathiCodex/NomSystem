@@ -6,7 +6,7 @@
     gap: var(--gap);
     flex: 1;
     min-height: 0;
-    padding: var(--gap);
+    padding: var(--top-room) var(--side-room);
 }
 
 /* The bar of the shown day above its plan and its log, side by side, equally wide and equally high, since the plan
@@ -69,14 +69,6 @@
     flex-direction: column;
     gap: 0.5rem;
     min-height: 0;
-}
-
-/* The plan, my gratitude and the rest of the note below them a step further in than the arrows of the date,
-   `--content-indent`, as the meals of the food view */
-#day-plan,
-.note-boxes > .day-column:first-child,
-.day-note {
-    padding-left: var(--content-indent);
 }
 
 .column-head {
@@ -265,9 +257,8 @@
     content: ")";
 }
 
-/* The link of the summary of a skill entry on a line of its own below skill and type, the folder of its skill while
-   I type none, as close below them as an address below its place, see `skillPathShow` in `skill.ts`, and below it
-   the part to type it, opened by the pencil after the type */
+/* The link of the summary of a skill entry on a line of its own below skill and type, the folder of its skill,
+   as close below them as an address below its place, see `skillPathShow` in `skill.ts` */
 .panel-pair .entry-address {
     order: 1;
     flex-basis: 100%;
@@ -382,13 +373,13 @@ fieldset.entry-times {
 }
 
 /* Start and end in one row, the range dash between them as in the boxes, like `14.10.2026 10:15 – 14.10.2026 10:45`
-   or `18:00 – 19:30`, about a space on each side of the dash, the dash going with the start; where the row is too
-   narrow, like on a phone, the end goes on below */
+   or `18:00 – 19:30`, about two spaces on each side of the dash, as between a day and its time, the dash going with
+   the start; where the row is too narrow, like on a phone, the end goes on below */
 .entry-range {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    column-gap: 0.35em;
+    column-gap: 0.6em;
     row-gap: 0.25rem;
 }
 
@@ -405,12 +396,11 @@ fieldset.entry-times {
 
 /* The dash after the start, as far from it as from the end, like `14:00 – 16:00` */
 .entry-dash {
-    margin-left: 0.35em;
+    margin-left: 0.6em;
 }
 
 @supports (field-sizing: content) {
-    .entry-moment .date-field,
-    .entry-moment .time-field {
+    .entry-moment .date-field {
         width: auto;
         min-width: 2ch;
         field-sizing: content;
@@ -455,7 +445,7 @@ fieldset.entry-times {
 
 /* Address of the place picked below its name, small and grey, like `Burg-Eltz-Weg, 81375 München, Deutschland`,
    and so the folder of the skill picked, see `skillPathOf` in `skill.ts`, going on below where it is wider than
-   its row; a click opens its link, underlined under the pointer, when it has one */
+   its row; a click opens its link, lighter under the pointer, never underlined, when it has one */
 .entry-address {
     display: block;
     margin-top: 0.125rem;
@@ -470,7 +460,7 @@ fieldset.entry-times {
 }
 
 .entry-address[href]:hover {
-    text-decoration: underline;
+    color: var(--text-main);
 }
 
 /* Pencil beside a name, of a place or a summary, a little apart from its text, so it never sticks to it,
@@ -500,8 +490,8 @@ fieldset.entry-times {
 
 /* Parts of a meal below its row, as the documents of a chapter, see `.panel-nested` in `choices.css`: its foods,
    indented under its name with the grey guide line, `--guide`, at their left, so they read as its parts; the same
-   for the parts of a field below it: of a place my place's address, postcode, country and link, or those of `Online`,
-   see `partsOf` in `categories.ts`, and of a summary its link, see `summaryPartsOf`; here and not in `meal.css`
+   for the parts of a field below it: of a place my place's label, address and link, those of `Online`, see `partsOf`
+   and `onlineRowOf` in `categories.ts`, and of a summary its text, see `summaryPartsOf`; here and not in `meal.css`
    or `choices.css`, before both, since the foods of a meal indented less on a phone, at the end of `meal.css`,
    and the parts of a field in two columns, see `.field-parts` in `choices.css`, build on it */
 .meal-parts,
@@ -528,9 +518,17 @@ fieldset.entry-times {
     margin-inline: 0.5em;
 }
 
-/* Time field as wide as a time like 14:00 */
+/* Time field as wide as what it holds, a time like 14:00 or, while empty, its grey `hh:mm`, see the rule above,
+   so the room on both sides of the dash is the same */
 .time-field {
-    width: 5ch;
+    width: 6ch;
+}
+
+@supports (field-sizing: content) {
+    .time-field {
+        width: auto;
+        field-sizing: content;
+    }
 }
 
 /* Date field as wide as a date like 23.10.2026 */
@@ -538,9 +536,10 @@ fieldset.entry-times {
     width: 10ch;
 }
 
-/* The day and the time of a deadline while empty, saying grey what they take, dd.mm.yyyy and hh:mm, see `day.html`,
-   and the link of a skill entry while I type none, the folder of its skill, see `summaryPartsShow` in `categories.ts` */
-#entry-deadline input::placeholder,
+/* A time and a day while empty, like the day of a deadline or of a series, saying grey what they take, hh:mm
+   and dd.mm.yyyy, see `day.html` and `series.ts`, and so does any part of a field that says it */
+.time-field::placeholder,
+.date-field::placeholder,
 .field-part input::placeholder {
     color: var(--text-muted);
     opacity: 1;
@@ -565,9 +564,11 @@ fieldset.entry-times {
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     /* The day on a phone one screen high: its bar on top, then plan or log, one at a time, filling the rest,
        the switch between them with its + at the bottom, under the thumb; the names of plan and log stand
-       in the switch, so not above them */
+       in the switch, so not above them; a gap from both edges of the screen, not `--side-room`, since a phone
+       has no rail */
     .day {
         grid-template-rows: minmax(0, 1fr);
+        padding: var(--gap);
     }
 
     .day-main {
@@ -599,13 +600,6 @@ fieldset.entry-times {
     .day-main[data-shown="plan"] #day-log,
     .day-main[data-shown="log"] #day-plan {
         display: none;
-    }
-
-    /* The plan on a phone over the whole width, as the log and the switch below them, so its boxes stand as far
-       from both edges of the screen: no step in from the rail's buttons, `--content-indent`, since a phone has
-       no rail */
-    #day-plan {
-        padding-left: 0;
     }
 
     /* Switch between plan and log at the bottom, under the thumb: one bar one control high, filled in the soft grey

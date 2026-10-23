@@ -183,24 +183,3 @@
 .course-groups-except {
     color: var(--text-muted);
 }
-
-/* Form of a series in its card, in the look of the dialog of an entry, see `.panel` in `../day/day.css`, as wide
-   as the card, its buttons at its end, where the page scrolls it, the plan it writes into small and grey at their
-   left */
-.course-form {
-    width: auto;
-}
-
-.course-form .panel-buttons {
-    position: static;
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
-
-.course-file {
-    align-self: center;
-    margin-right: auto;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    overflow-wrap: anywhere;
-}

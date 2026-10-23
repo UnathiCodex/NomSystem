@@ -4,7 +4,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    padding-top: var(--gap);
+    padding-top: var(--top-room);
 }
 
 .editor-overview .day-bar {

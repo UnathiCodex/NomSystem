@@ -36,15 +36,26 @@ export type Attendee = {
 };
 
 /**
+ * What an entry or a box did online, apart from where I physically was, its `X-ONLINE`, see `Online`
+ * in `reader/calendar.ts`.
+ *
+ * - `online`: Its platform, a row of `Online.md`, like `Zoom`, empty for none.
+ * - `onlineLink`: The link of its own meeting or video, its `ALTREP`, empty for none.
+ * - `passcode`: The passcode of its meeting, its `X-PASSCODE`, empty for none.
+ */
+export type Online = {
+    online: string;
+    onlineLink: string;
+    passcode: string;
+};
+
+/**
  * Fields and times of an entry of the log to send; an empty field is not written.
  *
  * - `category`: Category picked, `CATEGORIES`.
  * - `title`: What picked, `SUMMARY`.
- * - `titleLink`: Link of what it was, as typed or pasted below its summary, the `ALTREP` of its `SUMMARY`, like the page
- *   of an event, empty for none, a skill entry then linking the folder the reader writes; left out, it keeps its link.
- * - `location`: Place picked, `LOCATION`.
- * - `locationLink`: Link of the place `Online`, as typed or pasted, the `ALTREP` of its `LOCATION`; left out for any
- *   other place, whose link the reader finds itself, so the place keeps its link.
+ * - `location`: Place picked, `LOCATION`, where I physically was, whose link the reader finds itself.
+ * - `online`, `onlineLink`, `passcode`: What I did online, see {@link Online}; left out, it keeps them.
  * - `from`: Where a way starts, `X-FROM`.
  * - `attendees`: Who I was with, one `ATTENDEE` each, none for nobody; left out, it keeps its people.
  * - `module`: Module of a skill entry, like `IN2028`, written by the reader only in its `SUMMARY`,
@@ -65,12 +76,10 @@ export type Attendee = {
  * - `start`: Start of the entry.
  * - `end`: End of the entry, after the start.
  */
-export type EntryFields = {
+export type EntryFields = Partial<Online> & {
     category: string;
     title: string;
-    titleLink?: string;
     location: string;
-    locationLink?: string;
     from: string;
     attendees?: Attendee[];
     module: string;
@@ -91,8 +100,8 @@ export type EntryFields = {
 /**
  * Fields of a box of the plan to send; an empty field is not written.
  *
- * - `category`, `title`, `titleLink`, `location`, `locationLink`, `from`, `attendees`, `module`, `type`, `semester`,
- *   `note`: As those of {@link EntryFields}.
+ * - `category`, `title`, `location`, `online`, `onlineLink`, `passcode`, `from`, `attendees`, `module`, `type`,
+ *   `semester`, `note`: As those of {@link EntryFields}.
  * - `day`: Day of the box, like `2026-10-13`; for a box with a deadline the day of its deadline.
  * - `time`: Expected time on its day, `null` for none and for a box with a deadline.
  * - `minutes`: Expected duration in minutes, `null` for none.
@@ -101,12 +110,10 @@ export type EntryFields = {
  * - `chapters`, `documents`: Chapters and documents of a skill box, see `SkillLinks` in `skill.ts`;
  *   none for any other box.
  */
-export type BoxFields = {
+export type BoxFields = Partial<Online> & {
     category: string;
     title: string;
-    titleLink?: string;
     location: string;
-    locationLink?: string;
     from: string;
     attendees?: Attendee[];
     module: string;
@@ -305,7 +312,7 @@ export async function boxAdd(fields: BoxFields): Promise<string> {
  * - `response`: Answer of the reader.
  *
  * @param fields - Fields of the box, as of one made once; each date sets its own day, time and length
- * @param days - Its days with their times, its first and last day and the days it leaves out between them
+ * @param days - Its days with their times, its extras, its first and last day and the days it leaves out between them
  * @param dry - Whether only to tell what it would make, writing nothing
  * @returns The boxes it makes, by their days, `null` when the reader refuses it since its series is there already
  * @throws {Error} - When the reader does not take it for another reason
@@ -314,8 +321,8 @@ export async function boxRepeat(fields: BoxFields, days: Days, dry: boolean): Pr
     const response: Response = await fetch("/api/day/repeat", {
         method: "POST",
         body: JSON.stringify({
-            box: boxBodyOf(fields), slots: days.slots, first: days.first, last: days.last, excepts: days.excepts,
-            dry: dry,
+            box: boxBodyOf(fields), slots: days.slots, extras: days.extras, first: days.first, last: days.last,
+            excepts: days.excepts, dry: dry,
         }),
     });
     if (response.status === 409)

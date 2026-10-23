@@ -1,29 +1,7 @@
 /* Food search and every list of meals or foods: the field of the search, then a small grey head and one flat line
    per meal or food, mine first, then those of Open Food Facts with how many of how many and More; a meal or food
-   opened below its line; the same look in the food view and in the entry by category of the day, but for the field */
-/* Field of the search in the food view one control high, across the foods, filled in the soft grey of a card without
-   a frame, as a field of a dialog on a phone, its words grey till I type, the calm line of the keyboard's focus around
-   it, see `:focus-visible` in `../base.css`; without the browser's own clear cross, which is no Lucide icon, as every
-   search field of the page; Escape or deleting the text clears it; the same for the search of my meals, see
-   `mealsSectionOf` in `meals.ts`; as much room above and below it as in the dialogs, so its list starts as far below
-   it there as here; in the entry by category as the search of every list of a dialog, one chip high and outlined,
-   see `.meal-box` in `../day/day.css` */
-.food .food-search > input,
-.dish-search {
-    width: 100%;
-    height: var(--control-height);
-    margin: 0.75rem 0;
-    padding: 0 var(--control-padding);
-    border: 0;
-    border-radius: var(--radius);
-    background: var(--fill);
-}
-
-.food-search > input::-webkit-search-cancel-button,
-.dish-search::-webkit-search-cancel-button {
-    display: none;
-}
-
+   opened below its line; the same look in the food view and in the entry by category of the day; its field the one
+   search field of the page, see `.search-field` in `../base.css` */
 /* Line of a meal or a food in a list, see `listLineOf` in `search.ts`: its row, then the room of a small grey `×`,
    which every line keeps, so the numbers of all lists stand in one column */
 .food-item {

@@ -95,16 +95,17 @@
     display: none !important;
 }
 
-/* Whole page: one screen high, the area fills it, right beside the areas at the left edge, so its content stands
-   a gap from them, by the area's own padding, as far as the areas from the edge; in Noto Sans, the one served
-   with the page first, else the one installed, as on my Kubuntu; the line under a link, like a name in Skill under
-   the pointer, a fifth of a letter below its text, clear of letters like g and y, the same for every link */
+/* Whole page: one screen high, the area fills it, right beside the rail at the left edge, one control wide, so an
+   area's own padding, `--side-room` in `variants.css`, is all the room between the rail and its controls and content;
+   in Noto Sans, the one served with the page first, else the one installed, as on my Kubuntu; the line under a link,
+   like a name in Skill under the pointer, a fifth of a letter below its text, clear of letters like g and y, the same
+   for every link */
 body {
     display: flex;
     flex-direction: column;
     height: 100dvh;
     margin: 0;
-    padding-left: calc(var(--control-height) + var(--gap));
+    padding-left: var(--control-height);
     font-family: "Noto Sans Variable", "Noto Sans", sans-serif;
     font-size: var(--text-size);
     line-height: 1.5;
@@ -113,19 +114,23 @@ body {
     color: var(--text-main);
 }
 
-/* Areas at the left edge of the screen, as far from the edge as from the top, a gap, one below the other, so the area
-   keeps the whole height: one upright pill one control wide, filled in the soft grey of a card, like the switch of
-   plan and log on a phone, see `day/day.css`; in it each area a round button with its icon, its name as tooltip,
-   see `main.ts`, frameless, grey, lighter under the pointer, the shown one light on the calm grey of what is picked */
+/* Areas at the left edge of the screen, the rail: a bar of its own, as VS Code's bar of activities, one control wide
+   and the whole height, touching the edge, in the ground of the page, set apart from it only by a thin grey line
+   at its right, as Linear and Obsidian do; in it the areas one below the other, in its middle, the first one level
+   with the bar of an area, half a gap and the room of a button from the top; each a round button with its icon, its name
+   as tooltip, see `main.ts`, frameless, grey, lighter under the pointer, the shown one marked only by its light icon,
+   without a ground of its own */
 .areas {
     position: fixed;
-    inset: var(--gap) auto auto var(--gap);
+    inset: 0 auto 0 0;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 0.25rem;
-    padding: 0.25rem;
-    border-radius: 999px;
-    background: var(--fill);
+    width: var(--control-height);
+    padding-top: calc(var(--top-room) + 0.25rem);
+    border-right: 1px solid var(--line);
+    background: var(--background);
 }
 
 .areas a {
@@ -152,7 +157,6 @@ body {
 }
 
 .areas a[aria-current="page"] {
-    background: var(--chosen);
     color: var(--text-main);
 }
 
@@ -355,6 +359,52 @@ textarea {
 }
 
 .picker-new svg.lucide {
+    width: 0.9375rem;
+    height: 0.9375rem;
+}
+
+/* The one search field of the page, see `searchFieldOf` in `icons.ts`, the same in the food view, in the sport view,
+   in the tree, in the search of the log and in every list of a dialog: a card filled in the soft grey without a frame,
+   one control high, with the rounding of every frame, the small grey magnifier at its left, its words grey till
+   I type, without a line of the focus around it, since a list opens with the cursor in its search, which would
+   frame it every time, and the blinking cursor says enough; as much room above and below it as in the dialogs,
+   so its list starts as far below it everywhere; without the browser's own clear cross, which is no Lucide icon;
+   Escape or deleting the text clears it. Only how high it is changes where it stands, like one chip
+   high in a list of a dialog, see `.picker-box .search-field` in `day/choices.css` */
+.search-field {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.625rem;
+    height: var(--control-height);
+    margin: 0.75rem 0;
+    padding: 0 var(--control-padding);
+    border-radius: var(--radius);
+    background: var(--fill);
+    color: var(--text-muted);
+    cursor: text;
+}
+
+.search-field > input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: none;
+    color: var(--text-main);
+}
+
+.search-field > input::placeholder {
+    color: var(--text-muted);
+}
+
+.search-field > input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.search-field svg.lucide {
     width: 0.9375rem;
     height: 0.9375rem;
 }

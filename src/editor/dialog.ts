@@ -3,11 +3,12 @@
  *
  * The day view's own dialog of an entry, the one I log every entry with in the calendar, see `../day/categories.ts`,
  * in the scripts view: for the session the learning view asks for before it records, see `./session.ts`, and for
- * a box of the plan tapped on the page of a module, which it opens as the day view does, see `./course.ts`.
+ * a box of the plan tapped on the page of a module, which it opens as the day view does, see `./course.ts`; with it
+ * the day view's dialog of a series, which the page of a module opens, see `../day/series.ts`.
  * The dialog, its HTML from `../day/day.html`, its code and its look come into the page only the first time it opens,
  * so the scripts load no calendar before.
  *
- * - `../day/day.html?raw`: Html of the day as text, of which the dialog `#entry`.
+ * - `../day/day.html?raw`: Html of the day as text, of which the dialogs `#entry` and `#series`.
  * - `../day/categories.ts`: Starts the dialog and opens it.
  * - `../day/times.ts`: Starts the fields of the times of the dialog, as the day view starts them.
  * - `fullcalendar`, `fullcalendar/timegrid`: A calendar of a day, never drawn, which the dialog's writes ask for,
@@ -46,8 +47,9 @@ let dialogReady: Promise<Dialog> | null = null;
  * no log; its look loaded in the order the day loads it, so `choices.css` wins over `day.css` as there, like a row
  * that keeps only a list taking no room; its times and days checked and written as the day view does,
  * see `timesStart` in `../day/times.ts`, like `14:15` of `1415`.
- * - `html`, `categories`, `full`, `timeGrid`: The HTML of the day, with the dialog `#entry`, the code of the dialog,
- *   that of the calendar and of its view of a day.
+ * - `html`, `categories`, `full`, `timeGrid`: The HTML of the day, with the dialogs `#entry` and `#series`, the code
+ *   of the dialog, that of the calendar and of its view of a day.
+ * - `day`: The HTML of the day as a document, whose dialogs go into the page.
  * - `calendar`: The calendar, never drawn.
  *
  * @returns The dialog
@@ -62,7 +64,8 @@ async function dialogStart(): Promise<Dialog> {
     const timeGrid: typeof TimeGrid = await import("fullcalendar/timegrid");
     const calendar: FullCalendar.Calendar = new full.Calendar(document.createElement("div"),
         { plugins: [timeGrid.default], initialView: "timeGridDay" });
-    document.body.append(new DOMParser().parseFromString(html, "text/html").getElementById("entry") as HTMLElement);
+    const day: Document = new DOMParser().parseFromString(html, "text/html");
+    document.body.append(day.getElementById("entry") as HTMLElement, day.getElementById("series") as HTMLElement);
     categories.categoriesStart(calendar);
     timesStart();
     return { categories: categories, calendar: calendar };

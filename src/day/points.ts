@@ -1,211 +1,121 @@
 /**
  * ## Points
  *
- * A list of points for the sections of the daily note, my gratitude and my points about the day, shown as Markdown
- * shows a list: each point a bullet with a small field of its own beside it, wrapping and growing with its text.
- * Enter starts the next point below, taking along the text after the cursor, on an empty point it does nothing;
- * Shift+Enter goes on in the same point on a new line, where I find a break nice, as in the editor;
- * Backspace at the start of an empty point removes it, at the start of one with text joins it to the point above;
- * the arrows up and down at the start and at the end of a point go to the point above and below.
- * Text pasted or dropped over several lines becomes one point per line, a `- ` in front of a line dropped.
- * A list without points shows one empty point, so there is always a bullet to write at; a click beside the points
+ * A list of points for the sections of the daily note, my gratitude and my points about the day: a small editor of
+ * its own per section, the same as that of my files, see `../editor/editor.ts`, so a point is written here exactly as
+ * there. Its text is the Markdown of the section, one `- ` line per point, shown as Obsidian's live preview shows it,
+ * see `../editor/preview.ts`: each point a bullet, wrapping and growing with its text, its `- ` shown on the line of the
+ * cursor. Its keys are those of the editor, see `../editor/keys.ts`: Enter starts the next point, on an empty one ends
+ * the list; Shift+Enter goes on in the same point on a new line, a further line `  ⠀` under its text; Backspace right
+ * after the `-` of a new, empty point makes it such a further line, and so on.
+ * A list without points shows one empty point, `- `, so there is always a bullet to write at; a click beside the points
  * goes to the end of the last.
- * The section keeps the points as its own list, one `- ` line each, see `reader/note.ts`, a new line of a point
- * as its further line, two spaces in, under its text, as my notes write it.
+ * The reader writes the text into the note as it is, only keeping the points of the section points, see
+ * `reader/note.ts`.
+ *
+ * - `@codemirror/state`, `@codemirror/view`: The editor, CodeMirror 6, as in `../editor/editor.ts`.
+ * - `@codemirror/commands`: Undo, redo and the usual keys.
+ * - `@codemirror/language`: Indents with tabs, as my notes do.
+ * - `../editor/syntax.ts`, `../editor/keys.ts`, `../editor/preview.ts`: Markdown, keys and look of the editor.
+ * - `../notes/notes.css`, `../editor/editor.css`: Look of the editor, as the class `editor-text markdown` of a list
+ *   takes it, see `day.html`.
  */
+
+import { EditorState } from "@codemirror/state";
+import { EditorView, drawSelection, keymap } from "@codemirror/view";
+import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { indentUnit } from "@codemirror/language";
+import { markdownSupport } from "../editor/syntax.ts";
+import { markdownKeys } from "../editor/keys.ts";
+import { livePreview } from "../editor/preview.ts";
+import "../notes/notes.css";
+import "../editor/editor.css";
+
+import type { Extension, Transaction } from "@codemirror/state";
 
 
 /**
- * A point in a line of a section as it may be written or pasted, `- ` in front, which the list leaves out.
+ * Text of a list without points: one empty point.
  */
-const marker: RegExp = /^\s*[-*•]\s+/;
+const emptyText: string = "- ";
+
+/**
+ * Extensions of the editor of a list, those of a Markdown file in `../editor/editor.ts`, without links to follow.
+ */
+const extensions: Extension[] = [
+    markdownSupport,
+    markdownKeys,
+    indentUnit.of("\t"),
+    history(),
+    drawSelection(),
+    keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+    EditorView.lineWrapping,
+    EditorView.darkTheme.of(true),
+    livePreview({}),
+];
 
 
 /**
- * Gives the fields of the points of a list, in order.
+ * Gives the editor of a list.
  *
  * @param list - List of points
- * @returns Their fields
+ * @returns Its editor
  */
-function fieldsOf(list: HTMLElement): HTMLTextAreaElement[] {
-    return [...list.querySelectorAll<HTMLTextAreaElement>("textarea")];
+function viewOf(list: HTMLElement): EditorView {
+    return EditorView.findFromDOM(list.firstElementChild as HTMLElement) as EditorView;
 }
 
 /**
- * Makes a point: a list item, its bullet drawn by the list, with its field.
- * - `item`: The list item.
- * - `field`: Its field, one line high at first and growing with its text.
- *
- * @param text - Text of the point
- * @returns The field, inside its list item
- */
-function pointOf(text: string): HTMLTextAreaElement {
-    const item: HTMLLIElement = document.createElement("li");
-    const field: HTMLTextAreaElement = document.createElement("textarea");
-    item.className = "note-point";
-    field.rows = 1;
-    field.value = text;
-    field.setAttribute("aria-label", "Point");
-    item.append(field);
-    return field;
-}
-
-/**
- * Puts the cursor into the field of a point.
- *
- * @param field - Field of a point
- * @param at - Where the cursor goes, like 0 for the start
- */
-function caretPut(field: HTMLTextAreaElement, at: number): void {
-    field.focus();
-    field.setSelectionRange(at, at);
-}
-
-/**
- * Shows the text of a section as points, one empty point for none.
- * - `points`: Texts of the points, a further line on a new line of its point.
+ * Shows the text of a section as points, one empty point for none, with an undo history of its own, so undo never
+ * brings back the text of the day shown before.
  *
  * @param list - List of points
- * @param text - Text of the section as the reader gives it, one point per line, a further line indented
+ * @param text - Text of the section as the reader gives it, its Markdown
  */
 export function pointsShow(list: HTMLElement, text: string): void {
-    const points: string[] = [];
-    for (const line of text.split("\n")) {
-        if (line.trim() === "")
-            continue;
-        if (/^\s/.test(line) && points.length > 0)
-            points[points.length - 1] = `${points[points.length - 1]}\n${line.trim()}`;
-        else
-            points.push(line.replace(marker, "").trim());
-    }
-    list.replaceChildren(...(points.length > 0 ? points : [""]).map((point: string): HTMLElement =>
-        pointOf(point).parentElement as HTMLElement));
+    viewOf(list).setState(EditorState.create({ doc: text === "" ? emptyText : text, extensions: extensions }));
 }
 
 /**
- * Reads the points of a list as the text of a section: one point per line, a new line of a point as its further
- * line, two spaces in, empty points and lines left out.
+ * Reads the points of a list as the text of a section.
  *
  * @param list - List of points
- * @returns Text of the section, empty for no points
+ * @returns Text of the section, its Markdown as written
  */
 export function pointsRead(list: HTMLElement): string {
-    return fieldsOf(list)
-        .map((field: HTMLTextAreaElement): string => field.value.split("\n")
-            .map((line: string): string => line.replace(/\s+/g, " ").trim())
-            .filter((line: string): boolean => line !== "")
-            .join("\n  "))
-        .filter((point: string): boolean => point !== "")
-        .join("\n");
+    return viewOf(list).state.sliceDoc();
 }
 
 /**
- * Puts points in place of a point after a paste or a drop of several lines: one point per line,
- * a `- ` in front dropped, empty lines left out; the cursor at the end of the last.
- * - `lines`: The lines of its text that hold something.
- * - `fields`: Fields of the new points.
- *
- * @param field - Field of the point
- */
-function pointSplit(field: HTMLTextAreaElement): void {
-    const lines: string[] = field.value.split("\n")
-        .map((line: string): string => line.replace(marker, "").trim())
-        .filter((line: string): boolean => line !== "");
-    const fields: HTMLTextAreaElement[] = (lines.length > 0 ? lines : [""]).map(pointOf);
-    (field.parentElement as HTMLElement).replaceWith(...fields.map((other: HTMLTextAreaElement): HTMLElement =>
-        other.parentElement as HTMLElement));
-    const last: HTMLTextAreaElement = fields[fields.length - 1];
-    caretPut(last, last.value.length);
-}
-
-/**
- * Starts the next point below a point, taking along the text after the cursor; on an empty point does nothing.
- * - `next`: Field of the new point below.
- *
- * @param field - Field of the point
- * @param changed - Tells that the points changed, like a save that waits for a pause
- */
-function pointNext(field: HTMLTextAreaElement, changed: () => void): void {
-    if (field.value.trim() === "")
-        return;
-    const next: HTMLTextAreaElement = pointOf(field.value.slice(field.selectionEnd).trim());
-    field.value = field.value.slice(0, field.selectionStart).trimEnd();
-    (field.parentElement as HTMLElement).after(next.parentElement as HTMLElement);
-    caretPut(next, 0);
-    changed();
-}
-
-/**
- * Handles Enter, Backspace and the arrows in the field of a point, see the top of this file.
- * - `fields`: Fields of the points of the list.
- * - `index`: Place of the point among them.
- * - `caret`: Where the cursor stands, `null` while text is selected.
- * - `above`, `below`: Fields of the points above and below, `undefined` for none.
- * - `joined`: Where the text of the point starts in the point above, once joined to it.
- *
- * @param list - List of points
- * @param field - Field the key was pressed in
- * @param event - Key pressed
- * @param changed - Tells that the points changed, like a save that waits for a pause
- */
-function keyHandle(list: HTMLElement, field: HTMLTextAreaElement, event: KeyboardEvent, changed: () => void): void {
-    if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
-        return;
-    const fields: HTMLTextAreaElement[] = fieldsOf(list);
-    const index: number = fields.indexOf(field);
-    const caret: number | null = field.selectionStart === field.selectionEnd ? field.selectionStart : null;
-    const above: HTMLTextAreaElement | undefined = fields[index - 1];
-    const below: HTMLTextAreaElement | undefined = fields[index + 1];
-
-    if (event.key === "Enter") {
-        event.preventDefault();
-        pointNext(field, changed);
-    } else if (event.key === "Backspace" && caret === 0 && above !== undefined) {
-        event.preventDefault();
-        const joined: number = above.value.length;
-        above.value = field.value === "" ? above.value : `${above.value}${above.value === "" ? "" : " "}${field.value}`;
-        (field.parentElement as HTMLElement).remove();
-        caretPut(above, field.value === "" || joined === 0 ? joined : joined + 1);
-        changed();
-    } else if (event.key === "ArrowUp" && caret === 0 && above !== undefined) {
-        event.preventDefault();
-        caretPut(above, above.value.length);
-    } else if (event.key === "ArrowDown" && caret === field.value.length && below !== undefined) {
-        event.preventDefault();
-        caretPut(below, 0);
-    }
-}
-
-/**
- * Makes a list a list of points, see the top of this file; its points are shown by {@link pointsShow}.
- * - `keydown`: Handles Enter, Backspace and the arrows in a point.
- * - `input`: Splits a point into one per line after a paste or a drop of several lines, not after Shift+Enter,
- *   whose new line stays in its point, and tells of the change.
- * - `focusout`: Tells that the focus left the list, not when it only went to another of its points.
- * - `click`: Puts the cursor at the end of the last point on a click into the list beside its points.
+ * Makes a list a list of points, see the top of this file, without points at first; its points are shown by
+ * {@link pointsShow}.
+ * - `dispatchTransactions`: Tells of each change of the text I make, not of a text shown, which takes no transaction.
+ * - `focusout`: Tells that the focus left the list.
+ * - `mousedown`: Puts the cursor at the end of the last point on a click into the list beside its editor.
  *
  * @param list - List, like the one of my gratitude
  * @param changed - Tells that the points changed, like a save that waits for a pause
  * @param left - Tells that the focus left the list, like a save right away
  */
 export function pointsStart(list: HTMLElement, changed: () => void, left: () => void): void {
-    list.addEventListener("keydown", (event: KeyboardEvent): void => {
-        if (event.target instanceof HTMLTextAreaElement)
-            keyHandle(list, event.target, event, changed);
-    });
-    list.addEventListener("input", (event: Event): void => {
-        if (event.target instanceof HTMLTextAreaElement && event instanceof InputEvent
-            && ["insertFromPaste", "insertFromDrop"].includes(event.inputType) && event.target.value.includes("\n"))
-            pointSplit(event.target);
-        changed();
+    const view: EditorView = new EditorView({
+        parent: list,
+        state: EditorState.create({ doc: emptyText, extensions: extensions }),
+        dispatchTransactions: (transactions: readonly Transaction[], editor: EditorView): void => {
+            editor.update(transactions);
+            if (transactions.some((transaction: Transaction): boolean => transaction.docChanged))
+                changed();
+        },
     });
     list.addEventListener("focusout", (event: FocusEvent): void => {
         if (!(event.relatedTarget instanceof Node && list.contains(event.relatedTarget)))
             left();
     });
-    list.addEventListener("click", (event: MouseEvent): void => {
-        const last: HTMLTextAreaElement | undefined = fieldsOf(list).at(-1);
-        if (!(event.target instanceof HTMLTextAreaElement) && last !== undefined)
-            caretPut(last, last.value.length);
+    list.addEventListener("mousedown", (event: MouseEvent): void => {
+        if (event.target instanceof Node && view.dom.contains(event.target))
+            return;
+        event.preventDefault();
+        view.focus();
+        view.dispatch({ selection: { anchor: view.state.doc.length } });
     });
 }

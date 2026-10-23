@@ -9,13 +9,18 @@
  * - an HTML block like `<table>` ending on the line its tag closes, as in Obsidian's editor,
  *   so Markdown right below it is read as Markdown.
  * The parser places each of them in the text, from where to where, for the live preview to draw.
+ * Gives the Markdown of every editor of mine with it, see {@link markdownSupport}.
  *
- * - `@lezer/markdown`: CodeMirror's Markdown parser, extended here.
+ * - `@codemirror/lang-markdown`: Reads a text as Markdown in CodeMirror.
+ * - `@lezer/markdown`: CodeMirror's Markdown parser, extended here, with GitHub's tables, task lists and strikethrough.
  * - `@lezer/highlight`: Tags wiki links as links, for their look.
  */
 
+import { markdown } from "@codemirror/lang-markdown";
+import { GFM } from "@lezer/markdown";
 import { tags } from "@lezer/highlight";
 
+import type { LanguageSupport } from "@codemirror/language";
 import type { BlockContext, InlineContext, Line, MarkdownConfig } from "@lezer/markdown";
 
 
@@ -129,7 +134,7 @@ function htmlBlockParse(cx: BlockContext, line: Line): boolean {
  * - `parseInline`: Wiki links read before Markdown links and images, which would take their `[`.
  * - `parseBlock`: HTML blocks of block tags read before Markdown's own, which would go on to the next empty line.
  */
-export const obsidianSyntax: MarkdownConfig = {
+const obsidianSyntax: MarkdownConfig = {
     defineNodes: ["InlineMath", { name: "WikiLink", style: tags.link }, { name: "WikiEmbed", style: tags.link }],
     parseInline: [
         { name: "InlineMath", parse: mathParse },
@@ -137,3 +142,12 @@ export const obsidianSyntax: MarkdownConfig = {
     ],
     parseBlock: [{ name: "ClosedHTMLBlock", parse: htmlBlockParse, before: "HTMLBlock" }],
 };
+
+/**
+ * Markdown as my notes are written: CommonMark with GitHub's tables, task lists, strikethrough and links,
+ * and the Obsidian syntax of this file; a URL pasted over selected text makes it a link, as in Obsidian.
+ * Its keys are those of `./keys.ts`, and it completes no HTML tags. The editor of my files takes it, see `./editor.ts`,
+ * and so do my gratitude and my points about the day, see `../day/points.ts`.
+ */
+export const markdownSupport: LanguageSupport =
+    markdown({ extensions: [GFM, obsidianSyntax], addKeymap: false, completeHTMLTags: false });

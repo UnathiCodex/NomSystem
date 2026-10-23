@@ -8,11 +8,12 @@
     min-height: 0;
 }
 
-/* The file: the page of it in the middle, scrolls alone, with at least 1.25rem left and right of the page, so the text
-   never touches the tree or the edge, yet keeps room on the laptop for the buttons at the right of a heading */
+/* The file: the page of it in the middle, scrolls alone, with at least `--side-room` left and right of the page, as
+   far as content from the rail and from the right edge in every view, so the text never touches the tree or the
+   edge, yet keeps room on the laptop for the buttons at the right of a heading */
 .editor-file {
     overflow-y: auto;
-    padding-inline: 1.25rem;
+    padding-inline: var(--side-room);
 }
 
 /* Page of every file exactly my reading width, in the middle, where the screen has room, so the lines of a note
@@ -47,30 +48,13 @@
     clip-path: inset(0 -100vmax);
 }
 
-/* Name of the note as the title of the scripts view, cut with an ellipsis */
-.editor-title {
-    flex: 1;
-    overflow: hidden;
-    margin: 0;
-    font-size: 1.618em;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.015em;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
 /* Notice beside the save button when something went wrong, like `Not saved`, or for a file to read only, grey
-   in the text of controls */
+   in the text of controls; it takes the room at the left of the head, empty or not, so the save button stays at
+   its right edge */
 .editor-state {
+    flex: 1;
     color: var(--text-muted);
     font-size: var(--control-text);
-}
-
-/* Without a file, its name empty, the notice, like `Choose a file on the left`, stands where the name of a file stands,
-   at the left of the page, not alone at its right edge */
-.editor-title:empty {
-    display: none;
 }
 
 /* Round of a section in the head where the name of a note stands, its round, like `Round 1`, in grey in the text of
@@ -190,7 +174,7 @@
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-    padding-top: var(--gap);
+    padding-top: var(--top-room);
 }
 
 .editor-today .day-bar {

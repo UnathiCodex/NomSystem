@@ -68,18 +68,18 @@
     margin-inline-start: -12px;
 }
 
-/* Inside of an entry: all its lines in one size, as in Google Calendar, its text 0.75rem, 0.75rem left of its lines
+/* Inside of an entry: all its lines in one size, as in Google Calendar, its text `--day-text` as a box of the plan, 0.75rem left of its lines
    and 0.5rem right of them; its lines cut at the edge of the entry, so text never sticks out, by `clip`,
    which scrolls nothing, so its lines can stay in sight, see `.entry-lines`.
-   A taller entry, like an hour of sleep, keeps 0.3rem above its first line and as much below its last,
-   so an hour holds what, time and place on three lines, and its lines stand apart, each 1.05rem high
-   at a line height of 1.4, 15.75 minutes of the time grid, see `lineMinutes` in `day.ts`; a short one keeps
-   no space above and below its one line, 0.9rem high at a line height of 1.2, so a quarter hour, 1rem high, holds it */
+   A taller entry, like 75 minutes of sleep, keeps 0.3rem above its first line and as much below its last,
+   so it holds what, time and place on three lines, and its lines stand apart, each 1.12rem high
+   at a line height of 1.4, 16.8 minutes of the time grid, see `lineMinutes` in `day.ts`; a short one keeps
+   no space above and below its one line, 0.96rem high at a line height of 1.2, so a quarter hour, 1rem high, holds it */
 .entry-inner {
     overflow: clip;
     padding-block: 0.3rem;
     padding-inline: 0.75rem 0.5rem;
-    font-size: 0.75rem;
+    font-size: var(--day-text);
     line-height: 1.4;
 }
 
@@ -192,8 +192,8 @@ svg.route-arrow {
 }
 
 /* Place with a link, its `ALTREP`, in an entry or a box, like `8120.01.101 (Audimax im Galileo)`, and the chapter
-   of a box, like `01 Regression Analysis`: in the grey of its line, underlined under a pointer, so it shows that
-   a click opens its link, see `whereLinkedOf` in `places.ts` and `chaptersOf` in `boxes.ts` */
+   of a box, like `01 Regression Analysis`: in the grey of its line, never underlined, lighter under a pointer,
+   so it shows that a click opens its link, see `whereLinkedOf` in `places.ts` and `chaptersOf` in `boxes.ts` */
 .place-link,
 .chapter-link {
     color: inherit;
@@ -202,7 +202,7 @@ svg.route-arrow {
 
 .place-link:hover,
 .chapter-link:hover {
-    text-decoration: underline;
+    color: var(--text-main);
 }
 
 /* Phone: the lines of an entry closer to its edges, as low as a short entry's, a place never cut beside the time */

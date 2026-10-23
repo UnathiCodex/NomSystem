@@ -22,7 +22,7 @@
  * The heading of a card names its type, like `VO`, and at its right its rule, its weekdays with their times and its
  * room, a link, like `Mon 14:00–16:00 · 5416.01.003`, or `Mon 12:00–13:30 · Tue 16:00–17:30 · 8120.01.101` for lectures
  * on two weekdays, of my tutorials my group first, like `Group 03 · Wed 10:00–12:00 · 5610.01.011`; then the one
- * pencil, which opens the form of the series in the card, see {@link formOpen}. Below the heading, small and grey,
+ * pencil, which opens the dialog of the series, see {@link seriesShow}. Below the heading, small and grey,
  * the folder of the material of the type of the semester, while it exists, like
  * `VO_UniversityLectureLessons/TUM_2026W`.
  * The card of the tutorials of a module with groups says `No group yet` in place of its rule while I have none,
@@ -32,25 +32,17 @@
  * `10 groups` opens the table of the groups as the university lists them: Day, First date, Start, End, Group, Room,
  * Tutor and the days it leaves out, the tutor empty while unknown.
  *
- * The form of a series opens in its card, in the look of the dialog of an entry, one row per field, see
- * `../day/choices.ts`: its type, of a type with groups its group, which made another one makes that group mine from
- * its next session on; its days, each a weekday with its times, `+` beside them for one more, like a lecture
- * on Mondays and on Tuesdays, numbered across both; its place, picked as in the dialog, the rooms of the university
- * among them as I type, `Online` with its parts; who I am with; its first and last day; the days it leaves out, each
- * with its `×`, a field below to add one; then the boxes it makes, numbered, each with its day, a day left out as `·`,
- * as the reader would write them, see `seriesApply` in `reader/course.ts`, anew after every change; then the plan
- * it writes into, Cancel and Save. Its days, its dates, the days it leaves out and its boxes are the rows of every
- * series, see `../day/series.ts`, the same in the row `Repeat` of a new box of the plan. Enter confirms only its
- * field, Ctrl+Enter saves, Escape cancels.
+ * The pencil of a card and the plus of a new series open the day view's dialog of a series, see `../day/series.ts`,
+ * the same one a box of the series opens from the day, so a series changes here as there; the course loads anew
+ * as its files change.
  * Phones show no course, since they show only the day.
  *
- * - `./dialog.ts`: The day view's dialog of an entry, which opens a box tapped and logs one.
- * - `../day/entries.ts`: Logs a box, takes it back, pushes, cancels and skips it, as the plan does, and gives
- *   the standard address of a name.
- * - `../day/choices.ts`: The dashboard's own pickers, the rows of a form and the parts of a field.
- * - `../day/places.ts`: Gives the name, the address and the parts of a place, its link, and its choice in a list.
- * - `../day/series.ts`: The rows of the days, the dates and the days left out of a series and the boxes it makes,
- *   whether they are typed enough, and the weekday of a day, its Monday and its name.
+ * - `./dialog.ts`: The day view's dialogs of an entry, which opens a box tapped and logs one, and of a series.
+ * - `../day/entries.ts`: Logs a box, takes it back, pushes, cancels and skips it, as the plan does.
+ * - `../day/choices.ts`: The dashboard's own pickers.
+ * - `../day/places.ts`: Gives the place of a box with its link.
+ * - `../day/series.ts`: Opens the dialog of a series, sends a change of the course, names the numbered types,
+ *   writes a slot, a room and a group, and gives the weekday of a day, its Monday and its name.
  * - `../day/times.ts`: Gives the times a box is logged at, writes times and days, and writes how near a day is.
  * - `../skill/attempts.ts`: Writes a date as a day and a day as the page shows it.
  * - `../today.ts`: Gives today's calendar date.
@@ -59,21 +51,18 @@
  * - `../menu.ts`: Puts the actions of a box behind one button `⋯`.
  * - `../changes.ts`: Loads the course anew the moment a file of my new system changes.
  * - `../reader.ts`: Asks the reader.
- * - `lucide`: The icons of the actions and states of a box, of the pencil, of Cancel and of Save.
+ * - `lucide`: The icons of the actions and states of a box, and of the pencil.
  * - `../day/boxes.css`, `../day/log.css`, `../day/day.css`, `../day/choices.css`: Look of the states of a box,
- *   of a place with its link, of the rows of a form and of the pickers, as in the day.
+ *   of a place with its link, of the rows of a dialog and of the pickers, as in the day.
  * - `./course.css`: Look of the course.
  */
 
 import { dialogOf } from "./dialog.ts";
-import { boxDrop, boxLog, boxPush, boxSubmit, boxUndo, boxUniversity, standardAddressOf } from "../day/entries.ts";
-import { choiceOf, choicesOf, listsStart, partFieldOf, partOf, rowOf, searchOf } from "../day/choices.ts";
+import { boxDrop, boxLog, boxPush, boxSubmit, boxUndo, boxUniversity } from "../day/entries.ts";
+import { choicesOf, listsStart, searchOf } from "../day/choices.ts";
+import { whereLinkedOf } from "../day/places.ts";
 import {
-    addressOf, labelOf, onlineLineOf, onlineName, onlineOf, placeChoiceOf, shownOf, standardLinkOf, whereLinkedOf,
-} from "../day/places.ts";
-import {
-    boxesRowOf, datesRowOf, daysReady, exceptRowOf, exceptsWithin, mondayOf, previewSoon, slotRowsOf, weekdayNameOf,
-    weekdayOf,
+    courseSend, groupChoiceOf, mondayOf, numberedTypes, roomOf, seriesOpen, slotTextOf, weekdayNameOf, weekdayOf,
 } from "../day/series.ts";
 import { boxTimesOf, dateTextOf, nearOf, timeOf } from "../day/times.ts";
 import { dayOf, dayTextOf } from "../skill/attempts.ts";
@@ -93,116 +82,16 @@ import "./course.css";
 import type { Dialog } from "./dialog.ts";
 import type { Box } from "../day/boxes.ts";
 import type { Attendee } from "../day/entries.ts";
-import type { Category, Field } from "../day/categories.ts";
 import type { Choice } from "../day/choices.ts";
-import type { Days, Planned, Slot } from "../day/series.ts";
+import type { Course, Group, Planned, Series, Session, Slot } from "../day/series.ts";
 import type { IconNode } from "lucide";
 
-
-/**
- * A weekly rule of a series or a group, as the reader sends it and the form sends it back, see `Rule`
- * in `reader/course.ts`.
- *
- * - `type`: Type of its boxes, like `VO`.
- * - `slots`: Its weekdays with their times.
- * - `location`, `locationLink`: Its place as an entry writes it, with its link.
- * - `attendees`: Who I am with, like a tutor.
- * - `first`, `last`: Its first and last day, like `2026-10-19`.
- * - `excepts`: The days of its slots between them it leaves out, like `2026-12-28`.
- * - `group`: The group its boxes go to, like `03`, of my tutorials my group; empty for none.
- * - `semester`: Its semester, like `2026W`.
- */
-type Rule = {
-    type: string;
-    slots: Slot[];
-    location: string;
-    locationLink: string;
-    attendees: Attendee[];
-    first: string;
-    last: string;
-    excepts: string[];
-    group: string;
-    semester: string;
-};
-
-/**
- * A series of the course, as the reader sends it: its rule read back from its boxes, and how many boxes it has.
- */
-type Series = {
-    rule: Rule;
-    count: number;
-};
-
-/**
- * A session of a group, as the reader sends it: its start as ISO instant and its length in minutes.
- */
-type Session = {
-    start: string;
-    minutes: number;
-};
-
-/**
- * A group of the tutorials of a module, as the reader sends it: its identifier, its rule with its group, like `03`,
- * and its sessions, the earliest first.
- */
-type Group = {
-    id: string;
-    rule: Rule;
-    sessions: Session[];
-};
-
-/**
- * The course of a module in the semester of today, as the reader sends it, see `Course` in `reader/course.ts`.
- *
- * - `module`: Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`.
- * - `semester`: The semester, like `2026W`.
- * - `boxes`: Its skill boxes of the semester, of every type, the earliest first.
- * - `series`: Its series, one per numbered type with boxes.
- * - `groups`: Its groups, by type and group.
- * - `folders`: The folder of the material of the semester of each type that has one, like
- *   `VO_UniversityLectureLessons/TUM_2026W` for `VO`.
- * - `file`: Its plan, like `University/IN2028_BusinessAnalyticsMachineLearning_Plan.ics`.
- */
-type Course = {
-    module: string;
-    semester: string;
-    boxes: Box[];
-    series: Series[];
-    groups: Group[];
-    folders: { [type: string]: string };
-    file: string;
-};
-
-/**
- * The form of a series as typed so far, see {@link formOpen}: its days, see `Days` in `../day/series.ts`, their
- * `before` the weekdays of the slots of `old` whose boxes they take, and:
- *
- * - `type`: Its type, like `VO`, empty while none is picked.
- * - `old`: The rule as read back when the form opened, `null` for a new series.
- * - `location`, `locationLink`: Its place with its link.
- * - `attendees`: Who I am with.
- * - `group`: Of the tutorials of a module with groups the group picked, like `03`; one other than that of `old`
- *   makes the group mine, see `groupMine` in `reader/course.ts`; empty for none.
- */
-type Form = Days & {
-    type: string;
-    old: Rule | null;
-    location: string;
-    locationLink: string;
-    attendees: Attendee[];
-    group: string;
-};
 
 /**
  * Order of the cards of the types, the courses of the university as they come in a week: lectures, central exercises,
  * exercises, tutorials, homework, a practical course, and the exams last.
  */
 const typeOrder: string[] = ["VO", "ZU", "UE", "TU", "HU", "PR", "FA"];
-
-/**
- * Types of a series, which carry their number, see `numberedTypes` in `reader/boxes.ts`.
- */
-const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
 
 /**
  * Rows of a card that show after the next open box, itself included, before the rest folds.
@@ -230,52 +119,10 @@ let module: string = "";
 const opened: Set<string> = new Set();
 
 /**
- * The form of a series being typed, `null` while none is open.
- */
-let typing: Form | null = null;
-
-/**
- * The element of the form being typed, `null` while none is open.
- */
-let formElement: HTMLFormElement | null = null;
-
-/**
- * Whether a file changed while the form was open, so the course loads anew once it closes.
- */
-let waiting: boolean = false;
-
-/**
- * The categories with the values of their fields, for the places and the people of the form, as loaded last.
- */
-let categories: Category[] = [];
-
-/**
  * Whether the course loads anew once the dialog of an entry closes, see {@link dialogShow}.
  */
 let dialogFollowed: boolean = false;
 
-
-/**
- * Writes a slot as the heading of a card and a row of the table of the groups read it.
- *
- * @param slot - The slot
- * @returns Text like `Mon 14:00–16:00`
- */
-function slotTextOf(slot: Slot): string {
-    return `${weekdayNameOf(slot.weekday, false)} ${slot.start}–${slot.end}`;
-}
-
-/**
- * Writes the room of a place short, as the rule of a series and the row of a box name it: a room of the university by
- * its code, like `5416.01.003` of `5416.01.003 (Hörsaal 2 "Interims II")`, any other place as the plan shows it,
- * like `Online (Zoom)`, see `shownOf` in `../day/places.ts`.
- *
- * @param line - Place as an entry writes it
- * @returns The room, empty for no place
- */
-function roomOf(line: string): string {
-    return /^\d{4}\.\S+\.\S+/.test(labelOf(line)) ? labelOf(line).split(" ")[0] : shownOf(line);
-}
 
 /**
  * Gives the groups of a type of the course shown.
@@ -288,30 +135,24 @@ function groupsOf(type: string): Group[] {
 }
 
 /**
- * Asks the reader for a change of the course, like a group made mine, as JSON.
- *
- * @param address - Address at the reader, like `/api/course/mine`
- * @param body - What to change
- * @returns Answer of the reader
- * @throws {Error} - When the reader does not take it
- */
-async function courseSend<T>(address: string, body: object): Promise<T> {
-    return readerAsk<T>(address, { method: "POST", body: JSON.stringify(body) });
-}
-
-/**
- * Loads the course of the module shown from the reader and shows it, see {@link cardsShow}; while the form of a series
- * is open, only notes that it waits, so nothing I type is lost.
+ * Loads the course of the module shown from the reader in the semester of today and shows it, see {@link cardsShow}.
  *
  * @throws {Error} - When the reader cannot answer
  */
 async function courseLoad(): Promise<void> {
-    if (typing !== null) {
-        waiting = true;
-        return;
-    }
-    shown = await readerAsk<Course>(`/api/course/module?module=${encodeURIComponent(module)}`);
+    shown = await readerAsk<Course>(`/api/course/module?module=${encodeURIComponent(module)}&semester=`);
     cardsShow();
+}
+
+/**
+ * Opens the dialog of a series of the course shown, the same as from the day, see `seriesOpen` in `../day/series.ts`,
+ * the day view's dialogs put into the page first, see {@link dialogShow}.
+ *
+ * @param type - Type of the series, like `VO`, empty for a new one
+ */
+function seriesShow(type: string): void {
+    dialogShow().then((): Promise<void> => seriesOpen(module, type, shown?.semester ?? ""))
+        .catch((error: unknown): void => console.error(error));
 }
 
 /**
@@ -505,7 +346,7 @@ function boxRowOf(box: Box, mark: string, mine: string): HTMLElement {
     const parts: (string | Node)[][] = [
         start === null ? [] : [box.minutes === null ? timeOf(start)
             : `${timeOf(start)} – ${timeOf(new Date(start.getTime() + box.minutes * 60 * 1000))}`],
-        whereLinkedOf(box.category, box.from, roomOf(box.location), box.locationLink),
+        whereLinkedOf(box.category, box.from, roomOf(box.location), box.locationLink, box.online, box.onlineLink),
         people === "" ? [] : [people],
     ].filter((part: (string | Node)[]): boolean => part.length > 0);
     parts.forEach((part: (string | Node)[], index: number): void => {
@@ -614,7 +455,8 @@ function groupsTableOf(groups: Group[]): HTMLElement {
     groups.forEach((group: Group): void => {
         const slot: Slot = group.rule.slots[0];
         const room: HTMLElement = elementOf("span", "", "");
-        room.append(...whereLinkedOf("Skill", "", roomOf(group.rule.location), group.rule.locationLink));
+        room.append(...whereLinkedOf("Skill", "", roomOf(group.rule.location), group.rule.locationLink,
+            group.rule.online, group.rule.onlineLink));
         table.append(
             elementOf("span", "", weekdayNameOf(slot.weekday, false)),
             elementOf("span", "", dateTextOf(group.rule.first)),
@@ -641,10 +483,7 @@ function groupsTableOf(groups: Group[]): HTMLElement {
  */
 function minePickOf(type: string): HTMLElement {
     const picker: HTMLElement = choicesOf({
-        search: searchOf(groupsOf(type).map((group: Group): Choice => ({
-            value: group.rule.group, text: `Group ${group.rule.group}`, group: "",
-            detail: `${group.rule.slots.map(slotTextOf).join(" · ")} · ${roomOf(group.rule.location)}`,
-        }))),
+        search: searchOf(groupsOf(type).map(groupChoiceOf)),
         picked: [], many: false, adding: false, noun: "group", empty: "No group yet",
         pick: (values: string[]): void => {
             if (values[0] !== undefined)
@@ -682,12 +521,13 @@ function headOf(type: string, series: Series | undefined): HTMLElement {
     pencil.type = "button";
     pencil.className = "entry-pencil";
     iconPut(pencil, Pencil, "Change the series");
-    pencil.addEventListener("click", (): void => formOpen(series.rule));
+    pencil.addEventListener("click", (): void => seriesShow(type));
     [
         ...(series.rule.group === "" ? [] : [[`Group ${series.rule.group}`]]),
         ...series.rule.slots.map((slot: Slot): string[] => [slotTextOf(slot)]),
-        ...(series.rule.location === "" ? []
-            : [whereLinkedOf("Skill", "", roomOf(series.rule.location), series.rule.locationLink)]),
+        ...(series.rule.location === "" && series.rule.online === "" ? []
+            : [whereLinkedOf("Skill", "", roomOf(series.rule.location), series.rule.locationLink, series.rule.online,
+                series.rule.onlineLink)]),
     ].forEach((part: (string | Node)[], index: number): void => {
         const span: HTMLElement = elementOf("span", index === 0 ? "" : "entry-parted", "");
         span.append(...part);
@@ -701,8 +541,7 @@ function headOf(type: string, series: Series | undefined): HTMLElement {
 /**
  * Makes the card of a type, see the top of this file: its heading, see {@link headOf}, below it the folder of its
  * material of the semester, while it exists, then its rows, see {@link rowsOf}, and for a type with groups the folded
- * line of its groups with their table, see {@link groupsTableOf}; while the form of its series is open, the form
- * in place of its rows.
+ * line of its groups with their table, see {@link groupsTableOf}.
  * - `boxes`: Its boxes.
  * - `series`: Its series, `undefined` for none.
  * - `groups`: Its groups.
@@ -721,10 +560,6 @@ function cardOf(type: string): HTMLElement {
     const folder: string = shown?.folders[type] ?? "";
     card.dataset.type = type;
     card.append(headOf(type, series), ...(folder === "" ? [] : [elementOf("p", "course-folder", folder)]));
-    if (typing !== null && typing.old?.type === type && formElement !== null) {
-        card.append(formElement);
-        return card;
-    }
     body.append(...rowsOf(type, boxes, series?.rule.group ?? ""));
     if (groups.length > 0)
         body.append(foldOf(type, "groups", [`${groups.length} groups`]),
@@ -734,11 +569,10 @@ function cardOf(type: string): HTMLElement {
 }
 
 /**
- * Shows the course of the module as loaded last, see the top of this file: its cards, the form of a new series
- * while open, then the plus that opens it, `No series yet` before it while there is no card.
+ * Shows the course of the module as loaded last, see the top of this file: its cards, then the plus that opens
+ * the dialog of a new series, `No series yet` before it while there is no card.
  * - `types`: The types with boxes or groups, in their order.
  * - `plus`: The plus.
- * - `fresh`: The form of a new series, `null` while none is open.
  */
 function cardsShow(): void {
     if (place === null || shown === null)
@@ -749,390 +583,15 @@ function cardsShow(): void {
     const plus: HTMLButtonElement = document.createElement("button");
     plus.type = "button";
     plusPut(plus, "New series");
-    plus.addEventListener("click", (): void => formOpen(null));
-    const fresh: HTMLElement | null = typing === null || typing.old !== null || formElement === null ? null
-        : elementOf("section", "overview-group course-card", "");
-    fresh?.append(formElement as HTMLFormElement);
+    plus.addEventListener("click", (): void => seriesShow(""));
     place.replaceChildren(...types.map(cardOf),
-        ...(types.length === 0 && fresh === null ? [elementOf("p", "plan-none", "No series yet")] : []),
-        ...(fresh === null ? [plus] : [fresh]));
-}
-
-/**
- * Gives a field of `Skill` as the reader offers it, its places or its people, see `categoriesRead`
- * in `reader/categories.ts`.
- *
- * @param key - The field, `location` or `with`
- * @returns The field, `undefined` while the categories are not loaded
- */
-function skillFieldOf(key: string): Field | undefined {
-    return categories.find((category: Category): boolean => category.name === "Skill")?.fields
-        .find((field: Field): boolean => field.key === key);
-}
-
-/**
- * Tells whether the form of a series makes a group mine, see {@link Form}.
- *
- * @param form - The form
- * @returns Whether its group is another than that of the series as it opened
- */
-function mineMade(form: Form): boolean {
-    return form.group !== "" && form.group !== (form.old?.group ?? "");
-}
-
-/**
- * Tells whether the form of a series is typed enough to make boxes: its type picked, and, unless it makes a group
- * mine, its days, see `daysReady` in `../day/series.ts`.
- *
- * @param form - The form
- * @returns Whether it is ready
- */
-function formReady(form: Form): boolean {
-    if (form.type === "")
-        return false;
-    return mineMade(form) || daysReady(form);
-}
-
-/**
- * Sends the form of a series to the reader: a group made mine, see `groupMine` in `reader/course.ts`, else the series
- * by its rule, see `seriesApply` there, its days left out only those between its first and its last day.
- *
- * @param form - The form, ready, see {@link formReady}
- * @param dry - Whether only to tell what it would make, for the preview
- * @returns The boxes of the series after the change
- * @throws {Error} - When the reader does not take it
- */
-async function formSend(form: Form, dry: boolean): Promise<Planned[]> {
-    if (mineMade(form))
-        return courseSend<Planned[]>("/api/course/mine",
-            { module: module, type: form.type, group: form.group, dry: dry });
-    return courseSend<Planned[]>("/api/course/series", {
-        module: module, old: form.old, before: form.before, dry: dry,
-        rule: {
-            type: form.type, slots: form.slots, location: form.location, locationLink: form.locationLink,
-            attendees: form.attendees, first: form.first, last: form.last, group: form.old?.group ?? "",
-            excepts: exceptsWithin(form),
-            semester: shown?.semester ?? "",
-        },
-    });
-}
-
-/**
- * Takes a change of the form of a series: allows saving while it is ready, see {@link formReady}, and shows anew
- * the boxes it makes as the reader would write them, see {@link formSend} and `previewSoon` in `../day/series.ts`,
- * the days it leaves out among them unless it makes a group mine.
- * - `save`: Its button Save.
- * - `form`: The form.
- */
-function formChanged(): void {
-    const save: HTMLButtonElement | null = formElement?.querySelector(".panel-main") ?? null;
-    if (typing === null || formElement === null || save === null)
-        return;
-    const form: Form = typing;
-    save.disabled = !formReady(form);
-    previewSoon(formElement, formReady(form) ? (): Promise<Planned[]> => formSend(form, true) : null,
-        mineMade(form) ? [] : exceptsWithin(form));
-}
-
-/**
- * Makes the parts of `Online` picked as the place of the form, as the dialog has them, see `onlinePartsOf`
- * in `../day/categories.ts`: its software, who offers it and its passcode, then its link, which follows its software
- * as the address of its web app, see `standardLinkOf` in `../day/places.ts`, until I paste the link of the meeting.
- * - `online`: The parts of `Online` as they stand.
- * - `software`, `provider`, `passcode`, `link`: Fields of its parts and its link.
- * - `follows`: Whether the link follows the software.
- * - `write`: Writes the place and its link into the form, and shows the place's address.
- * - `parts`: The parts.
- *
- * @param form - The form
- * @param address - The address below the place, which shows the place as written
- * @returns The parts
- */
-function onlinePartsOf(form: Form, address: HTMLAnchorElement): HTMLElement {
-    const online: { software: string; provider: string; passcode: string } = onlineOf(form.location);
-    const software: HTMLInputElement = partFieldOf("text", online.software, "Software of Online");
-    const provider: HTMLInputElement = partFieldOf("text", online.provider, "Provider of Online");
-    const passcode: HTMLInputElement = partFieldOf("text", online.passcode, "Passcode of Online");
-    const link: HTMLInputElement = partFieldOf("url", form.locationLink, "Link of Online");
-    let follows: boolean = form.locationLink === "" || form.locationLink === standardLinkOf(online.software);
-    const write: () => void = (): void => {
-        form.location = onlineLineOf({ software: software.value, provider: provider.value, passcode: passcode.value });
-        addressShow(address, form);
-        formChanged();
-    };
-    software.addEventListener("input", (): void => {
-        if (follows) {
-            link.value = standardLinkOf(software.value);
-            form.locationLink = link.value;
-        }
-        write();
-    });
-    provider.addEventListener("input", write);
-    passcode.addEventListener("input", write);
-    link.addEventListener("input", (): void => {
-        follows = false;
-        form.locationLink = link.value.trim();
-        write();
-    });
-    const parts: HTMLElement = elementOf("div", "field-parts", "");
-    parts.append(partOf("Software", software), partOf("Provider", provider), partOf("Passcode", passcode),
-        partOf("Link", link));
-    return parts;
-}
-
-/**
- * Shows the address of the place of the form below it, small and grey, as the dialog does, a link to the link
- * of the place while it has one, the link itself for a place without address, nothing for no place.
- *
- * @param address - The address below the place
- * @param form - The form
- */
-function addressShow(address: HTMLAnchorElement, form: Form): void {
-    address.textContent = addressOf(form.location) === "" ? form.locationLink : addressOf(form.location);
-    if (form.locationLink !== "")
-        address.href = form.locationLink;
-    else
-        address.removeAttribute("href");
-    address.hidden = address.textContent === "";
-}
-
-/**
- * Makes the row of the place of the form, picked as in the dialog, see `placeSearchOf` in `../day/categories.ts`:
- * my places, the most used first, with `Online`, and as I type the rooms of the university too, each with its address
- * grey beside it, see `placeChoiceOf` in `../day/places.ts`, the place of the series among them; below it its address,
- * a link, and for `Online` its parts, see {@link onlinePartsOf}. A place picked takes the link of my place or room,
- * `Online` picked anew none, as a new meeting.
- * - `field`: The field of the place of `Skill`, `undefined` while the categories are not loaded.
- * - `address`: The address below the place.
- *
- * @param form - The form
- * @returns The row
- */
-function placeRowOf(form: Form): HTMLElement {
-    const field: Field | undefined = skillFieldOf("location");
-    const address: HTMLAnchorElement = document.createElement("a");
-    address.className = "entry-address";
-    address.target = "_blank";
-    address.rel = "noopener";
-    addressShow(address, form);
-    return rowOf("Place", choicesOf({
-        search: async (text: string): Promise<Choice[]> => {
-            const values: string[] = text.trim() === ""
-                ? [...field?.values ?? [], ...(form.location === "" ? [] : [form.location])]
-                : [...field?.values ?? [], ...field?.rooms ?? []];
-            return await searchOf([...new Set(values)].map(placeChoiceOf))(text);
-        },
-        picked: form.location === "" ? [] : [form.location], many: false, adding: false, noun: "place",
-        textOf: labelOf,
-        below: [address, ...(labelOf(form.location) === onlineName ? [onlinePartsOf(form, address)] : [])],
-        pick: (values: string[]): void => {
-            const line: string = values[0] ?? "";
-            if (line === form.location)
-                return;
-            form.location = line;
-            form.locationLink = labelOf(line) === onlineName ? "" : field?.links[line] ?? "";
-            formFill();
-        },
-    }));
-}
-
-/**
- * Makes the row of who I am with in the form, as `With` of the dialog: the names my entries wrote, the most used
- * first, several, a name typed added, each with the address it had, else that of its last entry, else its standard
- * address, see `standardAddressOf` in `../day/entries.ts`.
- * - `field`: The field `With` of `Skill`, `undefined` while the categories are not loaded.
- *
- * @param form - The form
- * @returns The row
- */
-function withRowOf(form: Form): HTMLElement {
-    const field: Field | undefined = skillFieldOf("with");
-    return rowOf("With", choicesOf({
-        search: searchOf((field?.values ?? []).map(choiceOf)),
-        picked: form.attendees.map((attendee: Attendee): string => attendee.name), many: true, adding: true,
-        add: async (name: string): Promise<string | null> => name.includes(",") ? null : name.trim(), noun: "person",
-        pick: (names: string[]): void => {
-            form.attendees = names.map((name: string): Attendee => ({
-                name: name, address: form.attendees.find((attendee: Attendee): boolean => attendee.name === name)
-                    ?.address ?? field?.links[name] ?? standardAddressOf(name),
-            }));
-            formChanged();
-        },
-    }));
-}
-
-/**
- * Makes the row of the group of the form of the tutorials of a module with groups: my group, picked from the groups,
- * each by its weekday, times and room; another one picked makes it mine from its next session on, see
- * `groupMine` in `reader/course.ts`, its days, place, people and dates then those of the group, so their rows hide.
- *
- * @param form - The form
- * @returns The row
- */
-function groupRowOf(form: Form): HTMLElement {
-    return rowOf("Group", choicesOf({
-        search: searchOf(groupsOf(form.type).map((group: Group): Choice => ({
-            value: group.rule.group, text: `Group ${group.rule.group}`, group: "",
-            detail: `${group.rule.slots.map(slotTextOf).join(" · ")} · ${roomOf(group.rule.location)}`,
-        }))),
-        picked: form.group === "" ? [] : [form.group], many: false, adding: false, noun: "group",
-        pick: (values: string[]): void => {
-            form.group = values[0] ?? form.old?.group ?? "";
-            formFill();
-        },
-    }));
-}
-
-/**
- * Builds the rows of the form of a series anew from what it holds, see the top of this file: its type, its group while
- * its type has groups, its days, place, people, first and last day and the days it leaves out, unless it makes a group
- * mine, then the boxes it makes; below them the hint when the reader does not take it, then the plan it writes into,
- * Cancel and Save; its days, its dates, the days it leaves out and its boxes as every series has them,
- * see `../day/series.ts`.
- * - `form`: The form.
- * - `types`: The numbered types without series, for a new one.
- * - `rows`: Its rows.
- * - `fields`: The rows together.
- * - `buttons`: The plan, Cancel and Save.
- * - `cancel`, `save`: Cancel and Save.
- * - `hint`: The hint when the reader does not take it.
- */
-function formFill(): void {
-    if (typing === null || formElement === null)
-        return;
-    const form: Form = typing;
-    const types: string[] = numberedTypes.filter((type: string): boolean =>
-        type === form.type || !(shown?.series ?? []).some((series: Series): boolean => series.rule.type === type));
-    const rows: HTMLElement[] = [rowOf("Type", choicesOf({
-        search: searchOf(types.map(choiceOf)), picked: form.type === "" ? [] : [form.type], many: false,
-        adding: false, locked: form.old !== null, noun: "type",
-        pick: (values: string[]): void => {
-            form.type = values[0] ?? "";
-            form.group = "";
-            formFill();
-        },
-    }))];
-    if (groupsOf(form.type).length > 0)
-        rows.push(groupRowOf(form));
-    if (!mineMade(form))
-        rows.push(...slotRowsOf(form, formChanged, formFill), placeRowOf(form), withRowOf(form),
-            datesRowOf(form, formChanged), exceptRowOf(form, formChanged));
-    rows.push(boxesRowOf());
-    const fields: HTMLElement = elementOf("div", "panel-form", "");
-    fields.append(...rows);
-    const buttons: HTMLElement = elementOf("div", "panel-buttons", "");
-    const cancel: HTMLButtonElement = document.createElement("button");
-    const save: HTMLButtonElement = document.createElement("button");
-    cancel.type = "button";
-    iconPut(cancel, X, "Cancel");
-    cancel.addEventListener("click", formClose);
-    save.type = "submit";
-    save.className = "panel-main";
-    iconPut(save, Check, "Save");
-    const hint: HTMLElement = elementOf("p", "panel-error", "Saving failed");
-    hint.hidden = true;
-    buttons.append(elementOf("span", "course-file", shown?.file ?? ""), cancel, save);
-    formElement.replaceChildren(fields, hint, buttons);
-    formChanged();
-}
-
-/**
- * Closes the form of a series without saving, and shows the course as loaded last, or loads it anew when a file
- * changed meanwhile.
- */
-function formClose(): void {
-    typing = null;
-    formElement = null;
-    if (waiting) {
-        waiting = false;
-        courseLoad().catch((error: unknown): void => console.error(error));
-        return;
-    }
-    cardsShow();
-}
-
-/**
- * Saves the form of a series, see {@link formSend}, closes it and loads the course anew; when the reader does not take
- * it, the hint above the buttons says so and the form stays open.
- *
- * @throws {Error} - When the course cannot be loaded anew
- */
-async function formSave(): Promise<void> {
-    if (typing === null || !formReady(typing))
-        return;
-    try {
-        await formSend(typing, false);
-    } catch (error: unknown) {
-        console.error(error);
-        formElement?.querySelector(".panel-error")?.removeAttribute("hidden");
-        return;
-    }
-    typing = null;
-    formElement = null;
-    waiting = false;
-    await courseLoad();
-}
-
-/**
- * Closes the form of a series on Escape, wherever the focus is, like still on the pencil that opened it; not while
- * a list is open, which Escape closes first, see `listsStart` in `../day/choices.ts`, nor while a dialog is open
- * over the page, which Escape closes.
- *
- * @param event - Key pressed anywhere in the page
- */
-function formEscape(event: KeyboardEvent): void {
-    if (event.key === "Escape" && typing !== null && !event.defaultPrevented
-        && document.querySelector("dialog[open]") === null)
-        formClose();
-}
-
-/**
- * Opens the form of a series, see the top of this file: in its card filled as its rule reads back, or, for a new
- * series, after the cards, without type, its days and dates empty, its list of types open; one form at a time.
- * Enter confirms only its field, as in the dialog, Ctrl+Enter confirms it too and saves, like a day typed to leave
- * out, and Escape cancels, see {@link formEscape}.
- * - `form`: The form.
- * - `categories`: The categories, for its places and people.
- *
- * @param rule - The rule of the series as read back, `null` for a new series
- */
-function formOpen(rule: Rule | null): void {
-    typing = {
-        type: rule?.type ?? "", old: rule, slots: rule?.slots.map((slot: Slot): Slot => ({ ...slot }))
-            ?? [{ weekday: 0, start: "", end: "" }],
-        before: rule?.slots.map((slot: Slot): number => slot.weekday) ?? [0], location: rule?.location ?? "",
-        locationLink: rule?.locationLink ?? "", attendees: rule?.attendees ?? [], first: rule?.first ?? "",
-        last: rule?.last ?? "", excepts: [...rule?.excepts ?? []], group: rule?.group ?? "",
-    };
-    formElement = document.createElement("form");
-    formElement.className = "panel course-form";
-    formElement.addEventListener("submit", (event: SubmitEvent): void => {
-        event.preventDefault();
-        formSave().catch((error: unknown): void => console.error(error));
-    });
-    formElement.addEventListener("keydown", (event: KeyboardEvent): void => {
-        if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement) || event.defaultPrevented)
-            return;
-        event.preventDefault();
-        event.target.blur();
-        if (event.ctrlKey)
-            formSave().catch((error: unknown): void => console.error(error));
-    });
-    readerAsk<Category[]>(`/api/day/categories?now=${encodeURIComponent(new Date().toISOString())}`)
-        .then((loaded: Category[]): void => {
-            categories = loaded;
-            formFill();
-            cardsShow();
-            if (rule === null)
-                formElement?.querySelector<HTMLButtonElement>(".picker-line")?.click();
-        }).catch((error: unknown): void => console.error(error));
+        ...(types.length === 0 ? [elementOf("p", "plan-none", "No series yet")] : []), plus);
 }
 
 /**
  * Shows the course of a module in its place on its page, see the top of this file, and loads it anew the moment
  * a file of my new system changes, see `../changes.ts`, or the dialog of an entry closes; its lists close on Escape
- * and on a click beside them, as in the dialog, see `listsStart` in `../day/choices.ts`, and its form on Escape,
- * see {@link formEscape}.
+ * and on a click beside them, as in the dialog, see `listsStart` in `../day/choices.ts`.
  *
  * @param element - Where the cards go, see `.overview-course` in `./editor.html`
  * @param folder - Name of the folder of the module, like `IN2028_BusinessAnalyticsMachineLearning`
@@ -1142,7 +601,6 @@ export async function courseShow(element: HTMLElement, folder: string): Promise<
     place = element;
     module = folder;
     listsStart();
-    document.addEventListener("keydown", formEscape);
     changesFollow((): void => {
         courseLoad().catch((error: unknown): void => console.error(error));
     });

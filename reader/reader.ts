@@ -65,7 +65,7 @@ import { courseRead, groupMine, groupPut, groupRemove, repeatApply, seriesApply,
 import { giftWrite } from "./gifts.ts";
 import { noteRead, notesStart, sectionsRead, sectionWrite } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
-import { placeAdd, placeChange } from "./places.ts";
+import { placeAdd, placeChange, platformAdd, platformChange } from "./places.ts";
 import { brokenLinksRead, fileRead, linkedNoteRead, modulesRead } from "./notes.ts";
 import { noteWrite } from "./edit.ts";
 import { systemFileRead, systemFileWrite, treeRead } from "./files.ts";
@@ -95,7 +95,7 @@ import type { Attendee } from "./calendar.ts";
 import type { GroupNew, MineChange, Planned, RepeatChange, SeriesChange, WeekChange } from "./course.ts";
 import type { Gift } from "./gifts.ts";
 import type { SectionNew } from "./note.ts";
-import type { Place, PlaceChanged } from "./places.ts";
+import type { Place, PlaceChanged, Platform, PlatformChanged } from "./places.ts";
 import type { DeviceReport } from "./devices.ts";
 import type { NotesFile } from "./notes.ts";
 import type { NoteChange } from "./edit.ts";
@@ -168,7 +168,7 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  * - `POST /api/day/log`: Adds entry of the body and sends its identifier; sends the entry to Vu when Vu is in its
  *   `With`, see `entryShare` in `shared.ts`, as do the other routes that add an entry of the log, and those that change
  *   one when Vu comes into its `With`;
- *   the routes that change my foods, meals and places send each change to Vu, see `listShare` there.
+ *   the routes that change my foods, meals, places and platforms send each change to Vu, see `listShare` there.
  * - `PATCH /api/day/log`: Changes entry of the body, refused with 409 when its file changed it since the dialog opened it.
  * - `POST /api/day/moved`: Moves the entry named in the body to the start and end in the body, every other field
  *   as its file holds it.
@@ -198,12 +198,16 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   and sends it as written.
  * - `PATCH /api/day/places`: Changes the place of the old name of the body in `Places.md`, or the room in `Rooms.md`,
  *   and nothing else, and sends it as written.
- * - `GET /api/course/module?module=…`: Sends the course of the module of the folder, like
- *   `IN2028_BusinessAnalyticsMachineLearning`, in the semester of today: its boxes, its series, the groups
- *   of its tutorials, the folders of its material and its plan, see `course.ts`.
- * - `POST /api/course/series`: Changes the series of the body by its rule, as its form typed it, and sends its boxes
- *   after the change; when the body says `dry: true` only sends what the change would make, writing nothing,
- *   for the preview of the form.
+ * - `POST /api/day/online`: Adds the platform named in the body to `Online.md` and sends it as written.
+ * - `PATCH /api/day/online`: Changes the name and the provider of the platform of the old name of the body
+ *   in `Online.md`, and sends it as written.
+ * - `GET /api/course/module?module=…&semester=…`: Sends the course of the module of the folder, like
+ *   `IN2028_BusinessAnalyticsMachineLearning`, or of the code, like `IN2028`, in the semester, like `2026W`, that
+ *   of today while none is named: its boxes, its series, the groups of its tutorials, the folders of its material
+ *   and its plan, see `course.ts`.
+ * - `POST /api/course/series`: Changes the series of the body by its rule and the states of its boxes, as its form
+ *   typed them, and sends its boxes after the change; when the body says `dry: true` only sends what the change would
+ *   make, writing nothing, for the preview of the form.
  * - `POST /api/course/mine`: Makes the group of the body mine, my boxes of its type from its next session on going
  *   to it, and sends the boxes of the series after it; when the body says `dry: true` only sends what that would make.
  * - `POST /api/course/week`: Moves the box of the body to the session of the group of the body in its week.
@@ -412,8 +416,20 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
         listShare({ call: "placeChange", with: sent });
         responseSend(response, 200, place);
 
+    } else if (request.method === "POST" && url.pathname === "/api/day/online") {
+        const platform: Platform = platformAdd(await json(request) as Platform);
+        listShare({ call: "platformAdd", with: platform });
+        responseSend(response, 200, platform);
+
+    } else if (request.method === "PATCH" && url.pathname === "/api/day/online") {
+        const sent: PlatformChanged = await json(request) as PlatformChanged;
+        const platform: Platform = platformChange(sent);
+        listShare({ call: "platformChange", with: sent });
+        responseSend(response, 200, platform);
+
     } else if (request.method === "GET" && url.pathname === "/api/course/module") {
-        responseSend(response, 200, courseRead(url.searchParams.get("module") ?? ""));
+        responseSend(response, 200, courseRead(url.searchParams.get("module") ?? "",
+            url.searchParams.get("semester") ?? ""));
 
     } else if (request.method === "POST" && url.pathname === "/api/course/series") {
         responseSend(response, 200, seriesApply(await json(request) as SeriesChange));

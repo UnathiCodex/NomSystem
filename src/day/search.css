@@ -13,6 +13,12 @@
     min-height: 0;
 }
 
+/* Its search field the one of the page, see `.search-field` in `../base.css`, at the top of the dialog without room
+   above it, as far from the frame of the dialog as from its sides */
+.search-panel .search-field {
+    margin-top: 0;
+}
+
 .search-results {
     min-height: 0;
     margin: 0.5rem 0 0;

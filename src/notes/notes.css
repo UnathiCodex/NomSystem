@@ -2,10 +2,10 @@
    view, each row in the text of the tree, see `--tree-text` in `../variants.css`, and a little higher than a chip,
    `--tree-row-height`, so its grey has room around the name; the anchor of the menus of its pickers, which open
    beside it.
-   Its framed rows, the search and the grey of the note shown or under the pointer, 0.375rem from the edge of the rail
-   at their left and exactly as far from its line at the right, the same margin on both sides, the room of its thin
-   scrollbar, 6 px, see `../base.css`, part of it and kept also while it does not scroll, so they take the width
-   of the tree, their names
+   It scrolls without a scrollbar, since I know I can scroll it, the same in both roots.
+   Its cards, the search and the grey of the note shown or under the pointer, 0.75rem from the rail at their left and
+   from its line at the right alike, as the rows of the sidebar of the Claude app, since the line already parts the
+   tree from the page, so they take the width of the tree, their names
    `--tree-row-padding` in from their left edge,
    the room left of a name in a row `--tree-row-padding`, the room above and below the name of a picker
    `--tree-pick-padding` */
@@ -14,8 +14,8 @@
     --tree-pick-padding: 0.25rem;
     anchor-name: --tree;
     overflow-y: auto;
-    padding: var(--gap) calc(0.375rem - 6px) var(--gap) 0.375rem;
-    scrollbar-gutter: stable;
+    padding: var(--gap) 0.75rem;
+    scrollbar-width: none;
     border-right: 1px solid var(--line);
     font-size: var(--tree-text);
     line-height: var(--tree-row-height);
@@ -42,21 +42,18 @@
     color: var(--text-muted);
 }
 
-/* Search of the tree below its root, one chip high and outlined like the search of a list, in the text of the tree,
-   without the browser's own clear cross, which is no Lucide icon; Escape or deleting the text clears it */
-.tree-search {
-    width: 100%;
-    font-size: inherit;
-    height: var(--chip-height);
-    margin: 0 0 0.5rem;
-    padding: 0 0.75rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--background);
+/* Search of my new system below its root, where my modules have their pickers, see `.tree-pick`: the one search
+   field of the page, see `.search-field` in `../base.css`, as high as a picker, its magnifier a step in like the name
+   on a picker, its words in the text of the tree, the files as far below it as the notes below the picker
+   of the chapter */
+.notes-tree .search-field {
+    height: calc(var(--tree-row-height) + 2 * var(--tree-pick-padding));
+    margin: 0.1875rem 0 0.75rem;
+    padding: 0 var(--tree-row-padding);
 }
 
-.tree-search::-webkit-search-cancel-button {
-    display: none;
+.notes-tree .search-field > input {
+    font: inherit;
 }
 
 /* What the search of the tree does not find, hidden while it searches */
@@ -174,8 +171,11 @@
     padding-left: var(--tree-row-padding);
 }
 
-/* Folder name with a grey arrow before it, turned down while open */
+/* Folder name with a grey arrow before it, turned down while open; no room below it of its own, since a folder keeps
+   that room inside it even while closed, so a closed folder stands as far from the next row as a note from the next,
+   the room above the next row parting them alone */
 .tree-folder > summary {
+    margin-bottom: 0;
     list-style: none;
 }
 
@@ -560,7 +560,8 @@
 }
 
 /* Tables with grey lines and tighter lines, as in Obsidian;
-   one wider than the page scrolls sideways on its own, as a wide formula or code block does */
+   one wider than the page scrolls sideways on its own, as a wide formula or code block does, in a window of its own,
+   see below */
 .markdown table {
     display: block;
     width: max-content;
@@ -568,6 +569,24 @@
     overflow-x: auto;
     border-collapse: collapse;
     line-height: 1.3;
+}
+
+/* Table wider than the page its own window, as in Notion or a spreadsheet, marked so by `BlockWidget` in
+   `../editor/preview.ts`: at most as high as the screen below the head of the file, its control and its 3rem of room,
+   see `.editor-head` in `../editor/editor.css`, scrolling both ways inside, so its bar to scroll sideways stands at
+   the bottom of the screen once its top reaches the head, and its head row stays on top while its rows scroll by,
+   with its lines above and below, since the lines of a table scroll away with its rows, a pixel higher, over the line
+   the table draws at its top, so no row shows above it; a table that fits stays as it is, as high as its rows */
+.markdown table.is-wide {
+    max-height: calc(100dvh - var(--control-height) - 3rem);
+    overflow-y: auto;
+}
+
+.markdown table.is-wide th {
+    position: sticky;
+    top: -1px;
+    background: var(--background);
+    box-shadow: inset 0 1px var(--line), inset 0 -1px var(--line);
 }
 
 .markdown :is(th, td) {

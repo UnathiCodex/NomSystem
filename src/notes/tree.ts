@@ -25,17 +25,19 @@
  * - `../search.ts`: Compares a typed text with the paths of the files and notes, as every search of the page does.
  * - `../day/choices.ts`: Marks where a long name may go on below.
  * - `./markdown.ts`, `./math.ts`: Render the headings of the outline, their formulas as in the note.
- * - `lucide`, `../icons.ts`: The check and the cross of a block done in its round.
+ * - `lucide`, `../icons.ts`: The check and the cross of a block done in its round, and the search field of my new system.
  * - `../reader.ts`: Asks the reader for the tree.
+ * - `../changes.ts`: Loads the tree of my new system anew after every change of its files, see {@link filesAgain}.
  */
 
 import { matchesAll, wordsOf } from "../search.ts";
 import { breakableOf } from "../day/choices.ts";
 import { inlineHtmlOf } from "./markdown.ts";
 import { mathRender } from "./math.ts";
-import { iconOf } from "../icons.ts";
+import { iconOf, searchFieldOf } from "../icons.ts";
 import { Check, X } from "lucide";
 import { readerAsk } from "../reader.ts";
+import { changesFollow } from "../changes.ts";
 
 
 /**
@@ -138,8 +140,9 @@ export function overviewAddressOf(module: string, chapter: string): string {
 }
 
 /**
- * Makes a folder or file of `NomManageplannings`: a folder with its entries; a file that opens as a link
- * to it in the editor, named as on the disk, like `Foods.md`; any other file faint, opening nothing.
+ * Makes a folder or file of `NomManageplannings`: a folder with its entries and its path, so it opens again once
+ * the tree is loaded anew, see {@link filesAgain}; a file that opens as a link to it in the editor, named as
+ * on the disk, like `Foods.md`; any other file faint, opening nothing.
  * - `folder`: The folder of a folder.
  * - `link`: The link of a file that opens.
  * - `name`: The name of any other file.
@@ -150,6 +153,7 @@ export function overviewAddressOf(module: string, chapter: string): string {
 function fileNodeOf(node: FileNode): HTMLElement {
     if (node.folder) {
         const folder: HTMLDetailsElement = folderOf(node.name);
+        folder.dataset.path = node.path;
         folder.lastElementChild?.append(...node.children.map(fileNodeOf));
         return folder;
     }
@@ -343,8 +347,11 @@ export function treeMark(tree: HTMLElement, shown: string): HTMLElement | null {
 /**
  * Starts the search of my new system: as I type, only the files whose path holds each typed word show, every folder
  * on the way to them open; the folders open before the search open again once it is empty. Enter opens the first
- * file shown that opens, as a click on it does, Escape empties the search.
- * - `opened`: The folders open before the search, `null` while nothing is typed.
+ * file shown that opens, as a click on it does; Escape empties the search as in every search field of the page, by the
+ * browser itself, which then tells `input` as for any change of the text, and so does the tree loaded anew, see
+ * {@link filesAgain}, which the search then filters again.
+ * - `opened`: Paths of the folders open before the search, `null` while nothing is typed; paths, not the folders
+ *   themselves, so they still name the folders of the tree loaded anew.
  * - `files`: The files of the tree.
  * - `show`: Shows the tree for the typed text.
  *
@@ -352,7 +359,7 @@ export function treeMark(tree: HTMLElement, shown: string): HTMLElement | null {
  * @param search - Its search field
  */
 function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
-    let opened: Set<HTMLDetailsElement> | null = null;
+    let opened: Set<string> | null = null;
     const files: () => HTMLElement[] = (): HTMLElement[] => [...tree.querySelectorAll<HTMLElement>(".tree-file")];
     const show: () => void = (): void => {
         const words: string[] = wordsOf(search.value);
@@ -362,12 +369,13 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
                 element.classList.remove("tree-unfound"));
             if (opened !== null)
                 folders.forEach((folder: HTMLDetailsElement): void => {
-                    folder.open = opened?.has(folder) ?? false;
+                    folder.open = opened?.has(folder.dataset.path ?? "") ?? false;
                 });
             opened = null;
             return;
         }
-        opened ??= new Set(folders.filter((folder: HTMLDetailsElement): boolean => folder.open));
+        opened ??= new Set(folders.filter((folder: HTMLDetailsElement): boolean => folder.open)
+            .map((folder: HTMLDetailsElement): string => folder.dataset.path ?? ""));
         files().forEach((file: HTMLElement): void => {
             file.classList.toggle("tree-unfound", !matchesAll(file.dataset.path ?? "", words));
         });
@@ -383,11 +391,38 @@ function searchStart(tree: HTMLElement, search: HTMLInputElement): void {
         if (event.key === "Enter")
             files().find((file: HTMLElement): boolean =>
                 file instanceof HTMLAnchorElement && !file.classList.contains("tree-unfound"))?.click();
-        else if (event.key === "Escape") {
-            search.value = "";
-            show();
-        }
     });
+}
+
+/**
+ * Loads the folders and files of my new system anew, as they lie on the disk now, like after Syncthing took away
+ * a conflict copy, see `../changes.ts`, and puts them in place of those shown, the tree else as it was: the folders
+ * open before open again, the file shown marked, see {@link treeMark}, the search filters them for its text,
+ * see {@link searchStart}, and the tree stays scrolled where it was; the search keeps its place, so typing in it
+ * goes on.
+ * - `open`: Paths of the folders open before.
+ * - `top`: How far the tree was scrolled.
+ * - `entries`: The folders and files as they lie now.
+ *
+ * @param tree - The tree
+ * @param search - Its search field
+ * @param shown - Path of the file shown, empty for none
+ * @throws {Error} - When the reader cannot answer
+ */
+async function filesAgain(tree: HTMLElement, search: HTMLInputElement, shown: string): Promise<void> {
+    const open: string[] = [...tree.querySelectorAll<HTMLDetailsElement>("details.tree-folder[open]")]
+        .map((folder: HTMLDetailsElement): string => folder.dataset.path ?? "");
+    const top: number = tree.scrollTop;
+    const entries: HTMLElement[] = (await readerAsk<FileNode[]>("/api/edit/tree")).map(fileNodeOf);
+    tree.querySelectorAll(":scope > .tree-folder, :scope > .tree-file").forEach((entry: Element): void =>
+        entry.remove());
+    tree.append(...entries);
+    tree.querySelectorAll<HTMLDetailsElement>("details.tree-folder").forEach((folder: HTMLDetailsElement): void => {
+        folder.open = open.includes(folder.dataset.path ?? "");
+    });
+    treeMark(tree, shown);
+    search.dispatchEvent(new Event("input"));
+    tree.scrollTop = top;
 }
 
 /**
@@ -594,7 +629,8 @@ export type TreeRoot = "NomSkillingmodules" | "NomManageplannings";
  * Loads one root of the tree from the reader and shows it, see the top of this file: its name as a heading,
  * of my modules a link to Today, then the pickers of module and chapter, see {@link pickerOf}, of my new system its
  * search, see {@link searchStart},
- * its folders or notes below, the file or note shown marked, see {@link treeMark}; in the modules, while none is shown,
+ * its folders or notes below, those of my new system loaded anew after every change of its files,
+ * see {@link filesAgain}, the file or note shown marked, see {@link treeMark}; in the modules, while none is shown,
  * the module asked for is picked, like the module of a skill entry clicked in the day, see `../skill/links.ts`,
  * else the first module, with its first chapter.
  * - `heading`: The name of the root on top.
@@ -622,14 +658,13 @@ export async function treeShow(tree: HTMLElement, root: TreeRoot, shown: string,
     heading.textContent = root;
     if (root === "NomManageplannings") {
         const search: HTMLInputElement = document.createElement("input");
-        search.type = "search";
-        search.className = "tree-search";
-        search.placeholder = "Search";
-        search.autocomplete = "off";
         const entries: HTMLElement[] = (await readerAsk<FileNode[]>("/api/edit/tree")).map(fileNodeOf);
-        tree.replaceChildren(heading, search, ...entries);
+        tree.replaceChildren(heading, searchFieldOf(search, "Search files"), ...entries);
         searchStart(tree, search);
         treeMark(tree, shown);
+        changesFollow((): void => {
+            filesAgain(tree, search, shown).catch((error: unknown): void => console.error(error));
+        });
         return;
     }
 

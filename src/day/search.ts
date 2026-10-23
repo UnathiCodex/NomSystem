@@ -17,7 +17,7 @@
  * - `./times.ts`: Writes the times and the date of an entry.
  * - `../skill/attempts.ts`: Writes a date as a day in the form of the reader.
  * - `../search.ts`: Compares a typed text with an entry, alike everywhere.
- * - `../icons.ts`: Puts the icon of the search into its buttons.
+ * - `../icons.ts`: Puts the icon of the search into its button, and makes its search field.
  * - `lucide`: The icon of the search.
  */
 
@@ -28,7 +28,7 @@ import { whereOf } from "./places.ts";
 import { dateTextOf, timeOf } from "./times.ts";
 import { dayOf } from "../skill/attempts.ts";
 import { matchesAll, wordsOf } from "../search.ts";
-import { iconPut } from "../icons.ts";
+import { iconPut, searchFieldOf } from "../icons.ts";
 import { Search } from "lucide";
 
 import type { Calendar, EventApi } from "fullcalendar";
@@ -44,6 +44,7 @@ import type { Attendee } from "./entries.ts";
  * - `module`, `type`: Skill and type of a skill entry, like `IN2028` and `VO`, empty for any other entry.
  * - `location`: Its place, its `LOCATION`, like `Mensa Leopoldstraße, Leopoldstraße 13a, 80802 München, Deutschland`.
  * - `from`: Where a way starts, its `X-FROM`, empty for none.
+ * - `online`: Its platform online, its `X-ONLINE`, like `Zoom`, empty for none.
  * - `attendees`: Who I was with, none for nobody.
  * - `start`, `end`: Its start and end as ISO instants.
  */
@@ -55,6 +56,7 @@ type LogEntry = {
     type: string;
     location: string;
     from: string;
+    online: string;
     attendees: Attendee[];
     start: string;
     end: string;
@@ -100,8 +102,8 @@ function searchedOf(entry: LogEntry): string {
 
 /**
  * Builds a result: what the entry was in the bold of the log, like `Talk: Artificial Intelligence`, see `whatOf`
- * in `boxes.ts`, and below it, small and grey, its day with its weekday written out, its time, its place by its label
- * and who I was with, parted by middle dots,
+ * in `boxes.ts`, and below it, small and grey, its day with its weekday written out, its time, its place by its label,
+ * or its platform online instead, and who I was with, parted by middle dots,
  * like `Friday, 16.10.2026 · 13:45 – 14:15 · Mensa Leopoldstraße · Kicktipp`; no place or nobody leaves its part out.
  * - `start`, `end`: Start and end of the entry.
  * - `day`: Day of its start, like `2026-10-16`.
@@ -121,7 +123,7 @@ function resultOf(calendar: Calendar, entry: LogEntry): HTMLLIElement {
     const end: Date = new Date(entry.end);
     const day: string = dayOf(start);
     const weekday: string = start.toLocaleDateString("en-GB", { weekday: "long" });
-    const place: string = whereOf(entry.category, entry.from, entry.location);
+    const place: string = whereOf(entry.category, entry.from, entry.location, entry.online);
     const people: string = entry.attendees.map((person: Attendee): string => person.name).join(", ");
     const where: string[] = [place, people].filter((part: string): boolean => part !== "");
     const meta: HTMLElement = entryPartOf("span", "search-meta", [entryPartOf("span", "search-when",
@@ -234,20 +236,23 @@ async function resultOpen(calendar: Calendar, entry: LogEntry): Promise<void> {
 
 /**
  * Starts the search after the router has put the HTML of the day into the page: puts its dialog into the page,
- * its button beside `Log +` opens it, what I type shows its results at once, and the dialog of an entry opened from it
- * brings it back when it closes.
+ * its field into the search field of the page, its button beside `Log +` opens it, what I type shows its results
+ * at once, and the dialog of an entry opened from it brings it back when it closes.
  * - `button`: The button that opens the search.
+ * - `text`: The field of what I type, which goes into the search field at the top of the dialog.
  *
  * @param calendar - Calendar of the day
  */
 export function searchStart(calendar: Calendar): void {
     document.body.insertAdjacentHTML("beforeend", searchHtml);
     const button: HTMLElement = document.getElementById("log-search") as HTMLElement;
+    const text: HTMLInputElement = document.getElementById("search-text") as HTMLInputElement;
+    document.querySelector(".search-form")?.prepend(searchFieldOf(text, "Search the log"));
     iconPut(button, Search, "Search the log");
     button.addEventListener("click", (): void => {
         searchOpen(calendar).catch((error: unknown): void => console.error(error));
     });
-    document.getElementById("search-text")?.addEventListener("input", (): void => resultsShow(calendar));
+    text.addEventListener("input", (): void => resultsShow(calendar));
     document.getElementById("entry")?.addEventListener("close", (): void => {
         if (!returning)
             return;

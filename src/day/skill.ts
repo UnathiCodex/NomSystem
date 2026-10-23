@@ -35,9 +35,8 @@
  * the task judged as a whole: Right, or Wrong with a short field for my comment on what went wrong; a task left
  * without result is no attempt and is not written.
  * Any type may hold attempts, like the tasks I solved in a tutorial. Every field may stay empty, the skill too.
- * Below skill and type stands the link of the summary, small and grey, as every summary has it, with its pencil
- * after the type, see `summaryPartsOf` in `categories.ts`: while I type none, the folder of its skill, the path its
- * entry links, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, for a type on into the folder
+ * Below skill and type stands the link of the summary, small and grey, as every summary has it, see `summaryPartsOf`
+ * in `categories.ts`: the folder of its skill, the path its entry links, like `NomSkillingmodules/IN2028_BusinessAnalyticsMachineLearning`, for a type on into the folder
  * of its material and of the semester, like `…/VO_UniversityLectureLessons/TUM_2026W`, a module opening
  * in the scripts view, see {@link skillPathOf}. A skill entry of the log already logged shows its attempts, which stay;
  * new ones are added after them. Everything stays editable, its skill too, whose older attempts keep their task.
@@ -124,7 +123,7 @@ export type ModuleType = {
  * - `type`: Its type, like `VO`, empty for none.
  * - `semester`: Its semester, its `X-SEMESTER`, like `2026W`, empty for a new one and an older one without.
  * - `title`: What it is as written, its `SUMMARY`, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, in the log.
- * - `titleLink`: Its link, the `ALTREP` of its `SUMMARY`, in the log: the folder of its skill, or a web address I typed;
+ * - `titleLink`: Its link, the `ALTREP` of its `SUMMARY`, in the log: the folder of its skill, or a web address an older entry kept;
  *   empty for none.
  * - `chapters`: Names of its chapters, in the log.
  * - `links`: Its links as the reader gave them, to its document, in the log.
@@ -202,8 +201,9 @@ let semesterDay: string = "";
  * - `head`: Place of skill and type, below the category.
  * - `more`: Place of the fields below them, before the note.
  * - `place`: Rows of the place of the entry, which `categories.ts` builds, put first below skill and type.
- * - `summary`: Pencil, link and the part to type it of the summary, which `categories.ts` builds as for every summary,
- *   see `summaryPartsOf` there: the pencil after the type, the link and the part below skill and type.
+ * - `summary`: Pencil, link and parts of the summary, which `categories.ts` builds as for every summary,
+ *   see `summaryPartsOf` there: the pencil after the type, hidden, since its text is its skill and type, the link
+ *   and the parts below skill and type.
  * - `changed`: Tells the dialog that what is picked changed, so it shows the link of the summary anew and allows
  *   saving or not.
  */
@@ -763,8 +763,8 @@ function documentRowsOf(choices: Choice[], shown: string[], again: () => void, n
  * Shows the fields of `Skill` as picked so far, see the top of this file: skill and type side by side in the row
  * of its summary below the category; below them the place, the semester, the chapters one after another with their
  * documents, see {@link chapterRowsOf}, and in the log the tasks of the chapters picked with a result
- * for each task picked, see {@link tasksOf}, and the attempts the entry has; the pencil of the summary after the type
- * and its link below skill and type, see {@link SkillShown}.
+ * for each task picked, see {@link tasksOf}, and the attempts the entry has; the link of the summary below skill
+ * and type, see {@link SkillShown}.
  * Picking a skill loads its chapters and documents and shows the fields again, with no chapters, documents or tasks
  * picked; picking a type, a semester, a chapter or a document, or taking one back, shows them again, the documents
  * offering what follows from them.
@@ -825,7 +825,7 @@ function picksShow(shown: SkillShown): void {
  * @param planned - Whether it is an entry of the log logged from a box of the plan, whose skill and type stay the plan's
  * @param changed - Tells the dialog that what is picked changed, so it shows the link of the summary anew and allows
  *   saving or not
- * @param summary - Pencil, link and the part to type it of the summary, see {@link SkillShown}; none when left out
+ * @param summary - Pencil, link and parts of the summary, see {@link SkillShown}; none when left out
  * @throws {Error} - When the reader cannot answer
  */
 export async function skillFieldsShow(head: HTMLElement, more: HTMLElement, place: HTMLElement[], plan: boolean,
@@ -927,7 +927,7 @@ export async function skillSave(calendar: Calendar, id: string, fields: EntryFie
     const saved: boolean = await skillEntrySend(id, {
         type: picks.type, module: picks.module, semester: fields.semester, chapters: picks.chapters,
         documents: picks.documents, attempts: attempts,
-        titleLink: fields.titleLink, location: fields.location, locationLink: fields.locationLink,
+        location: fields.location, online: fields.online, onlineLink: fields.onlineLink, passcode: fields.passcode,
         attendees: fields.attendees ?? [],
         planned: fields.planned, note: fields.note,
         start: fields.start, end: fields.end,

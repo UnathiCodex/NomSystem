@@ -29,11 +29,11 @@
  * see {@link breakableOf}.
  *
  * - `../icons.ts`: Puts the one plus into a line that adds, or before the typed text it adds, and the one `×`
- *   into the button that takes a value back.
+ *   into the button that takes a value back, and makes the search field of a list.
  * - `../search.ts`: Compares a typed text with the values, as every search of the page does.
  */
 
-import { crossPut, plusPut, plusTake, plusTypedPut } from "../icons.ts";
+import { crossPut, plusPut, plusTake, plusTypedPut, searchFieldOf } from "../icons.ts";
 import { matchesAll, searchTextOf, wordsOf } from "../search.ts";
 
 
@@ -329,6 +329,8 @@ export function listOpen(box: HTMLElement): boolean {
  * - `head`: The line with what stands beside it.
  * - `line`: The line of the field, the button that opens the list.
  * - `box`: The list, a menu over the dialog, with its search field.
+ * - `field`: The search field of the list, its words naming what it searches, like `Search or add a place`
+ *   or `Search a chapter`.
  * - `newButton`: The plus with the typed text at the end of the list, `New place` as its tooltip.
  * - `noun`: What a value is, like `place`.
  * - `chosen`: Values picked so far, in the order they were picked.
@@ -362,6 +364,8 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     const list: HTMLDivElement = document.createElement("div");
     const newButton: HTMLButtonElement = document.createElement("button");
     const noun: string = setup.noun ?? "value";
+    const field: HTMLLabelElement = searchFieldOf(input, `Search ${setup.adding ? "or add " : ""}`
+        + `${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}`);
     let chosen: string[] = [...setup.picked];
     const texts: Map<string, string> = new Map();
     let long: boolean = false;
@@ -462,10 +466,6 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     line.className = "picker-line";
     line.disabled = setup.locked ?? false;
     box.className = "picker-box";
-    input.type = "search";
-    input.className = "picker-search";
-    input.placeholder = setup.adding ? `Search or add ${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}` : "Search";
-    input.autocomplete = "off";
     list.className = "picker-list";
     newButton.type = "button";
     newButton.className = "picker-new";
@@ -500,7 +500,7 @@ export function choicesOf(setup: ChoicesSetup): HTMLDivElement {
     setup.search("").then((choices: Choice[]): void => {
         long = choices.reduce((length: number, choice: Choice): number => length + choice.text.length, 0)
             > searchedLength;
-        box.replaceChildren(...(long || setup.adding ? [input] : []), list, ...(setup.adding ? [newButton] : []));
+        box.replaceChildren(...(long || setup.adding ? [field] : []), list, ...(setup.adding ? [newButton] : []));
         show().then(lineShow).catch((error: unknown): void => console.error(error));
     }).catch((error: unknown): void => console.error(error));
     lineShow();
