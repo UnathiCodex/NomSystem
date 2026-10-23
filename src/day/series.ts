@@ -304,7 +304,7 @@ export function weekdayOf(day: string): number {
  * @param days - Number of days to add
  * @returns Day like `2026-10-26`
  */
-function dayAdd(day: string, days: number): string {
+export function dayAdd(day: string, days: number): string {
     const date: Date = new Date(`${day}T12:00:00`);
     date.setDate(date.getDate() + days);
     return dayOf(date);

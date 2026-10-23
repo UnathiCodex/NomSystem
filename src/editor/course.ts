@@ -29,8 +29,21 @@
  * which picks my group from the dashboard's own list, its sessions to come becoming my series; each open box to come
  * has its group in its row, picked from the same list, which moves only that week's box to another group, `⇄` beside
  * it while it goes to another group than mine, my group moving it back; and below its rows the folded line
- * `10 groups` opens the table of the groups as the university lists them: Day, First date, Start, End, Group, Room,
- * Tutor and the days it leaves out, the tutor empty while unknown.
+ * `10 groups` opens the week of its groups, this week first, see {@link groupWeekOf}.
+ *
+ * The week of the groups is a line with its number and its days, like `Week 43 · 19.10. – 25.10.2026`, between
+ * the arrows to the week before and after, and the icon back to this week, off on this week; then every session
+ * of every group in that week, the earliest first, each a row on the grid of a box: a circle where a box has its type
+ * and number, its day, grey its times, its room with its link and its tutor, then its group. The session I go to that
+ * week is marked, its circle filled and its row in the grey of a choice: the one the box of the week goes to, else,
+ * in a week without box, that of the group I was at last; a session over is grey. A click on a session picks it
+ * for its week, see `weekPick` in `reader/course.ts`: the box of the week goes to it, a week without box gets one,
+ * and with no series yet the sessions of the group from that week on become my series; a session over too, while
+ * its week is not logged, as where I was after all; nothing in a week logged or cancelled by the university.
+ * The marked session of an open box has the menu `⋯` of its box, of a logged box the check, and the session of a box
+ * skipped or cancelled by the university its icon, each as on the row of the box. A week I do not touch follows
+ * the group I logged last, which the reader does as I log, see `groupFollow` there. A week its groups do not meet,
+ * like in the holidays, says `No group meets this week`.
  *
  * The pencil of a card and the plus of a new series open the day view's dialog of a series, see `../day/series.ts`,
  * the same one a box of the series opens from the day, so a series changes here as there; the course loads anew
@@ -42,7 +55,7 @@
  * - `../day/choices.ts`: The dashboard's own pickers.
  * - `../day/places.ts`: Gives the place of a box with its link.
  * - `../day/series.ts`: Opens the dialog of a series, sends a change of the course, names the numbered types,
- *   writes a slot, a room and a group, and gives the weekday of a day, its Monday and its name.
+ *   writes a slot, a room and a group, and gives the weekday of a day, its Monday, its name and a day some days after.
  * - `../day/times.ts`: Gives the times a box is logged at, writes times and days, and writes how near a day is.
  * - `../skill/attempts.ts`: Writes a date as a day and a day as the page shows it.
  * - `../today.ts`: Gives today's calendar date.
@@ -51,7 +64,7 @@
  * - `../menu.ts`: Puts the actions of a box behind one button `⋯`.
  * - `../changes.ts`: Loads the course anew the moment a file of my new system changes.
  * - `../reader.ts`: Asks the reader.
- * - `lucide`: The icons of the actions and states of a box, and of the pencil.
+ * - `lucide`: The icons of the actions and states of a box, of the pencil, of the arrows of a week and of this week.
  * - `../day/boxes.css`, `../day/log.css`, `../day/day.css`, `../day/choices.css`: Look of the states of a box,
  *   of a place with its link, of the rows of a dialog and of the pickers, as in the day.
  * - `./course.css`: Look of the course.
@@ -62,7 +75,8 @@ import { boxDrop, boxLog, boxPush, boxSubmit, boxUndo, boxUniversity } from "../
 import { choicesOf, listsStart, searchOf } from "../day/choices.ts";
 import { whereLinkedOf } from "../day/places.ts";
 import {
-    courseSend, groupChoiceOf, mondayOf, numberedTypes, roomOf, seriesOpen, slotTextOf, weekdayNameOf, weekdayOf,
+    courseSend, dayAdd, groupChoiceOf, mondayOf, numberedTypes, roomOf, seriesOpen, slotTextOf, weekdayNameOf,
+    weekdayOf,
 } from "../day/series.ts";
 import { boxTimesOf, dateTextOf, nearOf, timeOf } from "../day/times.ts";
 import { dayOf, dayTextOf } from "../skill/attempts.ts";
@@ -72,7 +86,7 @@ import { iconPut, iconWordsOf, plusPut } from "../icons.ts";
 import { menuItemOf, menuOf } from "../menu.ts";
 import { changesFollow } from "../changes.ts";
 import { readerAsk } from "../reader.ts";
-import { ArrowRight, CalendarOff, Check, Pencil, X } from "lucide";
+import { ArrowRight, CalendarCheck, CalendarOff, Check, ChevronLeft, ChevronRight, Pencil, X } from "lucide";
 import "../day/boxes.css";
 import "../day/log.css";
 import "../day/day.css";
@@ -117,6 +131,18 @@ let module: string = "";
  * Lines opened by a click, by their card and kind, like `VO done`, `VO more` or `TU groups`.
  */
 const opened: Set<string> = new Set();
+
+/**
+ * How many weeks after this one the week of the groups of a card shows, by its type, like 1 for `TU` on the next
+ * week, see {@link groupWeekOf}; a card left out shows this week.
+ */
+const weeks: Map<string, number> = new Map();
+
+/**
+ * Order of the boxes of a type in one week, which one its week of the groups goes by while it has several,
+ * see {@link weekBoxOf}: done, open, skipped, cancelled by the university.
+ */
+const stateOrder: string[] = ["done", "open", "dropped", "university"];
 
 /**
  * Whether the course loads anew once the dialog of an entry closes, see {@link dialogShow}.
@@ -268,14 +294,48 @@ function stateOf(box: Box): HTMLElement {
 }
 
 /**
+ * Tells whether a session of a group is over.
+ *
+ * @param session - The session
+ * @returns Whether its end lies before now
+ */
+function overOf(session: Session): boolean {
+    return Date.parse(session.start) + session.minutes * 60 * 1000 <= Date.now();
+}
+
+/**
+ * Gives the sessions of the groups of a type in a week, each with its group, the earliest first.
+ *
+ * @param type - Type, like `TU`
+ * @param week - Monday of the week, like `2026-10-19`
+ * @returns The sessions with their groups
+ */
+function meetingsOf(type: string, week: string): [Group, Session][] {
+    return groupsOf(type).flatMap((group: Group): [Group, Session][] => group.sessions
+        .filter((session: Session): boolean => mondayOf(dayOf(new Date(session.start))) === week)
+        .map((session: Session): [Group, Session] => [group, session]))
+        .sort((first: [Group, Session], second: [Group, Session]): number =>
+            first[1].start.localeCompare(second[1].start));
+}
+
+/**
+ * Gives the week of a box in its series, by its Monday, as the reader counts it, see `weekOf` in `reader/course.ts`:
+ * that of the day it stood on before its first push, else of its day.
+ *
+ * @param box - The box
+ * @returns Day like `2026-10-19`
+ */
+function boxWeekOf(box: Box): string {
+    return mondayOf(box.pushed[0]?.day ?? box.day);
+}
+
+/**
  * Makes the group of a box of a type with groups in its row, see the top of this file: its group, like `Group 03`,
  * `⇄` beside it while it goes to another group than mine; of an open box to come a picker, its list the groups meeting
  * in its week, each by its weekday, times and room, mine marked, whose session is not over yet, a pick moving only
  * this box to the session of that group, see `weekMove` in `reader/course.ts`; of any other box its group grey,
  * as the line of the picker; an empty place for a box without group.
- * - `week`: Monday of the week of the box.
- * - `now`: Now in milliseconds.
- * - `meeting`: The groups meeting in that week, each with its session, the earliest first.
+ * - `meeting`: The groups meeting in the week of the box, each with its session not over yet, the earliest first.
  * - `other`: `⇄` while it goes to another group than mine, none else.
  * - `picker`: The picker.
  *
@@ -284,14 +344,8 @@ function stateOf(box: Box): HTMLElement {
  * @returns The picker, its group, or an empty place
  */
 function weekPickOf(box: Box, mine: string): HTMLElement {
-    const week: string = mondayOf(box.day);
-    const now: number = Date.now();
-    const meeting: [Group, Session][] = groupsOf(box.type).flatMap((group: Group): [Group, Session][] => group.sessions
-        .filter((session: Session): boolean => mondayOf(dayOf(new Date(session.start))) === week
-            && Date.parse(session.start) + session.minutes * 60 * 1000 > now)
-        .map((session: Session): [Group, Session] => [group, session]))
-        .sort((first: [Group, Session], second: [Group, Session]): number =>
-            first[1].start.localeCompare(second[1].start));
+    const meeting: [Group, Session][] = meetingsOf(box.type, mondayOf(box.day))
+        .filter(([, session]: [Group, Session]): boolean => !overOf(session));
     const other: HTMLElement[] = box.group !== "" && box.group !== mine ? [elementOf("span", "course-other", "⇄")] : [];
     if (meeting.length === 0 || box.state !== "open" || !box.editable || box.pushed.length > 0
         || box.day < calendarTodayOf()) {
@@ -438,38 +492,207 @@ function rowsOf(type: string, boxes: Box[], mine: string): HTMLElement[] {
 }
 
 /**
- * Makes the table of the groups of a type, see the top of this file, as the university lists them: per group
- * its weekday, first day, start, end, group, room short with its link, see {@link roomOf}, tutor, empty while
- * unknown, and the days it leaves out.
- * - `table`: The table, a grid.
- * - `slot`: The one slot of a group.
- * - `room`: Its room.
+ * Gives the number of a week as the calendar counts it, ISO 8601: the week whose Thursday is the first of its year
+ * is week 1, so the last days of December may belong to week 1 of the year after.
+ * - `thursday`: The Thursday of the week, whose year the week belongs to.
+ * - `year`, `month`, `date`: The Thursday's parts.
+ * - `days`: Days from the first of January to that Thursday.
  *
- * @param groups - The groups, by group
- * @returns The table
+ * @param monday - The Monday of the week, like `2026-11-02`
+ * @returns Its number, like 45
  */
-function groupsTableOf(groups: Group[]): HTMLElement {
-    const table: HTMLElement = elementOf("div", "course-groups", "");
-    table.append(...["Day", "First date", "Start", "End", "Group", "Room", "Tutor", "Except"]
-        .map((name: string): HTMLElement => elementOf("span", "course-groups-name", name)));
-    groups.forEach((group: Group): void => {
-        const slot: Slot = group.rule.slots[0];
-        const room: HTMLElement = elementOf("span", "", "");
-        room.append(...whereLinkedOf("Skill", "", roomOf(group.rule.location), group.rule.locationLink,
-            group.rule.online, group.rule.onlineLink));
-        table.append(
-            elementOf("span", "", weekdayNameOf(slot.weekday, false)),
-            elementOf("span", "", dateTextOf(group.rule.first)),
-            elementOf("span", "", slot.start),
-            elementOf("span", "", slot.end),
-            elementOf("span", "", group.rule.group),
-            room,
-            elementOf("span", "", group.rule.attendees.map((attendee: Attendee): string => attendee.name).join(", ")),
-            elementOf("span", "course-groups-except",
-                group.rule.excepts.map((day: string): string => dateTextOf(day).slice(0, 6)).join(", ")),
-        );
+function weekNumberOf(monday: string): number {
+    const thursday: string = dayAdd(monday, 3);
+    const [year, month, date]: number[] = thursday.split("-").map(Number);
+    const days: number = (Date.UTC(year, month - 1, date) - Date.UTC(year, 0, 1)) / (24 * 60 * 60 * 1000);
+    return Math.floor(days / 7) + 1;
+}
+
+/**
+ * Writes the days of a week, its first and last day, the dash a space from either, its year once at the end, or at both
+ * when the week runs into the next year.
+ * - `sunday`: Its last day.
+ *
+ * @param monday - The Monday of the week, like `2026-11-02`
+ * @returns Days like `02.11. – 08.11.2026`, or `28.12.2026 – 03.01.2027`
+ */
+function daysTextOf(monday: string): string {
+    const sunday: string = dayAdd(monday, 6);
+    const first: string = monday.slice(0, 4) === sunday.slice(0, 4) ? dateTextOf(monday).slice(0, 6)
+        : dateTextOf(monday);
+    return `${first} – ${dateTextOf(sunday)}`;
+}
+
+/**
+ * Gives the box of a type in a week, see {@link boxWeekOf}, one done before an open one, one skipped and one
+ * the university cancelled last, see {@link stateOrder}.
+ * - `rank`: Gives the place of a box in that order, any other state after them.
+ *
+ * @param type - Type, like `TU`
+ * @param week - Monday of the week, like `2026-10-19`
+ * @returns The box, `undefined` for none
+ */
+function weekBoxOf(type: string, week: string): Box | undefined {
+    const rank: (box: Box) => number = (box: Box): number =>
+        stateOrder.includes(box.state) ? stateOrder.indexOf(box.state) : stateOrder.length;
+    return (shown?.boxes ?? []).filter((box: Box): boolean => box.type === type && boxWeekOf(box) === week)
+        .sort((first: Box, second: Box): number => rank(first) - rank(second))[0];
+}
+
+/**
+ * Gives the group I was at last before a week: that of the last box of the type done with a group before it.
+ *
+ * @param type - Type, like `TU`
+ * @param week - Monday of the week, like `2026-10-19`
+ * @returns The group, like `03`, empty for none
+ */
+function lastGroupOf(type: string, week: string): string {
+    return (shown?.boxes ?? []).filter((box: Box): boolean => box.type === type && box.state === "done"
+        && box.group !== "" && boxWeekOf(box) < week).at(-1)?.group ?? "";
+}
+
+/**
+ * Gives the session of a group among the sessions of a week, on a day when one is given, else its first.
+ * - `own`: The sessions of the group.
+ *
+ * @param meetings - The sessions of the week with their groups
+ * @param group - The group, like `04`, empty for none
+ * @param day - The day, like `2026-11-06`, empty for any
+ * @returns The session, `undefined` for none
+ */
+function sessionOf(meetings: [Group, Session][], group: string, day: string): Session | undefined {
+    const own: Session[] = meetings.filter(([one]: [Group, Session]): boolean => group !== "" && one.rule.group === group)
+        .map(([, session]: [Group, Session]): Session => session);
+    return own.find((session: Session): boolean => dayOf(new Date(session.start)) === day) ?? own[0];
+}
+
+/**
+ * Makes the row of a session of a group in the week of the groups, see the top of this file: its circle, its day,
+ * grey its times, its room or its platform online, a link where it has one, and its tutor, then its group, then
+ * what stands at its right; marked while I go to it, grey once over; a click picks it for its week, but in a week
+ * logged or cancelled by the university, and on the session of an open box, which it goes to already.
+ * - `start`, `end`: Its start and end.
+ * - `fixed`: Whether a click does nothing.
+ * - `row`: The row.
+ * - `meta`: Its times, its room and its tutor, apart by middle dots.
+ * - `tutor`: Its tutor, by name.
+ * - `parts`: Its times, its room and its tutor, each its parts, none left out.
+ * - `right`: What stands at its right: the `⋯` of the open box it goes to, the state of the box it went to or was
+ *   skipped or cancelled at, see {@link stateOf}, else nothing.
+ *
+ * @param type - Type of the group, like `TU`
+ * @param group - The group
+ * @param session - Its session
+ * @param box - The box of the week, `undefined` for none
+ * @param marked - Whether it is the session I go to
+ * @param own - Whether it is the session the box of the week stands at
+ * @returns The row
+ */
+function sessionRowOf(type: string, group: Group, session: Session, box: Box | undefined, marked: boolean,
+                      own: boolean): HTMLElement {
+    const start: Date = new Date(session.start);
+    const end: Date = new Date(start.getTime() + session.minutes * 60 * 1000);
+    const fixed: boolean = box !== undefined && (box.state === "done" || box.state === "university"
+        || (marked && box.state === "open"));
+    const row: HTMLElement = elementOf("div", "course-row course-session", "");
+    const meta: HTMLElement = elementOf("span", "course-meta", "");
+    const tutor: string = group.rule.attendees.map((attendee: Attendee): string => attendee.name).join(", ");
+    let right: HTMLElement = elementOf("span", "", "");
+    if (box !== undefined && marked && box.state === "open")
+        right = actionsOf(box);
+    else if (box !== undefined && own && box.state !== "open" && stateOrder.includes(box.state))
+        right = stateOf(box);
+    const parts: (string | Node)[][] = [
+        [`${timeOf(start)} – ${timeOf(end)}`],
+        whereLinkedOf("Skill", "", roomOf(group.rule.location), group.rule.locationLink, group.rule.online,
+            group.rule.onlineLink),
+        tutor === "" ? [] : [tutor],
+    ].filter((part: (string | Node)[]): boolean => part.length > 0);
+    parts.forEach((part: (string | Node)[], index: number): void => {
+        const span: HTMLElement = elementOf("span", index === 0 ? "" : "entry-parted", "");
+        span.append(...part);
+        meta.append(span);
     });
-    return table;
+    meta.querySelector("a")?.addEventListener("click", (event: MouseEvent): void => event.stopPropagation());
+    row.classList.toggle("course-on", marked);
+    row.classList.toggle("course-over", overOf(session));
+    row.classList.toggle("course-fixed", fixed);
+    row.append(
+        elementOf("span", "course-ring", ""),
+        elementOf("span", "course-day", dayTextOf(dayOf(start), true)),
+        meta,
+        elementOf("span", "course-group", `Group ${group.rule.group}`),
+        elementOf("span", "course-mark", ""),
+        right,
+    );
+    if (!fixed)
+        row.addEventListener("click", (): void => act((): Promise<null> => courseSend<null>("/api/course/pick",
+            { module: module, type: type, group: group.rule.group, start: session.start })));
+    return row;
+}
+
+/**
+ * Makes the line of the week of the groups of a type, see the top of this file: its number and its days between
+ * the arrows to the week before and after, then the icon back to this week, off on this week; each shows the card anew.
+ * - `shift`: Weeks after this one the card shows.
+ * - `line`: The line.
+ * - `buttonOf`: Makes a button with its icon and its word as tooltip, which shows the card some weeks after this one.
+ *
+ * @param type - Type, like `TU`
+ * @param week - Monday of the week, like `2026-10-19`
+ * @returns The line
+ */
+function weekLineOf(type: string, week: string): HTMLElement {
+    const shift: number = weeks.get(type) ?? 0;
+    const line: HTMLElement = elementOf("div", "course-week", "");
+    const buttonOf: (icon: IconNode, word: string, to: number) => HTMLButtonElement =
+        (icon: IconNode, word: string, to: number): HTMLButtonElement => {
+            const button: HTMLButtonElement = document.createElement("button");
+            button.type = "button";
+            iconPut(button, icon, word);
+            button.addEventListener("click", (): void => {
+                weeks.set(type, to);
+                cardsShow();
+            });
+            return button;
+        };
+    const today: HTMLButtonElement = buttonOf(CalendarCheck, "Back to this week", 0);
+    today.disabled = shift === 0;
+    line.append(buttonOf(ChevronLeft, "Week before", shift - 1),
+        elementOf("span", "", `Week ${weekNumberOf(week)} · ${daysTextOf(week)}`),
+        buttonOf(ChevronRight, "Week after", shift + 1), today);
+    return line;
+}
+
+/**
+ * Makes the week of the groups of a type, see the top of this file: its line, see {@link weekLineOf}, then a row
+ * per session of its groups in that week, see {@link sessionRowOf}, or `No group meets this week`.
+ * - `week`: Monday of the week shown.
+ * - `meetings`: Its sessions with their groups.
+ * - `box`: The box of the week, see {@link weekBoxOf}, `undefined` for none.
+ * - `own`: The session the box stands at, `undefined` for none.
+ * - `marked`: The session I go to: that of an open or logged box, in a week without box that of the group I was
+ *   at last, see {@link lastGroupOf}; none for a box skipped or cancelled by the university.
+ *
+ * @param type - Type, like `TU`
+ * @returns The line and the rows
+ */
+function groupWeekOf(type: string): HTMLElement[] {
+    const week: string = dayAdd(mondayOf(calendarTodayOf()), 7 * (weeks.get(type) ?? 0));
+    const meetings: [Group, Session][] = meetingsOf(type, week);
+    const box: Box | undefined = weekBoxOf(type, week);
+    const own: Session | undefined = box === undefined ? undefined : sessionOf(meetings, box.group, box.day);
+    let marked: Session | undefined = undefined;
+    if (box === undefined)
+        marked = sessionOf(meetings, lastGroupOf(type, week), "");
+    else if (box.state === "open" || box.state === "done")
+        marked = own;
+    return [
+        weekLineOf(type, week),
+        ...(meetings.length === 0 ? [elementOf("p", "course-none", "No group meets this week")]
+            : meetings.map(([group, session]: [Group, Session]): HTMLElement =>
+                sessionRowOf(type, group, session, box, session === marked, session === own))),
+    ];
 }
 
 /**
@@ -541,7 +764,7 @@ function headOf(type: string, series: Series | undefined): HTMLElement {
 /**
  * Makes the card of a type, see the top of this file: its heading, see {@link headOf}, below it the folder of its
  * material of the semester, while it exists, then its rows, see {@link rowsOf}, and for a type with groups the folded
- * line of its groups with their table, see {@link groupsTableOf}.
+ * line of its groups with their week, see {@link groupWeekOf}.
  * - `boxes`: Its boxes.
  * - `series`: Its series, `undefined` for none.
  * - `groups`: Its groups.
@@ -563,7 +786,7 @@ function cardOf(type: string): HTMLElement {
     body.append(...rowsOf(type, boxes, series?.rule.group ?? ""));
     if (groups.length > 0)
         body.append(foldOf(type, "groups", [`${groups.length} groups`]),
-            ...(opened.has(`${type} groups`) ? [groupsTableOf(groups)] : []));
+            ...(opened.has(`${type} groups`) ? groupWeekOf(type) : []));
     card.append(body);
     return card;
 }

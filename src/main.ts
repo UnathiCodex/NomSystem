@@ -4,8 +4,7 @@
  * Opens one area of the life system beside the areas named in `index.html`, each shown by its icon there,
  * by the address:
  * the scripts, my notes of my modules in the editor, always writing, at `/scripts`, my new system at `/plannings`,
- * the food area at `/food`, the sport area at `/sport`, the tutorials at `/tutor`, the editor of the files of my new
- * system at `/edit`, the day everywhere else;
+ * the food area at `/food`, the sport area at `/sport`, the editor of the files of my new system at `/edit`, the day everywhere else;
  * older addresses of the scripts, `/notes` and a note at `/edit?path=…`, open them too and become `/scripts`.
  * The editor shows a file of my new system under the link of `/plannings`, which opens the editor without a file,
  * and a note of my modules under that of `/scripts`, see `editor/editor.ts`.
@@ -17,14 +16,11 @@
  * every device tells the reader what it shows of the page, see {@link deviceReport}.
  *
  * - `vite/client`: Vite types for the type checker only, for `?raw` and stylesheets.
- * - `./day/day.html?raw`, `./food/food.html?raw`, `./sport/sport.html?raw`, `./tutor/tutor.html?raw`,
- *   `./editor/editor.html?raw`: Html of day, food, sport, tutorials and editor as text, packed into the built code
- *   by Vite.
+ * - `./day/day.html?raw`, `./food/food.html?raw`, `./sport/sport.html?raw`, `./editor/editor.html?raw`:
+ *   Html of day, food, sport and editor as text, packed into the built code by Vite.
  * - `./day/day.ts`: Shows the log of a day, my one calendar, with the boxes of its plan beside it.
  * - `./food/food.ts`: Shows what I ate on a day with its totals, and my foods.
  * - `./sport/sport.ts`: Shows my sessions of sport on a day with what they burned, and my workouts and exercises.
- * - `./tutor/tutor.ts`: Shows every session of every group of my modules in a week, the one I go to marked,
- *   and picks one.
  * - `./editor/editor.ts`: Edits a note of my modules or a Markdown file of my new system as its text, its Markdown
  *   shown as in Obsidian's live preview, saved exactly as edited, with the tree of its root on the left.
  * - `./phone.ts`: Tells a phone, which opens the day everywhere.
@@ -36,7 +32,6 @@
 import dayHtml from "./day/day.html?raw";
 import foodHtml from "./food/food.html?raw";
 import sportHtml from "./sport/sport.html?raw";
-import tutorHtml from "./tutor/tutor.html?raw";
 import editorHtml from "./editor/editor.html?raw";
 import { phone } from "./phone.ts";
 
@@ -63,7 +58,7 @@ let deviceWait: number = 0;
 const address: URLSearchParams = new URLSearchParams(location.search);
 if (location.pathname === "/notes" || (location.pathname === "/edit" && address.has("path")))
     history.replaceState(null, "", `/scripts${location.search}${location.hash}`);
-const areas: string[] = phone ? [] : ["/scripts", "/plannings", "/food", "/sport", "/tutor", "/edit"];
+const areas: string[] = phone ? [] : ["/scripts", "/plannings", "/food", "/sport", "/edit"];
 const area: string = areas.includes(location.pathname) ? location.pathname : "/";
 const marked: string = area === "/edit" ? "/plannings" : area;
 document.querySelector(`.areas a[href="${marked}"]`)?.setAttribute("aria-current", "page");
@@ -81,10 +76,6 @@ if (area === "/food") {
     const sport: { sportStart: () => void } = await import("./sport/sport.ts");
     document.body.insertAdjacentHTML("beforeend", sportHtml);
     sport.sportStart();
-} else if (area === "/tutor") {
-    const tutor: { tutorStart: () => void } = await import("./tutor/tutor.ts");
-    document.body.insertAdjacentHTML("beforeend", tutorHtml);
-    tutor.tutorStart();
 } else if (area === "/scripts" || area === "/edit" || area === "/plannings") {
     const editor: { editorStart: () => Promise<void> } = await import("./editor/editor.ts");
     document.body.insertAdjacentHTML("beforeend", editorHtml);

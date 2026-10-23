@@ -39,7 +39,7 @@
  *   its sessions to come become one;
  * - one week's tutorial moved to another group, see {@link weekMove}: its day, its time, its length, its place,
  *   its tutor and its group, its number kept;
- * - one session of a group picked for its week in the tutorials view, see {@link weekPick}: the box of its week goes
+ * - one session of a group picked for its week in the card of its type, see {@link weekPick}: the box of its week goes
  *   to it as by {@link weekMove}, a week without box gets one, and with no series from that week on yet the sessions
  *   of the group from then on become one;
  * - a tutorial logged, see {@link groupFollow}: every later week goes to the group I was at, so a week I pick nothing
@@ -253,7 +253,7 @@ export type WeekChange = {
 };
 
 /**
- * One session of a group picked for its week, as the tutorials view sends it, see {@link weekPick}.
+ * One session of a group picked for its week, as the card of its type sends it, see {@link weekPick}.
  *
  * - `module`: Name of the folder of the module, like `IN0009_BetriebssystemeSystemsoftware`.
  * - `type`: Type of the group, like `TU`.
@@ -450,7 +450,7 @@ function weekdayOf(day: string): number {
  * @param day - Day like `2026-10-22`
  * @returns Day like `2026-10-19`
  */
-export function mondayOf(day: string): string {
+function mondayOf(day: string): string {
     return dayAdd(day, 1 - weekdayOf(day));
 }
 
@@ -526,7 +526,7 @@ function datedOf(box: Box): Dated {
  * @param box - The box
  * @returns Day like `2026-10-19`
  */
-export function weekOf(box: Box): string {
+function weekOf(box: Box): string {
     return mondayOf(datedOf(box).day);
 }
 
@@ -717,7 +717,7 @@ function folderCheck(module: string): void {
  * @param semester - Semester, like `2026W`
  * @returns Its boxes
  */
-export function courseBoxesRead(code: string, semester: string): Box[] {
+function courseBoxesRead(code: string, semester: string): Box[] {
     return skillBoxesRead(dayAdd(semesterBeginOf(semester), 366))
         .filter((box: Box): boolean => box.module === code
             && (box.semester === "" ? semesterOf(box.day) : box.semester) === semester)
@@ -739,7 +739,7 @@ export function courseBoxesRead(code: string, semester: string): Box[] {
  * @param semester - Semester, like `2026W`
  * @returns Its groups, by type and group
  */
-export function groupsRead(module: string, semester: string): Group[] {
+function groupsRead(module: string, semester: string): Group[] {
     const file: string = skillFileOf(module, groupsEnding);
     const begin: string = semesterBeginOf(semester);
     const sessions: Entry[] = entriesRead([{ folder: dirname(file), ending: basename(file) }],
@@ -1393,7 +1393,7 @@ export function weekMove(change: WeekChange): void {
 }
 
 /**
- * Picks one session of a group for its week, as the tutorials view sends it, see the top of this file: a box I skipped
+ * Picks one session of a group for its week, as the card of its type sends it, see the top of this file: a box I skipped
  * that week is open again, one a change may change, see {@link changeable}; then the open box of the week goes
  * to the session, its day, its time, its length, its room,
  * its tutor and its group, picked by hand, its number kept. A week without box gets one, picked by hand, and with
