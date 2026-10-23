@@ -144,6 +144,8 @@ export type BoxState = "open" | "done" | "dropped" | "university" | "pushed";
  *   from it gets too; none for none.
  * - `number`: Its number in its series, like `3`, `NONE` for one the university cancelled, empty for none.
  * - `group`: The group of a tutorial whose session it goes to, like `03`, see `../editor/course.ts`; empty for none.
+ * - `picked`: Whether I picked its group by hand for its week, see `../tutor/tutor.ts`, so the later weeks that follow
+ *   the group I was at last leave it as it is.
  * - `moved`: For a box shown greyed on a day it was pushed from, where it went, see {@link Moved};
  *   `null` for any other.
  */
@@ -177,6 +179,7 @@ export type Box = {
     chapters: string[];
     number: string;
     group: string;
+    picked: boolean;
     moved: Moved | null;
 };
 

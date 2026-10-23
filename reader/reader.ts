@@ -20,8 +20,9 @@
  * - `./boxes.ts`: Reads the plan of days as boxes with their birthdays and holidays, and the boxes carried along
  *   to a day, adds, changes and removes boxes, pushes them to the next day and drops them
  * - `./course.ts`: Reads the course of a module, its boxes, its series and the groups of its tutorials, changes
- *   a series by its rule, makes a group mine, moves one week's tutorial to another group, writes and removes groups,
- *   and adds a new box once per date of its weekly days
+ *   a series by its rule, makes a group mine, moves one week's tutorial to another group, picks one session of a group
+ *   for its week, writes and removes groups, and adds a new box once per date of its weekly days
+ * - `./tutor.ts`: Reads the tutorials of a week, every session of every group of my modules with the box of that week
  * - `./gifts.ts`: Writes my gift idea for a birthday or holiday as its `DESCRIPTION` into `Birthdays.ics`
  *   or `Holidays.ics`
  * - `./note.ts`: Reads the daily notes, and writes my gratitude and my points about the day into them
@@ -61,7 +62,10 @@ import {
 import {
     boxAdd, boxDelete, boxDrop, boxEdit, boxesCarried, boxesRead, boxPush, boxSubmit, boxUniversity, boxUnpush,
 } from "./boxes.ts";
-import { courseRead, groupMine, groupPut, groupRemove, repeatApply, seriesApply, weekMove } from "./course.ts";
+import {
+    courseRead, groupMine, groupPut, groupRemove, repeatApply, seriesApply, weekMove, weekPick,
+} from "./course.ts";
+import { tutorWeekRead } from "./tutor.ts";
 import { giftWrite } from "./gifts.ts";
 import { noteRead, notesStart, sectionsRead, sectionWrite } from "./note.ts";
 import { categoriesRead, wayEndRead } from "./categories.ts";
@@ -92,7 +96,7 @@ import type { ViteDevServer } from "vite";
 import type { BoxLogged, EntryChange, EntryMoved, EntryNew } from "./day.ts";
 import type { BoxChange, BoxNew } from "./boxes.ts";
 import type { Attendee } from "./calendar.ts";
-import type { GroupNew, MineChange, Planned, RepeatChange, SeriesChange, WeekChange } from "./course.ts";
+import type { GroupNew, MineChange, PickChange, Planned, RepeatChange, SeriesChange, WeekChange } from "./course.ts";
 import type { Gift } from "./gifts.ts";
 import type { SectionNew } from "./note.ts";
 import type { Place, PlaceChanged, Platform, PlatformChanged } from "./places.ts";
@@ -215,6 +219,10 @@ function fileSend(response: ServerResponse, file: NotesFile, name: string): void
  *   of the same type, group and semester, and sends its identifier.
  * - `DELETE /api/course/groups?module=…&type=…&group=…&semester=…`: Removes the group from the file of the groups
  *   of the module.
+ * - `GET /api/tutor/week?date=…`: Sends the tutorials of the week of the date, every session of every group of my
+ *   modules with the box of that week and the group I was at last, see `tutor.ts`.
+ * - `POST /api/tutor/pick`: Picks the session of the body, its module, type, group and start, for its week, the box
+ *   of that week going to it, see `weekPick` in `course.ts`.
  * - `GET /api/notes/modules`: Sends the modules of the semester with their chapters and notes.
  * - `GET /api/notes/note?path=…`: Sends a note with the files its links lead to.
  * - `GET /api/notes/file?path=…`: Sends a file of my modules, like an image of a note.
@@ -449,6 +457,13 @@ async function requestHandle(page: ViteDevServer, request: IncomingMessage,
             module: url.searchParams.get("module") ?? "", type: url.searchParams.get("type") ?? "",
             group: url.searchParams.get("group") ?? "", semester: url.searchParams.get("semester") ?? "",
         });
+        responseSend(response, 200, null);
+
+    } else if (request.method === "GET" && url.pathname === "/api/tutor/week") {
+        responseSend(response, 200, tutorWeekRead(date));
+
+    } else if (request.method === "POST" && url.pathname === "/api/tutor/pick") {
+        weekPick(await json(request) as PickChange);
         responseSend(response, 200, null);
 
     } else if (request.method === "POST" && url.pathname === "/api/devices") {

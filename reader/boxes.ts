@@ -140,6 +140,7 @@ export const numberedTypes: string[] = ["VO", "UE", "ZU", "TU", "HU"];
  *   empty for none.
  * - `group`: The group of a tutorial whose session it goes to, its `X-GROUP`, like `03`, see `course.ts`;
  *   empty for none.
+ * - `picked`: Whether I picked its group by hand for its week, its `X-PICKED:TRUE`, see `weekPick` in `course.ts`.
  * - `moved`: For a box shown greyed on a day it was pushed from, where it went, see {@link Moved};
  *   `null` for any other.
  */
@@ -159,6 +160,7 @@ export type Box = EntryTexts & {
     chapters: string[];
     number: string;
     group: string;
+    picked: boolean;
     moved: Moved | null;
 };
 
@@ -407,6 +409,7 @@ function boxOf(entry: Entry, logs: Map<string, Entry>): Box {
         chapters: chaptersOf(entry),
         number: entry.number,
         group: entry.group,
+        picked: entry.picked,
         moved: null,
     };
 }

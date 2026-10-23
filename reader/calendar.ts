@@ -111,6 +111,8 @@ import type { CalendarSource } from "./sources.ts";
  * - `group`: Group of a tutorial, its `X-GROUP`, like `03`, as TUMonline names it: of a group of the course
  *   of a module, and of the box of a tutorial, which goes to the session of that group, see `course.ts`;
  *   empty for none.
+ * - `picked`: Whether I picked the group of the box of a tutorial by hand for its week, its `X-PICKED:TRUE`,
+ *   so it stays when the later weeks follow the group I was at last, see `groupFollow` in `course.ts`.
  * - `written`: When the entry was written, its `DTSTAMP`, as ISO instant, which the reader sets once as it adds an entry;
  *   empty when the event has none.
  * - `version`: Fingerprint of the entry as its file holds it, the SHA-256 of its lines as read, in hexadecimal digits,
@@ -165,6 +167,7 @@ export type Entry = {
     pushed: Push[];
     number: string;
     group: string;
+    picked: boolean;
     written: string;
     version: string;
     editable: boolean;
@@ -373,8 +376,8 @@ const zone: ICAL.Timezone = new ICAL.Timezone(zoneComponent);
  * what, `CATEGORIES`, `SUMMARY`, `STATUS`; where, `LOCATION`, where a way started,
  * `X-FROM`, and online, `X-ONLINE`; with whom, `ATTENDEE`; more about it, `DESCRIPTION`, `ATTACH`, `RELATED-TO`,
  * the box of the plan a log entry did, `X-PLANNED`, and the pushes of a box, `X-PUSHED`; then the lines of each kind
- * of entry: a box of a course, `X-NUMBER` and `X-GROUP`; a meal, `X-FOOD` and `X-COOKED`; sport, `X-WORKOUT`,
- * `X-EXERCISE`, `X-VIDEO` and `X-PAIN`; a skill entry, `X-TUTOR`, `X-SEMESTER`, `X-CHAPTER`, `X-ATTEMPT`
+ * of entry: a box of a course, `X-NUMBER`, `X-GROUP` and `X-PICKED`; a meal, `X-FOOD` and `X-COOKED`; sport,
+ * `X-WORKOUT`, `X-EXERCISE`, `X-VIDEO` and `X-PAIN`; a skill entry, `X-TUTOR`, `X-SEMESTER`, `X-CHAPTER`, `X-ATTEMPT`
  * and `X-ROUND`. Every other line comes after them, in the order it had, and the lines of a property
  * that repeats, like `X-FOOD`, `ATTENDEE` or `EXDATE`, stay together in the order they had.
  */
@@ -384,7 +387,7 @@ const lineOrder: string[] = [
     "CATEGORIES", "SUMMARY", "STATUS",
     "LOCATION", "X-FROM", "X-ONLINE", "ATTENDEE",
     "DESCRIPTION", "ATTACH", "RELATED-TO", "X-PLANNED", "X-PUSHED",
-    "X-NUMBER", "X-GROUP",
+    "X-NUMBER", "X-GROUP", "X-PICKED",
     "X-FOOD", "X-COOKED",
     "X-WORKOUT", "X-EXERCISE", "X-VIDEO", "X-PAIN",
     "X-TUTOR", "X-SEMESTER", "X-CHAPTER", "X-ATTEMPT", "X-ROUND",
@@ -410,7 +413,7 @@ ICAL.design.icalendar.param.altrep = { multiValue: ",", multiValueSeparateDQuote
  */
 const ownTexts: string[] = [
     "x-from", "x-semester", "x-chapter", "x-attempt", "x-round", "x-tutor", "x-food", "x-cooked", "x-pain",
-    "x-workout", "x-exercise", "x-video", "x-number", "x-group", "x-planned", "x-online",
+    "x-workout", "x-exercise", "x-video", "x-number", "x-group", "x-picked", "x-planned", "x-online",
 ];
 ownTexts.forEach((name: string): void => {
     ICAL.design.icalendar.property[name] = { defaultType: "text" };
@@ -788,6 +791,7 @@ function entryOf(event: ICAL.Event, start: ICAL.Time, end: ICAL.Time, writable: 
             pushOf(property, start.isDate ? null : berlinOf(start.toJSDate()))),
         number: String(event.component.getFirstPropertyValue("x-number") ?? ""),
         group: String(event.component.getFirstPropertyValue("x-group") ?? ""),
+        picked: String(event.component.getFirstPropertyValue("x-picked") ?? "").toUpperCase() === "TRUE",
         written: stamp instanceof ICAL.Time ? stamp.toJSDate().toISOString() : "",
         version: createHash("sha256").update(event.component.toString()).digest("hex"),
         editable: writable && (todo || !start.isDate),

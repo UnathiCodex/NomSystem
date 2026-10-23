@@ -22,7 +22,8 @@
  * in `calendar.ts`, written once when the log entry is added, also when a box is logged through the dialog,
  * so the box shows as done, with expected and real time, and offers no second log; removing the log entry opens
  * the box again, and so does one click on the check of the done box, see {@link boxUndo}. An older log entry points
- * to its box with `X-PLANNED:<UID of the box>`, which is still read.
+ * to its box with `X-PLANNED:<UID of the box>`, which is still read. A tutorial of a group logged takes the later
+ * weeks along to that group, see `groupFollow` in `course.ts`.
  *
  * The dialog of a new box takes the median of how long the last entries like it really lasted as its length,
  * see {@link realMinutesRead}.
@@ -41,6 +42,7 @@
  *
  * - `./boxes.ts`: Finds a box of the plan, an open one, and marks a box done or open again.
  * - `./calendar.ts`: Reads `.ics` files into entries, appends, changes and removes their events.
+ * - `./course.ts`: Lets the later weeks of a tutorial follow the group I logged.
  * - `./categories.ts`: Tells whether the fields of an entry fit its category, and names the category of skill entries.
  * - `./documents.ts`: Writes what a skill entry was, linking the folder of its skill, gives its chapters,
  *   and the log an entry belongs into.
@@ -55,6 +57,7 @@ import {
     berlinDateOf, entriesOnceRead, entriesRead, entryAppend, entryChange, entryFind, entryLookup, entryRemove,
     propertiesPut, sportIcsOf,
 } from "./calendar.ts";
+import { groupFollow } from "./course.ts";
 import { attendeesAllow, categoryAllows, semesterFor, skillName } from "./categories.ts";
 import { calendarFileOf, chaptersOf, documentLinksOf, titleOf } from "./documents.ts";
 import { foodLineAllows, foodName, mealsOf, mealTitleOf } from "./food.ts";
@@ -445,7 +448,7 @@ export function realMinutesRead(category: string, title: string, module: string,
 /**
  * Adds an entry to the log, into the log it belongs into, see {@link logFileOf}, a meal with one line `X-FOOD`
  * per food, see {@link fieldsCheck}; an entry logged from a box with its `RELATED-TO`, after which the box is done,
- * see `boxDone` in `boxes.ts`;
+ * see `boxDone` in `boxes.ts`, and the later weeks of a tutorial follow its group, see `groupFollow` in `course.ts`;
  * a long neck session with my pain as `X-PAIN`, see {@link painCheck}; a meal drawn from a cooking with its
  * `X-COOKED`, see {@link cookedCheck}; a session of sport with its workout, exercises and videos,
  * see {@link sportCheck}.
@@ -487,8 +490,10 @@ export function entryAdd(entry: EntryNew, id?: string): string {
     own.push(...exercises.map((line: string): [string, string] => ["x-exercise", sportIcsOf(line, false)]),
         ...videos.map((line: string): [string, string] => ["x-video", sportIcsOf(line, true)]));
     const added: string = entryAppend(logFileOf(fields), fields, own, id);
-    if (entry.planned !== "")
+    if (entry.planned !== "") {
         boxDone(entry.planned);
+        groupFollow(entry.planned);
+    }
     cookedShare(cooked);
     return added;
 }
@@ -498,7 +503,8 @@ export function entryAdd(entry: EntryNew, id?: string): string {
  * entry
  * with its skill and type, written as the reader writes them, see `titleOf` in `documents.ts`, linking the folder
  * of its skill and of its material, or the web address I typed for the box, from the start to the end the day sends,
- * pointing to the box with `RELATED-TO`, after which the box is done, see `boxDone` in `boxes.ts`. Its note stays
+ * pointing to the box with `RELATED-TO`, after which the box is done, see `boxDone` in `boxes.ts`, and the later weeks
+ * of a tutorial follow its group, see `groupFollow` in `course.ts`. Its note stays
  * empty, since the note of a log entry is my diary note about what happened; a skill box hands on its links
  * to documents, like the slides of a lecture, see `documents.ts`, and its chapters as `X-CHAPTER`s, also those
  * whose folders an older box links; more chapters and documents a skill entry gets later in the dialog.
@@ -535,6 +541,7 @@ export function boxLog(logged: BoxLogged): string {
         ...(skill ? box.chapters : []).map((chapter: string): [string, string] => ["x-chapter", chapter]),
     ]);
     boxDone(box.id);
+    groupFollow(box.id);
     return id;
 }
 
