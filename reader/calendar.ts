@@ -9,7 +9,8 @@
  * or a `LOCATION` or an `ATTACH`, only points to more and is never the only place of a fact, since a folder may be
  * renamed or vanish; so a skill entry names its skill in its `SUMMARY` and its semester in its `X-SEMESTER`,
  * a place its label and address in its `LOCATION`, what I did online its platform in its `X-ONLINE`.
- * Writes only into the three folders of the new system, with times in Berlin time, every date and time in the form
+ * Writes only into the three folders of the new system, with times in Berlin time, those of the two hours around
+ * a change of the clocks in UTC, see {@link writtenOf}, every date and time in the form
  * of the iCalendar format, also in a property or a parameter of my own, like `20261026T130000Z` or `20261026`,
  * never like `2026-10-26T13:00:00.000Z`, and every duration so, like `PT25M`, never like `25`, see {@link sportIcsOf};
  * puts the lines of every entry it writes, new or changed, into one fixed
@@ -1387,6 +1388,23 @@ function berlinOf(instant: Date): ICAL.Time {
 }
 
 /**
+ * Turns an instant into the time the reader writes into a file: Berlin time, like
+ * `DTSTART;TZID=Europe/Berlin:20261025T013000`, but in UTC, like `DTSTART:20261025T003000Z`, for an instant whose
+ * Berlin time `ical.js` reads back as another instant, those of the two hours around a change of the clocks:
+ * 02:30 of 25.10.2026 comes twice, at 00:30 and at 01:30 UTC, and `ical.js` reads it as the second, while it writes
+ * 01:30 UTC as 03:30, so a sleep from 02:30 began an hour later and one until 02:30 ended an hour later;
+ * every reader of the format takes a time in UTC as the very instant.
+ * - `time`: The instant in Berlin time, see {@link berlinOf}.
+ *
+ * @param instant - A start, an end or a deadline
+ * @returns Time in {@link zoneName}, or in UTC where Berlin time would not read back as the instant
+ */
+function writtenOf(instant: Date): ICAL.Time {
+    const time: ICAL.Time = berlinOf(instant);
+    return time.toJSDate().getTime() === instant.getTime() ? time : ICAL.Time.fromJSDate(instant, true);
+}
+
+/**
  * Writes the date of an instant in Berlin time.
  *
  * @param instant - Start of an entry
@@ -1566,7 +1584,7 @@ function relatedOf(box: string): ICAL.Property {
  */
 function ownPropertyOf(name: string, value: string | Link | Date): ICAL.Property {
     if (value instanceof Date)
-        return propertyOf(name, berlinOf(value));
+        return propertyOf(name, writtenOf(value));
     if (name === "rrule" && typeof value === "string") {
         const rule: ICAL.Property = new ICAL.Property(name);
         rule.setValue(ICAL.Recur.fromString(value));
@@ -1642,8 +1660,8 @@ export function entryAppend(file: string, fields: EntryFields, own: [string, str
                             id: string = `${randomUUID()}@nomsystem`): string {
     writeCheck(file);
     const event: ICAL.Component = new ICAL.Component("vevent");
-    event.addProperty(propertyOf("dtstart", berlinOf(fields.start)));
-    event.addProperty(propertyOf("dtend", berlinOf(fields.end)));
+    event.addProperty(propertyOf("dtstart", writtenOf(fields.start)));
+    event.addProperty(propertyOf("dtend", writtenOf(fields.end)));
     event.addPropertyWithValue("dtstamp", ICAL.Time.fromJSDate(new Date(), true));
     event.addPropertyWithValue("uid", id);
     textsOf(fields)
@@ -1671,7 +1689,7 @@ export function entryAppend(file: string, fields: EntryFields, own: [string, str
  * @returns Value of its `DTSTART`
  */
 function todoStartOf(fields: TodoFields): ICAL.Time {
-    return fields.time === null ? ICAL.Time.fromDateString(fields.day) : berlinOf(fields.time);
+    return fields.time === null ? ICAL.Time.fromDateString(fields.day) : writtenOf(fields.time);
 }
 
 /**
@@ -1682,7 +1700,7 @@ function todoStartOf(fields: TodoFields): ICAL.Time {
  * @returns Value of its `DUE`
  */
 function deadlineTimeOf(deadline: string): ICAL.Time {
-    return /^\d{4}-\d{2}-\d{2}$/.test(deadline) ? ICAL.Time.fromDateString(deadline) : berlinOf(new Date(deadline));
+    return /^\d{4}-\d{2}-\d{2}$/.test(deadline) ? ICAL.Time.fromDateString(deadline) : writtenOf(new Date(deadline));
 }
 
 /**
@@ -1816,9 +1834,9 @@ export function entryChange(file: string, entry: Entry, fields: EntryFields, tar
 
     textsPut(event, entry, fields);
     if (fields.start.getTime() !== new Date(entry.start).getTime())
-        propertyPut(event, "dtstart", [berlinOf(fields.start)]);
+        propertyPut(event, "dtstart", [writtenOf(fields.start)]);
     if (fields.end.getTime() !== new Date(entry.end).getTime())
-        propertyPut(event, "dtend", [berlinOf(fields.end)]);
+        propertyPut(event, "dtend", [writtenOf(fields.end)]);
     componentWrite(file, text, place, event, target);
 }
 
@@ -1875,7 +1893,7 @@ export function propertiesPut(file: string, id: string, properties: [string, (st
     const event: string[] = text.lines.slice(...place);
     properties.forEach(([name, values]: [string, (string | Date | Link)[]]): void => propertyPut(event, name,
         values.map((value: string | Date | Link): string | ICAL.Time | Link =>
-            value instanceof Date ? berlinOf(value) : value)));
+            value instanceof Date ? writtenOf(value) : value)));
     componentWrite(file, text, place, event, file);
 }
 
