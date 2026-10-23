@@ -15,8 +15,7 @@
  * else the first, with its first chapter. Of my new system its folders stand right below, folders first,
  * all closed but those on the way to the file shown.
  * Of my new system a search filters the tree as I type, see {@link searchStart}; my modules have none, their chapter
- * is short enough to see, and the name of their root on top opens Today, what I learn today, see
- * `../editor/today.ts`.
+ * is short enough to see; the name of either root on top is no link.
  * Under the note shown stands its outline, as Obsidian's outline, see {@link outlineShow}; under a section its blocks
  * in the places of its round, see {@link roundListOf}; a click on the note shown folds them away, as a folder closes,
  * and a further click opens them again, see {@link outlineFold}.
@@ -627,7 +626,7 @@ export type TreeRoot = "NomSkillingmodules" | "NomManageplannings";
 
 /**
  * Loads one root of the tree from the reader and shows it, see the top of this file: its name as a heading,
- * of my modules a link to Today, then the pickers of module and chapter, see {@link pickerOf}, of my new system its
+ * then of my modules the pickers of module and chapter, see {@link pickerOf}, of my new system its
  * search, see {@link searchStart},
  * its folders or notes below, those of my new system loaded anew after every change of its files,
  * see {@link filesAgain}, the file or note shown marked, see {@link treeMark}; in the modules, while none is shown,
@@ -635,7 +634,6 @@ export type TreeRoot = "NomSkillingmodules" | "NomManageplannings";
  * else the first module, with its first chapter.
  * - `heading`: The name of the root on top.
  * - `search`: The search of my new system, below its name.
- * - `today`: Of my modules the name of the root as a link to Today.
  * - `modules`: Of my modules the modules, each with its chapters and notes, see {@link moduleNodeOf}.
  * - `choose`: Picks a module or a chapter: shows it, see {@link chapterShow};
  *   a module with the chapter of the note shown, if it holds the note, else with its first chapter.
@@ -656,6 +654,7 @@ export async function treeShow(tree: HTMLElement, root: TreeRoot, shown: string,
     const heading: HTMLHeadingElement = document.createElement("h2");
     heading.className = "tree-root";
     heading.textContent = root;
+    tree.classList.toggle("is-files", root === "NomManageplannings");
     if (root === "NomManageplannings") {
         const search: HTMLInputElement = document.createElement("input");
         const entries: HTMLElement[] = (await readerAsk<FileNode[]>("/api/edit/tree")).map(fileNodeOf);
@@ -667,13 +666,6 @@ export async function treeShow(tree: HTMLElement, root: TreeRoot, shown: string,
         });
         return;
     }
-
-    const today: HTMLAnchorElement = document.createElement("a");
-    today.className = "tree-root-link";
-    today.href = "/scripts";
-    today.title = "Today";
-    today.textContent = root;
-    heading.replaceChildren(today);
 
     const modules: HTMLDivElement[] = (await readerAsk<NotesModule[]>("/api/notes/modules")).map(moduleNodeOf);
     const choose: (choice: HTMLElement) => void = (choice: HTMLElement): void => {

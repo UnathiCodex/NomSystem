@@ -1,26 +1,12 @@
 /* One plain button `⋯` and its menu, see `menu.ts`, on the computer as on a phone */
-/* The button `⋯`: grey, without frame or ground, so it lies on what it belongs to, lighter under the pointer */
+/* The button `⋯`: an icon button, see `.icon-button` in `base.css`, so it lies on what it belongs to */
 .menu-more {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     width: 2.125rem;
     height: 2rem;
-    padding: 0;
-    border: 0;
-    border-radius: 999px;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
 }
 
-/* Under the pointer calm: the button `⋯` only lighter, as every quiet button, an item of its menu also on the faint
-   grey of a row of the tree under the pointer, `--row-over`, never the grey of what is picked */
-.menu-more:hover,
-.menu-item:hover {
-    color: var(--text-main);
-}
-
+/* An item of its menu under the pointer calm: on the faint grey of a row of the tree under the pointer, `--row-over`,
+   never the grey of what is picked */
 .menu-item:hover {
     background: var(--row-over);
 }

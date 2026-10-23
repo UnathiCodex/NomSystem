@@ -121,8 +121,8 @@
 }
 
 /* The water's tile one button, which logs a glass, over the whole tile, its name and value where every tile has them,
-   a grey lighter under the pointer, faded and off on a day still to come; the `−` at its right end, small,
-   plain and grey, which takes the last glass back, faded while there is none */
+   a grey lighter under the pointer, faded and off on a day still to come; the `−` at its right end, a small icon
+   button, see `.icon-button` in `../base.css`, which takes the last glass back, faded while there is none */
 .tracker-water {
     align-content: stretch;
     padding: 0;
@@ -161,14 +161,6 @@
     translate: 0 -50%;
     width: 1.5rem;
     height: 1.5rem;
-    border: 0;
-    background: none;
-    color: var(--text-muted);
-}
-
-.tracker-row .water-less:enabled:hover {
-    background: var(--chosen);
-    color: var(--text-main);
 }
 
 /* Phone: no trackers and no timer, since a phone shows only plan and log, see `../main.ts` */

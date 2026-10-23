@@ -254,7 +254,7 @@ function waterOf(calendar: Calendar, trackers: Trackers, day: string): HTMLEleme
     add.disabled = coming;
     add.addEventListener("click", (): void => send((): Promise<void> => glassAdd(calendar)));
     less.type = "button";
-    less.className = "chip-button water-less";
+    less.className = "icon-button chip-button water-less";
     less.append(iconOf(Minus));
     less.setAttribute("aria-label", "0.25 l less");
     less.disabled = coming || last === undefined;

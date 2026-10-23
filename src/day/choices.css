@@ -191,15 +191,11 @@
 }
 
 /* A line that adds, like a document to its chapter, the next chapter, a type or a meal: the one plus of every list,
-   see `.plus-quiet` in `base.css`, in the middle of its row; its grey, and lighter under the pointer, written again
-   here only because a line otherwise takes the colour of a value */
+   see `.plus-quiet` in `base.css`, in the middle of its row; its grey written again here only because a line
+   otherwise takes the colour of a value */
 .picker-line.plus-quiet {
     align-self: center;
     color: var(--text-muted);
-}
-
-.picker-line.plus-quiet:hover {
-    color: var(--text-main);
 }
 
 /* A value picked of a field of several values in its own row below the field, like a chapter or the name of the file

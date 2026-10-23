@@ -26,7 +26,8 @@
  *   a formula `$$…$$` being edited shows rendered below its TeX, as in Obsidian.
  * - Images `![[Image.svg|300]]` shown; tables, callouts `> [!note] Title`, code blocks and HTML blocks like `<table>`
  *   rendered as in the scripts view, those right below each other as one, as their text while the cursor is on one
- *   of their lines, as Obsidian shows a callout.
+ *   of their lines, as Obsidian shows a callout; a table opens whole over the file by the button at its top
+ *   right, to edit as a spreadsheet, see `./table.ts`.
  * - Spacers `⠀` (U+2800) and invisible characters like the soft hyphen blank, as in the scripts view; the spacer
  *   of a spacer line without room, so the cursor on it stands where its text will begin, see {@link paragraphLook}.
  * - The cursor never stands in what is hidden, so every key moves it where I see it, see {@link caretPlaceOf}.
@@ -36,7 +37,8 @@
  *   see {@link FoldWidget}; a solution, the section under `#### Solution`, comes folded, see {@link solutionsFold},
  *   so I try a task before I see its solution, but that of a worked Example, which I study whole; folded headings
  *   of a level stand close below each other as a list, see {@link spaceLook}.
- * A click on a rendered piece puts the cursor there, so it shows as text; while the editor is not focused,
+ * A click on a rendered piece puts the cursor there, so it shows as text, on a rendered block a double click, so
+ * a single one leaves it to scroll, see {@link BlockWidget}; while the editor is not focused,
  * like before the first click, the whole note shows rendered.
  * A click on a rendered link follows it, as in Obsidian, and so does a click with Ctrl held on a link shown as text,
  * see {@link linkFollow}: a note opens in the scripts view at its heading, a heading of the same note scrolls into
@@ -51,6 +53,7 @@
  *   as CodeMirror's Markdown finds them: a heading's up to the next heading of its level or higher,
  *   a list item's from the end of its first line.
  * - `@lezer/highlight`: Gives pieces of the syntax the classes of their look, see `./editor.css`.
+ * - `lucide`, `../icons.ts`: The arrows that open a table over the file.
  * - `../notes/math.ts`: Renders formulas as the scripts view does.
  * - `../notes/markdown.ts`: Renders tables, callouts, code blocks and HTML blocks as the scripts view does, and tells
  *   the punctuation that stays on the line of a formula.
@@ -58,6 +61,7 @@
  *   of a block at the start of its heading.
  * - `./keys.ts`: Tells a spacer line and the indentation of the text of a list item, for where the item ends.
  * - `./round.ts`: Shows a block of a section alone, for a link to its heading.
+ * - `./table.ts`: Opens a table over the file, to edit as a spreadsheet.
  * - `./steps.ts`: Tells a worked Example, whose solution comes unfolded, and whether a section is folded.
  */
 
@@ -67,12 +71,15 @@ import {
     codeFolding, foldable, foldedRanges, foldEffect, foldKeymap, forceParsing, syntaxHighlighting, syntaxTree, unfoldEffect,
 } from "@codemirror/language";
 import { tagHighlighter, tags } from "@lezer/highlight";
+import { Maximize2 } from "lucide";
+import { iconPut } from "../icons.ts";
 import { mathRender } from "../notes/math.ts";
 import { htmlOf, punctuationRule } from "../notes/markdown.ts";
 import { kindRule, noteAddressOf } from "../notes/tree.ts";
 import { columnsOf, spacerRule, textIndentationOf } from "./keys.ts";
 import { roundHeadingShow } from "./round.ts";
 import { foldedAt, workedIs } from "./steps.ts";
+import { tableOpen } from "./table.ts";
 
 import type { Extension, Line, Range, SelectionRange, StateEffectType, Transaction, TransactionSpec } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
@@ -574,45 +581,63 @@ class BlockWidget extends WidgetType {
      * Renders the blocks; once an image of them is loaded, the editor measures its lines again.
      * A table of them wider than the page, like that of `Foods.md`, becomes its own window, see `.markdown table.is-wide`
      * in `../notes/notes.css`, measured again whenever its size changes, like when the window narrows, and the editor
-     * measures its lines again.
+     * measures its lines again; every table of them opens whole over the file by the button at its top right, to
+     * edit as a spreadsheet, see {@link tableOpen}, the button standing in a frame around the table, `table-frame`.
      * A click on a link of them follows it, see {@link addressFollow}, a click on the title of a callout that folds
-     * opens or closes it, as in the scripts view, and the editor measures its lines again; any other click puts
-     * the cursor at the place of their text I clicked, see {@link blockPlaceOf}, so they show as text with the cursor
-     * there, ready to type; a press on a scrollbar of a part too wide or too high, like the table of `Foods.md`,
-     * only scrolls it, as the wheel, the touchpad and a swipe do, which press nothing, so it stays rendered.
+     * opens or closes it, as in the scripts view, and the editor measures its lines again; any other click or tap
+     * leaves them rendered, so I can scroll a table of them, by its scrollbars too, by the wheel, the touchpad or
+     * a swipe; only a double click or double tap puts the cursor at the place of their text I clicked, see
+     * {@link blockPlaceOf}, so they show as text with the cursor there, ready to type.
      * - {@link ResizeObserver}: Calls back once a table is laid out and whenever its size changes.
-     * - `target`: What the press hit, the table itself where it hit a scrollbar, below or right of its rows.
+     * - `runs`: First line of each table of them, see {@link tableRunsOf}.
+     * - `mousedown`: Its default, focusing the editor with the cursor beside them, so they show as text, prevented;
+     *   a scrollbar still drags.
+     * - `dblclick`: Not on a scrollbar, see {@link scrollbarHit}, nor on a link, the title of a callout or the
+     *   button of a table.
      * - `from`: Start of their first line.
+     * - `follow`: Follows the link clicked, here or in a table opened over the file, and tells whether it was one.
      * - `link`: The link clicked, `null` for none.
      */
     toDOM(view: EditorView): HTMLElement {
-        const block: HTMLDivElement = document.createElement("div");
+        const block: HTMLDivElement = blockRender(view, this.markdown, this.links);
         block.className = "cm-rendered";
-        block.innerHTML = htmlOf(this.markdown);
-        block.querySelectorAll<HTMLImageElement>("img[data-link]").forEach((image: HTMLImageElement): void => {
-            const path: string | null = this.links[image.dataset.link ?? ""] ?? null;
-            if (path !== null)
-                image.src = fileAddressOf(path);
-            image.addEventListener("load", (): void => view.requestMeasure());
-        });
-        block.querySelectorAll<HTMLAnchorElement>("a[data-link]").forEach((link: HTMLAnchorElement): void => {
-            if (this.links[link.dataset.link ?? ""] === null)
-                link.classList.add("is-unresolved");
-        });
-        mathRender(block);
-        block.querySelectorAll<HTMLTableElement>("table").forEach((table: HTMLTableElement): void =>
+        const follow = (event: MouseEvent): boolean => {
+            const link: HTMLAnchorElement | null = (event.target as Element).closest("a");
+            if (link === null)
+                return false;
+            event.preventDefault();
+            addressFollow(view, link.dataset.link === undefined ? link.getAttribute("href") ?? ""
+                : `${link.dataset.link}#${link.dataset.heading ?? ""}`, this.links);
+            return true;
+        };
+        block.querySelectorAll<HTMLTableElement>("table").forEach((table: HTMLTableElement, index: number): void => {
+            const frame: HTMLDivElement = document.createElement("div");
+            const open: HTMLButtonElement = document.createElement("button");
+            frame.className = "table-frame";
+            open.className = "table-open";
+            open.type = "button";
+            iconPut(open, Maximize2, "Open table");
+            open.addEventListener("click", (): void => {
+                const from: number = view.posAtDOM(block);
+                const runs: number[] = tableRunsOf(view, from, from + this.length);
+                if (runs[index] !== undefined)
+                    tableOpen(view, view.state.doc.line(runs[index]).from,
+                        (markdown: string): HTMLElement => blockRender(view, markdown, this.links), follow);
+            });
+            table.replaceWith(frame);
+            frame.append(table, open);
             new ResizeObserver((): void => {
                 table.classList.toggle("is-wide", table.scrollWidth > table.clientWidth);
                 view.requestMeasure();
-            }).observe(table));
+            }).observe(table);
+        });
         block.addEventListener("mousedown", (event: MouseEvent): void => {
-            const target: Element = event.target as Element;
-            if (event.button !== 0
-                || (target.scrollWidth > target.clientWidth && event.offsetY >= target.clientHeight)
-                || (target.scrollHeight > target.clientHeight && event.offsetX >= target.clientWidth))
-                return;
-            event.preventDefault();
-            if (target.closest("a, summary") !== null)
+            if (event.button === 0)
+                event.preventDefault();
+        });
+        block.addEventListener("dblclick", (event: MouseEvent): void => {
+            if (event.button !== 0 || scrollbarHit(event)
+                || (event.target as Element).closest("a, summary, button") !== null)
                 return;
             const from: number = view.posAtDOM(block);
             view.focus();
@@ -620,19 +645,14 @@ class BlockWidget extends WidgetType {
         });
         block.addEventListener("toggle", (): void => view.requestMeasure(), true);
         block.addEventListener("click", (event: MouseEvent): void => {
-            const link: HTMLAnchorElement | null = (event.target as Element).closest("a");
-            if (link === null)
-                return;
-            event.preventDefault();
-            addressFollow(view, link.dataset.link === undefined ? link.getAttribute("href") ?? ""
-                : `${link.dataset.link}#${link.dataset.heading ?? ""}`, this.links);
+            follow(event);
         });
         return block;
     }
 
     /**
      * Keeps clicks in the blocks from the editor, which would put the cursor at their start or end:
-     * the blocks place the cursor themselves.
+     * the blocks place the cursor themselves, on a double click.
      */
     override ignoreEvent(): boolean {
         return true;
@@ -648,6 +668,47 @@ class BlockWidget extends WidgetType {
  */
 function fileAddressOf(path: string): string {
     return `/api/notes/file?path=${encodeURIComponent(path)}`;
+}
+
+/**
+ * Renders Markdown as the scripts view does, with its images, formulas and links, a link that leads nowhere faded;
+ * once an image is loaded, the editor measures its lines again. Renders rendered blocks, see {@link BlockWidget},
+ * and a table opened over the file, see `./table.ts`.
+ *
+ * @param view - The editor
+ * @param markdown - The Markdown, whole lines
+ * @param links - Files the links of the note lead to
+ * @returns Element holding it
+ */
+function blockRender(view: EditorView, markdown: string, links: Links): HTMLDivElement {
+    const block: HTMLDivElement = document.createElement("div");
+    block.innerHTML = htmlOf(markdown);
+    block.querySelectorAll<HTMLImageElement>("img[data-link]").forEach((image: HTMLImageElement): void => {
+        const path: string | null = links[image.dataset.link ?? ""] ?? null;
+        if (path !== null)
+            image.src = fileAddressOf(path);
+        image.addEventListener("load", (): void => view.requestMeasure());
+    });
+    block.querySelectorAll<HTMLAnchorElement>("a[data-link]").forEach((link: HTMLAnchorElement): void => {
+        if (links[link.dataset.link ?? ""] === null)
+            link.classList.add("is-unresolved");
+    });
+    mathRender(block);
+    return block;
+}
+
+/**
+ * Tells whether a click hit a scrollbar of a part of rendered blocks too wide or too high, like the table of
+ * `Foods.md`, see {@link BlockWidget}: below or right of its rows, within its box.
+ * - `target`: What the click hit, the table itself where it hit a scrollbar.
+ *
+ * @param event - The click
+ * @returns Whether it hit a scrollbar
+ */
+function scrollbarHit(event: MouseEvent): boolean {
+    const target: Element = event.target as Element;
+    return (target.scrollWidth > target.clientWidth && event.offsetY >= target.clientHeight)
+        || (target.scrollHeight > target.clientHeight && event.offsetX >= target.clientWidth);
 }
 
 /**
@@ -683,8 +744,8 @@ function blockPlaceOf(view: EditorView, from: number, to: number, event: MouseEv
  * the text of the cell, after its `|`, at the letter clicked where the cell's text holds it as it is, like a number,
  * else at its start, like for a formula.
  * - `table`: The table of the cell, and `tables` all tables of the blocks.
- * - `first`, `last`: Numbers of the first and the last line of the blocks.
- * - `runs`: First line of each run of lines that begin with `|`, the tables in the text.
+ * - `last`: Number of the last line of the blocks.
+ * - `runs`: First line of each table of the blocks, see {@link tableRunsOf}.
  * - `row`: Number of the cell's row in its table, the head being 0.
  * - `line`: The line of that row.
  * - `bars`: How many `|` stand before the cell's text so far, escaped ones like in `[[…\|…]]` not counted.
@@ -702,13 +763,8 @@ function cellPlaceOf(view: EditorView, from: number, to: number, cell: HTMLTable
                      caret: CaretPosition | null): number {
     const table: HTMLTableElement = cell.closest("table") as HTMLTableElement;
     const tables: HTMLTableElement[] = [...(table.closest(".cm-rendered")?.querySelectorAll("table") ?? [])];
-    const first: number = view.state.doc.lineAt(from).number;
     const last: number = view.state.doc.lineAt(to).number;
-    const runs: number[] = [];
-    for (let number: number = first; number <= last; number++)
-        if (/^[ \t>]*\|/.test(view.state.doc.line(number).text)
-            && (number === first || !/^[ \t>]*\|/.test(view.state.doc.line(number - 1).text)))
-            runs.push(number);
+    const runs: number[] = tableRunsOf(view, from, to);
     const row: number = [...table.rows].indexOf(cell.parentElement as HTMLTableRowElement);
     if (runs[tables.indexOf(table)] === undefined || row === -1)
         return to;
@@ -724,6 +780,27 @@ function cellPlaceOf(view: EditorView, from: number, to: number, cell: HTMLTable
     const text: string = caret?.offsetNode.nodeType === Node.TEXT_NODE ? caret.offsetNode.textContent ?? "" : "";
     const at: number = text.trim() === "" ? -1 : line.text.slice(start).split(/(?<!\\)\|/)[0].indexOf(text);
     return line.from + start + (at === -1 ? 0 : at + (caret?.offset ?? 0));
+}
+
+/**
+ * Finds the tables in the text of rendered blocks, see {@link BlockWidget}: their runs of lines that begin with `|`,
+ * after the indentation and the `>` of a quote or callout around them, in the order the blocks show them.
+ * - `first`, `last`: Numbers of the first and the last line of the blocks.
+ *
+ * @param view - The editor
+ * @param from - Start of the first line of the blocks
+ * @param to - End of their last line
+ * @returns Number of the first line of each table
+ */
+function tableRunsOf(view: EditorView, from: number, to: number): number[] {
+    const first: number = view.state.doc.lineAt(from).number;
+    const last: number = view.state.doc.lineAt(to).number;
+    const runs: number[] = [];
+    for (let number: number = first; number <= last; number++)
+        if (/^[ \t>]*\|/.test(view.state.doc.line(number).text)
+            && (number === first || !/^[ \t>]*\|/.test(view.state.doc.line(number - 1).text)))
+            runs.push(number);
+    return runs;
 }
 
 /**

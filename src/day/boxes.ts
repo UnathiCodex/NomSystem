@@ -6,7 +6,7 @@
  * see `gifts.ts`, then the boxes one after another like the stations of the day, as real as the log:
  * those with an expected time by their time, like my lectures, a cancelled one faded in its place, then those with
  * a deadline, then those without either, like the chapters I learn today, which the reader puts there itself,
- * see `reader/suggestions.ts`, and the cancelled boxes without time last; on today below them the boxes carried along,
+ * see `reader/suggestions.ts`, and the cancelled boxes without time last; on today the boxes carried along among them,
  * see below.
  * Every box has the same lines, open or done: its category in bold with a colon and what,
  * like `Skill: IN0004_EinfuehrungRechnerarchitektur (VO)`, as an entry of the log does, on one line, ending in `…`
@@ -47,7 +47,8 @@
  * of the last of them takes that push back. Skipped, cancelled by the university and pushed look and work alike,
  * greyed with their icon, and none of them is carried along.
  * A box neither done nor cancelled stays on its day once that is over and is carried
- * along on today: below the list of today, under `Carried along`, each with its day, like `Mon, 12.10.2026 · 00h 45m`,
+ * along on today: in its section after the open boxes of today, without a heading of its own, since its day,
+ * like `Mon, 12.10.2026 · 00h 45m`, says so,
  * the earliest first, see `boxesCarried` in `reader/boxes.ts`, until I do it, dragged into the log or as expected,
  * cancel it with `Skip`, or push it with `Move`, there and on its own day alike, which takes it to tomorrow,
  * the day after today, not the day after its own, see `boxPush` in `reader/boxes.ts`; a click on it changes it,
@@ -720,22 +721,23 @@ function boxElementOf(calendar: Calendar, box: Box, carriedShown: boolean): HTML
 }
 
 /**
- * Sections of the plan, in order, each named as the folder of its plans in `NomManagecalendar`, see `reader/sources.ts`.
+ * Sections of the plan, in order, my projects, my modules and my living, named as the Skill picker names its groups;
+ * their plans lie in `Skilling`, `University` and `Living` of `NomManagecalendar`, see `reader/sources.ts`.
  */
-const sections: string[] = ["Skilling", "University", "Living"];
+const sections: string[] = ["Projects", "Modules", "Living"];
 
 /**
- * Gives the section of the plan a box stands in, as the folder of the plan it lies in, see `calendarFileOf`
+ * Gives the section of the plan a box stands in, by the folder of the plan it lies in, see `calendarFileOf`
  * in `reader/documents.ts`: a box of another category than a skill `Living`, like sleep, a skill box of a module,
- * whose summary links a folder in `NomSkillingmodules`, `University`, any other skill box `Skilling`.
+ * whose summary links a folder in `NomSkillingmodules`, `Modules`, any other skill box `Projects`.
  *
  * @param box - The box
- * @returns Name of its section, like `University`
+ * @returns Name of its section, like `Modules`
  */
 function sectionOf(box: Box): string {
     if (box.category !== skillName)
         return "Living";
-    return box.titleLink.split("/")[0] === modulesFolder ? "University" : "Skilling";
+    return box.titleLink.split("/")[0] === modulesFolder ? "Modules" : "Projects";
 }
 
 /**
@@ -751,37 +753,32 @@ function listedOf(): Box[] {
 /**
  * Shows the plan of the shown day in the list: its birthdays and holidays, then its boxes in their sections,
  * see {@link sections}, each below its name on a thin line, a section without boxes left out, in each its boxes
- * that are not cancelled, then the cancelled ones; a calm hint when the day has none of them;
- * below them, on today, the boxes carried along under `Carried along`, when there are any.
+ * that are not cancelled, then on today those carried along to it, then the cancelled ones; a calm hint when
+ * the day has none of them.
+ * - `listed`: Each box with its element: those of the shown day, then those carried along.
+ * - `inSection`: Whether a box of the list stands in a section and is cancelled or not.
  * - `elements`: Birthdays, holidays, names of sections and boxes as elements, in order.
- * - `boxes`: The boxes as elements, in the order of the boxes of the day.
- * - `dropped`: Whether a box is cancelled.
- * - `inSection`: The boxes of a section as elements, the cancelled ones last.
- * - `carriedElements`: The heading and the boxes carried along, none when there are none.
  *
  * @param calendar - Calendar of the day
  */
 function boxesShow(calendar: Calendar): void {
-    const dropped: (box: Box) => boolean = (box: Box): boolean => box.state === "dropped";
-    const boxes: HTMLElement[] = shown.boxes.map((box: Box): HTMLElement => boxElementOf(calendar, box, false));
+    const listed: [Box, HTMLElement][] = [
+        ...shown.boxes.map((box: Box): [Box, HTMLElement] => [box, boxElementOf(calendar, box, false)]),
+        ...carried.map((box: Box): [Box, HTMLElement] => [box, boxElementOf(calendar, box, true)]),
+    ];
+    const inSection: (section: string, dropped: boolean) => HTMLElement[] = (section: string, dropped: boolean):
+        HTMLElement[] => listed
+        .filter(([box]: [Box, HTMLElement]): boolean => sectionOf(box) === section && (box.state === "dropped") === dropped)
+        .map(([, element]: [Box, HTMLElement]): HTMLElement => element);
     const elements: HTMLElement[] = [
         ...occasionsOf(shown.occasions, giftOpen),
         ...sections.flatMap((section: string): HTMLElement[] => {
-            const inSection: HTMLElement[] = [
-                ...boxes.filter((element: HTMLElement, index: number): boolean =>
-                    sectionOf(shown.boxes[index]) === section && !dropped(shown.boxes[index])),
-                ...boxes.filter((element: HTMLElement, index: number): boolean =>
-                    sectionOf(shown.boxes[index]) === section && dropped(shown.boxes[index])),
-            ];
-            return inSection.length === 0 ? [] : [entryPartOf("h3", "plan-section", [section]), ...inSection];
+            const boxes: HTMLElement[] = [...inSection(section, false), ...inSection(section, true)];
+            return boxes.length === 0 ? [] : [entryPartOf("h3", "plan-section", [section]), ...boxes];
         }),
     ];
-    const carriedElements: HTMLElement[] = carried.length === 0 ? [] : [
-        entryPartOf("h3", "plan-carried", ["Carried along"]),
-        ...carried.map((box: Box): HTMLElement => boxElementOf(calendar, box, true)),
-    ];
     document.getElementById("plan-boxes")?.replaceChildren(...(elements.length > 0 ? elements
-        : [entryPartOf("p", "plan-none", ["Nothing planned"])]), ...carriedElements);
+        : [entryPartOf("p", "plan-none", ["Nothing planned"])]));
 }
 
 /**

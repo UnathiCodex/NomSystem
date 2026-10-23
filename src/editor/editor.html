@@ -9,27 +9,6 @@
     <div class="editor-file">
         <!-- Page of the file as wide as the room beside the tree, with little room left and right -->
         <div class="editor-page">
-            <!-- Head: no name of the file, since the tree shows it; whether its changes are saved, and the save button;
-                 for a section its round in grey, the session it writes into smaller beside it, see round.ts, and the
-                 round check beside the save button; stays on top while scrolling -->
-            <div class="editor-head" id="editor-head">
-                <p class="editor-round" id="editor-round" hidden><span id="editor-round-label"></span><span
-                        class="editor-session" id="editor-session"></span></p>
-                <span class="editor-state" id="editor-state"></span>
-                <!-- A section only: closes its round by hand, see round.ts -->
-                <button type="button" class="editor-close" id="editor-close" hidden></button>
-                <button type="button" class="editor-save" id="editor-save"></button>
-            </div>
-
-            <!-- Today, while no note is open: the date as the day view shows it, and one card per item due,
-                 see today.ts -->
-            <section class="editor-today" id="editor-today" hidden>
-                <div class="day-bar">
-                    <h2 class="day-title"><span class="day-weekday"></span> <span class="day-date"></span></h2>
-                </div>
-                <div class="plan-boxes today-list"></div>
-            </section>
-
             <!-- Overview of a module, once its name or that of one of its chapters in the tree is clicked: the way up
                  small and grey above its name, as the weekday above the date, then its course of the university,
                  one card per type, see course.ts, a thin line, and my own learning, one card per chapter,
@@ -46,6 +25,22 @@
             <!-- Text of the file, CodeMirror inside; `markdown` gives the rendered pieces of a Markdown file the look
                  of the scripts view, `editor-plain` shows any other file as its plain text -->
             <div class="editor-text markdown" id="editor-text"></div>
+        </div>
+
+        <!-- Head: no name of the file, since the tree shows it; the save button at the right edge of the screen, beside
+             the page, and below it for a section the round check, see round.ts; stays in the corner while scrolling -->
+        <div class="editor-head" id="editor-head">
+            <button type="button" class="editor-save" id="editor-save"></button>
+            <!-- A section only: closes its round by hand, see round.ts -->
+            <button type="button" class="editor-close" id="editor-close" hidden></button>
+        </div>
+
+        <!-- Status line at the bottom of the page: for a section its round, and the session it writes into beside it,
+             see round.ts; at its right whether the changes are saved; stays at the bottom while scrolling -->
+        <div class="editor-status" id="editor-status">
+            <p class="editor-round" id="editor-round" hidden><span id="editor-round-label"></span><span
+                    class="editor-session" id="editor-session"></span></p>
+            <span class="editor-state" id="editor-state"></span>
         </div>
     </div>
 </div>

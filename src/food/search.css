@@ -169,10 +169,9 @@ button.food-row {
 }
 
 /* The cross and the check of a form inside a list, like that of a new food or meal: small and flat, as modern
-   layouts keep the buttons of a form inside a page, while a dialog ends with its big ones: one chip high, no frame,
-   as round as every small square button, see `.chip-button` in `../base.css`, the cross grey and plain, the check
-   on the calm grey of what is picked, both a grey lighter under the pointer; well apart from the last value above
-   them */
+   layouts keep the buttons of a form inside a page, while a dialog ends with its big ones: icon buttons one chip
+   square, see `.icon-button` in `../base.css`, both loose, the check, which saves, light instead of grey, as `Save`
+   of a dialog; well apart from the last value above them */
 .food-buttons {
     display: inline-flex;
     flex: none;
@@ -181,17 +180,8 @@ button.food-row {
 }
 
 .food-buttons button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     width: var(--chip-height);
     height: var(--chip-height);
-    padding: 0;
-    border: 0;
-    border-radius: var(--chip-radius);
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
 }
 
 .food-buttons button svg.lucide {
@@ -199,20 +189,8 @@ button.food-row {
     height: 0.9375rem;
 }
 
-.food-buttons button:hover {
-    background: var(--fill);
-    color: var(--text-main);
-}
-
 .food-buttons .food-save {
-    background: var(--chosen);
     color: var(--text-main);
-}
-
-/* The check under the pointer one grey lighter than its calm grey, `--chosen-over`, as `Save` of a dialog,
-   never darker */
-.food-buttons .food-save:hover {
-    background: var(--chosen-over);
 }
 
 /* Below the products how many of how many, small and grey, More at the right */
@@ -228,20 +206,21 @@ button.food-row {
     font-variant-numeric: tabular-nums;
 }
 
-/* More: a round chip, outlined, its word grey, lighter under the pointer, off while the next page loads */
+/* More: loose as every button, one chip high, without frame or ground, its word grey, light under the pointer,
+   never on a grey box, off while the next page loads */
 .food-more-button {
     min-height: var(--chip-height);
     padding: 0 0.75rem;
-    border: 1px solid var(--line);
+    border: 0;
     border-radius: 999px;
-    background: var(--background);
+    background: none;
     color: var(--text-muted);
     font-size: var(--text-size);
     cursor: pointer;
 }
 
 .food-more-button:hover {
-    background: var(--fill);
+    color: var(--text-main);
 }
 
 .food-more-button:disabled {

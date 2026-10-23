@@ -65,10 +65,10 @@
  * A new box of the plan has one more row below them, `Repeat`, closed with its plus beside its name: opened, the box
  * is made once per date of a weekly series instead of once, its rows those of the dialog of a series, see `series.ts`:
  * its days, the first the weekday of the start with its times, `+` beside the name for one more; its first day,
- * that of the start, and its last; the days it leaves out; its extras, single dates besides its weeks; and the boxes
- * it makes, as the reader would write them. Start, end and deadline hide while it is open, since its rows take their
- * place, and `Weekly` with its `×` closes it again, see {@link repeatShow}. Saved, the reader writes one box per date,
- * see `repeatApply` in `reader/course.ts`: a skill box of a numbered type of a module as its series, numbered as
+ * that of the start, and its last; and the boxes it makes, as the reader would write them, which also leave out a day
+ * and add an extra, a single date besides its weeks. Start, end and deadline hide while it is open, since its rows
+ * take their place, and `Weekly` with its `×` closes it again, see {@link repeatShow}. Saved, the reader writes one
+ * box per date, see `repeatApply` in `reader/course.ts`: a skill box of a numbered type of a module as its series, numbered as
  * on the page of the module, any other box each as one made alone; a series that is there already says so, with
  * the pencil that opens it. A box being changed has no `Repeat`; a box of a series of my course says so below
  * its fields, small and grey, like `Series: VO 2`, with the pencil that opens its series, see `series.ts`.
@@ -118,7 +118,7 @@ import {
     skillSave, skillSemesterOf,
 } from "./skill.ts";
 import {
-    boxesRowOf, datesRowOf, daysReady, exceptRowOf, exceptsWithin, extraRowsOf, previewForget, previewSoon, seriesHas,
+    boxesRowOf, datesRowOf, daysReady, exceptsWithin, previewForget, previewSoon, seriesHas,
     seriesOpen, slotRowsOf, weekdayOf,
 } from "./series.ts";
 import { dateOf, dateParse, dateTextOf, timeFieldRead, timeFieldShow, timeOf } from "./times.ts";
@@ -1939,8 +1939,8 @@ function timesShow(opening: EntryOpening): void {
  * Shows the row `Repeat` below the times, see the top of this file, only for a new box: closed, its name with the plus
  * beside it, a click on the row opening it, see {@link repeatOpen}; open, `Weekly` with the `×` that closes it,
  * see {@link repeatClose}, then the rows of its series as every series has them, see `series.ts`: its days, its first
- * and last day, the days it leaves out, its extras and the boxes it makes. While it is open, start, end and deadline
- * hide, off, so the browser asks nothing of them, since its rows take their place.
+ * and last day and the boxes it makes, which also leave out a day and add an extra. While it is open, start, end
+ * and deadline hide, off, so the browser asks nothing of them, since its rows take their place.
  * - `place`: Where the row stands, below the times.
  * - `times`: Start, end and deadline.
  * - `plus`, `empty`, `row`: The plus, the empty value and the row of `Repeat` closed.
@@ -1969,8 +1969,7 @@ function repeatShow(): void {
     }
     const days: Days = repeat;
     place.replaceChildren(addedRowOf("Repeat", "Weekly", repeatClose, ""),
-        ...slotRowsOf(days, repeatChanged, repeatShow), datesRowOf(days, repeatChanged),
-        exceptRowOf(days, repeatChanged), ...extraRowsOf(days, repeatChanged, repeatShow), boxesRowOf());
+        ...slotRowsOf(days, repeatChanged, repeatShow), datesRowOf(days, repeatChanged), boxesRowOf());
     repeatChanged();
 }
 

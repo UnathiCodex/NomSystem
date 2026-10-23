@@ -45,8 +45,9 @@
 }
 
 /* Next step and Show all of a solution one chip high, filled in the soft grey of a card without a frame, as on the
-   phone, with a quarter more room beside their words, one grey lighter under the pointer; Next of the round
-   of a section and the button of the history the same; each keeps its size, its frame there but clear */
+   phone, with a quarter more room beside their words, their words grey, light under the pointer, as of every button
+   with words, never a lighter box; Next of the round of a section and the button of the history the same; each keeps
+   its size, its frame there but clear */
 .steps-buttons button,
 .round-next,
 .task-history > summary {
@@ -55,13 +56,14 @@
     border: 1px solid transparent;
     border-radius: 999px;
     background: var(--fill);
+    color: var(--text-muted);
     cursor: pointer;
 }
 
 .steps-buttons button:hover,
 .round-next:hover,
 .task-history > summary:hover {
-    background: var(--fill-over);
+    color: var(--text-main);
 }
 
 /* Field of my comment on what went wrong, or the hint that saving failed */
@@ -140,8 +142,9 @@ details.task-history a {
 
 /* Check and cross of a task of a section at the right end of the line of its heading, see `judgeOf` in `task.ts`:
    two small buttons a little apart, as high as the heading's line and centred on it, its last line where it wraps,
-   the room for them kept free beside the text, see `.task-heading` in `../editor/editor.css`; the result of today
-   pressed, in the calm grey of what is picked with its soft line, as the round check once on */
+   the room for them kept free beside the text, see `.task-heading` in `../editor/editor.css`; small icon buttons,
+   see `.chip-button` in `../base.css`, the result of today pressed told apart only by its icon light instead of grey,
+   as the round check once on */
 .task-judge {
     position: absolute;
     right: 0;
@@ -153,12 +156,7 @@ details.task-history a {
 }
 
 .task-judge .chip-button[aria-pressed="true"] {
-    border-color: var(--chosen-line);
-    background: var(--chosen);
-}
-
-.task-judge .chip-button[aria-pressed="true"]:enabled:hover {
-    background: var(--chosen-over);
+    color: var(--text-main);
 }
 
 /* Field of my comment after Wrong in the menu below the cross, see `../menu.css`: one control high, as wide as a few

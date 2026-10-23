@@ -1129,8 +1129,8 @@ function sectionsOf(tasks: SkillTask[], today: string, exam: ExamDate, lines: Ro
 }
 
 /**
- * Marks what of each section of a module is due today, which Learn lists and the plan of today holds,
- * see `src/editor/today.ts` and `suggestions.ts`: `task` for a section past round 0 whose Task of today is due,
+ * Marks what of each section of a module is due today, which the plan of today holds,
+ * see `suggestions.ts`: `task` for a section past round 0 whose Task of today is due,
  * or which I tried today; `new` for a section on round 0 I began, by an attempt, a `Next` or its close, and while
  * there is none, for the first section not begun yet, one a day, when its chapter has begun: the first chapter,
  * or one whose chapter before has every section in round {@link chapterOpenRound} or later.

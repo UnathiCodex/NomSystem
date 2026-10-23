@@ -1,5 +1,6 @@
 /* Rows of a weekly series, the same in the dialog of a series, from the day and from the page of a module, and in the row
-   Repeat of the dialog of a new box, see `series.ts`: its days, its extras, the days it leaves out and its boxes */
+   Repeat of the dialog of a new box, see `series.ts`: its days and its boxes, with the days it leaves out and its
+   extras */
 /* A day of a series, like `Thu 18:00 – 19:30 ×`: its weekday short, as the heading of a card writes it, as wide as
    the widest, `Mon` or `Wed`, so the times of several days stand one below the other; then its times and its `×`,
    about two spaces apart, as a day and its time, see `.entry-moment` in `day.css` */
@@ -14,25 +15,9 @@
     flex: 0 0 2.25rem;
 }
 
-/* The days a series leaves out, each with its `×`, then the field to type one more */
-.series-excepts {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.375rem 1.25rem;
-}
-
-.series-except {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.125rem;
-    white-space: nowrap;
-}
-
-/* The `×` of a day, of an extra and of a day left out in the middle of its line, not with its foot on the line
+/* The `×` of a day in the middle of its line, not with its foot on the line
    of the text, which set it higher than the text */
-.series-slot > .cross-quiet,
-.series-except > .cross-quiet {
+.series-slot > .cross-quiet {
     align-self: center;
 }
 
@@ -78,33 +63,82 @@
     color: var(--text-main);
 }
 
-/* The list of the boxes below their line, by month: the name of each month small and grey, as the name of a row,
-   then a row per box on one grid, a row of the tree high: its number, as wide as `30`, its weekday and day, as wide
-   as `Wed 30.12`, grey its times and what a change does to it, then its `⋯` or its state, as in the plan; a box
-   no longer open and a day left out greyed, as a done box of the plan */
+/* The list of the boxes below their line, across the whole row on the columns of the dialog, by month: each month
+   short where the names of the rows stand, small and grey as they, beside its first box, a little room above each
+   month after the first; on a phone above its boxes, as a name above its value. The line and the list stand in the
+   row itself, so the list can take its columns */
+.series-preview {
+    display: contents;
+}
+
 .series-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    row-gap: 0.75rem;
+    align-items: baseline;
     margin-top: 0.375rem;
     font-variant-numeric: tabular-nums;
 }
 
 .series-month {
-    margin: 0.625rem 0 0.125rem;
-    font-size: 0.75rem;
-    color: var(--text-muted);
+    grid-column: 1;
 }
 
-.series-month:first-child {
-    margin-top: 0;
+.series-boxes,
+.series-add,
+.series-draft {
+    grid-column: -2;
 }
 
+.series-boxes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+/* A box of the list, a small grey box across the dialog, as a block of a section in the tree, see `.block-kind`
+   in `../notes/notes.css`, a row of the tree high, its line as high, as the tree's, so its texts stand on one
+   baseline with the month beside it, on one grid: its number, as wide as `30`, its weekday and day,
+   as wide as `Wednesday, 30.12.2026`, grey its times and what a change does to it, then its `⋯` or its state,
+   as in the plan; a box no longer open and a day left out greyed, as a done box of the plan */
 .series-row {
     display: grid;
-    grid-template-columns: 1.75rem 5.25rem minmax(0, 1fr) auto 2.125rem;
+    grid-template-columns: 1.75rem 10.5rem minmax(0, 1fr) auto 2.125rem;
     column-gap: 0.75rem;
-    align-items: center;
-    min-height: var(--tree-row-height);
+    align-items: baseline;
+    padding: 0 0.5em;
+    border-radius: 0.375rem;
+    background: var(--fill);
+    line-height: var(--tree-row-height);
+}
+
+/* `+ Date` below the list, see `addRowOf` in `series.ts`: on the grid of a box but without its grey, the plus where
+   the numbers stand, `Date` where the days stand, grey, lighter under the pointer, as the plus of a list */
+.series-add {
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.series-add:hover {
+    color: var(--text-main);
+}
+
+.series-add svg.lucide {
+    width: 0.9375rem;
+    height: 0.9375rem;
+    vertical-align: -0.125em;
+}
+
+/* The extra being typed, see `draftRowOf` in `series.ts`: its day where the days stand, its times where the times
+   stand, its `×` where the state stands */
+.series-draft > .cross-quiet {
+    align-self: center;
+    justify-self: center;
 }
 
 .series-number {
@@ -131,28 +165,62 @@
    of the course, see `.box-state` in `boxes.css` and `menu.css` */
 .series-row .menu-place {
     display: flex;
+    align-self: center;
     justify-content: center;
 }
 
 .series-row .box-state {
     grid-row: auto;
     grid-column: auto;
+    align-self: center;
     justify-self: center;
     margin: 0;
 }
 
-/* The plan a series writes into, small and grey at the left of the buttons of its dialog */
+/* The plan a series writes into, small and grey at the left of the buttons of its dialog, a link that opens it
+   in the editor of my new system, white under the pointer */
 .series-file {
     align-self: center;
     margin-right: auto;
     font-size: 0.75rem;
     color: var(--text-muted);
+    text-decoration: none;
     overflow-wrap: anywhere;
+}
+
+.series-file:hover {
+    color: var(--text-main);
 }
 
 /* Phone: the plan a series writes into above the buttons, which keep their row */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     .series-file {
+        display: none;
+    }
+}
+
+/* Phone: the times of a box below its day, as on a box of the plan, since its whole day leaves them no room beside
+   it; its grey box one grey lighter, as the box of a block on the row shown in the tree, so it never melts into the
+   grey of its row */
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
+    .series-row {
+        grid-template-columns: 1.75rem minmax(0, 1fr) auto 2.125rem;
+        background: var(--chosen);
+    }
+
+    .series-add {
+        background: none;
+    }
+
+    .series-times,
+    .series-draft > .entry-range {
+        grid-column: 2;
+        grid-row: 2;
+        margin-top: -0.75rem;
+        line-height: 1.75rem;
+    }
+
+    .series-times:empty {
         display: none;
     }
 }

@@ -8,12 +8,21 @@
     min-height: 0;
 }
 
-/* The file: the page of it in the middle, scrolls alone, with at least `--side-room` left and right of the page, as
-   far as content from the rail and from the right edge in every view, so the text never touches the tree or the
-   edge, yet keeps room on the laptop for the buttons at the right of a heading */
+/* The file: the page of it in the middle, scrolls alone, with at least `--side-room` left of the page, as far as
+   content from the rail in every view, so the text never touches the tree, and at its right at least the room
+   of the head, `--head-room`, the save button a gap from the text and half a gap from the right edge of the screen,
+   so the button never covers the text; where the screen has room, as on my PC, the page stays in the middle;
+   page, head and status line in one cell, the head at its right, the status line over the bottom of the page */
 .editor-file {
+    --head-room: calc(var(--control-height) + var(--top-room) + var(--gap));
+    display: grid;
+    grid-template-columns: minmax(var(--side-room), 1fr) minmax(0, var(--reading-width)) minmax(var(--head-room), 1fr);
     overflow-y: auto;
-    padding-inline: var(--side-room);
+}
+
+/* Over the overview of a module no head, so the page has `--side-room` at its right as at its left */
+.editor-on-overview .editor-file {
+    --head-room: var(--side-room);
 }
 
 /* Page of every file exactly my reading width, in the middle, where the screen has room, so the lines of a note
@@ -21,6 +30,7 @@
    like `##`, stands in the room beside it; what is too wide, like a table of `Foods.md`, scrolls sideways on its own;
    its text 16 px in Obsidian's grey, grown with the page; room below the last line, so it can scroll up to the middle */
 .editor-page {
+    grid-area: 1 / 2;
     width: min(var(--reading-width), 100%);
     margin: 0 auto;
     padding-bottom: 50dvh;
@@ -28,52 +38,58 @@
     color: var(--reading-text);
 }
 
-/* Head above the note: its name, the notice and the save button in a row, on top while the note scrolls below it;
-   one control high inside its room, as high as the save button also where it hides, like for a file to read only,
-   so the name and the text stand at the same height in every file and nothing moves when I switch between them;
-   its ground reaching out left and right of the page, so the markup a line shows left of its text, like `##`,
-   hides under it too */
+/* Text of the file as far from the top of the screen as from the tree, `--side-room`, with no band above it */
+.editor-text {
+    padding-top: var(--side-room);
+}
+
+/* Head beside the page, at the right edge of the screen: the save button, below it for a section the round check,
+   level with the areas of the rail and as close below each other, half a gap from the right edge; stays in the
+   corner while the page scrolls */
 .editor-head {
+    grid-area: 1 / 3;
     position: sticky;
-    top: 0;
+    top: calc(var(--top-room) + 0.25rem);
     z-index: 1;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-self: start;
+    justify-self: end;
+    margin-right: var(--top-room);
+}
+
+/* Status line at the bottom of the page, quiet: for a section its round, like `Round 1`, and beside it the session
+   it writes into, like `Sat, 17.10.2026 · 21:40 – 22:40`, see `sessionShow` in `round.ts`, at its right whether
+   the changes are saved, like `Saved 20:41`, `Not saved`, or for a file to read only, all in the small grey
+   of the weekday above the date of the day; one chip high, on the ground of the page reaching out left and right of
+   it, so the text that scrolls below it hides, the markup left of a line, like `##`, too; no room at all while it has
+   nothing to say */
+.editor-status {
+    grid-area: 1 / 2;
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    display: flex;
     gap: var(--gap);
-    box-sizing: content-box;
-    min-height: var(--control-height);
-    padding: 2rem 0 1rem;
+    align-self: end;
+    line-height: var(--chip-height);
+    color: var(--text-muted);
+    font-size: 0.75rem;
     background: var(--background);
     box-shadow: 0 0 0 100vmax var(--background);
     clip-path: inset(0 -100vmax);
 }
 
-/* Notice beside the save button when something went wrong, like `Not saved`, or for a file to read only, grey
-   in the text of controls; it takes the room at the left of the head, empty or not, so the save button stays at
-   its right edge */
 .editor-state {
-    flex: 1;
-    color: var(--text-muted);
-    font-size: var(--control-text);
+    margin-left: auto;
 }
 
-/* Round of a section in the head where the name of a note stands, its round, like `Round 1`, in grey in the text of
-   controls, and beside it the session it writes into, like `Sat, 17.10.2026 · 21:40 – 22:40`, in the small grey of the
-   weekday above the date of the day, on the same line, see `sessionShow` in `round.ts`; the round check and the save
-   button at the right */
 .editor-round {
-    flex: 1;
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
     gap: 0 0.75rem;
     margin: 0;
-    color: var(--text-muted);
-    font-size: var(--control-text);
-}
-
-.editor-session {
-    font-size: 0.75rem;
 }
 
 /* Next below the current block of a section, like Next step of a solution, see `../skill/task.css`, at the right,
@@ -110,181 +126,21 @@
     cursor: default;
 }
 
-/* Buttons of the head, square, one control high, outlined, as the buttons of the dialogs */
+/* Buttons of the head, icon buttons as the areas of the rail, see `.icon-button` and `.areas` in `../base.css`: as big;
+   faint while off, the save button while nothing is to save, the round check of a section, see `round.ts`, before
+   the round's Task has a result and the way down its failure brings back has ended */
 .editor-save,
 .editor-close {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: var(--control-height);
-    height: var(--control-height);
-    padding: 0;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--background);
-    cursor: pointer;
+    width: calc(var(--control-height) - 0.5rem);
+    height: calc(var(--control-height) - 0.5rem);
 }
 
-/* Save button as the plain floppy disk of saving, in the grey of quiet text, without a frame, so the round's check
-   beside it stays the only check: faint while nothing is to save, its full grey while the note has unsaved changes */
-.editor-save {
-    border-color: transparent;
-    color: var(--text-muted);
+.editor-save:not(.unsaved) {
     opacity: 0.4;
 }
 
-.editor-save.unsaved {
-    opacity: 1;
-}
-
-/* The round check of a section, see `round.ts`: square with round corners, as the save button and every button;
-   in the calm grey of a main button once the round's Task has a result, off before: its frame in the grey
-   of every frame, so it still shows as a button, only its check faint */
-.editor-close {
-    border-color: var(--chosen-line);
-    background: var(--chosen);
-}
-
-.editor-close:disabled {
-    border-color: var(--line);
-    background: var(--background);
-    cursor: default;
-}
-
-.editor-close:disabled svg {
-    opacity: 0.4;
-}
-
-/* Under a pointer that hovers, a button one grey lighter, as the buttons of the dialogs, see `.panel-buttons`
-   in `../day/day.css`: the save button from the page's grey, the round check from its calm grey */
-@media (hover: hover) {
-    .editor-save:hover {
-        background: var(--fill);
-    }
-
-    .editor-close:not(:disabled):hover {
-        background: var(--chosen-over);
-    }
-}
-
-/* Today, while no note is open, see `today.ts`: the date as the bar of the day, the entries below it a step apart,
-   as plan and log stand below the bar */
-.editor-today {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    padding-top: var(--top-room);
-}
-
-.editor-today .day-bar {
-    min-height: var(--control-height);
-}
-
-/* An entry of a chapter, as its box in the plan but no button itself: it stays as it is under the pointer, and only
-   its notes are links */
-.today-entry .box-body {
-    cursor: default;
-}
-
-@media (hover: hover) {
-    .today-entry:hover {
-        background: var(--fill);
-    }
-}
-
-/* The middle dot between the parts of its grey line, as the day view draws it, see `.entry-parted` in `day.css` */
-.today-entry .entry-parted::before {
-    content: "·";
-    margin-inline: 0.5em;
-}
-
-/* Notes to do of an entry, each a small box of its own below the grey line, a little lighter than the entry,
-   on one line, ending in `…` where it is too long, a link without its line; lighter still under the pointer;
-   grey once done; each as high as a row of the tree, `--tree-row-height`, and as far from the next, 0.1875rem,
-   see `.tree-file` in `../notes/notes.css` */
-.today-notes {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1875rem;
-    margin-top: 0.625rem;
-}
-
-.today-note {
-    display: block;
-    overflow: hidden;
-    padding: 0 0.75rem;
-    border-radius: var(--chip-radius);
-    background: var(--chosen);
-    line-height: var(--tree-row-height);
-    color: var(--text-main);
-    text-decoration: none;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.today-note:hover {
-    background: var(--chosen-over);
-}
-
-.today-note-done {
-    color: var(--text-muted);
-}
-
-/* `New` beside the name of a section on round 0 boxed as the type words of the Tasks below, see `.block-kind`,
-   a step apart from the name, one grey lighter than its box, so it never melts into it, and one grey darker under
-   the pointer, where the box turns lighter */
-.today-note .block-kind {
-    margin: 0 0 0 0.5em;
-    background: var(--chosen-over);
-}
-
-.today-note:hover .block-kind {
-    background: var(--chosen);
-}
-
-/* The Tasks and Examples due of a section, each on a line of its own below its box, as the tree lists the blocks
-   of a section, see `.tree-children` and `.tree-round` in `../notes/notes.css`: a grey guide line at their left,
-   a step in from the name above, their type words boxed, as `New` is, as wide as `Algorithm`, so the names start
-   in one line, in the grey of what is picked, since a card's grey is the entry's own; the row a grey lighter under
-   the pointer;
-   rows as high and as far apart as the notes above them */
-.today-blocks {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1875rem;
-    margin: 0.1875rem 0 0 1rem;
-    padding-left: 0.25rem;
-    border-left: 2px solid var(--guide);
-}
-
-.today-block {
-    overflow: hidden;
-    padding: 0 0.75rem;
-    border-radius: var(--chip-radius);
-    color: var(--text-main);
-    line-height: var(--tree-row-height);
-    text-decoration: none;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.today-block:hover {
-    background: var(--chosen);
-}
-
-.today-notes .block-kind {
-    min-width: 5.75em;
-    font-size: 0.8em;
-    text-align: center;
-}
-
-.today-block .block-kind {
-    background: var(--chosen);
-}
-
-/* Over Today no head, the date standing where the name of a note stands */
-.editor-on-today .editor-head {
+/* Over the overview of a module no head, the name of the module standing where the name of a note stands */
+.editor-on-overview .editor-head {
     display: none;
 }
 
@@ -338,8 +194,9 @@
     padding-top: 2em;
 }
 
-/* The heading of the block a section shows alone, the first on the page, without the room above a heading, so the
-   block stands right below the round, see `aloneOf` in `round.ts` */
+/* The heading on the first line of the file, and the heading of the block a section shows alone, see `aloneOf`
+   in `round.ts`, the first on the page, without the room above a heading, so the text starts at the top of the page */
+.editor-text.markdown .cm-content > :is(h1, h2, h3, h4):first-child > .cm-line,
 .editor-text.markdown :is(h1, h2) > .cm-line.round-first {
     padding-top: 0;
 }

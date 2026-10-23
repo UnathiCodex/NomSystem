@@ -106,7 +106,7 @@
 }
 
 /* A folded line of a card, like `✓ 1 done`, `11 more · until 01.02.2027` or `10 groups`: a row of its own, grey,
-   lighter under the pointer, its check a letter high */
+   its words light under the pointer, as of every button with words, never on a grey box, its check a letter high */
 .course-fold {
     display: flex;
     align-items: center;
@@ -123,7 +123,6 @@
 }
 
 .course-fold:hover {
-    background: var(--chosen);
     color: var(--text-main);
 }
 
@@ -167,7 +166,8 @@
 }
 
 /* The line of the week of the groups of a type, see `course.ts`: a row of its own, small and grey as the line
-   of a box, its number and its days between the arrows, then the icon back to this week, faded and off on this week */
+   of a box, its number and its days between the arrows, then the icon back to this week, faded and off on this week,
+   all three icon buttons, see `.icon-button` in `../base.css` */
 .course-week {
     display: flex;
     align-items: center;
@@ -180,27 +180,8 @@
 }
 
 .course-week button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 1.75rem;
     height: 1.75rem;
-    padding: 0;
-    border: 0;
-    border-radius: var(--chip-radius);
-    background: none;
-    color: inherit;
-    cursor: pointer;
-}
-
-.course-week button:hover:not(:disabled) {
-    background: var(--chosen);
-    color: var(--text-main);
-}
-
-.course-week button:disabled {
-    opacity: 0.35;
-    cursor: default;
 }
 
 .course-week svg.lucide {

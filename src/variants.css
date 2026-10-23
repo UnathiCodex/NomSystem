@@ -21,22 +21,24 @@
    at the densest of my names, `IN2028_BusinessAnalyticsMachineLearning` with 10.1 px a character, 404 px,
    `--tree-width`, with the same 0.75rem from the rail and from its line around it, as the sidebar of the Claude app, so every module, chapter
    and note fits on its line and the tree takes no more of the page;
-   what is picked or shown, and the main button of a dialog, a calm lighter grey with a soft line, never glaring white,
-   the main button one grey lighter still under the pointer, `--chosen-over`, as far above `--chosen` as `--row-over`
-   above the page;
+   what is picked or shown a calm lighter grey with a soft line, never glaring white;
    the rail and the tree dark, on the page's background, parted from it only by a line; the greys those of the
    dark Claude app;
    a card, filled in the soft grey `--fill` without a frame, as the module and chapter cards of the tree, one grey
-   lighter under the pointer, `--fill-over`, halfway to the calm grey of what is picked, so a tile, a box or a button
-   of the rail lights up without looking picked;
+   lighter under the pointer, `--fill-over`, halfway to the calm grey of what is picked, so a tile or a box lights up
+   without looking picked;
+   the faint round circle behind an icon button under the pointer, as behind an area of the rail, `--icon-over`,
+   the light of the text seen through 8 %, so it is `--fill-over` on the page and as faint a step lighter on a card,
+   like behind the `⋯` of a box;
    a row of the tree under the pointer a grey below a card, `--row-over`, so it never looks like the note shown, which
    has the grey of a card;
    the rail a bar of its own at the left edge of the screen, as VS Code's bar of activities, and everything of an
    area, framed controls like the arrows of a date and content without a frame like the plan of the day, the meals
    of a day or the cards of the tree, one step from it, `--side-room`, a gap and a half, as far as from the right
    edge of the screen, so a control and its content start in one line; the same in every view;
-   plan and log in their own text, `--day-text`, 0.8 of the root, near the most at which the one line
-   of a short entry of the log still fits a quarter hour, on a phone three quarters;
+   plan and log in their own text, `--day-text`, three quarters of the root, so the one line of a short entry
+   of the log fills a quarter hour, whose label keeps `--slot-margin` above and below it, 0.4rem, so half an hour
+   is 1.8rem high and an hour holds two lines of an entry, on a phone as on the computer;
    everything of an area half a gap from the top of the screen, `--top-room`, and the day as far from its bottom,
    so the plan keeps the room.
    Every size is in rem, the root font size, so that one size scales the whole page, also the time grid and the
@@ -55,9 +57,9 @@
     --fill: #2a2a2a;
     --fill-over: #303030;
     --row-over: #272727;
+    --icon-over: color-mix(in srgb, var(--text-main) 8%, transparent);
     --chosen: #454545;
     --chosen-line: #5e5e5e;
-    --chosen-over: #4d4d4d;
     --log: #cfcfcf;
     --reading-text: #dadada;
     --reading-marker: #666666;
@@ -66,7 +68,7 @@
     --reading-link: #acacac;
     --reading-callout: #808080;
     --text-size: 0.9rem;
-    --day-text: 0.8rem;
+    --day-text: 0.75rem;
     --control-text: 1rem;
     --control-height: 2.875rem;
     --chip-height: 1.875rem;
@@ -79,7 +81,7 @@
     --gap: 1rem;
     --side-room: calc(1.5 * var(--gap));
     --top-room: calc(var(--gap) / 2);
-    --slot-margin: 0.5rem;
+    --slot-margin: 0.4rem;
     --radius: 0.75rem;
     --chip-radius: 0.5rem;
     --note-width: 18rem;
@@ -96,7 +98,6 @@
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
     :root {
         font-size: 112.5%;
-        --day-text: 0.75rem;
         --radius: 1rem;
         --chip-radius: 0.625rem;
     }

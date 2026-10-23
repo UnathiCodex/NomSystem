@@ -18,7 +18,7 @@
  * A section, a note with tasks of the semester, shows its round in the same view: its name in words, its round below
  * it, like `Round 1`, then only the block due, `Next` below it, and in the tree, in place of the outline, its blocks
  * with their places, a click opening one, see `./round.ts`.
- * While no note is open, the page shows Today, the items due today as cards, see `./today.ts`; for the address of
+ * While no note is open, the page asks to choose one, since the plan of the day says what is due; for the address of
  * a module or of one of its chapters, which a click on its name in the tree opens, like
  * `/scripts?module=IN2028_BusinessAnalyticsMachineLearning&chapter=01_RegressionAnalysis`, it shows the overview
  * of the module, its whole plan, its course of the university, see `./course.ts`, and where each of its sections
@@ -64,9 +64,7 @@ import { solutionSteps } from "./steps.ts";
 import { taskRows, tasksLoad } from "./tasks.ts";
 import { roundBlocksOf, roundClose, roundHeadingShow, roundNextOf, roundStart } from "./round.ts";
 import { outlineShow, treeShow } from "../notes/tree.ts";
-import { todayShow } from "./today.ts";
 import { overviewShow, overviewTreeShow } from "./overview.ts";
-import { calendarTodayOf } from "../today.ts";
 import { timeOf } from "../day/times.ts";
 import { Check, Save } from "lucide";
 import { iconPut } from "../icons.ts";
@@ -161,8 +159,8 @@ let outlineWait: number = 0;
 
 /**
  * Shows whether the file has changes not yet saved: the save button in its full grey while it has, else faint,
- * in a section too, beside the round check, and beside it a notice when something went wrong, like `Not saved`,
- * or for a file to read only.
+ * in a section too, above the round check, and in the status line at the bottom a notice, like `Saved 20:41`,
+ * or when something went wrong, like `Not saved`, or for a file to read only.
  * - {@link EditorState#sliceDoc}: Gives the text, its lines joined by the line break of the file.
  *
  * @param notice - Notice of the moment, like `Not saved`, empty for none
@@ -177,7 +175,7 @@ function stateShow(notice: string): void {
 /**
  * Saves the file: sends its text to the reader with the text it had when read or saved last;
  * the reader writes it when the file has not changed since, a note of my modules with its change as a diff;
- * then says so beside the button with the time, like `Saved 20:41`, until the next change,
+ * then says so in the status line with the time, like `Saved 20:41`, until the next change,
  * and a note takes the files its links lead to anew, so a link written since works, see `./preview.ts`.
  * Does nothing while a save is on its way, when nothing changed, or for a file to read only.
  * - `reread`: The note read anew with its links, `null` for a file of my new system or when it cannot be read.
@@ -247,8 +245,8 @@ function outlineRefresh(): void {
  * - `indentUnit`: Indents with a tab, as my notes do.
  * - `lineWrapping`: Wraps long lines at the reading width, as the scripts view does, so I see where a line overflows.
  * - `darkTheme`: Draws cursor and selection for a dark page.
- * - `scrollMargins`: Keeps the cursor below the head with the name and the save button, which stays on top
- *   while the file scrolls, so moving up never hides the cursor under it.
+ * - `scrollMargins`: Keeps the cursor above the status line, which stays at the bottom while the file scrolls,
+ *   so moving down never hides the cursor under it.
  * - `solutionSteps`: The steps of an unfolded solution, one at a time, see `./steps.ts`.
  * - `taskRows`: The rows of the tasks of a note, once loaded, see `./tasks.ts`.
  * - `roundStart`: The round of a section, see `./round.ts`, which shows the places of its blocks anew as it moves.
@@ -270,7 +268,7 @@ function extensionsOf(opened: Opened): Extension[] {
         EditorView.lineWrapping,
         EditorView.darkTheme.of(true),
         EditorView.scrollMargins.of((): Partial<Rect> =>
-            ({ top: (document.getElementById("editor-head") as HTMLElement).offsetHeight })),
+            ({ bottom: (document.getElementById("editor-status") as HTMLElement).offsetHeight })),
         ...(opened.markdown ? [livePreview(opened.links), solutionSteps, taskRows, roundStart(outlineRefresh)] : []),
         ...(/\.ics$/i.test(path) ? [icsLook()] : []),
         EditorView.updateListener.of((update: ViewUpdate): void => {
@@ -311,7 +309,7 @@ async function openedRead(file: string): Promise<Opened | null> {
 
 /**
  * Scrolls the note shown to the heading of the address, see `headingShow` in `./preview.ts`, or to the very top of
- * the page, so the round line of a section stays in sight.
+ * the page.
  * - `heading`: The heading of the address, empty for none.
  */
 function addressHeadingShow(): void {
@@ -387,18 +385,14 @@ export async function editorStart(): Promise<void> {
     const close: HTMLButtonElement = document.getElementById("editor-close") as HTMLButtonElement;
     iconPut(close, Check, "Close the round");
     close.addEventListener("click", roundClose);
-    if (path === "" && !plannings) {
+    if (path === "" && !plannings && address.has("module")) {
+        const module: string = address.get("module") ?? "";
+        const chapter: string = address.get("chapter") ?? "";
         save.hidden = true;
-        (document.getElementById("editor") as HTMLElement).classList.add("editor-on-today");
-        if (address.has("module")) {
-            const module: string = address.get("module") ?? "";
-            const chapter: string = address.get("chapter") ?? "";
-            shown.then((): void => overviewTreeShow(tree, module, chapter)).catch((error: unknown): void =>
-                console.error(error));
-            await overviewShow(document.getElementById("editor-overview") as HTMLElement, module);
-            return;
-        }
-        await todayShow(document.getElementById("editor-today") as HTMLElement, calendarTodayOf());
+        (document.getElementById("editor") as HTMLElement).classList.add("editor-on-overview");
+        shown.then((): void => overviewTreeShow(tree, module, chapter)).catch((error: unknown): void =>
+            console.error(error));
+        await overviewShow(document.getElementById("editor-overview") as HTMLElement, module);
         return;
     }
     const opened: Opened | null = path === "" ? null : await openedRead(file);

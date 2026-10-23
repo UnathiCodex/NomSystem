@@ -32,16 +32,6 @@
     line-height: var(--control-height);
 }
 
-/* The name of my modules on top, a link to Today, looking as the heading it is, one grey lighter under the pointer */
-.tree-root-link {
-    color: inherit;
-    text-decoration: none;
-}
-
-.tree-root-link:hover {
-    color: var(--text-muted);
-}
-
 /* Search of my new system below its root, where my modules have their pickers, see `.tree-pick`: the one search
    field of the page, see `.search-field` in `../base.css`, as high as a picker, its magnifier a step in like the name
    on a picker, its words in the text of the tree, the files as far below it as the notes below the picker
@@ -193,6 +183,16 @@
 
 .tree-folder[open] > summary::before {
     rotate: 0deg;
+}
+
+/* Folders of my new system without an arrow, as the rows of my modules, since a click opens or closes one anyway;
+   its files in line with the folder names */
+.is-files .tree-folder > summary::before {
+    content: none;
+}
+
+.is-files .tree-file {
+    padding-left: var(--tree-row-padding);
 }
 
 /* Entries of a folder indented, a grey guide line beside them under the folder's arrow, as in Obsidian */
@@ -572,21 +572,152 @@
 }
 
 /* Table wider than the page its own window, as in Notion or a spreadsheet, marked so by `BlockWidget` in
-   `../editor/preview.ts`: at most as high as the screen below the head of the file, its control and its 3rem of room,
-   see `.editor-head` in `../editor/editor.css`, scrolling both ways inside, so its bar to scroll sideways stands at
-   the bottom of the screen once its top reaches the head, and its head row stays on top while its rows scroll by,
-   with its lines above and below, since the lines of a table scroll away with its rows, a pixel higher, over the line
-   the table draws at its top, so no row shows above it; a table that fits stays as it is, as high as its rows */
+   `../editor/preview.ts`: at most a little more than half the screen high, so below the title of a file and a line
+   of text, like in `Foods.md`, the whole window shows at once, on the laptop too, with both its scrollbars, which
+   a window as high as the screen hid below it; framed by a line in the grey of the table's lines, over the outer
+   lines of its cells, so its edges show where it cuts its columns and rows; scrolling both ways inside, its
+   scrollbars a grey lighter than elsewhere on a track in the grey of a field, so they show before I scroll, and its
+   head row stays on top while its rows scroll by, with its lines above and below, since the lines of a table scroll
+   away with its rows, a pixel higher, over the line the table draws at its top, so no row shows above it; a table
+   that fits stays as it is, as high as its rows */
 .markdown table.is-wide {
-    max-height: calc(100dvh - var(--control-height) - 3rem);
+    max-height: 55dvh;
     overflow-y: auto;
+    outline: 1px solid var(--line);
+    outline-offset: -1px;
 }
 
-.markdown table.is-wide th {
+.markdown table.is-wide::-webkit-scrollbar-track,
+.markdown table.is-wide::-webkit-scrollbar-corner {
+    background: var(--fill);
+}
+
+.markdown table.is-wide::-webkit-scrollbar-thumb {
+    background: var(--chosen-line);
+}
+
+.markdown table.is-wide th,
+.table-viewer th {
     position: sticky;
     top: -1px;
     background: var(--background);
     box-shadow: inset 0 1px var(--line), inset 0 -1px var(--line);
+}
+
+/* Button that opens a table whole over the file, to edit it, see `../editor/table.ts`: its arrows small and grey
+   at the top right of the table, its frame as wide as the table, left of the scrollbar of a table too wide, an icon
+   button, see `.icon-button` in `../base.css`, on the ground of the page, so no text shows through it; shown while
+   the pointer is over the table or the keyboard is on it, always on a screen without a pointer, like a phone */
+.table-frame {
+    position: relative;
+    width: max-content;
+    max-width: 100%;
+}
+
+.table-open {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    padding: 0.25rem;
+    background: var(--background);
+    opacity: 0;
+}
+
+.table-frame:has(> table.is-wide) > .table-open {
+    right: calc(6px + 0.25rem);
+}
+
+.table-open svg.lucide {
+    width: 0.9375rem;
+    height: 0.9375rem;
+}
+
+.table-frame:hover > .table-open,
+.table-open:focus-visible {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .table-open {
+        opacity: 1;
+    }
+}
+
+/* Table opened over the whole page, as Notion opens a page in full, see `../editor/table.ts`: the page in its
+   ground, above everything of it, the rail and the tree too; in its top row the cross that closes it, a small icon
+   button, see `.icon-button` in `../base.css`, at the left, at the right the save button as the editor's, see `.editor-save`
+   in `../editor/editor.css`, as far from the top and the right edge, and left of it whether the changes are saved,
+   small and grey as in the status line of the editor; below them the table, scrolling both ways, its head row on top,
+   see above, its cells as wide as their text, so none breaks its lines, with `--gap` of room around it, and the plus
+   that adds a row below it */
+.table-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-items: center;
+    background: var(--background);
+    color: var(--reading-text);
+    font-size: 1rem;
+}
+
+.table-viewer-close {
+    justify-self: start;
+    margin: var(--top-room) var(--gap);
+    padding: 0.25rem;
+}
+
+.table-viewer-state {
+    justify-self: end;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.table-viewer-save {
+    margin: var(--top-room) var(--top-room) var(--top-room) var(--control-gap);
+}
+
+.table-viewer-body {
+    grid-column: 1 / -1;
+    align-self: stretch;
+    overflow: auto;
+    padding: 0 var(--gap) var(--gap);
+}
+
+.table-viewer table {
+    display: table;
+    max-width: none;
+    overflow: visible;
+}
+
+.table-viewer-add {
+    margin-top: 0.25rem;
+}
+
+/* A cell of it to edit: the text cursor over it, see `../editor/table.ts`; the cell being edited in the grey of
+   a field with a line of the lighter grey of a scrollbar around it, its field without a look of its own, as wide as
+   the text typed, at least as the cell, so the column grows as I type */
+.table-viewer:not(:has(.table-viewer-add[hidden])) :is(td, th) {
+    cursor: text;
+}
+
+.table-viewer :is(td, th):has(> .table-cell-input) {
+    background: var(--fill);
+    outline: 1px solid var(--chosen-line);
+    outline-offset: -1px;
+}
+
+.table-cell-input {
+    field-sizing: content;
+    min-width: 100%;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: none;
+    color: inherit;
+    font: inherit;
 }
 
 .markdown :is(th, td) {

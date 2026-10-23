@@ -42,7 +42,9 @@ export function iconOf(icon: IconNode): SVGElement {
 }
 
 /**
- * Shows an icon in a button in place of its words, which stay as its tooltip and its name for screen readers.
+ * Shows an icon in a button in place of its words, which stay as its tooltip and its name for screen readers;
+ * a button takes the one look of every icon button, see `.icon-button` in `base.css`, a mark that is no button,
+ * like the state of a box that cannot be taken back, keeps its own.
  *
  * @param button - Button, like the save button of a dialog
  * @param icon - Icon, like `Check`
@@ -52,6 +54,8 @@ export function iconPut(button: HTMLElement, icon: IconNode, words: string): voi
     button.replaceChildren(iconOf(icon));
     button.title = words;
     button.setAttribute("aria-label", words);
+    if (button instanceof HTMLButtonElement)
+        button.classList.add("icon-button");
 }
 
 /**
@@ -85,7 +89,7 @@ export function plusPut(button: HTMLElement, words: string): void {
  */
 export function plusTake(button: HTMLElement): void {
     button.replaceChildren();
-    button.classList.remove("plus-quiet");
+    button.classList.remove("plus-quiet", "icon-button");
     button.removeAttribute("aria-label");
     button.removeAttribute("title");
 }

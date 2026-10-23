@@ -7,7 +7,7 @@
  * this round like the Examples. Under the current step stands `Next`: it checks a block without a result off, like
  * theory, and opens the next; a task stays unchecked until my result, which only its check and cross on the line of its
  * heading write, the check going on as `Next` does, see `../skill/task.ts`, so `Next` stays off below an Example or a
- * Task until it has my result, and no block passes without one. In the head stands the round, like
+ * Task until it has my result, and no block passes without one. In the status line at the bottom stands the round, like
  * `Round 1`, see {@link roundLineOf}, and beside it the session it writes into, see {@link sessionShow}; the tree lists
  * every block with its place, see `roundListOf` in `../notes/tree.ts`, and a click there shows a block alone, see
  * {@link roundHeadingShow}.
@@ -49,7 +49,6 @@
  *   and each Right.
  * - `./session.ts`: Makes sure a session of the module runs before `Next` or the round check writes, and gives the
  *   session running, with its day and times written out.
- * - `./today.ts`: Lists what a failure brings back as cards, by {@link fallbacksOf}, so Today agrees with the round.
  * - `../notes/tree.ts`: The places of the blocks the tree shows.
  */
 
@@ -642,8 +641,7 @@ function roundDraw(view: EditorView, shown: Round): void {
 
 /**
  * Opens a block, which then stands alone on the page, its scenes open, or folded for a lookup, see the top of this file,
- * and scrolls the page to its top, so the name of the section and its round stay in sight above it, once the page is
- * drawn anew.
+ * and scrolls the page to its top, so the block starts at the top of the screen, once the page is drawn anew.
  * - {@link requestAnimationFrame}: Waits until the page is drawn next.
  * - `effects`: Unfolding the block, and folding or unfolding its scenes.
  *
@@ -671,7 +669,7 @@ function blockOpen(view: EditorView, block: Block, lookup: boolean): void {
  * from an Example or a Task without my result not at all, see {@link waitingIs};
  * else, once a session of the module runs, see `sessionEnsure` in `./session.ts`, writes into the log which step comes
  * next, so a step without a result before it counts as passed, and shows it; the last step has no `Next`. Where I am
- * moves at once; a line the reader does not take shows in the head, see {@link failShow}; without a session, or once
+ * moves at once; a line the reader does not take shows in the status line, see {@link failShow}; without a session, or once
  * the round was shown anew meanwhile, as after a result, nothing moves.
  * - `steps`, `current`: The steps of the round and the current one.
  * - `following`: The step after it.
@@ -709,7 +707,7 @@ async function roundNext(view: EditorView): Promise<void> {
 }
 
 /**
- * Says in the head that the log did not take where I am, as a save that fails says so beside its button.
+ * Says in the status line that the log did not take where I am, as a save that fails says so.
  *
  * @param error - Why, like a lost connection
  */
@@ -719,9 +717,9 @@ function failShow(error: unknown): void {
 }
 
 /**
- * Shows the round check in the head, see {@link roundClose}: round, unlike the square save button beside it;
+ * Shows the round check in the head, see {@link roundClose}: a loose icon, as the save button above it;
  * on once the round's Task has a result and the way down its failure brings back has ended,
- * see {@link fallbacksOf}, in the calm grey of a main button then, as the save button with changes; off and faint
+ * see {@link fallbacksOf}, in its full grey then, as the save button with changes; off and faint
  * before; hidden once the round is closed or for a round without steps. The way down has ended once its last Example
  * is right, or once it reached the bottom, the Algorithm, which as the last step has no `Next` and passes by the round
  * check itself, so I close the round standing on it: after Wrong on `Task. Food Truck` the check stays off until

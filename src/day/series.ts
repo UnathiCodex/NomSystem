@@ -10,26 +10,30 @@
  * written, like `IN2028_BusinessAnalyticsMachineLearning (VO)`, its type picked for a new one; of a type with groups
  * my group, which made another one makes that group mine from its next session on; then when it meets: its days,
  * each a weekday with its times, `+` beside them for one more, like a lecture on Mondays 14:00–16:00 and on Thursdays
- * 10:00–12:00, numbered across both; its first and last day; the days it leaves out, each with its `×`, a field below
- * to add one; its extras, single dates besides its weeks, each a day with its times, like a session on a Saturday,
- * `+` beside the name for one more; then its boxes, see below; then its place, picked as in the dialog, the rooms
- * of the university among them as I type; what it does online, its platform with the link and the passcode of its
- * meetings; and who I am with. At the bottom the plan it writes into, small and grey, Cancel and Save.
+ * 10:00–12:00, numbered across both; its first and last day; then its boxes, see below, which also leave out a day,
+ * bring it back and add an extra, a single date besides its weeks with its times; then its place, picked as in
+ * the dialog, the rooms of the university among them as I type; what it does online, its platform with the link
+ * and the passcode of its meetings; and who I am with. At the bottom the plan it writes into, small and grey,
+ * Cancel and Save.
  * Nothing is written before I save: then the reader changes only open boxes from today on, a box done, skipped,
  * cancelled or pushed staying as it is, and numbers the series anew, see `seriesApply` in `reader/course.ts`.
  * Enter confirms only its field, Ctrl+Enter saves, Escape and a click beside it cancel.
  *
  * The boxes a series makes stay one calm line, see {@link previewSoon}, as the reader would write them, anew a moment
- * after each change: how many, their first and last day, then grey what to know, like
- * `14 boxes · 19.10.2026 – 01.02.2027 · 1 done · 2 left out`, and what a change does, like `1 new · 2 changed`;
- * a tap on it opens them below it as a list by month, each box one row: its number, `–` for one the university
- * cancelled, its weekday and day, grey its times and what the change does to it, and at its right its `⋯` while
- * open, else the icon of its state as in the plan: the check of one done, the cross of one I skipped, the calendar
- * crossed out of one the university cancelled, the arrow of one I pushed; a day left out stands among them grey.
- * The `⋯` skips a box, marks it cancelled by the university or leaves its day out, an icon takes its state back,
- * and the icon of a day left out brings it back, each only in the form until I save, so a box done is only shown.
- * The row `Repeat` of a new box in the dialog of an entry has the same rows of days, dates, days left out, extras
- * and boxes, see `./categories.ts`.
+ * after each change: how many, then grey what to know, like `14 entries · 1 done · 2 left out`, and what a change
+ * does, like `1 new · 2 changed`, their first and last day already in `Dates`;
+ * a tap on it opens them below it as a list by month, the month short where the names of the rows stand, like
+ * `Oct 2026`, each box one small grey box across the dialog, as a block of a section in the tree: its number, `–` for
+ * one the university cancelled, its weekday and day, like `Friday, 16.10.2026`, grey its times and what the change
+ * does to it, `extra` for an extra, and at its right its `⋯` while open, else the icon of its state as in the plan,
+ * never its word: the check of one done, the cross of one I skipped, the calendar crossed out of one the university
+ * cancelled, the arrow of one I pushed; a day left out stands among them grey, with the icon that brings it back.
+ * The `⋯` skips a box, marks it cancelled by the university or leaves its day out, an extra removed instead, an icon
+ * takes its state back; `+ Date` below the list adds an extra, its day to type, the times of the series to change,
+ * a day left out brought back instead, numbered by its day as every box, see `numbersOf` in `reader/course.ts`;
+ * each only in the form until I save, so a box done is only shown.
+ * The row `Repeat` of a new box in the dialog of an entry has the same rows of days, dates and boxes,
+ * see `./categories.ts`.
  *
  * - `./choices.ts`: The dashboard's own pickers, the rows of a form and the parts of a field.
  * - `./times.ts`: Starts the fields of times and days, and reads and writes times and days.
@@ -40,7 +44,8 @@
  * - `../icons.ts`: Puts the icons into the buttons, the plus that adds and the cross that takes back.
  * - `../menu.ts`: Puts the actions of a box behind one button `⋯`.
  * - `../reader.ts`: Asks the reader.
- * - `lucide`: The icons of the states of a box, of leaving a day out and bringing it back, of Cancel and of Save.
+ * - `lucide`: The icons of the states of a box, of leaving a day out and bringing it back, of `+ Date`, of Cancel
+ *   and of Save.
  * - `./series.css`: Look of the rows, of the boxes and of the dialog.
  */
 
@@ -50,10 +55,10 @@ import { addressOf, labelOf, placeChoiceOf, platformSend } from "./places.ts";
 import { standardAddressOf } from "./entries.ts";
 import { dayOf, skillName } from "../skill/attempts.ts";
 import { elementOf } from "../food/foods.ts";
-import { crossPut, iconPut, plusPut } from "../icons.ts";
+import { crossPut, iconOf, iconPut, plusPut } from "../icons.ts";
 import { menuItemOf, menuOf } from "../menu.ts";
 import { readerAsk } from "../reader.ts";
-import { ArrowRight, CalendarMinus, CalendarOff, CalendarPlus, Check, X } from "lucide";
+import { ArrowRight, CalendarMinus, CalendarOff, CalendarPlus, Check, Plus, X } from "lucide";
 import "./series.css";
 
 import type { Box, BoxState } from "./boxes.ts";
@@ -264,6 +269,11 @@ let previewShown: Node[] = [];
  * Whether the boxes of the form show as a list below their line, opened and closed by a tap on it.
  */
 let listOpened: boolean = false;
+
+/**
+ * The extra being typed below the list of the boxes, see {@link draftRowOf}, `null` while none is.
+ */
+let extraTyped: Extra | null = null;
 
 /**
  * The course whose series the dialog shows, `null` before it opened.
@@ -499,7 +509,7 @@ function removeOf(words: string, click: () => void): HTMLButtonElement {
 }
 
 /**
- * Makes the plus beside the name of a row that adds one more, like a day or an extra of a series.
+ * Makes the plus beside the name of a row that adds one more, like a day of a series.
  * - `plus`: The button.
  *
  * @param words - What it adds, its tooltip, like `Add a day`
@@ -559,56 +569,6 @@ export function slotRowsOf(days: Days, changed: () => void, filled: () => void):
 }
 
 /**
- * Makes the rows of the extras of a series, single dates besides its weeks, each its day and its times, like
- * `14.11.2026 10:00 – 12:00`, with its `×`; `+` beside the name of the first adds one more, with the times of the last
- * day of the series, its day to type; without extras one row of the name with its plus, which a tap anywhere on it
- * adds, as the row `Repeat` of a new box.
- * - `plus`: The plus.
- * - `add`: Adds an extra.
- * - `day`: The field of the day of an extra.
- *
- * @param days - The days of the series
- * @param changed - Tells the form that the series changed
- * @param filled - Builds the rows of the form anew from what it holds, once an extra is added or taken back
- * @returns The rows
- */
-export function extraRowsOf(days: Days, changed: () => void, filled: () => void): HTMLElement[] {
-    const add: () => void = (): void => {
-        const last: Slot | Extra = days.extras[days.extras.length - 1] ?? days.slots[days.slots.length - 1];
-        days.extras.push({ day: "", start: last.start, end: last.end });
-        filled();
-        [...document.querySelectorAll<HTMLInputElement>(".series-extra .date-field")].at(-1)?.focus();
-    };
-    const plus: HTMLButtonElement = plusOf("Add an extra date", add);
-    if (days.extras.length === 0) {
-        const empty: HTMLElement = elementOf("div", "entry-empty", "");
-        const row: HTMLElement = rowOf("Extra", empty);
-        row.querySelector(".entry-name")?.append(plus);
-        row.addEventListener("click", (event: MouseEvent): void => {
-            if (event.target !== plus && !plus.contains(event.target as Node))
-                add();
-        });
-        return [row];
-    }
-    return days.extras.map((extra: Extra, index: number): HTMLElement => {
-        const value: HTMLElement = elementOf("div", "series-slot series-extra", "");
-        const day: HTMLInputElement = fieldOf("date-field", extra.day === "" ? "" : dateTextOf(extra.day),
-            "Day of the extra", (typed: string): void => {
-                extra.day = typed;
-            }, changed);
-        day.placeholder = "dd.mm.yyyy";
-        value.append(day, timesRangeOf(extra, changed), removeOf("Remove the extra date", (): void => {
-            days.extras.splice(index, 1);
-            filled();
-        }));
-        const row: HTMLElement = rowOf(index === 0 ? "Extra" : "", value);
-        if (index === 0)
-            row.querySelector(".entry-name")?.append(plus);
-        return row;
-    });
-}
-
-/**
  * Makes the row of the first and the last day of a series, side by side with the range dash between them,
  * like `19.10.2026 – 01.02.2027`, each saying grey `dd.mm.yyyy` while empty, as the day of a deadline.
  * - `first`, `last`: The fields of the first and the last day.
@@ -632,57 +592,6 @@ export function datesRowOf(days: Days, changed: () => void): HTMLElement {
 }
 
 /**
- * Makes the row of the days a series leaves out: each day with its `×`, which takes it back, then a field to type one
- * more, like `24.12.2026`, taken once it is a day, by Enter or as I leave the field; a day taken stands among
- * the others by its date, before the field, which stays where it is, the cursor in it.
- * - `excepts`: The days and the field.
- * - `input`: The field.
- * - `show`: Shows the days left out before the field, in order.
- * - `take`: Takes the day typed.
- *
- * @param days - The days of the series
- * @param changed - Tells the form that the series changed
- * @returns The row
- */
-export function exceptRowOf(days: Days, changed: () => void): HTMLElement {
-    const excepts: HTMLElement = elementOf("div", "series-excepts", "");
-    const input: HTMLInputElement = fieldOf("date-field", "", "Day to leave out", (): void => {}, (): void => {});
-    const show: () => void = (): void => {
-        excepts.querySelectorAll(".series-except").forEach((except: Element): void => except.remove());
-        input.before(...days.excepts.map((day: string): HTMLElement => {
-            const except: HTMLElement = elementOf("span", "series-except", dateTextOf(day));
-            except.append(removeOf(`Remove ${dateTextOf(day)}`, (): void => {
-                days.excepts = days.excepts.filter((other: string): boolean => other !== day);
-                show();
-                changed();
-            }));
-            return except;
-        }));
-    };
-    const take: () => void = (): void => {
-        const day: string | null = dateParse(input.value);
-        if (day === null || days.excepts.includes(day))
-            return;
-        days.excepts = [...days.excepts, day].sort();
-        input.value = "";
-        show();
-        changed();
-    };
-    input.placeholder = "dd.mm.yyyy";
-    input.addEventListener("keydown", (event: KeyboardEvent): void => {
-        if (event.key !== "Enter" || event.ctrlKey)
-            return;
-        event.preventDefault();
-        event.stopPropagation();
-        take();
-    });
-    input.addEventListener("change", take);
-    excepts.append(input);
-    show();
-    return rowOf("Except", excepts);
-}
-
-/**
  * Makes the row of the boxes a series makes, showing what it showed last until the reader answers again,
  * see {@link previewSoon}.
  * - `preview`: The place of the boxes.
@@ -703,6 +612,7 @@ export function previewForget(): void {
     previewsAsked += 1;
     previewShown = [];
     listOpened = false;
+    extraTyped = null;
 }
 
 /**
@@ -717,10 +627,10 @@ function countOf(count: number, words: string): string[] {
 }
 
 /**
- * Makes the line of the boxes of a series, see the top of this file: the fold arrow, how many there are, white,
- * then grey their first and last day, what a change does to them, while the series had boxes before, a box removed
- * by a day left out counted only as left out, and how many are done, skipped, cancelled, pushed and left out; a tap
- * opens and closes the list below it.
+ * Makes the line of the boxes of a series, see the top of this file: the fold arrow, how many entries there are,
+ * white, then grey what a change does to them, while the series had boxes before, a box removed by a day left out
+ * counted only as left out, and how many are done, skipped, cancelled, pushed and left out; a tap opens and closes
+ * the list below it.
  * - `kept`: The boxes after the change, without those it removes.
  * - `had`: Whether the series had boxes before.
  * - `counted`: How many boxes of a state or a change there are.
@@ -739,7 +649,6 @@ function summaryOf(planned: Planned[], left: string[], toggle: () => void): HTML
         planned.filter(keep).length;
     const line: HTMLButtonElement = document.createElement("button");
     const parts: string[] = [
-        ...kept.length === 0 ? [] : [`${dateTextOf(kept[0].day)} – ${dateTextOf(kept[kept.length - 1].day)}`],
         ...had ? countOf(counted((box: Planned): boolean => box.change === "new"), "new") : [],
         ...countOf(counted((box: Planned): boolean => box.change === "changed"), "changed"),
         ...countOf(counted((box: Planned): boolean => box.change === "removed" && !left.includes(box.day)),
@@ -753,7 +662,7 @@ function summaryOf(planned: Planned[], left: string[], toggle: () => void): HTML
     line.type = "button";
     line.className = "series-summary";
     line.setAttribute("aria-expanded", String(listOpened));
-    line.append(elementOf("span", "series-count", `${kept.length} ${kept.length === 1 ? "box" : "boxes"}`),
+    line.append(elementOf("span", "series-count", `${kept.length} ${kept.length === 1 ? "entry" : "entries"}`),
         ...parts.map((part: string): HTMLElement => elementOf("span", "entry-parted", part)));
     line.addEventListener("click", toggle);
     return line;
@@ -783,8 +692,8 @@ function markOf(icon: IconNode, word: string, back: (() => void) | null): HTMLEl
 /**
  * Makes what stands at the right of the row of a box, see the top of this file: its `⋯` while open or new, with `Skip`
  * and `Cancel` for a box I may give another state, and `Leave out` for one from today on whose day the series makes,
- * a day of its slots or an extra, which leaves that day out, an extra taken back; else the icon of its state, see
- * {@link markOf}, a skipped or cancelled box taking it back, a pushed or done box only shown.
+ * a day of its slots, which leaves that day out, or `Remove` for an extra, which takes it back; else the icon of its
+ * state, see {@link markOf}, a skipped or cancelled box taking it back, a pushed or done box only shown.
  * - `today`: Today's date.
  * - `extra`: The extra on its day, `undefined` for none.
  * - `stated`: Gives the state to a box, until I save.
@@ -815,7 +724,7 @@ function actionOf(box: Planned, preview: Preview): HTMLElement {
             menuItemOf(CalendarOff, "Cancel", stated("university"))] : [],
         ...box.day >= today && !box.pushed && (extra !== undefined || days.slots
             .some((slot: Slot): boolean => slot.weekday === weekdayOf(box.day)))
-            ? [menuItemOf(CalendarMinus, "Leave out", (): void => {
+            ? [menuItemOf(CalendarMinus, extra !== undefined ? "Remove" : "Leave out", (): void => {
                 if (extra !== undefined)
                     days.extras.splice(days.extras.indexOf(extra), 1);
                 else
@@ -829,15 +738,25 @@ function actionOf(box: Planned, preview: Preview): HTMLElement {
 }
 
 /**
+ * Writes the day of a box or of a day left out in the list whole, with its year.
+ *
+ * @param day - The day, like `2026-10-16`
+ * @returns Text like `Friday, 16.10.2026`
+ */
+function listDayOf(day: string): string {
+    return `${weekdayNameOf(weekdayOf(day), true)}, ${dateTextOf(day)}`;
+}
+
+/**
  * Makes the row of a box in the list, see the top of this file: its number, `–` for one the university cancelled,
- * none for one the change removes,
- * its weekday and day, like `Mon 26.10`, grey its times, like `14:00 – 16:00`, and what the change does to it,
- * like `new`, but while every box is new, then its `⋯` or its state, see {@link actionOf}; greyed while not open,
- * done, skipped, cancelled or removed, as in the plan.
+ * none for one the change removes, its weekday and day, see {@link listDayOf}, grey its times, like `14:00 – 16:00`,
+ * and what the change does to it, like `new`, but while every box is new, `extra` after it for an extra, like
+ * `new extra`, `pushed` for a box I pushed whose `⋯` stands in place of the arrow, then its `⋯` or its state,
+ * see {@link actionOf}; greyed while not open, done, skipped, cancelled or removed, as in the plan.
  * - `row`: The row.
  * - `start`: Its start, `null` for none.
  * - `times`: Its times.
- * - `word`: What the change does to it, or that I pushed it.
+ * - `word`: What the change does to it, that I pushed it, and that it is an extra.
  *
  * @param box - The box
  * @param had - Whether the series had boxes before, so a new one says so
@@ -851,19 +770,21 @@ function boxRowOf(box: Planned, had: boolean, preview: Preview): HTMLElement {
     if (start !== null && box.minutes !== null)
         times = `${times} – ${timeOf(new Date(start.getTime() + box.minutes * 60 * 1000))}`;
     let word: string = box.change === "renumbered" || (box.change === "new" && !had) ? "" : box.change;
-    if (word === "" && box.pushed)
+    if (word === "" && box.pushed && box.editable && box.state === "open")
         word = "pushed";
+    if (preview.days.extras.some((extra: Extra): boolean => extra.day === box.day))
+        word = word === "" ? "extra" : `${word} extra`;
     row.classList.toggle("series-row-faded", box.change === "removed"
         || ["done", "dropped", "university"].includes(box.state));
     row.append(elementOf("span", "series-number", box.change === "removed" ? "" : box.number.replace("NONE", "–")),
-        elementOf("span", "series-day", `${weekdayNameOf(weekdayOf(box.day), false)} ${dateTextOf(box.day).slice(0, 5)}`),
-        elementOf("span", "series-times", times), elementOf("span", "series-word", word), actionOf(box, preview));
+        elementOf("span", "series-day", listDayOf(box.day)), elementOf("span", "series-times", times),
+        elementOf("span", "series-word", word), actionOf(box, preview));
     return row;
 }
 
 /**
- * Makes the row of a day left out in the list: no number, its weekday and day, `left out` grey, and at its right
- * the icon that brings it back until I save.
+ * Makes the row of a day left out in the list: no number, its weekday and day, see {@link listDayOf}, and at its
+ * right the icon that brings it back until I save, which says it is left out.
  * - `row`: The row.
  *
  * @param day - The day, like `2026-12-28`
@@ -872,9 +793,8 @@ function boxRowOf(box: Planned, had: boolean, preview: Preview): HTMLElement {
  */
 function leftRowOf(day: string, preview: Preview): HTMLElement {
     const row: HTMLElement = elementOf("div", "series-row series-row-faded", "");
-    row.append(elementOf("span", "series-number", ""),
-        elementOf("span", "series-day", `${weekdayNameOf(weekdayOf(day), false)} ${dateTextOf(day).slice(0, 5)}`),
-        elementOf("span", "series-times", ""), elementOf("span", "series-word", "left out"),
+    row.append(elementOf("span", "series-number", ""), elementOf("span", "series-day", listDayOf(day)),
+        elementOf("span", "series-times", ""), elementOf("span", "series-word", ""),
         markOf(CalendarPlus, "Bring back", (): void => {
             preview.days.excepts = preview.days.excepts.filter((other: string): boolean => other !== day);
             preview.filled();
@@ -883,20 +803,91 @@ function leftRowOf(day: string, preview: Preview): HTMLElement {
 }
 
 /**
+ * Makes the line `+ Date` below the list, the plus where the numbers stand, `Date` where the days stand, which opens
+ * the row of an extra to type, see {@link draftRowOf}, with the times of the last day of the series.
+ * - `add`: The line, a button.
+ * - `plus`: The place of the plus.
+ * - `last`: The last day of the series.
+ *
+ * @param preview - How the boxes show
+ * @param redraw - Shows the list anew
+ * @returns The line
+ */
+function addRowOf(preview: Preview, redraw: () => void): HTMLButtonElement {
+    const add: HTMLButtonElement = document.createElement("button");
+    const plus: HTMLElement = elementOf("span", "series-number", "");
+    add.type = "button";
+    add.className = "series-row series-add";
+    add.setAttribute("aria-label", "Add a date");
+    plus.append(iconOf(Plus));
+    add.append(plus, elementOf("span", "series-day", "Date"));
+    add.addEventListener("click", (): void => {
+        const last: Slot = preview.days.slots[preview.days.slots.length - 1];
+        extraTyped = { day: "", start: last.start, end: last.end };
+        redraw();
+        document.querySelector<HTMLInputElement>(".series-draft .date-field")?.focus();
+    });
+    return add;
+}
+
+/**
+ * Makes the row of an extra being typed below the list, as a box stands in it: its day, grey `dd.mm.yyyy` while
+ * empty, its times, those of the series at first, and its `×`, which takes it back. Typed enough, a day with a start
+ * before its end, it joins the series as the focus leaves the row, by Enter too, and stands in the list by its day;
+ * a day left out brought back instead; one taken back by its `×` never, though its field loses the focus as the list
+ * shows anew.
+ * - `row`: The row.
+ * - `day`: The field of its day.
+ *
+ * @param extra - The extra being typed
+ * @param preview - How the boxes show
+ * @param redraw - Shows the list anew
+ * @returns The row
+ */
+function draftRowOf(extra: Extra, preview: Preview, redraw: () => void): HTMLElement {
+    const row: HTMLElement = elementOf("div", "series-row series-draft", "");
+    const day: HTMLInputElement = fieldOf("date-field", extra.day === "" ? "" : dateTextOf(extra.day),
+        "Day of the extra", (typed: string): void => {
+            extra.day = typed;
+        }, (): void => {});
+    day.placeholder = "dd.mm.yyyy";
+    row.append(elementOf("span", "series-number", ""), day, timesRangeOf(extra, (): void => {}),
+        elementOf("span", "series-word", ""), removeOf("Take the date back", (): void => {
+            extraTyped = null;
+            redraw();
+        }));
+    row.addEventListener("focusout", (event: FocusEvent): void => {
+        if (extraTyped !== extra || row.contains(event.relatedTarget as Node | null) || extra.day === ""
+            || !timesReady(extra))
+            return;
+        extraTyped = null;
+        if (preview.days.excepts.includes(extra.day))
+            preview.days.excepts = preview.days.excepts.filter((other: string): boolean => other !== extra.day);
+        else
+            preview.days.extras.push(extra);
+        preview.filled();
+    });
+    return row;
+}
+
+/**
  * Makes the list of the boxes of a series, see the top of this file: the boxes and the days left out by their days,
- * under the name of each month, like `October 2026`, small and grey; a box a day left out removes stands as that day,
- * once.
+ * each month short at the left, like `Oct 2026`, where the names of the rows stand, its boxes beside it; a box a day
+ * left out removes stands as that day, once; below them `+ Date`, see {@link addRowOf}, or the extra being typed,
+ * see {@link draftRowOf}.
  * - `had`: Whether the series had boxes before.
  * - `items`: Each box and day left out with its place in time and its row.
  * - `list`: The list.
  * - `month`: The month of the row before, empty before the first.
+ * - `boxes`: The boxes of that month.
  *
  * @param planned - The boxes as the reader would write them, removed ones too
  * @param left - The days left out
  * @param preview - How the boxes show
+ * @param redraw - Shows the list anew
  * @returns The list
  */
-function boxListOf(planned: Planned[], left: string[], preview: Preview): HTMLElement {
+function boxListOf(planned: Planned[], left: string[], preview: Preview, redraw: () => void): HTMLElement {
     const had: boolean = planned.some((box: Planned): boolean => box.id !== "");
     const items: [string, HTMLElement][] = [
         ...planned.filter((box: Planned): boolean => !(box.change === "removed" && left.includes(box.day)))
@@ -905,14 +896,18 @@ function boxListOf(planned: Planned[], left: string[], preview: Preview): HTMLEl
     ].sort((first: [string, HTMLElement], second: [string, HTMLElement]): number => first[0].localeCompare(second[0]));
     const list: HTMLElement = elementOf("div", "series-list", "");
     let month: string = "";
+    let boxes: HTMLElement = list;
     items.forEach(([moment, row]: [string, HTMLElement]): void => {
         const name: string = new Date(`${moment.slice(0, 10)}T12:00:00`)
-            .toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-        if (name !== month)
-            list.append(elementOf("p", "series-month", name));
+            .toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+        if (name !== month) {
+            boxes = elementOf("div", "series-boxes", "");
+            list.append(elementOf("span", "entry-name series-month", name), boxes);
+        }
         month = name;
-        list.append(row);
+        boxes.append(row);
     });
+    list.append(extraTyped === null ? addRowOf(preview, redraw) : draftRowOf(extraTyped, preview, redraw));
     return list;
 }
 
@@ -961,7 +956,7 @@ async function previewShow(form: HTMLElement, preview: Preview): Promise<void> {
         previewShown = [summaryOf(planned, left, (): void => {
             listOpened = !listOpened;
             draw();
-        }), ...listOpened ? [boxListOf(planned, left, preview)] : []];
+        }), ...listOpened ? [boxListOf(planned, left, preview, draw)] : []];
         placeOf()?.replaceChildren(...previewShown);
     };
     draw();
@@ -1299,13 +1294,14 @@ function groupRowOf(form: Form): HTMLElement {
 
 /**
  * Builds the rows of the form of a series anew from what it holds, see the top of this file: what it is, its group
- * while its type has groups, then, unless it makes a group mine, its days, its first and last day, the days it leaves
- * out and its extras; its boxes; then, unless it makes a group mine, its place, what it does online and its people;
- * below them the hint when the reader does not take it, then the plan it writes into, Cancel and Save.
+ * while its type has groups, then, unless it makes a group mine, its days and its first and last day; its boxes; then, unless it makes a group mine, its place, what it does online and its people;
+ * below them the hint when the reader does not take it, then the plan it writes into, a link that opens it
+ * in the editor of my new system, like `/edit?file=NomManagecalendar%2FUniversity%2F…_Plan.ics`, Cancel and Save.
  * - `form`: The form.
  * - `rows`: Its rows.
  * - `fields`: The rows together.
  * - `buttons`: The plan, Cancel and Save.
+ * - `file`: The link of the plan.
  * - `cancel`, `save`: Cancel and Save.
  * - `hint`: The hint when the reader does not take it.
  */
@@ -1315,8 +1311,7 @@ function formFill(): void {
     const form: Form = typing;
     const mine: boolean = mineMade(form);
     const rows: HTMLElement[] = [seriesRowOf(form), ...groupsOf(form.type).length > 0 ? [groupRowOf(form)] : [],
-        ...mine ? [] : [...slotRowsOf(form, formChanged, formFill), datesRowOf(form, formChanged),
-            exceptRowOf(form, formChanged), ...extraRowsOf(form, formChanged, formFill)],
+        ...mine ? [] : [...slotRowsOf(form, formChanged, formFill), datesRowOf(form, formChanged)],
         boxesRowOf(),
         ...mine ? [] : [placeRowOf(form), onlineRowOf(form), withRowOf(form)]];
     const fields: HTMLElement = elementOf("div", "panel-form", "");
@@ -1332,7 +1327,9 @@ function formFill(): void {
     iconPut(save, Check, "Save");
     const hint: HTMLElement = elementOf("p", "panel-error", "Saving failed");
     hint.hidden = true;
-    buttons.append(elementOf("span", "series-file", course?.file ?? ""), cancel, save);
+    const file: HTMLAnchorElement = elementOf("a", "series-file", course?.file ?? "") as HTMLAnchorElement;
+    file.href = `/edit?file=${encodeURIComponent(`NomManagecalendar/${course?.file ?? ""}`)}`;
+    buttons.append(file, cancel, save);
     formElementOf().replaceChildren(fields, hint, buttons);
     formChanged();
 }

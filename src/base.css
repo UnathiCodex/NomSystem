@@ -117,9 +117,8 @@ body {
 /* Areas at the left edge of the screen, the rail: a bar of its own, as VS Code's bar of activities, one control wide
    and the whole height, touching the edge, in the ground of the page, set apart from it only by a thin grey line
    at its right, as Linear and Obsidian do; in it the areas one below the other, in its middle, the first one level
-   with the bar of an area, half a gap and the room of a button from the top; each a round button with its icon, its name
-   as tooltip, see `main.ts`, frameless, grey, lighter under the pointer, the shown one marked only by its light icon,
-   without a ground of its own */
+   with the bar of an area, half a gap and the room of a button from the top; each an icon button, see `.icon-button`
+   below, its name as tooltip, see `main.ts`, the shown one marked only by its light icon, without a ground of its own */
 .areas {
     position: fixed;
     inset: 0 auto 0 0;
@@ -134,17 +133,8 @@ body {
 }
 
 .areas a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     width: calc(var(--control-height) - 0.5rem);
     height: calc(var(--control-height) - 0.5rem);
-    border-radius: 50%;
-    color: var(--text-muted);
-}
-
-.areas a:hover {
-    background: var(--fill-over);
 }
 
 /* Icons of the areas, written in `index.html`, drawn as Lucide draws its icons */
@@ -160,14 +150,70 @@ body {
     color: var(--text-main);
 }
 
+/* Icon button, the one look of every button with an icon in place of its words, see `iconPut` in `icons.ts`, as the
+   areas of the rail, the arrows of a day, `⋯`, a pencil, a cross, a plus or the cross of a dialog: a loose icon,
+   frameless, without a ground, in the grey of quiet text, faint and off while it cannot be used; under a pointer
+   that hovers its icon light on a faint round circle behind it, `--icon-over`, never a box, as Material draws the
+   state of a button on a layer of its own: in the middle of the button, as wide as it, but never smaller than
+   the icon with a little room around it nor bigger than the circle of an area of the rail, so it is round whatever
+   the shape of the button, and its button keeps its size and place; not on a phone, where a tap would leave a
+   circle lit; round, so the line of the keyboard's focus around it is round too, or a pill around a narrow one.
+   Its place sets only its size and where it needs it its own grey, like the check of a dialog, which saves, light
+   instead of grey, so the main button of a place reads at a glance */
+.icon-button {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.icon-button::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: -1;
+    width: clamp(1.5rem, 100%, calc(var(--control-height) - 0.5rem));
+    aspect-ratio: 1;
+    border-radius: 50%;
+    translate: -50% -50%;
+}
+
+.icon-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+@media (hover: hover) {
+    .icon-button::before {
+        transition: background-color 150ms;
+    }
+
+    .icon-button:not(:disabled):hover {
+        color: var(--text-main);
+    }
+
+    .icon-button:not(:disabled):hover::before {
+        background: var(--icon-over);
+        transition: background-color 150ms 100ms;
+    }
+}
+
 /* The bar of a day, in the day and in the food view alike, see `day/day.html` and `food/food.html`: the date
    between its arrows, the icon back to today beside it, in one line, a control gap apart, going on below where
-   the bar has no room for all, never over the edge; the arrows square, one control high with round corners, filled
-   in the soft grey of a card without a frame, like the cards of the phone, one grey lighter under the pointer; the
-   date big and semibold, the weekday small and grey above it, not bold, like `Tuesday` over `13.10.2026`, see
+   the bar has no room for all, never over the edge; the arrows icon buttons one control square, see `.icon-button`;
+   the date big and semibold, the weekday small and grey above it, not bold, like `Tuesday` over `13.10.2026`, see
    `dayShow` in `day/day.ts`, both lines close, so they fit the height of the arrows, its width and room set by its
-   view; the icon back to today small, without frame, grey, lighter under the pointer, on today faded and off, so the
-   bar looks the same on every day. The month to pick a day from takes the size of its date too, see `day/month.html` */
+   view; the icon back to today a small icon button, on today faded and off, so the bar looks the same on every day.
+   The month to pick a day from takes the size of its date too, see `day/month.html` */
 .day-bar {
     display: flex;
     flex-wrap: wrap;
@@ -176,20 +222,8 @@ body {
 }
 
 .day-arrow {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     min-width: var(--control-height);
     min-height: var(--control-height);
-    padding: 0;
-    border: 1px solid transparent;
-    border-radius: var(--radius);
-    background: var(--fill);
-    cursor: pointer;
-}
-
-.day-arrow:hover {
-    background: var(--fill-over);
 }
 
 .day-title {
@@ -219,49 +253,14 @@ body {
 }
 
 .day-today {
-    display: inline-flex;
-    align-items: center;
     padding: 0.25rem;
-    border: 0;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
 }
 
-.day-today:enabled:hover {
-    color: var(--text-main);
-}
-
-.day-today:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-
-/* A small button one chip high and as wide, with an icon in place of its word, which is its tooltip, the same
-   everywhere: every + that adds a box or an entry of the day, and the − and + of the water; square with slightly
-   round corners, filled like a card, no frame, one grey lighter under the pointer, faded while it cannot be used */
+/* A small icon button one chip high and as wide, see `.icon-button`, the same everywhere: the + of a box or an entry
+   of the day on a phone, the − of the water and the check and the cross of a task */
 .chip-button {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
     width: var(--chip-height);
     height: var(--chip-height);
-    padding: 0;
-    border: 1px solid transparent;
-    border-radius: var(--chip-radius);
-    background: var(--fill);
-    color: var(--text-main);
-    cursor: pointer;
-}
-
-.chip-button:enabled:hover {
-    background: var(--fill-over);
-}
-
-.chip-button:disabled {
-    opacity: 0.4;
-    cursor: default;
 }
 
 /* Buttons and fields take the page font and colour, in the text of controls */
@@ -293,35 +292,15 @@ textarea {
 }
 
 /* The one plus that adds one more and the one cross that takes a value back, wherever they stand, like for a meal,
-   a food, a chapter, a type or a document, see `plusPut` and `crossPut` in `icons.ts`: small and grey, without
-   border, lighter under the pointer, their icons a little smaller than those of buttons, so they stay quiet beside
-   their text */
+   a food, a chapter, a type or a document, see `plusPut` and `crossPut` in `icons.ts`: small icon buttons, see
+   `.icon-button`, their icons a little smaller than those of buttons, so they stay quiet beside their text */
 .plus-quiet {
-    display: inline-flex;
-    align-items: center;
     align-self: flex-start;
     padding: 0.25rem 0;
-    border: 0;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
 }
 
 .cross-quiet {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
     padding: 0 0.25rem;
-    border: 0;
-    background: none;
-    color: var(--text-muted);
-    font: inherit;
-    cursor: pointer;
-}
-
-.plus-quiet:hover,
-.cross-quiet:hover {
-    color: var(--text-main);
 }
 
 .plus-quiet svg.lucide,

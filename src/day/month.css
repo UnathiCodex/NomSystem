@@ -51,25 +51,10 @@
     gap: 0.25rem;
 }
 
-/* Arrows of the month: flat, without frame, one chip high and as round as every small square button, see `.chip-button`
-   in `base.css`, grey, a grey lighter under the pointer */
+/* Arrows of the month: icon buttons one chip square, see `.icon-button` in `base.css` */
 .month-buttons button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     width: var(--chip-height);
     height: var(--chip-height);
-    padding: 0;
-    border: 0;
-    border-radius: var(--chip-radius);
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-}
-
-.month-buttons button:hover {
-    background: var(--fill);
-    color: var(--text-main);
 }
 
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {

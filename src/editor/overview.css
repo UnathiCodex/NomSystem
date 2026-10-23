@@ -1,4 +1,4 @@
-/* Overview of a module where a note stands, see `overview.ts`, laid out as Today: the way up and the name
+/* Overview of a module where a note stands, see `overview.ts`, laid out as the day: the way up and the name
    as the date of the day, then the chapters a step apart, as plan and log stand below the bar of the day */
 .editor-overview {
     display: flex;

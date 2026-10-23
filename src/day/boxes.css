@@ -1,5 +1,5 @@
 /* Boxes of the plan: each its lines and at their right its buttons behind one `⋯`, or its state once no longer open,
-   on a card filled in soft grey, above them the birthdays and holidays of the day, below them those carried along
+   on a card filled in soft grey, above them the birthdays and holidays of the day, among them those carried along
    to today */
 /* Boxes of the plan one below the other, a little apart, so the plan looks airy, filling the height above its +
    and scrolling alone when they are many; their scrollbar in the middle of the gap to the log, not against them,
@@ -159,7 +159,7 @@
 /* State of a box no longer open, at its right in the place of `⋯`, see `stateOf` in `boxes.ts`: one small grey icon,
    like the cross of a skipped box, as large as `⋯` and in its place, centred on the line of what the box is
    like it, see `.box-actions` and `.menu-more` in `menu.css`; without frame or ground, so it lies on its box;
-   a button where a click takes it back, lighter under the pointer like `⋯` */
+   where a click takes it back, an icon button like `⋯`, see `.icon-button` in `../base.css` */
 .box-state {
     display: inline-flex;
     flex: none;
@@ -167,25 +167,12 @@
     justify-content: center;
     width: 2.125rem;
     height: 2rem;
-    padding: 0;
-    border: 0;
-    border-radius: 999px;
-    background: none;
     color: var(--text-muted);
 }
 
 .box-state svg.lucide {
     width: 0.875rem;
     height: 0.875rem;
-}
-
-button.box-state {
-    cursor: pointer;
-}
-
-button.box-state:hover {
-    background: var(--chosen);
-    color: var(--text-main);
 }
 
 /* Done box: its lines as when it was open, only greyed, its what grey too */
@@ -217,15 +204,6 @@ button.box-state:hover {
     margin-top: 0;
 }
 
-/* Heading of the boxes carried along to today, below the list of today:
-   small and grey like the heads of plan and log, with room above it */
-.plan-carried {
-    margin: 0.5rem 0 0;
-    font-size: 0.875rem;
-    font-weight: 400;
-    color: var(--text-muted);
-}
-
 /* Buttons of a box behind one plain button `⋯` at its right, see `menu.css`, on the computer as on a phone,
    centred on the line of what the box is, as its state is: log, move, cancel and skip */
 .box-actions {
@@ -245,14 +223,9 @@ button.box-state:hover {
     margin-right: -0.75rem;
 }
 
-/* Phone: a box a little closer around its lines, its button `⋯` and its state a finger's width to hit, and its place
+/* Phone: a box as on the computer, its button `⋯` and its state a finger's width to hit, and its place
    on a line of its own */
 @media (max-width: 900px), (pointer: coarse) and (max-width: 1366px) {
-    .box {
-        gap: 0.625rem;
-        padding: 1.125rem;
-    }
-
     /* The boxes on a phone over the whole width of the screen, without room for a scrollbar, which lies over them */
     .plan-boxes {
         margin-right: 0;
